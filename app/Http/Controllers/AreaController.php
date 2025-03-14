@@ -41,7 +41,7 @@ class AreaController extends Controller
             return $area;
         });
 
-        return Inertia::render('cadastro/areas', [
+        return Inertia::render('cadastro/areas/index', [
             'areas' => $areas
         ]);
     }
@@ -82,10 +82,10 @@ class AreaController extends Controller
             ]);
         }
 
-        Area::create($validated);
+        $area = Area::create($validated);
 
         return redirect()->route('cadastro.areas')
-            ->with('message', 'Área criada com sucesso.');
+            ->with('success', "A área {$area->name} foi criada com sucesso.");
     }
 
     /**
@@ -138,7 +138,7 @@ class AreaController extends Controller
         $area->update($validated);
 
         return redirect()->route('cadastro.areas')
-            ->with('message', 'Área atualizada com sucesso.');
+            ->with('success', "A área {$area->name} foi atualizada com sucesso.");
     }
 
     /**
@@ -146,9 +146,10 @@ class AreaController extends Controller
      */
     public function destroy(Area $area)
     {
+        $areaName = $area->name;
         $area->delete();
 
         return redirect()->route('cadastro.areas')
-            ->with('message', 'Área excluída com sucesso.');
+            ->with('success', "A área {$areaName} foi excluída com sucesso.");
     }
 }

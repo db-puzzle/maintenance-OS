@@ -10,7 +10,7 @@ class FactoriesController extends Controller
 {
     public function index()
     {
-        $factories = Factory::all();
+        $factories = Factory::paginate(8);
 
         return Inertia::render('cadastro/fabricas', [
             'factories' => $factories
@@ -34,17 +34,18 @@ class FactoriesController extends Controller
             'gps_coordinates' => 'nullable|string|max:255',
         ]);
 
-        Factory::create($validated);
+        $factory = Factory::create($validated);
 
         return redirect()->route('cadastro.fabricas')
-            ->with('success', 'Fábrica criada com sucesso.');
+            ->with('success', "A fábrica {$factory->name} foi criada com sucesso.");
     }
 
     public function destroy(Factory $factory)
     {
+        $factoryName = $factory->name;
         $factory->delete();
 
-        return back();
+        return back()->with('success', "A fábrica {$factoryName} foi excluída com sucesso.");
     }
 
     public function edit(Factory $factory)
@@ -69,6 +70,6 @@ class FactoriesController extends Controller
         $factory->update($validated);
 
         return redirect()->route('cadastro.fabricas')
-            ->with('success', 'Fábrica atualizada com sucesso.');
+            ->with('success', "A fábrica {$factory->name} foi atualizada com sucesso.");
     }
 } 

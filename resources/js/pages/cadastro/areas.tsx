@@ -62,6 +62,12 @@ export default function Areas({ areas }: Props) {
                 setSelectedArea(null);
                 setConfirmationText('');
             },
+            onError: (errors) => {
+                setIsDeleting(false);
+                setSelectedArea(null);
+                setConfirmationText('');
+                alert(errors.message || 'Não foi possível excluir a área.');
+            },
         });
     };
 

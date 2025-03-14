@@ -75,7 +75,6 @@ export default function CreateFactory() {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Remove o hífen antes de enviar
         const formData = {
             ...data,
             zip_code: data.zip_code.replace(/\D/g, '')

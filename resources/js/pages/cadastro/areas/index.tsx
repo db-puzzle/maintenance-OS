@@ -12,15 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from '@inertiajs/react';
 import { toast } from "sonner";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
 
 interface PageProps {
     [key: string]: any;
@@ -31,63 +22,68 @@ interface PageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Fábricas',
-        href: '/cadastro/fabricas',
+        title: 'Áreas',
+        href: '/cadastro/areas',
     },
 ];
 
-interface Factory {
+interface Area {
     id: number;
     name: string;
-    street: string | null;
-    number: string | null;
-    city: string | null;
-    state: string | null;
-    zip_code: string | null;
-    gps_coordinates: string | null;
+    factory_id: number | null;
+    parent_area_id: number | null;
+    factory?: {
+        id: number;
+        name: string;
+    } | null;
+    parent_area?: {
+        id: number;
+        name: string;
+        factory?: {
+            id: number;
+            name: string;
+        } | null;
+    } | null;
+    closest_factory?: {
+        id: number;
+        name: string;
+    } | null;
     created_at: string;
     updated_at: string;
 }
 
 interface Props {
-    factories: {
-        data: Factory[];
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-    };
+    areas: Area[];
 }
 
-export default function Fabricas({ factories }: Props) {
+export default function Areas({ areas = [] }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
-    const [selectedFactory, setSelectedFactory] = useState<Factory | null>(null);
+    const [selectedArea, setSelectedArea] = useState<Area | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
-    const page = usePage<PageProps>();
-    const flash = page.props.flash;
+    const { flash } = usePage<PageProps>().props;
 
     useEffect(() => {
         if (flash?.success) {
-            toast.success("Operação realizada com sucesso!", {
+            toast.success("Sucesso!", {
                 description: flash.success,
             });
         }
     }, [flash]);
 
-    const handleDelete = (factory: Factory) => {
+    const handleDelete = (area: Area) => {
         setIsDeleting(true);
-        router.delete(route('cadastro.fabricas.destroy', factory.id), {
+        router.delete(route('cadastro.areas.destroy', area.id), {
             onFinish: () => {
                 setIsDeleting(false);
-                setSelectedFactory(null);
+                setSelectedArea(null);
                 setConfirmationText('');
             },
             onError: (errors) => {
                 setIsDeleting(false);
-                setSelectedFactory(null);
+                setSelectedArea(null);
                 setConfirmationText('');
-                toast.error("Erro ao excluir fábrica", {
-                    description: errors.message || 'Não foi possível excluir a fábrica.',
+                toast.error("Erro ao excluir área", {
+                    description: errors.message || 'Não foi possível excluir a área.',
                 });
             },
         });
@@ -97,18 +93,18 @@ export default function Fabricas({ factories }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Fábricas" />
+            <Head title="Áreas" />
 
             <CadastroLayout>
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
                         <HeadingSmall 
-                            title="Fábricas" 
-                            description="Gerencie as fábricas do sistema" 
+                            title="Áreas" 
+                            description="Gerencie as áreas do sistema" 
                         />
                         <Button asChild>
-                            <Link href={route('cadastro.fabricas.create')}>
-                                Nova Fábrica
+                            <Link href={route('cadastro.areas.create')}>
+                                Nova Área
                             </Link>
                         </Button>
                     </div>
@@ -118,29 +114,23 @@ export default function Fabricas({ factories }: Props) {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Nome</TableHead>
-                                    <TableHead>Endereço</TableHead>
-                                    <TableHead>Cidade</TableHead>
-                                    <TableHead>Estado</TableHead>
-                                    <TableHead>CEP</TableHead>
-                                    <TableHead>Coordenadas GPS</TableHead>
+                                    <TableHead>Fábrica</TableHead>
+                                    <TableHead>Área Pai</TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {factories.data.map((factory) => (
-                                    <TableRow key={factory.id}>
-                                        <TableCell>{factory.name}</TableCell>
+                                {areas.map((area) => (
+                                    <TableRow key={area.id}>
+                                        <TableCell>{area.name}</TableCell>
+                                        <TableCell>{area.closest_factory?.name || '-'}</TableCell>
                                         <TableCell>
-                                            {factory.street}, {factory.number}
+                                            {area.parent_area_id && area.parent_area ? area.parent_area.name : '-'}
                                         </TableCell>
-                                        <TableCell>{factory.city}</TableCell>
-                                        <TableCell>{factory.state}</TableCell>
-                                        <TableCell>{factory.zip_code}</TableCell>
-                                        <TableCell>{factory.gps_coordinates}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
-                                                    <Link href={route('cadastro.fabricas.edit', factory.id)}>
+                                                    <Link href={route('cadastro.areas.edit', area.id)}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
@@ -149,15 +139,15 @@ export default function Fabricas({ factories }: Props) {
                                                         <Button 
                                                             variant="ghost" 
                                                             size="icon"
-                                                            onClick={() => setSelectedFactory(factory)}
+                                                            onClick={() => setSelectedArea(area)}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </DialogTrigger>
                                                     <DialogContent>
-                                                        <DialogTitle>Você tem certeza que deseja excluir esta fábrica?</DialogTitle>
+                                                        <DialogTitle>Confirmar Exclusão</DialogTitle>
                                                         <DialogDescription>
-                                                            Uma vez que a fábrica for excluída, todos os seus recursos e dados serão permanentemente excluídos. 
+                                                            Você tem certeza que deseja excluir a área "{area.name}"? 
                                                             Esta ação não pode ser desfeita.
                                                         </DialogDescription>
                                                         <div className="grid gap-2 py-4">
@@ -185,9 +175,9 @@ export default function Fabricas({ factories }: Props) {
                                                             <Button 
                                                                 variant="destructive" 
                                                                 disabled={isDeleting || !isConfirmationValid}
-                                                                onClick={() => selectedFactory && handleDelete(selectedFactory)}
+                                                                onClick={() => selectedArea && handleDelete(selectedArea)}
                                                             >
-                                                                {isDeleting ? 'Excluindo...' : 'Excluir fábrica'}
+                                                                {isDeleting ? 'Excluindo...' : 'Excluir área'}
                                                             </Button>
                                                         </DialogFooter>
                                                     </DialogContent>
@@ -198,37 +188,6 @@ export default function Fabricas({ factories }: Props) {
                                 ))}
                             </TableBody>
                         </Table>
-                    </div>
-
-                    <div className="flex justify-center">
-                        <Pagination>
-                            <PaginationContent>
-                                <PaginationItem>
-                                    <PaginationPrevious 
-                                        href={route('cadastro.fabricas', { page: factories.current_page - 1 })}
-                                        className={factories.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
-                                    />
-                                </PaginationItem>
-                                
-                                {Array.from({ length: factories.last_page }, (_, i) => i + 1).map((page) => (
-                                    <PaginationItem key={page}>
-                                        <PaginationLink 
-                                            href={route('cadastro.fabricas', { page })}
-                                            isActive={page === factories.current_page}
-                                        >
-                                            {page}
-                                        </PaginationLink>
-                                    </PaginationItem>
-                                ))}
-
-                                <PaginationItem>
-                                    <PaginationNext 
-                                        href={route('cadastro.fabricas', { page: factories.current_page + 1 })}
-                                        className={factories.current_page === factories.last_page ? 'pointer-events-none opacity-50' : ''}
-                                    />
-                                </PaginationItem>
-                            </PaginationContent>
-                        </Pagination>
                     </div>
                 </div>
             </CadastroLayout>

@@ -38,5 +38,11 @@ class Area extends Model
                 throw new \Exception('Uma área não pode pertencer a uma fábrica e a outra área simultaneamente.');
             }
         });
+
+        static::deleting(function ($area) {
+            if ($area->childAreas()->exists()) {
+                throw new \Exception('Não é possível excluir uma área que possui subáreas.');
+            }
+        });
     }
 }

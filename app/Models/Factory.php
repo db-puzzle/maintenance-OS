@@ -17,6 +17,17 @@ class Factory extends Model
         'gps_coordinates'
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($factory) {
+            if ($factory->areas()->exists()) {
+                throw new \Exception('Não é possível excluir uma fábrica que possui áreas.');
+            }
+        });
+    }
+
     public function areas(): HasMany
     {
         return $this->hasMany(Area::class);
