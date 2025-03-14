@@ -8,12 +8,25 @@ use Inertia\Inertia;
 
 class FactoriesController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $factories = Factory::paginate(8);
+        $search = $request->input('search');
+
+        $factories = Factory::query()
+            ->when($search, function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('city', 'like', "%{$search}%")
+                        ->orWhere('state', 'like', "%{$search}%");
+                });
+            })
+            ->paginate(8);
 
         return Inertia::render('cadastro/fabricas', [
-            'factories' => $factories
+            'factories' => $factories,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 

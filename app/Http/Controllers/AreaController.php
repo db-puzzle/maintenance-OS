@@ -28,12 +28,25 @@ class AreaController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $search = $request->input('search');
+
         $areas = Area::with(['factory', 'parentArea' => function($query) {
             $query->with('factory')
                 ->select('id', 'name', 'factory_id', 'parent_area_id');
         }])
+        ->when($search, function ($query, $search) {
+            $query->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhereHas('factory', function ($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('parentArea', function ($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%");
+                    });
+            });
+        })
         ->orderBy('name')
         ->paginate(8)
         ->through(function ($area) {
@@ -41,8 +54,11 @@ class AreaController extends Controller
             return $area;
         });
 
-        return Inertia::render('cadastro/areas/index', [
-            'areas' => $areas
+        return Inertia::render('cadastro/areas', [
+            'areas' => $areas,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 

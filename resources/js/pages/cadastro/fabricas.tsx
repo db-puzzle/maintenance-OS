@@ -57,12 +57,16 @@ interface Props {
         per_page: number;
         total: number;
     };
+    filters: {
+        search: string;
+    };
 }
 
-export default function Fabricas({ factories }: Props) {
+export default function Fabricas({ factories, filters }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedFactory, setSelectedFactory] = useState<Factory | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
+    const [search, setSearch] = useState(filters.search || '');
     const page = usePage<PageProps>();
     const flash = page.props.flash;
 
@@ -73,6 +77,21 @@ export default function Fabricas({ factories }: Props) {
             });
         }
     }, [flash]);
+
+    useEffect(() => {
+        const searchTimeout = setTimeout(() => {
+            router.get(
+                route('cadastro.fabricas'),
+                { 
+                    search,
+                    page: factories.current_page
+                },
+                { preserveState: true, preserveScroll: true }
+            );
+        }, 300);
+
+        return () => clearTimeout(searchTimeout);
+    }, [search]);
 
     const handleDelete = (factory: Factory) => {
         setIsDeleting(true);
@@ -106,6 +125,18 @@ export default function Fabricas({ factories }: Props) {
                             title="Fábricas" 
                             description="Gerencie as fábricas do sistema" 
                         />
+                    </div>
+
+                    <div className="flex justify-between items-center gap-4">
+                        <div className="flex-1">
+                            <Input
+                                type="search"
+                                placeholder="Buscar fábricas..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="max-w-sm"
+                            />
+                        </div>
                         <Button asChild>
                             <Link href={route('cadastro.fabricas.create')}>
                                 Nova Fábrica
@@ -205,7 +236,10 @@ export default function Fabricas({ factories }: Props) {
                             <PaginationContent>
                                 <PaginationItem>
                                     <PaginationPrevious 
-                                        href={route('cadastro.fabricas', { page: factories.current_page - 1 })}
+                                        href={route('cadastro.fabricas', { 
+                                            page: factories.current_page - 1,
+                                            search: search 
+                                        })}
                                         className={factories.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
@@ -213,7 +247,10 @@ export default function Fabricas({ factories }: Props) {
                                 {Array.from({ length: factories.last_page }, (_, i) => i + 1).map((page) => (
                                     <PaginationItem key={page}>
                                         <PaginationLink 
-                                            href={route('cadastro.fabricas', { page })}
+                                            href={route('cadastro.fabricas', { 
+                                                page,
+                                                search: search
+                                            })}
                                             isActive={page === factories.current_page}
                                         >
                                             {page}
@@ -223,7 +260,10 @@ export default function Fabricas({ factories }: Props) {
 
                                 <PaginationItem>
                                     <PaginationNext 
-                                        href={route('cadastro.fabricas', { page: factories.current_page + 1 })}
+                                        href={route('cadastro.fabricas', { 
+                                            page: factories.current_page + 1,
+                                            search: search
+                                        })}
                                         className={factories.current_page === factories.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>

@@ -10,14 +10,27 @@ use Illuminate\Support\Facades\Log;
 
 class MachineTypeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         Log::info('MachineTypeController@index called');
-        $machineTypes = MachineType::paginate(8);
+        $search = $request->input('search');
+
+        $machineTypes = MachineType::query()
+            ->when($search, function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            })
+            ->paginate(8);
+
         Log::info('Machine types:', ['count' => $machineTypes->count(), 'data' => $machineTypes->toArray()]);
 
         return Inertia::render('cadastro/tipos-maquina', [
             'machineTypes' => $machineTypes,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 

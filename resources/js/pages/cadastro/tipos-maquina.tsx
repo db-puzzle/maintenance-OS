@@ -52,12 +52,16 @@ interface Props {
         per_page: number;
         total: number;
     };
+    filters: {
+        search: string;
+    };
 }
 
-export default function TiposMaquina({ machineTypes }: Props) {
+export default function TiposMaquina({ machineTypes, filters }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedMachineType, setSelectedMachineType] = useState<MachineType | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
+    const [search, setSearch] = useState(filters.search || '');
     const { flash } = usePage<PageProps>().props;
 
     useEffect(() => {
@@ -67,6 +71,21 @@ export default function TiposMaquina({ machineTypes }: Props) {
             });
         }
     }, [flash]);
+
+    useEffect(() => {
+        const searchTimeout = setTimeout(() => {
+            router.get(
+                route('cadastro.tipos-maquina'),
+                { 
+                    search,
+                    page: machineTypes.current_page
+                },
+                { preserveState: true, preserveScroll: true }
+            );
+        }, 300);
+
+        return () => clearTimeout(searchTimeout);
+    }, [search]);
 
     const handleDelete = (machineType: MachineType) => {
         setIsDeleting(true);
@@ -100,6 +119,18 @@ export default function TiposMaquina({ machineTypes }: Props) {
                             title="Tipos de Máquina" 
                             description="Gerencie os tipos de máquina do sistema" 
                         />
+                    </div>
+
+                    <div className="flex justify-between items-center gap-4">
+                        <div className="flex-1">
+                            <Input
+                                type="search"
+                                placeholder="Buscar tipos de máquina..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="max-w-sm"
+                            />
+                        </div>
                         <Button asChild>
                             <Link href={route('cadastro.tipos-maquina.create')}>
                                 Novo Tipo de Máquina
@@ -189,7 +220,10 @@ export default function TiposMaquina({ machineTypes }: Props) {
                             <PaginationContent>
                                 <PaginationItem>
                                     <PaginationPrevious 
-                                        href={route('cadastro.tipos-maquina', { page: machineTypes.current_page - 1 })}
+                                        href={route('cadastro.tipos-maquina', { 
+                                            page: machineTypes.current_page - 1,
+                                            search: search 
+                                        })}
                                         className={machineTypes.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
@@ -197,7 +231,10 @@ export default function TiposMaquina({ machineTypes }: Props) {
                                 {Array.from({ length: machineTypes.last_page }, (_, i) => i + 1).map((page) => (
                                     <PaginationItem key={page}>
                                         <PaginationLink 
-                                            href={route('cadastro.tipos-maquina', { page })}
+                                            href={route('cadastro.tipos-maquina', { 
+                                                page,
+                                                search: search
+                                            })}
                                             isActive={page === machineTypes.current_page}
                                         >
                                             {page}
@@ -207,7 +244,10 @@ export default function TiposMaquina({ machineTypes }: Props) {
 
                                 <PaginationItem>
                                     <PaginationNext 
-                                        href={route('cadastro.tipos-maquina', { page: machineTypes.current_page + 1 })}
+                                        href={route('cadastro.tipos-maquina', { 
+                                            page: machineTypes.current_page + 1,
+                                            search: search 
+                                        })}
                                         className={machineTypes.current_page === machineTypes.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
