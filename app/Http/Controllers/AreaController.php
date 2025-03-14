@@ -35,8 +35,8 @@ class AreaController extends Controller
                 ->select('id', 'name', 'factory_id', 'parent_area_id');
         }])
         ->orderBy('name')
-        ->get()
-        ->map(function ($area) {
+        ->paginate(8)
+        ->through(function ($area) {
             $area->closest_factory = $this->findClosestFactory($area);
             return $area;
         });

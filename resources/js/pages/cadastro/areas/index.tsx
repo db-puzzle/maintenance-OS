@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from '@inertiajs/react';
 import { toast } from "sonner";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
 interface PageProps {
     [key: string]: any;
@@ -53,10 +54,16 @@ interface Area {
 }
 
 interface Props {
-    areas: Area[];
+    areas: {
+        data: Area[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
 }
 
-export default function Areas({ areas = [] }: Props) {
+export default function Areas({ areas }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedArea, setSelectedArea] = useState<Area | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
@@ -120,7 +127,7 @@ export default function Areas({ areas = [] }: Props) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {areas.map((area) => (
+                                {areas.data.map((area) => (
                                     <TableRow key={area.id}>
                                         <TableCell>{area.name}</TableCell>
                                         <TableCell>{area.closest_factory?.name || '-'}</TableCell>
@@ -188,6 +195,37 @@ export default function Areas({ areas = [] }: Props) {
                                 ))}
                             </TableBody>
                         </Table>
+                    </div>
+
+                    <div className="flex justify-center">
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious 
+                                        href={route('cadastro.areas', { page: areas.current_page - 1 })}
+                                        className={areas.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                    />
+                                </PaginationItem>
+                                
+                                {Array.from({ length: areas.last_page }, (_, i) => i + 1).map((page) => (
+                                    <PaginationItem key={page}>
+                                        <PaginationLink 
+                                            href={route('cadastro.areas', { page })}
+                                            isActive={page === areas.current_page}
+                                        >
+                                            {page}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                ))}
+
+                                <PaginationItem>
+                                    <PaginationNext 
+                                        href={route('cadastro.areas', { page: areas.current_page + 1 })}
+                                        className={areas.current_page === areas.last_page ? 'pointer-events-none opacity-50' : ''}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
                     </div>
                 </div>
             </CadastroLayout>
