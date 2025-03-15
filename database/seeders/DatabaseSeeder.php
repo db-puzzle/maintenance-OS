@@ -22,6 +22,9 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             FactorySeeder::class,
+            AreaSeeder::class,
+            MachineTypeSeeder::class,
+            MachineSeeder::class,
         ]);
     }
 }

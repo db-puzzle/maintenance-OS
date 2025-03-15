@@ -10,9 +10,13 @@ return new class extends Migration
     {
         Schema::create('machines', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('tag')->required();
+            $table->foreignId('machine_type_id')->constrained('machine_types')->onDelete('restrict');
             $table->text('description')->nullable();
-            $table->foreignId('machine_type_id')->constrained()->onDelete('cascade');
+            $table->string('nickname')->nullable();
+            $table->string('manufacturer')->nullable();
+            $table->integer('manufacturing_year')->nullable();
+            $table->foreignId('area_id')->constrained('areas')->onDelete('restrict');
             $table->timestamps();
         });
     }

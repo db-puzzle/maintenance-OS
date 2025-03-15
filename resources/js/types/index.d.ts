@@ -40,3 +40,48 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+
+interface Machine {
+    id: number;
+    tag: string;
+    machine_type_id: number;
+    description: string | null;
+    nickname: string | null;
+    manufacturer: string | null;
+    manufacturing_year: number | null;
+    area_id: number;
+    machine_type: MachineType | null;
+    area: Area | null;
+    created_at: string;
+    updated_at: string;
+}
+
+interface MachineForm {
+    tag: string;
+    machine_type_id: number | string;
+    description: string;
+    nickname: string;
+    manufacturer: string;
+    manufacturing_year: string;
+    area_id: number | string;
+    [key: string]: unknown;
+}
+
+interface MachineType {
+    id: number;
+    name: string;
+    description: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+interface Area {
+    id: number;
+    name: string;
+    factory_id: number | null;
+    parent_area_id: number | null;
+    factory?: Factory;
+    parentArea?: Area;
+    created_at: string;
+    updated_at: string;
+}
