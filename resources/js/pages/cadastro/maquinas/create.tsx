@@ -1,6 +1,6 @@
 import { type BreadcrumbItem, type MachineType, type Area, type MachineForm } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
-import { FormEvent, useRef, useState } from 'react';
+import { FormEvent, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InputError from '@/components/input-error';
 import { Camera, Upload } from 'lucide-react';
+import CameraCapture from '@/components/camera-capture';
 
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
@@ -44,8 +45,6 @@ export default function CreateMachine({ machineTypes, areas }: Props) {
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [showCamera, setShowCamera] = useState(false);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const [stream, setStream] = useState<MediaStream | null>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -55,46 +54,9 @@ export default function CreateMachine({ machineTypes, areas }: Props) {
         }
     };
 
-    const startCamera = async () => {
-        try {
-            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            setStream(mediaStream);
-            if (videoRef.current) {
-                videoRef.current.srcObject = mediaStream;
-            }
-            setShowCamera(true);
-        } catch (error) {
-            console.error('Erro ao acessar a câmera:', error);
-            alert('Não foi possível acessar a câmera. Verifique as permissões.');
-        }
-    };
-
-    const takePhoto = () => {
-        if (videoRef.current) {
-            const canvas = document.createElement('canvas');
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                ctx.drawImage(videoRef.current, 0, 0);
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-                        setData('photo', file);
-                        setPreviewUrl(URL.createObjectURL(file));
-                        stopCamera();
-                    }
-                }, 'image/jpeg');
-            }
-        }
-    };
-
-    const stopCamera = () => {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            setStream(null);
-        }
-        setShowCamera(false);
+    const handlePhotoCapture = (file: File) => {
+        setData('photo', file);
+        setPreviewUrl(URL.createObjectURL(file));
     };
 
     const submit = (e: FormEvent) => {
@@ -268,35 +230,8 @@ export default function CreateMachine({ machineTypes, areas }: Props) {
                                     </div>
                                 )}
 
-                                {/* Câmera */}
-                                {showCamera && (
-                                    <div className="relative">
-                                        <video
-                                            ref={videoRef}
-                                            autoPlay
-                                            playsInline
-                                            className="w-full max-w-md rounded-lg"
-                                        />
-                                        <div className="flex gap-2 mt-2">
-                                            <Button
-                                                type="button"
-                                                onClick={takePhoto}
-                                            >
-                                                Tirar Foto
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={stopCamera}
-                                            >
-                                                Cancelar
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
-
                                 {/* Botões de Upload e Câmera */}
-                                {!showCamera && !previewUrl && (
+                                {!previewUrl && (
                                     <div className="flex gap-2">
                                         <div className="relative">
                                             <input
@@ -320,7 +255,7 @@ export default function CreateMachine({ machineTypes, areas }: Props) {
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            onClick={startCamera}
+                                            onClick={() => setShowCamera(true)}
                                             className="flex items-center gap-2"
                                         >
                                             <Camera className="w-4 h-4" />
@@ -349,6 +284,13 @@ export default function CreateMachine({ machineTypes, areas }: Props) {
                     </form>
                 </div>
             </CadastroLayout>
+
+            {showCamera && (
+                <CameraCapture
+                    onCapture={handlePhotoCapture}
+                    onClose={() => setShowCamera(false)}
+                />
+            )}
         </AppLayout>
     );
 } 
