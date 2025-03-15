@@ -29,6 +29,11 @@ class Area extends Model
         return $this->hasMany(Area::class, 'parent_area_id');
     }
 
+    public function machines(): HasMany
+    {
+        return $this->hasMany(Machine::class);
+    }
+
     protected static function boot()
     {
         parent::boot();
@@ -42,6 +47,10 @@ class Area extends Model
         static::deleting(function ($area) {
             if ($area->childAreas()->exists()) {
                 throw new \Exception('Não é possível excluir uma área que possui subáreas.');
+            }
+
+            if ($area->machines()->exists()) {
+                throw new \Exception('Não é possível excluir uma área que possui máquinas.');
             }
         });
     }

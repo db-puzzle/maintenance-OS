@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('areas', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->foreignId('factory_id')->nullable()->constrained('factories')->onDelete('cascade');
-            $table->foreignId('parent_area_id')->nullable()->constrained('areas')->onDelete('cascade');
+            $table->foreignId('factory_id')->nullable()->constrained('factories')->onDelete('restrict');
+            $table->foreignId('parent_area_id')->nullable()->constrained('areas')->onDelete('restrict');
             $table->timestamps();
         });
     }
