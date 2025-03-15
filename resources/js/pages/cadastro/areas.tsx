@@ -355,7 +355,6 @@ export default function Areas({ areas, filters }: Props) {
 
                                         {dependencies.dependencies.machines.items && dependencies.dependencies.machines.items.length > 0 && (
                                             <div className="space-y-3">
-                                                <div className="font-medium text-sm">Algumas das máquinas vinculadas:</div>
                                                 <ul className="list-disc list-inside space-y-2 text-sm">
                                                     {dependencies.dependencies.machines.items.map(machine => (
                                                         <li key={machine.id}>{machine.tag}</li>
@@ -374,7 +373,6 @@ export default function Areas({ areas, filters }: Props) {
 
                                         {dependencies.dependencies.areas.items && dependencies.dependencies.areas.items.length > 0 && (
                                             <div className="space-y-3">
-                                                <div className="font-medium text-sm">Algumas das subáreas:</div>
                                                 <ul className="list-disc list-inside space-y-2 text-sm">
                                                     {dependencies.dependencies.areas.items.map(area => (
                                                         <li key={area.id}>{area.name}</li>

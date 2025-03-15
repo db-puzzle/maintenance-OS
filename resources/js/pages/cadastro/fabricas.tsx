@@ -368,7 +368,6 @@ export default function Fabricas({ factories, filters }: Props) {
 
                                 {dependencies?.dependencies.areas.items && dependencies.dependencies.areas.items.length > 0 && (
                                     <div className="space-y-3">
-                                        <div className="font-medium text-sm">Algumas das áreas vinculadas:</div>
                                         <ul className="list-disc list-inside space-y-2 text-sm">
                                             {dependencies.dependencies.areas.items.map(area => (
                                                 <li key={area.id}>{area.name}</li>

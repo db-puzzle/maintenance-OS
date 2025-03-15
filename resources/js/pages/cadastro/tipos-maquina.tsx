@@ -327,7 +327,6 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
 
                                 {dependencies?.dependencies.machines?.items && dependencies.dependencies.machines.items.length > 0 && (
                                     <div className="space-y-3">
-                                        <div className="font-medium text-sm">Algumas das máquinas vinculadas:</div>
                                         <ul className="list-disc list-inside space-y-2 text-sm">
                                             {dependencies.dependencies.machines.items.map(machine => (
                                                 <li key={machine.id}>{machine.tag}</li>
