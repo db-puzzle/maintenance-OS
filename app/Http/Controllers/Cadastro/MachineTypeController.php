@@ -96,7 +96,22 @@ class MachineTypeController extends Controller
         $machineTypeName = $machineType->name;
         $machineType->delete();
 
-        return redirect()->route('cadastro.tipos-maquina')
-            ->with('success', "O tipo de máquina {$machineTypeName} foi excluído com sucesso.");
+        return back()->with('success', "O tipo de máquina {$machineTypeName} foi excluído com sucesso.");
+    }
+
+    public function checkDependencies(MachineType $machineType)
+    {
+        $machines = $machineType->machines()->take(5)->get(['id', 'tag', 'name']);
+        $totalMachines = $machineType->machines()->count();
+
+        return response()->json([
+            'can_delete' => $totalMachines === 0,
+            'dependencies' => [
+                'machines' => [
+                    'total' => $totalMachines,
+                    'items' => $machines
+                ]
+            ]
+        ]);
     }
 } 

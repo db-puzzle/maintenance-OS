@@ -181,7 +181,29 @@ class AreaController extends Controller
         $areaName = $area->name;
         $area->delete();
 
-        return redirect()->route('cadastro.areas')
-            ->with('success', "A área {$areaName} foi excluída com sucesso.");
+        return back()->with('success', "A área {$areaName} foi excluída com sucesso.");
+    }
+
+    public function checkDependencies(Area $area)
+    {
+        $machines = $area->machines()->take(5)->get(['id', 'tag', 'name']);
+        $totalMachines = $area->machines()->count();
+
+        $subAreas = $area->childAreas()->take(5)->get(['id', 'name']);
+        $totalSubAreas = $area->childAreas()->count();
+
+        return response()->json([
+            'can_delete' => $totalMachines === 0 && $totalSubAreas === 0,
+            'dependencies' => [
+                'machines' => [
+                    'total' => $totalMachines,
+                    'items' => $machines
+                ],
+                'areas' => [
+                    'total' => $totalSubAreas,
+                    'items' => $subAreas
+                ]
+            ]
+        ]);
     }
 }

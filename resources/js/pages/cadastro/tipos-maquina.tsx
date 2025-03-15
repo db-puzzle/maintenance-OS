@@ -44,6 +44,22 @@ interface MachineType {
     updated_at: string;
 }
 
+interface Machine {
+    id: number;
+    tag: string;
+    name: string;
+}
+
+interface Dependencies {
+    can_delete: boolean;
+    dependencies: {
+        machines: {
+            total: number;
+            items: Machine[];
+        };
+    };
+}
+
 interface Props {
     machineTypes: {
         data: MachineType[];
@@ -64,6 +80,10 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
     const [selectedMachineType, setSelectedMachineType] = useState<MachineType | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
     const [search, setSearch] = useState(filters.search || '');
+    const [dependencies, setDependencies] = useState<Dependencies | null>(null);
+    const [isCheckingDependencies, setIsCheckingDependencies] = useState(false);
+    const [showDependenciesDialog, setShowDependenciesDialog] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const { flash } = usePage<PageProps>().props;
 
     useEffect(() => {
@@ -96,16 +116,41 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
                 setIsDeleting(false);
                 setSelectedMachineType(null);
                 setConfirmationText('');
+                setShowDeleteDialog(false);
             },
             onError: (errors) => {
                 setIsDeleting(false);
                 setSelectedMachineType(null);
                 setConfirmationText('');
+                setShowDeleteDialog(false);
                 toast.error("Erro ao excluir tipo de máquina", {
                     description: errors.message || 'Não foi possível excluir o tipo de máquina.',
                 });
             },
         });
+    };
+
+    const checkDependencies = async (machineType: MachineType) => {
+        setIsCheckingDependencies(true);
+        setSelectedMachineType(machineType);
+        
+        try {
+            const response = await fetch(route('cadastro.tipos-maquina.check-dependencies', machineType.id));
+            const data = await response.json();
+            setDependencies(data);
+            
+            if (data.can_delete) {
+                setShowDeleteDialog(true);
+            } else {
+                setShowDependenciesDialog(true);
+            }
+        } catch (error) {
+            toast.error("Erro ao verificar dependências", {
+                description: "Não foi possível verificar as dependências do tipo de máquina.",
+            });
+        } finally {
+            setIsCheckingDependencies(false);
+        }
     };
 
     const isConfirmationValid = confirmationText === 'EXCLUIR';
@@ -208,48 +253,11 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
                                                         <Button 
                                                             variant="ghost" 
                                                             size="icon"
-                                                            onClick={() => setSelectedMachineType(machineType)}
+                                                            onClick={() => checkDependencies(machineType)}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </DialogTrigger>
-                                                    <DialogContent>
-                                                        <DialogTitle>Confirmar Exclusão</DialogTitle>
-                                                        <DialogDescription>
-                                                            Você tem certeza que deseja excluir o tipo de máquina "{machineType.name}"? 
-                                                            Esta ação não pode ser desfeita.
-                                                        </DialogDescription>
-                                                        <div className="grid gap-2 py-4">
-                                                            <Label htmlFor="confirmation" className="sr-only">
-                                                                Confirmação
-                                                            </Label>
-                                                            <Input
-                                                                id="confirmation"
-                                                                type="text"
-                                                                value={confirmationText}
-                                                                onChange={(e) => setConfirmationText(e.target.value)}
-                                                                placeholder="Digite EXCLUIR para confirmar"
-                                                                autoComplete="off"
-                                                            />
-                                                        </div>
-                                                        <DialogFooter className="gap-2">
-                                                            <DialogClose asChild>
-                                                                <Button 
-                                                                    variant="secondary"
-                                                                    onClick={() => setConfirmationText('')}
-                                                                >
-                                                                    Cancelar
-                                                                </Button>
-                                                            </DialogClose>
-                                                            <Button 
-                                                                variant="destructive" 
-                                                                disabled={isDeleting || !isConfirmationValid}
-                                                                onClick={() => selectedMachineType && handleDelete(selectedMachineType)}
-                                                            >
-                                                                {isDeleting ? 'Excluindo...' : 'Excluir tipo de máquina'}
-                                                            </Button>
-                                                        </DialogFooter>
-                                                    </DialogContent>
                                                 </Dialog>
                                             </div>
                                         </TableCell>
@@ -300,6 +308,88 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
                     </div>
                 </div>
             </CadastroLayout>
+
+            {/* Diálogo de Dependências */}
+            <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogTitle>Não é possível excluir este tipo de máquina</DialogTitle>
+                    <DialogDescription asChild>
+                        <div className="space-y-6">
+                            <div className="text-sm">
+                                Este tipo de máquina possui máquinas vinculadas e não pode ser excluído até que todas 
+                                as máquinas sejam removidas ou alteradas para outro tipo.
+                            </div>
+                            
+                            <div className="space-y-6">
+                                <div className="font-medium text-sm">
+                                    Total de Máquinas Vinculadas: {dependencies?.dependencies.machines?.total}
+                                </div>
+
+                                {dependencies?.dependencies.machines?.items && dependencies.dependencies.machines.items.length > 0 && (
+                                    <div className="space-y-3">
+                                        <div className="font-medium text-sm">Algumas das máquinas vinculadas:</div>
+                                        <ul className="list-disc list-inside space-y-2 text-sm">
+                                            {dependencies.dependencies.machines.items.map(machine => (
+                                                <li key={machine.id}>{machine.tag}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </DialogDescription>
+                    <DialogFooter>
+                        <Button 
+                            variant="secondary" 
+                            onClick={() => setShowDependenciesDialog(false)}
+                        >
+                            Fechar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Diálogo de Confirmação de Exclusão */}
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogContent>
+                    <DialogTitle>Você tem certeza que deseja excluir este tipo de máquina?</DialogTitle>
+                    <DialogDescription>
+                        Uma vez que o tipo de máquina for excluído, todos os seus recursos e dados serão permanentemente excluídos. 
+                        Esta ação não pode ser desfeita.
+                    </DialogDescription>
+                    <div className="grid gap-2 py-4">
+                        <Label htmlFor="confirmation" className="sr-only">
+                            Confirmação
+                        </Label>
+                        <Input
+                            id="confirmation"
+                            type="text"
+                            value={confirmationText}
+                            onChange={(e) => setConfirmationText(e.target.value)}
+                            placeholder="Digite EXCLUIR para confirmar"
+                            autoComplete="off"
+                        />
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button 
+                            variant="secondary"
+                            onClick={() => {
+                                setShowDeleteDialog(false);
+                                setConfirmationText('');
+                            }}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            disabled={isDeleting || !isConfirmationValid}
+                            onClick={() => selectedMachineType && handleDelete(selectedMachineType)}
+                        >
+                            {isDeleting ? 'Excluindo...' : 'Excluir tipo de máquina'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 } 

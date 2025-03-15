@@ -66,6 +66,22 @@ class FactoriesController extends Controller
         return back()->with('success', "A fábrica {$factoryName} foi excluída com sucesso.");
     }
 
+    public function checkDependencies(Factory $factory)
+    {
+        $areas = $factory->areas()->take(5)->get(['id', 'name']);
+        $totalAreas = $factory->areas()->count();
+
+        return response()->json([
+            'can_delete' => $totalAreas === 0,
+            'dependencies' => [
+                'areas' => [
+                    'total' => $totalAreas,
+                    'items' => $areas
+                ]
+            ]
+        ]);
+    }
+
     public function edit(Factory $factory)
     {
         return Inertia::render('cadastro/fabricas/edit', [

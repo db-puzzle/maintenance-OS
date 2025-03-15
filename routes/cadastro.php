@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cadastro/areas/{area}/edit', [AreaController::class, 'edit'])->name('cadastro.areas.edit');
     Route::put('cadastro/areas/{area}', [AreaController::class, 'update'])->name('cadastro.areas.update');
     Route::delete('cadastro/areas/{area}', [AreaController::class, 'destroy'])->name('cadastro.areas.destroy');
+    Route::get('cadastro/areas/{area}/check-dependencies', [AreaController::class, 'checkDependencies'])->name('cadastro.areas.check-dependencies');
 
     Route::get('cadastro/fabricas', [FactoriesController::class, 'index'])->name('cadastro.fabricas');
     Route::get('cadastro/fabricas/create', [FactoriesController::class, 'create'])->name('cadastro.fabricas.create');
@@ -28,6 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cadastro/fabricas/{factory}/edit', [FactoriesController::class, 'edit'])->name('cadastro.fabricas.edit');
     Route::post('cadastro/fabricas/{factory}', [FactoriesController::class, 'update'])->name('cadastro.fabricas.update');
     Route::delete('cadastro/fabricas/{factory}', [FactoriesController::class, 'destroy'])->name('cadastro.fabricas.destroy');
+    Route::get('cadastro/fabricas/{factory}/check-dependencies', [FactoriesController::class, 'checkDependencies'])->name('cadastro.fabricas.check-dependencies');
 
     Route::get('cadastro/tipos-maquina', [MachineTypeController::class, 'index'])->name('cadastro.tipos-maquina');
     Route::get('cadastro/tipos-maquina/create', [MachineTypeController::class, 'create'])->name('cadastro.tipos-maquina.create');
@@ -35,4 +37,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cadastro/tipos-maquina/{machineType}/edit', [MachineTypeController::class, 'edit'])->name('cadastro.tipos-maquina.edit');
     Route::put('cadastro/tipos-maquina/{machineType}', [MachineTypeController::class, 'update'])->name('cadastro.tipos-maquina.update');
     Route::delete('cadastro/tipos-maquina/{machineType}', [MachineTypeController::class, 'destroy'])->name('cadastro.tipos-maquina.destroy');
+    Route::get('cadastro/tipos-maquina/{machineType}/check-dependencies', [MachineTypeController::class, 'checkDependencies'])->name('cadastro.tipos-maquina.check-dependencies');
 }); 

@@ -69,6 +69,18 @@ export default function Fabricas({ factories, filters }: Props) {
     const [selectedFactory, setSelectedFactory] = useState<Factory | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
     const [search, setSearch] = useState(filters.search || '');
+    const [dependencies, setDependencies] = useState<{
+        can_delete: boolean;
+        dependencies: {
+            areas: {
+                total: number;
+                items: { id: number; name: string; }[];
+            };
+        };
+    } | null>(null);
+    const [isCheckingDependencies, setIsCheckingDependencies] = useState(false);
+    const [showDependenciesDialog, setShowDependenciesDialog] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const page = usePage<PageProps>();
     const flash = page.props.flash;
 
@@ -102,16 +114,41 @@ export default function Fabricas({ factories, filters }: Props) {
                 setIsDeleting(false);
                 setSelectedFactory(null);
                 setConfirmationText('');
+                setShowDeleteDialog(false);
             },
             onError: (errors) => {
                 setIsDeleting(false);
                 setSelectedFactory(null);
                 setConfirmationText('');
+                setShowDeleteDialog(false);
                 toast.error("Erro ao excluir fábrica", {
                     description: errors.message || 'Não foi possível excluir a fábrica.',
                 });
             },
         });
+    };
+
+    const checkDependencies = async (factory: Factory) => {
+        setIsCheckingDependencies(true);
+        setSelectedFactory(factory);
+        
+        try {
+            const response = await fetch(route('cadastro.fabricas.check-dependencies', factory.id));
+            const data = await response.json();
+            setDependencies(data);
+            
+            if (data.can_delete) {
+                setShowDeleteDialog(true);
+            } else {
+                setShowDependenciesDialog(true);
+            }
+        } catch (error) {
+            toast.error("Erro ao verificar dependências", {
+                description: "Não foi possível verificar as dependências da fábrica.",
+            });
+        } finally {
+            setIsCheckingDependencies(false);
+        }
     };
 
     const isConfirmationValid = confirmationText === 'EXCLUIR';
@@ -255,54 +292,14 @@ export default function Fabricas({ factories, filters }: Props) {
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
-                                                <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon"
-                                                            onClick={() => setSelectedFactory(factory)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent>
-                                                        <DialogTitle>Você tem certeza que deseja excluir esta fábrica?</DialogTitle>
-                                                        <DialogDescription>
-                                                            Uma vez que a fábrica for excluída, todos os seus recursos e dados serão permanentemente excluídos. 
-                                                            Esta ação não pode ser desfeita.
-                                                        </DialogDescription>
-                                                        <div className="grid gap-2 py-4">
-                                                            <Label htmlFor="confirmation" className="sr-only">
-                                                                Confirmação
-                                                            </Label>
-                                                            <Input
-                                                                id="confirmation"
-                                                                type="text"
-                                                                value={confirmationText}
-                                                                onChange={(e) => setConfirmationText(e.target.value)}
-                                                                placeholder="Digite EXCLUIR para confirmar"
-                                                                autoComplete="off"
-                                                            />
-                                                        </div>
-                                                        <DialogFooter className="gap-2">
-                                                            <DialogClose asChild>
-                                                                <Button 
-                                                                    variant="secondary"
-                                                                    onClick={() => setConfirmationText('')}
-                                                                >
-                                                                    Cancelar
-                                                                </Button>
-                                                            </DialogClose>
-                                                            <Button 
-                                                                variant="destructive" 
-                                                                disabled={isDeleting || !isConfirmationValid}
-                                                                onClick={() => selectedFactory && handleDelete(selectedFactory)}
-                                                            >
-                                                                {isDeleting ? 'Excluindo...' : 'Excluir fábrica'}
-                                                            </Button>
-                                                        </DialogFooter>
-                                                    </DialogContent>
-                                                </Dialog>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon"
+                                                    onClick={() => checkDependencies(factory)}
+                                                    disabled={isCheckingDependencies}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -352,6 +349,88 @@ export default function Fabricas({ factories, filters }: Props) {
                     </div>
                 </div>
             </CadastroLayout>
+
+            {/* Diálogo de Dependências */}
+            <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogTitle>Não é possível excluir esta fábrica</DialogTitle>
+                    <DialogDescription asChild>
+                        <div className="space-y-6">
+                            <div className="text-sm">
+                                Esta fábrica possui área(s) vinculada(s) e não pode ser excluída até que todas as áreas 
+                                sejam removidas ou movidas para outra fábrica.
+                            </div>
+                            
+                            <div className="space-y-6">
+                                <div className="font-medium text-sm">
+                                    Total de Áreas Vinculadas: {dependencies?.dependencies.areas.total}
+                                </div>
+
+                                {dependencies?.dependencies.areas.items && dependencies.dependencies.areas.items.length > 0 && (
+                                    <div className="space-y-3">
+                                        <div className="font-medium text-sm">Algumas das áreas vinculadas:</div>
+                                        <ul className="list-disc list-inside space-y-2 text-sm">
+                                            {dependencies.dependencies.areas.items.map(area => (
+                                                <li key={area.id}>{area.name}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </DialogDescription>
+                    <DialogFooter>
+                        <Button 
+                            variant="secondary" 
+                            onClick={() => setShowDependenciesDialog(false)}
+                        >
+                            Fechar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Diálogo de Confirmação de Exclusão */}
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogContent>
+                    <DialogTitle>Você tem certeza que deseja excluir esta fábrica?</DialogTitle>
+                    <DialogDescription>
+                        Uma vez que a fábrica for excluída, todos os seus recursos e dados serão permanentemente excluídos. 
+                        Esta ação não pode ser desfeita.
+                    </DialogDescription>
+                    <div className="grid gap-2 py-4">
+                        <Label htmlFor="confirmation" className="sr-only">
+                            Confirmação
+                        </Label>
+                        <Input
+                            id="confirmation"
+                            type="text"
+                            value={confirmationText}
+                            onChange={(e) => setConfirmationText(e.target.value)}
+                            placeholder="Digite EXCLUIR para confirmar"
+                            autoComplete="off"
+                        />
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button 
+                            variant="secondary"
+                            onClick={() => {
+                                setShowDeleteDialog(false);
+                                setConfirmationText('');
+                            }}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            disabled={isDeleting || !isConfirmationValid}
+                            onClick={() => selectedFactory && handleDelete(selectedFactory)}
+                        >
+                            {isDeleting ? 'Excluindo...' : 'Excluir fábrica'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 } 
