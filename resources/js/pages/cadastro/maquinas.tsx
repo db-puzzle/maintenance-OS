@@ -1,7 +1,7 @@
 import { type BreadcrumbItem, type Machine } from '@/types';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -49,6 +49,8 @@ interface Props {
     };
     filters: {
         search: string;
+        sort: string;
+        direction: 'asc' | 'desc';
     };
 }
 
@@ -112,6 +114,30 @@ export default function Maquinas({ machines, filters }: Props) {
 
     const isConfirmationValid = confirmationText === 'EXCLUIR';
 
+    const handleSort = (column: string) => {
+        const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
+        
+        router.get(
+            route('cadastro.maquinas'),
+            { 
+                search,
+                sort: column,
+                direction,
+                page: machines.current_page
+            },
+            { preserveState: true }
+        );
+    };
+
+    const getSortIcon = (column: string) => {
+        if (filters.sort !== column) {
+            return <ArrowUpDown className="h-4 w-4" />;
+        }
+        return filters.direction === 'asc' ? 
+            <ArrowUp className="h-4 w-4" /> : 
+            <ArrowDown className="h-4 w-4" />;
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Máquinas" />
@@ -146,12 +172,66 @@ export default function Maquinas({ machines, filters }: Props) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>TAG</TableHead>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead>Apelido</TableHead>
-                                    <TableHead>Fabricante</TableHead>
-                                    <TableHead>Ano</TableHead>
-                                    <TableHead>Área</TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('tag')}
+                                        >
+                                            TAG
+                                            <span className="ml-2">{getSortIcon('tag')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('machine_type')}
+                                        >
+                                            Tipo
+                                            <span className="ml-2">{getSortIcon('machine_type')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('nickname')}
+                                        >
+                                            Apelido
+                                            <span className="ml-2">{getSortIcon('nickname')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('manufacturer')}
+                                        >
+                                            Fabricante
+                                            <span className="ml-2">{getSortIcon('manufacturer')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('manufacturing_year')}
+                                        >
+                                            Ano
+                                            <span className="ml-2">{getSortIcon('manufacturing_year')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('area')}
+                                        >
+                                            Área
+                                            <span className="ml-2">{getSortIcon('area')}</span>
+                                        </Button>
+                                    </TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>

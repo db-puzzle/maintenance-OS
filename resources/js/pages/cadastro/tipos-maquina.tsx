@@ -5,7 +5,7 @@ import CadastroLayout from '@/layouts/cadastro/layout';
 import HeadingSmall from '@/components/heading-small';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,8 @@ interface Props {
     };
     filters: {
         search: string;
+        sort: string;
+        direction: 'asc' | 'desc';
     };
 }
 
@@ -108,6 +110,30 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
 
     const isConfirmationValid = confirmationText === 'EXCLUIR';
 
+    const handleSort = (column: string) => {
+        const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
+        
+        router.get(
+            route('cadastro.tipos-maquina'),
+            { 
+                search,
+                sort: column,
+                direction,
+                page: machineTypes.current_page
+            },
+            { preserveState: true }
+        );
+    };
+
+    const getSortIcon = (column: string) => {
+        if (filters.sort !== column) {
+            return <ArrowUpDown className="h-4 w-4" />;
+        }
+        return filters.direction === 'asc' ? 
+            <ArrowUp className="h-4 w-4" /> : 
+            <ArrowDown className="h-4 w-4" />;
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Tipos de Máquina" />
@@ -142,8 +168,26 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Nome</TableHead>
-                                    <TableHead className="w-[400px]">Descrição</TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('name')}
+                                        >
+                                            Nome
+                                            <span className="ml-2">{getSortIcon('name')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead className="w-[600px]">
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('description')}
+                                        >
+                                            Descrição
+                                            <span className="ml-2">{getSortIcon('description')}</span>
+                                        </Button>
+                                    </TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>

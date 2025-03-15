@@ -13,6 +13,8 @@ class MachineController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $sort = $request->input('sort', 'tag');
+        $direction = $request->input('direction', 'asc');
 
         $machines = Machine::query()
             ->with(['machineType:id,name', 'area:id,name'])
@@ -23,6 +25,19 @@ class MachineController extends Controller
                         ->orWhere('manufacturer', 'like', "%{$search}%");
                 });
             })
+            ->when($sort === 'machine_type', function ($query) use ($direction) {
+                $query->join('machine_types', 'machines.machine_type_id', '=', 'machine_types.id')
+                    ->orderBy('machine_types.name', $direction)
+                    ->select('machines.*');
+            })
+            ->when($sort === 'area', function ($query) use ($direction) {
+                $query->join('areas', 'machines.area_id', '=', 'areas.id')
+                    ->orderBy('areas.name', $direction)
+                    ->select('machines.*');
+            })
+            ->when(!in_array($sort, ['machine_type', 'area']), function ($query) use ($sort, $direction) {
+                $query->orderBy($sort, $direction);
+            })
             ->paginate(8);
 
         \Log::info('Machines data:', ['machines' => $machines->toArray()]);
@@ -31,6 +46,8 @@ class MachineController extends Controller
             'machines' => $machines,
             'filters' => [
                 'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
             ],
         ]);
     }

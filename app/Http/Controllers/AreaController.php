@@ -31,6 +31,8 @@ class AreaController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
 
         $areas = Area::with(['factory', 'parentArea' => function($query) {
             $query->with('factory')
@@ -47,7 +49,19 @@ class AreaController extends Controller
                     });
             });
         })
-        ->orderBy('name')
+        ->when($sort === 'factory', function ($query) use ($direction) {
+            $query->join('factories', 'areas.factory_id', '=', 'factories.id')
+                ->orderBy('factories.name', $direction)
+                ->select('areas.*');
+        })
+        ->when($sort === 'parent_area', function ($query) use ($direction) {
+            $query->leftJoin('areas as parent_areas', 'areas.parent_area_id', '=', 'parent_areas.id')
+                ->orderBy('parent_areas.name', $direction)
+                ->select('areas.*');
+        })
+        ->when(!in_array($sort, ['factory', 'parent_area']), function ($query) use ($sort, $direction) {
+            $query->orderBy($sort, $direction);
+        })
         ->paginate(8)
         ->through(function ($area) {
             $area->closest_factory = $this->findClosestFactory($area);
@@ -58,6 +72,8 @@ class AreaController extends Controller
             'areas' => $areas,
             'filters' => [
                 'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
             ],
         ]);
     }

@@ -11,6 +11,8 @@ class FactoriesController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
 
         $factories = Factory::query()
             ->when($search, function ($query, $search) {
@@ -20,12 +22,15 @@ class FactoriesController extends Controller
                         ->orWhere('state', 'like', "%{$search}%");
                 });
             })
+            ->orderBy($sort, $direction)
             ->paginate(8);
 
         return Inertia::render('cadastro/fabricas', [
             'factories' => $factories,
             'filters' => [
                 'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
             ],
         ]);
     }

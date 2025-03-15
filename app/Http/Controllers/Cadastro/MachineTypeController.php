@@ -14,6 +14,8 @@ class MachineTypeController extends Controller
     {
         Log::info('MachineTypeController@index called');
         $search = $request->input('search');
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
 
         $machineTypes = MachineType::query()
             ->when($search, function ($query, $search) {
@@ -22,6 +24,7 @@ class MachineTypeController extends Controller
                         ->orWhere('description', 'like', "%{$search}%");
                 });
             })
+            ->orderBy($sort, $direction)
             ->paginate(8);
 
         Log::info('Machine types:', ['count' => $machineTypes->count(), 'data' => $machineTypes->toArray()]);
@@ -30,6 +33,8 @@ class MachineTypeController extends Controller
             'machineTypes' => $machineTypes,
             'filters' => [
                 'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
             ],
         ]);
     }
