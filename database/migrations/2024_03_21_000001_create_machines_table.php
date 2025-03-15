@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('manufacturer')->nullable();
             $table->integer('manufacturing_year')->nullable();
             $table->foreignId('area_id')->constrained('areas')->onDelete('restrict');
+            $table->string('photo_path')->nullable();
             $table->timestamps();
         });
     }

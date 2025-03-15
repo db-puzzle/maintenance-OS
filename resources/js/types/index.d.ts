@@ -50,6 +50,7 @@ interface Machine {
     manufacturer: string | null;
     manufacturing_year: number | null;
     area_id: number;
+    photo_path: string | null;
     machine_type: MachineType | null;
     area: Area | null;
     created_at: string;
@@ -64,7 +65,8 @@ interface MachineForm {
     manufacturer: string;
     manufacturing_year: string;
     area_id: number | string;
-    [key: string]: unknown;
+    photo: File | null;
+    [key: string]: string | number | File | null | undefined;
 }
 
 interface MachineType {

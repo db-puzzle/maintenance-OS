@@ -14,7 +14,8 @@ class Machine extends Model
         'nickname',
         'manufacturer',
         'manufacturing_year',
-        'area_id'
+        'area_id',
+        'photo_path'
     ];
 
     public function machineType(): BelongsTo

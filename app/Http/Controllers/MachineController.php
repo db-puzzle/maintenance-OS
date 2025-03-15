@@ -7,6 +7,7 @@ use App\Models\Machine;
 use App\Models\MachineType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
 
 class MachineController extends Controller
 {
@@ -69,8 +70,14 @@ class MachineController extends Controller
             'nickname' => 'nullable|string|max:255',
             'manufacturer' => 'nullable|string|max:255',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
-            'area_id' => 'required|exists:areas,id'
+            'area_id' => 'required|exists:areas,id',
+            'photo' => 'nullable|image|max:2048' // máximo 2MB
         ]);
+
+        if ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('machine-photos', 'public');
+            $validated['photo_path'] = $path;
+        }
 
         $machine = Machine::create($validated);
 
@@ -96,8 +103,19 @@ class MachineController extends Controller
             'nickname' => 'nullable|string|max:255',
             'manufacturer' => 'nullable|string|max:255',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
-            'area_id' => 'required|exists:areas,id'
+            'area_id' => 'required|exists:areas,id',
+            'photo' => 'nullable|image|max:2048' // máximo 2MB
         ]);
+
+        if ($request->hasFile('photo')) {
+            // Remove a foto antiga se existir
+            if ($machine->photo_path) {
+                Storage::disk('public')->delete($machine->photo_path);
+            }
+            
+            $path = $request->file('photo')->store('machine-photos', 'public');
+            $validated['photo_path'] = $path;
+        }
 
         $machine->update($validated);
 
@@ -108,6 +126,12 @@ class MachineController extends Controller
     public function destroy(Machine $machine)
     {
         $machineTag = $machine->tag;
+
+        // Remove a foto se existir
+        if ($machine->photo_path) {
+            Storage::disk('public')->delete($machine->photo_path);
+        }
+
         $machine->delete();
 
         return back()->with('success', "A máquina {$machineTag} foi excluída com sucesso.");

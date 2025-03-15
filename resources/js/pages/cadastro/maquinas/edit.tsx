@@ -1,6 +1,6 @@
 import { type BreadcrumbItem, type Machine, type MachineType, type Area, type MachineForm } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
-import { FormEvent } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InputError from '@/components/input-error';
+import { Camera, Upload } from 'lucide-react';
 
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
@@ -39,7 +40,65 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
         manufacturer: machine.manufacturer || '',
         manufacturing_year: machine.manufacturing_year?.toString() || '',
         area_id: machine.area_id.toString(),
+        photo: null
     });
+
+    const [previewUrl, setPreviewUrl] = useState<string | null>(
+        machine.photo_path ? `/storage/${machine.photo_path}` : null
+    );
+    const [showCamera, setShowCamera] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [stream, setStream] = useState<MediaStream | null>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setData('photo', file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
+    const startCamera = async () => {
+        try {
+            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            setStream(mediaStream);
+            if (videoRef.current) {
+                videoRef.current.srcObject = mediaStream;
+            }
+            setShowCamera(true);
+        } catch (error) {
+            console.error('Erro ao acessar a câmera:', error);
+            alert('Não foi possível acessar a câmera. Verifique as permissões.');
+        }
+    };
+
+    const takePhoto = () => {
+        if (videoRef.current) {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(videoRef.current, 0, 0);
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+                        setData('photo', file);
+                        setPreviewUrl(URL.createObjectURL(file));
+                        stopCamera();
+                    }
+                }, 'image/jpeg');
+            }
+        }
+    };
+
+    const stopCamera = () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
+        setShowCamera(false);
+    };
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -183,6 +242,97 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
                                 className="min-h-[100px]"
                             />
                             <InputError message={errors.description} />
+                        </div>
+
+                        {/* Linha para Upload de Foto */}
+                        <div className="grid gap-2">
+                            <Label>Foto da Máquina</Label>
+                            <div className="flex flex-col gap-4">
+                                {/* Área de Preview */}
+                                {previewUrl && (
+                                    <div className="relative w-48 h-48">
+                                        <img
+                                            src={previewUrl}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover rounded-lg"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            className="absolute top-2 right-2"
+                                            onClick={() => {
+                                                setData('photo', null);
+                                                setPreviewUrl(null);
+                                            }}
+                                        >
+                                            Remover
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {/* Câmera */}
+                                {showCamera && (
+                                    <div className="relative">
+                                        <video
+                                            ref={videoRef}
+                                            autoPlay
+                                            playsInline
+                                            className="w-full max-w-md rounded-lg"
+                                        />
+                                        <div className="flex gap-2 mt-2">
+                                            <Button
+                                                type="button"
+                                                onClick={takePhoto}
+                                            >
+                                                Tirar Foto
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={stopCamera}
+                                            >
+                                                Cancelar
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Botões de Upload e Câmera */}
+                                {!showCamera && !previewUrl && (
+                                    <div className="flex gap-2">
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                                id="photo-upload"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                asChild
+                                            >
+                                                <label htmlFor="photo-upload" className="flex items-center gap-2 cursor-pointer">
+                                                    <Upload className="w-4 h-4" />
+                                                    Selecionar Arquivo
+                                                </label>
+                                            </Button>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={startCamera}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <Camera className="w-4 h-4" />
+                                            Usar Câmera
+                                        </Button>
+                                    </div>
+                                )}
+                                <InputError message={errors.photo} />
+                            </div>
                         </div>
 
                         <div className="flex items-center gap-4">

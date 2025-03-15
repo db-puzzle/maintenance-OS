@@ -238,7 +238,16 @@ export default function Maquinas({ machines, filters }: Props) {
                             <TableBody>
                                 {machines.data.map((machine) => (
                                     <TableRow key={machine.id}>
-                                        <TableCell>{machine.tag}</TableCell>
+                                        <TableCell>
+                                            <div>
+                                                <div className="font-medium">{machine.tag}</div>
+                                                {machine.nickname && (
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {machine.nickname}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>{machine.machine_type?.name ?? '-'}</TableCell>
                                         <TableCell>{machine.nickname ?? '-'}</TableCell>
                                         <TableCell>{machine.manufacturer ?? '-'}</TableCell>
