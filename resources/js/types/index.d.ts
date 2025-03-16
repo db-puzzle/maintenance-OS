@@ -66,6 +66,7 @@ interface MachineForm {
     manufacturing_year: string;
     area_id: number | string;
     photo: File | null;
+    photo_path?: string | null;
     [key: string]: string | number | File | null | undefined;
 }
 

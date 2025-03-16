@@ -1,6 +1,6 @@
 import { type BreadcrumbItem, type Machine, type MachineType, type Area, type MachineForm } from '@/types';
-import { Head, useForm } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { FormEvent, useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,13 +41,25 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
         manufacturer: machine.manufacturer || '',
         manufacturing_year: machine.manufacturing_year?.toString() || '',
         area_id: machine.area_id.toString(),
-        photo: null
+        photo: null,
+        photo_path: machine.photo_path || ''
     });
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(
         machine.photo_path ? `/storage/${machine.photo_path}` : null
     );
     const [showCamera, setShowCamera] = useState(false);
+
+    const handleRemovePhoto = () => {
+        router.delete(route('machines.remove-photo', machine.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setPreviewUrl(null);
+                setData('photo', null);
+                setData('photo_path', null);
+            }
+        });
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -64,7 +76,23 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
-        put(route('cadastro.maquinas.update', machine.id));
+
+        // Criar um FormData com todos os dados
+        const formData = new FormData();
+        formData.append('_method', 'PUT'); // Simular método PUT
+        formData.append('tag', data.tag);
+        formData.append('machine_type_id', data.machine_type_id.toString());
+        formData.append('description', data.description);
+        formData.append('nickname', data.nickname);
+        formData.append('manufacturer', data.manufacturer);
+        formData.append('manufacturing_year', data.manufacturing_year);
+        formData.append('area_id', data.area_id.toString());
+        
+        if (data.photo) {
+            formData.append('photo', data.photo);
+        }
+        
+        router.post(route('cadastro.maquinas.update', machine.id), formData);
     };
 
     return (
@@ -79,91 +107,155 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
                     />
 
                     <form onSubmit={submit} className="space-y-6">
-                        {/* Linha 1: TAG, Tipo de Máquina */}
-                        <div className="grid sm:grid-cols-2 gap-6">
-                            {/* TAG da Máquina - Campo Obrigatório */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="tag" className="flex items-center gap-1">
-                                    TAG da Máquina
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="tag"
-                                    value={data.tag}
-                                    onChange={(e) => setData('tag', e.target.value.toUpperCase())}
-                                    required
-                                    placeholder="TAG da máquina"
-                                />
-                                <InputError message={errors.tag} />
+                        {/* Seção Superior: Foto e Campos Principais */}
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {/* Foto da Máquina */}
+                            <div className="flex flex-col h-full">
+                                <Label className="mb-2">Foto da Máquina</Label>
+                                <div className="flex-1 flex flex-col gap-2">
+                                    <div className="flex-1 relative rounded-lg overflow-hidden bg-muted border min-h-[238px] max-h-[238px]">
+                                        {previewUrl ? (
+                                            <div className="relative w-full h-full">
+                                                <img
+                                                    src={previewUrl}
+                                                    alt="Preview"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="absolute top-2 right-2"
+                                                    onClick={handleRemovePhoto}
+                                                >
+                                                    Remover
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
+                                                <Camera className="w-12 h-12" />
+                                                <span className="text-sm">Nenhuma foto selecionada</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                                id="photo-upload"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="w-full"
+                                                asChild
+                                            >
+                                                <label htmlFor="photo-upload" className="flex items-center justify-center gap-2 cursor-pointer">
+                                                    <Upload className="w-4 h-4" />
+                                                    Selecionar Arquivo
+                                                </label>
+                                            </Button>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setShowCamera(true)}
+                                            className="flex-1"
+                                        >
+                                            <Camera className="w-4 h-4 mr-2" />
+                                            Usar Câmera
+                                        </Button>
+                                    </div>
+                                    <InputError message={errors.photo} />
+                                </div>
                             </div>
 
-                            {/* Tipo de Máquina - Campo Obrigatório */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="machine_type_id" className="flex items-center gap-1">
-                                    Tipo de Máquina
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Select
-                                    value={data.machine_type_id.toString()}
-                                    onValueChange={(value) => setData('machine_type_id', value)}
-                                    required
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione um tipo de máquina" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {machineTypes.map((type) => (
-                                            <SelectItem key={type.id} value={type.id.toString()}>
-                                                {type.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.machine_type_id} />
+                            {/* Campos Principais */}
+                            <div className="space-y-6">
+                                {/* TAG da Máquina */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="tag" className="flex items-center gap-1">
+                                        TAG da Máquina
+                                        <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Input
+                                        id="tag"
+                                        value={data.tag}
+                                        onChange={(e) => setData('tag', e.target.value.toUpperCase())}
+                                        required
+                                        placeholder="TAG da máquina"
+                                    />
+                                    <InputError message={errors.tag} />
+                                </div>
+
+                                {/* Tipo de Máquina */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="machine_type_id" className="flex items-center gap-1">
+                                        Tipo de Máquina
+                                        <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Select
+                                        value={String(data.machine_type_id)}
+                                        onValueChange={(value) => setData('machine_type_id', value)}
+                                        required
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione um tipo de máquina" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {machineTypes.map((type) => (
+                                                <SelectItem key={type.id} value={type.id.toString()}>
+                                                    {type.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.machine_type_id} />
+                                </div>
+
+                                {/* Área */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="area_id" className="flex items-center gap-1">
+                                        Área
+                                        <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Select
+                                        value={String(data.area_id)}
+                                        onValueChange={(value) => setData('area_id', value)}
+                                        required
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione uma área" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {areas.map((area) => (
+                                                <SelectItem key={area.id} value={area.id.toString()}>
+                                                    {area.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.area_id} />
+                                </div>
+
+                                {/* Apelido */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="nickname">Apelido</Label>
+                                    <Input
+                                        id="nickname"
+                                        value={data.nickname}
+                                        onChange={(e) => setData('nickname', e.target.value)}
+                                        placeholder="Apelido da máquina"
+                                    />
+                                    <InputError message={errors.nickname} />
+                                </div>
                             </div>
                         </div>
 
-                        {/* Linha 2: Área, Apelido */}
-                        <div className="grid sm:grid-cols-2 gap-6">
-                            {/* Área - Campo Obrigatório */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="area_id" className="flex items-center gap-1">
-                                    Área
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Select
-                                    value={data.area_id.toString()}
-                                    onValueChange={(value) => setData('area_id', value)}
-                                    required
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione uma área" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {areas.map((area) => (
-                                            <SelectItem key={area.id} value={area.id.toString()}>
-                                                {area.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.area_id} />
-                            </div>
-
-                            {/* Apelido */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="nickname">Apelido</Label>
-                                <Input
-                                    id="nickname"
-                                    value={data.nickname}
-                                    onChange={(e) => setData('nickname', e.target.value)}
-                                    placeholder="Apelido da máquina"
-                                />
-                                <InputError message={errors.nickname} />
-                            </div>
-                        </div>
-
-                        {/* Linha 3: Fabricante, Ano de Fabricação */}
+                        {/* Linha: Fabricante, Ano de Fabricação */}
                         <div className="grid sm:grid-cols-2 gap-6">
                             {/* Fabricante */}
                             <div className="grid gap-2">
@@ -204,70 +296,6 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
                                 className="min-h-[100px]"
                             />
                             <InputError message={errors.description} />
-                        </div>
-
-                        {/* Linha para Upload de Foto */}
-                        <div className="grid gap-2">
-                            <Label>Foto da Máquina</Label>
-                            <div className="flex flex-col gap-4">
-                                {/* Área de Preview */}
-                                {previewUrl && (
-                                    <div className="relative w-48 h-48">
-                                        <img
-                                            src={previewUrl}
-                                            alt="Preview"
-                                            className="w-full h-full object-cover rounded-lg"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="sm"
-                                            className="absolute top-2 right-2"
-                                            onClick={() => {
-                                                setData('photo', null);
-                                                setPreviewUrl(null);
-                                            }}
-                                        >
-                                            Remover
-                                        </Button>
-                                    </div>
-                                )}
-
-                                {/* Botões de Upload e Câmera */}
-                                {!previewUrl && (
-                                    <div className="flex gap-2">
-                                        <div className="relative">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleFileChange}
-                                                className="hidden"
-                                                id="photo-upload"
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                asChild
-                                            >
-                                                <label htmlFor="photo-upload" className="flex items-center gap-2 cursor-pointer">
-                                                    <Upload className="w-4 h-4" />
-                                                    Selecionar Arquivo
-                                                </label>
-                                            </Button>
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => setShowCamera(true)}
-                                            className="flex items-center gap-2"
-                                        >
-                                            <Camera className="w-4 h-4" />
-                                            Usar Câmera
-                                        </Button>
-                                    </div>
-                                )}
-                                <InputError message={errors.photo} />
-                            </div>
                         </div>
 
                         <div className="flex items-center gap-4">

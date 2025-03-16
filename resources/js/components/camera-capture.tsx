@@ -12,7 +12,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isMobile] = useState(window.innerWidth <= 768);
+    const [isMobile] = useState(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
 
     useEffect(() => {
         startCamera();
@@ -21,22 +21,60 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
 
     const startCamera = async () => {
         try {
-            const constraints = {
+            // Verifica se está usando HTTPS
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                throw new Error('A câmera só pode ser acessada em conexões seguras (HTTPS)');
+            }
+
+            // Configurações básicas primeiro
+            let constraints = {
                 video: {
-                    facingMode: isMobile ? 'environment' : 'user',
-                    width: { ideal: isMobile ? window.innerWidth : 1920 },
-                    height: { ideal: isMobile ? window.innerHeight : 1080 }
+                    facingMode: isMobile ? 'environment' : 'user'
                 }
             };
 
-            const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-            setStream(mediaStream);
-            if (videoRef.current) {
-                videoRef.current.srcObject = mediaStream;
+            try {
+                const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                // Se conseguir acesso, tenta melhorar a qualidade
+                constraints = {
+                    video: {
+                        facingMode: isMobile ? 'environment' : 'user',
+                        width: { ideal: isMobile ? window.innerWidth : 1920 },
+                        height: { ideal: isMobile ? window.innerHeight : 1080 }
+                    }
+                };
+
+                // Tenta aplicar as configurações de qualidade
+                const betterStream = await navigator.mediaDevices.getUserMedia(constraints);
+                setStream(betterStream);
+                if (videoRef.current) {
+                    videoRef.current.srcObject = betterStream;
+                }
+            } catch (basicError) {
+                // Se falhar com configurações avançadas, usa o stream básico
+                console.warn('Usando configurações básicas da câmera:', basicError);
+                const basicStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                setStream(basicStream);
+                if (videoRef.current) {
+                    videoRef.current.srcObject = basicStream;
+                }
             }
-        } catch (err) {
-            setError('Não foi possível acessar a câmera. Verifique as permissões.');
-            console.error('Erro ao acessar a câmera:', err);
+        } catch (err: any) {
+            console.error('Erro detalhado da câmera:', err);
+            
+            // Mensagens de erro mais específicas
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                setError('Acesso à câmera negado. Por favor, permita o acesso à câmera nas configurações do seu navegador.');
+            } else if (err.name === 'NotFoundError') {
+                setError('Nenhuma câmera encontrada no dispositivo.');
+            } else if (err.name === 'NotReadableError' || err.name === 'AbortError') {
+                setError('Não foi possível acessar a câmera. Ela pode estar sendo usada por outro aplicativo.');
+            } else if (err.message.includes('HTTPS')) {
+                setError('A câmera só pode ser acessada em conexões seguras (HTTPS).');
+            } else {
+                setError(`Não foi possível acessar a câmera. ${err.message || 'Verifique as permissões.'}`);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -52,14 +90,26 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     const takePhoto = () => {
         if (videoRef.current) {
             const canvas = document.createElement('canvas');
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
+            
+            // Usa as dimensões reais do vídeo
+            const videoWidth = videoRef.current.videoWidth;
+            const videoHeight = videoRef.current.videoHeight;
+            
+            // Mantém a proporção original
+            canvas.width = videoWidth;
+            canvas.height = videoHeight;
+            
             const ctx = canvas.getContext('2d');
             if (ctx) {
+                // Desenha a imagem mantendo a orientação correta
                 ctx.drawImage(videoRef.current, 0, 0);
+                
                 canvas.toBlob((blob) => {
                     if (blob) {
-                        const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+                        const file = new File([blob], 'photo.jpg', { 
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
                         onCapture(file);
                         stopCamera();
                         onClose();
@@ -104,6 +154,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                             ref={videoRef}
                             autoPlay
                             playsInline
+                            muted // Necessário para autoplay no iOS
                             className="w-full h-full object-cover"
                             onLoadedMetadata={() => setIsLoading(false)}
                         />

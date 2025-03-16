@@ -41,8 +41,6 @@ class MachineController extends Controller
             })
             ->paginate(8);
 
-        \Log::info('Machines data:', ['machines' => $machines->toArray()]);
-
         return Inertia::render('cadastro/maquinas', [
             'machines' => $machines,
             'filters' => [
@@ -135,5 +133,15 @@ class MachineController extends Controller
         $machine->delete();
 
         return back()->with('success', "A máquina {$machineTag} foi excluída com sucesso.");
+    }
+
+    public function removePhoto(Machine $machine)
+    {
+        if ($machine->photo_path) {
+            Storage::disk('public')->delete($machine->photo_path);
+            $machine->update(['photo_path' => null]);
+            return back()->with('success', 'Foto removida com sucesso.');
+        }
+        return back()->with('error', 'Não foi possível remover a foto.');
     }
 } 
