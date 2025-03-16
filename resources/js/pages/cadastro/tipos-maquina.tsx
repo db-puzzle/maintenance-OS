@@ -5,7 +5,7 @@ import CadastroLayout from '@/layouts/cadastro/layout';
 import HeadingSmall from '@/components/heading-small';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
@@ -321,15 +321,28 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
                             </div>
                             
                             <div className="space-y-6">
-                                <div className="font-medium text-sm">
-                                    Total de Máquinas Vinculadas: {dependencies?.dependencies.machines?.total}
+                                <div className="space-y-2">
+                                    <div className="font-medium text-sm">
+                                        Total de Máquinas Vinculadas: {dependencies?.dependencies.machines?.total}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground italic">
+                                        Clique no código da máquina para detalhes
+                                    </div>
                                 </div>
 
                                 {dependencies?.dependencies.machines?.items && dependencies.dependencies.machines.items.length > 0 && (
                                     <div className="space-y-3">
                                         <ul className="list-disc list-inside space-y-2 text-sm">
                                             {dependencies.dependencies.machines.items.map(machine => (
-                                                <li key={machine.id}>{machine.tag}</li>
+                                                <li key={machine.id}>
+                                                    <Link
+                                                        href={route('cadastro.maquinas.show', machine.id)}
+                                                        className="text-primary hover:underline inline-flex items-center gap-1"
+                                                    >
+                                                        {machine.tag}
+                                                        <ExternalLink className="h-3 w-3" />
+                                                    </Link>
+                                                </li>
                                             ))}
                                         </ul>
                                     </div>
