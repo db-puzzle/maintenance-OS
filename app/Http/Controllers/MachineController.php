@@ -92,6 +92,13 @@ class MachineController extends Controller
         ]);
     }
 
+    public function show(Machine $machine)
+    {
+        return Inertia::render('cadastro/maquinas/show', [
+            'machine' => $machine->load(['machineType', 'area']),
+        ]);
+    }
+
     public function update(Request $request, Machine $machine)
     {
         $validated = $request->validate([

@@ -11,6 +11,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cadastro/maquinas', [MachineController::class, 'index'])->name('cadastro.maquinas');
     Route::get('cadastro/maquinas/create', [MachineController::class, 'create'])->name('cadastro.maquinas.create');
     Route::post('cadastro/maquinas', [MachineController::class, 'store'])->name('cadastro.maquinas.store');
+    Route::get('cadastro/maquinas/{machine}', [MachineController::class, 'show'])->name('cadastro.maquinas.show');
     Route::get('cadastro/maquinas/{machine}/edit', [MachineController::class, 'edit'])->name('cadastro.maquinas.edit');
     Route::put('cadastro/maquinas/{machine}', [MachineController::class, 'update'])->name('cadastro.maquinas.update');
     Route::delete('cadastro/maquinas/{machine}', [MachineController::class, 'destroy'])->name('cadastro.maquinas.destroy');

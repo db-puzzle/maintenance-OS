@@ -237,7 +237,11 @@ export default function Maquinas({ machines, filters }: Props) {
                             </TableHeader>
                             <TableBody>
                                 {machines.data.map((machine) => (
-                                    <TableRow key={machine.id}>
+                                    <TableRow 
+                                        key={machine.id}
+                                        className="cursor-pointer hover:bg-muted/50"
+                                        onClick={() => router.get(route('cadastro.maquinas.show', machine.id))}
+                                    >
                                         <TableCell>
                                             <div>
                                                 <div className="font-medium">{machine.tag}</div>
@@ -253,7 +257,7 @@ export default function Maquinas({ machines, filters }: Props) {
                                         <TableCell>{machine.manufacturer ?? '-'}</TableCell>
                                         <TableCell>{machine.manufacturing_year ?? '-'}</TableCell>
                                         <TableCell>{machine.area?.name ?? '-'}</TableCell>
-                                        <TableCell>
+                                        <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
                                                     <Link href={route('cadastro.maquinas.edit', machine.id)}>

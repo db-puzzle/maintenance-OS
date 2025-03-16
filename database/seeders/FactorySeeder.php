@@ -10,43 +10,43 @@ class FactorySeeder extends Seeder
     public function run(): void
     {
         Factory::create([
-            'name' => 'Fábrica São Paulo',
-            'street' => 'Avenida Paulista',
-            'number' => '1000',
-            'city' => 'São Paulo',
+            'name' => 'Superior Rafard',
+            'street' => 'Rua João Squilassi',
+            'number' => '286',
+            'city' => 'Rafard',
             'state' => 'SP',
-            'zip_code' => '01310-100',
-            'gps_coordinates' => '-23.5505, -46.6333'
+            'zip_code' => '13370-000',
+            'gps_coordinates' => '-23.0322775,-47.5378189'
         ]);
 
         Factory::create([
-            'name' => 'Fábrica Rio de Janeiro',
-            'street' => 'Avenida Rio Branco',
+            'name' => 'Superior Itapira',
+            'street' => 'Rua Mauro Simões',
             'number' => '500',
-            'city' => 'Rio de Janeiro',
-            'state' => 'RJ',
-            'zip_code' => '20040-002',
-            'gps_coordinates' => '-22.9068, -43.1729'
+            'city' => 'Itapira',
+            'state' => 'SP',
+            'zip_code' => '13971-088',
+            'gps_coordinates' => '-22.4189712,-46.8253333'
         ]);
 
         Factory::create([
-            'name' => 'Fábrica Belo Horizonte',
-            'street' => 'Avenida Afonso Pena',
-            'number' => '2000',
-            'city' => 'Belo Horizonte',
-            'state' => 'MG',
-            'zip_code' => '30130-007',
-            'gps_coordinates' => '-19.9167, -43.9345'
+            'name' => 'Superior São Luis',
+            'street' => 'Av. Eng. Emiliano Macieira',
+            'number' => '15',
+            'city' => 'São Luís',
+            'state' => 'MA',
+            'zip_code' => '65095-602',
+            'gps_coordinates' => '-2.5299999,-44.2813889'
         ]);
 
         Factory::create([
-            'name' => 'Fábrica Curitiba',
-            'street' => 'Rua XV de Novembro',
-            'number' => '800',
-            'city' => 'Curitiba',
-            'state' => 'PR',
-            'zip_code' => '80020-010',
-            'gps_coordinates' => '-25.4284, -49.2733'
+            'name' => 'Sueprior Parauapebas',
+            'street' => 'Av. Presidente Prudente, S/N, Lote 1,3,5,7',
+            'number' => '',
+            'city' => 'Parauapebas',
+            'state' => 'PA',
+            'zip_code' => '68515-000',
+            'gps_coordinates' => '-6.0886386,-49.8766676'
         ]);
     }
 } 
