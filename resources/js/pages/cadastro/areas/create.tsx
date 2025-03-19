@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEffect } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -25,33 +28,28 @@ interface Factory {
     name: string;
 }
 
-interface Area {
-    id: number;
-    name: string;
-}
-
 interface Props {
     factories: Factory[];
-    areas: Area[];
 }
 
 interface FormErrors {
     name?: string;
     factory_id?: string;
-    parent_area_id?: string;
     message?: string;
 }
 
-export default function Create({ factories, areas }: Props) {
+export default function Create(props: Props) {
+    const factories = props?.factories || [];
+    const safeFactories = Array.isArray(factories) ? factories : [];
+
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         factory_id: '',
-        parent_area_id: '',
     });
 
     useEffect(() => {
         return () => {
-            reset('name', 'factory_id', 'parent_area_id');
+            reset('name', 'factory_id');
         };
     }, []);
 
@@ -59,6 +57,8 @@ export default function Create({ factories, areas }: Props) {
         e.preventDefault();
         post(route('cadastro.areas.store'));
     };
+
+    const hasNoFactories = safeFactories.length === 0;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -70,6 +70,23 @@ export default function Create({ factories, areas }: Props) {
                         title="Nova Área" 
                         description="Crie uma nova área no sistema" 
                     />
+
+                    {hasNoFactories && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Atenção</AlertTitle>
+                            <AlertDescription>
+                                Para criar uma área, é necessário ter pelo menos uma fábrica cadastrada.
+                                <div className="mt-2">
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={route('cadastro.fabricas.create')}>
+                                            Criar Fábrica
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid gap-6">
@@ -84,6 +101,7 @@ export default function Create({ factories, areas }: Props) {
                                     onChange={e => setData('name', e.target.value)}
                                     required
                                     placeholder="Nome da área"
+                                    disabled={hasNoFactories}
                                 />
                                 {errors.name && (
                                     <p className="text-sm text-red-500">{errors.name}</p>
@@ -92,58 +110,28 @@ export default function Create({ factories, areas }: Props) {
 
                             <div className="grid gap-2">
                                 <Label>Vínculo</Label>
-                                <div className="grid gap-4">
-                                    <div>
-                                        <Label htmlFor="factory_id">Fábrica</Label>
-                                        <Select
-                                            value={data.factory_id}
-                                            onValueChange={(value) => {
-                                                setData('factory_id', value);
-                                                setData('parent_area_id', '');
-                                            }}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecione uma fábrica" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">Nenhuma</SelectItem>
-                                                {factories.map((factory) => (
-                                                    <SelectItem key={factory.id} value={factory.id.toString()}>
-                                                        {factory.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="parent_area_id">Área Pai</Label>
-                                        <Select
-                                            value={data.parent_area_id}
-                                            onValueChange={(value) => {
-                                                setData('parent_area_id', value);
-                                                setData('factory_id', '');
-                                            }}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecione uma área pai" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">Nenhuma</SelectItem>
-                                                {areas.map((area) => (
-                                                    <SelectItem key={area.id} value={area.id.toString()}>
-                                                        {area.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                <div>
+                                    <Label htmlFor="factory_id">Fábrica</Label>
+                                    <Select
+                                        value={data.factory_id}
+                                        onValueChange={(value) => setData('factory_id', value)}
+                                        disabled={hasNoFactories}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione uma fábrica" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="0">Selecione uma fábrica</SelectItem>
+                                            {safeFactories && safeFactories.length > 0 && safeFactories.map((factory) => (
+                                                <SelectItem key={factory.id} value={factory.id.toString()}>
+                                                    {factory.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 {errors.factory_id && (
                                     <p className="text-sm text-red-500">{errors.factory_id}</p>
-                                )}
-                                {errors.parent_area_id && (
-                                    <p className="text-sm text-red-500">{errors.parent_area_id}</p>
                                 )}
                                 {(errors as FormErrors).message && (
                                     <p className="text-sm text-red-500">{(errors as FormErrors).message}</p>
@@ -155,7 +143,7 @@ export default function Create({ factories, areas }: Props) {
                             <Button variant="outline" onClick={() => window.history.back()}>
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={processing}>
+                            <Button type="submit" disabled={processing || hasNoFactories}>
                                 {processing ? 'Salvando...' : 'Salvar'}
                             </Button>
                         </div>

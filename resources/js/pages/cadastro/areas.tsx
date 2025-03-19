@@ -32,20 +32,7 @@ interface Area {
     id: number;
     name: string;
     factory_id: number | null;
-    parent_area_id: number | null;
     factory?: {
-        id: number;
-        name: string;
-    } | null;
-    parent_area?: {
-        id: number;
-        name: string;
-        factory?: {
-            id: number;
-            name: string;
-        } | null;
-    } | null;
-    closest_factory?: {
         id: number;
         name: string;
     } | null;
@@ -65,10 +52,6 @@ interface Dependencies {
         machines: {
             total: number;
             items: Machine[];
-        };
-        areas: {
-            total: number;
-            items: Area[];
         };
     };
 }
@@ -246,27 +229,14 @@ export default function Areas({ areas, filters }: Props) {
                                             <span className="ml-2">{getSortIcon('factory')}</span>
                                         </Button>
                                     </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('parent_area')}
-                                        >
-                                            Área Pai
-                                            <span className="ml-2">{getSortIcon('parent_area')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead className="w-[100px]">Ações</TableHead>
+                                    <TableHead>Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {areas.data.map((area) => (
                                     <TableRow key={area.id}>
                                         <TableCell>{area.name}</TableCell>
-                                        <TableCell>{area.closest_factory?.name || '-'}</TableCell>
-                                        <TableCell>
-                                            {area.parent_area_id && area.parent_area ? area.parent_area.name : '-'}
-                                        </TableCell>
+                                        <TableCell>{area.factory?.name || '-'}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
@@ -274,17 +244,14 @@ export default function Areas({ areas, filters }: Props) {
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
-                                                <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon"
-                                                            onClick={() => checkDependencies(area)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                </Dialog>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    onClick={() => checkDependencies(area)}
+                                                    disabled={isCheckingDependencies}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -300,18 +267,22 @@ export default function Areas({ areas, filters }: Props) {
                                     <PaginationPrevious 
                                         href={route('cadastro.areas', { 
                                             page: areas.current_page - 1,
-                                            search: search 
+                                            search,
+                                            sort: filters.sort,
+                                            direction: filters.direction
                                         })}
-                                        className={areas.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                        disabled={areas.current_page === 1}
                                     />
                                 </PaginationItem>
                                 
                                 {Array.from({ length: areas.last_page }, (_, i) => i + 1).map((page) => (
                                     <PaginationItem key={page}>
-                                        <PaginationLink 
+                                        <PaginationLink
                                             href={route('cadastro.areas', { 
                                                 page,
-                                                search: search
+                                                search,
+                                                sort: filters.sort,
+                                                direction: filters.direction
                                             })}
                                             isActive={page === areas.current_page}
                                         >
@@ -324,9 +295,11 @@ export default function Areas({ areas, filters }: Props) {
                                     <PaginationNext 
                                         href={route('cadastro.areas', { 
                                             page: areas.current_page + 1,
-                                            search: search 
+                                            search,
+                                            sort: filters.sort,
+                                            direction: filters.direction
                                         })}
-                                        className={areas.current_page === areas.last_page ? 'pointer-events-none opacity-50' : ''}
+                                        disabled={areas.current_page === areas.last_page}
                                     />
                                 </PaginationItem>
                             </PaginationContent>
@@ -337,74 +310,27 @@ export default function Areas({ areas, filters }: Props) {
 
             {/* Diálogo de Dependências */}
             <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
-                <DialogContent className="sm:max-w-[600px]">
-                    <DialogTitle>Não é possível excluir esta área</DialogTitle>
-                    <DialogDescription asChild>
-                        <div className="space-y-6">
-                            <div className="text-sm">
-                                Esta área possui itens vinculados e não pode ser excluída até que todas as dependências 
-                                sejam removidas ou movidas para outra área.
-                            </div>
-                            
-                            <div className="space-y-6">
-                                {dependencies && dependencies.dependencies.machines.total > 0 && (
-                                    <div className="space-y-3">
-                                        <div className="space-y-2">
-                                            <div className="font-medium text-sm">
-                                                Total de Máquinas Vinculadas: {dependencies.dependencies.machines.total}
-                                            </div>
-                                            <div className="text-sm text-muted-foreground italic">
-                                                Clique no código da máquina para detalhes
-                                            </div>
-                                        </div>
-
-                                        {dependencies.dependencies.machines.items && dependencies.dependencies.machines.items.length > 0 && (
-                                            <div className="space-y-3">
-                                                <ul className="list-disc list-inside space-y-2 text-sm">
-                                                    {dependencies.dependencies.machines.items.map(machine => (
-                                                        <li key={machine.id}>
-                                                            <Link
-                                                                href={route('cadastro.maquinas.show', machine.id)}
-                                                                className="text-primary hover:underline inline-flex items-center gap-1"
-                                                            >
-                                                                {machine.tag}
-                                                                <ExternalLink className="h-3 w-3" />
-                                                            </Link>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {dependencies && dependencies.dependencies.areas.total > 0 && (
-                                    <div className="space-y-3">
-                                        <div className="font-medium text-sm">
-                                            Total de Subáreas: {dependencies.dependencies.areas.total}
-                                        </div>
-
-                                        {dependencies.dependencies.areas.items && dependencies.dependencies.areas.items.length > 0 && (
-                                            <div className="space-y-3">
-                                                <ul className="list-disc list-inside space-y-2 text-sm">
-                                                    {dependencies.dependencies.areas.items.map(area => (
-                                                        <li key={area.id}>{area.name}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                <DialogContent>
+                    <DialogTitle>Não é possível excluir a área</DialogTitle>
+                    <DialogDescription>
+                        A área {selectedArea?.name} possui as seguintes dependências:
                     </DialogDescription>
+                    <div className="space-y-4">
+                        {dependencies?.dependencies.machines.total > 0 && (
+                            <div>
+                                <h4 className="font-medium">Máquinas ({dependencies.dependencies.machines.total})</h4>
+                                <ul className="list-disc list-inside">
+                                    {dependencies.dependencies.machines.items.map((machine) => (
+                                        <li key={machine.id}>{machine.tag} - {machine.name}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
                     <DialogFooter>
-                        <Button 
-                            variant="secondary" 
-                            onClick={() => setShowDependenciesDialog(false)}
-                        >
-                            Fechar
-                        </Button>
+                        <DialogClose asChild>
+                            <Button variant="secondary">Fechar</Button>
+                        </DialogClose>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -412,40 +338,30 @@ export default function Areas({ areas, filters }: Props) {
             {/* Diálogo de Confirmação de Exclusão */}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>
-                    <DialogTitle>Você tem certeza que deseja excluir esta área?</DialogTitle>
+                    <DialogTitle>Confirmar exclusão</DialogTitle>
                     <DialogDescription>
-                        Uma vez que a área for excluída, todos os seus recursos e dados serão permanentemente excluídos. 
-                        Esta ação não pode ser desfeita.
+                        Tem certeza que deseja excluir a área {selectedArea?.name}? Esta ação não pode ser desfeita.
                     </DialogDescription>
-                    <div className="grid gap-2 py-4">
-                        <Label htmlFor="confirmation" className="sr-only">
-                            Confirmação
-                        </Label>
-                        <Input
-                            id="confirmation"
-                            type="text"
-                            value={confirmationText}
-                            onChange={(e) => setConfirmationText(e.target.value)}
-                            placeholder="Digite EXCLUIR para confirmar"
-                            autoComplete="off"
-                        />
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmation">Digite EXCLUIR para confirmar</Label>
+                            <Input
+                                id="confirmation"
+                                value={confirmationText}
+                                onChange={(e) => setConfirmationText(e.target.value)}
+                            />
+                        </div>
                     </div>
-                    <DialogFooter className="gap-2">
-                        <Button 
-                            variant="secondary"
-                            onClick={() => {
-                                setShowDeleteDialog(false);
-                                setConfirmationText('');
-                            }}
-                        >
-                            Cancelar
-                        </Button>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary">Cancelar</Button>
+                        </DialogClose>
                         <Button 
                             variant="destructive" 
-                            disabled={isDeleting || !isConfirmationValid}
                             onClick={() => selectedArea && handleDelete(selectedArea)}
+                            disabled={!isConfirmationValid || isDeleting}
                         >
-                            {isDeleting ? 'Excluindo...' : 'Excluir área'}
+                            {isDeleting ? 'Excluindo...' : 'Excluir'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

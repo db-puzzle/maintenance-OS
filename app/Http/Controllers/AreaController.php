@@ -34,17 +34,11 @@ class AreaController extends Controller
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
 
-        $areas = Area::with(['factory', 'parentArea' => function($query) {
-            $query->with('factory')
-                ->select('id', 'name', 'factory_id', 'parent_area_id');
-        }])
+        $areas = Area::with(['factory'])
         ->when($search, function ($query, $search) {
             $query->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhereHas('factory', function ($query) use ($search) {
-                        $query->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('parentArea', function ($query) use ($search) {
                         $query->where('name', 'like', "%{$search}%");
                     });
             });
@@ -54,19 +48,10 @@ class AreaController extends Controller
                 ->orderBy('factories.name', $direction)
                 ->select('areas.*');
         })
-        ->when($sort === 'parent_area', function ($query) use ($direction) {
-            $query->leftJoin('areas as parent_areas', 'areas.parent_area_id', '=', 'parent_areas.id')
-                ->orderBy('parent_areas.name', $direction)
-                ->select('areas.*');
-        })
-        ->when(!in_array($sort, ['factory', 'parent_area']), function ($query) use ($sort, $direction) {
+        ->when(!in_array($sort, ['factory']), function ($query) use ($sort, $direction) {
             $query->orderBy($sort, $direction);
         })
-        ->paginate(8)
-        ->through(function ($area) {
-            $area->closest_factory = $this->findClosestFactory($area);
-            return $area;
-        });
+        ->paginate(8);
 
         return Inertia::render('cadastro/areas', [
             'areas' => $areas,
@@ -83,9 +68,16 @@ class AreaController extends Controller
      */
     public function create()
     {
+        $factories = Factory::all();
+        \Log::info('AreaController@create - Factories:', ['factories' => $factories->toArray()]);
+        
         return Inertia::render('cadastro/areas/create', [
-            'factories' => Factory::all(),
-            'areas' => Area::all()
+            'factories' => $factories->map(function ($factory) {
+                return [
+                    'id' => $factory->id,
+                    'name' => $factory->name,
+                ];
+            })->values()->all()
         ]);
     }
 
@@ -96,22 +88,12 @@ class AreaController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'factory_id' => 'nullable|exists:factories,id',
-            'parent_area_id' => 'nullable|exists:areas,id'
+            'factory_id' => 'nullable|exists:factories,id'
         ]);
 
         // Converter "none" para null
         if ($validated['factory_id'] === 'none') {
             $validated['factory_id'] = null;
-        }
-        if ($validated['parent_area_id'] === 'none') {
-            $validated['parent_area_id'] = null;
-        }
-
-        if ($validated['factory_id'] && $validated['parent_area_id']) {
-            return back()->withErrors([
-                'message' => 'Uma área não pode pertencer a uma fábrica e a outra área simultaneamente.'
-            ]);
         }
 
         $area = Area::create($validated);
@@ -134,11 +116,8 @@ class AreaController extends Controller
     public function edit(Area $area)
     {
         return Inertia::render('cadastro/areas/edit', [
-            'area' => $area->load(['factory', 'parentArea' => function($query) {
-                $query->select('id', 'name', 'factory_id', 'parent_area_id');
-            }]),
-            'factories' => Factory::all(),
-            'areas' => Area::where('id', '!=', $area->id)->get()
+            'area' => $area->load(['factory']),
+            'factories' => Factory::all()
         ]);
     }
 
@@ -149,22 +128,12 @@ class AreaController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'factory_id' => 'nullable|exists:factories,id',
-            'parent_area_id' => 'nullable|exists:areas,id'
+            'factory_id' => 'nullable|exists:factories,id'
         ]);
 
         // Converter "none" para null
         if ($validated['factory_id'] === 'none') {
             $validated['factory_id'] = null;
-        }
-        if ($validated['parent_area_id'] === 'none') {
-            $validated['parent_area_id'] = null;
-        }
-
-        if ($validated['factory_id'] && $validated['parent_area_id']) {
-            return back()->withErrors([
-                'message' => 'Uma área não pode pertencer a uma fábrica e a outra área simultaneamente.'
-            ]);
         }
 
         $area->update($validated);
@@ -189,19 +158,12 @@ class AreaController extends Controller
         $machines = $area->machines()->take(5)->get(['id', 'tag', 'name']);
         $totalMachines = $area->machines()->count();
 
-        $subAreas = $area->childAreas()->take(5)->get(['id', 'name']);
-        $totalSubAreas = $area->childAreas()->count();
-
         return response()->json([
-            'can_delete' => $totalMachines === 0 && $totalSubAreas === 0,
+            'can_delete' => $totalMachines === 0,
             'dependencies' => [
                 'machines' => [
                     'total' => $totalMachines,
                     'items' => $machines
-                ],
-                'areas' => [
-                    'total' => $totalSubAreas,
-                    'items' => $subAreas
                 ]
             ]
         ]);

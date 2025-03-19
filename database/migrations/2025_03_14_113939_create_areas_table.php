@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->foreignId('factory_id')->nullable()->constrained('factories')->onDelete('restrict');
-            $table->foreignId('parent_area_id')->nullable()->constrained('areas')->onDelete('restrict');
             $table->timestamps();
         });
     }
