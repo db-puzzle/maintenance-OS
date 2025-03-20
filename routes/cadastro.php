@@ -19,6 +19,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cadastro/areas', [AreaController::class, 'index'])->name('cadastro.areas');
     Route::get('cadastro/areas/create', [AreaController::class, 'create'])->name('cadastro.areas.create');
     Route::post('cadastro/areas', [AreaController::class, 'store'])->name('cadastro.areas.store');
+    Route::get('cadastro/areas/{area}', [AreaController::class, 'show'])->name('cadastro.areas.show');
     Route::get('cadastro/areas/{area}/edit', [AreaController::class, 'edit'])->name('cadastro.areas.edit');
     Route::put('cadastro/areas/{area}', [AreaController::class, 'update'])->name('cadastro.areas.update');
     Route::delete('cadastro/areas/{area}', [AreaController::class, 'destroy'])->name('cadastro.areas.destroy');

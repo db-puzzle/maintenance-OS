@@ -35,6 +35,7 @@ class AreaController extends Controller
         $direction = $request->input('direction', 'asc');
 
         $areas = Area::with(['factory'])
+        ->withCount('machines')
         ->when($search, function ($query, $search) {
             $query->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
@@ -105,9 +106,11 @@ class AreaController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Area $area)
     {
-        //
+        return Inertia::render('cadastro/areas/show', [
+            'area' => $area->load(['factory', 'machines.machineType'])
+        ]);
     }
 
     /**
@@ -117,7 +120,8 @@ class AreaController extends Controller
     {
         return Inertia::render('cadastro/areas/edit', [
             'area' => $area->load(['factory']),
-            'factories' => Factory::all()
+            'factories' => Factory::all(),
+            'areas' => Area::where('id', '!=', $area->id)->get()
         ]);
     }
 

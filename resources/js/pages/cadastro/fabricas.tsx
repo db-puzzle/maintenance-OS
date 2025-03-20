@@ -276,7 +276,11 @@ export default function Fabricas({ factories, filters }: Props) {
                             </TableHeader>
                             <TableBody>
                                 {factories.data.map((factory) => (
-                                    <TableRow key={factory.id}>
+                                    <TableRow 
+                                        key={factory.id}
+                                        className="cursor-pointer hover:bg-muted/50"
+                                        onClick={() => router.get(route('cadastro.fabricas.show', factory.id))}
+                                    >
                                         <TableCell>{factory.name}</TableCell>
                                         <TableCell>
                                             {factory.street}, {factory.number}
@@ -285,7 +289,7 @@ export default function Fabricas({ factories, filters }: Props) {
                                         <TableCell>{factory.state}</TableCell>
                                         <TableCell>{factory.zip_code}</TableCell>
                                         <TableCell>{factory.gps_coordinates}</TableCell>
-                                        <TableCell>
+                                        <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
                                                     <Link href={route('cadastro.fabricas.edit', factory.id)}>
@@ -370,7 +374,14 @@ export default function Fabricas({ factories, filters }: Props) {
                                     <div className="space-y-3">
                                         <ul className="list-disc list-inside space-y-2 text-sm">
                                             {dependencies.dependencies.areas.items.map(area => (
-                                                <li key={area.id}>{area.name}</li>
+                                                <li key={area.id}>
+                                                    <Link
+                                                        href={route('cadastro.areas.show', area.id)}
+                                                        className="text-primary hover:underline"
+                                                    >
+                                                        {area.name}
+                                                    </Link>
+                                                </li>
                                             ))}
                                         </ul>
                                     </div>

@@ -36,6 +36,7 @@ interface Area {
         id: number;
         name: string;
     } | null;
+    machines_count: number;
     created_at: string;
     updated_at: string;
 }
@@ -229,27 +230,44 @@ export default function Areas({ areas, filters }: Props) {
                                             <span className="ml-2">{getSortIcon('factory')}</span>
                                         </Button>
                                     </TableHead>
-                                    <TableHead>Ações</TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('machines_count')}
+                                        >
+                                            Máquinas
+                                            <span className="ml-2">{getSortIcon('machines_count')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead className="w-[100px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {areas.data.map((area) => (
-                                    <TableRow key={area.id}>
+                                    <TableRow 
+                                        key={area.id}
+                                        className="cursor-pointer hover:bg-muted/50"
+                                        onClick={() => router.get(route('cadastro.areas.show', area.id))}
+                                    >
                                         <TableCell>{area.name}</TableCell>
                                         <TableCell>{area.factory?.name || '-'}</TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
+                                        <TableCell>{area.machines_count}</TableCell>
+                                        <TableCell onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex items-center justify-end gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
                                                     <Link href={route('cadastro.areas.edit', area.id)}>
+                                                        <span className="sr-only">Editar área</span>
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
                                                 <Button 
                                                     variant="ghost" 
-                                                    size="icon" 
+                                                    size="icon"
                                                     onClick={() => checkDependencies(area)}
                                                     disabled={isCheckingDependencies}
                                                 >
+                                                    <span className="sr-only">Excluir área</span>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </div>
@@ -271,7 +289,7 @@ export default function Areas({ areas, filters }: Props) {
                                             sort: filters.sort,
                                             direction: filters.direction
                                         })}
-                                        disabled={areas.current_page === 1}
+                                        className={areas.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
                                 
@@ -299,12 +317,34 @@ export default function Areas({ areas, filters }: Props) {
                                             sort: filters.sort,
                                             direction: filters.direction
                                         })}
-                                        disabled={areas.current_page === areas.last_page}
+                                        className={areas.current_page === areas.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
                             </PaginationContent>
                         </Pagination>
                     </div>
+
+                    <div className="font-medium text-sm">
+                        Total de Máquinas Vinculadas: {dependencies?.dependencies?.machines?.total ?? 0}
+                    </div>
+
+                    {dependencies?.dependencies?.machines?.items && dependencies.dependencies.machines.items.length > 0 && (
+                        <div>
+                            <h4 className="font-medium">Máquinas ({dependencies?.dependencies?.machines?.total ?? 0})</h4>
+                            <ul className="list-disc list-inside">
+                                {dependencies?.dependencies?.machines?.items.map((machine) => (
+                                    <li key={machine.id}>
+                                        <Link 
+                                            href={route('cadastro.maquinas.show', machine.id)}
+                                            className="text-primary hover:underline"
+                                        >
+                                            {machine.tag} - {machine.name}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </div>
             </CadastroLayout>
 

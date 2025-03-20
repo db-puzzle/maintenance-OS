@@ -106,4 +106,16 @@ class FactoriesController extends Controller
         return redirect()->route('cadastro.fabricas')
             ->with('success', "A fábrica {$factory->name} foi atualizada com sucesso.");
     }
+
+    public function show(Factory $factory)
+    {
+        $areas = $factory->areas()
+            ->orderBy('name')
+            ->paginate(10);
+
+        return Inertia::render('cadastro/fabricas/show', [
+            'factory' => $factory,
+            'areas' => $areas,
+        ]);
+    }
 } 
