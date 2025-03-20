@@ -35,7 +35,7 @@ interface Area {
     factory: {
         id: number;
         name: string;
-    } | null;
+    };
     machines: Machine[];
     created_at: string;
     updated_at: string;
@@ -88,16 +88,12 @@ export default function Show({ area }: Props) {
                                     <div>
                                         <h4 className="text-sm font-medium text-muted-foreground">Fábrica</h4>
                                         <p className="text-sm">
-                                            {area.factory ? (
-                                                <Link 
-                                                    href={route('cadastro.fabricas.edit', area.factory.id)}
-                                                    className="text-primary hover:underline"
-                                                >
-                                                    {area.factory.name}
-                                                </Link>
-                                            ) : (
-                                                'Nenhuma'
-                                            )}
+                                            <Link 
+                                                href={route('cadastro.fabricas.edit', area.factory.id)}
+                                                className="text-primary hover:underline"
+                                            >
+                                                {area.factory.name}
+                                            </Link>
                                         </p>
                                     </div>
                                     <div>

@@ -13,6 +13,10 @@ class Area extends Model
         'factory_id'
     ];
 
+    protected $casts = [
+        'factory_id' => 'integer'
+    ];
+
     public function factory(): BelongsTo
     {
         return $this->belongsTo(Factory::class);

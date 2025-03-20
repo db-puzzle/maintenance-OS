@@ -109,27 +109,26 @@ export default function Create(props: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label>Vínculo</Label>
-                                <div>
-                                    <Label htmlFor="factory_id">Fábrica</Label>
-                                    <Select
-                                        value={data.factory_id}
-                                        onValueChange={(value) => setData('factory_id', value)}
-                                        disabled={hasNoFactories}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione uma fábrica" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="0">Selecione uma fábrica</SelectItem>
-                                            {safeFactories && safeFactories.length > 0 && safeFactories.map((factory) => (
-                                                <SelectItem key={factory.id} value={factory.id.toString()}>
-                                                    {factory.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <Label htmlFor="factory_id" className="flex items-center gap-1">
+                                    Fábrica
+                                    <span className="text-destructive">*</span>
+                                </Label>
+                                <Select
+                                    value={data.factory_id}
+                                    onValueChange={(value) => setData('factory_id', value)}
+                                    disabled={hasNoFactories}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione uma fábrica" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {safeFactories && safeFactories.length > 0 && safeFactories.map((factory) => (
+                                            <SelectItem key={factory.id} value={factory.id.toString()}>
+                                                {factory.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 {errors.factory_id && (
                                     <p className="text-sm text-red-500">{errors.factory_id}</p>
                                 )}

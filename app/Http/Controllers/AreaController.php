@@ -10,22 +10,6 @@ use Inertia\Inertia;
 class AreaController extends Controller
 {
     /**
-     * Encontra a fábrica mais próxima na hierarquia de áreas
-     */
-    private function findClosestFactory(Area $area): ?Factory
-    {
-        if ($area->factory) {
-            return $area->factory;
-        }
-
-        if ($area->parent_area_id) {
-            return $this->findClosestFactory($area->parentArea);
-        }
-
-        return null;
-    }
-
-    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
@@ -89,13 +73,8 @@ class AreaController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'factory_id' => 'nullable|exists:factories,id'
+            'factory_id' => 'required|exists:factories,id'
         ]);
-
-        // Converter "none" para null
-        if ($validated['factory_id'] === 'none') {
-            $validated['factory_id'] = null;
-        }
 
         $area = Area::create($validated);
 
@@ -120,8 +99,7 @@ class AreaController extends Controller
     {
         return Inertia::render('cadastro/areas/edit', [
             'area' => $area->load(['factory']),
-            'factories' => Factory::all(),
-            'areas' => Area::where('id', '!=', $area->id)->get()
+            'factories' => Factory::all()
         ]);
     }
 
@@ -132,13 +110,8 @@ class AreaController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'factory_id' => 'nullable|exists:factories,id'
+            'factory_id' => 'required|exists:factories,id'
         ]);
-
-        // Converter "none" para null
-        if ($validated['factory_id'] === 'none') {
-            $validated['factory_id'] = null;
-        }
 
         $area->update($validated);
 
