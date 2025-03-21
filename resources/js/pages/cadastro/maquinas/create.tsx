@@ -1,15 +1,29 @@
 import { type BreadcrumbItem, type MachineType, type Area, type MachineForm } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
+import { Check, ChevronsUpDown, Camera, Upload } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import InputError from '@/components/input-error';
-import { Camera, Upload } from 'lucide-react';
 import CameraCapture from '@/components/camera-capture';
+import { cn } from '@/lib/utils';
 
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
@@ -45,6 +59,8 @@ export default function CreateMachine({ machineTypes, areas }: Props) {
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [showCamera, setShowCamera] = useState(false);
+    const [openMachineType, setOpenMachineType] = useState(false);
+    const [openArea, setOpenArea] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -171,22 +187,49 @@ export default function CreateMachine({ machineTypes, areas }: Props) {
                                         Tipo de Máquina
                                         <span className="text-destructive">*</span>
                                     </Label>
-                                    <Select
-                                        value={data.machine_type_id.toString()}
-                                        onValueChange={(value) => setData('machine_type_id', value)}
-                                        required
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione um tipo de máquina" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {machineTypes.map((type) => (
-                                                <SelectItem key={type.id} value={type.id.toString()}>
-                                                    {type.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Popover open={openMachineType} onOpenChange={setOpenMachineType}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openMachineType}
+                                                className="w-full justify-between"
+                                            >
+                                                {data.machine_type_id
+                                                    ? machineTypes.find((type) => type.id.toString() === data.machine_type_id)?.name
+                                                    : "Selecione um tipo de máquina"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                            <Command className="w-full">
+                                                <CommandInput placeholder="Buscar tipo de máquina..." className="h-9" />
+                                                <CommandList>
+                                                    <CommandEmpty>Nenhum tipo de máquina encontrado.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {machineTypes.map((type) => (
+                                                            <CommandItem
+                                                                key={type.id}
+                                                                value={type.name}
+                                                                onSelect={(currentValue) => {
+                                                                    setData('machine_type_id', type.id.toString());
+                                                                    setOpenMachineType(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        data.machine_type_id === type.id.toString() ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {type.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                     <InputError message={errors.machine_type_id} />
                                 </div>
 
@@ -196,22 +239,49 @@ export default function CreateMachine({ machineTypes, areas }: Props) {
                                         Área
                                         <span className="text-destructive">*</span>
                                     </Label>
-                                    <Select
-                                        value={data.area_id.toString()}
-                                        onValueChange={(value) => setData('area_id', value)}
-                                        required
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione uma área" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {areas.map((area) => (
-                                                <SelectItem key={area.id} value={area.id.toString()}>
-                                                    {area.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Popover open={openArea} onOpenChange={setOpenArea}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openArea}
+                                                className="w-full justify-between"
+                                            >
+                                                {data.area_id
+                                                    ? areas.find((area) => area.id.toString() === data.area_id)?.name
+                                                    : "Selecione uma área"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                            <Command className="w-full">
+                                                <CommandInput placeholder="Buscar área..." className="h-9" />
+                                                <CommandList>
+                                                    <CommandEmpty>Nenhuma área encontrada.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {areas.map((area) => (
+                                                            <CommandItem
+                                                                key={area.id}
+                                                                value={area.name}
+                                                                onSelect={(currentValue) => {
+                                                                    setData('area_id', area.id.toString());
+                                                                    setOpenArea(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        data.area_id === area.id.toString() ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {area.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                     <InputError message={errors.area_id} />
                                 </div>
 
