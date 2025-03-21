@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Factory;
+use App\Models\Plant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-class FactoriesController extends Controller
+class PlantsController extends Controller
 {
     public function index(Request $request)
     {
@@ -14,7 +14,7 @@ class FactoriesController extends Controller
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
 
-        $factories = Factory::query()
+        $plants = Plant::query()
             ->when($search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('name', 'like', "%{$search}%")
@@ -25,8 +25,8 @@ class FactoriesController extends Controller
             ->orderBy($sort, $direction)
             ->paginate(8);
 
-        return Inertia::render('cadastro/fabricas', [
-            'factories' => $factories,
+        return Inertia::render('cadastro/plantas', [
+            'plants' => $plants,
             'filters' => [
                 'search' => $search,
                 'sort' => $sort,
@@ -37,7 +37,7 @@ class FactoriesController extends Controller
 
     public function create()
     {
-        return Inertia::render('cadastro/fabricas/create');
+        return Inertia::render('cadastro/plantas/create');
     }
 
     public function store(Request $request)
@@ -52,24 +52,24 @@ class FactoriesController extends Controller
             'gps_coordinates' => 'nullable|string|max:255',
         ]);
 
-        $factory = Factory::create($validated);
+        $plant = Plant::create($validated);
 
-        return redirect()->route('cadastro.fabricas')
-            ->with('success', "A fábrica {$factory->name} foi criada com sucesso.");
+        return redirect()->route('cadastro.plantas')
+            ->with('success', "A planta {$plant->name} foi criada com sucesso.");
     }
 
-    public function destroy(Factory $factory)
+    public function destroy(Plant $plant)
     {
-        $factoryName = $factory->name;
-        $factory->delete();
+        $plantName = $plant->name;
+        $plant->delete();
 
-        return back()->with('success', "A fábrica {$factoryName} foi excluída com sucesso.");
+        return back()->with('success', "A planta {$plantName} foi excluída com sucesso.");
     }
 
-    public function checkDependencies(Factory $factory)
+    public function checkDependencies(Plant $plant)
     {
-        $areas = $factory->areas()->take(5)->get(['id', 'name']);
-        $totalAreas = $factory->areas()->count();
+        $areas = $plant->areas()->take(5)->get(['id', 'name']);
+        $totalAreas = $plant->areas()->count();
 
         return response()->json([
             'can_delete' => $totalAreas === 0,
@@ -82,14 +82,14 @@ class FactoriesController extends Controller
         ]);
     }
 
-    public function edit(Factory $factory)
+    public function edit(Plant $plant)
     {
-        return Inertia::render('cadastro/fabricas/edit', [
-            'factory' => $factory
+        return Inertia::render('cadastro/plantas/edit', [
+            'plant' => $plant
         ]);
     }
 
-    public function update(Request $request, Factory $factory)
+    public function update(Request $request, Plant $plant)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -101,20 +101,20 @@ class FactoriesController extends Controller
             'gps_coordinates' => 'nullable|string|max:255',
         ]);
 
-        $factory->update($validated);
+        $plant->update($validated);
 
-        return redirect()->route('cadastro.fabricas')
-            ->with('success', "A fábrica {$factory->name} foi atualizada com sucesso.");
+        return redirect()->route('cadastro.plantas')
+            ->with('success', "A planta {$plant->name} foi atualizada com sucesso.");
     }
 
-    public function show(Factory $factory)
+    public function show(Plant $plant)
     {
-        $areas = $factory->areas()
+        $areas = $plant->areas()
             ->orderBy('name')
             ->paginate(10);
 
-        return Inertia::render('cadastro/fabricas/show', [
-            'factory' => $factory,
+        return Inertia::render('cadastro/plantas/show', [
+            'plant' => $plant,
             'areas' => $areas,
         ]);
     }

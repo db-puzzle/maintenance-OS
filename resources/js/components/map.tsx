@@ -43,7 +43,7 @@ export default function Map({ coordinates, className = '' }: MapProps) {
             const marker = new google.maps.marker.AdvancedMarkerElement({
                 map,
                 position: { lat, lng },
-                title: 'Localização da Fábrica',
+                title: 'Localização da Planta',
             });
         });
     }, [coordinates]);

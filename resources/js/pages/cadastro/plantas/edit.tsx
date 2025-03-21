@@ -25,18 +25,33 @@ import {
 import { estados } from '@/data/estados';
 import { useState } from 'react';
 
+interface Plant {
+    id: number;
+    name: string;
+    street: string | null;
+    number: string | null;
+    city: string | null;
+    state: string | null;
+    zip_code: string | null;
+    gps_coordinates: string | null;
+}
+
+interface Props {
+    plant: Plant;
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Fábricas',
-        href: '/cadastro/fabricas',
+        title: 'Plantas',
+        href: '/cadastro/plantas',
     },
     {
-        title: 'Nova Fábrica',
-        href: '/cadastro/fabricas/create',
+        title: 'Editar Planta',
+        href: '/cadastro/plantas/edit',
     },
 ];
 
-interface FactoryForm {
+interface PlantForm {
     name: string;
     street: string;
     number: string;
@@ -46,15 +61,15 @@ interface FactoryForm {
     gps_coordinates: string;
 }
 
-export default function CreateFactory() {
-    const { data, setData, post, processing, errors } = useForm<FactoryForm>({
-        name: '',
-        street: '',
-        number: '',
-        city: '',
-        state: '',
-        zip_code: '',
-        gps_coordinates: '',
+export default function EditPlant({ plant }: Props) {
+    const { data, setData, post, processing, errors } = useForm<PlantForm>({
+        name: plant.name,
+        street: plant.street || '',
+        number: plant.number || '',
+        city: plant.city || '',
+        state: plant.state || '',
+        zip_code: plant.zip_code || '',
+        gps_coordinates: plant.gps_coordinates || '',
     });
 
     const [open, setOpen] = useState(false);
@@ -79,26 +94,26 @@ export default function CreateFactory() {
             ...data,
             zip_code: data.zip_code.replace(/\D/g, '')
         };
-        post(route('cadastro.fabricas.store'), formData);
+        post(route('cadastro.plantas.update', plant.id), formData);
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Nova Fábrica" />
+            <Head title="Editar Planta" />
 
             <CadastroLayout>
                 <div className="space-y-6 max-w-2xl">
                     <HeadingSmall 
-                        title="Nova Fábrica" 
-                        description="Adicione uma nova fábrica ao sistema" 
+                        title="Editar Planta" 
+                        description="Edite os dados da planta" 
                     />
 
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-6">
-                            {/* Nome da Fábrica - Campo Obrigatório */}
+                            {/* Nome da Planta - Campo Obrigatório */}
                             <div className="grid gap-2">
                                 <Label htmlFor="name" className="flex items-center gap-1">
-                                    Nome da Fábrica
+                                    Nome da Planta
                                     <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
@@ -106,7 +121,7 @@ export default function CreateFactory() {
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
                                     required
-                                    placeholder="Nome da fábrica"
+                                    placeholder="Nome da planta"
                                 />
                                 <InputError message={errors.name} />
                             </div>

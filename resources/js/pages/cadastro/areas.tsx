@@ -31,8 +31,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Area {
     id: number;
     name: string;
-    factory_id: number | null;
-    factory?: {
+    plant_id: number | null;
+    plant: {
         id: number;
         name: string;
     } | null;
@@ -224,10 +224,10 @@ export default function Areas({ areas, filters }: Props) {
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('factory')}
+                                            onClick={() => handleSort('plant')}
                                         >
-                                            Fábrica
-                                            <span className="ml-2">{getSortIcon('factory')}</span>
+                                            Planta
+                                            <span className="ml-2">{getSortIcon('plant')}</span>
                                         </Button>
                                     </TableHead>
                                     <TableHead>
@@ -251,7 +251,7 @@ export default function Areas({ areas, filters }: Props) {
                                         onClick={() => router.get(route('cadastro.areas.show', area.id))}
                                     >
                                         <TableCell>{area.name}</TableCell>
-                                        <TableCell>{area.factory?.name || '-'}</TableCell>
+                                        <TableCell>{area.plant?.name || '-'}</TableCell>
                                         <TableCell>{area.machines_count}</TableCell>
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-end gap-2">

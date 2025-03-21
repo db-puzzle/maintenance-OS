@@ -32,7 +32,7 @@ interface Machine {
 interface Area {
     id: number;
     name: string;
-    factory: {
+    plant: {
         id: number;
         name: string;
     };
@@ -86,13 +86,13 @@ export default function Show({ area }: Props) {
                                         <p className="text-sm">{area.name}</p>
                                     </div>
                                     <div>
-                                        <h4 className="text-sm font-medium text-muted-foreground">Fábrica</h4>
+                                        <h4 className="text-sm font-medium text-muted-foreground">Planta</h4>
                                         <p className="text-sm">
                                             <Link 
-                                                href={route('cadastro.fabricas.edit', area.factory.id)}
+                                                href={route('cadastro.plantas.edit', area.plant.id)}
                                                 className="text-primary hover:underline"
                                             >
-                                                {area.factory.name}
+                                                {area.plant.name}
                                             </Link>
                                         </p>
                                     </div>

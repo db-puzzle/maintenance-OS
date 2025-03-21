@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Area;
-use App\Models\Factory;
+use App\Models\Plant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -18,22 +18,22 @@ class AreaController extends Controller
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
 
-        $areas = Area::with(['factory'])
+        $areas = Area::with(['plant'])
         ->withCount('machines')
         ->when($search, function ($query, $search) {
             $query->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
-                    ->orWhereHas('factory', function ($query) use ($search) {
+                    ->orWhereHas('plant', function ($query) use ($search) {
                         $query->where('name', 'like', "%{$search}%");
                     });
             });
         })
-        ->when($sort === 'factory', function ($query) use ($direction) {
-            $query->join('factories', 'areas.factory_id', '=', 'factories.id')
-                ->orderBy('factories.name', $direction)
+        ->when($sort === 'plant', function ($query) use ($direction) {
+            $query->join('plants', 'areas.plant_id', '=', 'plants.id')
+                ->orderBy('plants.name', $direction)
                 ->select('areas.*');
         })
-        ->when(!in_array($sort, ['factory']), function ($query) use ($sort, $direction) {
+        ->when(!in_array($sort, ['plant']), function ($query) use ($sort, $direction) {
             $query->orderBy($sort, $direction);
         })
         ->paginate(8);
@@ -53,14 +53,13 @@ class AreaController extends Controller
      */
     public function create()
     {
-        $factories = Factory::all();
-        \Log::info('AreaController@create - Factories:', ['factories' => $factories->toArray()]);
+        $plants = Plant::all();
         
         return Inertia::render('cadastro/areas/create', [
-            'factories' => $factories->map(function ($factory) {
+            'plants' => $plants->map(function ($plant) {
                 return [
-                    'id' => $factory->id,
-                    'name' => $factory->name,
+                    'id' => $plant->id,
+                    'name' => $plant->name,
                 ];
             })->values()->all()
         ]);
@@ -73,7 +72,7 @@ class AreaController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'factory_id' => 'required|exists:factories,id'
+            'plant_id' => 'required|exists:plants,id'
         ]);
 
         $area = Area::create($validated);
@@ -88,7 +87,7 @@ class AreaController extends Controller
     public function show(Area $area)
     {
         return Inertia::render('cadastro/areas/show', [
-            'area' => $area->load(['factory', 'machines.machineType'])
+            'area' => $area->load(['plant', 'machines.machineType'])
         ]);
     }
 
@@ -98,8 +97,8 @@ class AreaController extends Controller
     public function edit(Area $area)
     {
         return Inertia::render('cadastro/areas/edit', [
-            'area' => $area->load(['factory']),
-            'factories' => Factory::all()
+            'area' => $area->load(['plant']),
+            'plants' => Plant::all()
         ]);
     }
 
@@ -110,7 +109,7 @@ class AreaController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'factory_id' => 'required|exists:factories,id'
+            'plant_id' => 'required|exists:plants,id'
         ]);
 
         $area->update($validated);

@@ -1,5 +1,5 @@
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
 import HeadingSmall from '@/components/heading-small';
@@ -24,33 +24,19 @@ import {
 } from "@/components/ui/popover";
 import { estados } from '@/data/estados';
 import { useState } from 'react';
-import { Link } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Fábricas',
-        href: '/cadastro/fabricas',
+        title: 'Plantas',
+        href: '/cadastro/plantas',
     },
     {
-        title: 'Editar Fábrica',
-        href: '/cadastro/fabricas/edit',
+        title: 'Nova Planta',
+        href: '/cadastro/plantas/create',
     },
 ];
 
-interface Factory {
-    id: number;
-    name: string;
-    street: string | null;
-    number: string | null;
-    city: string | null;
-    state: string | null;
-    zip_code: string | null;
-    gps_coordinates: string | null;
-    created_at: string;
-    updated_at: string;
-}
-
-interface FactoryForm {
+interface PlantForm {
     name: string;
     street: string;
     number: string;
@@ -60,19 +46,15 @@ interface FactoryForm {
     gps_coordinates: string;
 }
 
-interface Props {
-    factory: Factory;
-}
-
-export default function EditFactory({ factory }: Props) {
-    const { data, setData, post, processing, errors } = useForm<FactoryForm>({
-        name: factory.name,
-        street: factory.street || '',
-        number: factory.number || '',
-        city: factory.city || '',
-        state: factory.state || '',
-        zip_code: factory.zip_code || '',
-        gps_coordinates: factory.gps_coordinates || '',
+export default function CreatePlant() {
+    const { data, setData, post, processing, errors } = useForm<PlantForm>({
+        name: '',
+        street: '',
+        number: '',
+        city: '',
+        state: '',
+        zip_code: '',
+        gps_coordinates: '',
     });
 
     const [open, setOpen] = useState(false);
@@ -93,31 +75,30 @@ export default function EditFactory({ factory }: Props) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Remove o hífen antes de enviar
         const formData = {
             ...data,
             zip_code: data.zip_code.replace(/\D/g, '')
         };
-        post(route('cadastro.fabricas.update', factory.id), formData);
+        post(route('cadastro.plantas.store'), formData);
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Editar Fábrica" />
+            <Head title="Nova Planta" />
 
             <CadastroLayout>
                 <div className="space-y-6 max-w-2xl">
                     <HeadingSmall 
-                        title="Editar Fábrica" 
-                        description="Atualize as informações da fábrica" 
+                        title="Nova Planta" 
+                        description="Adicione uma nova planta ao sistema" 
                     />
 
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-6">
-                            {/* Nome da Fábrica - Campo Obrigatório */}
+                            {/* Nome da Planta - Campo Obrigatório */}
                             <div className="grid gap-2">
                                 <Label htmlFor="name" className="flex items-center gap-1">
-                                    Nome da Fábrica
+                                    Nome da Planta
                                     <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
@@ -125,7 +106,7 @@ export default function EditFactory({ factory }: Props) {
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
                                     required
-                                    placeholder="Nome da fábrica"
+                                    placeholder="Nome da planta"
                                 />
                                 <InputError message={errors.name} />
                             </div>
@@ -246,11 +227,7 @@ export default function EditFactory({ factory }: Props) {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
-                                onClick={() => router.visit(route('cadastro.fabricas'))}
-                            >
+                            <Button variant="outline" onClick={() => window.history.back()}>
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={processing}>

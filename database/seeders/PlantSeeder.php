@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use App\Models\Factory;
+use App\Models\Plant;
 use Illuminate\Database\Seeder;
 
-class FactorySeeder extends Seeder
+class PlantSeeder extends Seeder
 {
     public function run(): void
     {
-        Factory::create([
+        Plant::create([
             'name' => 'Superior Rafard',
             'street' => 'Rua João Squilassi',
             'number' => '286',
@@ -19,7 +19,7 @@ class FactorySeeder extends Seeder
             'gps_coordinates' => '-23.0322775,-47.5378189'
         ]);
 
-        Factory::create([
+        Plant::create([
             'name' => 'Superior Itapira',
             'street' => 'Rua Mauro Simões',
             'number' => '500',
@@ -29,7 +29,7 @@ class FactorySeeder extends Seeder
             'gps_coordinates' => '-22.4189712,-46.8253333'
         ]);
 
-        Factory::create([
+        Plant::create([
             'name' => 'Superior São Luis',
             'street' => 'Av. Eng. Emiliano Macieira',
             'number' => '15',
@@ -39,7 +39,7 @@ class FactorySeeder extends Seeder
             'gps_coordinates' => '-2.5299999,-44.2813889'
         ]);
 
-        Factory::create([
+        Plant::create([
             'name' => 'Sueprior Parauapebas',
             'street' => 'Av. Presidente Prudente, S/N, Lote 1,3,5,7',
             'number' => '',

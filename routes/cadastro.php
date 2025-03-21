@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\FactoriesController;
+use App\Http\Controllers\PlantsController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\Cadastro\MachineTypeController;
 use App\Http\Controllers\MachineController;
@@ -25,13 +25,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('cadastro/areas/{area}', [AreaController::class, 'destroy'])->name('cadastro.areas.destroy');
     Route::get('cadastro/areas/{area}/check-dependencies', [AreaController::class, 'checkDependencies'])->name('cadastro.areas.check-dependencies');
 
-    Route::get('cadastro/fabricas', [FactoriesController::class, 'index'])->name('cadastro.fabricas');
-    Route::get('cadastro/fabricas/create', [FactoriesController::class, 'create'])->name('cadastro.fabricas.create');
-    Route::post('cadastro/fabricas', [FactoriesController::class, 'store'])->name('cadastro.fabricas.store');
-    Route::get('cadastro/fabricas/{factory}/edit', [FactoriesController::class, 'edit'])->name('cadastro.fabricas.edit');
-    Route::post('cadastro/fabricas/{factory}', [FactoriesController::class, 'update'])->name('cadastro.fabricas.update');
-    Route::delete('cadastro/fabricas/{factory}', [FactoriesController::class, 'destroy'])->name('cadastro.fabricas.destroy');
-    Route::get('cadastro/fabricas/{factory}/check-dependencies', [FactoriesController::class, 'checkDependencies'])->name('cadastro.fabricas.check-dependencies');
+    Route::get('cadastro/plantas', [PlantsController::class, 'index'])->name('cadastro.plantas');
+    Route::get('cadastro/plantas/create', [PlantsController::class, 'create'])->name('cadastro.plantas.create');
+    Route::post('cadastro/plantas', [PlantsController::class, 'store'])->name('cadastro.plantas.store');
+    Route::get('cadastro/plantas/{plant}/edit', [PlantsController::class, 'edit'])->name('cadastro.plantas.edit');
+    Route::put('cadastro/plantas/{plant}', [PlantsController::class, 'update'])->name('cadastro.plantas.update');
+    Route::delete('cadastro/plantas/{plant}', [PlantsController::class, 'destroy'])->name('cadastro.plantas.destroy');
+    Route::get('cadastro/plantas/{plant}/check-dependencies', [PlantsController::class, 'checkDependencies'])->name('cadastro.plantas.check-dependencies');
 
     Route::get('cadastro/tipos-maquina', [MachineTypeController::class, 'index'])->name('cadastro.tipos-maquina');
     Route::get('cadastro/tipos-maquina/create', [MachineTypeController::class, 'create'])->name('cadastro.tipos-maquina.create');

@@ -31,12 +31,12 @@ interface PageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Fábricas',
-        href: '/cadastro/fabricas',
+        title: 'Plantas',
+        href: '/cadastro/plantas',
     },
 ];
 
-interface Factory {
+interface Plant {
     id: number;
     name: string;
     street: string | null;
@@ -50,8 +50,8 @@ interface Factory {
 }
 
 interface Props {
-    factories: {
-        data: Factory[];
+    plants: {
+        data: Plant[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -64,9 +64,9 @@ interface Props {
     };
 }
 
-export default function Fabricas({ factories, filters }: Props) {
+export default function Plantas({ plants, filters }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
-    const [selectedFactory, setSelectedFactory] = useState<Factory | null>(null);
+    const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
     const [search, setSearch] = useState(filters.search || '');
     const [dependencies, setDependencies] = useState<{
@@ -95,10 +95,10 @@ export default function Fabricas({ factories, filters }: Props) {
     useEffect(() => {
         const searchTimeout = setTimeout(() => {
             router.get(
-                route('cadastro.fabricas'),
+                route('cadastro.plantas'),
                 { 
                     search,
-                    page: factories.current_page
+                    page: plants.current_page
                 },
                 { preserveState: true, preserveScroll: true }
             );
@@ -107,33 +107,33 @@ export default function Fabricas({ factories, filters }: Props) {
         return () => clearTimeout(searchTimeout);
     }, [search]);
 
-    const handleDelete = (factory: Factory) => {
+    const handleDelete = (plant: Plant) => {
         setIsDeleting(true);
-        router.delete(route('cadastro.fabricas.destroy', factory.id), {
+        router.delete(route('cadastro.plantas.destroy', plant.id), {
             onFinish: () => {
                 setIsDeleting(false);
-                setSelectedFactory(null);
+                setSelectedPlant(null);
                 setConfirmationText('');
                 setShowDeleteDialog(false);
             },
             onError: (errors) => {
                 setIsDeleting(false);
-                setSelectedFactory(null);
+                setSelectedPlant(null);
                 setConfirmationText('');
                 setShowDeleteDialog(false);
-                toast.error("Erro ao excluir fábrica", {
-                    description: errors.message || 'Não foi possível excluir a fábrica.',
+                toast.error("Erro ao excluir planta", {
+                    description: errors.message || 'Não foi possível excluir a planta.',
                 });
             },
         });
     };
 
-    const checkDependencies = async (factory: Factory) => {
+    const checkDependencies = async (plant: Plant) => {
         setIsCheckingDependencies(true);
-        setSelectedFactory(factory);
+        setSelectedPlant(plant);
         
         try {
-            const response = await fetch(route('cadastro.fabricas.check-dependencies', factory.id));
+            const response = await fetch(route('cadastro.plantas.check-dependencies', plant.id));
             const data = await response.json();
             setDependencies(data);
             
@@ -144,7 +144,7 @@ export default function Fabricas({ factories, filters }: Props) {
             }
         } catch (error) {
             toast.error("Erro ao verificar dependências", {
-                description: "Não foi possível verificar as dependências da fábrica.",
+                description: "Não foi possível verificar as dependências da planta.",
             });
         } finally {
             setIsCheckingDependencies(false);
@@ -157,12 +157,12 @@ export default function Fabricas({ factories, filters }: Props) {
         const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
         
         router.get(
-            route('cadastro.fabricas'),
+            route('cadastro.plantas'),
             { 
                 search,
                 sort: column,
                 direction,
-                page: factories.current_page
+                page: plants.current_page
             },
             { preserveState: true }
         );
@@ -179,14 +179,14 @@ export default function Fabricas({ factories, filters }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Fábricas" />
+            <Head title="Plantas" />
 
             <CadastroLayout>
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
                         <HeadingSmall 
-                            title="Fábricas" 
-                            description="Gerencie as fábricas do sistema" 
+                            title="Plantas" 
+                            description="Gerencie as plantas do sistema" 
                         />
                     </div>
 
@@ -194,15 +194,15 @@ export default function Fabricas({ factories, filters }: Props) {
                         <div className="flex-1">
                             <Input
                                 type="search"
-                                placeholder="Buscar fábricas..."
+                                placeholder="Buscar plantas..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="max-w-sm"
                             />
                         </div>
                         <Button asChild>
-                            <Link href={route('cadastro.fabricas.create')}>
-                                Nova Fábrica
+                            <Link href={route('cadastro.plantas.create')}>
+                                Nova Planta
                             </Link>
                         </Button>
                     </div>
@@ -275,31 +275,31 @@ export default function Fabricas({ factories, filters }: Props) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {factories.data.map((factory) => (
+                                {plants.data.map((plant) => (
                                     <TableRow 
-                                        key={factory.id}
+                                        key={plant.id}
                                         className="cursor-pointer hover:bg-muted/50"
-                                        onClick={() => router.get(route('cadastro.fabricas.show', factory.id))}
+                                        onClick={() => router.get(route('cadastro.plantas.show', plant.id))}
                                     >
-                                        <TableCell>{factory.name}</TableCell>
+                                        <TableCell>{plant.name}</TableCell>
                                         <TableCell>
-                                            {factory.street}, {factory.number}
+                                            {plant.street}, {plant.number}
                                         </TableCell>
-                                        <TableCell>{factory.city}</TableCell>
-                                        <TableCell>{factory.state}</TableCell>
-                                        <TableCell>{factory.zip_code}</TableCell>
-                                        <TableCell>{factory.gps_coordinates}</TableCell>
+                                        <TableCell>{plant.city}</TableCell>
+                                        <TableCell>{plant.state}</TableCell>
+                                        <TableCell>{plant.zip_code}</TableCell>
+                                        <TableCell>{plant.gps_coordinates}</TableCell>
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
-                                                    <Link href={route('cadastro.fabricas.edit', factory.id)}>
+                                                    <Link href={route('cadastro.plantas.edit', plant.id)}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
                                                 <Button 
                                                     variant="ghost" 
                                                     size="icon"
-                                                    onClick={() => checkDependencies(factory)}
+                                                    onClick={() => checkDependencies(plant)}
                                                     disabled={isCheckingDependencies}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -317,22 +317,22 @@ export default function Fabricas({ factories, filters }: Props) {
                             <PaginationContent>
                                 <PaginationItem>
                                     <PaginationPrevious 
-                                        href={route('cadastro.fabricas', { 
-                                            page: factories.current_page - 1,
+                                        href={route('cadastro.plantas', { 
+                                            page: plants.current_page - 1,
                                             search: search 
                                         })}
-                                        className={factories.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                        className={plants.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
                                 
-                                {Array.from({ length: factories.last_page }, (_, i) => i + 1).map((page) => (
+                                {Array.from({ length: plants.last_page }, (_, i) => i + 1).map((page) => (
                                     <PaginationItem key={page}>
                                         <PaginationLink 
-                                            href={route('cadastro.fabricas', { 
+                                            href={route('cadastro.plantas', { 
                                                 page,
                                                 search: search
                                             })}
-                                            isActive={page === factories.current_page}
+                                            isActive={page === plants.current_page}
                                         >
                                             {page}
                                         </PaginationLink>
@@ -341,11 +341,11 @@ export default function Fabricas({ factories, filters }: Props) {
 
                                 <PaginationItem>
                                     <PaginationNext 
-                                        href={route('cadastro.fabricas', { 
-                                            page: factories.current_page + 1,
+                                        href={route('cadastro.plantas', { 
+                                            page: plants.current_page + 1,
                                             search: search
                                         })}
-                                        className={factories.current_page === factories.last_page ? 'pointer-events-none opacity-50' : ''}
+                                        className={plants.current_page === plants.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
                             </PaginationContent>
@@ -357,12 +357,12 @@ export default function Fabricas({ factories, filters }: Props) {
             {/* Diálogo de Dependências */}
             <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
                 <DialogContent className="sm:max-w-[600px]">
-                    <DialogTitle>Não é possível excluir esta fábrica</DialogTitle>
+                    <DialogTitle>Não é possível excluir esta planta</DialogTitle>
                     <DialogDescription asChild>
                         <div className="space-y-6">
                             <div className="text-sm">
-                                Esta fábrica possui área(s) vinculada(s) e não pode ser excluída até que todas as áreas 
-                                sejam removidas ou movidas para outra fábrica.
+                                Esta planta possui área(s) vinculada(s) e não pode ser excluída até que todas as áreas 
+                                sejam removidas ou movidas para outra planta.
                             </div>
                             
                             <div className="space-y-6">
@@ -403,9 +403,9 @@ export default function Fabricas({ factories, filters }: Props) {
             {/* Diálogo de Confirmação de Exclusão */}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>
-                    <DialogTitle>Você tem certeza que deseja excluir esta fábrica?</DialogTitle>
+                    <DialogTitle>Você tem certeza que deseja excluir esta planta?</DialogTitle>
                     <DialogDescription>
-                        Uma vez que a fábrica for excluída, todos os seus recursos e dados serão permanentemente excluídos. 
+                        Uma vez que a planta for excluída, todos os seus recursos e dados serão permanentemente excluídos. 
                         Esta ação não pode ser desfeita.
                     </DialogDescription>
                     <div className="grid gap-2 py-4">
@@ -434,9 +434,9 @@ export default function Fabricas({ factories, filters }: Props) {
                         <Button 
                             variant="destructive" 
                             disabled={isDeleting || !isConfirmationValid}
-                            onClick={() => selectedFactory && handleDelete(selectedFactory)}
+                            onClick={() => selectedPlant && handleDelete(selectedPlant)}
                         >
-                            {isDeleting ? 'Excluindo...' : 'Excluir fábrica'}
+                            {isDeleting ? 'Excluindo...' : 'Excluir planta'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

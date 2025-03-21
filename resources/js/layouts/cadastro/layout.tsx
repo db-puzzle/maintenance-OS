@@ -23,8 +23,8 @@ const sidebarNavItems: NavItem[] = [
         icon: null,
     },
     {
-        title: 'Fábricas',
-        href: '/cadastro/fabricas',
+        title: 'Plantas',
+        href: '/cadastro/plantas',
         icon: null,
     },
 ];

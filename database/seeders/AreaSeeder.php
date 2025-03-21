@@ -3,32 +3,32 @@
 namespace Database\Seeders;
 
 use App\Models\Area;
-use App\Models\Factory;
+use App\Models\Plant;
 use Illuminate\Database\Seeder;
 
 class AreaSeeder extends Seeder
 {
     public function run(): void
     {
-        $factory = Factory::first();
+        $plant = Plant::first();
 
-        if (!$factory) {
-            throw new \Exception('Fábrica não encontrada. Execute o FactorySeeder primeiro.');
+        if (!$plant) {
+            throw new \Exception('Planta não encontrada. Execute o PlantSeeder primeiro.');
         }
 
         Area::create([
             'name' => 'Produção',
-            'factory_id' => $factory->id,
+            'plant_id' => $plant->id,
         ]);
 
         Area::create([
             'name' => 'Manutenção',
-            'factory_id' => $factory->id,
+            'plant_id' => $plant->id,
         ]);
 
         Area::create([
             'name' => 'Utilidades',
-            'factory_id' => $factory->id,
+            'plant_id' => $plant->id,
         ]);
     }
 } 

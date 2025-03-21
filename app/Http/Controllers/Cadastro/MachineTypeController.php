@@ -6,13 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\MachineType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Log;
 
 class MachineTypeController extends Controller
 {
     public function index(Request $request)
     {
-        Log::info('MachineTypeController@index called');
         $search = $request->input('search');
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
@@ -26,8 +24,6 @@ class MachineTypeController extends Controller
             })
             ->orderBy($sort, $direction)
             ->paginate(8);
-
-        Log::info('Machine types:', ['count' => $machineTypes->count(), 'data' => $machineTypes->toArray()]);
 
         return Inertia::render('cadastro/tipos-maquina', [
             'machineTypes' => $machineTypes,
@@ -59,17 +55,7 @@ class MachineTypeController extends Controller
 
     public function edit(MachineType $machineType)
     {
-        Log::info('MachineTypeController@edit called', [
-            'machineType' => $machineType->toArray(),
-            'request' => request()->all(),
-            'route' => request()->route()->parameters(),
-            'id' => $machineType->id
-        ]);
-
         if (!$machineType->exists) {
-            Log::error('MachineType not found', [
-                'id' => request()->route('machineType')
-            ]);
             abort(404);
         }
 

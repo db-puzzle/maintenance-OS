@@ -10,16 +10,16 @@ class Area extends Model
 {
     protected $fillable = [
         'name',
-        'factory_id'
+        'plant_id'
     ];
 
     protected $casts = [
-        'factory_id' => 'integer'
+        'plant_id' => 'integer'
     ];
 
-    public function factory(): BelongsTo
+    public function plant(): BelongsTo
     {
-        return $this->belongsTo(Factory::class);
+        return $this->belongsTo(Plant::class);
     }
 
     public function machines(): HasMany

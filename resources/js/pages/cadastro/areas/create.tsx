@@ -23,42 +23,36 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface Factory {
-    id: number;
+interface AreaForm {
     name: string;
+    plant_id?: string;
 }
 
 interface Props {
-    factories: Factory[];
+    plants: {
+        id: number;
+        name: string;
+    }[];
 }
 
 interface FormErrors {
     name?: string;
-    factory_id?: string;
+    plant_id?: string;
     message?: string;
 }
 
-export default function Create(props: Props) {
-    const factories = props?.factories || [];
-    const safeFactories = Array.isArray(factories) ? factories : [];
-
-    const { data, setData, post, processing, errors, reset } = useForm({
+export default function CreateArea({ plants }: Props) {
+    const { data, setData, post, processing, errors, reset } = useForm<AreaForm>({
         name: '',
-        factory_id: '',
+        plant_id: '',
     });
 
-    useEffect(() => {
-        return () => {
-            reset('name', 'factory_id');
-        };
-    }, []);
-
-    const handleSubmit = (e: React.FormEvent) => {
+    const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('cadastro.areas.store'));
+        post(route('cadastro.areas.store'), {
+            onSuccess: () => reset('name', 'plant_id'),
+        });
     };
-
-    const hasNoFactories = safeFactories.length === 0;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -68,27 +62,10 @@ export default function Create(props: Props) {
                 <div className="space-y-6 max-w-2xl">
                     <HeadingSmall 
                         title="Nova Área" 
-                        description="Crie uma nova área no sistema" 
+                        description="Adicione uma nova área ao sistema" 
                     />
 
-                    {hasNoFactories && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle>Atenção</AlertTitle>
-                            <AlertDescription>
-                                Para criar uma área, é necessário ter pelo menos uma fábrica cadastrada.
-                                <div className="mt-2">
-                                    <Button asChild variant="outline" size="sm">
-                                        <Link href={route('cadastro.fabricas.create')}>
-                                            Criar Fábrica
-                                        </Link>
-                                    </Button>
-                                </div>
-                            </AlertDescription>
-                        </Alert>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="name" className="flex items-center gap-1">
@@ -98,10 +75,9 @@ export default function Create(props: Props) {
                                 <Input
                                     id="name"
                                     value={data.name}
-                                    onChange={e => setData('name', e.target.value)}
+                                    onChange={(e) => setData('name', e.target.value)}
                                     required
                                     placeholder="Nome da área"
-                                    disabled={hasNoFactories}
                                 />
                                 {errors.name && (
                                     <p className="text-sm text-red-500">{errors.name}</p>
@@ -109,31 +85,27 @@ export default function Create(props: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="factory_id" className="flex items-center gap-1">
-                                    Fábrica
+                                <Label htmlFor="plant_id" className="flex items-center gap-1">
+                                    Planta
                                     <span className="text-destructive">*</span>
                                 </Label>
                                 <Select
-                                    value={data.factory_id}
-                                    onValueChange={(value) => setData('factory_id', value)}
-                                    disabled={hasNoFactories}
+                                    value={data.plant_id}
+                                    onValueChange={(value) => setData('plant_id', value)}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Selecione uma fábrica" />
+                                        <SelectValue placeholder="Selecione uma planta" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {safeFactories && safeFactories.length > 0 && safeFactories.map((factory) => (
-                                            <SelectItem key={factory.id} value={factory.id.toString()}>
-                                                {factory.name}
+                                        {plants.map((plant) => (
+                                            <SelectItem key={plant.id} value={plant.id.toString()}>
+                                                {plant.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                {errors.factory_id && (
-                                    <p className="text-sm text-red-500">{errors.factory_id}</p>
-                                )}
-                                {(errors as FormErrors).message && (
-                                    <p className="text-sm text-red-500">{(errors as FormErrors).message}</p>
+                                {errors.plant_id && (
+                                    <p className="text-sm text-red-500">{errors.plant_id}</p>
                                 )}
                             </div>
                         </div>
@@ -142,7 +114,7 @@ export default function Create(props: Props) {
                             <Button variant="outline" onClick={() => window.history.back()}>
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={processing || hasNoFactories}>
+                            <Button type="submit" disabled={processing}>
                                 {processing ? 'Salvando...' : 'Salvar'}
                             </Button>
                         </div>
