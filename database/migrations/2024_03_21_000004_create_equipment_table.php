@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('equipment', function (Blueprint $table) {
             $table->id();
             $table->string('tag')->required();
+            $table->string('serial_number')->nullable();
             $table->foreignId('machine_type_id')->constrained('machine_types')->onDelete('restrict');
             $table->text('description')->nullable();
             $table->string('nickname')->nullable();

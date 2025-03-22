@@ -6,12 +6,16 @@ export interface MachineType {
 export interface Area {
     id: number;
     name: string;
-    plant_id: number;
+    plant?: {
+        id: number;
+        name: string;
+    };
 }
 
 export interface Equipment {
     id: number;
     tag: string;
+    serial_number?: string;
     machine_type_id: number;
     description?: string;
     nickname?: string;
@@ -25,6 +29,7 @@ export interface Equipment {
 
 export interface EquipmentForm {
     tag: string;
+    serial_number: string;
     machine_type_id: string;
     description: string;
     nickname: string;

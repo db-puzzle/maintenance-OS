@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type Equipment } from '@/types';
+import { type BreadcrumbItem, type Equipment, type MachineType, type Area } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Camera } from 'lucide-react';
 
@@ -11,7 +11,15 @@ import CadastroLayout from '@/layouts/cadastro/layout';
 import HeadingSmall from '@/components/heading-small';
 
 interface Props {
-    equipment: Equipment;
+    equipment: Equipment & {
+        machine_type: MachineType;
+        area: Area & {
+            plant: {
+                id: number;
+                name: string;
+            }
+        };
+    };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -67,6 +75,11 @@ export default function Show({ equipment }: Props) {
                                     </div>
 
                                     <div className="grid gap-2">
+                                        <Label>Número Serial</Label>
+                                        <div className="text-base text-muted-foreground">{equipment.serial_number ?? '-'}</div>
+                                    </div>
+
+                                    <div className="grid gap-2">
                                         <Label>Tipo</Label>
                                         <div className="text-base text-muted-foreground">{equipment.machine_type?.name ?? '-'}</div>
                                     </div>
@@ -74,6 +87,11 @@ export default function Show({ equipment }: Props) {
                                     <div className="grid gap-2">
                                         <Label>Área</Label>
                                         <div className="text-base text-muted-foreground">{equipment.area?.name ?? '-'}</div>
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label>Planta</Label>
+                                        <div className="text-base text-muted-foreground">{equipment.area?.plant?.name ?? '-'}</div>
                                     </div>
 
                                     <div className="grid gap-2">

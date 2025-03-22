@@ -44,6 +44,7 @@ export interface User {
 export interface Equipment {
     id: number;
     tag: string;
+    serial_number: string | null;
     machine_type_id: number;
     description: string | null;
     nickname: string | null;
@@ -59,6 +60,7 @@ export interface Equipment {
 
 export interface EquipmentForm {
     tag: string;
+    serial_number: string;
     machine_type_id: number | string;
     description: string;
     nickname: string;

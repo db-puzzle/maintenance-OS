@@ -155,7 +155,7 @@ export default function Equipamentos({ equipment, filters }: Props) {
                         <div className="flex-1">
                             <Input
                                 type="search"
-                                placeholder="Busque por TAG, apelido ou fabricante..."
+                                placeholder="Busque por TAG, apelido, fabricante ou planta..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="max-w-sm"
@@ -180,6 +180,16 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                         >
                                             TAG
                                             <span className="ml-2">{getSortIcon('tag')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('serial_number')}
+                                        >
+                                            Número Serial
+                                            <span className="ml-2">{getSortIcon('serial_number')}</span>
                                         </Button>
                                     </TableHead>
                                     <TableHead>
@@ -226,6 +236,16 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('plant')}
+                                        >
+                                            Planta
+                                            <span className="ml-2">{getSortIcon('plant')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
                                             onClick={() => handleSort('area')}
                                         >
                                             Área
@@ -252,10 +272,12 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                                 )}
                                             </div>
                                         </TableCell>
+                                        <TableCell>{machine.serial_number ?? '-'}</TableCell>
                                         <TableCell>{machine.machine_type?.name ?? '-'}</TableCell>
                                         <TableCell>{machine.nickname ?? '-'}</TableCell>
                                         <TableCell>{machine.manufacturer ?? '-'}</TableCell>
                                         <TableCell>{machine.manufacturing_year ?? '-'}</TableCell>
+                                        <TableCell>{machine.area?.plant?.name ?? '-'}</TableCell>
                                         <TableCell>{machine.area?.name ?? '-'}</TableCell>
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center gap-2">

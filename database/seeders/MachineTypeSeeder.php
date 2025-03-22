@@ -11,6 +11,21 @@ class MachineTypeSeeder extends Seeder
     {
         // 1. Equipamentos Industriais & Máquinas
         MachineType::create([
+            'name' => 'Bomba',
+            'description' => 'Equipamento para movimentação de fluidos'
+        ]);
+
+        MachineType::create([
+            'name' => 'Motor Elétrico',
+            'description' => 'Motor para conversão de energia elétrica em mecânica'
+        ]);
+
+        MachineType::create([
+            'name' => 'Válvula',
+            'description' => 'Dispositivo para controle de fluxo de fluidos'
+        ]);
+
+        MachineType::create([
             'name' => 'Escavadeira',
             'description' => 'Máquina pesada para escavação e movimentação de terra'
         ]);

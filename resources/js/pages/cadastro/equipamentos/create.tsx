@@ -43,12 +43,17 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 interface Props {
     machineTypes: MachineType[];
-    areas: Area[];
+    plants: {
+        id: number;
+        name: string;
+        areas: Area[];
+    }[];
 }
 
-export default function CreateEquipment({ machineTypes, areas }: Props) {
+export default function CreateEquipment({ machineTypes, plants }: Props) {
     const { data, setData, post, processing, errors } = useForm<EquipmentForm>({
         tag: '',
+        serial_number: '',
         machine_type_id: '',
         description: '',
         nickname: '',
@@ -62,6 +67,12 @@ export default function CreateEquipment({ machineTypes, areas }: Props) {
     const [showCamera, setShowCamera] = useState(false);
     const [openMachineType, setOpenMachineType] = useState(false);
     const [openArea, setOpenArea] = useState(false);
+    const [openPlant, setOpenPlant] = useState(false);
+    const [selectedPlant, setSelectedPlant] = useState<number | null>(null);
+
+    const availableAreas = selectedPlant
+        ? plants.find(p => p.id === selectedPlant)?.areas || []
+        : [];
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -166,20 +177,28 @@ export default function CreateEquipment({ machineTypes, areas }: Props) {
 
                             {/* Campos Principais */}
                             <div className="space-y-6">
-                                {/* TAG do Equipamento */}
+                                {/* TAG */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="tag" className="flex items-center gap-1">
-                                        TAG do Equipamento
-                                        <span className="text-destructive">*</span>
-                                    </Label>
+                                    <Label htmlFor="tag">TAG</Label>
                                     <Input
                                         id="tag"
                                         value={data.tag}
-                                        onChange={(e) => setData('tag', e.target.value.toUpperCase())}
-                                        required
+                                        onChange={(e) => setData('tag', e.target.value)}
                                         placeholder="TAG do equipamento"
                                     />
                                     <InputError message={errors.tag} />
+                                </div>
+
+                                {/* Número Serial */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="serial_number">Número Serial</Label>
+                                    <Input
+                                        id="serial_number"
+                                        value={data.serial_number}
+                                        onChange={(e) => setData('serial_number', e.target.value)}
+                                        placeholder="Número serial do equipamento"
+                                    />
+                                    <InputError message={errors.serial_number} />
                                 </div>
 
                                 {/* Tipo de Equipamento */}
@@ -203,17 +222,17 @@ export default function CreateEquipment({ machineTypes, areas }: Props) {
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-full p-0">
-                                            <Command className="w-full">
-                                                <CommandInput placeholder="Buscar tipo de equipamento..." className="h-9" />
+                                            <Command>
+                                                <CommandInput placeholder="Buscar tipo de equipamento..." />
                                                 <CommandList>
-                                                    <CommandEmpty>Nenhum tipo de equipamento encontrado.</CommandEmpty>
+                                                    <CommandEmpty>Nenhum tipo encontrado.</CommandEmpty>
                                                     <CommandGroup>
                                                         {machineTypes.map((type) => (
                                                             <CommandItem
                                                                 key={type.id}
-                                                                value={type.name}
-                                                                onSelect={(currentValue) => {
-                                                                    setData('machine_type_id', type.id.toString());
+                                                                value={type.id.toString()}
+                                                                onSelect={(value) => {
+                                                                    setData('machine_type_id', value);
                                                                     setOpenMachineType(false);
                                                                 }}
                                                             >
@@ -234,6 +253,59 @@ export default function CreateEquipment({ machineTypes, areas }: Props) {
                                     <InputError message={errors.machine_type_id} />
                                 </div>
 
+                                {/* Planta */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="plant" className="flex items-center gap-1">
+                                        Planta
+                                        <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Popover open={openPlant} onOpenChange={setOpenPlant}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openPlant}
+                                                className="w-full justify-between"
+                                            >
+                                                {selectedPlant
+                                                    ? plants.find((plant) => plant.id === selectedPlant)?.name
+                                                    : "Selecione uma planta"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Buscar planta..." />
+                                                <CommandList>
+                                                    <CommandEmpty>Nenhuma planta encontrada.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {plants.map((plant) => (
+                                                            <CommandItem
+                                                                key={plant.id}
+                                                                value={plant.id.toString()}
+                                                                onSelect={(value) => {
+                                                                    const plantId = parseInt(value);
+                                                                    setSelectedPlant(plantId);
+                                                                    setData('area_id', '');
+                                                                    setOpenPlant(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        selectedPlant === plant.id ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {plant.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+
                                 {/* Área */}
                                 <div className="grid gap-2">
                                     <Label htmlFor="area_id" className="flex items-center gap-1">
@@ -247,25 +319,26 @@ export default function CreateEquipment({ machineTypes, areas }: Props) {
                                                 role="combobox"
                                                 aria-expanded={openArea}
                                                 className="w-full justify-between"
+                                                disabled={!selectedPlant}
                                             >
-                                                {data.area_id
-                                                    ? areas.find((area) => area.id.toString() === data.area_id)?.name
+                                                {data.area_id && selectedPlant
+                                                    ? availableAreas.find((area) => area.id.toString() === data.area_id)?.name
                                                     : "Selecione uma área"}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-full p-0">
-                                            <Command className="w-full">
-                                                <CommandInput placeholder="Buscar área..." className="h-9" />
+                                            <Command>
+                                                <CommandInput placeholder="Buscar área..." />
                                                 <CommandList>
                                                     <CommandEmpty>Nenhuma área encontrada.</CommandEmpty>
                                                     <CommandGroup>
-                                                        {areas.map((area) => (
+                                                        {availableAreas.map((area) => (
                                                             <CommandItem
                                                                 key={area.id}
-                                                                value={area.name}
-                                                                onSelect={(currentValue) => {
-                                                                    setData('area_id', area.id.toString());
+                                                                value={area.id.toString()}
+                                                                onSelect={(value) => {
+                                                                    setData('area_id', value);
                                                                     setOpenArea(false);
                                                                 }}
                                                             >

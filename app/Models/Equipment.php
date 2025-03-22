@@ -11,6 +11,7 @@ class Equipment extends Model
 
     protected $fillable = [
         'tag',
+        'serial_number',
         'machine_type_id',
         'description',
         'nickname',

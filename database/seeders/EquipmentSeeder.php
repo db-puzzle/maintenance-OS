@@ -26,6 +26,7 @@ class EquipmentSeeder extends Seeder
         // Cria alguns equipamentos de exemplo
         Equipment::create([
             'tag' => 'BOMB001',
+            'serial_number' => 'SN-B001-2020',
             'machine_type_id' => $bombType->id,
             'description' => 'Bomba centrífuga de alta pressão',
             'nickname' => 'Bomba Principal',
@@ -36,6 +37,7 @@ class EquipmentSeeder extends Seeder
 
         Equipment::create([
             'tag' => 'MOTR002',
+            'serial_number' => 'SN-M002-2021',
             'machine_type_id' => $motorType->id,
             'description' => 'Motor elétrico trifásico',
             'nickname' => 'Motor Auxiliar',
@@ -46,6 +48,7 @@ class EquipmentSeeder extends Seeder
 
         Equipment::create([
             'tag' => 'VALV003',
+            'serial_number' => 'SN-V003-2019',
             'machine_type_id' => $valveType->id,
             'description' => 'Válvula de controle pneumática',
             'nickname' => 'Válvula de Processo',

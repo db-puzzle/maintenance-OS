@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Area;
 use App\Models\Equipment;
 use App\Models\MachineType;
+use App\Models\Plant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
@@ -18,12 +19,15 @@ class EquipmentController extends Controller
         $direction = $request->input('direction', 'asc');
 
         $equipment = Equipment::query()
-            ->with(['machineType:id,name', 'area:id,name'])
+            ->with(['machineType:id,name', 'area.plant:id,name'])
             ->when($search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('tag', 'like', "%{$search}%")
                         ->orWhere('nickname', 'like', "%{$search}%")
-                        ->orWhere('manufacturer', 'like', "%{$search}%");
+                        ->orWhere('manufacturer', 'like', "%{$search}%")
+                        ->orWhereHas('area.plant', function ($query) use ($search) {
+                            $query->where('name', 'like', "%{$search}%");
+                        });
                 });
             })
             ->when($sort === 'machine_type', function ($query) use ($direction) {
@@ -36,7 +40,13 @@ class EquipmentController extends Controller
                     ->orderBy('areas.name', $direction)
                     ->select('equipment.*');
             })
-            ->when(!in_array($sort, ['machine_type', 'area']), function ($query) use ($sort, $direction) {
+            ->when($sort === 'plant', function ($query) use ($direction) {
+                $query->join('areas', 'equipment.area_id', '=', 'areas.id')
+                    ->join('plants', 'areas.plant_id', '=', 'plants.id')
+                    ->orderBy('plants.name', $direction)
+                    ->select('equipment.*');
+            })
+            ->when(!in_array($sort, ['machine_type', 'area', 'plant']), function ($query) use ($sort, $direction) {
                 $query->orderBy($sort, $direction);
             })
             ->paginate(8);
@@ -55,7 +65,15 @@ class EquipmentController extends Controller
     {
         return Inertia::render('cadastro/equipamentos/create', [
             'machineTypes' => MachineType::all(),
-            'areas' => Area::all()
+            'plants' => Plant::with(['areas' => function($query) {
+                $query->select('id', 'name', 'plant_id');
+            }])->get()->map(function ($plant) {
+                return [
+                    'id' => $plant->id,
+                    'name' => $plant->name,
+                    'areas' => $plant->areas
+                ];
+            })
         ]);
     }
 
@@ -63,6 +81,7 @@ class EquipmentController extends Controller
     {
         $validated = $request->validate([
             'tag' => 'required|string|max:255',
+            'serial_number' => 'nullable|string|max:255',
             'machine_type_id' => 'required|exists:machine_types,id',
             'description' => 'nullable|string',
             'nickname' => 'nullable|string|max:255',
@@ -86,9 +105,17 @@ class EquipmentController extends Controller
     public function edit(Equipment $equipment)
     {
         return Inertia::render('cadastro/equipamentos/edit', [
-            'equipment' => $equipment->load(['machineType', 'area']),
+            'equipment' => $equipment->load(['machineType', 'area.plant']),
             'machineTypes' => MachineType::all(),
-            'areas' => Area::all()
+            'plants' => Plant::with(['areas' => function($query) {
+                $query->select('id', 'name', 'plant_id');
+            }])->get()->map(function ($plant) {
+                return [
+                    'id' => $plant->id,
+                    'name' => $plant->name,
+                    'areas' => $plant->areas
+                ];
+            })
         ]);
     }
 
@@ -103,6 +130,7 @@ class EquipmentController extends Controller
     {
         $validated = $request->validate([
             'tag' => 'required|string|max:255',
+            'serial_number' => 'nullable|string|max:255',
             'machine_type_id' => 'required|exists:machine_types,id',
             'description' => 'nullable|string',
             'nickname' => 'nullable|string|max:255',
