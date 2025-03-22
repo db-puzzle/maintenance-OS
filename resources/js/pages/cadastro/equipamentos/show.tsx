@@ -85,13 +85,31 @@ export default function Show({ equipment }: Props) {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label>Área</Label>
-                                        <div className="text-base text-muted-foreground">{equipment.area?.name ?? '-'}</div>
+                                        <Label>Planta</Label>
+                                        <div className="text-base">
+                                            {equipment.area?.plant ? (
+                                                <Link
+                                                    href={route('cadastro.plantas.show', equipment.area.plant.id)}
+                                                    className="text-primary hover:underline"
+                                                >
+                                                    {equipment.area.plant.name}
+                                                </Link>
+                                            ) : '-'}
+                                        </div>
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label>Planta</Label>
-                                        <div className="text-base text-muted-foreground">{equipment.area?.plant?.name ?? '-'}</div>
+                                        <Label>Área</Label>
+                                        <div className="text-base">
+                                            {equipment.area ? (
+                                                <Link
+                                                    href={route('cadastro.areas.show', equipment.area.id)}
+                                                    className="text-primary hover:underline"
+                                                >
+                                                    {equipment.area.name}
+                                                </Link>
+                                            ) : '-'}
+                                        </div>
                                     </div>
 
                                     <div className="grid gap-2">

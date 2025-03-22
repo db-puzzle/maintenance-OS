@@ -122,7 +122,7 @@ class EquipmentController extends Controller
     public function show(Equipment $equipment)
     {
         return Inertia::render('cadastro/equipamentos/show', [
-            'equipment' => $equipment->load(['machineType', 'area']),
+            'equipment' => $equipment->load(['machineType', 'area.plant']),
         ]);
     }
 
