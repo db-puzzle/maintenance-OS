@@ -41,7 +41,7 @@ export interface User {
     [key: string]: unknown; // This allows for additional properties...
 }
 
-interface Machine {
+export interface Equipment {
     id: number;
     tag: string;
     machine_type_id: number;
@@ -57,7 +57,7 @@ interface Machine {
     updated_at: string;
 }
 
-interface MachineForm {
+export interface EquipmentForm {
     tag: string;
     machine_type_id: number | string;
     description: string;
@@ -70,7 +70,7 @@ interface MachineForm {
     [key: string]: string | number | File | null | undefined;
 }
 
-interface MachineType {
+export interface MachineType {
     id: number;
     name: string;
     description: string | null;
@@ -78,7 +78,7 @@ interface MachineType {
     updated_at: string;
 }
 
-interface Area {
+export interface Area {
     id: number;
     name: string;
     factory_id: number | null;

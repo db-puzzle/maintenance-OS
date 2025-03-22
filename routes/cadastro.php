@@ -5,16 +5,16 @@ use Inertia\Inertia;
 use App\Http\Controllers\PlantsController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\Cadastro\MachineTypeController;
-use App\Http\Controllers\MachineController;
+use App\Http\Controllers\EquipmentController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('cadastro/maquinas', [MachineController::class, 'index'])->name('cadastro.maquinas');
-    Route::get('cadastro/maquinas/create', [MachineController::class, 'create'])->name('cadastro.maquinas.create');
-    Route::post('cadastro/maquinas', [MachineController::class, 'store'])->name('cadastro.maquinas.store');
-    Route::get('cadastro/maquinas/{machine}', [MachineController::class, 'show'])->name('cadastro.maquinas.show');
-    Route::get('cadastro/maquinas/{machine}/edit', [MachineController::class, 'edit'])->name('cadastro.maquinas.edit');
-    Route::put('cadastro/maquinas/{machine}', [MachineController::class, 'update'])->name('cadastro.maquinas.update');
-    Route::delete('cadastro/maquinas/{machine}', [MachineController::class, 'destroy'])->name('cadastro.maquinas.destroy');
+    Route::get('cadastro/equipamentos', [EquipmentController::class, 'index'])->name('cadastro.equipamentos');
+    Route::get('cadastro/equipamentos/create', [EquipmentController::class, 'create'])->name('cadastro.equipamentos.create');
+    Route::post('cadastro/equipamentos', [EquipmentController::class, 'store'])->name('cadastro.equipamentos.store');
+    Route::get('cadastro/equipamentos/{equipment}', [EquipmentController::class, 'show'])->name('cadastro.equipamentos.show');
+    Route::get('cadastro/equipamentos/{equipment}/edit', [EquipmentController::class, 'edit'])->name('cadastro.equipamentos.edit');
+    Route::put('cadastro/equipamentos/{equipment}', [EquipmentController::class, 'update'])->name('cadastro.equipamentos.update');
+    Route::delete('cadastro/equipamentos/{equipment}', [EquipmentController::class, 'destroy'])->name('cadastro.equipamentos.destroy');
 
     Route::get('cadastro/areas', [AreaController::class, 'index'])->name('cadastro.areas');
     Route::get('cadastro/areas/create', [AreaController::class, 'create'])->name('cadastro.areas.create');
@@ -28,6 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cadastro/plantas', [PlantsController::class, 'index'])->name('cadastro.plantas');
     Route::get('cadastro/plantas/create', [PlantsController::class, 'create'])->name('cadastro.plantas.create');
     Route::post('cadastro/plantas', [PlantsController::class, 'store'])->name('cadastro.plantas.store');
+    Route::get('cadastro/plantas/{plant}', [PlantsController::class, 'show'])->name('cadastro.plantas.show');
     Route::get('cadastro/plantas/{plant}/edit', [PlantsController::class, 'edit'])->name('cadastro.plantas.edit');
     Route::put('cadastro/plantas/{plant}', [PlantsController::class, 'update'])->name('cadastro.plantas.update');
     Route::delete('cadastro/plantas/{plant}', [PlantsController::class, 'destroy'])->name('cadastro.plantas.destroy');

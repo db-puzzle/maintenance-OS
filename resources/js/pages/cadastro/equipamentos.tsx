@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type Machine } from '@/types';
+import { type BreadcrumbItem, type Equipment } from '@/types';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
@@ -34,14 +34,14 @@ import InputError from '@/components/input-error';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Máquinas',
-        href: '/cadastro/maquinas',
+        title: 'Equipamentos',
+        href: '/cadastro/equipamentos',
     },
 ];
 
 interface Props {
-    machines: {
-        data: Machine[];
+    equipment: {
+        data: Equipment[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -61,9 +61,9 @@ interface PageProps {
     };
 }
 
-export default function Maquinas({ machines, filters }: Props) {
+export default function Equipamentos({ equipment, filters }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
-    const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
+    const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
     const [search, setSearch] = useState(filters.search || '');
     const page = usePage<PageProps>();
@@ -81,10 +81,10 @@ export default function Maquinas({ machines, filters }: Props) {
     useEffect(() => {
         const searchTimeout = setTimeout(() => {
             router.get(
-                route('cadastro.maquinas'),
+                route('cadastro.equipamentos'),
                 { 
                     search,
-                    page: machines.current_page
+                    page: equipment.current_page
                 },
                 { preserveState: true, preserveScroll: true }
             );
@@ -95,18 +95,18 @@ export default function Maquinas({ machines, filters }: Props) {
 
     const handleDelete = (id: number) => {
         setIsDeleting(true);
-        destroy(route('cadastro.maquinas.destroy', id), {
+        destroy(route('cadastro.equipamentos.destroy', id), {
             onFinish: () => {
                 setIsDeleting(false);
-                setSelectedMachine(null);
+                setSelectedEquipment(null);
                 setConfirmationText('');
             },
             onError: (errors) => {
                 setIsDeleting(false);
-                setSelectedMachine(null);
+                setSelectedEquipment(null);
                 setConfirmationText('');
-                toast.error("Erro ao excluir máquina", {
-                    description: errors.message || 'Não foi possível excluir a máquina.',
+                toast.error("Erro ao excluir equipamento", {
+                    description: errors.message || 'Não foi possível excluir o equipamento.',
                 });
             },
         });
@@ -118,12 +118,12 @@ export default function Maquinas({ machines, filters }: Props) {
         const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
         
         router.get(
-            route('cadastro.maquinas'),
+            route('cadastro.equipamentos'),
             { 
                 search,
                 sort: column,
                 direction,
-                page: machines.current_page
+                page: equipment.current_page
             },
             { preserveState: true }
         );
@@ -146,8 +146,8 @@ export default function Maquinas({ machines, filters }: Props) {
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
                         <HeadingSmall 
-                            title="Máquinas" 
-                            description="Gerencie as máquinas do sistema" 
+                            title="Equipamentos" 
+                            description="Gerencie os equipamentos do sistema" 
                         />
                     </div>
 
@@ -162,8 +162,8 @@ export default function Maquinas({ machines, filters }: Props) {
                             />
                         </div>
                         <Button asChild>
-                            <Link href={route('cadastro.maquinas.create')}>
-                                Nova Máquina
+                            <Link href={route('cadastro.equipamentos.create')}>
+                                Novo Equipamento
                             </Link>
                         </Button>
                     </div>
@@ -236,11 +236,11 @@ export default function Maquinas({ machines, filters }: Props) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {machines.data.map((machine) => (
+                                {equipment.data.map((machine) => (
                                     <TableRow 
                                         key={machine.id}
                                         className="cursor-pointer hover:bg-muted/50"
-                                        onClick={() => router.get(route('cadastro.maquinas.show', machine.id))}
+                                        onClick={() => router.get(route('cadastro.equipamentos.show', machine.id))}
                                     >
                                         <TableCell>
                                             <div>
@@ -260,7 +260,7 @@ export default function Maquinas({ machines, filters }: Props) {
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
-                                                    <Link href={route('cadastro.maquinas.edit', machine.id)}>
+                                                    <Link href={route('cadastro.equipamentos.edit', machine.id)}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
@@ -269,15 +269,15 @@ export default function Maquinas({ machines, filters }: Props) {
                                                         <Button 
                                                             variant="ghost" 
                                                             size="icon"
-                                                            onClick={() => setSelectedMachine(machine)}
+                                                            onClick={() => setSelectedEquipment(machine)}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </DialogTrigger>
                                                     <DialogContent>
-                                                        <DialogTitle>Você tem certeza que deseja excluir esta máquina?</DialogTitle>
+                                                        <DialogTitle>Você tem certeza que deseja excluir este equipamento?</DialogTitle>
                                                         <DialogDescription>
-                                                            Uma vez que a máquina for excluída, todos os seus recursos e dados serão permanentemente excluídos. 
+                                                            Uma vez que o equipamento for excluído, todos os seus recursos e dados serão permanentemente excluídos. 
                                                             Esta ação não pode ser desfeita.
                                                         </DialogDescription>
                                                         <div className="grid gap-2 py-4">
@@ -305,9 +305,9 @@ export default function Maquinas({ machines, filters }: Props) {
                                                             <Button 
                                                                 variant="destructive" 
                                                                 disabled={isDeleting || !isConfirmationValid}
-                                                                onClick={() => selectedMachine && handleDelete(selectedMachine.id)}
+                                                                onClick={() => selectedEquipment && handleDelete(selectedEquipment.id)}
                                                             >
-                                                                {isDeleting ? 'Excluindo...' : 'Excluir máquina'}
+                                                                {isDeleting ? 'Excluindo...' : 'Excluir equipamento'}
                                                             </Button>
                                                         </DialogFooter>
                                                     </DialogContent>
@@ -317,7 +317,7 @@ export default function Maquinas({ machines, filters }: Props) {
                                     </TableRow>
                                 ))}
 
-                                {machines.data.length === 0 && (
+                                {equipment.data.length === 0 && (
                                     <TableRow>
                                         <TableCell
                                             colSpan={7}
@@ -336,22 +336,22 @@ export default function Maquinas({ machines, filters }: Props) {
                             <PaginationContent>
                                 <PaginationItem>
                                     <PaginationPrevious 
-                                        href={route('cadastro.maquinas', { 
-                                            page: machines.current_page - 1,
+                                        href={route('cadastro.equipamentos', { 
+                                            page: equipment.current_page - 1,
                                             search: search 
                                         })}
-                                        className={machines.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                        className={equipment.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
                                 
-                                {Array.from({ length: machines.last_page }, (_, i) => i + 1).map((page) => (
+                                {Array.from({ length: equipment.last_page }, (_, i) => i + 1).map((page) => (
                                     <PaginationItem key={page}>
                                         <PaginationLink 
-                                            href={route('cadastro.maquinas', { 
+                                            href={route('cadastro.equipamentos', { 
                                                 page,
                                                 search: search
                                             })}
-                                            isActive={page === machines.current_page}
+                                            isActive={page === equipment.current_page}
                                         >
                                             {page}
                                         </PaginationLink>
@@ -360,11 +360,11 @@ export default function Maquinas({ machines, filters }: Props) {
 
                                 <PaginationItem>
                                     <PaginationNext 
-                                        href={route('cadastro.maquinas', { 
-                                            page: machines.current_page + 1,
+                                        href={route('cadastro.equipamentos', { 
+                                            page: equipment.current_page + 1,
                                             search: search
                                         })}
-                                        className={machines.current_page === machines.last_page ? 'pointer-events-none opacity-50' : ''}
+                                        className={equipment.current_page === equipment.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
                             </PaginationContent>

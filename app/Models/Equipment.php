@@ -5,8 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Machine extends Model
+class Equipment extends Model
 {
+    protected $table = 'equipment';
+
     protected $fillable = [
         'tag',
         'machine_type_id',

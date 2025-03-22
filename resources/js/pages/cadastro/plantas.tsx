@@ -279,7 +279,7 @@ export default function Plantas({ plants, filters }: Props) {
                                     <TableRow 
                                         key={plant.id}
                                         className="cursor-pointer hover:bg-muted/50"
-                                        onClick={() => router.get(route('cadastro.plantas.show', plant.id))}
+                                        onClick={() => router.visit(route('cadastro.plantas.show', plant.id))}
                                     >
                                         <TableCell>{plant.name}</TableCell>
                                         <TableCell>

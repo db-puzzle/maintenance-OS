@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Models\Machine;
+use App\Models\Equipment;
 use App\Models\MachineType;
 use App\Models\Area;
 use Illuminate\Database\Seeder;
 
-class MachineSeeder extends Seeder
+class EquipmentSeeder extends Seeder
 {
     public function run(): void
     {
@@ -23,8 +23,8 @@ class MachineSeeder extends Seeder
             throw new \Exception('Tipos de máquina ou área não encontrados. Execute o MachineTypeSeeder primeiro.');
         }
 
-        // Cria algumas máquinas de exemplo
-        Machine::create([
+        // Cria alguns equipamentos de exemplo
+        Equipment::create([
             'tag' => 'BOMB001',
             'machine_type_id' => $bombType->id,
             'description' => 'Bomba centrífuga de alta pressão',
@@ -34,7 +34,7 @@ class MachineSeeder extends Seeder
             'area_id' => $area->id
         ]);
 
-        Machine::create([
+        Equipment::create([
             'tag' => 'MOTR002',
             'machine_type_id' => $motorType->id,
             'description' => 'Motor elétrico trifásico',
@@ -44,7 +44,7 @@ class MachineSeeder extends Seeder
             'area_id' => $area->id
         ]);
 
-        Machine::create([
+        Equipment::create([
             'tag' => 'VALV003',
             'machine_type_id' => $valveType->id,
             'description' => 'Válvula de controle pneumática',

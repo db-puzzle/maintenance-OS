@@ -1,15 +1,30 @@
-import { type BreadcrumbItem, type Machine, type MachineType, type Area, type MachineForm } from '@/types';
-import { Head, useForm, router } from '@inertiajs/react';
-import { FormEvent, useState, useEffect } from 'react';
+import { type BreadcrumbItem, type MachineType, type Area, type EquipmentForm } from '@/types';
+import { Head, useForm } from '@inertiajs/react';
+import { FormEvent, useState } from 'react';
+import { Check, ChevronsUpDown, Camera, Upload } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import InputError from '@/components/input-error';
-import { Camera, Upload } from 'lucide-react';
 import CameraCapture from '@/components/camera-capture';
+import { cn } from '@/lib/utils';
 
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
@@ -17,49 +32,36 @@ import HeadingSmall from '@/components/heading-small';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Máquinas',
-        href: '/cadastro/maquinas',
+        title: 'Equipamentos',
+        href: '/cadastro/equipamentos',
     },
     {
-        title: 'Editar Máquina',
-        href: '/cadastro/maquinas/edit',
+        title: 'Novo Equipamento',
+        href: '/cadastro/equipamentos/create',
     },
 ];
 
 interface Props {
-    machine: Machine;
     machineTypes: MachineType[];
     areas: Area[];
 }
 
-export default function EditMachine({ machine, machineTypes, areas }: Props) {
-    const { data, setData, put, processing, errors } = useForm<MachineForm>({
-        tag: machine.tag,
-        machine_type_id: machine.machine_type_id.toString(),
-        description: machine.description || '',
-        nickname: machine.nickname || '',
-        manufacturer: machine.manufacturer || '',
-        manufacturing_year: machine.manufacturing_year?.toString() || '',
-        area_id: machine.area_id.toString(),
-        photo: null,
-        photo_path: machine.photo_path || ''
+export default function CreateEquipment({ machineTypes, areas }: Props) {
+    const { data, setData, post, processing, errors } = useForm<EquipmentForm>({
+        tag: '',
+        machine_type_id: '',
+        description: '',
+        nickname: '',
+        manufacturer: '',
+        manufacturing_year: '',
+        area_id: '',
+        photo: null
     });
 
-    const [previewUrl, setPreviewUrl] = useState<string | null>(
-        machine.photo_path ? `/storage/${machine.photo_path}` : null
-    );
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [showCamera, setShowCamera] = useState(false);
-
-    const handleRemovePhoto = () => {
-        router.delete(route('machines.remove-photo', machine.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setPreviewUrl(null);
-                setData('photo', null);
-                setData('photo_path', null);
-            }
-        });
-    };
+    const [openMachineType, setOpenMachineType] = useState(false);
+    const [openArea, setOpenArea] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -74,44 +76,33 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
         setPreviewUrl(URL.createObjectURL(file));
     };
 
+    const handleRemovePhoto = () => {
+        setPreviewUrl(null);
+        setData('photo', null);
+    };
+
     const submit = (e: FormEvent) => {
         e.preventDefault();
-
-        // Criar um FormData com todos os dados
-        const formData = new FormData();
-        formData.append('_method', 'PUT'); // Simular método PUT
-        formData.append('tag', data.tag);
-        formData.append('machine_type_id', data.machine_type_id.toString());
-        formData.append('description', data.description);
-        formData.append('nickname', data.nickname);
-        formData.append('manufacturer', data.manufacturer);
-        formData.append('manufacturing_year', data.manufacturing_year);
-        formData.append('area_id', data.area_id.toString());
-        
-        if (data.photo) {
-            formData.append('photo', data.photo);
-        }
-        
-        router.post(route('cadastro.maquinas.update', machine.id), formData);
+        post(route('cadastro.equipamentos.store'));
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Editar Máquina" />
+            <Head title="Novo Equipamento" />
 
             <CadastroLayout>
                 <div className="space-y-6 max-w-2xl">
                     <HeadingSmall
-                        title="Editar Máquina"
-                        description="Edite os dados da máquina"
+                        title="Novo Equipamento"
+                        description="Cadastre um novo equipamento"
                     />
 
                     <form onSubmit={submit} className="space-y-6">
                         {/* Seção Superior: Foto e Campos Principais */}
                         <div className="grid md:grid-cols-2 gap-6">
-                            {/* Foto da Máquina */}
+                            {/* Foto do Equipamento */}
                             <div className="flex flex-col h-full">
-                                <Label className="mb-2">Foto da Máquina</Label>
+                                <Label className="mb-2">Foto do Equipamento</Label>
                                 <div className="flex-1 flex flex-col gap-2">
                                     <div className="flex-1 relative rounded-lg overflow-hidden bg-muted border min-h-[238px] max-h-[238px]">
                                         {previewUrl ? (
@@ -175,10 +166,10 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
 
                             {/* Campos Principais */}
                             <div className="space-y-6">
-                                {/* TAG da Máquina */}
+                                {/* TAG do Equipamento */}
                                 <div className="grid gap-2">
                                     <Label htmlFor="tag" className="flex items-center gap-1">
-                                        TAG da Máquina
+                                        TAG do Equipamento
                                         <span className="text-destructive">*</span>
                                     </Label>
                                     <Input
@@ -186,33 +177,60 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
                                         value={data.tag}
                                         onChange={(e) => setData('tag', e.target.value.toUpperCase())}
                                         required
-                                        placeholder="TAG da máquina"
+                                        placeholder="TAG do equipamento"
                                     />
                                     <InputError message={errors.tag} />
                                 </div>
 
-                                {/* Tipo de Máquina */}
+                                {/* Tipo de Equipamento */}
                                 <div className="grid gap-2">
                                     <Label htmlFor="machine_type_id" className="flex items-center gap-1">
-                                        Tipo de Máquina
+                                        Tipo de Equipamento
                                         <span className="text-destructive">*</span>
                                     </Label>
-                                    <Select
-                                        value={String(data.machine_type_id)}
-                                        onValueChange={(value) => setData('machine_type_id', value)}
-                                        required
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione um tipo de máquina" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {machineTypes.map((type) => (
-                                                <SelectItem key={type.id} value={type.id.toString()}>
-                                                    {type.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Popover open={openMachineType} onOpenChange={setOpenMachineType}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openMachineType}
+                                                className="w-full justify-between"
+                                            >
+                                                {data.machine_type_id
+                                                    ? machineTypes.find((type) => type.id.toString() === data.machine_type_id)?.name
+                                                    : "Selecione um tipo de equipamento"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                            <Command className="w-full">
+                                                <CommandInput placeholder="Buscar tipo de equipamento..." className="h-9" />
+                                                <CommandList>
+                                                    <CommandEmpty>Nenhum tipo de equipamento encontrado.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {machineTypes.map((type) => (
+                                                            <CommandItem
+                                                                key={type.id}
+                                                                value={type.name}
+                                                                onSelect={(currentValue) => {
+                                                                    setData('machine_type_id', type.id.toString());
+                                                                    setOpenMachineType(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        data.machine_type_id === type.id.toString() ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {type.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                     <InputError message={errors.machine_type_id} />
                                 </div>
 
@@ -222,22 +240,49 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
                                         Área
                                         <span className="text-destructive">*</span>
                                     </Label>
-                                    <Select
-                                        value={String(data.area_id)}
-                                        onValueChange={(value) => setData('area_id', value)}
-                                        required
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione uma área" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {areas.map((area) => (
-                                                <SelectItem key={area.id} value={area.id.toString()}>
-                                                    {area.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Popover open={openArea} onOpenChange={setOpenArea}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openArea}
+                                                className="w-full justify-between"
+                                            >
+                                                {data.area_id
+                                                    ? areas.find((area) => area.id.toString() === data.area_id)?.name
+                                                    : "Selecione uma área"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                            <Command className="w-full">
+                                                <CommandInput placeholder="Buscar área..." className="h-9" />
+                                                <CommandList>
+                                                    <CommandEmpty>Nenhuma área encontrada.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {areas.map((area) => (
+                                                            <CommandItem
+                                                                key={area.id}
+                                                                value={area.name}
+                                                                onSelect={(currentValue) => {
+                                                                    setData('area_id', area.id.toString());
+                                                                    setOpenArea(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        data.area_id === area.id.toString() ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {area.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                     <InputError message={errors.area_id} />
                                 </div>
 
@@ -248,7 +293,7 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
                                         id="nickname"
                                         value={data.nickname}
                                         onChange={(e) => setData('nickname', e.target.value)}
-                                        placeholder="Apelido da máquina"
+                                        placeholder="Apelido do equipamento"
                                     />
                                     <InputError message={errors.nickname} />
                                 </div>
@@ -264,7 +309,7 @@ export default function EditMachine({ machine, machineTypes, areas }: Props) {
                                     id="manufacturer"
                                     value={data.manufacturer}
                                     onChange={(e) => setData('manufacturer', e.target.value)}
-                                    placeholder="Fabricante da máquina"
+                                    placeholder="Fabricante do equipamento"
                                 />
                                 <InputError message={errors.manufacturer} />
                             </div>

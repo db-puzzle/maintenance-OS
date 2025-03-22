@@ -22,9 +22,9 @@ class Area extends Model
         return $this->belongsTo(Plant::class);
     }
 
-    public function machines(): HasMany
+    public function equipment(): HasMany
     {
-        return $this->hasMany(Machine::class);
+        return $this->hasMany(Equipment::class);
     }
 
     protected static function boot()
@@ -32,8 +32,8 @@ class Area extends Model
         parent::boot();
 
         static::deleting(function ($area) {
-            if ($area->machines()->exists()) {
-                throw new \Exception('Não é possível excluir uma área que possui máquinas.');
+            if ($area->equipment()->exists()) {
+                throw new \Exception('Não é possível excluir uma área que possui equipamentos.');
             }
         });
     }

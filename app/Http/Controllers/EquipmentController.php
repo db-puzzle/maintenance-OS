@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Area;
-use App\Models\Machine;
+use App\Models\Equipment;
 use App\Models\MachineType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 
-class MachineController extends Controller
+class EquipmentController extends Controller
 {
     public function index(Request $request)
     {
@@ -17,7 +17,7 @@ class MachineController extends Controller
         $sort = $request->input('sort', 'tag');
         $direction = $request->input('direction', 'asc');
 
-        $machines = Machine::query()
+        $equipment = Equipment::query()
             ->with(['machineType:id,name', 'area:id,name'])
             ->when($search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
@@ -27,22 +27,22 @@ class MachineController extends Controller
                 });
             })
             ->when($sort === 'machine_type', function ($query) use ($direction) {
-                $query->join('machine_types', 'machines.machine_type_id', '=', 'machine_types.id')
+                $query->join('machine_types', 'equipment.machine_type_id', '=', 'machine_types.id')
                     ->orderBy('machine_types.name', $direction)
-                    ->select('machines.*');
+                    ->select('equipment.*');
             })
             ->when($sort === 'area', function ($query) use ($direction) {
-                $query->join('areas', 'machines.area_id', '=', 'areas.id')
+                $query->join('areas', 'equipment.area_id', '=', 'areas.id')
                     ->orderBy('areas.name', $direction)
-                    ->select('machines.*');
+                    ->select('equipment.*');
             })
             ->when(!in_array($sort, ['machine_type', 'area']), function ($query) use ($sort, $direction) {
                 $query->orderBy($sort, $direction);
             })
             ->paginate(8);
 
-        return Inertia::render('cadastro/maquinas', [
-            'machines' => $machines,
+        return Inertia::render('cadastro/equipamentos', [
+            'equipment' => $equipment,
             'filters' => [
                 'search' => $search,
                 'sort' => $sort,
@@ -53,7 +53,7 @@ class MachineController extends Controller
 
     public function create()
     {
-        return Inertia::render('cadastro/maquinas/create', [
+        return Inertia::render('cadastro/equipamentos/create', [
             'machineTypes' => MachineType::all(),
             'areas' => Area::all()
         ]);
@@ -69,37 +69,37 @@ class MachineController extends Controller
             'manufacturer' => 'nullable|string|max:255',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
             'area_id' => 'required|exists:areas,id',
-            'photo' => 'nullable|image|max:2048' // máximo 2MB
+            'photo' => 'nullable|image|max:2048'
         ]);
 
         if ($request->hasFile('photo')) {
-            $path = $request->file('photo')->store('machine-photos', 'public');
+            $path = $request->file('photo')->store('equipment-photos', 'public');
             $validated['photo_path'] = $path;
         }
 
-        $machine = Machine::create($validated);
+        $equipment = Equipment::create($validated);
 
-        return redirect()->route('cadastro.maquinas')
-            ->with('success', "A máquina {$machine->tag} foi criada com sucesso.");
+        return redirect()->route('cadastro.equipamentos')
+            ->with('success', "O equipamento {$equipment->tag} foi criado com sucesso.");
     }
 
-    public function edit(Machine $machine)
+    public function edit(Equipment $equipment)
     {
-        return Inertia::render('cadastro/maquinas/edit', [
-            'machine' => $machine->load(['machineType', 'area']),
+        return Inertia::render('cadastro/equipamentos/edit', [
+            'equipment' => $equipment->load(['machineType', 'area']),
             'machineTypes' => MachineType::all(),
             'areas' => Area::all()
         ]);
     }
 
-    public function show(Machine $machine)
+    public function show(Equipment $equipment)
     {
-        return Inertia::render('cadastro/maquinas/show', [
-            'machine' => $machine->load(['machineType', 'area']),
+        return Inertia::render('cadastro/equipamentos/show', [
+            'equipment' => $equipment->load(['machineType', 'area']),
         ]);
     }
 
-    public function update(Request $request, Machine $machine)
+    public function update(Request $request, Equipment $equipment)
     {
         $validated = $request->validate([
             'tag' => 'required|string|max:255',
@@ -109,44 +109,42 @@ class MachineController extends Controller
             'manufacturer' => 'nullable|string|max:255',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
             'area_id' => 'required|exists:areas,id',
-            'photo' => 'nullable|image|max:2048' // máximo 2MB
+            'photo' => 'nullable|image|max:2048'
         ]);
 
         if ($request->hasFile('photo')) {
-            // Remove a foto antiga se existir
-            if ($machine->photo_path) {
-                Storage::disk('public')->delete($machine->photo_path);
+            if ($equipment->photo_path) {
+                Storage::disk('public')->delete($equipment->photo_path);
             }
             
-            $path = $request->file('photo')->store('machine-photos', 'public');
+            $path = $request->file('photo')->store('equipment-photos', 'public');
             $validated['photo_path'] = $path;
         }
 
-        $machine->update($validated);
+        $equipment->update($validated);
 
-        return redirect()->route('cadastro.maquinas')
-            ->with('success', "A máquina {$machine->tag} foi atualizada com sucesso.");
+        return redirect()->route('cadastro.equipamentos')
+            ->with('success', "O equipamento {$equipment->tag} foi atualizado com sucesso.");
     }
 
-    public function destroy(Machine $machine)
+    public function destroy(Equipment $equipment)
     {
-        $machineTag = $machine->tag;
+        $equipmentTag = $equipment->tag;
 
-        // Remove a foto se existir
-        if ($machine->photo_path) {
-            Storage::disk('public')->delete($machine->photo_path);
+        if ($equipment->photo_path) {
+            Storage::disk('public')->delete($equipment->photo_path);
         }
 
-        $machine->delete();
+        $equipment->delete();
 
-        return back()->with('success', "A máquina {$machineTag} foi excluída com sucesso.");
+        return back()->with('success', "O equipamento {$equipmentTag} foi excluído com sucesso.");
     }
 
-    public function removePhoto(Machine $machine)
+    public function removePhoto(Equipment $equipment)
     {
-        if ($machine->photo_path) {
-            Storage::disk('public')->delete($machine->photo_path);
-            $machine->update(['photo_path' => null]);
+        if ($equipment->photo_path) {
+            Storage::disk('public')->delete($equipment->photo_path);
+            $equipment->update(['photo_path' => null]);
             return back()->with('success', 'Foto removida com sucesso.');
         }
         return back()->with('error', 'Não foi possível remover a foto.');

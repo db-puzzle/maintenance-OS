@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\MachineController;
+use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\Cadastro\MachineTypeController;
 use App\Http\Controllers\PlantsController;
 
@@ -17,7 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('cadastro/tipos-maquina', MachineTypeController::class)
         ->names('cadastro.tipos-maquina')
         ->parameters(['tipos-maquina' => 'machineType']);
-    Route::delete('/machines/{machine}/photo', [MachineController::class, 'removePhoto'])->name('machines.remove-photo');
+    Route::delete('/equipment/{equipment}/photo', [EquipmentController::class, 'removePhoto'])->name('equipamentos.remove-photo');
 });
 
 require __DIR__.'/settings.php';

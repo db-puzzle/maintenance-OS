@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('machines', function (Blueprint $table) {
+        Schema::create('equipment', function (Blueprint $table) {
             $table->id();
             $table->string('tag')->required();
             $table->foreignId('machine_type_id')->constrained('machine_types')->onDelete('restrict');
@@ -24,6 +24,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('machines');
+        Schema::dropIfExists('equipment');
     }
 }; 

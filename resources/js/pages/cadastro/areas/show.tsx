@@ -1,13 +1,15 @@
-import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { type BreadcrumbItem, type Equipment } from '@/types';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowLeft } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
+
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
 import HeadingSmall from '@/components/heading-small';
-import { Button } from '@/components/ui/button';
-import { Link } from '@inertiajs/react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -39,27 +41,37 @@ interface Area {
     machines: Machine[];
     created_at: string;
     updated_at: string;
+    equipment: Equipment[];
 }
 
 interface Props {
-    area: Area;
+    area: {
+        id: number;
+        name: string;
+        plant: {
+            id: number;
+            name: string;
+        };
+        equipment: Equipment[];
+    };
 }
 
 export default function Show({ area }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Área - ${area.name}`} />
+            <Head title={`Área ${area.name}`} />
 
             <CadastroLayout>
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
                         <HeadingSmall 
-                            title={area.name}
-                            description="Detalhes da área e suas máquinas"
+                            title={`Área ${area.name}`}
+                            description="Detalhes da área"
                         />
                         <div className="flex gap-2">
                             <Button variant="outline" asChild>
                                 <Link href={route('cadastro.areas')}>
+                                    <ArrowLeft className="h-4 w-4 mr-2" />
                                     Voltar
                                 </Link>
                             </Button>
@@ -71,105 +83,88 @@ export default function Show({ area }: Props) {
                         </div>
                     </div>
 
-                    <div className="grid gap-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Informações Gerais</CardTitle>
-                                <CardDescription>
-                                    Detalhes básicos da área
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <h4 className="text-sm font-medium text-muted-foreground">Nome</h4>
-                                        <p className="text-sm">{area.name}</p>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-medium text-muted-foreground">Planta</h4>
-                                        <p className="text-sm">
-                                            <Link 
-                                                href={route('cadastro.plantas.edit', area.plant.id)}
-                                                className="text-primary hover:underline"
-                                            >
-                                                {area.plant.name}
-                                            </Link>
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-medium text-muted-foreground">Criado em</h4>
-                                        <p className="text-sm">
-                                            {new Date(area.created_at).toLocaleDateString('pt-BR')}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-medium text-muted-foreground">Atualizado em</h4>
-                                        <p className="text-sm">
-                                            {new Date(area.updated_at).toLocaleDateString('pt-BR')}
-                                        </p>
-                                    </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Informações Gerais</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid gap-6">
+                                <div className="grid gap-2">
+                                    <Label>Nome</Label>
+                                    <div className="text-base text-muted-foreground">{area.name}</div>
                                 </div>
-                            </CardContent>
-                        </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Máquinas</CardTitle>
-                                <CardDescription>
-                                    Lista de máquinas associadas a esta área
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {area.machines.length > 0 ? (
+                                <div className="grid gap-2">
+                                    <Label>Planta</Label>
+                                    <div className="text-base text-muted-foreground">{area.plant.name}</div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Equipamentos</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {area.equipment.length > 0 ? (
+                                <div className="rounded-md border">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead>Tag</TableHead>
-                                                <TableHead>Nome</TableHead>
+                                                <TableHead>TAG</TableHead>
                                                 <TableHead>Tipo</TableHead>
-                                                <TableHead className="w-[100px]">Ações</TableHead>
+                                                <TableHead>Apelido</TableHead>
+                                                <TableHead>Fabricante</TableHead>
+                                                <TableHead>Ano</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {area.machines.map((machine) => (
-                                                <TableRow key={machine.id}>
-                                                    <TableCell>{machine.tag}</TableCell>
-                                                    <TableCell>{machine.name}</TableCell>
+                                            {area.equipment.map((equipment) => (
+                                                <TableRow 
+                                                    key={equipment.id}
+                                                    className="cursor-pointer hover:bg-muted/50"
+                                                    onClick={() => router.get(route('cadastro.equipamentos.show', equipment.id))}
+                                                >
                                                     <TableCell>
-                                                        <Badge variant="secondary">
-                                                            {machine.machine_type.name}
-                                                        </Badge>
+                                                        <div>
+                                                            <div className="font-medium">{equipment.tag}</div>
+                                                            {equipment.nickname && (
+                                                                <div className="text-sm text-muted-foreground">
+                                                                    {equipment.nickname}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </TableCell>
-                                                    <TableCell>
-                                                        <Button variant="ghost" size="icon" asChild>
-                                                            <Link href={route('cadastro.maquinas.edit', machine.id)}>
-                                                                <span className="sr-only">Editar máquina</span>
-                                                                <svg
-                                                                    xmlns="http://www.w3.org/2000/svg"
-                                                                    viewBox="0 0 24 24"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    strokeWidth="2"
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    className="h-4 w-4"
-                                                                >
-                                                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                                                                </svg>
-                                                            </Link>
-                                                        </Button>
-                                                    </TableCell>
+                                                    <TableCell>{equipment.machine_type?.name ?? '-'}</TableCell>
+                                                    <TableCell>{equipment.nickname ?? '-'}</TableCell>
+                                                    <TableCell>{equipment.manufacturer ?? '-'}</TableCell>
+                                                    <TableCell>{equipment.manufacturing_year ?? '-'}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
-                                ) : (
-                                    <div className="text-center py-6 text-muted-foreground">
-                                        Nenhuma máquina associada a esta área.
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                                </div>
+                            ) : (
+                                <div className="text-center text-muted-foreground py-6">
+                                    Nenhum equipamento cadastrado nesta área.
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <div className="flex items-center gap-4">
+                        <Button asChild>
+                            <Link href={route('cadastro.areas.edit', area.id)}>
+                                Editar Área
+                            </Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                            <Link href={route('cadastro.areas')}>
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Voltar
+                            </Link>
+                        </Button>
                     </div>
                 </div>
             </CadastroLayout>

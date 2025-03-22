@@ -5,17 +5,13 @@ import { cn } from '@/lib/utils';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
+import { Cog } from 'lucide-react';
 
 const sidebarNavItems: NavItem[] = [
     {
-        title: 'Máquinas',
-        href: '/cadastro/maquinas',
-        icon: null,
-    },
-    {
-        title: 'Tipos de Máquina',
-        href: '/cadastro/tipos-maquina',
-        icon: null,
+        title: 'Equipamentos',
+        href: '/cadastro/equipamentos',
+        icon: Cog,
     },
     {
         title: 'Áreas',
@@ -28,6 +24,12 @@ const sidebarNavItems: NavItem[] = [
         icon: null,
     },
 ];
+
+const separatedNavItem: NavItem = {
+    title: 'Tipos de Máquina',
+    href: '/cadastro/tipos-maquina',
+    icon: null,
+};
 
 export default function CadastroLayout({ children }: PropsWithChildren) {
     // When server-side rendering, we only render the layout on the client...
@@ -59,6 +61,20 @@ export default function CadastroLayout({ children }: PropsWithChildren) {
                                 </Link>
                             </Button>
                         ))}
+                        <Separator className="my-4 mb-5" />
+                        <Button
+                            key={separatedNavItem.href}
+                            size="sm"
+                            variant="ghost"
+                            asChild
+                            className={cn('w-full justify-start', {
+                                'bg-muted': currentPath === separatedNavItem.href,
+                            })}
+                        >
+                            <Link href={separatedNavItem.href} prefetch>
+                                {separatedNavItem.title}
+                            </Link>
+                        </Button>
                     </nav>
                 </aside>
 

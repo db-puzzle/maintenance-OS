@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type Machine } from '@/types';
+import { type BreadcrumbItem, type Equipment } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Camera } from 'lucide-react';
 
@@ -11,13 +11,13 @@ import CadastroLayout from '@/layouts/cadastro/layout';
 import HeadingSmall from '@/components/heading-small';
 
 interface Props {
-    machine: Machine;
+    equipment: Equipment;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Máquinas',
-        href: '/cadastro/maquinas',
+        title: 'Equipamentos',
+        href: '/cadastro/equipamentos',
     },
     {
         title: 'Detalhes',
@@ -25,28 +25,28 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Show({ machine }: Props) {
+export default function Show({ equipment }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Máquina ${machine.tag}`} />
+            <Head title={`Equipamento ${equipment.tag}`} />
 
             <CadastroLayout>
                 <div className="space-y-6 max-w-2xl">
                     <HeadingSmall 
-                        title={`Máquina ${machine.tag}`}
-                        description="Detalhes da máquina"
+                        title={`Equipamento ${equipment.tag}`}
+                        description="Detalhes do equipamento"
                     />
 
                     <div className="space-y-2">
                         <div className="grid md:grid-cols-2 gap-6">
-                            {/* Foto da Máquina */}
+                            {/* Foto do Equipamento */}
                             <div className="flex flex-col h-full">
-                                <Label className="mb-2">Foto da Máquina</Label>
+                                <Label className="mb-2">Foto do Equipamento</Label>
                                 <div className="flex-1 relative rounded-lg overflow-hidden bg-muted min-h-[238px] max-h-[238px]">
-                                    {machine.photo_path ? (
+                                    {equipment.photo_path ? (
                                         <img
-                                            src={`/storage/${machine.photo_path}`}
-                                            alt={`Foto da máquina ${machine.tag}`}
+                                            src={`/storage/${equipment.photo_path}`}
+                                            alt={`Foto do equipamento ${equipment.tag}`}
                                             className="w-full h-full object-cover"
                                         />
                                     ) : (
@@ -63,22 +63,22 @@ export default function Show({ machine }: Props) {
                                 <CardContent className="p-0 space-y-4">
                                     <div className="grid gap-2">
                                         <Label>TAG</Label>
-                                        <div className="text-base text-muted-foreground">{machine.tag}</div>
+                                        <div className="text-base text-muted-foreground">{equipment.tag}</div>
                                     </div>
 
                                     <div className="grid gap-2">
                                         <Label>Tipo</Label>
-                                        <div className="text-base text-muted-foreground">{machine.machine_type?.name ?? '-'}</div>
+                                        <div className="text-base text-muted-foreground">{equipment.machine_type?.name ?? '-'}</div>
                                     </div>
 
                                     <div className="grid gap-2">
                                         <Label>Área</Label>
-                                        <div className="text-base text-muted-foreground">{machine.area?.name ?? '-'}</div>
+                                        <div className="text-base text-muted-foreground">{equipment.area?.name ?? '-'}</div>
                                     </div>
 
                                     <div className="grid gap-2">
                                         <Label>Apelido</Label>
-                                        <div className="text-base text-muted-foreground">{machine.nickname ?? '-'}</div>
+                                        <div className="text-base text-muted-foreground">{equipment.nickname ?? '-'}</div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -90,12 +90,12 @@ export default function Show({ machine }: Props) {
                                 <div className="grid sm:grid-cols-2 gap-6">
                                     <div className="grid gap-2">
                                         <Label>Fabricante</Label>
-                                        <div className="text-base text-muted-foreground">{machine.manufacturer ?? '-'}</div>
+                                        <div className="text-base text-muted-foreground">{equipment.manufacturer ?? '-'}</div>
                                     </div>
 
                                     <div className="grid gap-2">
                                         <Label>Ano de Fabricação</Label>
-                                        <div className="text-base text-muted-foreground">{machine.manufacturing_year ?? '-'}</div>
+                                        <div className="text-base text-muted-foreground">{equipment.manufacturing_year ?? '-'}</div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -104,12 +104,12 @@ export default function Show({ machine }: Props) {
 
                     <div className="flex items-center gap-4">
                         <Button asChild>
-                            <Link href={route('cadastro.maquinas.edit', machine.id)}>
-                                Editar Máquina
+                            <Link href={route('cadastro.equipamentos.edit', equipment.id)}>
+                                Editar Equipamento
                             </Link>
                         </Button>
                         <Button variant="outline" asChild>
-                            <Link href={route('cadastro.maquinas')}>
+                            <Link href={route('cadastro.equipamentos')}>
                                 <ArrowLeft className="h-4 w-4 mr-2" />
                                 Voltar
                             </Link>

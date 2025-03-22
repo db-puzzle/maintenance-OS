@@ -19,7 +19,7 @@ class AreaController extends Controller
         $direction = $request->input('direction', 'asc');
 
         $areas = Area::with(['plant'])
-        ->withCount('machines')
+        ->withCount('equipment')
         ->when($search, function ($query, $search) {
             $query->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
@@ -87,7 +87,7 @@ class AreaController extends Controller
     public function show(Area $area)
     {
         return Inertia::render('cadastro/areas/show', [
-            'area' => $area->load(['plant', 'machines.machineType'])
+            'area' => $area->load(['plant', 'equipment.machineType'])
         ]);
     }
 
@@ -131,15 +131,15 @@ class AreaController extends Controller
 
     public function checkDependencies(Area $area)
     {
-        $machines = $area->machines()->take(5)->get(['id', 'tag', 'name']);
-        $totalMachines = $area->machines()->count();
+        $equipment = $area->equipment()->take(5)->get(['id', 'tag', 'name']);
+        $totalEquipment = $area->equipment()->count();
 
         return response()->json([
-            'can_delete' => $totalMachines === 0,
+            'can_delete' => $totalEquipment === 0,
             'dependencies' => [
-                'machines' => [
-                    'total' => $totalMachines,
-                    'items' => $machines
+                'equipment' => [
+                    'total' => $totalEquipment,
+                    'items' => $equipment
                 ]
             ]
         ]);

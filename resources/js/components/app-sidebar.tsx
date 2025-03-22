@@ -15,7 +15,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Cadastro',
-        href: '/cadastro/maquinas',
+        href: '/cadastro/equipamentos',
         icon: ClipboardList,
     },
 ];
