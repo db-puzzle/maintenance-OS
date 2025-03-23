@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Cadastro;
 use App\Http\Controllers\Controller;
 use App\Models\Area;
 use App\Models\Sector;
+use App\Models\Plant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -16,32 +17,38 @@ class SectorController extends Controller
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
 
-        $sectors = Sector::query()
+        $query = Sector::query()
             ->with(['area.plant'])
-            ->when($search, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%")
-                        ->orWhereHas('area.plant', function ($query) use ($search) {
-                            $query->where('name', 'like', "%{$search}%");
-                        });
-                });
-            })
-            ->when($sort === 'area', function ($query) use ($direction) {
-                $query->join('areas', 'sectors.area_id', '=', 'areas.id')
-                    ->orderBy('areas.name', $direction)
-                    ->select('sectors.*');
-            })
-            ->when($sort === 'plant', function ($query) use ($direction) {
-                $query->join('areas', 'sectors.area_id', '=', 'areas.id')
-                    ->join('plants', 'areas.plant_id', '=', 'plants.id')
-                    ->orderBy('plants.name', $direction)
-                    ->select('sectors.*');
-            })
-            ->when(!in_array($sort, ['area', 'plant']), function ($query) use ($sort, $direction) {
-                $query->orderBy($sort, $direction);
-            })
-            ->paginate(8);
+            ->withCount('equipment');
+
+        if ($search) {
+            $search = strtolower($search);
+            $query->where(function ($query) use ($search) {
+                $query->whereRaw('LOWER(sectors.name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(sectors.description) LIKE ?', ["%{$search}%"])
+                    ->orWhereExists(function ($query) use ($search) {
+                        $query->from('plants')
+                            ->join('areas', 'areas.plant_id', '=', 'plants.id')
+                            ->whereColumn('areas.id', 'sectors.area_id')
+                            ->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"]);
+                    });
+            });
+        }
+
+        if ($sort === 'area') {
+            $query->join('areas', 'sectors.area_id', '=', 'areas.id')
+                ->orderBy('areas.name', $direction)
+                ->select('sectors.*');
+        } else if ($sort === 'plant') {
+            $query->join('areas', 'sectors.area_id', '=', 'areas.id')
+                ->join('plants', 'areas.plant_id', '=', 'plants.id')
+                ->orderBy('plants.name', $direction)
+                ->select('sectors.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $sectors = $query->paginate(8);
 
         return Inertia::render('cadastro/setores', [
             'sectors' => $sectors,
@@ -55,9 +62,9 @@ class SectorController extends Controller
 
     public function create()
     {
-        $areas = Area::with('plant')->get();
+        $plants = Plant::with('areas')->get();
         return Inertia::render('cadastro/setores/create', [
-            'areas' => $areas
+            'plants' => $plants
         ]);
     }
 
@@ -77,10 +84,17 @@ class SectorController extends Controller
 
     public function edit(Sector $setor)
     {
-        $areas = Area::with('plant')->get();
+        $plants = Plant::with('areas')->get();
         return Inertia::render('cadastro/setores/edit', [
             'sector' => $setor->load('area.plant'),
-            'areas' => $areas
+            'plants' => $plants
+        ]);
+    }
+
+    public function show(Sector $setor)
+    {
+        return Inertia::render('cadastro/setores/show', [
+            'sector' => $setor->load(['area.plant', 'equipment.machineType'])
         ]);
     }
 

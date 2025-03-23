@@ -155,7 +155,7 @@ export default function Equipamentos({ equipment, filters }: Props) {
                         <div className="flex-1">
                             <Input
                                 type="search"
-                                placeholder="Busque por TAG, apelido, fabricante ou planta..."
+                                placeholder="Buscar por TAG, fabricante ou planta..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="max-w-sm"

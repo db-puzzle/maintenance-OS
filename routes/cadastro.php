@@ -20,6 +20,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cadastro/setores', [SectorController::class, 'index'])->name('cadastro.setores');
     Route::get('cadastro/setores/create', [SectorController::class, 'create'])->name('cadastro.setores.create');
     Route::post('cadastro/setores', [SectorController::class, 'store'])->name('cadastro.setores.store');
+    Route::get('cadastro/setores/{setor}', [SectorController::class, 'show'])->name('cadastro.setores.show');
     Route::get('cadastro/setores/{setor}/edit', [SectorController::class, 'edit'])->name('cadastro.setores.edit');
     Route::put('cadastro/setores/{setor}', [SectorController::class, 'update'])->name('cadastro.setores.update');
     Route::delete('cadastro/setores/{setor}', [SectorController::class, 'destroy'])->name('cadastro.setores.destroy');

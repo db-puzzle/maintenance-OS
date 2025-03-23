@@ -47,6 +47,7 @@ export interface Sector {
     area: Area & {
         plant: Plant;
     };
+    equipment_count?: number;
 }
 
 export interface SectorForm {

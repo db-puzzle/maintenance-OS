@@ -93,6 +93,11 @@ export default function Areas({ areas, filters }: Props) {
 
     useEffect(() => {
         const searchTimeout = setTimeout(() => {
+            console.log('Fazendo requisição com parâmetros:', { 
+                search,
+                page: areas.current_page
+            });
+            
             router.get(
                 route('cadastro.areas'),
                 { 
@@ -193,7 +198,7 @@ export default function Areas({ areas, filters }: Props) {
                         <div className="flex-1">
                             <Input
                                 type="search"
-                                placeholder="Buscar áreas..."
+                                placeholder="Buscar por nome da área ou planta..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="max-w-sm"

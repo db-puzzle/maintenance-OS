@@ -18,25 +18,31 @@ class AreaController extends Controller
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
 
-        $areas = Area::with(['plant'])
-        ->withCount('equipment')
-        ->when($search, function ($query, $search) {
+        $query = Area::query()
+            ->with(['plant'])
+            ->withCount('equipment');
+
+        if ($search) {
+            $search = strtolower($search);
             $query->where(function ($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhereHas('plant', function ($query) use ($search) {
-                        $query->where('name', 'like', "%{$search}%");
+                $query->whereRaw('LOWER(areas.name) LIKE ?', ["%{$search}%"])
+                    ->orWhereExists(function ($query) use ($search) {
+                        $query->from('plants')
+                            ->whereColumn('plants.id', 'areas.plant_id')
+                            ->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"]);
                     });
             });
-        })
-        ->when($sort === 'plant', function ($query) use ($direction) {
+        }
+
+        if ($sort === 'plant') {
             $query->join('plants', 'areas.plant_id', '=', 'plants.id')
                 ->orderBy('plants.name', $direction)
                 ->select('areas.*');
-        })
-        ->when(!in_array($sort, ['plant']), function ($query) use ($sort, $direction) {
+        } else {
             $query->orderBy($sort, $direction);
-        })
-        ->paginate(8);
+        }
+
+        $areas = $query->paginate(8);
 
         return Inertia::render('cadastro/areas', [
             'areas' => $areas,

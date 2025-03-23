@@ -14,16 +14,28 @@ class PlantsController extends Controller
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
 
-        $plants = Plant::query()
-            ->when($search, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%")
-                        ->orWhere('city', 'like', "%{$search}%")
-                        ->orWhere('state', 'like', "%{$search}%");
-                });
-            })
-            ->orderBy($sort, $direction)
-            ->paginate(8);
+        $query = Plant::query()
+            ->withCount('areas');
+
+        if ($search) {
+            $search = strtolower($search);
+            $query->where(function ($query) use ($search) {
+                $query->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(plants.street) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(plants.city) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(plants.state) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(plants.zip_code) LIKE ?', ["%{$search}%"]);
+            });
+        }
+
+        if ($sort === 'areas_count') {
+            $query->withCount('areas')
+                ->orderBy('areas_count', $direction);
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $plants = $query->paginate(8);
 
         return Inertia::render('cadastro/plantas', [
             'plants' => $plants,

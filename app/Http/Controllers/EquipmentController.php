@@ -18,44 +18,45 @@ class EquipmentController extends Controller
         $sort = $request->input('sort', 'tag');
         $direction = $request->input('direction', 'asc');
 
-        $equipment = Equipment::query()
-            ->with(['machineType:id,name', 'area.plant:id,name', 'sector:id,name'])
-            ->when($search, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('tag', 'like', "%{$search}%")
-                        ->orWhere('manufacturer', 'like', "%{$search}%")
-                        ->orWhereHas('sector.area.plant', function ($query) use ($search) {
-                            $query->where('name', 'like', "%{$search}%");
-                        });
-                });
-            })
-            ->when($sort === 'machine_type', function ($query) use ($direction) {
-                $query->join('machine_types', 'equipment.machine_type_id', '=', 'machine_types.id')
-                    ->orderBy('machine_types.name', $direction)
-                    ->select('equipment.*');
-            })
-            ->when($sort === 'sector', function ($query) use ($direction) {
-                $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
-                    ->orderBy('sectors.name', $direction)
-                    ->select('equipment.*');
-            })
-            ->when($sort === 'area', function ($query) use ($direction) {
-                $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
-                    ->join('areas', 'sectors.area_id', '=', 'areas.id')
-                    ->orderBy('areas.name', $direction)
-                    ->select('equipment.*');
-            })
-            ->when($sort === 'plant', function ($query) use ($direction) {
-                $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
-                    ->join('areas', 'sectors.area_id', '=', 'areas.id')
-                    ->join('plants', 'areas.plant_id', '=', 'plants.id')
-                    ->orderBy('plants.name', $direction)
-                    ->select('equipment.*');
-            })
-            ->when(!in_array($sort, ['machine_type', 'sector', 'area', 'plant']), function ($query) use ($sort, $direction) {
-                $query->orderBy($sort, $direction);
-            })
-            ->paginate(8);
+        $query = Equipment::query()
+            ->with(['machineType:id,name', 'area.plant:id,name', 'sector:id,name']);
+
+        if ($search) {
+            $search = strtolower($search);
+            $query->where(function ($query) use ($search) {
+                $query->whereRaw('LOWER(equipment.tag) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(equipment.manufacturer) LIKE ?', ["%{$search}%"])
+                    ->orWhereExists(function ($query) use ($search) {
+                        $query->from('plants')
+                            ->join('areas', 'areas.plant_id', '=', 'plants.id')
+                            ->whereColumn('areas.id', 'equipment.area_id')
+                            ->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"]);
+                    });
+            });
+        }
+
+        if ($sort === 'machine_type') {
+            $query->join('machine_types', 'equipment.machine_type_id', '=', 'machine_types.id')
+                ->orderBy('machine_types.name', $direction)
+                ->select('equipment.*');
+        } else if ($sort === 'sector') {
+            $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
+                ->orderBy('sectors.name', $direction)
+                ->select('equipment.*');
+        } else if ($sort === 'area') {
+            $query->join('areas', 'equipment.area_id', '=', 'areas.id')
+                ->orderBy('areas.name', $direction)
+                ->select('equipment.*');
+        } else if ($sort === 'plant') {
+            $query->join('areas', 'equipment.area_id', '=', 'areas.id')
+                ->join('plants', 'areas.plant_id', '=', 'plants.id')
+                ->orderBy('plants.name', $direction)
+                ->select('equipment.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $equipment = $query->paginate(8);
 
         return Inertia::render('cadastro/equipamentos', [
             'equipment' => $equipment,

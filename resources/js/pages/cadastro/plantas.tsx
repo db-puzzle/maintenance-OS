@@ -194,7 +194,7 @@ export default function Plantas({ plants, filters }: Props) {
                         <div className="flex-1">
                             <Input
                                 type="search"
-                                placeholder="Buscar plantas..."
+                                placeholder="Buscar por nome, endereço, cidade, estado ou CEP..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="max-w-sm"

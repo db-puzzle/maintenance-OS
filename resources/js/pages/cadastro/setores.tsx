@@ -155,7 +155,7 @@ export default function SectorIndex({ sectors, filters }: Props) {
                         <div className="flex-1">
                             <Input
                                 type="search"
-                                placeholder="Busque por nome, descrição ou planta..."
+                                placeholder="Buscar por nome, descrição ou planta..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="max-w-sm"
@@ -203,19 +203,39 @@ export default function SectorIndex({ sectors, filters }: Props) {
                                         </Button>
                                     </TableHead>
                                     <TableHead>Descrição</TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('equipment_count')}
+                                        >
+                                            Equipamentos
+                                            <span className="ml-2">{getSortIcon('equipment_count')}</span>
+                                        </Button>
+                                    </TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {sectors.data.map((sector) => (
-                                    <TableRow key={sector.id}>
+                                    <TableRow 
+                                        key={sector.id}
+                                        className="cursor-pointer hover:bg-muted/50"
+                                        onClick={() => router.get(route('cadastro.setores.show', sector.id))}
+                                    >
                                         <TableCell>{sector.name}</TableCell>
                                         <TableCell>{sector.area.name}</TableCell>
                                         <TableCell>{sector.area.plant.name}</TableCell>
                                         <TableCell>{sector.description ?? '-'}</TableCell>
+                                        <TableCell>{sector.equipment_count ?? 0}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
-                                                <Button variant="ghost" size="icon" asChild>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    asChild
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
                                                     <Link href={route('cadastro.setores.edit', sector.id)}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
@@ -225,7 +245,10 @@ export default function SectorIndex({ sectors, filters }: Props) {
                                                         <Button 
                                                             variant="ghost" 
                                                             size="icon"
-                                                            onClick={() => setSelectedSector(sector)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedSector(sector);
+                                                            }}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>

@@ -59,7 +59,7 @@ export default function EditSector({ sector, plants }: Props) {
 
     const [openPlant, setOpenPlant] = useState(false);
     const [openArea, setOpenArea] = useState(false);
-    const [selectedPlant, setSelectedPlant] = useState<number>(sector.area.plant.id);
+    const [selectedPlant, setSelectedPlant] = useState<number | null>(sector.area.plant.id);
 
     const availableAreas = selectedPlant
         ? plants.find(p => p.id === selectedPlant)?.areas || []
@@ -107,51 +107,53 @@ export default function EditSector({ sector, plants }: Props) {
                                 Planta
                                 <span className="text-destructive">*</span>
                             </Label>
-                            <Popover open={openPlant} onOpenChange={setOpenPlant}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={openPlant}
-                                        className="w-full justify-between"
-                                    >
-                                        {selectedPlant
-                                            ? plants.find((plant) => plant.id === selectedPlant)?.name
-                                            : "Selecione uma planta"}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-full p-0">
-                                    <Command>
-                                        <CommandInput placeholder="Buscar planta..." />
-                                        <CommandList>
-                                            <CommandEmpty>Nenhuma planta encontrada.</CommandEmpty>
-                                            <CommandGroup>
-                                                {plants.map((plant) => (
-                                                    <CommandItem
-                                                        key={plant.id}
-                                                        value={plant.id.toString()}
-                                                        onSelect={(value) => {
-                                                            const plantId = parseInt(value);
-                                                            setSelectedPlant(plantId);
-                                                            setData('area_id', '');
-                                                            setOpenPlant(false);
-                                                        }}
-                                                    >
-                                                        <Check
-                                                            className={cn(
-                                                                "mr-2 h-4 w-4",
-                                                                selectedPlant === plant.id ? "opacity-100" : "opacity-0"
-                                                            )}
-                                                        />
-                                                        {plant.name}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
+                            <div className="flex gap-4">
+                                <Popover open={openPlant} onOpenChange={setOpenPlant}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openPlant}
+                                            className="w-[200px] justify-between"
+                                        >
+                                            {selectedPlant
+                                                ? plants.find((plant) => plant.id === selectedPlant)?.name
+                                                : "Selecione uma planta"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[200px] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar planta..." />
+                                            <CommandList>
+                                                <CommandEmpty>Nenhuma planta encontrada.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {plants.map((plant) => (
+                                                        <CommandItem
+                                                            key={plant.id}
+                                                            value={plant.id.toString()}
+                                                            onSelect={(value) => {
+                                                                const plantId = parseInt(value);
+                                                                setSelectedPlant(plantId);
+                                                                setData('area_id', '');
+                                                                setOpenPlant(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    selectedPlant === plant.id ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {plant.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
 
                         {/* Área */}
@@ -160,50 +162,51 @@ export default function EditSector({ sector, plants }: Props) {
                                 Área
                                 <span className="text-destructive">*</span>
                             </Label>
-                            <Popover open={openArea} onOpenChange={setOpenArea}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={openArea}
-                                        className="w-full justify-between"
-                                        disabled={!selectedPlant}
-                                    >
-                                        {data.area_id
-                                            ? availableAreas.find((area) => area.id.toString() === data.area_id)?.name
-                                            : "Selecione uma área"}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-full p-0">
-                                    <Command>
-                                        <CommandInput placeholder="Buscar área..." />
-                                        <CommandList>
-                                            <CommandEmpty>Nenhuma área encontrada.</CommandEmpty>
-                                            <CommandGroup>
-                                                {availableAreas.map((area) => (
-                                                    <CommandItem
-                                                        key={area.id}
-                                                        value={area.id.toString()}
-                                                        onSelect={(value) => {
-                                                            setData('area_id', value);
-                                                            setOpenArea(false);
-                                                        }}
-                                                    >
-                                                        <Check
-                                                            className={cn(
-                                                                "mr-2 h-4 w-4",
-                                                                data.area_id === area.id.toString() ? "opacity-100" : "opacity-0"
-                                                            )}
-                                                        />
-                                                        {area.name}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
+                            <div className="flex gap-4">
+                                <Popover open={openArea} onOpenChange={setOpenArea}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openArea}
+                                            className="w-[200px] justify-between"
+                                        >
+                                            {data.area_id
+                                                ? availableAreas.find((area) => area.id.toString() === data.area_id)?.name
+                                                : "Selecione uma área"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[200px] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar área..." />
+                                            <CommandList>
+                                                <CommandEmpty>Nenhuma área encontrada.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {availableAreas.map((area) => (
+                                                        <CommandItem
+                                                            key={area.id}
+                                                            value={area.id.toString()}
+                                                            onSelect={(value) => {
+                                                                setData('area_id', value);
+                                                                setOpenArea(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    data.area_id === area.id.toString() ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {area.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                             <InputError message={errors.area_id} />
                         </div>
 
