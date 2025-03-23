@@ -46,6 +46,7 @@ export interface EquipmentForm {
 export interface Sector {
     id: number;
     name: string;
+    description?: string;
     area_id: number;
 }
 

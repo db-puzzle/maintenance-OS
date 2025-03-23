@@ -1,10 +1,9 @@
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
 import HeadingSmall from '@/components/heading-small';
 import { Button } from '@/components/ui/button';
-import { Link } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Map from '@/components/map';
@@ -133,10 +132,19 @@ export default function ShowPlant({ plant, areas }: Props) {
                                     </TableHeader>
                                     <TableBody>
                                         {areas.data.map((area) => (
-                                            <TableRow key={area.id}>
+                                            <TableRow 
+                                                key={area.id}
+                                                className="cursor-pointer hover:bg-muted/50"
+                                                onClick={() => router.get(route('cadastro.areas.show', area.id))}
+                                            >
                                                 <TableCell>{area.name}</TableCell>
                                                 <TableCell>
-                                                    <Button variant="ghost" size="icon" asChild>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        asChild
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
                                                         <Link href={route('cadastro.areas.edit', area.id)}>
                                                             <Pencil className="h-4 w-4" />
                                                         </Link>

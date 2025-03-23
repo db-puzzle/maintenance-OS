@@ -12,21 +12,25 @@ const sidebarNavItems: NavItem[] = [
         title: 'Equipamentos',
         href: '/cadastro/equipamentos',
         icon: Cog,
+        activePattern: /^\/cadastro\/equipamentos/,
     },
     {
         title: 'Setores',
         href: '/cadastro/setores',
         icon: Building2,
+        activePattern: /^\/cadastro\/setores/,
     },
     {
         title: 'Áreas',
         href: '/cadastro/areas',
         icon: Map,
+        activePattern: /^\/cadastro\/areas/,
     },
     {
         title: 'Plantas',
         href: '/cadastro/plantas',
         icon: Factory,
+        activePattern: /^\/cadastro\/plantas/,
     },
 ];
 
@@ -34,6 +38,7 @@ const separatedNavItem: NavItem = {
     title: 'Tipos de Equipamento',
     href: '/cadastro/tipos-equipamento',
     icon: Wrench,
+    activePattern: /^\/cadastro\/tipos-equipamento/,
 };
 
 export default function CadastroLayout({ children }: PropsWithChildren) {
@@ -58,7 +63,7 @@ export default function CadastroLayout({ children }: PropsWithChildren) {
                                 variant="ghost"
                                 asChild
                                 className={cn('w-full justify-start', {
-                                    'bg-muted': currentPath === item.href,
+                                    'bg-muted': item.activePattern?.test(currentPath),
                                 })}
                             >
                                 <Link href={item.href} prefetch>
@@ -74,7 +79,7 @@ export default function CadastroLayout({ children }: PropsWithChildren) {
                             variant="ghost"
                             asChild
                             className={cn('w-full justify-start', {
-                                'bg-muted': currentPath === separatedNavItem.href,
+                                'bg-muted': separatedNavItem.activePattern?.test(currentPath),
                             })}
                         >
                             <Link href={separatedNavItem.href} prefetch>
