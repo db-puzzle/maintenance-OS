@@ -10,6 +10,7 @@ class Area extends Model
 {
     protected $fillable = [
         'name',
+        'description',
         'plant_id'
     ];
 
@@ -22,6 +23,11 @@ class Area extends Model
         return $this->belongsTo(Plant::class);
     }
 
+    public function sectors(): HasMany
+    {
+        return $this->hasMany(Sector::class);
+    }
+
     public function equipment(): HasMany
     {
         return $this->hasMany(Equipment::class);
@@ -32,6 +38,9 @@ class Area extends Model
         parent::boot();
 
         static::deleting(function ($area) {
+            if ($area->sectors()->exists()) {
+                throw new \Exception('Não é possível excluir uma área que possui setores.');
+            }
             if ($area->equipment()->exists()) {
                 throw new \Exception('Não é possível excluir uma área que possui equipamentos.');
             }

@@ -10,14 +10,14 @@ return new class extends Migration
     {
         Schema::create('equipment', function (Blueprint $table) {
             $table->id();
-            $table->string('tag')->required();
+            $table->string('tag');
             $table->string('serial_number')->nullable();
-            $table->foreignId('machine_type_id')->constrained('machine_types')->onDelete('restrict');
+            $table->foreignId('machine_type_id')->constrained()->onDelete('restrict');
             $table->text('description')->nullable();
-            $table->string('nickname')->nullable();
             $table->string('manufacturer')->nullable();
             $table->integer('manufacturing_year')->nullable();
-            $table->foreignId('area_id')->constrained('areas')->onDelete('restrict');
+            $table->foreignId('area_id')->constrained()->onDelete('restrict');
+            $table->foreignId('sector_id')->nullable()->constrained()->onDelete('restrict');
             $table->string('photo_path')->nullable();
             $table->timestamps();
         });

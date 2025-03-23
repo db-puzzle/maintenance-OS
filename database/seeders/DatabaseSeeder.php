@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             PlantSeeder::class,
             AreaSeeder::class,
             MachineTypeSeeder::class,
+            SectorSeeder::class,
             EquipmentSeeder::class,
         ]);
     }

@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type Equipment, type MachineType, type Area } from '@/types';
+import { type BreadcrumbItem, type Equipment, type MachineType, type Area, type Plant, type Sector } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Camera } from 'lucide-react';
 
@@ -14,10 +14,8 @@ interface Props {
     equipment: Equipment & {
         machine_type: MachineType;
         area: Area & {
-            plant: {
-                id: number;
-                name: string;
-            }
+            plant: Plant;
+            sector?: Sector;
         };
     };
 }
@@ -113,8 +111,17 @@ export default function Show({ equipment }: Props) {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label>Apelido</Label>
-                                        <div className="text-base text-muted-foreground">{equipment.nickname ?? '-'}</div>
+                                        <Label>Setor</Label>
+                                        <div className="text-base">
+                                            {equipment.area?.sector ? (
+                                                <Link
+                                                    href={route('cadastro.setores.show', equipment.area.sector.id)}
+                                                    className="text-primary hover:underline"
+                                                >
+                                                    {equipment.area.sector.name}
+                                                </Link>
+                                            ) : '-'}
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>

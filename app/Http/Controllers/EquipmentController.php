@@ -19,13 +19,12 @@ class EquipmentController extends Controller
         $direction = $request->input('direction', 'asc');
 
         $equipment = Equipment::query()
-            ->with(['machineType:id,name', 'area.plant:id,name'])
+            ->with(['machineType:id,name', 'area.plant:id,name', 'sector:id,name'])
             ->when($search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('tag', 'like', "%{$search}%")
-                        ->orWhere('nickname', 'like', "%{$search}%")
                         ->orWhere('manufacturer', 'like', "%{$search}%")
-                        ->orWhereHas('area.plant', function ($query) use ($search) {
+                        ->orWhereHas('sector.area.plant', function ($query) use ($search) {
                             $query->where('name', 'like', "%{$search}%");
                         });
                 });
@@ -35,18 +34,25 @@ class EquipmentController extends Controller
                     ->orderBy('machine_types.name', $direction)
                     ->select('equipment.*');
             })
+            ->when($sort === 'sector', function ($query) use ($direction) {
+                $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
+                    ->orderBy('sectors.name', $direction)
+                    ->select('equipment.*');
+            })
             ->when($sort === 'area', function ($query) use ($direction) {
-                $query->join('areas', 'equipment.area_id', '=', 'areas.id')
+                $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
+                    ->join('areas', 'sectors.area_id', '=', 'areas.id')
                     ->orderBy('areas.name', $direction)
                     ->select('equipment.*');
             })
             ->when($sort === 'plant', function ($query) use ($direction) {
-                $query->join('areas', 'equipment.area_id', '=', 'areas.id')
+                $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
+                    ->join('areas', 'sectors.area_id', '=', 'areas.id')
                     ->join('plants', 'areas.plant_id', '=', 'plants.id')
                     ->orderBy('plants.name', $direction)
                     ->select('equipment.*');
             })
-            ->when(!in_array($sort, ['machine_type', 'area', 'plant']), function ($query) use ($sort, $direction) {
+            ->when(!in_array($sort, ['machine_type', 'sector', 'area', 'plant']), function ($query) use ($sort, $direction) {
                 $query->orderBy($sort, $direction);
             })
             ->paginate(8);
@@ -67,11 +73,19 @@ class EquipmentController extends Controller
             'machineTypes' => MachineType::all(),
             'plants' => Plant::with(['areas' => function($query) {
                 $query->select('id', 'name', 'plant_id');
+            }, 'areas.sectors' => function($query) {
+                $query->select('id', 'name', 'area_id');
             }])->get()->map(function ($plant) {
                 return [
                     'id' => $plant->id,
                     'name' => $plant->name,
-                    'areas' => $plant->areas
+                    'areas' => $plant->areas->map(function ($area) {
+                        return [
+                            'id' => $area->id,
+                            'name' => $area->name,
+                            'sectors' => $area->sectors
+                        ];
+                    })
                 ];
             })
         ]);
@@ -84,10 +98,10 @@ class EquipmentController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'machine_type_id' => 'required|exists:machine_types,id',
             'description' => 'nullable|string',
-            'nickname' => 'nullable|string|max:255',
             'manufacturer' => 'nullable|string|max:255',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
             'area_id' => 'required|exists:areas,id',
+            'sector_id' => 'nullable|exists:sectors,id',
             'photo' => 'nullable|image|max:2048'
         ]);
 
@@ -105,15 +119,23 @@ class EquipmentController extends Controller
     public function edit(Equipment $equipment)
     {
         return Inertia::render('cadastro/equipamentos/edit', [
-            'equipment' => $equipment->load(['machineType', 'area.plant']),
+            'equipment' => $equipment->load(['machineType', 'area.plant', 'sector']),
             'machineTypes' => MachineType::all(),
             'plants' => Plant::with(['areas' => function($query) {
                 $query->select('id', 'name', 'plant_id');
+            }, 'areas.sectors' => function($query) {
+                $query->select('id', 'name', 'area_id');
             }])->get()->map(function ($plant) {
                 return [
                     'id' => $plant->id,
                     'name' => $plant->name,
-                    'areas' => $plant->areas
+                    'areas' => $plant->areas->map(function ($area) {
+                        return [
+                            'id' => $area->id,
+                            'name' => $area->name,
+                            'sectors' => $area->sectors
+                        ];
+                    })
                 ];
             })
         ]);
@@ -122,7 +144,7 @@ class EquipmentController extends Controller
     public function show(Equipment $equipment)
     {
         return Inertia::render('cadastro/equipamentos/show', [
-            'equipment' => $equipment->load(['machineType', 'area.plant']),
+            'equipment' => $equipment->load(['machineType', 'area.plant', 'sector']),
         ]);
     }
 
@@ -133,10 +155,10 @@ class EquipmentController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'machine_type_id' => 'required|exists:machine_types,id',
             'description' => 'nullable|string',
-            'nickname' => 'nullable|string|max:255',
             'manufacturer' => 'nullable|string|max:255',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
             'area_id' => 'required|exists:areas,id',
+            'sector_id' => 'nullable|exists:sectors,id',
             'photo' => 'nullable|image|max:2048'
         ]);
 

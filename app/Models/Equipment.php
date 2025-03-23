@@ -14,20 +14,32 @@ class Equipment extends Model
         'serial_number',
         'machine_type_id',
         'description',
-        'nickname',
         'manufacturer',
         'manufacturing_year',
         'area_id',
+        'sector_id',
         'photo_path'
+    ];
+
+    protected $casts = [
+        'manufacturing_year' => 'integer',
+        'machine_type_id' => 'integer',
+        'area_id' => 'integer',
+        'sector_id' => 'integer'
     ];
 
     public function machineType(): BelongsTo
     {
-        return $this->belongsTo(MachineType::class, 'machine_type_id')->withDefault();
+        return $this->belongsTo(MachineType::class);
     }
 
     public function area(): BelongsTo
     {
         return $this->belongsTo(Area::class);
+    }
+
+    public function sector(): BelongsTo
+    {
+        return $this->belongsTo(Sector::class);
     }
 } 

@@ -36,12 +36,12 @@ interface Area {
         id: number;
         name: string;
     } | null;
-    machines_count: number;
+    equipment_count: number;
     created_at: string;
     updated_at: string;
 }
 
-interface Machine {
+interface Equipment {
     id: number;
     tag: string;
     name: string;
@@ -50,9 +50,9 @@ interface Machine {
 interface Dependencies {
     can_delete: boolean;
     dependencies: {
-        machines: {
+        equipment: {
             total: number;
-            items: Machine[];
+            items: Equipment[];
         };
     };
 }
@@ -234,10 +234,10 @@ export default function Areas({ areas, filters }: Props) {
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('machines_count')}
+                                            onClick={() => handleSort('equipment_count')}
                                         >
-                                            Máquinas
-                                            <span className="ml-2">{getSortIcon('machines_count')}</span>
+                                            Equipamentos
+                                            <span className="ml-2">{getSortIcon('equipment_count')}</span>
                                         </Button>
                                     </TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
@@ -252,7 +252,7 @@ export default function Areas({ areas, filters }: Props) {
                                     >
                                         <TableCell>{area.name}</TableCell>
                                         <TableCell>{area.plant?.name || '-'}</TableCell>
-                                        <TableCell>{area.machines_count}</TableCell>
+                                        <TableCell>{area.equipment_count}</TableCell>
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
@@ -325,20 +325,20 @@ export default function Areas({ areas, filters }: Props) {
                     </div>
 
                     <div className="font-medium text-sm">
-                        Total de Máquinas Vinculadas: {dependencies?.dependencies?.machines?.total ?? 0}
+                        Total de Equipamentos Vinculados: {dependencies?.dependencies?.equipment?.total ?? 0}
                     </div>
 
-                    {dependencies?.dependencies?.machines?.items && dependencies.dependencies.machines.items.length > 0 && (
+                    {dependencies?.dependencies?.equipment?.items && dependencies.dependencies.equipment.items.length > 0 && (
                         <div>
-                            <h4 className="font-medium">Máquinas ({dependencies?.dependencies?.machines?.total ?? 0})</h4>
+                            <h4 className="font-medium">Equipamentos ({dependencies?.dependencies?.equipment?.total ?? 0})</h4>
                             <ul className="list-disc list-inside">
-                                {dependencies?.dependencies?.machines?.items.map((machine) => (
-                                    <li key={machine.id}>
+                                {dependencies?.dependencies?.equipment?.items.map((equipment) => (
+                                    <li key={equipment.id}>
                                         <Link 
-                                            href={route('cadastro.maquinas.show', machine.id)}
+                                            href={route('cadastro.equipment.show', equipment.id)}
                                             className="text-primary hover:underline"
                                         >
-                                            {machine.tag} - {machine.name}
+                                            {equipment.tag} - {equipment.name}
                                         </Link>
                                     </li>
                                 ))}
@@ -356,12 +356,12 @@ export default function Areas({ areas, filters }: Props) {
                         A área {selectedArea?.name} possui as seguintes dependências:
                     </DialogDescription>
                     <div className="space-y-4">
-                        {dependencies?.dependencies.machines.total > 0 && (
+                        {dependencies?.dependencies?.equipment?.total > 0 && (
                             <div>
-                                <h4 className="font-medium">Máquinas ({dependencies.dependencies.machines.total})</h4>
+                                <h4 className="font-medium">Equipamentos ({dependencies?.dependencies?.equipment?.total})</h4>
                                 <ul className="list-disc list-inside">
-                                    {dependencies.dependencies.machines.items.map((machine) => (
-                                        <li key={machine.id}>{machine.tag} - {machine.name}</li>
+                                    {dependencies?.dependencies?.equipment?.items.map((equipment) => (
+                                        <li key={equipment.id}>{equipment.tag} - {equipment.name}</li>
                                     ))}
                                 </ul>
                             </div>

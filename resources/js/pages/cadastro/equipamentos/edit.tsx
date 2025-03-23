@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type Equipment, type MachineType, type Area, type EquipmentForm } from '@/types';
+import { type BreadcrumbItem, type Equipment, type MachineType, type Area, type EquipmentForm, type Plant, type Sector } from '@/types';
 import { Head, useForm, router } from '@inertiajs/react';
 import { FormEvent, useState, useEffect } from 'react';
 
@@ -33,10 +33,8 @@ interface Props {
     equipment: Equipment & {
         machine_type: MachineType;
         area: Area & {
-            plant: {
-                id: number;
-                name: string;
-            }
+            plant: Plant;
+            sectors: Sector[];
         };
         photo_url: string | null;
     };
@@ -44,7 +42,9 @@ interface Props {
     plants: {
         id: number;
         name: string;
-        areas: Area[];
+        areas: (Area & {
+            sectors: Sector[];
+        })[];
     }[];
 }
 
@@ -58,18 +58,26 @@ export default function EditEquipment({ equipment, machineTypes, plants }: Props
         manufacturer: equipment.manufacturer || '',
         manufacturing_year: equipment.manufacturing_year?.toString() || '',
         area_id: equipment.area_id.toString(),
-        photo: null
+        sector_id: equipment.sector_id?.toString() || '',
+        photo: null,
+        photo_path: equipment.photo_path
     });
 
-    const [previewUrl, setPreviewUrl] = useState<string | null>(equipment.photo_url);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(equipment.photo_path ? `/storage/${equipment.photo_path}` : null);
     const [showCamera, setShowCamera] = useState(false);
     const [openMachineType, setOpenMachineType] = useState(false);
     const [openArea, setOpenArea] = useState(false);
     const [openPlant, setOpenPlant] = useState(false);
-    const [selectedPlant, setSelectedPlant] = useState<number>(equipment.area.plant.id);
+    const [openSector, setOpenSector] = useState(false);
+    const [selectedPlant, setSelectedPlant] = useState<number | null>(equipment.area.plant.id);
+    const [selectedArea, setSelectedArea] = useState<number | null>(equipment.area.id);
 
     const availableAreas = selectedPlant
         ? plants.find(p => p.id === selectedPlant)?.areas || []
+        : [];
+
+    const availableSectors = selectedArea
+        ? availableAreas.find(a => a.id === selectedArea)?.sectors || []
         : [];
 
     const handleRemovePhoto = () => {
@@ -109,6 +117,7 @@ export default function EditEquipment({ equipment, machineTypes, plants }: Props
         formData.append('manufacturer', data.manufacturer);
         formData.append('manufacturing_year', data.manufacturing_year);
         formData.append('area_id', data.area_id.toString());
+        formData.append('sector_id', data.sector_id || '');
         
         if (data.photo) {
             formData.append('photo', data.photo);
@@ -280,6 +289,7 @@ export default function EditEquipment({ equipment, machineTypes, plants }: Props
                                                                     const plantId = parseInt(value);
                                                                     setSelectedPlant(plantId);
                                                                     setData('area_id', '');
+                                                                    setData('sector_id', '');
                                                                     setOpenPlant(false);
                                                                 }}
                                                             >
@@ -312,9 +322,8 @@ export default function EditEquipment({ equipment, machineTypes, plants }: Props
                                                 role="combobox"
                                                 aria-expanded={openArea}
                                                 className="w-full justify-between"
-                                                disabled={!selectedPlant}
                                             >
-                                                {data.area_id && selectedPlant
+                                                {data.area_id
                                                     ? availableAreas.find((area) => area.id.toString() === data.area_id)?.name
                                                     : "Selecione uma área"}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -332,6 +341,7 @@ export default function EditEquipment({ equipment, machineTypes, plants }: Props
                                                                 value={area.id.toString()}
                                                                 onSelect={(value) => {
                                                                     setData('area_id', value);
+                                                                    setSelectedArea(parseInt(value));
                                                                     setOpenArea(false);
                                                                 }}
                                                             >
@@ -352,16 +362,53 @@ export default function EditEquipment({ equipment, machineTypes, plants }: Props
                                     <InputError message={errors.area_id} />
                                 </div>
 
-                                {/* Apelido */}
+                                {/* Setor */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="nickname">Apelido</Label>
-                                    <Input
-                                        id="nickname"
-                                        value={data.nickname}
-                                        onChange={(e) => setData('nickname', e.target.value)}
-                                        placeholder="Apelido do equipamento"
-                                    />
-                                    <InputError message={errors.nickname} />
+                                    <Label htmlFor="sector_id">Setor</Label>
+                                    <Popover open={openSector} onOpenChange={setOpenSector}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openSector}
+                                                className="w-full justify-between"
+                                            >
+                                                {data.sector_id
+                                                    ? availableSectors.find((sector) => sector.id.toString() === data.sector_id)?.name
+                                                    : "Selecione um setor (opcional)"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Buscar setor..." />
+                                                <CommandList>
+                                                    <CommandEmpty>Nenhum setor encontrado.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {availableSectors.map((sector) => (
+                                                            <CommandItem
+                                                                key={sector.id}
+                                                                value={sector.id.toString()}
+                                                                onSelect={(value) => {
+                                                                    setData('sector_id', value);
+                                                                    setOpenSector(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        data.sector_id === sector.id.toString() ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {sector.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <InputError message={errors.sector_id} />
                                 </div>
                             </div>
                         </div>

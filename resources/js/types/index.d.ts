@@ -47,7 +47,6 @@ export interface Equipment {
     serial_number: string | null;
     machine_type_id: number;
     description: string | null;
-    nickname: string | null;
     manufacturer: string | null;
     manufacturing_year: number | null;
     area_id: number;
@@ -63,7 +62,6 @@ export interface EquipmentForm {
     serial_number: string;
     machine_type_id: number | string;
     description: string;
-    nickname: string;
     manufacturer: string;
     manufacturing_year: string;
     area_id: number | string;

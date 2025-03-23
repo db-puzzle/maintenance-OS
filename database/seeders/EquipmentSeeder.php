@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Equipment;
 use App\Models\MachineType;
+use App\Models\Sector;
 use App\Models\Area;
 use Illuminate\Database\Seeder;
 
@@ -16,11 +17,12 @@ class EquipmentSeeder extends Seeder
         $motorType = MachineType::where('name', 'Motor Elétrico')->first();
         $valveType = MachineType::where('name', 'Válvula')->first();
 
-        // Obtém a primeira área
+        // Obtém a primeira área e o primeiro setor
         $area = Area::first();
+        $sector = Sector::first();
 
-        if (!$bombType || !$motorType || !$valveType || !$area) {
-            throw new \Exception('Tipos de máquina ou área não encontrados. Execute o MachineTypeSeeder primeiro.');
+        if (!$bombType || !$motorType || !$valveType || !$area || !$sector) {
+            throw new \Exception('Tipos de máquina, área ou setor não encontrados. Execute os seeders anteriores primeiro.');
         }
 
         // Cria alguns equipamentos de exemplo
@@ -29,10 +31,10 @@ class EquipmentSeeder extends Seeder
             'serial_number' => 'SN-B001-2020',
             'machine_type_id' => $bombType->id,
             'description' => 'Bomba centrífuga de alta pressão',
-            'nickname' => 'Bomba Principal',
             'manufacturer' => 'WEG',
             'manufacturing_year' => 2020,
-            'area_id' => $area->id
+            'area_id' => $area->id,
+            'sector_id' => $sector->id
         ]);
 
         Equipment::create([
@@ -40,10 +42,10 @@ class EquipmentSeeder extends Seeder
             'serial_number' => 'SN-M002-2021',
             'machine_type_id' => $motorType->id,
             'description' => 'Motor elétrico trifásico',
-            'nickname' => 'Motor Auxiliar',
             'manufacturer' => 'ABB',
             'manufacturing_year' => 2021,
-            'area_id' => $area->id
+            'area_id' => $area->id,
+            'sector_id' => $sector->id
         ]);
 
         Equipment::create([
@@ -51,10 +53,10 @@ class EquipmentSeeder extends Seeder
             'serial_number' => 'SN-V003-2019',
             'machine_type_id' => $valveType->id,
             'description' => 'Válvula de controle pneumática',
-            'nickname' => 'Válvula de Processo',
             'manufacturer' => 'Emerson',
             'manufacturing_year' => 2019,
-            'area_id' => $area->id
+            'area_id' => $area->id,
+            'sector_id' => $sector->id
         ]);
     }
 } 

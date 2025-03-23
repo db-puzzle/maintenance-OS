@@ -1,5 +1,5 @@
-import { type BreadcrumbItem, type Equipment } from '@/types';
-import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
+import { type BreadcrumbItem, type Sector } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -14,12 +14,10 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert } from '@/components/ui/alert';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
     Pagination,
     PaginationContent,
-    PaginationEllipsis,
     PaginationItem,
     PaginationLink,
     PaginationNext,
@@ -30,18 +28,21 @@ import { toast } from "sonner";
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
 import HeadingSmall from '@/components/heading-small';
-import InputError from '@/components/input-error';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Equipamentos',
+        title: 'Cadastro',
         href: '/cadastro/equipamentos',
+    },
+    {
+        title: 'Setores',
+        href: '/cadastro/setores',
     },
 ];
 
 interface Props {
-    equipment: {
-        data: Equipment[];
+    sectors: {
+        data: Sector[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -61,14 +62,13 @@ interface PageProps {
     };
 }
 
-export default function Equipamentos({ equipment, filters }: Props) {
+export default function SectorIndex({ sectors, filters }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
-    const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+    const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
     const [search, setSearch] = useState(filters.search || '');
     const page = usePage<PageProps>();
     const flash = page.props.flash;
-    const { delete: destroy } = useForm();
 
     useEffect(() => {
         if (flash?.success) {
@@ -81,10 +81,10 @@ export default function Equipamentos({ equipment, filters }: Props) {
     useEffect(() => {
         const searchTimeout = setTimeout(() => {
             router.get(
-                route('cadastro.equipamentos'),
+                route('cadastro.setores'),
                 { 
                     search,
-                    page: equipment.current_page
+                    page: sectors.current_page
                 },
                 { preserveState: true, preserveScroll: true }
             );
@@ -95,18 +95,18 @@ export default function Equipamentos({ equipment, filters }: Props) {
 
     const handleDelete = (id: number) => {
         setIsDeleting(true);
-        destroy(route('cadastro.equipamentos.destroy', id), {
+        router.delete(route('cadastro.setores.destroy', id), {
             onFinish: () => {
                 setIsDeleting(false);
-                setSelectedEquipment(null);
+                setSelectedSector(null);
                 setConfirmationText('');
             },
             onError: (errors) => {
                 setIsDeleting(false);
-                setSelectedEquipment(null);
+                setSelectedSector(null);
                 setConfirmationText('');
-                toast.error("Erro ao excluir equipamento", {
-                    description: errors.message || 'Não foi possível excluir o equipamento.',
+                toast.error("Erro ao excluir setor", {
+                    description: errors.message || 'Não foi possível excluir o setor.',
                 });
             },
         });
@@ -118,12 +118,12 @@ export default function Equipamentos({ equipment, filters }: Props) {
         const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
         
         router.get(
-            route('cadastro.equipamentos'),
+            route('cadastro.setores'),
             { 
                 search,
                 sort: column,
                 direction,
-                page: equipment.current_page
+                page: sectors.current_page
             },
             { preserveState: true }
         );
@@ -140,14 +140,14 @@ export default function Equipamentos({ equipment, filters }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Máquinas" />
+            <Head title="Setores" />
 
             <CadastroLayout>
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
                         <HeadingSmall 
-                            title="Equipamentos" 
-                            description="Gerencie os equipamentos do sistema" 
+                            title="Setores" 
+                            description="Gerencie os setores do sistema" 
                         />
                     </div>
 
@@ -155,15 +155,15 @@ export default function Equipamentos({ equipment, filters }: Props) {
                         <div className="flex-1">
                             <Input
                                 type="search"
-                                placeholder="Busque por TAG, apelido, fabricante ou planta..."
+                                placeholder="Busque por nome, descrição ou planta..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="max-w-sm"
                             />
                         </div>
                         <Button asChild>
-                            <Link href={route('cadastro.equipamentos.create')}>
-                                Novo Equipamento
+                            <Link href={route('cadastro.setores.create')}>
+                                Novo Setor
                             </Link>
                         </Button>
                     </div>
@@ -176,50 +176,10 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('tag')}
+                                            onClick={() => handleSort('name')}
                                         >
-                                            TAG
-                                            <span className="ml-2">{getSortIcon('tag')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('machine_type')}
-                                        >
-                                            Tipo
-                                            <span className="ml-2">{getSortIcon('machine_type')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('manufacturer')}
-                                        >
-                                            Fabricante
-                                            <span className="ml-2">{getSortIcon('manufacturer')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('manufacturing_year')}
-                                        >
-                                            Ano
-                                            <span className="ml-2">{getSortIcon('manufacturing_year')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('plant')}
-                                        >
-                                            Planta
-                                            <span className="ml-2">{getSortIcon('plant')}</span>
+                                            Nome
+                                            <span className="ml-2">{getSortIcon('name')}</span>
                                         </Button>
                                     </TableHead>
                                     <TableHead>
@@ -236,42 +196,27 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('sector')}
+                                            onClick={() => handleSort('plant')}
                                         >
-                                            Setor
-                                            <span className="ml-2">{getSortIcon('sector')}</span>
+                                            Planta
+                                            <span className="ml-2">{getSortIcon('plant')}</span>
                                         </Button>
                                     </TableHead>
+                                    <TableHead>Descrição</TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {equipment.data.map((machine) => (
-                                    <TableRow 
-                                        key={machine.id}
-                                        className="cursor-pointer hover:bg-muted/50"
-                                        onClick={() => router.get(route('cadastro.equipamentos.show', machine.id))}
-                                    >
+                                {sectors.data.map((sector) => (
+                                    <TableRow key={sector.id}>
+                                        <TableCell>{sector.name}</TableCell>
+                                        <TableCell>{sector.area.name}</TableCell>
+                                        <TableCell>{sector.area.plant.name}</TableCell>
+                                        <TableCell>{sector.description ?? '-'}</TableCell>
                                         <TableCell>
-                                            <div>
-                                                <div className="font-medium">{machine.tag}</div>
-                                                {machine.nickname && (
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {machine.nickname}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{machine.machine_type?.name ?? '-'}</TableCell>
-                                        <TableCell>{machine.manufacturer ?? '-'}</TableCell>
-                                        <TableCell>{machine.manufacturing_year ?? '-'}</TableCell>
-                                        <TableCell>{machine.area?.plant?.name ?? '-'}</TableCell>
-                                        <TableCell>{machine.area?.name ?? '-'}</TableCell>
-                                        <TableCell>{machine.sector?.name ?? '-'}</TableCell>
-                                        <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
-                                                    <Link href={route('cadastro.equipamentos.edit', machine.id)}>
+                                                    <Link href={route('cadastro.setores.edit', sector.id)}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
@@ -280,15 +225,15 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                                         <Button 
                                                             variant="ghost" 
                                                             size="icon"
-                                                            onClick={() => setSelectedEquipment(machine)}
+                                                            onClick={() => setSelectedSector(sector)}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </DialogTrigger>
                                                     <DialogContent>
-                                                        <DialogTitle>Você tem certeza que deseja excluir este equipamento?</DialogTitle>
+                                                        <DialogTitle>Você tem certeza que deseja excluir este setor?</DialogTitle>
                                                         <DialogDescription>
-                                                            Uma vez que o equipamento for excluído, todos os seus recursos e dados serão permanentemente excluídos. 
+                                                            Uma vez que o setor for excluído, todos os seus recursos e dados serão permanentemente excluídos. 
                                                             Esta ação não pode ser desfeita.
                                                         </DialogDescription>
                                                         <div className="grid gap-2 py-4">
@@ -316,9 +261,9 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                                             <Button 
                                                                 variant="destructive" 
                                                                 disabled={isDeleting || !isConfirmationValid}
-                                                                onClick={() => selectedEquipment && handleDelete(selectedEquipment.id)}
+                                                                onClick={() => selectedSector && handleDelete(selectedSector.id)}
                                                             >
-                                                                {isDeleting ? 'Excluindo...' : 'Excluir equipamento'}
+                                                                {isDeleting ? 'Excluindo...' : 'Excluir setor'}
                                                             </Button>
                                                         </DialogFooter>
                                                     </DialogContent>
@@ -328,13 +273,13 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                     </TableRow>
                                 ))}
 
-                                {equipment.data.length === 0 && (
+                                {sectors.data.length === 0 && (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={7}
+                                            colSpan={5}
                                             className="h-24 text-center"
                                         >
-                                            Nenhuma máquina encontrada.
+                                            Nenhum setor encontrado.
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -347,22 +292,22 @@ export default function Equipamentos({ equipment, filters }: Props) {
                             <PaginationContent>
                                 <PaginationItem>
                                     <PaginationPrevious 
-                                        href={route('cadastro.equipamentos', { 
-                                            page: equipment.current_page - 1,
+                                        href={route('cadastro.setores', { 
+                                            page: sectors.current_page - 1,
                                             search: search 
                                         })}
-                                        className={equipment.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                        className={sectors.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
                                 
-                                {Array.from({ length: equipment.last_page }, (_, i) => i + 1).map((page) => (
+                                {Array.from({ length: sectors.last_page }, (_, i) => i + 1).map((page) => (
                                     <PaginationItem key={page}>
                                         <PaginationLink 
-                                            href={route('cadastro.equipamentos', { 
+                                            href={route('cadastro.setores', { 
                                                 page,
                                                 search: search
                                             })}
-                                            isActive={page === equipment.current_page}
+                                            isActive={page === sectors.current_page}
                                         >
                                             {page}
                                         </PaginationLink>
@@ -371,11 +316,11 @@ export default function Equipamentos({ equipment, filters }: Props) {
 
                                 <PaginationItem>
                                     <PaginationNext 
-                                        href={route('cadastro.equipamentos', { 
-                                            page: equipment.current_page + 1,
+                                        href={route('cadastro.setores', { 
+                                            page: sectors.current_page + 1,
                                             search: search
                                         })}
-                                        className={equipment.current_page === equipment.last_page ? 'pointer-events-none opacity-50' : ''}
+                                        className={sectors.current_page === sectors.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
                             </PaginationContent>

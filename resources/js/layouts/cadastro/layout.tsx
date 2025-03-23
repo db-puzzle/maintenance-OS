@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
-import { Cog } from 'lucide-react';
+import { Cog, Building2, Map, Factory, Wrench } from 'lucide-react';
 
 const sidebarNavItems: NavItem[] = [
     {
@@ -14,21 +14,26 @@ const sidebarNavItems: NavItem[] = [
         icon: Cog,
     },
     {
+        title: 'Setores',
+        href: '/cadastro/setores',
+        icon: Building2,
+    },
+    {
         title: 'Áreas',
         href: '/cadastro/areas',
-        icon: null,
+        icon: Map,
     },
     {
         title: 'Plantas',
         href: '/cadastro/plantas',
-        icon: null,
+        icon: Factory,
     },
 ];
 
 const separatedNavItem: NavItem = {
     title: 'Tipos de Máquina',
     href: '/cadastro/tipos-maquina',
-    icon: null,
+    icon: Wrench,
 };
 
 export default function CadastroLayout({ children }: PropsWithChildren) {
@@ -57,6 +62,7 @@ export default function CadastroLayout({ children }: PropsWithChildren) {
                                 })}
                             >
                                 <Link href={item.href} prefetch>
+                                    {item.icon && <item.icon className="mr-2 h-4 w-4" />}
                                     {item.title}
                                 </Link>
                             </Button>
@@ -72,6 +78,7 @@ export default function CadastroLayout({ children }: PropsWithChildren) {
                             })}
                         >
                             <Link href={separatedNavItem.href} prefetch>
+                                {separatedNavItem.icon && <separatedNavItem.icon className="mr-2 h-4 w-4" />}
                                 {separatedNavItem.title}
                             </Link>
                         </Button>

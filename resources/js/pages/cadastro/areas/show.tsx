@@ -114,7 +114,6 @@ export default function Show({ area }: Props) {
                                             <TableRow>
                                                 <TableHead>TAG</TableHead>
                                                 <TableHead>Tipo</TableHead>
-                                                <TableHead>Apelido</TableHead>
                                                 <TableHead>Fabricante</TableHead>
                                                 <TableHead>Ano</TableHead>
                                             </TableRow>
@@ -129,15 +128,9 @@ export default function Show({ area }: Props) {
                                                     <TableCell>
                                                         <div>
                                                             <div className="font-medium">{equipment.tag}</div>
-                                                            {equipment.nickname && (
-                                                                <div className="text-sm text-muted-foreground">
-                                                                    {equipment.nickname}
-                                                                </div>
-                                                            )}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>{equipment.machine_type?.name ?? '-'}</TableCell>
-                                                    <TableCell>{equipment.nickname ?? '-'}</TableCell>
                                                     <TableCell>{equipment.manufacturer ?? '-'}</TableCell>
                                                     <TableCell>{equipment.manufacturing_year ?? '-'}</TableCell>
                                                 </TableRow>
