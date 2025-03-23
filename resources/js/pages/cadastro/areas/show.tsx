@@ -1,6 +1,6 @@
-import { type BreadcrumbItem, type Equipment, type Sector } from '@/types';
+import { type BreadcrumbItem, type Equipment } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Building2, MapPin } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Cog } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +37,13 @@ interface Area {
     updated_at: string;
 }
 
+interface Sector {
+    id: number;
+    name: string;
+    description: string | null;
+    equipment_count: number;
+}
+
 interface Props {
     area: {
         id: number;
@@ -48,9 +55,10 @@ interface Props {
         equipment: Equipment[];
         sectors: Sector[];
     };
+    totalEquipmentCount: number;
 }
 
-export default function Show({ area }: Props) {
+export default function Show({ area, totalEquipmentCount }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Área ${area.name}`} />
@@ -70,6 +78,11 @@ export default function Show({ area }: Props) {
                                     <div className="flex items-center gap-1">
                                         <MapPin className="h-4 w-4" />
                                         <span>{area.sectors.length} setores</span>
+                                    </div>
+                                    <Separator orientation="vertical" className="h-4" />
+                                    <div className="flex items-center gap-1">
+                                        <Cog className="h-4 w-4" />
+                                        <span>{totalEquipmentCount} equipamentos</span>
                                     </div>
                                 </div>
                             </div>
@@ -127,8 +140,9 @@ export default function Show({ area }: Props) {
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>Nome</TableHead>
-                                                        <TableHead>Descrição</TableHead>
+                                                        <TableHead className="w-[30%]">Nome</TableHead>
+                                                        <TableHead className="w-[15%] text-center">Equipamentos</TableHead>
+                                                        <TableHead className="w-[55%] pl-8">Descrição</TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
@@ -141,7 +155,10 @@ export default function Show({ area }: Props) {
                                                             <TableCell>
                                                                 <div className="font-medium">{sector.name}</div>
                                                             </TableCell>
-                                                            <TableCell className="text-sm text-muted-foreground">
+                                                            <TableCell className="text-center">
+                                                                <span>{sector.equipment_count}</span>
+                                                            </TableCell>
+                                                            <TableCell className="text-sm text-muted-foreground pl-8">
                                                                 {sector.description ?? '-'}
                                                             </TableCell>
                                                         </TableRow>

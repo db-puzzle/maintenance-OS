@@ -37,6 +37,7 @@ interface Area {
         name: string;
     } | null;
     equipment_count: number;
+    sectors_count: number;
     created_at: string;
     updated_at: string;
 }
@@ -238,11 +239,21 @@ export default function Areas({ areas, filters }: Props) {
                                     <TableHead>
                                         <Button 
                                             variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            className="h-8 p-0 font-bold hover:bg-transparent w-full text-center"
                                             onClick={() => handleSort('equipment_count')}
                                         >
                                             Equipamentos
                                             <span className="ml-2">{getSortIcon('equipment_count')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent w-full text-center"
+                                            onClick={() => handleSort('sectors_count')}
+                                        >
+                                            Setores
+                                            <span className="ml-2">{getSortIcon('sectors_count')}</span>
                                         </Button>
                                     </TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
@@ -257,7 +268,8 @@ export default function Areas({ areas, filters }: Props) {
                                     >
                                         <TableCell>{area.name}</TableCell>
                                         <TableCell>{area.plant?.name || '-'}</TableCell>
-                                        <TableCell>{area.equipment_count}</TableCell>
+                                        <TableCell className="w-[250px] text-center">{area.equipment_count}</TableCell>
+                                        <TableCell className="w-[250px] text-center">{area.sectors_count}</TableCell>
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button variant="ghost" size="icon" asChild>

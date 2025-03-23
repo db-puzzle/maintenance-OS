@@ -20,7 +20,7 @@ class AreaController extends Controller
 
         $query = Area::query()
             ->with(['plant'])
-            ->withCount('equipment');
+            ->withCount(['equipment', 'sectors']);
 
         if ($search) {
             $search = strtolower($search);
@@ -92,8 +92,22 @@ class AreaController extends Controller
      */
     public function show(Area $area)
     {
+        $area->load(['plant', 'equipment.equipmentType', 'sectors' => function ($query) {
+            $query->withCount('equipment');
+        }]);
+        
+        // Conta equipamentos diretos da área
+        $directEquipmentCount = $area->equipment()->count();
+        
+        // Conta equipamentos dos setores
+        $sectorsEquipmentCount = $area->sectors()->withCount('equipment')->get()->sum('equipment_count');
+        
+        // Total de equipamentos
+        $totalEquipmentCount = $directEquipmentCount + $sectorsEquipmentCount;
+
         return Inertia::render('cadastro/areas/show', [
-            'area' => $area->load(['plant', 'equipment.equipmentType', 'sectors'])
+            'area' => $area,
+            'totalEquipmentCount' => $totalEquipmentCount
         ]);
     }
 
