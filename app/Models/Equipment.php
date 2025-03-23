@@ -12,7 +12,7 @@ class Equipment extends Model
     protected $fillable = [
         'tag',
         'serial_number',
-        'machine_type_id',
+        'equipment_type_id',
         'description',
         'manufacturer',
         'manufacturing_year',
@@ -23,14 +23,14 @@ class Equipment extends Model
 
     protected $casts = [
         'manufacturing_year' => 'integer',
-        'machine_type_id' => 'integer',
+        'equipment_type_id' => 'integer',
         'area_id' => 'integer',
         'sector_id' => 'integer'
     ];
 
-    public function machineType(): BelongsTo
+    public function equipmentType(): BelongsTo
     {
-        return $this->belongsTo(MachineType::class);
+        return $this->belongsTo(EquipmentType::class);
     }
 
     public function area(): BelongsTo

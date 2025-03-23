@@ -13,60 +13,49 @@ import HeadingSmall from '@/components/heading-small';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Áreas',
-        href: '/cadastro/areas',
+        title: 'Tipos de Equipamento',
+        href: '/cadastro/tipos-equipamento',
     },
     {
-        title: 'Detalhes da Área',
+        title: 'Detalhes do Tipo de Equipamento',
         href: '#',
     },
 ];
 
-interface Area {
+interface EquipmentType {
     id: number;
     name: string;
-    plant: {
-        id: number;
-        name: string;
-    };
+    description: string;
     equipment: Equipment[];
     created_at: string;
     updated_at: string;
 }
 
 interface Props {
-    area: {
-        id: number;
-        name: string;
-        plant: {
-            id: number;
-            name: string;
-        };
-        equipment: Equipment[];
-    };
+    equipmentType: EquipmentType;
 }
 
-export default function Show({ area }: Props) {
+export default function Show({ equipmentType }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Área ${area.name}`} />
+            <Head title={`Tipo de Equipamento ${equipmentType.name}`} />
 
             <CadastroLayout>
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
                         <HeadingSmall 
-                            title={`Área ${area.name}`}
-                            description="Detalhes da área"
+                            title={`Tipo de Equipamento ${equipmentType.name}`}
+                            description="Detalhes do tipo de equipamento"
                         />
                         <div className="flex gap-2">
                             <Button variant="outline" asChild>
-                                <Link href={route('cadastro.areas')}>
+                                <Link href={route('cadastro.tipos-equipamento')}>
                                     <ArrowLeft className="h-4 w-4 mr-2" />
                                     Voltar
                                 </Link>
                             </Button>
                             <Button asChild>
-                                <Link href={route('cadastro.areas.edit', area.id)}>
+                                <Link href={route('cadastro.tipos-equipamento.edit', equipmentType.id)}>
                                     Editar
                                 </Link>
                             </Button>
@@ -81,12 +70,12 @@ export default function Show({ area }: Props) {
                             <div className="grid gap-6">
                                 <div className="grid gap-2">
                                     <Label>Nome</Label>
-                                    <div className="text-base text-muted-foreground">{area.name}</div>
+                                    <div className="text-base text-muted-foreground">{equipmentType.name}</div>
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label>Planta</Label>
-                                    <div className="text-base text-muted-foreground">{area.plant.name}</div>
+                                    <Label>Descrição</Label>
+                                    <div className="text-base text-muted-foreground">{equipmentType.description}</div>
                                 </div>
                             </div>
                         </CardContent>
@@ -97,19 +86,19 @@ export default function Show({ area }: Props) {
                             <CardTitle>Equipamentos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {area.equipment.length > 0 ? (
+                            {equipmentType.equipment.length > 0 ? (
                                 <div className="rounded-md border">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
                                                 <TableHead>TAG</TableHead>
-                                                <TableHead>Tipo</TableHead>
+                                                <TableHead>Área</TableHead>
                                                 <TableHead>Fabricante</TableHead>
                                                 <TableHead>Ano</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {area.equipment.map((equipment) => (
+                                            {equipmentType.equipment.map((equipment) => (
                                                 <TableRow 
                                                     key={equipment.id}
                                                     className="cursor-pointer hover:bg-muted/50"
@@ -120,7 +109,7 @@ export default function Show({ area }: Props) {
                                                             <div className="font-medium">{equipment.tag}</div>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell>{equipment.equipment_type?.name ?? '-'}</TableCell>
+                                                    <TableCell>{equipment.area?.name ?? '-'}</TableCell>
                                                     <TableCell>{equipment.manufacturer ?? '-'}</TableCell>
                                                     <TableCell>{equipment.manufacturing_year ?? '-'}</TableCell>
                                                 </TableRow>
@@ -130,7 +119,7 @@ export default function Show({ area }: Props) {
                                 </div>
                             ) : (
                                 <div className="text-center text-muted-foreground py-6">
-                                    Nenhum equipamento cadastrado nesta área.
+                                    Nenhum equipamento cadastrado deste tipo.
                                 </div>
                             )}
                         </CardContent>
@@ -138,12 +127,12 @@ export default function Show({ area }: Props) {
 
                     <div className="flex items-center gap-4">
                         <Button asChild>
-                            <Link href={route('cadastro.areas.edit', area.id)}>
-                                Editar Área
+                            <Link href={route('cadastro.tipos-equipamento.edit', equipmentType.id)}>
+                                Editar Tipo de Equipamento
                             </Link>
                         </Button>
                         <Button variant="outline" asChild>
-                            <Link href={route('cadastro.areas')}>
+                            <Link href={route('cadastro.tipos-equipamento')}>
                                 <ArrowLeft className="h-4 w-4 mr-2" />
                                 Voltar
                             </Link>

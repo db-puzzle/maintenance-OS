@@ -93,7 +93,7 @@ class AreaController extends Controller
     public function show(Area $area)
     {
         return Inertia::render('cadastro/areas/show', [
-            'area' => $area->load(['plant', 'equipment.machineType'])
+            'area' => $area->load(['plant', 'equipment.equipmentType'])
         ]);
     }
 

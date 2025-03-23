@@ -186,10 +186,10 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('machine_type')}
+                                            onClick={() => handleSort('equipment_type')}
                                         >
                                             Tipo
-                                            <span className="ml-2">{getSortIcon('machine_type')}</span>
+                                            <span className="ml-2">{getSortIcon('equipment_type')}</span>
                                         </Button>
                                     </TableHead>
                                     <TableHead>
@@ -255,14 +255,14 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                         <TableCell>
                                             <div>
                                                 <div className="font-medium">{machine.tag}</div>
-                                                {machine.nickname && (
+                                                {machine.description && (
                                                     <div className="text-sm text-muted-foreground">
-                                                        {machine.nickname}
+                                                        {machine.description}
                                                     </div>
                                                 )}
                                             </div>
                                         </TableCell>
-                                        <TableCell>{machine.machine_type?.name ?? '-'}</TableCell>
+                                        <TableCell>{machine.equipment_type?.name ?? '-'}</TableCell>
                                         <TableCell>{machine.manufacturer ?? '-'}</TableCell>
                                         <TableCell>{machine.manufacturing_year ?? '-'}</TableCell>
                                         <TableCell>{machine.area?.plant?.name ?? '-'}</TableCell>

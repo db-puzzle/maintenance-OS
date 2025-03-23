@@ -3,8 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\EquipmentController;
-use App\Http\Controllers\Cadastro\MachineTypeController;
 use App\Http\Controllers\PlantsController;
+use App\Http\Controllers\Cadastro\EquipmentTypeController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -14,9 +14,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
-    Route::resource('cadastro/tipos-maquina', MachineTypeController::class)
-        ->names('cadastro.tipos-maquina')
-        ->parameters(['tipos-maquina' => 'machineType']);
+    Route::resource('cadastro/tipos-equipamento', EquipmentTypeController::class)
+        ->names('cadastro.tipos-equipamento')
+        ->parameters(['tipos-equipamento' => 'equipmentType']);
     Route::delete('/equipment/{equipment}/photo', [EquipmentController::class, 'removePhoto'])->name('equipamentos.remove-photo');
 });
 

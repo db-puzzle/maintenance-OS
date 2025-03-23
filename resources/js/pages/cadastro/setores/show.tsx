@@ -125,7 +125,7 @@ export default function Show({ sector }: Props) {
                                                             <div className="font-medium">{equipment.tag}</div>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell>{equipment.machine_type?.name ?? '-'}</TableCell>
+                                                    <TableCell>{equipment.equipment_type?.name ?? '-'}</TableCell>
                                                     <TableCell>{equipment.manufacturer ?? '-'}</TableCell>
                                                     <TableCell>{equipment.manufacturing_year ?? '-'}</TableCell>
                                                 </TableRow>

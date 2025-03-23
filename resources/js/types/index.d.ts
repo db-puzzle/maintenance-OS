@@ -45,13 +45,13 @@ export interface Equipment {
     id: number;
     tag: string;
     serial_number: string | null;
-    machine_type_id: number;
+    equipment_type_id: number;
     description: string | null;
     manufacturer: string | null;
     manufacturing_year: number | null;
     area_id: number;
     photo_path: string | null;
-    machine_type: MachineType | null;
+    equipment_type: EquipmentType | null;
     area: Area | null;
     created_at: string;
     updated_at: string;
@@ -60,7 +60,7 @@ export interface Equipment {
 export interface EquipmentForm {
     tag: string;
     serial_number: string;
-    machine_type_id: number | string;
+    equipment_type_id: number | string;
     description: string;
     manufacturer: string;
     manufacturing_year: string;
@@ -70,7 +70,7 @@ export interface EquipmentForm {
     [key: string]: string | number | File | null | undefined;
 }
 
-export interface MachineType {
+export interface EquipmentType {
     id: number;
     name: string;
     description: string | null;

@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PlantSeeder::class,
             AreaSeeder::class,
-            MachineTypeSeeder::class,
+            EquipmentTypeSeeder::class,
             SectorSeeder::class,
             EquipmentSeeder::class,
         ]);

@@ -94,7 +94,7 @@ class SectorController extends Controller
     public function show(Sector $setor)
     {
         return Inertia::render('cadastro/setores/show', [
-            'sector' => $setor->load(['area.plant', 'equipment.machineType'])
+            'sector' => $setor->load(['area.plant', 'equipment.equipmentType'])
         ]);
     }
 

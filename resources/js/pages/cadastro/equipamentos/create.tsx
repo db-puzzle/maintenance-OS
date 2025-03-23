@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type MachineType, type Area, type EquipmentForm, type Sector } from '@/types';
+import { type BreadcrumbItem, type EquipmentType, type Area, type EquipmentForm, type Sector } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import { Check, ChevronsUpDown, Camera, Upload } from 'lucide-react';
@@ -42,33 +42,27 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface Props {
-    machineTypes: MachineType[];
-    plants: {
-        id: number;
-        name: string;
-        areas: (Area & {
-            sectors: Sector[];
-        })[];
-    }[];
+    plants: Plant[];
+    equipmentTypes: EquipmentType[];
 }
 
-export default function CreateEquipment({ machineTypes, plants }: Props) {
+export default function CreateEquipment({ equipmentTypes, plants }: Props) {
     const { data, setData, post, processing, errors } = useForm<EquipmentForm>({
         tag: '',
         serial_number: '',
-        machine_type_id: '',
+        equipment_type_id: '',
         description: '',
         nickname: '',
         manufacturer: '',
         manufacturing_year: '',
         area_id: '',
         sector_id: '',
-        photo: null
+        photo: null as File | null,
     });
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [showCamera, setShowCamera] = useState(false);
-    const [openMachineType, setOpenMachineType] = useState(false);
+    const [openEquipmentType, setOpenEquipmentType] = useState(false);
     const [openArea, setOpenArea] = useState(false);
     const [openPlant, setOpenPlant] = useState(false);
     const [openSector, setOpenSector] = useState(false);
@@ -212,20 +206,20 @@ export default function CreateEquipment({ machineTypes, plants }: Props) {
 
                                 {/* Tipo de Equipamento */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="machine_type_id" className="flex items-center gap-1">
+                                    <Label htmlFor="equipment_type_id" className="flex items-center gap-1">
                                         Tipo de Equipamento
                                         <span className="text-destructive">*</span>
                                     </Label>
-                                    <Popover open={openMachineType} onOpenChange={setOpenMachineType}>
+                                    <Popover open={openEquipmentType} onOpenChange={setOpenEquipmentType}>
                                         <PopoverTrigger asChild>
                                             <Button
                                                 variant="outline"
                                                 role="combobox"
-                                                aria-expanded={openMachineType}
+                                                aria-expanded={openEquipmentType}
                                                 className="w-full justify-between"
                                             >
-                                                {data.machine_type_id
-                                                    ? machineTypes.find((type) => type.id.toString() === data.machine_type_id)?.name
+                                                {data.equipment_type_id
+                                                    ? equipmentTypes.find((type) => type.id.toString() === data.equipment_type_id)?.name
                                                     : "Selecione um tipo de equipamento"}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
@@ -233,33 +227,31 @@ export default function CreateEquipment({ machineTypes, plants }: Props) {
                                         <PopoverContent className="w-full p-0">
                                             <Command>
                                                 <CommandInput placeholder="Buscar tipo de equipamento..." />
-                                                <CommandList>
-                                                    <CommandEmpty>Nenhum tipo encontrado.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {machineTypes.map((type) => (
-                                                            <CommandItem
-                                                                key={type.id}
-                                                                value={type.id.toString()}
-                                                                onSelect={(value) => {
-                                                                    setData('machine_type_id', value);
-                                                                    setOpenMachineType(false);
-                                                                }}
-                                                            >
-                                                                <Check
-                                                                    className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        data.machine_type_id === type.id.toString() ? "opacity-100" : "opacity-0"
-                                                                    )}
-                                                                />
-                                                                {type.name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
+                                                <CommandEmpty>Nenhum tipo de equipamento encontrado.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {equipmentTypes.map((type) => (
+                                                        <CommandItem
+                                                            key={type.id}
+                                                            value={type.name}
+                                                            onSelect={() => {
+                                                                setData('equipment_type_id', type.id.toString());
+                                                                setOpenEquipmentType(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    data.equipment_type_id === type.id.toString() ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {type.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
                                             </Command>
                                         </PopoverContent>
                                     </Popover>
-                                    <InputError message={errors.machine_type_id} />
+                                    <InputError message={errors.equipment_type_id} />
                                 </div>
 
                                 {/* Planta */}

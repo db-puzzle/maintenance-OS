@@ -31,8 +31,8 @@ const sidebarNavItems: NavItem[] = [
 ];
 
 const separatedNavItem: NavItem = {
-    title: 'Tipos de Máquina',
-    href: '/cadastro/tipos-maquina',
+    title: 'Tipos de Equipamento',
+    href: '/cadastro/tipos-equipamento',
     icon: Wrench,
 };
 

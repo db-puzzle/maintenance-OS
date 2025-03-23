@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type Equipment, type MachineType, type Area, type EquipmentForm, type Plant, type Sector } from '@/types';
+import { type BreadcrumbItem, type Equipment, type EquipmentType, type Area, type EquipmentForm, type Plant, type Sector } from '@/types';
 import { Head, useForm, router } from '@inertiajs/react';
 import { FormEvent, useState, useEffect } from 'react';
 
@@ -31,33 +31,24 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 interface Props {
     equipment: Equipment & {
-        machine_type: MachineType;
-        area: Area & {
-            plant: Plant;
-            sectors: Sector[];
-        };
-        photo_url: string | null;
+        equipment_type: EquipmentType;
+        area: Area;
+        sector: Sector;
     };
-    machineTypes: MachineType[];
-    plants: {
-        id: number;
-        name: string;
-        areas: (Area & {
-            sectors: Sector[];
-        })[];
-    }[];
+    equipmentTypes: EquipmentType[];
+    plants: Plant[];
 }
 
-export default function EditEquipment({ equipment, machineTypes, plants }: Props) {
+export default function EditEquipment({ equipment, equipmentTypes, plants }: Props) {
     const { data, setData, put, processing, errors } = useForm<EquipmentForm>({
         tag: equipment.tag,
         serial_number: equipment.serial_number || '',
-        machine_type_id: equipment.machine_type_id.toString(),
+        equipment_type_id: equipment.equipment_type_id.toString(),
         description: equipment.description || '',
         nickname: equipment.nickname || '',
         manufacturer: equipment.manufacturer || '',
         manufacturing_year: equipment.manufacturing_year?.toString() || '',
-        area_id: equipment.area_id.toString(),
+        area_id: equipment.area_id?.toString() || '',
         sector_id: equipment.sector_id?.toString() || '',
         photo: null,
         photo_path: equipment.photo_path
@@ -65,12 +56,12 @@ export default function EditEquipment({ equipment, machineTypes, plants }: Props
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(equipment.photo_path ? `/storage/${equipment.photo_path}` : null);
     const [showCamera, setShowCamera] = useState(false);
-    const [openMachineType, setOpenMachineType] = useState(false);
+    const [openEquipmentType, setOpenEquipmentType] = useState(false);
     const [openArea, setOpenArea] = useState(false);
     const [openPlant, setOpenPlant] = useState(false);
     const [openSector, setOpenSector] = useState(false);
-    const [selectedPlant, setSelectedPlant] = useState<number | null>(equipment.area.plant.id);
-    const [selectedArea, setSelectedArea] = useState<number | null>(equipment.area.id);
+    const [selectedPlant, setSelectedPlant] = useState<number | null>(equipment.area?.plant?.id || null);
+    const [selectedArea, setSelectedArea] = useState<number | null>(equipment.area?.id || null);
 
     const availableAreas = selectedPlant
         ? plants.find(p => p.id === selectedPlant)?.areas || []
@@ -79,6 +70,16 @@ export default function EditEquipment({ equipment, machineTypes, plants }: Props
     const availableSectors = selectedArea
         ? availableAreas.find(a => a.id === selectedArea)?.sectors || []
         : [];
+
+    useEffect(() => {
+        // Inicializa os valores quando o componente montar
+        if (equipment.area?.plant?.id) {
+            setSelectedPlant(equipment.area.plant.id);
+        }
+        if (equipment.area?.id) {
+            setSelectedArea(equipment.area.id);
+        }
+    }, [equipment]);
 
     const handleRemovePhoto = () => {
         router.delete(route('equipamentos.remove-photo', equipment.id), {
@@ -111,12 +112,12 @@ export default function EditEquipment({ equipment, machineTypes, plants }: Props
         formData.append('_method', 'PUT');
         formData.append('tag', data.tag);
         formData.append('serial_number', data.serial_number);
-        formData.append('machine_type_id', data.machine_type_id.toString());
+        formData.append('equipment_type_id', data.equipment_type_id.toString());
         formData.append('description', data.description);
         formData.append('nickname', data.nickname);
         formData.append('manufacturer', data.manufacturer);
         formData.append('manufacturing_year', data.manufacturing_year);
-        formData.append('area_id', data.area_id.toString());
+        formData.append('area_id', data.area_id || '');
         formData.append('sector_id', data.sector_id || '');
         
         if (data.photo) {
@@ -232,27 +233,52 @@ export default function EditEquipment({ equipment, machineTypes, plants }: Props
 
                                 {/* Tipo de Equipamento */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="machine_type_id" className="flex items-center gap-1">
+                                    <Label htmlFor="equipment_type_id" className="flex items-center gap-1">
                                         Tipo de Equipamento
                                         <span className="text-destructive">*</span>
                                     </Label>
-                                    <Select
-                                        value={String(data.machine_type_id)}
-                                        onValueChange={(value) => setData('machine_type_id', value)}
-                                        required
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione um tipo de equipamento" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {machineTypes.map((type) => (
-                                                <SelectItem key={type.id} value={type.id.toString()}>
-                                                    {type.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError message={errors.machine_type_id} />
+                                    <Popover open={openEquipmentType} onOpenChange={setOpenEquipmentType}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openEquipmentType}
+                                                className="w-full justify-between"
+                                            >
+                                                {data.equipment_type_id
+                                                    ? equipmentTypes.find((type) => type.id.toString() === data.equipment_type_id)?.name
+                                                    : "Selecione um tipo de equipamento"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Buscar tipo de equipamento..." />
+                                                <CommandEmpty>Nenhum tipo de equipamento encontrado.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {equipmentTypes.map((type) => (
+                                                        <CommandItem
+                                                            key={type.id}
+                                                            value={type.name}
+                                                            onSelect={() => {
+                                                                setData('equipment_type_id', type.id.toString());
+                                                                setOpenEquipmentType(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    data.equipment_type_id === type.id.toString() ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {type.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <InputError message={errors.equipment_type_id} />
                                 </div>
 
                                 {/* Planta */}

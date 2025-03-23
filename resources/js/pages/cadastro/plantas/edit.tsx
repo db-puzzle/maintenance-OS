@@ -1,5 +1,5 @@
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
 import HeadingSmall from '@/components/heading-small';
@@ -242,9 +242,11 @@ export default function EditPlant({ plant }: Props) {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <Button variant="outline" onClick={() => window.history.back()}>
-                                Cancelar
-                            </Button>
+                            <Link href={route('cadastro.plantas')}>
+                                <Button variant="outline">
+                                    Cancelar
+                                </Button>
+                            </Link>
                             <Button type="submit" disabled={processing}>
                                 {processing ? 'Salvando...' : 'Salvar'}
                             </Button>

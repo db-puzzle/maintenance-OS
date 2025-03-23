@@ -31,12 +31,12 @@ interface PageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Tipos de Máquina',
-        href: '/cadastro/tipos-maquina',
+        title: 'Tipos de Equipamento',
+        href: '/cadastro/tipos-equipamento',
     },
 ];
 
-interface MachineType {
+interface EquipmentType {
     id: number;
     name: string;
     description: string | null;
@@ -44,25 +44,21 @@ interface MachineType {
     updated_at: string;
 }
 
-interface Machine {
+interface Equipment {
     id: number;
     tag: string;
-    name: string;
+    description: string | null;
 }
 
 interface Dependencies {
-    can_delete: boolean;
-    dependencies: {
-        machines: {
-            total: number;
-            items: Machine[];
-        };
-    };
+    hasDependencies: boolean;
+    equipment: Equipment[];
+    totalEquipment: number;
 }
 
 interface Props {
-    machineTypes: {
-        data: MachineType[];
+    equipmentTypes: {
+        data: EquipmentType[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -75,9 +71,9 @@ interface Props {
     };
 }
 
-export default function TiposMaquina({ machineTypes, filters }: Props) {
+export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
-    const [selectedMachineType, setSelectedMachineType] = useState<MachineType | null>(null);
+    const [selectedEquipmentType, setSelectedEquipmentType] = useState<EquipmentType | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
     const [search, setSearch] = useState(filters.search || '');
     const [dependencies, setDependencies] = useState<Dependencies | null>(null);
@@ -97,10 +93,10 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
     useEffect(() => {
         const searchTimeout = setTimeout(() => {
             router.get(
-                route('cadastro.tipos-maquina'),
+                route('cadastro.tipos-equipamento'),
                 { 
                     search,
-                    page: machineTypes.current_page
+                    page: equipmentTypes.current_page
                 },
                 { preserveState: true, preserveScroll: true }
             );
@@ -109,44 +105,44 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
         return () => clearTimeout(searchTimeout);
     }, [search]);
 
-    const handleDelete = (machineType: MachineType) => {
+    const handleDelete = (equipmentType: EquipmentType) => {
         setIsDeleting(true);
-        router.delete(route('cadastro.tipos-maquina.destroy', machineType.id), {
-            onFinish: () => {
+        router.delete(route('cadastro.tipos-equipamento.destroy', equipmentType.id), {
+            onSuccess: () => {
                 setIsDeleting(false);
-                setSelectedMachineType(null);
+                setSelectedEquipmentType(null);
                 setConfirmationText('');
                 setShowDeleteDialog(false);
             },
             onError: (errors) => {
                 setIsDeleting(false);
-                setSelectedMachineType(null);
+                setSelectedEquipmentType(null);
                 setConfirmationText('');
                 setShowDeleteDialog(false);
-                toast.error("Erro ao excluir tipo de máquina", {
-                    description: errors.message || 'Não foi possível excluir o tipo de máquina.',
+                toast.error("Erro ao excluir tipo de equipamento", {
+                    description: errors.message || 'Não foi possível excluir o tipo de equipamento.',
                 });
             },
         });
     };
 
-    const checkDependencies = async (machineType: MachineType) => {
+    const checkDependencies = async (equipmentType: EquipmentType) => {
         setIsCheckingDependencies(true);
-        setSelectedMachineType(machineType);
+        setSelectedEquipmentType(equipmentType);
         
         try {
-            const response = await fetch(route('cadastro.tipos-maquina.check-dependencies', machineType.id));
+            const response = await fetch(route('cadastro.tipos-equipamento.check-dependencies', equipmentType.id));
             const data = await response.json();
             setDependencies(data);
             
-            if (data.can_delete) {
+            if (!data.hasDependencies) {
                 setShowDeleteDialog(true);
             } else {
                 setShowDependenciesDialog(true);
             }
         } catch (error) {
             toast.error("Erro ao verificar dependências", {
-                description: "Não foi possível verificar as dependências do tipo de máquina.",
+                description: "Não foi possível verificar as dependências do tipo de equipamento.",
             });
         } finally {
             setIsCheckingDependencies(false);
@@ -159,12 +155,12 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
         const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
         
         router.get(
-            route('cadastro.tipos-maquina'),
+            route('cadastro.tipos-equipamento'),
             { 
                 search,
                 sort: column,
                 direction,
-                page: machineTypes.current_page
+                page: equipmentTypes.current_page
             },
             { preserveState: true }
         );
@@ -181,14 +177,14 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Tipos de Máquina" />
+            <Head title="Tipos de Equipamento" />
 
             <CadastroLayout>
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
                         <HeadingSmall 
-                            title="Tipos de Máquina" 
-                            description="Gerencie os tipos de máquina do sistema" 
+                            title="Tipos de Equipamento" 
+                            description="Gerencie os tipos de equipamento do sistema" 
                         />
                     </div>
 
@@ -196,15 +192,15 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
                         <div className="flex-1">
                             <Input
                                 type="search"
-                                placeholder="Buscar tipos de máquina..."
+                                placeholder="Buscar tipos de equipamento..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="max-w-sm"
                             />
                         </div>
                         <Button asChild>
-                            <Link href={route('cadastro.tipos-maquina.create')}>
-                                Novo Tipo de Máquina
+                            <Link href={route('cadastro.tipos-equipamento.create')}>
+                                Novo Tipo de Equipamento
                             </Link>
                         </Button>
                     </div>
@@ -237,14 +233,23 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {machineTypes.data.map((machineType) => (
-                                    <TableRow key={machineType.id}>
-                                        <TableCell>{machineType.name}</TableCell>
-                                        <TableCell>{machineType.description || '-'}</TableCell>
+                                {equipmentTypes.data.map((equipmentType) => (
+                                    <TableRow 
+                                        key={equipmentType.id}
+                                        className="cursor-pointer hover:bg-muted/50"
+                                        onClick={() => router.get(route('cadastro.tipos-equipamento.show', equipmentType.id))}
+                                    >
+                                        <TableCell>{equipmentType.name}</TableCell>
+                                        <TableCell>{equipmentType.description || '-'}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
-                                                <Button variant="ghost" size="icon" asChild>
-                                                    <Link href={route('cadastro.tipos-maquina.edit', machineType.id)}>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    asChild
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <Link href={route('cadastro.tipos-equipamento.edit', equipmentType.id)}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
@@ -253,7 +258,10 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
                                                         <Button 
                                                             variant="ghost" 
                                                             size="icon"
-                                                            onClick={() => checkDependencies(machineType)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                checkDependencies(equipmentType);
+                                                            }}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
@@ -272,22 +280,22 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
                             <PaginationContent>
                                 <PaginationItem>
                                     <PaginationPrevious 
-                                        href={route('cadastro.tipos-maquina', { 
-                                            page: machineTypes.current_page - 1,
+                                        href={route('cadastro.tipos-equipamento', { 
+                                            page: equipmentTypes.current_page - 1,
                                             search: search 
                                         })}
-                                        className={machineTypes.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                        className={equipmentTypes.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
                                 
-                                {Array.from({ length: machineTypes.last_page }, (_, i) => i + 1).map((page) => (
+                                {Array.from({ length: equipmentTypes.last_page }, (_, i) => i + 1).map((page) => (
                                     <PaginationItem key={page}>
                                         <PaginationLink 
-                                            href={route('cadastro.tipos-maquina', { 
+                                            href={route('cadastro.tipos-equipamento', { 
                                                 page,
                                                 search: search
                                             })}
-                                            isActive={page === machineTypes.current_page}
+                                            isActive={page === equipmentTypes.current_page}
                                         >
                                             {page}
                                         </PaginationLink>
@@ -296,11 +304,11 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
 
                                 <PaginationItem>
                                     <PaginationNext 
-                                        href={route('cadastro.tipos-maquina', { 
-                                            page: machineTypes.current_page + 1,
+                                        href={route('cadastro.tipos-equipamento', { 
+                                            page: equipmentTypes.current_page + 1,
                                             search: search 
                                         })}
-                                        className={machineTypes.current_page === machineTypes.last_page ? 'pointer-events-none opacity-50' : ''}
+                                        className={equipmentTypes.current_page === equipmentTypes.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />
                                 </PaginationItem>
                             </PaginationContent>
@@ -312,34 +320,34 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
             {/* Diálogo de Dependências */}
             <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
                 <DialogContent className="sm:max-w-[600px]">
-                    <DialogTitle>Não é possível excluir este tipo de máquina</DialogTitle>
+                    <DialogTitle>Não é possível excluir este tipo de equipamento</DialogTitle>
                     <DialogDescription asChild>
                         <div className="space-y-6">
                             <div className="text-sm">
-                                Este tipo de máquina possui máquinas vinculadas e não pode ser excluído até que todas 
-                                as máquinas sejam removidas ou alteradas para outro tipo.
+                                Este tipo de equipamento possui equipamentos vinculados e não pode ser excluído até que todos 
+                                os equipamentos sejam removidos ou alterados para outro tipo.
                             </div>
                             
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <div className="font-medium text-sm">
-                                        Total de Máquinas Vinculadas: {dependencies?.dependencies.machines?.total}
+                                        Total de Equipamentos Vinculados: {dependencies?.totalEquipment}
                                     </div>
                                     <div className="text-sm text-muted-foreground italic">
-                                        Clique no código da máquina para detalhes
+                                        Clique no código do equipamento para detalhes
                                     </div>
                                 </div>
 
-                                {dependencies?.dependencies.machines?.items && dependencies.dependencies.machines.items.length > 0 && (
+                                {dependencies?.equipment && dependencies.equipment.length > 0 && (
                                     <div className="space-y-3">
                                         <ul className="list-disc list-inside space-y-2 text-sm">
-                                            {dependencies.dependencies.machines.items.map(machine => (
-                                                <li key={machine.id}>
+                                            {dependencies.equipment.map(equipment => (
+                                                <li key={equipment.id}>
                                                     <Link
-                                                        href={route('cadastro.maquinas.show', machine.id)}
+                                                        href={route('cadastro.equipamentos.show', equipment.id)}
                                                         className="text-primary hover:underline inline-flex items-center gap-1"
                                                     >
-                                                        {machine.tag}
+                                                        {equipment.tag}
                                                         <ExternalLink className="h-3 w-3" />
                                                     </Link>
                                                 </li>
@@ -364,9 +372,9 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
             {/* Diálogo de Confirmação de Exclusão */}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>
-                    <DialogTitle>Você tem certeza que deseja excluir este tipo de máquina?</DialogTitle>
+                    <DialogTitle>Você tem certeza que deseja excluir este tipo de equipamento?</DialogTitle>
                     <DialogDescription>
-                        Uma vez que o tipo de máquina for excluído, todos os seus recursos e dados serão permanentemente excluídos. 
+                        Uma vez que o tipo de equipamento for excluído, todos os seus recursos e dados serão permanentemente excluídos. 
                         Esta ação não pode ser desfeita.
                     </DialogDescription>
                     <div className="grid gap-2 py-4">
@@ -395,9 +403,9 @@ export default function TiposMaquina({ machineTypes, filters }: Props) {
                         <Button 
                             variant="destructive" 
                             disabled={isDeleting || !isConfirmationValid}
-                            onClick={() => selectedMachineType && handleDelete(selectedMachineType)}
+                            onClick={() => selectedEquipmentType && handleDelete(selectedEquipmentType)}
                         >
-                            {isDeleting ? 'Excluindo...' : 'Excluir tipo de máquina'}
+                            {isDeleting ? 'Excluindo...' : 'Excluir tipo de equipamento'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

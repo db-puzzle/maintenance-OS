@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('tag');
             $table->string('serial_number')->nullable();
-            $table->foreignId('machine_type_id')->constrained()->onDelete('restrict');
+            $table->foreignId('equipment_type_id')->constrained()->onDelete('restrict');
             $table->text('description')->nullable();
             $table->string('manufacturer')->nullable();
             $table->integer('manufacturing_year')->nullable();

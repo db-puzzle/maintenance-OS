@@ -4,9 +4,9 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\PlantsController;
 use App\Http\Controllers\AreaController;
-use App\Http\Controllers\Cadastro\MachineTypeController;
 use App\Http\Controllers\Cadastro\SectorController;
 use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\Cadastro\EquipmentTypeController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cadastro/equipamentos', [EquipmentController::class, 'index'])->name('cadastro.equipamentos');
@@ -43,11 +43,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('cadastro/plantas/{plant}', [PlantsController::class, 'destroy'])->name('cadastro.plantas.destroy');
     Route::get('cadastro/plantas/{plant}/check-dependencies', [PlantsController::class, 'checkDependencies'])->name('cadastro.plantas.check-dependencies');
 
-    Route::get('cadastro/tipos-maquina', [MachineTypeController::class, 'index'])->name('cadastro.tipos-maquina');
-    Route::get('cadastro/tipos-maquina/create', [MachineTypeController::class, 'create'])->name('cadastro.tipos-maquina.create');
-    Route::post('cadastro/tipos-maquina', [MachineTypeController::class, 'store'])->name('cadastro.tipos-maquina.store');
-    Route::get('cadastro/tipos-maquina/{machineType}/edit', [MachineTypeController::class, 'edit'])->name('cadastro.tipos-maquina.edit');
-    Route::put('cadastro/tipos-maquina/{machineType}', [MachineTypeController::class, 'update'])->name('cadastro.tipos-maquina.update');
-    Route::delete('cadastro/tipos-maquina/{machineType}', [MachineTypeController::class, 'destroy'])->name('cadastro.tipos-maquina.destroy');
-    Route::get('cadastro/tipos-maquina/{machineType}/check-dependencies', [MachineTypeController::class, 'checkDependencies'])->name('cadastro.tipos-maquina.check-dependencies');
+    Route::get('cadastro/tipos-equipamento', [EquipmentTypeController::class, 'index'])->name('cadastro.tipos-equipamento');
+    Route::get('cadastro/tipos-equipamento/create', [EquipmentTypeController::class, 'create'])->name('cadastro.tipos-equipamento.create');
+    Route::post('cadastro/tipos-equipamento', [EquipmentTypeController::class, 'store'])->name('cadastro.tipos-equipamento.store');
+    Route::get('cadastro/tipos-equipamento/{equipmentType}', [EquipmentTypeController::class, 'show'])->name('cadastro.tipos-equipamento.show');
+    Route::get('cadastro/tipos-equipamento/{equipmentType}/edit', [EquipmentTypeController::class, 'edit'])->name('cadastro.tipos-equipamento.edit');
+    Route::put('cadastro/tipos-equipamento/{equipmentType}', [EquipmentTypeController::class, 'update'])->name('cadastro.tipos-equipamento.update');
+    Route::delete('cadastro/tipos-equipamento/{equipmentType}', [EquipmentTypeController::class, 'destroy'])->name('cadastro.tipos-equipamento.destroy');
+    Route::get('cadastro/tipos-equipamento/{equipmentType}/check-dependencies', [EquipmentTypeController::class, 'checkDependencies'])->name('cadastro.tipos-equipamento.check-dependencies');
 }); 

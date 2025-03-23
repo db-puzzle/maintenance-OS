@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type Equipment, type MachineType, type Area, type Plant, type Sector } from '@/types';
+import { type BreadcrumbItem, type Equipment, type EquipmentType, type Area, type Plant, type Sector } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Camera } from 'lucide-react';
 
@@ -12,11 +12,9 @@ import HeadingSmall from '@/components/heading-small';
 
 interface Props {
     equipment: Equipment & {
-        machine_type: MachineType;
-        area: Area & {
-            plant: Plant;
-            sector?: Sector;
-        };
+        equipment_type: EquipmentType;
+        area: Area;
+        sector: Sector;
     };
 }
 
@@ -79,7 +77,7 @@ export default function Show({ equipment }: Props) {
 
                                     <div className="grid gap-2">
                                         <Label>Tipo</Label>
-                                        <div className="text-base text-muted-foreground">{equipment.machine_type?.name ?? '-'}</div>
+                                        <div className="text-base text-muted-foreground">{equipment.equipment_type?.name ?? '-'}</div>
                                     </div>
 
                                     <div className="grid gap-2">

@@ -1,35 +1,39 @@
-export interface MachineType {
-    id: number;
-    name: string;
-}
-
 export interface Area {
     id: number;
     name: string;
+    plant_id: number;
     plant?: Plant;
-    sectors?: Sector[];
+    sectors: Sector[];
+}
+
+export interface EquipmentType {
+    id: number;
+    name: string;
+    description: string | null;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface Equipment {
     id: number;
     tag: string;
-    serial_number?: string;
-    machine_type_id: number;
     description?: string;
+    serial_number?: string;
     manufacturer?: string;
     manufacturing_year?: number;
+    photo_path?: string;
+    equipment_type_id: number;
     area_id: number;
     sector_id?: number;
-    photo_path?: string;
-    machine_type?: MachineType;
-    area?: Area;
+    equipment_type?: EquipmentType;
+    area?: Area & { plant: Plant };
     sector?: Sector;
 }
 
 export interface EquipmentForm {
     tag: string;
     serial_number: string;
-    machine_type_id: string;
+    equipment_type_id: string;
     description: string;
     manufacturer: string;
     manufacturing_year: string;
@@ -42,12 +46,7 @@ export interface EquipmentForm {
 export interface Sector {
     id: number;
     name: string;
-    description: string | null;
     area_id: number;
-    area: Area & {
-        plant: Plant;
-    };
-    equipment_count?: number;
 }
 
 export interface SectorForm {
@@ -60,7 +59,7 @@ export interface SectorForm {
 export interface Plant {
     id: number;
     name: string;
-    description?: string;
+    areas: Area[];
 }
 
 export interface BreadcrumbItem {

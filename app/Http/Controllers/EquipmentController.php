@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Area;
 use App\Models\Equipment;
-use App\Models\MachineType;
+use App\Models\EquipmentType;
 use App\Models\Plant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,7 +19,7 @@ class EquipmentController extends Controller
         $direction = $request->input('direction', 'asc');
 
         $query = Equipment::query()
-            ->with(['machineType:id,name', 'area.plant:id,name', 'sector:id,name']);
+            ->with(['equipmentType:id,name', 'area.plant:id,name', 'sector:id,name']);
 
         if ($search) {
             $search = strtolower($search);
@@ -35,9 +35,9 @@ class EquipmentController extends Controller
             });
         }
 
-        if ($sort === 'machine_type') {
-            $query->join('machine_types', 'equipment.machine_type_id', '=', 'machine_types.id')
-                ->orderBy('machine_types.name', $direction)
+        if ($sort === 'equipment_type') {
+            $query->join('equipment_types', 'equipment.equipment_type_id', '=', 'equipment_types.id')
+                ->orderBy('equipment_types.name', $direction)
                 ->select('equipment.*');
         } else if ($sort === 'sector') {
             $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
@@ -71,24 +71,8 @@ class EquipmentController extends Controller
     public function create()
     {
         return Inertia::render('cadastro/equipamentos/create', [
-            'machineTypes' => MachineType::all(),
-            'plants' => Plant::with(['areas' => function($query) {
-                $query->select('id', 'name', 'plant_id');
-            }, 'areas.sectors' => function($query) {
-                $query->select('id', 'name', 'area_id');
-            }])->get()->map(function ($plant) {
-                return [
-                    'id' => $plant->id,
-                    'name' => $plant->name,
-                    'areas' => $plant->areas->map(function ($area) {
-                        return [
-                            'id' => $area->id,
-                            'name' => $area->name,
-                            'sectors' => $area->sectors
-                        ];
-                    })
-                ];
-            })
+            'equipmentTypes' => EquipmentType::all(),
+            'plants' => Plant::with('areas.sectors')->get(),
         ]);
     }
 
@@ -97,7 +81,7 @@ class EquipmentController extends Controller
         $validated = $request->validate([
             'tag' => 'required|string|max:255',
             'serial_number' => 'nullable|string|max:255',
-            'machine_type_id' => 'required|exists:machine_types,id',
+            'equipment_type_id' => 'required|exists:equipment_types,id',
             'description' => 'nullable|string',
             'manufacturer' => 'nullable|string|max:255',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
@@ -120,32 +104,16 @@ class EquipmentController extends Controller
     public function edit(Equipment $equipment)
     {
         return Inertia::render('cadastro/equipamentos/edit', [
-            'equipment' => $equipment->load(['machineType', 'area.plant', 'sector']),
-            'machineTypes' => MachineType::all(),
-            'plants' => Plant::with(['areas' => function($query) {
-                $query->select('id', 'name', 'plant_id');
-            }, 'areas.sectors' => function($query) {
-                $query->select('id', 'name', 'area_id');
-            }])->get()->map(function ($plant) {
-                return [
-                    'id' => $plant->id,
-                    'name' => $plant->name,
-                    'areas' => $plant->areas->map(function ($area) {
-                        return [
-                            'id' => $area->id,
-                            'name' => $area->name,
-                            'sectors' => $area->sectors
-                        ];
-                    })
-                ];
-            })
+            'equipment' => $equipment->load(['equipmentType', 'area.plant', 'sector']),
+            'equipmentTypes' => EquipmentType::all(),
+            'plants' => Plant::with('areas.sectors')->get(),
         ]);
     }
 
     public function show(Equipment $equipment)
     {
         return Inertia::render('cadastro/equipamentos/show', [
-            'equipment' => $equipment->load(['machineType', 'area.plant', 'sector']),
+            'equipment' => $equipment->load(['equipmentType', 'area.plant', 'sector']),
         ]);
     }
 
@@ -154,7 +122,7 @@ class EquipmentController extends Controller
         $validated = $request->validate([
             'tag' => 'required|string|max:255',
             'serial_number' => 'nullable|string|max:255',
-            'machine_type_id' => 'required|exists:machine_types,id',
+            'equipment_type_id' => 'required|exists:equipment_types,id',
             'description' => 'nullable|string',
             'manufacturer' => 'nullable|string|max:255',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
