@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/popover";
 import { estados } from '@/data/estados';
 import { useState } from 'react';
+import { toast } from "sonner";
 
 interface Plant {
     id: number;
@@ -62,7 +63,7 @@ interface PlantForm {
 }
 
 export default function EditPlant({ plant }: Props) {
-    const { data, setData, post, processing, errors } = useForm<PlantForm>({
+    const { data, setData, put, processing, errors, reset } = useForm<PlantForm>({
         name: plant.name,
         street: plant.street || '',
         number: plant.number || '',
@@ -94,7 +95,13 @@ export default function EditPlant({ plant }: Props) {
             ...data,
             zip_code: data.zip_code.replace(/\D/g, '')
         };
-        post(route('cadastro.plantas.update', plant.id), formData);
+        put(route('cadastro.plantas.update', plant.id), formData, {
+            onError: (errors) => {
+                toast.error("Erro ao atualizar planta", {
+                    description: "Verifique os campos e tente novamente."
+                });
+            }
+        });
     };
 
     return (
@@ -242,14 +249,14 @@ export default function EditPlant({ plant }: Props) {
                         </div>
 
                         <div className="flex items-center gap-4">
+                            <Button type="submit" disabled={processing}>
+                                {processing ? 'Salvando...' : 'Salvar'}
+                            </Button>
                             <Link href={route('cadastro.plantas')}>
                                 <Button variant="outline">
                                     Cancelar
                                 </Button>
                             </Link>
-                            <Button type="submit" disabled={processing}>
-                                {processing ? 'Salvando...' : 'Salvar'}
-                            </Button>
                         </div>
                     </form>
                 </div>

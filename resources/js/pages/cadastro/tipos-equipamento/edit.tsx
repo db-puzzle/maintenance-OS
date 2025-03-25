@@ -1,5 +1,5 @@
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,13 @@ export default function Edit({ equipmentType }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(route('cadastro.tipos-equipamento.update', equipmentType.id));
+        put(route('cadastro.tipos-equipamento.update', equipmentType.id), {
+            onError: (errors) => {
+                toast.error("Erro ao atualizar tipo de equipamento", {
+                    description: "Verifique os campos e tente novamente."
+                });
+            }
+        });
     };
 
     return (
@@ -99,14 +105,14 @@ export default function Edit({ equipmentType }: Props) {
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-4">
+                        <div className="flex justify-start gap-4">
+                            <Button type="submit" disabled={processing}>
+                                {processing ? 'Salvando...' : 'Salvar'}
+                            </Button>
                             <Button variant="outline" asChild>
                                 <Link href={route('cadastro.tipos-equipamento')}>
                                     Cancelar
                                 </Link>
-                            </Button>
-                            <Button type="submit" disabled={processing}>
-                                {processing ? 'Salvando...' : 'Salvar Alterações'}
                             </Button>
                         </div>
                     </form>

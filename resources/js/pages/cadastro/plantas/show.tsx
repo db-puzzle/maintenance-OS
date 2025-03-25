@@ -1,6 +1,6 @@
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Building2, Map, Cog, Factory, Pencil } from 'lucide-react';
+import { ArrowLeft, Building2, Map, Cog, Factory, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +36,8 @@ interface Area {
     id: number;
     name: string;
     plant_id: number;
+    equipment_count: number;
+    sectors_count: number;
 }
 
 interface Props {
@@ -84,6 +86,20 @@ interface Props {
     totalSectors: number;
     totalEquipment: number;
     activeTab: string;
+    filters: {
+        areas: {
+            sort: string;
+            direction: string;
+        };
+        sectors: {
+            sort: string;
+            direction: string;
+        };
+        equipment: {
+            sort: string;
+            direction: string;
+        };
+    };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -97,7 +113,32 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function ShowPlant({ plant, areas, sectors, equipment, totalSectors, totalEquipment, activeTab }: Props) {
+export default function ShowPlant({ plant, areas, sectors, equipment, totalSectors, totalEquipment, activeTab, filters }: Props) {
+    const handleSort = (section: 'areas' | 'sectors' | 'equipment', column: string) => {
+        const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
+        
+        router.get(
+            route('cadastro.plantas.show', { 
+                plant: plant.id,
+                tab: activeTab,
+                [`${section}_sort`]: column,
+                [`${section}_direction`]: direction,
+                [`${section}_page`]: 1
+            }),
+            {},
+            { preserveState: true }
+        );
+    };
+
+    const getSortIcon = (section: 'areas' | 'sectors' | 'equipment', column: string) => {
+        if (filters[section].sort !== column) {
+            return <ArrowUpDown className="h-4 w-4" />;
+        }
+        return filters[section].direction === 'asc' ? 
+            <ArrowUp className="h-4 w-4" /> : 
+            <ArrowDown className="h-4 w-4" />;
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Planta ${plant.name}`} />
@@ -219,34 +260,49 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                 </CardHeader>
                                 <CardContent>
                                     {areas.data.length > 0 ? (
-                                        <div className="rounded-md border">
+                                        <div className="rounded-md">
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>Nome</TableHead>
-                                                        <TableHead className="w-[100px]">Ações</TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer h-12"
+                                                            onClick={() => handleSort('areas', 'name')}
+                                                        >
+                                                            <div className="flex items-center gap-1">
+                                                                Nome
+                                                                {getSortIcon('areas', 'name')}
+                                                            </div>
+                                                        </TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer text-center h-12"
+                                                            onClick={() => handleSort('areas', 'equipment_count')}
+                                                        >
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                Equipamentos
+                                                                {getSortIcon('areas', 'equipment_count')}
+                                                            </div>
+                                                        </TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer text-center h-12"
+                                                            onClick={() => handleSort('areas', 'sectors_count')}
+                                                        >
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                Setores
+                                                                {getSortIcon('areas', 'sectors_count')}
+                                                            </div>
+                                                        </TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
                                                     {areas.data.map((area) => (
                                                         <TableRow 
                                                             key={area.id}
-                                                            className="cursor-pointer hover:bg-muted/50"
+                                                            className="cursor-pointer hover:bg-muted/50 h-12"
                                                             onClick={() => router.get(route('cadastro.areas.show', area.id))}
                                                         >
-                                                            <TableCell>{area.name}</TableCell>
-                                                            <TableCell>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
-                                                                    asChild
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                >
-                                                                    <Link href={route('cadastro.areas.edit', area.id)}>
-                                                                        <Pencil className="h-4 w-4" />
-                                                                    </Link>
-                                                                </Button>
-                                                            </TableCell>
+                                                            <TableCell className="font-medium">{area.name}</TableCell>
+                                                            <TableCell className="text-center">{area.equipment_count}</TableCell>
+                                                            <TableCell className="text-center">{area.sectors_count}</TableCell>
                                                         </TableRow>
                                                     ))}
                                                 </TableBody>
@@ -265,7 +321,9 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                                         href={route('cadastro.plantas.show', { 
                                                             plant: plant.id,
                                                             areas_page: areas.current_page - 1,
-                                                            tab: 'areas'
+                                                            tab: 'areas',
+                                                            areas_sort: filters.areas.sort,
+                                                            areas_direction: filters.areas.direction
                                                         })}
                                                         className={areas.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                                     />
@@ -277,7 +335,9 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                                             href={route('cadastro.plantas.show', { 
                                                                 plant: plant.id,
                                                                 areas_page: page,
-                                                                tab: 'areas'
+                                                                tab: 'areas',
+                                                                areas_sort: filters.areas.sort,
+                                                                areas_direction: filters.areas.direction
                                                             })}
                                                             isActive={page === areas.current_page}
                                                         >
@@ -291,7 +351,9 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                                         href={route('cadastro.plantas.show', { 
                                                             plant: plant.id,
                                                             areas_page: areas.current_page + 1,
-                                                            tab: 'areas'
+                                                            tab: 'areas',
+                                                            areas_sort: filters.areas.sort,
+                                                            areas_direction: filters.areas.direction
                                                         })}
                                                         className={areas.current_page === areas.last_page ? 'pointer-events-none opacity-50' : ''}
                                                     />
@@ -311,14 +373,37 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                 </CardHeader>
                                 <CardContent>
                                     {sectors.data.length > 0 ? (
-                                        <div className="rounded-md border">
+                                        <div className="rounded-md">
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>Nome</TableHead>
-                                                        <TableHead>Área</TableHead>
-                                                        <TableHead className="text-center">Equipamentos</TableHead>
-                                                        <TableHead className="w-[100px]">Ações</TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer"
+                                                            onClick={() => handleSort('sectors', 'name')}
+                                                        >
+                                                            <div className="flex items-center gap-1">
+                                                                Nome
+                                                                {getSortIcon('sectors', 'name')}
+                                                            </div>
+                                                        </TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer"
+                                                            onClick={() => handleSort('sectors', 'area')}
+                                                        >
+                                                            <div className="flex items-center gap-1">
+                                                                Área
+                                                                {getSortIcon('sectors', 'area')}
+                                                            </div>
+                                                        </TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer text-center"
+                                                            onClick={() => handleSort('sectors', 'equipment_count')}
+                                                        >
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                Equipamentos
+                                                                {getSortIcon('sectors', 'equipment_count')}
+                                                            </div>
+                                                        </TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
@@ -340,18 +425,6 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                                             <TableCell className="text-center">
                                                                 {sector.equipment_count}
                                                             </TableCell>
-                                                            <TableCell>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
-                                                                    asChild
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                >
-                                                                    <Link href={route('cadastro.setores.edit', sector.id)}>
-                                                                        <Pencil className="h-4 w-4" />
-                                                                    </Link>
-                                                                </Button>
-                                                            </TableCell>
                                                         </TableRow>
                                                     ))}
                                                 </TableBody>
@@ -370,7 +443,9 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                                         href={route('cadastro.plantas.show', { 
                                                             plant: plant.id,
                                                             sectors_page: sectors.current_page - 1,
-                                                            tab: 'setores'
+                                                            tab: 'setores',
+                                                            sectors_sort: filters.sectors.sort,
+                                                            sectors_direction: filters.sectors.direction
                                                         })}
                                                         className={sectors.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                                     />
@@ -382,7 +457,9 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                                             href={route('cadastro.plantas.show', { 
                                                                 plant: plant.id,
                                                                 sectors_page: page,
-                                                                tab: 'setores'
+                                                                tab: 'setores',
+                                                                sectors_sort: filters.sectors.sort,
+                                                                sectors_direction: filters.sectors.direction
                                                             })}
                                                             isActive={page === sectors.current_page}
                                                         >
@@ -396,7 +473,9 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                                         href={route('cadastro.plantas.show', { 
                                                             plant: plant.id,
                                                             sectors_page: sectors.current_page + 1,
-                                                            tab: 'setores'
+                                                            tab: 'setores',
+                                                            sectors_sort: filters.sectors.sort,
+                                                            sectors_direction: filters.sectors.direction
                                                         })}
                                                         className={sectors.current_page === sectors.last_page ? 'pointer-events-none opacity-50' : ''}
                                                     />
@@ -416,22 +495,62 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                 </CardHeader>
                                 <CardContent>
                                     {equipment.data.length > 0 ? (
-                                        <div className="rounded-md border">
+                                        <div className="rounded-md">
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>TAG</TableHead>
-                                                        <TableHead>Tipo</TableHead>
-                                                        <TableHead>Localização</TableHead>
-                                                        <TableHead>Fabricante</TableHead>
-                                                        <TableHead>Ano</TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer h-12"
+                                                            onClick={() => handleSort('equipment', 'tag')}
+                                                        >
+                                                            <div className="flex items-center gap-1">
+                                                                TAG
+                                                                {getSortIcon('equipment', 'tag')}
+                                                            </div>
+                                                        </TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer h-12"
+                                                            onClick={() => handleSort('equipment', 'type')}
+                                                        >
+                                                            <div className="flex items-center gap-1">
+                                                                Tipo
+                                                                {getSortIcon('equipment', 'type')}
+                                                            </div>
+                                                        </TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer h-12"
+                                                            onClick={() => handleSort('equipment', 'location')}
+                                                        >
+                                                            <div className="flex items-center gap-1">
+                                                                Localização
+                                                                {getSortIcon('equipment', 'location')}
+                                                            </div>
+                                                        </TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer h-12"
+                                                            onClick={() => handleSort('equipment', 'manufacturer')}
+                                                        >
+                                                            <div className="flex items-center gap-1">
+                                                                Fabricante
+                                                                {getSortIcon('equipment', 'manufacturer')}
+                                                            </div>
+                                                        </TableHead>
+                                                        <TableHead 
+                                                            className="cursor-pointer h-12"
+                                                            onClick={() => handleSort('equipment', 'year')}
+                                                        >
+                                                            <div className="flex items-center gap-1">
+                                                                Ano
+                                                                {getSortIcon('equipment', 'year')}
+                                                            </div>
+                                                        </TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
                                                     {equipment.data.map((item) => (
                                                         <TableRow 
                                                             key={item.id}
-                                                            className="cursor-pointer hover:bg-muted/50"
+                                                            className="cursor-pointer hover:bg-muted/50 h-12"
                                                             onClick={() => router.get(route('cadastro.equipamentos.show', item.id))}
                                                         >
                                                             <TableCell>
@@ -468,39 +587,41 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                                         href={route('cadastro.plantas.show', { 
                                                             plant: plant.id,
                                                             equipment_page: equipment.current_page - 1,
-                                                            tab: 'equipamentos'
+                                                            tab: 'equipamentos',
+                                                            equipment_sort: filters.equipment.sort,
+                                                            equipment_direction: filters.equipment.direction
                                                         })}
                                                         className={equipment.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                                     />
                                                 </PaginationItem>
                                                 
-                                                {equipment.data.length > 0 && (() => {
-                                                    const totalPages = Math.ceil(equipment.total / equipment.per_page);
-                                                    return Array.from({ length: totalPages }, (_, i) => i + 1)
-                                                        .map((page) => (
-                                                            <PaginationItem key={`equipment-pagination-${page}`}>
-                                                                <PaginationLink 
-                                                                    href={route('cadastro.plantas.show', { 
-                                                                        plant: plant.id,
-                                                                        equipment_page: page,
-                                                                        tab: 'equipamentos'
-                                                                    })}
-                                                                    isActive={page === equipment.current_page}
-                                                                >
-                                                                    {page}
-                                                                </PaginationLink>
-                                                            </PaginationItem>
-                                                        ));
-                                                })()}
+                                                {Array.from({ length: equipment.last_page }, (_, i) => i + 1).map((page) => (
+                                                    <PaginationItem key={`equipment-pagination-${page}`}>
+                                                        <PaginationLink 
+                                                            href={route('cadastro.plantas.show', { 
+                                                                plant: plant.id,
+                                                                equipment_page: page,
+                                                                tab: 'equipamentos',
+                                                                equipment_sort: filters.equipment.sort,
+                                                                equipment_direction: filters.equipment.direction
+                                                            })}
+                                                            isActive={page === equipment.current_page}
+                                                        >
+                                                            {page}
+                                                        </PaginationLink>
+                                                    </PaginationItem>
+                                                ))}
 
                                                 <PaginationItem>
                                                     <PaginationNext 
                                                         href={route('cadastro.plantas.show', { 
                                                             plant: plant.id,
                                                             equipment_page: equipment.current_page + 1,
-                                                            tab: 'equipamentos'
+                                                            tab: 'equipamentos',
+                                                            equipment_sort: filters.equipment.sort,
+                                                            equipment_direction: filters.equipment.direction
                                                         })}
-                                                        className={!equipment.data.length || equipment.current_page >= Math.ceil(equipment.total / equipment.per_page) ? 'pointer-events-none opacity-50' : ''}
+                                                        className={equipment.current_page === equipment.last_page ? 'pointer-events-none opacity-50' : ''}
                                                     />
                                                 </PaginationItem>
                                             </PaginationContent>

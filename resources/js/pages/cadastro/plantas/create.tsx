@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/popover";
 import { estados } from '@/data/estados';
 import { useState } from 'react';
+import { toast } from "sonner";
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -79,7 +80,14 @@ export default function CreatePlant() {
             ...data,
             zip_code: data.zip_code.replace(/\D/g, '')
         };
-        post(route('cadastro.plantas.store'), formData);
+        post(route('cadastro.plantas.store'), {
+            ...formData,
+            onError: (errors) => {
+                toast.error("Erro ao criar planta", {
+                    description: "Verifique os campos e tente novamente."
+                });
+            }
+        });
     };
 
     return (
@@ -227,11 +235,11 @@ export default function CreatePlant() {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <Button variant="outline" onClick={() => window.history.back()}>
-                                Cancelar
-                            </Button>
                             <Button type="submit" disabled={processing}>
                                 {processing ? 'Salvando...' : 'Salvar'}
+                            </Button>
+                            <Button variant="outline" onClick={() => window.history.back()}>
+                                Cancelar
                             </Button>
                         </div>
                     </form>

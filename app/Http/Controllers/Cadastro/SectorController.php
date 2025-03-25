@@ -13,6 +13,7 @@ class SectorController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = 8;
         $search = $request->input('search');
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
@@ -35,20 +36,26 @@ class SectorController extends Controller
             });
         }
 
-        if ($sort === 'area') {
-            $query->join('areas', 'sectors.area_id', '=', 'areas.id')
-                ->orderBy('areas.name', $direction)
-                ->select('sectors.*');
-        } else if ($sort === 'plant') {
-            $query->join('areas', 'sectors.area_id', '=', 'areas.id')
-                ->join('plants', 'areas.plant_id', '=', 'plants.id')
-                ->orderBy('plants.name', $direction)
-                ->select('sectors.*');
-        } else {
-            $query->orderBy($sort, $direction);
+        switch ($sort) {
+            case 'area':
+                $query->join('areas', 'sectors.area_id', '=', 'areas.id')
+                    ->orderBy('areas.name', $direction)
+                    ->select('sectors.*');
+                break;
+            case 'plant':
+                $query->join('areas', 'sectors.area_id', '=', 'areas.id')
+                    ->join('plants', 'areas.plant_id', '=', 'plants.id')
+                    ->orderBy('plants.name', $direction)
+                    ->select('sectors.*');
+                break;
+            case 'equipment_count':
+                $query->orderBy('equipment_count', $direction);
+                break;
+            default:
+                $query->orderBy($sort, $direction);
         }
 
-        $sectors = $query->paginate(8);
+        $sectors = $query->paginate($perPage)->withQueryString();
 
         return Inertia::render('cadastro/setores', [
             'sectors' => $sectors,
@@ -76,10 +83,10 @@ class SectorController extends Controller
             'area_id' => 'required|exists:areas,id'
         ]);
 
-        Sector::create($validated);
+        $sector = Sector::create($validated);
 
         return redirect()->route('cadastro.setores')
-            ->with('success', 'Setor criado com sucesso.');
+            ->with('success', "Setor {$sector->name} criado com sucesso.");
     }
 
     public function edit(Sector $setor)
@@ -95,17 +102,49 @@ class SectorController extends Controller
     {
         $setor->load(['area.plant']);
         
-        // Busca a página atual para equipamentos
+        // Busca a página atual e parâmetros de ordenação para equipamentos
         $equipmentPage = request()->get('equipment_page', 1);
         $perPage = 10;
+        $equipmentSort = request()->get('equipment_sort', 'tag');
+        $equipmentDirection = request()->get('equipment_direction', 'asc');
 
-        // Busca os equipamentos
+        // Busca os equipamentos com ordenação
         $equipmentQuery = $setor->equipment()
             ->with('equipmentType')
-            ->orderBy('tag')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'tag' => $item->tag,
+                    'equipment_type' => $item->equipmentType ? [
+                        'id' => $item->equipmentType->id,
+                        'name' => $item->equipmentType->name,
+                    ] : null,
+                    'manufacturer' => $item->manufacturer,
+                    'manufacturing_year' => $item->manufacturing_year,
+                ];
+            })
+            ->values();
 
-        // Pagina os equipamentos usando array_slice
+        // Aplica ordenação personalizada para equipamentos
+        $equipmentQuery = $equipmentQuery->sort(function ($a, $b) use ($equipmentSort, $equipmentDirection) {
+            $direction = $equipmentDirection === 'asc' ? 1 : -1;
+            
+            switch ($equipmentSort) {
+                case 'tag':
+                    return strcmp($a['tag'], $b['tag']) * $direction;
+                case 'type':
+                    return strcmp($a['equipment_type']['name'] ?? '', $b['equipment_type']['name'] ?? '') * $direction;
+                case 'manufacturer':
+                    return strcmp($a['manufacturer'] ?? '', $b['manufacturer'] ?? '') * $direction;
+                case 'year':
+                    return (($a['manufacturing_year'] ?? 0) - ($b['manufacturing_year'] ?? 0)) * $direction;
+                default:
+                    return 0;
+            }
+        });
+
+        // Pagina os equipamentos
         $allEquipment = $equipmentQuery->all();
         $equipmentOffset = ($equipmentPage - 1) * $perPage;
         $equipmentItems = array_slice($allEquipment, $equipmentOffset, $perPage);
@@ -122,6 +161,12 @@ class SectorController extends Controller
             'sector' => $setor,
             'equipment' => $equipment,
             'activeTab' => request()->get('tab', 'informacoes'),
+            'filters' => [
+                'equipment' => [
+                    'sort' => $equipmentSort,
+                    'direction' => $equipmentDirection,
+                ],
+            ],
         ]);
     }
 
@@ -136,19 +181,34 @@ class SectorController extends Controller
         $setor->update($validated);
 
         return redirect()->route('cadastro.setores')
-            ->with('success', 'Setor atualizado com sucesso.');
+            ->with('success', "O setor {$setor->name} foi atualizado com sucesso.");
     }
 
     public function destroy(Sector $setor)
     {
         if ($setor->equipment()->exists()) {
-            return redirect()->route('cadastro.setores')
-                ->with('error', 'Não é possível excluir um setor que possui equipamentos.');
+            return back()->with('error', 'Não é possível excluir um setor que possui equipamentos.');
         }
 
+        $setorName = $setor->name;
         $setor->delete();
 
-        return redirect()->route('cadastro.setores')
-            ->with('success', 'Setor excluído com sucesso.');
+        return back()->with('success', "O setor {$setorName} foi excluído com sucesso.");
+    }
+
+    public function checkDependencies(Sector $setor)
+    {
+        $equipment = $setor->equipment()->take(5)->get(['id', 'tag', 'description']);
+        $totalEquipment = $setor->equipment()->count();
+
+        return response()->json([
+            'can_delete' => $totalEquipment === 0,
+            'dependencies' => [
+                'equipment' => [
+                    'total' => $totalEquipment,
+                    'items' => $equipment
+                ]
+            ]
+        ]);
     }
 } 

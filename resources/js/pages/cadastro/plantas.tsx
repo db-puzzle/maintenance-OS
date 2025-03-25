@@ -39,12 +39,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Plant {
     id: number;
     name: string;
-    street: string | null;
-    number: string | null;
-    city: string | null;
-    state: string | null;
-    zip_code: string | null;
-    gps_coordinates: string | null;
+    description: string | null;
+    areas_count: number;
+    sectors_count: number;
+    equipment_count: number;
     created_at: string;
     updated_at: string;
 }
@@ -98,6 +96,8 @@ export default function Plantas({ plants, filters }: Props) {
                 route('cadastro.plantas'),
                 { 
                     search,
+                    sort: filters.sort,
+                    direction: filters.direction,
                     page: plants.current_page
                 },
                 { preserveState: true, preserveScroll: true }
@@ -105,7 +105,7 @@ export default function Plantas({ plants, filters }: Props) {
         }, 300);
 
         return () => clearTimeout(searchTimeout);
-    }, [search]);
+    }, [search, filters.sort, filters.direction]);
 
     const handleDelete = (plant: Plant) => {
         setIsDeleting(true);
@@ -162,7 +162,7 @@ export default function Plantas({ plants, filters }: Props) {
                 search,
                 sort: column,
                 direction,
-                page: plants.current_page
+                page: 1
             },
             { preserveState: true }
         );
@@ -194,7 +194,7 @@ export default function Plantas({ plants, filters }: Props) {
                         <div className="flex-1">
                             <Input
                                 type="search"
-                                placeholder="Buscar por nome, endereço, cidade, estado ou CEP..."
+                                placeholder="Buscar por nome..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="max-w-sm"
@@ -207,7 +207,7 @@ export default function Plantas({ plants, filters }: Props) {
                         </Button>
                     </div>
 
-                    <div className="rounded-md border w-full">
+                    <div className="rounded-md w-full">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -221,54 +221,34 @@ export default function Plantas({ plants, filters }: Props) {
                                             <span className="ml-2">{getSortIcon('name')}</span>
                                         </Button>
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="text-center">
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('street')}
+                                            onClick={() => handleSort('areas_count')}
                                         >
-                                            Endereço
-                                            <span className="ml-2">{getSortIcon('street')}</span>
+                                            Áreas
+                                            <span className="ml-2">{getSortIcon('areas_count')}</span>
                                         </Button>
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="text-center">
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('city')}
+                                            onClick={() => handleSort('sectors_count')}
                                         >
-                                            Cidade
-                                            <span className="ml-2">{getSortIcon('city')}</span>
+                                            Setores
+                                            <span className="ml-2">{getSortIcon('sectors_count')}</span>
                                         </Button>
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="text-center">
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('state')}
+                                            onClick={() => handleSort('equipment_count')}
                                         >
-                                            Estado
-                                            <span className="ml-2">{getSortIcon('state')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('zip_code')}
-                                        >
-                                            CEP
-                                            <span className="ml-2">{getSortIcon('zip_code')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('gps_coordinates')}
-                                        >
-                                            Coordenadas GPS
-                                            <span className="ml-2">{getSortIcon('gps_coordinates')}</span>
+                                            Equipamentos
+                                            <span className="ml-2">{getSortIcon('equipment_count')}</span>
                                         </Button>
                                     </TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
@@ -281,14 +261,19 @@ export default function Plantas({ plants, filters }: Props) {
                                         className="cursor-pointer hover:bg-muted/50"
                                         onClick={() => router.visit(route('cadastro.plantas.show', plant.id))}
                                     >
-                                        <TableCell>{plant.name}</TableCell>
                                         <TableCell>
-                                            {plant.street}, {plant.number}
+                                            <div>
+                                                <div className="font-medium">{plant.name}</div>
+                                                {plant.description && (
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {plant.description}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </TableCell>
-                                        <TableCell>{plant.city}</TableCell>
-                                        <TableCell>{plant.state}</TableCell>
-                                        <TableCell>{plant.zip_code}</TableCell>
-                                        <TableCell>{plant.gps_coordinates}</TableCell>
+                                        <TableCell className="text-center">{plant.areas_count}</TableCell>
+                                        <TableCell className="text-center">{plant.sectors_count}</TableCell>
+                                        <TableCell className="text-center">{plant.equipment_count}</TableCell>
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
@@ -319,7 +304,9 @@ export default function Plantas({ plants, filters }: Props) {
                                     <PaginationPrevious 
                                         href={route('cadastro.plantas', { 
                                             page: plants.current_page - 1,
-                                            search: search 
+                                            search,
+                                            sort: filters.sort,
+                                            direction: filters.direction
                                         })}
                                         className={plants.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
@@ -330,7 +317,9 @@ export default function Plantas({ plants, filters }: Props) {
                                         <PaginationLink 
                                             href={route('cadastro.plantas', { 
                                                 page,
-                                                search: search
+                                                search,
+                                                sort: filters.sort,
+                                                direction: filters.direction
                                             })}
                                             isActive={page === plants.current_page}
                                         >
@@ -343,7 +332,9 @@ export default function Plantas({ plants, filters }: Props) {
                                     <PaginationNext 
                                         href={route('cadastro.plantas', { 
                                             page: plants.current_page + 1,
-                                            search: search
+                                            search,
+                                            sort: filters.sort,
+                                            direction: filters.direction
                                         })}
                                         className={plants.current_page === plants.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />

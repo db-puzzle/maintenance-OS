@@ -14,6 +14,7 @@ class AreaController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = 8;
         $search = $request->input('search');
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
@@ -34,15 +35,23 @@ class AreaController extends Controller
             });
         }
 
-        if ($sort === 'plant') {
-            $query->join('plants', 'areas.plant_id', '=', 'plants.id')
-                ->orderBy('plants.name', $direction)
-                ->select('areas.*');
-        } else {
-            $query->orderBy($sort, $direction);
+        switch ($sort) {
+            case 'plant':
+                $query->join('plants', 'areas.plant_id', '=', 'plants.id')
+                    ->orderBy('plants.name', $direction)
+                    ->select('areas.*');
+                break;
+            case 'equipment_count':
+                $query->orderBy('equipment_count', $direction);
+                break;
+            case 'sectors_count':
+                $query->orderBy('sectors_count', $direction);
+                break;
+            default:
+                $query->orderBy($sort, $direction);
         }
 
-        $areas = $query->paginate(8);
+        $areas = $query->paginate($perPage)->withQueryString();
 
         return Inertia::render('cadastro/areas', [
             'areas' => $areas,
@@ -84,7 +93,7 @@ class AreaController extends Controller
         $area = Area::create($validated);
 
         return redirect()->route('cadastro.areas')
-            ->with('success', "A área {$area->name} foi criada com sucesso.");
+            ->with('success', "Área {$area->name} criada com sucesso.");
     }
 
     /**
@@ -99,13 +108,36 @@ class AreaController extends Controller
         $equipmentPage = request()->get('equipment_page', 1);
         $perPage = 10;
 
+        // Parâmetros de ordenação para setores
+        $sectorsSort = request()->get('sectors_sort', 'name');
+        $sectorsDirection = request()->get('sectors_direction', 'asc');
+
+        // Parâmetros de ordenação para equipamentos
+        $equipmentSort = request()->get('equipment_sort', 'tag');
+        $equipmentDirection = request()->get('equipment_direction', 'asc');
+
         // Busca os setores com contagem de equipamentos
         $sectorsQuery = $area->sectors()
             ->withCount('equipment')
-            ->orderBy('name')
             ->get();
 
-        // Pagina os setores usando array_slice
+        // Aplica ordenação personalizada para setores
+        $sectorsQuery = $sectorsQuery->sort(function ($a, $b) use ($sectorsSort, $sectorsDirection) {
+            $direction = $sectorsDirection === 'asc' ? 1 : -1;
+            
+            switch ($sectorsSort) {
+                case 'name':
+                    return strcmp($a->name, $b->name) * $direction;
+                case 'equipment_count':
+                    return (($a->equipment_count ?? 0) - ($b->equipment_count ?? 0)) * $direction;
+                case 'description':
+                    return strcmp($a->description ?? '', $b->description ?? '') * $direction;
+                default:
+                    return 0;
+            }
+        });
+
+        // Pagina os setores
         $allSectors = $sectorsQuery->all();
         $sectorsOffset = ($sectorsPage - 1) * $perPage;
         $sectorsItems = array_slice($allSectors, $sectorsOffset, $perPage);
@@ -121,10 +153,27 @@ class AreaController extends Controller
         // Busca os equipamentos
         $equipmentQuery = $area->equipment()
             ->with('equipmentType')
-            ->orderBy('tag')
             ->get();
 
-        // Pagina os equipamentos usando array_slice
+        // Aplica ordenação personalizada para equipamentos
+        $equipmentQuery = $equipmentQuery->sort(function ($a, $b) use ($equipmentSort, $equipmentDirection) {
+            $direction = $equipmentDirection === 'asc' ? 1 : -1;
+            
+            switch ($equipmentSort) {
+                case 'tag':
+                    return strcmp($a->tag, $b->tag) * $direction;
+                case 'type':
+                    return strcmp($a->equipmentType?->name ?? '', $b->equipmentType?->name ?? '') * $direction;
+                case 'manufacturer':
+                    return strcmp($a->manufacturer ?? '', $b->manufacturer ?? '') * $direction;
+                case 'year':
+                    return (($a->manufacturing_year ?? 0) - ($b->manufacturing_year ?? 0)) * $direction;
+                default:
+                    return 0;
+            }
+        });
+
+        // Pagina os equipamentos
         $allEquipment = $equipmentQuery->all();
         $equipmentOffset = ($equipmentPage - 1) * $perPage;
         $equipmentItems = array_slice($allEquipment, $equipmentOffset, $perPage);
@@ -154,6 +203,16 @@ class AreaController extends Controller
             'equipment' => $equipment,
             'totalEquipmentCount' => $totalEquipmentCount,
             'activeTab' => request()->get('tab', 'informacoes'),
+            'filters' => [
+                'sectors' => [
+                    'sort' => $sectorsSort,
+                    'direction' => $sectorsDirection,
+                ],
+                'equipment' => [
+                    'sort' => $equipmentSort,
+                    'direction' => $equipmentDirection,
+                ],
+            ],
         ]);
     }
 
@@ -197,15 +256,22 @@ class AreaController extends Controller
 
     public function checkDependencies(Area $area)
     {
-        $equipment = $area->equipment()->take(5)->get(['id', 'tag', 'name']);
+        $equipment = $area->equipment()->take(5)->get(['id', 'tag', 'description']);
         $totalEquipment = $area->equipment()->count();
 
+        $sectors = $area->sectors()->take(5)->get(['id', 'name']);
+        $totalSectors = $area->sectors()->count();
+
         return response()->json([
-            'can_delete' => $totalEquipment === 0,
+            'can_delete' => $totalEquipment === 0 && $totalSectors === 0,
             'dependencies' => [
                 'equipment' => [
                     'total' => $totalEquipment,
                     'items' => $equipment
+                ],
+                'sectors' => [
+                    'total' => $totalSectors,
+                    'items' => $sectors
                 ]
             ]
         ]);

@@ -71,19 +71,13 @@ export default function Equipamentos({ equipment, filters }: Props) {
     const { delete: destroy } = useForm();
 
     useEffect(() => {
-        if (flash?.success) {
-            toast.success("Operação realizada com sucesso!", {
-                description: flash.success,
-            });
-        }
-    }, [flash]);
-
-    useEffect(() => {
         const searchTimeout = setTimeout(() => {
             router.get(
                 route('cadastro.equipamentos'),
                 { 
                     search,
+                    sort: filters.sort,
+                    direction: filters.direction,
                     page: equipment.current_page
                 },
                 { preserveState: true, preserveScroll: true }
@@ -91,7 +85,7 @@ export default function Equipamentos({ equipment, filters }: Props) {
         }, 300);
 
         return () => clearTimeout(searchTimeout);
-    }, [search]);
+    }, [search, filters.sort, filters.direction]);
 
     const handleDelete = (id: number) => {
         setIsDeleting(true);
@@ -123,7 +117,7 @@ export default function Equipamentos({ equipment, filters }: Props) {
                 search,
                 sort: column,
                 direction,
-                page: equipment.current_page
+                page: 1
             },
             { preserveState: true }
         );
@@ -168,7 +162,7 @@ export default function Equipamentos({ equipment, filters }: Props) {
                         </Button>
                     </div>
 
-                    <div className="rounded-md border w-full">
+                    <div className="rounded-md w-full">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -349,7 +343,9 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                     <PaginationPrevious 
                                         href={route('cadastro.equipamentos', { 
                                             page: equipment.current_page - 1,
-                                            search: search 
+                                            search,
+                                            sort: filters.sort,
+                                            direction: filters.direction
                                         })}
                                         className={equipment.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
@@ -360,7 +356,9 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                         <PaginationLink 
                                             href={route('cadastro.equipamentos', { 
                                                 page,
-                                                search: search
+                                                search,
+                                                sort: filters.sort,
+                                                direction: filters.direction
                                             })}
                                             isActive={page === equipment.current_page}
                                         >
@@ -373,7 +371,9 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                     <PaginationNext 
                                         href={route('cadastro.equipamentos', { 
                                             page: equipment.current_page + 1,
-                                            search: search
+                                            search,
+                                            sort: filters.sort,
+                                            direction: filters.direction
                                         })}
                                         className={equipment.current_page === equipment.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />

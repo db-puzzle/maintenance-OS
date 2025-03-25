@@ -14,6 +14,7 @@ class EquipmentController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = 8;
         $search = $request->input('search');
         $sort = $request->input('sort', 'tag');
         $direction = $request->input('direction', 'asc');
@@ -35,28 +36,33 @@ class EquipmentController extends Controller
             });
         }
 
-        if ($sort === 'equipment_type') {
-            $query->join('equipment_types', 'equipment.equipment_type_id', '=', 'equipment_types.id')
-                ->orderBy('equipment_types.name', $direction)
-                ->select('equipment.*');
-        } else if ($sort === 'sector') {
-            $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
-                ->orderBy('sectors.name', $direction)
-                ->select('equipment.*');
-        } else if ($sort === 'area') {
-            $query->join('areas', 'equipment.area_id', '=', 'areas.id')
-                ->orderBy('areas.name', $direction)
-                ->select('equipment.*');
-        } else if ($sort === 'plant') {
-            $query->join('areas', 'equipment.area_id', '=', 'areas.id')
-                ->join('plants', 'areas.plant_id', '=', 'plants.id')
-                ->orderBy('plants.name', $direction)
-                ->select('equipment.*');
-        } else {
-            $query->orderBy($sort, $direction);
+        switch ($sort) {
+            case 'equipment_type':
+                $query->join('equipment_types', 'equipment.equipment_type_id', '=', 'equipment_types.id')
+                    ->orderBy('equipment_types.name', $direction)
+                    ->select('equipment.*');
+                break;
+            case 'sector':
+                $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
+                    ->orderBy('sectors.name', $direction)
+                    ->select('equipment.*');
+                break;
+            case 'area':
+                $query->join('areas', 'equipment.area_id', '=', 'areas.id')
+                    ->orderBy('areas.name', $direction)
+                    ->select('equipment.*');
+                break;
+            case 'plant':
+                $query->join('areas', 'equipment.area_id', '=', 'areas.id')
+                    ->join('plants', 'areas.plant_id', '=', 'plants.id')
+                    ->orderBy('plants.name', $direction)
+                    ->select('equipment.*');
+                break;
+            default:
+                $query->orderBy($sort, $direction);
         }
 
-        $equipment = $query->paginate(8);
+        $equipment = $query->paginate($perPage)->withQueryString();
 
         return Inertia::render('cadastro/equipamentos', [
             'equipment' => $equipment,
@@ -98,7 +104,7 @@ class EquipmentController extends Controller
         $equipment = Equipment::create($validated);
 
         return redirect()->route('cadastro.equipamentos')
-            ->with('success', "O equipamento {$equipment->tag} foi criado com sucesso.");
+            ->with('success', "Equipamento {$equipment->tag} criado com sucesso.");
     }
 
     public function edit(Equipment $equipment)
@@ -156,7 +162,8 @@ class EquipmentController extends Controller
 
         $equipment->delete();
 
-        return back()->with('success', "O equipamento {$equipmentTag} foi excluído com sucesso.");
+        return redirect()->route('cadastro.equipamentos')
+            ->with('success', "O equipamento {$equipmentTag} foi excluído com sucesso.");
     }
 
     public function removePhoto(Equipment $equipment)

@@ -11,17 +11,38 @@ class EquipmentTypeController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = 10;
+        $sort = $request->sort ?? 'name';
+        $direction = $request->direction === 'desc' ? 'desc' : 'asc';
+
         $equipmentTypes = EquipmentType::query()
+            ->withCount('equipment')
             ->when($request->search, function ($query, $search) {
                 $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
             })
-            ->orderBy('name')
-            ->paginate(10)
+            ->when($sort, function ($query) use ($sort, $direction) {
+                switch ($sort) {
+                    case 'name':
+                        $query->orderBy('name', $direction);
+                        break;
+                    case 'description':
+                        $query->orderBy('description', $direction);
+                        break;
+                    case 'equipment_count':
+                        $query->orderBy('equipment_count', $direction);
+                        break;
+                    default:
+                        $query->orderBy('name', 'asc');
+                }
+            }, function ($query) {
+                $query->orderBy('name', 'asc');
+            })
+            ->paginate($perPage)
             ->withQueryString();
 
         return Inertia::render('cadastro/tipos-equipamento', [
             'equipmentTypes' => $equipmentTypes,
-            'filters' => $request->only(['search'])
+            'filters' => $request->only(['search', 'sort', 'direction'])
         ]);
     }
 
@@ -36,13 +57,33 @@ class EquipmentTypeController extends Controller
             abort(404);
         }
 
-        $equipmentType->load(['equipment' => function ($query) {
-            $query->select('id', 'tag', 'area_id', 'manufacturer', 'manufacturing_year')
-                  ->with(['area:id,name']);
-        }]);
+        // Busca a página atual para equipamentos
+        $equipmentPage = request()->get('equipment_page', 1);
+        $perPage = 10;
+
+        // Busca os equipamentos
+        $equipmentQuery = $equipmentType->equipment()
+            ->with(['area:id,name', 'equipmentType:id,name'])
+            ->orderBy('tag')
+            ->get();
+
+        // Pagina os equipamentos usando array_slice
+        $allEquipment = $equipmentQuery->all();
+        $equipmentOffset = ($equipmentPage - 1) * $perPage;
+        $equipmentItems = array_slice($allEquipment, $equipmentOffset, $perPage);
+        
+        $equipment = new \Illuminate\Pagination\LengthAwarePaginator(
+            collect($equipmentItems),
+            count($allEquipment),
+            $perPage,
+            $equipmentPage,
+            ['path' => request()->url(), 'pageName' => 'equipment_page']
+        );
 
         return Inertia::render('cadastro/tipos-equipamento/show', [
             'equipmentType' => $equipmentType,
+            'equipment' => $equipment,
+            'activeTab' => request()->get('tab', 'informacoes'),
         ]);
     }
 
@@ -56,7 +97,7 @@ class EquipmentTypeController extends Controller
         $equipmentType = EquipmentType::create($validated);
 
         return redirect()->route('cadastro.tipos-equipamento')
-            ->with('success', "O tipo de equipamento {$equipmentType->name} foi criado com sucesso.");
+            ->with('success', "Tipo de equipamento {$equipmentType->name} criado com sucesso.");
     }
 
     public function edit(EquipmentType $equipmentType)

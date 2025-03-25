@@ -24,6 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cadastro/setores/{setor}/edit', [SectorController::class, 'edit'])->name('cadastro.setores.edit');
     Route::put('cadastro/setores/{setor}', [SectorController::class, 'update'])->name('cadastro.setores.update');
     Route::delete('cadastro/setores/{setor}', [SectorController::class, 'destroy'])->name('cadastro.setores.destroy');
+    Route::get('cadastro/setores/{setor}/check-dependencies', [SectorController::class, 'checkDependencies'])->name('cadastro.setores.check-dependencies');
 
     Route::get('cadastro/areas', [AreaController::class, 'index'])->name('cadastro.areas');
     Route::get('cadastro/areas/create', [AreaController::class, 'create'])->name('cadastro.areas.create');

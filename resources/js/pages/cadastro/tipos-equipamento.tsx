@@ -42,6 +42,7 @@ interface EquipmentType {
     description: string | null;
     created_at: string;
     updated_at: string;
+    equipment_count: number;
 }
 
 interface Equipment {
@@ -96,6 +97,8 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
                 route('cadastro.tipos-equipamento'),
                 { 
                     search,
+                    sort: filters.sort,
+                    direction: filters.direction,
                     page: equipmentTypes.current_page
                 },
                 { preserveState: true, preserveScroll: true }
@@ -103,7 +106,7 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
         }, 300);
 
         return () => clearTimeout(searchTimeout);
-    }, [search]);
+    }, [search, filters.sort, filters.direction]);
 
     const handleDelete = (equipmentType: EquipmentType) => {
         setIsDeleting(true);
@@ -160,7 +163,7 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
                 search,
                 sort: column,
                 direction,
-                page: equipmentTypes.current_page
+                page: 1
             },
             { preserveState: true }
         );
@@ -205,7 +208,7 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
                         </Button>
                     </div>
 
-                    <div className="rounded-md border w-full">
+                    <div className="rounded-md w-full">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -219,7 +222,7 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
                                             <span className="ml-2">{getSortIcon('name')}</span>
                                         </Button>
                                     </TableHead>
-                                    <TableHead className="w-[600px]">
+                                    <TableHead>
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
@@ -227,6 +230,16 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
                                         >
                                             Descrição
                                             <span className="ml-2">{getSortIcon('description')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead className="text-center">
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('equipment_count')}
+                                        >
+                                            Equipamentos
+                                            <span className="ml-2">{getSortIcon('equipment_count')}</span>
                                         </Button>
                                     </TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
@@ -239,8 +252,18 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
                                         className="cursor-pointer hover:bg-muted/50"
                                         onClick={() => router.get(route('cadastro.tipos-equipamento.show', equipmentType.id))}
                                     >
-                                        <TableCell>{equipmentType.name}</TableCell>
+                                        <TableCell>
+                                            <div>
+                                                <div className="font-medium">{equipmentType.name}</div>
+                                                {equipmentType.description && (
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {equipmentType.description}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>{equipmentType.description || '-'}</TableCell>
+                                        <TableCell className="text-center">{equipmentType.equipment_count}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
                                                 <Button 
@@ -282,7 +305,9 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
                                     <PaginationPrevious 
                                         href={route('cadastro.tipos-equipamento', { 
                                             page: equipmentTypes.current_page - 1,
-                                            search: search 
+                                            search,
+                                            sort: filters.sort,
+                                            direction: filters.direction
                                         })}
                                         className={equipmentTypes.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
@@ -293,7 +318,9 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
                                         <PaginationLink 
                                             href={route('cadastro.tipos-equipamento', { 
                                                 page,
-                                                search: search
+                                                search,
+                                                sort: filters.sort,
+                                                direction: filters.direction
                                             })}
                                             isActive={page === equipmentTypes.current_page}
                                         >
@@ -306,7 +333,9 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
                                     <PaginationNext 
                                         href={route('cadastro.tipos-equipamento', { 
                                             page: equipmentTypes.current_page + 1,
-                                            search: search 
+                                            search,
+                                            sort: filters.sort,
+                                            direction: filters.direction
                                         })}
                                         className={equipmentTypes.current_page === equipmentTypes.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />

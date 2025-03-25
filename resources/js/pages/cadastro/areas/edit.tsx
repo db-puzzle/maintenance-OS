@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEffect } from 'react';
+import { toast } from "sonner";
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -64,6 +65,11 @@ export default function EditArea({ area, plants }: Props) {
         e.preventDefault();
         put(route('cadastro.areas.update', area.id), {
             onSuccess: () => reset('name', 'plant_id'),
+            onError: (errors) => {
+                toast.error("Erro ao atualizar área", {
+                    description: "Verifique os campos e tente novamente."
+                });
+            }
         });
     };
 
@@ -124,11 +130,11 @@ export default function EditArea({ area, plants }: Props) {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <Button variant="outline" onClick={() => router.visit(route('cadastro.areas'))}>
-                                Cancelar
-                            </Button>
                             <Button type="submit" disabled={processing}>
                                 {processing ? 'Salvando...' : 'Salvar'}
+                            </Button>
+                            <Button variant="outline" onClick={() => router.visit(route('cadastro.areas'))}>
+                                Cancelar
                             </Button>
                         </div>
                     </form>

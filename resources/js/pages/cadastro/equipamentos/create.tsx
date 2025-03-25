@@ -3,6 +3,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import { Check, ChevronsUpDown, Camera, Upload } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { toast } from "sonner";
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -97,7 +98,13 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
-        post(route('cadastro.equipamentos.store'));
+        post(route('cadastro.equipamentos.store'), {
+            onError: (errors) => {
+                toast.error("Erro ao criar equipamento", {
+                    description: "Verifique os campos e tente novamente."
+                });
+            }
+        });
     };
 
     return (
@@ -112,9 +119,9 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                     />
 
                     <form onSubmit={submit} className="space-y-6">
-                        {/* Seção Superior: Foto e Campos Principais */}
-                        <div className="grid md:grid-cols-2 gap-6">
-                            {/* Foto do Equipamento */}
+                        {/* Primeira Linha: Foto e Campos Principais */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Coluna 1: Foto */}
                             <div className="flex flex-col h-full">
                                 <Label className="mb-2">Foto do Equipamento</Label>
                                 <div className="flex-1 flex flex-col gap-2">
@@ -178,7 +185,7 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                 </div>
                             </div>
 
-                            {/* Campos Principais */}
+                            {/* Coluna 2: Campos Principais */}
                             <div className="space-y-6">
                                 {/* TAG */}
                                 <div className="grid gap-2">
@@ -190,18 +197,6 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                         placeholder="TAG do equipamento"
                                     />
                                     <InputError message={errors.tag} />
-                                </div>
-
-                                {/* Número Serial */}
-                                <div className="grid gap-2">
-                                    <Label htmlFor="serial_number">Número Serial</Label>
-                                    <Input
-                                        id="serial_number"
-                                        value={data.serial_number}
-                                        onChange={(e) => setData('serial_number', e.target.value)}
-                                        placeholder="Número serial do equipamento"
-                                    />
-                                    <InputError message={errors.serial_number} />
                                 </div>
 
                                 {/* Tipo de Equipamento */}
@@ -254,6 +249,39 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                     <InputError message={errors.equipment_type_id} />
                                 </div>
 
+                                {/* Número Serial */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="serial_number">Número Serial</Label>
+                                    <Input
+                                        id="serial_number"
+                                        value={data.serial_number}
+                                        onChange={(e) => setData('serial_number', e.target.value)}
+                                        placeholder="Número serial do equipamento"
+                                    />
+                                    <InputError message={errors.serial_number} />
+                                </div>
+
+                                {/* Ano de Fabricação */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="manufacturing_year">Ano de Fabricação</Label>
+                                    <Input
+                                        id="manufacturing_year"
+                                        type="number"
+                                        min="1900"
+                                        max={new Date().getFullYear()}
+                                        value={data.manufacturing_year}
+                                        onChange={(e) => setData('manufacturing_year', e.target.value)}
+                                        placeholder="Ano de fabricação"
+                                    />
+                                    <InputError message={errors.manufacturing_year} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Segunda Linha: Localização e Informações Adicionais */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Coluna 3: Localização */}
+                            <div className="space-y-6">
                                 {/* Planta */}
                                 <div className="grid gap-2">
                                     <Label htmlFor="plant" className="flex items-center gap-1">
@@ -409,49 +437,34 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                     <InputError message={errors.sector_id} />
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Linha: Fabricante, Ano de Fabricação */}
-                        <div className="grid sm:grid-cols-2 gap-6">
-                            {/* Fabricante */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="manufacturer">Fabricante</Label>
-                                <Input
-                                    id="manufacturer"
-                                    value={data.manufacturer}
-                                    onChange={(e) => setData('manufacturer', e.target.value)}
-                                    placeholder="Fabricante do equipamento"
-                                />
-                                <InputError message={errors.manufacturer} />
+                            {/* Coluna 4: Informações Adicionais */}
+                            <div className="flex flex-col h-full space-y-6">
+                                {/* Fabricante */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="manufacturer">Fabricante</Label>
+                                    <Input
+                                        id="manufacturer"
+                                        value={data.manufacturer}
+                                        onChange={(e) => setData('manufacturer', e.target.value)}
+                                        placeholder="Fabricante do equipamento"
+                                    />
+                                    <InputError message={errors.manufacturer} />
+                                </div>
+
+                                {/* Descrição */}
+                                <div className="flex-1 flex flex-col gap-2">
+                                    <Label htmlFor="description">Descrição</Label>
+                                    <Textarea
+                                        id="description"
+                                        value={data.description}
+                                        onChange={(e) => setData('description', e.target.value)}
+                                        placeholder="Descrição da máquina"
+                                        className="flex-1 min-h-0"
+                                    />
+                                    <InputError message={errors.description} />
+                                </div>
                             </div>
-
-                            {/* Ano de Fabricação */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="manufacturing_year">Ano de Fabricação</Label>
-                                <Input
-                                    id="manufacturing_year"
-                                    type="number"
-                                    min="1900"
-                                    max={new Date().getFullYear()}
-                                    value={data.manufacturing_year}
-                                    onChange={(e) => setData('manufacturing_year', e.target.value)}
-                                    placeholder="Ano de fabricação"
-                                />
-                                <InputError message={errors.manufacturing_year} />
-                            </div>
-                        </div>
-
-                        {/* Linha 4: Descrição */}
-                        <div className="grid gap-2">
-                            <Label htmlFor="description">Descrição</Label>
-                            <Textarea
-                                id="description"
-                                value={data.description}
-                                onChange={(e) => setData('description', e.target.value)}
-                                placeholder="Descrição da máquina"
-                                className="min-h-[100px]"
-                            />
-                            <InputError message={errors.description} />
                         </div>
 
                         <div className="flex items-center gap-4">

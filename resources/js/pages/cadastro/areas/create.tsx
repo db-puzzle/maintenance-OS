@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { toast } from "sonner";
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -51,6 +52,11 @@ export default function CreateArea({ plants }: Props) {
         e.preventDefault();
         post(route('cadastro.areas.store'), {
             onSuccess: () => reset('name', 'plant_id'),
+            onError: (errors) => {
+                toast.error("Erro ao criar área", {
+                    description: "Verifique os campos e tente novamente."
+                });
+            }
         });
     };
 
@@ -111,11 +117,11 @@ export default function CreateArea({ plants }: Props) {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <Button variant="outline" onClick={() => window.history.back()}>
-                                Cancelar
-                            </Button>
                             <Button type="submit" disabled={processing}>
                                 {processing ? 'Salvando...' : 'Salvar'}
+                            </Button>
+                            <Button variant="outline" onClick={() => window.history.back()}>
+                                Cancelar
                             </Button>
                         </div>
                     </form>

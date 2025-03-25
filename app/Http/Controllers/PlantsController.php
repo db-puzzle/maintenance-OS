@@ -10,32 +10,70 @@ class PlantsController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = 8;
         $search = $request->input('search');
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
 
         $query = Plant::query()
-            ->withCount('areas');
+            ->withCount('areas')
+            ->with(['areas' => function ($query) {
+                $query->withCount(['sectors' => function ($query) {
+                    $query->withCount('equipment');
+                }])
+                ->withCount(['equipment' => function ($query) {
+                    $query->whereNull('sector_id');
+                }]);
+            }]);
 
         if ($search) {
             $search = strtolower($search);
             $query->where(function ($query) use ($search) {
-                $query->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(plants.street) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(plants.city) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(plants.state) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(plants.zip_code) LIKE ?', ["%{$search}%"]);
+                $query->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"]);
             });
         }
 
-        if ($sort === 'areas_count') {
-            $query->withCount('areas')
-                ->orderBy('areas_count', $direction);
-        } else {
-            $query->orderBy($sort, $direction);
-        }
+        $plants = $query->get()->map(function ($plant) {
+            $totalSectors = $plant->areas->sum('sectors_count');
+            $totalEquipment = $plant->areas->sum(function ($area) {
+                return $area->equipment_count + $area->sectors->sum('equipment_count');
+            });
 
-        $plants = $query->paginate(8);
+            return [
+                'id' => $plant->id,
+                'name' => $plant->name,
+                'description' => $plant->description,
+                'areas_count' => $plant->areas_count,
+                'sectors_count' => $totalSectors,
+                'equipment_count' => $totalEquipment,
+                'created_at' => $plant->created_at,
+                'updated_at' => $plant->updated_at,
+            ];
+        });
+
+        // Aplicar ordenação
+        $plants = $plants->sort(function ($a, $b) use ($sort, $direction) {
+            $comparison = match($sort) {
+                'name' => strcmp($a[$sort], $b[$sort]),
+                'created_at', 'updated_at' => strtotime($a[$sort]) - strtotime($b[$sort]),
+                default => $a[$sort] - $b[$sort]
+            };
+            
+            return $direction === 'asc' ? $comparison : -$comparison;
+        });
+
+        // Paginar manualmente
+        $total = $plants->count();
+        $page = $request->input('page', 1);
+        $items = $plants->forPage($page, $perPage)->values();
+        
+        $plants = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            $total,
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'pageName' => 'page']
+        );
 
         return Inertia::render('cadastro/plantas', [
             'plants' => $plants,
@@ -67,7 +105,7 @@ class PlantsController extends Controller
         $plant = Plant::create($validated);
 
         return redirect()->route('cadastro.plantas')
-            ->with('success', "A planta {$plant->name} foi criada com sucesso.");
+            ->with('success', "Planta {$plant->name} criada com sucesso.");
     }
 
     public function destroy(Plant $plant)
@@ -121,21 +159,50 @@ class PlantsController extends Controller
 
     public function show(Plant $plant)
     {
-        // Busca a página atual para cada seção
+        // Busca a página atual e parâmetros de ordenação para cada seção
         $areasPage = request()->get('areas_page', 1);
         $sectorsPage = request()->get('sectors_page', 1);
         $equipmentPage = request()->get('equipment_page', 1);
         $perPage = 10;
 
-        // Busca as áreas com paginação
-        $areasQuery = $plant->areas()
-            ->orderBy('name')
-            ->get();
+        // Parâmetros de ordenação para áreas
+        $areasSort = request()->get('areas_sort', 'name');
+        $areasDirection = request()->get('areas_direction', 'asc');
 
-        // Pagina as áreas usando array_slice
-        $allAreas = $areasQuery->all();
+        // Parâmetros de ordenação para setores
+        $sectorsSort = request()->get('sectors_sort', 'name');
+        $sectorsDirection = request()->get('sectors_direction', 'asc');
+
+        // Parâmetros de ordenação para equipamentos
+        $equipmentSort = request()->get('equipment_sort', 'tag');
+        $equipmentDirection = request()->get('equipment_direction', 'asc');
+
+        // Busca as áreas com ordenação
+        $areasQuery = $plant->areas()
+            ->withCount(['equipment' => function ($query) {
+                $query->whereNull('sector_id');
+            }, 'sectors'])
+            ->orderBy('name');
+
+        // Aplica ordenação personalizada para áreas
+        switch ($areasSort) {
+            case 'name':
+                $areasQuery->orderBy('name', $areasDirection);
+                break;
+            case 'equipment_count':
+                $areasQuery->orderBy('equipment_count', $areasDirection);
+                break;
+            case 'sectors_count':
+                $areasQuery->orderBy('sectors_count', $areasDirection);
+                break;
+            default:
+                $areasQuery->orderBy($areasSort, $areasDirection);
+        }
+
+        // Pagina as áreas
+        $allAreas = $areasQuery->get();
         $areasOffset = ($areasPage - 1) * $perPage;
-        $areasItems = array_slice($allAreas, $areasOffset, $perPage);
+        $areasItems = array_slice($allAreas->all(), $areasOffset, $perPage);
         
         $areas = new \Illuminate\Pagination\LengthAwarePaginator(
             collect($areasItems),
@@ -169,9 +236,8 @@ class PlantsController extends Controller
 
         // Busca os setores com suas áreas
         $sectorsQuery = $plant->areas()
-            ->with(['sectors' => function ($query) {
-                $query->withCount('equipment')
-                    ->orderBy('name');
+            ->with(['sectors' => function ($query) use ($sectorsSort, $sectorsDirection) {
+                $query->withCount('equipment');
             }])
             ->get()
             ->pluck('sectors')
@@ -190,7 +256,23 @@ class PlantsController extends Controller
             })
             ->values();
 
-        // Pagina os setores usando array_slice
+        // Aplica ordenação personalizada para setores
+        $sectorsQuery = $sectorsQuery->sort(function ($a, $b) use ($sectorsSort, $sectorsDirection) {
+            $direction = $sectorsDirection === 'asc' ? 1 : -1;
+            
+            switch ($sectorsSort) {
+                case 'name':
+                    return strcmp($a['name'], $b['name']) * $direction;
+                case 'area':
+                    return strcmp($a['area']['name'], $b['area']['name']) * $direction;
+                case 'equipment_count':
+                    return (($a['equipment_count'] ?? 0) - ($b['equipment_count'] ?? 0)) * $direction;
+                default:
+                    return 0;
+            }
+        });
+
+        // Pagina os setores
         $allSectors = $sectorsQuery->all();
         $sectorsOffset = ($sectorsPage - 1) * $perPage;
         $sectorsItems = array_slice($allSectors, $sectorsOffset, $perPage);
@@ -249,10 +331,30 @@ class PlantsController extends Controller
 
                 return $areaEquipment->concat($sectorsEquipment);
             })
-            ->sortBy('tag')
             ->values();
 
-        // Pagina os equipamentos usando array_slice para garantir a paginação correta
+        // Aplica ordenação personalizada para equipamentos
+        $equipmentQuery = $equipmentQuery->sort(function ($a, $b) use ($equipmentSort, $equipmentDirection) {
+            $direction = $equipmentDirection === 'asc' ? 1 : -1;
+            
+            switch ($equipmentSort) {
+                case 'tag':
+                    return strcmp($a['tag'], $b['tag']) * $direction;
+                case 'type':
+                    return strcmp($a['equipment_type']['name'] ?? '', $b['equipment_type']['name'] ?? '') * $direction;
+                case 'location':
+                    return strcmp($a['area_name'] . ($a['sector_name'] ? ' / ' . $a['sector_name'] : ''), 
+                                $b['area_name'] . ($b['sector_name'] ? ' / ' . $b['sector_name'] : '')) * $direction;
+                case 'manufacturer':
+                    return strcmp($a['manufacturer'] ?? '', $b['manufacturer'] ?? '') * $direction;
+                case 'year':
+                    return (($a['manufacturing_year'] ?? 0) - ($b['manufacturing_year'] ?? 0)) * $direction;
+                default:
+                    return 0;
+            }
+        });
+
+        // Pagina os equipamentos
         $allEquipment = $equipmentQuery->all();
         $offset = ($equipmentPage - 1) * $perPage;
         $items = array_slice($allEquipment, $offset, $perPage);
@@ -273,6 +375,20 @@ class PlantsController extends Controller
             'totalSectors' => $totalSectors,
             'totalEquipment' => $totalEquipment,
             'activeTab' => request()->get('tab', 'informacoes'),
+            'filters' => [
+                'areas' => [
+                    'sort' => $areasSort,
+                    'direction' => $areasDirection,
+                ],
+                'sectors' => [
+                    'sort' => $sectorsSort,
+                    'direction' => $sectorsDirection,
+                ],
+                'equipment' => [
+                    'sort' => $equipmentSort,
+                    'direction' => $equipmentDirection,
+                ],
+            ],
         ]);
     }
 } 

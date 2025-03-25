@@ -1,15 +1,17 @@
 import { type BreadcrumbItem, type Equipment } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Cog, Settings } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
-import HeadingSmall from '@/components/heading-small';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -22,122 +24,193 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface EquipmentType {
-    id: number;
-    name: string;
-    description: string;
-    equipment: Equipment[];
-    created_at: string;
-    updated_at: string;
-}
-
 interface Props {
-    equipmentType: EquipmentType;
+    equipmentType: {
+        id: number;
+        name: string;
+        description: string;
+    };
+    equipment: {
+        data: Equipment[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+    activeTab: string;
 }
 
-export default function Show({ equipmentType }: Props) {
+export default function Show({ equipmentType, equipment, activeTab }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Tipo de Equipamento ${equipmentType.name}`} />
 
             <CadastroLayout>
                 <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                        <HeadingSmall 
-                            title={`Tipo de Equipamento ${equipmentType.name}`}
-                            description="Detalhes do tipo de equipamento"
-                        />
-                        <div className="flex gap-2">
-                            <Button variant="outline" asChild>
-                                <Link href={route('cadastro.tipos-equipamento')}>
-                                    <ArrowLeft className="h-4 w-4 mr-2" />
-                                    Voltar
-                                </Link>
-                            </Button>
-                            <Button asChild>
-                                <Link href={route('cadastro.tipos-equipamento.edit', equipmentType.id)}>
-                                    Editar
-                                </Link>
-                            </Button>
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <h1 className="text-3xl font-bold tracking-tight">{equipmentType.name}</h1>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                        <Settings className="h-4 w-4" />
+                                        <span>Tipo de Equipamento</span>
+                                    </div>
+                                    <Separator orientation="vertical" className="h-4" />
+                                    <div className="flex items-center gap-1">
+                                        <Cog className="h-4 w-4" />
+                                        <span>{equipment.total} equipamentos</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button variant="outline" asChild>
+                                    <Link href={route('cadastro.tipos-equipamento')}>
+                                        <ArrowLeft className="h-4 w-4 mr-2" />
+                                        Voltar
+                                    </Link>
+                                </Button>
+                                <Button asChild>
+                                    <Link href={route('cadastro.tipos-equipamento.edit', equipmentType.id)}>
+                                        Editar
+                                    </Link>
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Informações Gerais</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-6">
-                                <div className="grid gap-2">
-                                    <Label>Nome</Label>
-                                    <div className="text-base text-muted-foreground">{equipmentType.name}</div>
-                                </div>
+                    <Tabs defaultValue={activeTab} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="informacoes" asChild>
+                                <Link href={route('cadastro.tipos-equipamento.show', { equipmentType: equipmentType.id, tab: 'informacoes' })}>
+                                    Informações Gerais
+                                </Link>
+                            </TabsTrigger>
+                            <TabsTrigger value="equipamentos" asChild>
+                                <Link href={route('cadastro.tipos-equipamento.show', { equipmentType: equipmentType.id, tab: 'equipamentos' })}>
+                                    Equipamentos
+                                </Link>
+                            </TabsTrigger>
+                        </TabsList>
 
-                                <div className="grid gap-2">
-                                    <Label>Descrição</Label>
-                                    <div className="text-base text-muted-foreground">{equipmentType.description}</div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                        <TabsContent value="informacoes">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Informações Gerais</CardTitle>
+                                    <CardDescription>Informações básicas sobre o tipo de equipamento</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid w-full items-center gap-4">
+                                        <div className="flex flex-col space-y-1.5">
+                                            <Label htmlFor="name">Nome</Label>
+                                            <div className="text-sm text-muted-foreground">{equipmentType.name}</div>
+                                        </div>
+                                        <div className="flex flex-col space-y-1.5">
+                                            <Label htmlFor="description">Descrição</Label>
+                                            <div className="text-sm text-muted-foreground">{equipmentType.description ?? '-'}</div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Equipamentos</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {equipmentType.equipment.length > 0 ? (
-                                <div className="rounded-md border">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>TAG</TableHead>
-                                                <TableHead>Área</TableHead>
-                                                <TableHead>Fabricante</TableHead>
-                                                <TableHead>Ano</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {equipmentType.equipment.map((equipment) => (
-                                                <TableRow 
-                                                    key={equipment.id}
-                                                    className="cursor-pointer hover:bg-muted/50"
-                                                    onClick={() => router.get(route('cadastro.equipamentos.show', equipment.id))}
-                                                >
-                                                    <TableCell>
-                                                        <div>
-                                                            <div className="font-medium">{equipment.tag}</div>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>{equipment.area?.name ?? '-'}</TableCell>
-                                                    <TableCell>{equipment.manufacturer ?? '-'}</TableCell>
-                                                    <TableCell>{equipment.manufacturing_year ?? '-'}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            ) : (
-                                <div className="text-center text-muted-foreground py-6">
-                                    Nenhum equipamento cadastrado deste tipo.
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                        <TabsContent value="equipamentos">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Equipamentos</CardTitle>
+                                    <CardDescription>Lista de equipamentos deste tipo</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {equipment.data.length > 0 ? (
+                                        <div className="rounded-md">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="h-12">TAG</TableHead>
+                                                        <TableHead className="h-12">Área</TableHead>
+                                                        <TableHead className="h-12">Fabricante</TableHead>
+                                                        <TableHead className="h-12">Ano</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {equipment.data.map((equipment) => (
+                                                        <TableRow 
+                                                            key={equipment.id}
+                                                            className="cursor-pointer hover:bg-muted/50 h-12"
+                                                            onClick={() => router.get(route('cadastro.equipamentos.show', equipment.id))}
+                                                        >
+                                                            <TableCell>
+                                                                <div className="font-medium">{equipment.tag}</div>
+                                                            </TableCell>
+                                                            <TableCell className="text-sm text-muted-foreground">
+                                                                {equipment.area?.name ?? '-'}
+                                                            </TableCell>
+                                                            <TableCell className="text-sm text-muted-foreground">
+                                                                {equipment.manufacturer ?? '-'}
+                                                            </TableCell>
+                                                            <TableCell className="text-sm text-muted-foreground">
+                                                                {equipment.manufacturing_year ?? '-'}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    ) : (
+                                        <div className="text-sm text-muted-foreground py-6 text-center">
+                                            Nenhum equipamento cadastrado deste tipo.
+                                        </div>
+                                    )}
+                                    <div className="flex justify-center mt-4">
+                                        <Pagination>
+                                            <PaginationContent>
+                                                <PaginationItem>
+                                                    <PaginationPrevious 
+                                                        href={route('cadastro.tipos-equipamento.show', { 
+                                                            equipmentType: equipmentType.id,
+                                                            equipment_page: equipment.current_page - 1,
+                                                            tab: 'equipamentos'
+                                                        })}
+                                                        className={equipment.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                                    />
+                                                </PaginationItem>
+                                                
+                                                {equipment.data.length > 0 && (() => {
+                                                    const totalPages = Math.ceil(equipment.total / equipment.per_page);
+                                                    return Array.from({ length: totalPages }, (_, i) => i + 1)
+                                                        .map((page) => (
+                                                            <PaginationItem key={`equipment-pagination-${page}`}>
+                                                                <PaginationLink 
+                                                                    href={route('cadastro.tipos-equipamento.show', { 
+                                                                        equipmentType: equipmentType.id,
+                                                                        equipment_page: page,
+                                                                        tab: 'equipamentos'
+                                                                    })}
+                                                                    isActive={page === equipment.current_page}
+                                                                >
+                                                                    {page}
+                                                                </PaginationLink>
+                                                            </PaginationItem>
+                                                        ));
+                                                })()}
 
-                    <div className="flex items-center gap-4">
-                        <Button asChild>
-                            <Link href={route('cadastro.tipos-equipamento.edit', equipmentType.id)}>
-                                Editar Tipo de Equipamento
-                            </Link>
-                        </Button>
-                        <Button variant="outline" asChild>
-                            <Link href={route('cadastro.tipos-equipamento')}>
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Voltar
-                            </Link>
-                        </Button>
-                    </div>
+                                                <PaginationItem>
+                                                    <PaginationNext 
+                                                        href={route('cadastro.tipos-equipamento.show', { 
+                                                            equipmentType: equipmentType.id,
+                                                            equipment_page: equipment.current_page + 1,
+                                                            tab: 'equipamentos'
+                                                        })}
+                                                        className={!equipment.data.length || equipment.current_page >= Math.ceil(equipment.total / equipment.per_page) ? 'pointer-events-none opacity-50' : ''}
+                                                    />
+                                                </PaginationItem>
+                                            </PaginationContent>
+                                        </Pagination>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
                 </div>
             </CadastroLayout>
         </AppLayout>

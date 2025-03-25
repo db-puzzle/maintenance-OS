@@ -31,6 +31,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Area {
     id: number;
     name: string;
+    description: string | null;
     plant_id: number | null;
     plant: {
         id: number;
@@ -45,7 +46,7 @@ interface Area {
 interface Equipment {
     id: number;
     tag: string;
-    name: string;
+    description: string | null;
 }
 
 interface Dependencies {
@@ -54,6 +55,10 @@ interface Dependencies {
         equipment: {
             total: number;
             items: Equipment[];
+        };
+        sectors: {
+            total: number;
+            items: { id: number; name: string; }[];
         };
     };
 }
@@ -94,15 +99,12 @@ export default function Areas({ areas, filters }: Props) {
 
     useEffect(() => {
         const searchTimeout = setTimeout(() => {
-            console.log('Fazendo requisição com parâmetros:', { 
-                search,
-                page: areas.current_page
-            });
-            
             router.get(
                 route('cadastro.areas'),
                 { 
                     search,
+                    sort: filters.sort,
+                    direction: filters.direction,
                     page: areas.current_page
                 },
                 { preserveState: true, preserveScroll: true }
@@ -110,7 +112,7 @@ export default function Areas({ areas, filters }: Props) {
         }, 300);
 
         return () => clearTimeout(searchTimeout);
-    }, [search]);
+    }, [search, filters.sort, filters.direction]);
 
     const handleDelete = (area: Area) => {
         setIsDeleting(true);
@@ -167,7 +169,7 @@ export default function Areas({ areas, filters }: Props) {
                 search,
                 sort: column,
                 direction,
-                page: areas.current_page
+                page: 1
             },
             { preserveState: true }
         );
@@ -212,7 +214,7 @@ export default function Areas({ areas, filters }: Props) {
                         </Button>
                     </div>
 
-                    <div className="rounded-md border w-full">
+                    <div className="rounded-md w-full">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -266,10 +268,19 @@ export default function Areas({ areas, filters }: Props) {
                                         className="cursor-pointer hover:bg-muted/50"
                                         onClick={() => router.get(route('cadastro.areas.show', area.id))}
                                     >
-                                        <TableCell>{area.name}</TableCell>
+                                        <TableCell>
+                                            <div>
+                                                <div className="font-medium">{area.name}</div>
+                                                {area.description && (
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {area.description}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>{area.plant?.name || '-'}</TableCell>
-                                        <TableCell className="w-[250px] text-center">{area.equipment_count}</TableCell>
-                                        <TableCell className="w-[250px] text-center">{area.sectors_count}</TableCell>
+                                        <TableCell className="text-center">{area.equipment_count}</TableCell>
+                                        <TableCell className="text-center">{area.sectors_count}</TableCell>
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button variant="ghost" size="icon" asChild>
@@ -340,54 +351,69 @@ export default function Areas({ areas, filters }: Props) {
                             </PaginationContent>
                         </Pagination>
                     </div>
-
-                    <div className="font-medium text-sm">
-                        Total de Equipamentos Vinculados: {dependencies?.dependencies?.equipment?.total ?? 0}
-                    </div>
-
-                    {dependencies?.dependencies?.equipment?.items && dependencies.dependencies.equipment.items.length > 0 && (
-                        <div>
-                            <h4 className="font-medium">Equipamentos ({dependencies?.dependencies?.equipment?.total ?? 0})</h4>
-                            <ul className="list-disc list-inside">
-                                {dependencies?.dependencies?.equipment?.items.map((equipment) => (
-                                    <li key={equipment.id}>
-                                        <Link 
-                                            href={route('cadastro.equipment.show', equipment.id)}
-                                            className="text-primary hover:underline"
-                                        >
-                                            {equipment.tag} - {equipment.name}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
                 </div>
             </CadastroLayout>
 
             {/* Diálogo de Dependências */}
             <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
-                <DialogContent>
-                    <DialogTitle>Não é possível excluir a área</DialogTitle>
-                    <DialogDescription>
-                        A área {selectedArea?.name} possui as seguintes dependências:
-                    </DialogDescription>
-                    <div className="space-y-4">
-                        {dependencies?.dependencies?.equipment?.total > 0 && (
-                            <div>
-                                <h4 className="font-medium">Equipamentos ({dependencies?.dependencies?.equipment?.total})</h4>
-                                <ul className="list-disc list-inside">
-                                    {dependencies?.dependencies?.equipment?.items.map((equipment) => (
-                                        <li key={equipment.id}>{equipment.tag} - {equipment.name}</li>
-                                    ))}
-                                </ul>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogTitle>Não é possível excluir esta área</DialogTitle>
+                    <DialogDescription asChild>
+                        <div className="space-y-6">
+                            <div className="text-sm">
+                                Esta área possui equipamento(s) e/ou setor(es) vinculado(s) e não pode ser excluída até que todos sejam removidos ou movidos para outra área.
                             </div>
-                        )}
-                    </div>
+                            
+                            <div className="space-y-6">
+                                {dependencies?.dependencies?.equipment?.total && dependencies.dependencies.equipment.total > 0 && (
+                                    <div>
+                                        <div className="font-medium text-sm">
+                                            Total de Equipamentos Vinculados: {dependencies.dependencies.equipment.total}
+                                        </div>
+                                        <ul className="list-disc list-inside space-y-2 text-sm">
+                                            {dependencies.dependencies.equipment.items.map(equipment => (
+                                                <li key={equipment.id}>
+                                                    <Link
+                                                        href={route('cadastro.equipamentos.show', equipment.id)}
+                                                        className="text-primary hover:underline"
+                                                    >
+                                                        {equipment.tag}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {dependencies?.dependencies?.sectors?.total && dependencies.dependencies.sectors.total > 0 && (
+                                    <div>
+                                        <div className="font-medium text-sm">
+                                            Total de Setores Vinculados: {dependencies.dependencies.sectors.total}
+                                        </div>
+                                        <ul className="list-disc list-inside space-y-2 text-sm">
+                                            {dependencies.dependencies.sectors.items.map(sector => (
+                                                <li key={sector.id}>
+                                                    <Link
+                                                        href={route('cadastro.setores.show', sector.id)}
+                                                        className="text-primary hover:underline"
+                                                    >
+                                                        {sector.name}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </DialogDescription>
                     <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="secondary">Fechar</Button>
-                        </DialogClose>
+                        <Button 
+                            variant="secondary" 
+                            onClick={() => setShowDependenciesDialog(false)}
+                        >
+                            Fechar
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

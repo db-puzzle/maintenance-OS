@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type Sector } from '@/types';
+import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
@@ -62,11 +62,48 @@ interface PageProps {
     };
 }
 
+interface Sector {
+    id: number;
+    name: string;
+    description: string | null;
+    area: {
+        id: number;
+        name: string;
+        plant: {
+            id: number;
+            name: string;
+        };
+    };
+    equipment_count: number;
+    created_at: string;
+    updated_at: string;
+}
+
+interface Equipment {
+    id: number;
+    tag: string;
+    description: string | null;
+}
+
+interface Dependencies {
+    can_delete: boolean;
+    dependencies: {
+        equipment: {
+            total: number;
+            items: Equipment[];
+        };
+    };
+}
+
 export default function SectorIndex({ sectors, filters }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
     const [search, setSearch] = useState(filters.search || '');
+    const [dependencies, setDependencies] = useState<Dependencies | null>(null);
+    const [isCheckingDependencies, setIsCheckingDependencies] = useState(false);
+    const [showDependenciesDialog, setShowDependenciesDialog] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const page = usePage<PageProps>();
     const flash = page.props.flash;
 
@@ -84,6 +121,8 @@ export default function SectorIndex({ sectors, filters }: Props) {
                 route('cadastro.setores'),
                 { 
                     search,
+                    sort: filters.sort,
+                    direction: filters.direction,
                     page: sectors.current_page
                 },
                 { preserveState: true, preserveScroll: true }
@@ -91,23 +130,24 @@ export default function SectorIndex({ sectors, filters }: Props) {
         }, 300);
 
         return () => clearTimeout(searchTimeout);
-    }, [search]);
+    }, [search, filters.sort, filters.direction]);
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         setIsDeleting(true);
+        
         router.delete(route('cadastro.setores.destroy', id), {
-            onFinish: () => {
+            onSuccess: (response) => {
                 setIsDeleting(false);
-                setSelectedSector(null);
+                setShowDeleteDialog(false);
                 setConfirmationText('');
             },
             onError: (errors) => {
-                setIsDeleting(false);
-                setSelectedSector(null);
-                setConfirmationText('');
                 toast.error("Erro ao excluir setor", {
-                    description: errors.message || 'Não foi possível excluir o setor.',
+                    description: errors.message || "Ocorreu um erro ao excluir o setor.",
                 });
+                setIsDeleting(false);
+                setShowDeleteDialog(false);
+                setConfirmationText('');
             },
         });
     };
@@ -123,7 +163,7 @@ export default function SectorIndex({ sectors, filters }: Props) {
                 search,
                 sort: column,
                 direction,
-                page: sectors.current_page
+                page: 1
             },
             { preserveState: true }
         );
@@ -136,6 +176,29 @@ export default function SectorIndex({ sectors, filters }: Props) {
         return filters.direction === 'asc' ? 
             <ArrowUp className="h-4 w-4" /> : 
             <ArrowDown className="h-4 w-4" />;
+    };
+
+    const checkDependencies = async (sector: Sector) => {
+        setIsCheckingDependencies(true);
+        setSelectedSector(sector);
+        
+        try {
+            const response = await fetch(route('cadastro.setores.check-dependencies', sector.id));
+            const data = await response.json();
+            setDependencies(data);
+            
+            if (data.can_delete) {
+                setShowDeleteDialog(true);
+            } else {
+                setShowDependenciesDialog(true);
+            }
+        } catch (error) {
+            toast.error("Erro ao verificar dependências", {
+                description: "Não foi possível verificar as dependências do setor.",
+            });
+        } finally {
+            setIsCheckingDependencies(false);
+        }
     };
 
     return (
@@ -168,7 +231,7 @@ export default function SectorIndex({ sectors, filters }: Props) {
                         </Button>
                     </div>
 
-                    <div className="rounded-md border w-full">
+                    <div className="rounded-md w-full">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -223,11 +286,20 @@ export default function SectorIndex({ sectors, filters }: Props) {
                                         className="cursor-pointer hover:bg-muted/50"
                                         onClick={() => router.get(route('cadastro.setores.show', sector.id))}
                                     >
-                                        <TableCell>{sector.name}</TableCell>
-                                        <TableCell>{sector.area.name}</TableCell>
-                                        <TableCell>{sector.area.plant.name}</TableCell>
+                                        <TableCell>
+                                            <div>
+                                                <div className="font-medium">{sector.name}</div>
+                                                {sector.description && (
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {sector.description}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{sector.area?.name}</TableCell>
+                                        <TableCell>{sector.area?.plant?.name}</TableCell>
                                         <TableCell>{sector.description ?? '-'}</TableCell>
-                                        <TableCell>{sector.equipment_count ?? 0}</TableCell>
+                                        <TableCell className="text-center">{sector.equipment_count ?? 0}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
                                                 <Button 
@@ -247,49 +319,13 @@ export default function SectorIndex({ sectors, filters }: Props) {
                                                             size="icon"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                setSelectedSector(sector);
+                                                                checkDependencies(sector);
                                                             }}
+                                                            disabled={isCheckingDependencies}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </DialogTrigger>
-                                                    <DialogContent>
-                                                        <DialogTitle>Você tem certeza que deseja excluir este setor?</DialogTitle>
-                                                        <DialogDescription>
-                                                            Uma vez que o setor for excluído, todos os seus recursos e dados serão permanentemente excluídos. 
-                                                            Esta ação não pode ser desfeita.
-                                                        </DialogDescription>
-                                                        <div className="grid gap-2 py-4">
-                                                            <Label htmlFor="confirmation" className="sr-only">
-                                                                Confirmação
-                                                            </Label>
-                                                            <Input
-                                                                id="confirmation"
-                                                                type="text"
-                                                                value={confirmationText}
-                                                                onChange={(e) => setConfirmationText(e.target.value)}
-                                                                placeholder="Digite EXCLUIR para confirmar"
-                                                                autoComplete="off"
-                                                            />
-                                                        </div>
-                                                        <DialogFooter className="gap-2">
-                                                            <DialogClose asChild>
-                                                                <Button 
-                                                                    variant="secondary"
-                                                                    onClick={() => setConfirmationText('')}
-                                                                >
-                                                                    Cancelar
-                                                                </Button>
-                                                            </DialogClose>
-                                                            <Button 
-                                                                variant="destructive" 
-                                                                disabled={isDeleting || !isConfirmationValid}
-                                                                onClick={() => selectedSector && handleDelete(selectedSector.id)}
-                                                            >
-                                                                {isDeleting ? 'Excluindo...' : 'Excluir setor'}
-                                                            </Button>
-                                                        </DialogFooter>
-                                                    </DialogContent>
                                                 </Dialog>
                                             </div>
                                         </TableCell>
@@ -317,7 +353,9 @@ export default function SectorIndex({ sectors, filters }: Props) {
                                     <PaginationPrevious 
                                         href={route('cadastro.setores', { 
                                             page: sectors.current_page - 1,
-                                            search: search 
+                                            search,
+                                            sort: filters.sort,
+                                            direction: filters.direction
                                         })}
                                         className={sectors.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                     />
@@ -328,7 +366,9 @@ export default function SectorIndex({ sectors, filters }: Props) {
                                         <PaginationLink 
                                             href={route('cadastro.setores', { 
                                                 page,
-                                                search: search
+                                                search,
+                                                sort: filters.sort,
+                                                direction: filters.direction
                                             })}
                                             isActive={page === sectors.current_page}
                                         >
@@ -341,7 +381,9 @@ export default function SectorIndex({ sectors, filters }: Props) {
                                     <PaginationNext 
                                         href={route('cadastro.setores', { 
                                             page: sectors.current_page + 1,
-                                            search: search
+                                            search,
+                                            sort: filters.sort,
+                                            direction: filters.direction
                                         })}
                                         className={sectors.current_page === sectors.last_page ? 'pointer-events-none opacity-50' : ''}
                                     />
@@ -351,6 +393,92 @@ export default function SectorIndex({ sectors, filters }: Props) {
                     </div>
                 </div>
             </CadastroLayout>
+
+            {/* Diálogo de Dependências */}
+            <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogTitle>Não é possível excluir este setor</DialogTitle>
+                    <DialogDescription asChild>
+                        <div className="space-y-6">
+                            <div className="text-sm">
+                                Este setor possui equipamento(s) vinculado(s) e não pode ser excluído até que todos sejam removidos ou movidos para outro setor.
+                            </div>
+                            
+                            <div className="space-y-6">
+                                {dependencies?.dependencies?.equipment?.total && dependencies.dependencies.equipment.total > 0 && (
+                                    <div>
+                                        <div className="font-medium text-sm">
+                                            Total de Equipamentos Vinculados: {dependencies.dependencies.equipment.total}
+                                        </div>
+                                        <ul className="list-disc list-inside space-y-2 text-sm">
+                                            {dependencies.dependencies.equipment.items.map(equipment => (
+                                                <li key={equipment.id}>
+                                                    <Link
+                                                        href={route('cadastro.equipamentos.show', equipment.id)}
+                                                        className="text-primary hover:underline"
+                                                    >
+                                                        {equipment.tag}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </DialogDescription>
+                    <DialogFooter>
+                        <Button 
+                            variant="secondary" 
+                            onClick={() => setShowDependenciesDialog(false)}
+                        >
+                            Fechar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Diálogo de Confirmação de Exclusão */}
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogContent>
+                    <DialogTitle>Você tem certeza que deseja excluir este setor?</DialogTitle>
+                    <DialogDescription>
+                        Uma vez que o setor for excluído, todos os seus recursos e dados serão permanentemente excluídos. 
+                        Esta ação não pode ser desfeita.
+                    </DialogDescription>
+                    <div className="grid gap-2 py-4">
+                        <Label htmlFor="confirmation" className="sr-only">
+                            Confirmação
+                        </Label>
+                        <Input
+                            id="confirmation"
+                            type="text"
+                            value={confirmationText}
+                            onChange={(e) => setConfirmationText(e.target.value)}
+                            placeholder="Digite EXCLUIR para confirmar"
+                            autoComplete="off"
+                        />
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button 
+                            variant="secondary"
+                            onClick={() => {
+                                setShowDeleteDialog(false);
+                                setConfirmationText('');
+                            }}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            disabled={isDeleting || !isConfirmationValid}
+                            onClick={() => selectedSector && handleDelete(selectedSector.id)}
+                        >
+                            {isDeleting ? 'Excluindo...' : 'Excluir setor'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 } 

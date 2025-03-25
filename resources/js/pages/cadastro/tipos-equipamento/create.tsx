@@ -10,6 +10,7 @@ import InputError from '@/components/input-error';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
+import { toast } from "sonner";
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -36,7 +37,13 @@ export default function CreateEquipmentType() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('cadastro.tipos-equipamento.store'));
+        post(route('cadastro.tipos-equipamento.store'), {
+            onError: (errors) => {
+                toast.error("Erro ao criar tipo de equipamento", {
+                    description: "Verifique os campos e tente novamente."
+                });
+            }
+        });
     };
 
     return (
@@ -82,14 +89,14 @@ export default function CreateEquipmentType() {
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-4">
+                        <div className="flex justify-start gap-4">
+                            <Button type="submit" disabled={processing}>
+                                {processing ? 'Salvando...' : 'Salvar'}
+                            </Button>
                             <Button variant="outline" asChild>
                                 <Link href={route('cadastro.tipos-equipamento')}>
                                     Cancelar
                                 </Link>
-                            </Button>
-                            <Button type="submit" disabled={processing}>
-                                {processing ? 'Criando...' : 'Criar Tipo de Equipamento'}
                             </Button>
                         </div>
                     </form>
