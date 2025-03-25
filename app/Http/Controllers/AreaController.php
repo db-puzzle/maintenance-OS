@@ -92,22 +92,68 @@ class AreaController extends Controller
      */
     public function show(Area $area)
     {
-        $area->load(['plant', 'equipment.equipmentType', 'sectors' => function ($query) {
-            $query->withCount('equipment');
-        }]);
+        // Carrega explicitamente o relacionamento com a planta
+        $area->load('plant');
+
+        $sectorsPage = request()->get('sectors_page', 1);
+        $equipmentPage = request()->get('equipment_page', 1);
+        $perPage = 10;
+
+        // Busca os setores com contagem de equipamentos
+        $sectorsQuery = $area->sectors()
+            ->withCount('equipment')
+            ->orderBy('name')
+            ->get();
+
+        // Pagina os setores usando array_slice
+        $allSectors = $sectorsQuery->all();
+        $sectorsOffset = ($sectorsPage - 1) * $perPage;
+        $sectorsItems = array_slice($allSectors, $sectorsOffset, $perPage);
         
-        // Conta equipamentos diretos da área
-        $directEquipmentCount = $area->equipment()->count();
+        $sectors = new \Illuminate\Pagination\LengthAwarePaginator(
+            collect($sectorsItems),
+            count($allSectors),
+            $perPage,
+            $sectorsPage,
+            ['path' => request()->url(), 'pageName' => 'sectors_page']
+        );
+
+        // Busca os equipamentos
+        $equipmentQuery = $area->equipment()
+            ->with('equipmentType')
+            ->orderBy('tag')
+            ->get();
+
+        // Pagina os equipamentos usando array_slice
+        $allEquipment = $equipmentQuery->all();
+        $equipmentOffset = ($equipmentPage - 1) * $perPage;
+        $equipmentItems = array_slice($allEquipment, $equipmentOffset, $perPage);
         
-        // Conta equipamentos dos setores
-        $sectorsEquipmentCount = $area->sectors()->withCount('equipment')->get()->sum('equipment_count');
-        
-        // Total de equipamentos
-        $totalEquipmentCount = $directEquipmentCount + $sectorsEquipmentCount;
+        $equipment = new \Illuminate\Pagination\LengthAwarePaginator(
+            collect($equipmentItems),
+            count($allEquipment),
+            $perPage,
+            $equipmentPage,
+            ['path' => request()->url(), 'pageName' => 'equipment_page']
+        );
+
+        // Conta o total de equipamentos (incluindo os dos setores)
+        $totalEquipmentCount = $area->equipment()->count() + 
+            $area->sectors()->withCount('equipment')->get()->sum('equipment_count');
 
         return Inertia::render('cadastro/areas/show', [
-            'area' => $area,
-            'totalEquipmentCount' => $totalEquipmentCount
+            'area' => [
+                'id' => $area->id,
+                'name' => $area->name,
+                'plant' => [
+                    'id' => $area->plant->id,
+                    'name' => $area->plant->name,
+                ],
+            ],
+            'sectors' => $sectors,
+            'equipment' => $equipment,
+            'totalEquipmentCount' => $totalEquipmentCount,
+            'activeTab' => request()->get('tab', 'informacoes'),
         ]);
     }
 

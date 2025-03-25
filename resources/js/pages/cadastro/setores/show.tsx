@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
@@ -40,10 +41,30 @@ interface Sector {
 }
 
 interface Props {
-    sector: Sector;
+    sector: {
+        id: number;
+        name: string;
+        description: string | null;
+        area: {
+            id: number;
+            name: string;
+            plant: {
+                id: number;
+                name: string;
+            };
+        };
+    };
+    equipment: {
+        data: Equipment[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+    activeTab: string;
 }
 
-export default function Show({ sector }: Props) {
+export default function Show({ sector, equipment, activeTab }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Setor ${sector.name}`} />
@@ -67,7 +88,7 @@ export default function Show({ sector }: Props) {
                                     <Separator orientation="vertical" className="h-4" />
                                     <div className="flex items-center gap-1">
                                         <Cog className="h-4 w-4" />
-                                        <span>{sector.equipment.length} equipamentos</span>
+                                        <span>{equipment.total} equipamentos</span>
                                     </div>
                                 </div>
                             </div>
@@ -87,10 +108,14 @@ export default function Show({ sector }: Props) {
                         </div>
                     </div>
 
-                    <Tabs defaultValue="informacoes" className="w-full">
+                    <Tabs defaultValue={activeTab} className="w-full">
                         <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="informacoes">Informações Gerais</TabsTrigger>
-                            <TabsTrigger value="equipamentos">Equipamentos</TabsTrigger>
+                            <TabsTrigger value="informacoes" asChild>
+                                <Link href={route('cadastro.setores.show', { setor: sector.id, tab: 'informacoes' })}>Informações Gerais</Link>
+                            </TabsTrigger>
+                            <TabsTrigger value="equipamentos" asChild>
+                                <Link href={route('cadastro.setores.show', { setor: sector.id, tab: 'equipamentos' })}>Equipamentos</Link>
+                            </TabsTrigger>
                         </TabsList>
                         
                         <TabsContent value="informacoes">
@@ -129,7 +154,7 @@ export default function Show({ sector }: Props) {
                                     <CardDescription>Lista de equipamentos vinculados a este setor</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    {sector.equipment.length > 0 ? (
+                                    {equipment.data.length > 0 ? (
                                         <div className="rounded-md border">
                                             <Table>
                                                 <TableHeader>
@@ -141,7 +166,7 @@ export default function Show({ sector }: Props) {
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {sector.equipment.map((equipment) => (
+                                                    {equipment.data.map((equipment) => (
                                                         <TableRow 
                                                             key={equipment.id}
                                                             className="cursor-pointer hover:bg-muted/50"
@@ -169,6 +194,52 @@ export default function Show({ sector }: Props) {
                                             Nenhum equipamento cadastrado neste setor.
                                         </div>
                                     )}
+                                    <div className="flex justify-center mt-4">
+                                        <Pagination>
+                                            <PaginationContent>
+                                                <PaginationItem>
+                                                    <PaginationPrevious 
+                                                        href={route('cadastro.setores.show', { 
+                                                            setor: sector.id,
+                                                            equipment_page: equipment.current_page - 1,
+                                                            tab: 'equipamentos'
+                                                        })}
+                                                        className={equipment.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                                    />
+                                                </PaginationItem>
+                                                
+                                                {equipment.data.length > 0 && (() => {
+                                                    const totalPages = Math.ceil(equipment.total / equipment.per_page);
+                                                    return Array.from({ length: totalPages }, (_, i) => i + 1)
+                                                        .map((page) => (
+                                                            <PaginationItem key={`equipment-pagination-${page}`}>
+                                                                <PaginationLink 
+                                                                    href={route('cadastro.setores.show', { 
+                                                                        setor: sector.id,
+                                                                        equipment_page: page,
+                                                                        tab: 'equipamentos'
+                                                                    })}
+                                                                    isActive={page === equipment.current_page}
+                                                                >
+                                                                    {page}
+                                                                </PaginationLink>
+                                                            </PaginationItem>
+                                                        ));
+                                                })()}
+
+                                                <PaginationItem>
+                                                    <PaginationNext 
+                                                        href={route('cadastro.setores.show', { 
+                                                            setor: sector.id,
+                                                            equipment_page: equipment.current_page + 1,
+                                                            tab: 'equipamentos'
+                                                        })}
+                                                        className={!equipment.data.length || equipment.current_page >= Math.ceil(equipment.total / equipment.per_page) ? 'pointer-events-none opacity-50' : ''}
+                                                    />
+                                                </PaginationItem>
+                                            </PaginationContent>
+                                        </Pagination>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </TabsContent>

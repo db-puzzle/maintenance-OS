@@ -93,8 +93,35 @@ class SectorController extends Controller
 
     public function show(Sector $setor)
     {
+        $setor->load(['area.plant']);
+        
+        // Busca a página atual para equipamentos
+        $equipmentPage = request()->get('equipment_page', 1);
+        $perPage = 10;
+
+        // Busca os equipamentos
+        $equipmentQuery = $setor->equipment()
+            ->with('equipmentType')
+            ->orderBy('tag')
+            ->get();
+
+        // Pagina os equipamentos usando array_slice
+        $allEquipment = $equipmentQuery->all();
+        $equipmentOffset = ($equipmentPage - 1) * $perPage;
+        $equipmentItems = array_slice($allEquipment, $equipmentOffset, $perPage);
+        
+        $equipment = new \Illuminate\Pagination\LengthAwarePaginator(
+            collect($equipmentItems),
+            count($allEquipment),
+            $perPage,
+            $equipmentPage,
+            ['path' => request()->url(), 'pageName' => 'equipment_page']
+        );
+
         return Inertia::render('cadastro/setores/show', [
-            'sector' => $setor->load(['area.plant', 'equipment.equipmentType'])
+            'sector' => $setor,
+            'equipment' => $equipment,
+            'activeTab' => request()->get('tab', 'informacoes'),
         ]);
     }
 
