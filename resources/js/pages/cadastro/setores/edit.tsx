@@ -47,7 +47,6 @@ interface Props {
 export default function EditSector({ sector, plants }: Props) {
     const { data, setData, put, processing, errors } = useForm<SectorForm>({
         name: sector.name,
-        description: sector.description || '',
         area_id: sector.area_id.toString(),
     });
 
@@ -100,18 +99,6 @@ export default function EditSector({ sector, plants }: Props) {
                                 <InputError message={errors.name} />
                             </div>
 
-                            {/* Descrição */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="description">Descrição</Label>
-                                <Textarea
-                                    id="description"
-                                    value={data.description}
-                                    onChange={(e) => setData('description', e.target.value)}
-                                    placeholder="Descrição do setor"
-                                />
-                                <InputError message={errors.description} />
-                            </div>
-
                             {/* Planta */}
                             <div className="grid gap-2">
                                 <Label htmlFor="plant" className="flex items-center gap-1">
@@ -126,7 +113,7 @@ export default function EditSector({ sector, plants }: Props) {
                                         setData('area_id', '');
                                     }}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger id="plant">
                                         <SelectValue placeholder="Selecione uma planta" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -150,7 +137,7 @@ export default function EditSector({ sector, plants }: Props) {
                                     onValueChange={(value) => setData('area_id', value)}
                                     disabled={!selectedPlant}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger id="area_id">
                                         <SelectValue placeholder={
                                             !selectedPlant 
                                                 ? "Selecione uma planta primeiro" 

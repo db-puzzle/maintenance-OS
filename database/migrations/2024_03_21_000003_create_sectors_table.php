@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('sectors', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description')->nullable();
             $table->foreignId('area_id')->constrained('areas')->onDelete('restrict');
             $table->timestamps();
         });

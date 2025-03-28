@@ -6,6 +6,7 @@ use App\Models\Equipment;
 use App\Models\EquipmentType;
 use App\Models\Sector;
 use App\Models\Area;
+use App\Models\Plant;
 use Illuminate\Database\Seeder;
 
 class EquipmentSeeder extends Seeder
@@ -29,15 +30,33 @@ class EquipmentSeeder extends Seeder
         $elevadorType = EquipmentType::where('name', 'Elevador')->first();
         $esteiraType = EquipmentType::where('name', 'Esteira Transportadora')->first();
 
-        // Obtém as áreas e setores
+        // Obtém as plantas, áreas e setores
+        $plants = Plant::all();
         $areas = Area::all();
         $sectors = Sector::all();
 
-        if (!$bombType || !$motorType || !$valveType || $areas->isEmpty() || $sectors->isEmpty()) {
-            throw new \Exception('Tipos de equipamento, áreas ou setores não encontrados. Execute os seeders anteriores primeiro.');
+        if (!$bombType || !$motorType || !$valveType || $plants->isEmpty() || $areas->isEmpty() || $sectors->isEmpty()) {
+            throw new \Exception('Tipos de equipamento, plantas, áreas ou setores não encontrados. Execute os seeders anteriores primeiro.');
         }
 
+        // Obtém a primeira planta como padrão
+        $defaultPlant = $plants->first();
+        $plant2 = $plants->where('name', 'Planta 2')->first();
+
+        // Função auxiliar para validar área e setor
+        $validateAreaAndSector = function ($area, $sector, $plant) {
+            if ($area && $area->plant_id !== $plant->id) {
+                throw new \Exception("A área {$area->name} não pertence à planta {$plant->name}");
+            }
+            if ($sector && $sector->area->plant_id !== $plant->id) {
+                throw new \Exception("O setor {$sector->name} não pertence à planta {$plant->name}");
+            }
+        };
+
         // Equipamentos com área e setor
+        $areaProducao = $areas->where('name', 'Produção')->first();
+        $sectorLinha1 = $sectors->where('name', 'Linha 1')->first();
+        $validateAreaAndSector($areaProducao, $sectorLinha1, $defaultPlant);
         Equipment::create([
             'tag' => 'BOMB001',
             'serial_number' => 'SN-B001-2020',
@@ -45,10 +64,14 @@ class EquipmentSeeder extends Seeder
             'description' => 'Bomba centrífuga de alta pressão',
             'manufacturer' => 'WEG',
             'manufacturing_year' => 2020,
-            'area_id' => $areas->where('name', 'Produção')->first()->id,
-            'sector_id' => $sectors->where('name', 'Linha 1')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaProducao->id,
+            'sector_id' => $sectorLinha1->id
         ]);
 
+        $areaManutencao = $areas->where('name', 'Manutenção')->first();
+        $sectorMecanica = $sectors->where('name', 'Mecânica')->first();
+        $validateAreaAndSector($areaManutencao, $sectorMecanica, $defaultPlant);
         Equipment::create([
             'tag' => 'MOTR002',
             'serial_number' => 'SN-M002-2021',
@@ -56,11 +79,14 @@ class EquipmentSeeder extends Seeder
             'description' => 'Motor elétrico trifásico',
             'manufacturer' => 'ABB',
             'manufacturing_year' => 2021,
-            'area_id' => $areas->where('name', 'Manutenção')->first()->id,
-            'sector_id' => $sectors->where('name', 'Mecânica')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaManutencao->id,
+            'sector_id' => $sectorMecanica->id
         ]);
 
         // Equipamentos apenas com área
+        $areaUtilidades = $areas->where('name', 'Utilidades')->first();
+        $validateAreaAndSector($areaUtilidades, null, $defaultPlant);
         Equipment::create([
             'tag' => 'VALV003',
             'serial_number' => 'SN-V003-2019',
@@ -68,9 +94,11 @@ class EquipmentSeeder extends Seeder
             'description' => 'Válvula de controle pneumática',
             'manufacturer' => 'Emerson',
             'manufacturing_year' => 2019,
-            'area_id' => $areas->where('name', 'Utilidades')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaUtilidades->id
         ]);
 
+        $validateAreaAndSector($areaUtilidades, null, $defaultPlant);
         Equipment::create([
             'tag' => 'BOMB004',
             'serial_number' => 'SN-B004-2022',
@@ -78,10 +106,14 @@ class EquipmentSeeder extends Seeder
             'description' => 'Bomba de água de resfriamento',
             'manufacturer' => 'KSB',
             'manufacturing_year' => 2022,
-            'area_id' => $areas->where('name', 'Utilidades')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaUtilidades->id
         ]);
 
         // Equipamentos para a planta 2
+        $areaProducao2 = $areas->where('name', 'Produção 2')->first();
+        $sectorLinha3 = $sectors->where('name', 'Linha 3')->first();
+        $validateAreaAndSector($areaProducao2, $sectorLinha3, $plant2);
         Equipment::create([
             'tag' => 'MOTR005',
             'serial_number' => 'SN-M005-2023',
@@ -89,11 +121,14 @@ class EquipmentSeeder extends Seeder
             'description' => 'Motor de alta potência',
             'manufacturer' => 'Siemens',
             'manufacturing_year' => 2023,
-            'area_id' => $areas->where('name', 'Produção 2')->first()->id,
-            'sector_id' => $sectors->where('name', 'Linha 3')->first()->id
+            'plant_id' => $plant2->id,
+            'area_id' => $areaProducao2->id,
+            'sector_id' => $sectorLinha3->id
         ]);
 
         // Equipamentos para área de qualidade
+        $areaQualidade = $areas->where('name', 'Qualidade')->first();
+        $validateAreaAndSector($areaQualidade, null, $defaultPlant);
         Equipment::create([
             'tag' => 'VALV006',
             'serial_number' => 'SN-V006-2021',
@@ -101,10 +136,13 @@ class EquipmentSeeder extends Seeder
             'description' => 'Válvula de amostragem',
             'manufacturer' => 'Fisher',
             'manufacturing_year' => 2021,
-            'area_id' => $areas->where('name', 'Qualidade')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaQualidade->id
         ]);
 
         // Equipamentos para área de logística
+        $areaLogistica = $areas->where('name', 'Logística')->first();
+        $validateAreaAndSector($areaLogistica, null, $defaultPlant);
         Equipment::create([
             'tag' => 'BOMB007',
             'serial_number' => 'SN-B007-2020',
@@ -112,10 +150,13 @@ class EquipmentSeeder extends Seeder
             'description' => 'Bomba de transferência',
             'manufacturer' => 'Grundfos',
             'manufacturing_year' => 2020,
-            'area_id' => $areas->where('name', 'Logística')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaLogistica->id
         ]);
 
         // Equipamento para área de manutenção 2 (vazia para testes)
+        $areaManutencao2 = $areas->where('name', 'Manutenção 2')->first();
+        $validateAreaAndSector($areaManutencao2, null, $plant2);
         Equipment::create([
             'tag' => 'MOTR008',
             'serial_number' => 'SN-M008-2022',
@@ -123,10 +164,13 @@ class EquipmentSeeder extends Seeder
             'description' => 'Motor de reserva',
             'manufacturer' => 'WEG',
             'manufacturing_year' => 2022,
-            'area_id' => $areas->where('name', 'Manutenção 2')->first()->id
+            'plant_id' => $plant2->id,
+            'area_id' => $areaManutencao2->id
         ]);
 
         // Novos equipamentos
+        $sectorArComprimido = $sectors->where('name', 'Ar Comprimido')->first();
+        $validateAreaAndSector($areaUtilidades, $sectorArComprimido, $defaultPlant);
         Equipment::create([
             'tag' => 'COMP009',
             'serial_number' => 'SN-C009-2023',
@@ -134,10 +178,12 @@ class EquipmentSeeder extends Seeder
             'description' => 'Compressor de ar industrial de alta pressão',
             'manufacturer' => 'Atlas Copco',
             'manufacturing_year' => 2023,
-            'area_id' => $areas->where('name', 'Utilidades')->first()->id,
-            'sector_id' => $sectors->where('name', 'Ar Comprimido')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaUtilidades->id,
+            'sector_id' => $sectorArComprimido->id
         ]);
 
+        $validateAreaAndSector($areaProducao, $sectorLinha1, $defaultPlant);
         Equipment::create([
             'tag' => 'TORN010',
             'serial_number' => 'SN-T010-2022',
@@ -145,10 +191,13 @@ class EquipmentSeeder extends Seeder
             'description' => 'Torno CNC de alta precisão',
             'manufacturer' => 'DMG Mori',
             'manufacturing_year' => 2022,
-            'area_id' => $areas->where('name', 'Produção')->first()->id,
-            'sector_id' => $sectors->where('name', 'Linha 1')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaProducao->id,
+            'sector_id' => $sectorLinha1->id
         ]);
 
+        $sectorLinha2 = $sectors->where('name', 'Linha 2')->first();
+        $validateAreaAndSector($areaProducao, $sectorLinha2, $defaultPlant);
         Equipment::create([
             'tag' => 'FRES011',
             'serial_number' => 'SN-F011-2023',
@@ -156,10 +205,12 @@ class EquipmentSeeder extends Seeder
             'description' => 'Fresadora CNC de 5 eixos',
             'manufacturer' => 'Haas',
             'manufacturing_year' => 2023,
-            'area_id' => $areas->where('name', 'Produção')->first()->id,
-            'sector_id' => $sectors->where('name', 'Linha 2')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaProducao->id,
+            'sector_id' => $sectorLinha2->id
         ]);
 
+        $validateAreaAndSector($areaProducao2, null, $plant2);
         Equipment::create([
             'tag' => 'LASR012',
             'serial_number' => 'SN-L012-2022',
@@ -167,9 +218,11 @@ class EquipmentSeeder extends Seeder
             'description' => 'Cortadora a laser de alta potência',
             'manufacturer' => 'Trumpf',
             'manufacturing_year' => 2022,
-            'area_id' => $areas->where('name', 'Produção 2')->first()->id
+            'plant_id' => $plant2->id,
+            'area_id' => $areaProducao2->id
         ]);
 
+        $validateAreaAndSector($areaProducao2, $sectorLinha3, $plant2);
         Equipment::create([
             'tag' => 'INJE013',
             'serial_number' => 'SN-I013-2023',
@@ -177,10 +230,13 @@ class EquipmentSeeder extends Seeder
             'description' => 'Injetora de plástico de grande porte',
             'manufacturer' => 'Arburg',
             'manufacturing_year' => 2023,
-            'area_id' => $areas->where('name', 'Produção 2')->first()->id,
-            'sector_id' => $sectors->where('name', 'Linha 3')->first()->id
+            'plant_id' => $plant2->id,
+            'area_id' => $areaProducao2->id,
+            'sector_id' => $sectorLinha3->id
         ]);
 
+        $sectorArmazenamento = $sectors->where('name', 'Armazenamento')->first();
+        $validateAreaAndSector($areaLogistica, $sectorArmazenamento, $defaultPlant);
         Equipment::create([
             'tag' => 'EMPI014',
             'serial_number' => 'SN-E014-2021',
@@ -188,10 +244,12 @@ class EquipmentSeeder extends Seeder
             'description' => 'Empilhadeira elétrica',
             'manufacturer' => 'Toyota',
             'manufacturing_year' => 2021,
-            'area_id' => $areas->where('name', 'Logística')->first()->id,
-            'sector_id' => $sectors->where('name', 'Armazenamento')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaLogistica->id,
+            'sector_id' => $sectorArmazenamento->id
         ]);
 
+        $validateAreaAndSector($areaQualidade, null, $defaultPlant);
         Equipment::create([
             'tag' => 'SERV015',
             'serial_number' => 'SN-S015-2023',
@@ -199,9 +257,11 @@ class EquipmentSeeder extends Seeder
             'description' => 'Servidor de alta performance',
             'manufacturer' => 'Dell',
             'manufacturing_year' => 2023,
-            'area_id' => $areas->where('name', 'Qualidade')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaQualidade->id
         ]);
 
+        $validateAreaAndSector($areaManutencao, $sectorMecanica, $defaultPlant);
         Equipment::create([
             'tag' => 'SOLD016',
             'serial_number' => 'SN-S016-2022',
@@ -209,10 +269,12 @@ class EquipmentSeeder extends Seeder
             'description' => 'Máquina de solda MIG/MAG',
             'manufacturer' => 'Lincoln Electric',
             'manufacturing_year' => 2022,
-            'area_id' => $areas->where('name', 'Manutenção')->first()->id,
-            'sector_id' => $sectors->where('name', 'Mecânica')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaManutencao->id,
+            'sector_id' => $sectorMecanica->id
         ]);
 
+        $validateAreaAndSector($areaUtilidades, null, $defaultPlant);
         Equipment::create([
             'tag' => 'GERA017',
             'serial_number' => 'SN-G017-2023',
@@ -220,9 +282,11 @@ class EquipmentSeeder extends Seeder
             'description' => 'Gerador diesel de emergência',
             'manufacturer' => 'Cummins',
             'manufacturing_year' => 2023,
-            'area_id' => $areas->where('name', 'Utilidades')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaUtilidades->id
         ]);
 
+        $validateAreaAndSector($areaUtilidades, null, $defaultPlant);
         Equipment::create([
             'tag' => 'HVAC018',
             'serial_number' => 'SN-H018-2022',
@@ -230,9 +294,11 @@ class EquipmentSeeder extends Seeder
             'description' => 'Sistema HVAC central',
             'manufacturer' => 'Trane',
             'manufacturing_year' => 2022,
-            'area_id' => $areas->where('name', 'Utilidades')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaUtilidades->id
         ]);
 
+        $validateAreaAndSector($areaLogistica, null, $defaultPlant);
         Equipment::create([
             'tag' => 'ELEV019',
             'serial_number' => 'SN-E019-2023',
@@ -240,9 +306,11 @@ class EquipmentSeeder extends Seeder
             'description' => 'Elevador de carga industrial',
             'manufacturer' => 'Otis',
             'manufacturing_year' => 2023,
-            'area_id' => $areas->where('name', 'Logística')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaLogistica->id
         ]);
 
+        $validateAreaAndSector($areaProducao, $sectorLinha1, $defaultPlant);
         Equipment::create([
             'tag' => 'ESTE020',
             'serial_number' => 'SN-E020-2022',
@@ -250,10 +318,12 @@ class EquipmentSeeder extends Seeder
             'description' => 'Esteira transportadora de rolos',
             'manufacturer' => 'Interroll',
             'manufacturing_year' => 2022,
-            'area_id' => $areas->where('name', 'Produção')->first()->id,
-            'sector_id' => $sectors->where('name', 'Linha 1')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaProducao->id,
+            'sector_id' => $sectorLinha1->id
         ]);
 
+        $validateAreaAndSector($areaManutencao, $sectorMecanica, $defaultPlant);
         Equipment::create([
             'tag' => 'COMP021',
             'serial_number' => 'SN-C021-2023',
@@ -261,10 +331,12 @@ class EquipmentSeeder extends Seeder
             'description' => 'Compressor de ar de baixa pressão',
             'manufacturer' => 'Ingersoll Rand',
             'manufacturing_year' => 2023,
-            'area_id' => $areas->where('name', 'Manutenção')->first()->id,
-            'sector_id' => $sectors->where('name', 'Mecânica')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaManutencao->id,
+            'sector_id' => $sectorMecanica->id
         ]);
 
+        $validateAreaAndSector($areaProducao2, null, $plant2);
         Equipment::create([
             'tag' => 'TORN022',
             'serial_number' => 'SN-T022-2022',
@@ -272,9 +344,11 @@ class EquipmentSeeder extends Seeder
             'description' => 'Torno CNC de pequeno porte',
             'manufacturer' => 'Okuma',
             'manufacturing_year' => 2022,
-            'area_id' => $areas->where('name', 'Produção 2')->first()->id
+            'plant_id' => $plant2->id,
+            'area_id' => $areaProducao2->id
         ]);
 
+        $validateAreaAndSector($areaProducao, $sectorLinha2, $defaultPlant);
         Equipment::create([
             'tag' => 'FRES023',
             'serial_number' => 'SN-F023-2023',
@@ -282,8 +356,9 @@ class EquipmentSeeder extends Seeder
             'description' => 'Fresadora CNC de 3 eixos',
             'manufacturer' => 'Mazak',
             'manufacturing_year' => 2023,
-            'area_id' => $areas->where('name', 'Produção')->first()->id,
-            'sector_id' => $sectors->where('name', 'Linha 2')->first()->id
+            'plant_id' => $defaultPlant->id,
+            'area_id' => $areaProducao->id,
+            'sector_id' => $sectorLinha2->id
         ]);
     }
 } 

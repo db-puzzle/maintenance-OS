@@ -10,7 +10,6 @@ class Sector extends Model
 {
     protected $fillable = [
         'name',
-        'description',
         'area_id'
     ];
 

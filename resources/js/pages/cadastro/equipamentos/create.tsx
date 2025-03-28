@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type EquipmentType, type Area, type EquipmentForm, type Sector } from '@/types';
+import { type BreadcrumbItem, type EquipmentType, type Area, type EquipmentForm, type Sector, type Plant } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import { Check, ChevronsUpDown, Camera, Upload } from 'lucide-react';
@@ -56,6 +56,7 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
         nickname: '',
         manufacturer: '',
         manufacturing_year: '',
+        plant_id: '',
         area_id: '',
         sector_id: '',
         photo: null as File | null,
@@ -75,7 +76,7 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
         : [];
 
     const availableSectors = selectedArea
-        ? availableAreas.find(a => a.id === selectedArea)?.sectors || []
+        ? availableAreas.find((a: Area) => a.id === selectedArea)?.sectors || []
         : [];
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,6 +209,7 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                     <Popover open={openEquipmentType} onOpenChange={setOpenEquipmentType}>
                                         <PopoverTrigger asChild>
                                             <Button
+                                                id="equipment_type_id"
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={openEquipmentType}
@@ -291,6 +293,7 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                     <Popover open={openPlant} onOpenChange={setOpenPlant}>
                                         <PopoverTrigger asChild>
                                             <Button
+                                                id="plant"
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={openPlant}
@@ -315,7 +318,9 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                                                 onSelect={(value) => {
                                                                     const plantId = parseInt(value);
                                                                     setSelectedPlant(plantId);
+                                                                    setData('plant_id', plantId.toString());
                                                                     setData('area_id', '');
+                                                                    setData('sector_id', '');
                                                                     setOpenPlant(false);
                                                                 }}
                                                             >
@@ -337,21 +342,21 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
 
                                 {/* Área */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="area_id" className="flex items-center gap-1">
+                                    <Label htmlFor="area_id">
                                         Área
-                                        <span className="text-destructive">*</span>
                                     </Label>
                                     <Popover open={openArea} onOpenChange={setOpenArea}>
                                         <PopoverTrigger asChild>
                                             <Button
+                                                id="area_id"
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={openArea}
                                                 className="w-full justify-between"
                                             >
                                                 {data.area_id
-                                                    ? availableAreas.find((area) => area.id.toString() === data.area_id)?.name
-                                                    : "Selecione uma área"}
+                                                    ? availableAreas.find((area: Area) => area.id.toString() === data.area_id)?.name
+                                                    : "Selecione uma área (opcional)"}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
@@ -361,13 +366,14 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                                 <CommandList>
                                                     <CommandEmpty>Nenhuma área encontrada.</CommandEmpty>
                                                     <CommandGroup>
-                                                        {availableAreas.map((area) => (
+                                                        {availableAreas.map((area: Area) => (
                                                             <CommandItem
                                                                 key={area.id}
                                                                 value={area.id.toString()}
                                                                 onSelect={(value) => {
                                                                     setData('area_id', value);
                                                                     setSelectedArea(parseInt(value));
+                                                                    setData('sector_id', ''); // Limpa o setor quando mudar a área
                                                                     setOpenArea(false);
                                                                 }}
                                                             >
@@ -394,13 +400,14 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                     <Popover open={openSector} onOpenChange={setOpenSector}>
                                         <PopoverTrigger asChild>
                                             <Button
+                                                id="sector_id"
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={openSector}
                                                 className="w-full justify-between"
                                             >
                                                 {data.sector_id
-                                                    ? availableSectors.find((sector) => sector.id.toString() === data.sector_id)?.name
+                                                    ? availableSectors.find((sector: Sector) => sector.id.toString() === data.sector_id)?.name
                                                     : "Selecione um setor (opcional)"}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
@@ -411,7 +418,7 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                                 <CommandList>
                                                     <CommandEmpty>Nenhum setor encontrado.</CommandEmpty>
                                                     <CommandGroup>
-                                                        {availableSectors.map((sector) => (
+                                                        {availableSectors.map((sector: Sector) => (
                                                             <CommandItem
                                                                 key={sector.id}
                                                                 value={sector.id.toString()}

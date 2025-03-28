@@ -242,20 +242,20 @@ export default function Areas({ areas, filters }: Props) {
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent w-full text-center"
-                                            onClick={() => handleSort('equipment_count')}
+                                            onClick={() => handleSort('sectors_count')}
                                         >
-                                            Equipamentos
-                                            <span className="ml-2">{getSortIcon('equipment_count')}</span>
+                                            Setores
+                                            <span className="ml-2">{getSortIcon('sectors_count')}</span>
                                         </Button>
                                     </TableHead>
                                     <TableHead>
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent w-full text-center"
-                                            onClick={() => handleSort('sectors_count')}
+                                            onClick={() => handleSort('equipment_count')}
                                         >
-                                            Setores
-                                            <span className="ml-2">{getSortIcon('sectors_count')}</span>
+                                            Equipamentos
+                                            <span className="ml-2">{getSortIcon('equipment_count')}</span>
                                         </Button>
                                     </TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
@@ -279,8 +279,8 @@ export default function Areas({ areas, filters }: Props) {
                                             </div>
                                         </TableCell>
                                         <TableCell>{area.plant?.name || '-'}</TableCell>
-                                        <TableCell className="text-center">{area.equipment_count}</TableCell>
                                         <TableCell className="text-center">{area.sectors_count}</TableCell>
+                                        <TableCell className="text-center">{area.equipment_count}</TableCell>
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button variant="ghost" size="icon" asChild>

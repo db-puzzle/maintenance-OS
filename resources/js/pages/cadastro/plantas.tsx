@@ -74,6 +74,10 @@ export default function Plantas({ plants, filters }: Props) {
                 total: number;
                 items: { id: number; name: string; }[];
             };
+            equipment: {
+                total: number;
+                items: { id: number; tag: string; }[];
+            };
         };
     } | null>(null);
     const [isCheckingDependencies, setIsCheckingDependencies] = useState(false);
@@ -352,17 +356,40 @@ export default function Plantas({ plants, filters }: Props) {
                     <DialogDescription asChild>
                         <div className="space-y-6">
                             <div className="text-sm">
-                                Esta planta possui área(s) vinculada(s) e não pode ser excluída até que todas as áreas 
-                                sejam removidas ou movidas para outra planta.
+                                Esta planta possui área(s) e/ou equipamento(s) vinculado(s) e não pode ser excluída até que todas as áreas 
+                                e equipamentos sejam removidos ou movidos para outra planta.
                             </div>
                             
                             <div className="space-y-6">
-                                <div className="font-medium text-sm">
-                                    Total de Áreas Vinculadas: {dependencies?.dependencies.areas.total}
+                                {/* Equipamentos Vinculados */}
+                                <div className="space-y-3">
+                                    <div className="font-medium text-sm">
+                                        Total de Equipamentos Vinculados: {dependencies?.dependencies?.equipment?.total || 0}
+                                    </div>
+
+                                    {dependencies?.dependencies?.equipment?.items && dependencies.dependencies.equipment.items.length > 0 && (
+                                        <ul className="list-disc list-inside space-y-2 text-sm">
+                                            {dependencies.dependencies.equipment.items.map(equipment => (
+                                                <li key={equipment.id}>
+                                                    <Link
+                                                        href={route('cadastro.equipamentos.show', equipment.id)}
+                                                        className="text-primary hover:underline"
+                                                    >
+                                                        {equipment.tag}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
 
-                                {dependencies?.dependencies.areas.items && dependencies.dependencies.areas.items.length > 0 && (
-                                    <div className="space-y-3">
+                                {/* Áreas Vinculadas */}
+                                <div className="space-y-3">
+                                    <div className="font-medium text-sm">
+                                        Total de Áreas Vinculadas: {dependencies?.dependencies?.areas?.total || 0}
+                                    </div>
+
+                                    {dependencies?.dependencies?.areas?.items && dependencies.dependencies.areas.items.length > 0 && (
                                         <ul className="list-disc list-inside space-y-2 text-sm">
                                             {dependencies.dependencies.areas.items.map(area => (
                                                 <li key={area.id}>
@@ -375,8 +402,8 @@ export default function Plantas({ plants, filters }: Props) {
                                                 </li>
                                             ))}
                                         </ul>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </DialogDescription>

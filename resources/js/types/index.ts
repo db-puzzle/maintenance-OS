@@ -23,9 +23,11 @@ export interface Equipment {
     manufacturing_year?: number;
     photo_path?: string;
     equipment_type_id: number;
-    area_id: number;
+    plant_id: number;
+    area_id?: number;
     sector_id?: number;
     equipment_type?: EquipmentType;
+    plant?: Plant;
     area?: Area & { plant: Plant };
     sector?: Sector;
 }
@@ -37,22 +39,23 @@ export interface EquipmentForm {
     description: string;
     manufacturer: string;
     manufacturing_year: string;
+    plant_id: string;
     area_id: string;
     sector_id?: string;
     photo: File | null;
     photo_path?: string | null;
+    [key: string]: string | File | null | undefined;
 }
 
 export interface Sector {
     id: number;
     name: string;
-    description?: string;
     area_id: number;
+    area?: Area & { plant: Plant };
 }
 
 export interface SectorForm {
     name: string;
-    description: string;
     area_id: string;
     [key: string]: string;
 }

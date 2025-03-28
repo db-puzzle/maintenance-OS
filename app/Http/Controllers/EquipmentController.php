@@ -9,6 +9,7 @@ use App\Models\Plant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class EquipmentController extends Controller
 {
@@ -20,7 +21,7 @@ class EquipmentController extends Controller
         $direction = $request->input('direction', 'asc');
 
         $query = Equipment::query()
-            ->with(['equipmentType:id,name', 'area.plant:id,name', 'sector:id,name']);
+            ->with(['equipmentType:id,name', 'plant:id,name', 'area.plant:id,name', 'sector:id,name']);
 
         if ($search) {
             $search = strtolower($search);
@@ -29,8 +30,7 @@ class EquipmentController extends Controller
                     ->orWhereRaw('LOWER(equipment.manufacturer) LIKE ?', ["%{$search}%"])
                     ->orWhereExists(function ($query) use ($search) {
                         $query->from('plants')
-                            ->join('areas', 'areas.plant_id', '=', 'plants.id')
-                            ->whereColumn('areas.id', 'equipment.area_id')
+                            ->whereColumn('plants.id', 'equipment.plant_id')
                             ->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"]);
                     });
             });
@@ -43,18 +43,17 @@ class EquipmentController extends Controller
                     ->select('equipment.*');
                 break;
             case 'sector':
-                $query->join('sectors', 'equipment.sector_id', '=', 'sectors.id')
+                $query->leftJoin('sectors', 'equipment.sector_id', '=', 'sectors.id')
                     ->orderBy('sectors.name', $direction)
                     ->select('equipment.*');
                 break;
             case 'area':
-                $query->join('areas', 'equipment.area_id', '=', 'areas.id')
+                $query->leftJoin('areas', 'equipment.area_id', '=', 'areas.id')
                     ->orderBy('areas.name', $direction)
                     ->select('equipment.*');
                 break;
             case 'plant':
-                $query->join('areas', 'equipment.area_id', '=', 'areas.id')
-                    ->join('plants', 'areas.plant_id', '=', 'plants.id')
+                $query->join('plants', 'equipment.plant_id', '=', 'plants.id')
                     ->orderBy('plants.name', $direction)
                     ->select('equipment.*');
                 break;
@@ -91,10 +90,34 @@ class EquipmentController extends Controller
             'description' => 'nullable|string',
             'manufacturer' => 'nullable|string|max:255',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
-            'area_id' => 'required|exists:areas,id',
-            'sector_id' => 'nullable|exists:sectors,id',
+            'plant_id' => 'required|exists:plants,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'sector_id' => 'nullable|exists:sectors,id|required_with:area_id',
             'photo' => 'nullable|image|max:2048'
         ]);
+
+        // Valida se a área pertence à planta quando fornecida
+        if (!empty($validated['area_id'])) {
+            $area = Area::findOrFail($validated['area_id']);
+            if ($area->plant_id !== $validated['plant_id']) {
+                throw ValidationException::withMessages([
+                    'area_id' => ["A área selecionada não pertence à planta escolhida."]
+                ]);
+            }
+
+            // Valida se o setor pertence à área quando ambos são fornecidos
+            if (!empty($validated['sector_id'])) {
+                $sector = Sector::findOrFail($validated['sector_id']);
+                if ($sector->area_id !== $validated['area_id']) {
+                    throw ValidationException::withMessages([
+                        'sector_id' => ["O setor selecionado não pertence à área escolhida."]
+                    ]);
+                }
+            }
+        } else {
+            // Se não há área selecionada, não pode haver setor
+            $validated['sector_id'] = null;
+        }
 
         if ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('equipment-photos', 'public');
@@ -109,8 +132,9 @@ class EquipmentController extends Controller
 
     public function edit(Equipment $equipment)
     {
+        $loadedEquipment = $equipment->load(['equipmentType', 'plant', 'area.plant', 'sector']);
         return Inertia::render('cadastro/equipamentos/edit', [
-            'equipment' => $equipment->load(['equipmentType', 'area.plant', 'sector']),
+            'equipment' => $loadedEquipment,
             'equipmentTypes' => EquipmentType::all(),
             'plants' => Plant::with('areas.sectors')->get(),
         ]);
@@ -118,8 +142,9 @@ class EquipmentController extends Controller
 
     public function show(Equipment $equipment)
     {
+        $loadedEquipment = $equipment->load(['equipmentType', 'plant', 'area.plant', 'sector']);
         return Inertia::render('cadastro/equipamentos/show', [
-            'equipment' => $equipment->load(['equipmentType', 'area.plant', 'sector']),
+            'equipment' => $loadedEquipment,
         ]);
     }
 
@@ -132,16 +157,40 @@ class EquipmentController extends Controller
             'description' => 'nullable|string',
             'manufacturer' => 'nullable|string|max:255',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
-            'area_id' => 'required|exists:areas,id',
-            'sector_id' => 'nullable|exists:sectors,id',
+            'plant_id' => 'required|exists:plants,id',
+            'area_id' => 'nullable|exists:areas,id',
+            'sector_id' => 'nullable|exists:sectors,id|required_with:area_id',
             'photo' => 'nullable|image|max:2048'
         ]);
 
+        // Valida se a área pertence à planta quando fornecida
+        if (!empty($validated['area_id'])) {
+            $area = Area::findOrFail($validated['area_id']);
+            if ($area->plant_id !== $validated['plant_id']) {
+                throw ValidationException::withMessages([
+                    'area_id' => ["A área selecionada não pertence à planta escolhida."]
+                ]);
+            }
+
+            // Valida se o setor pertence à área quando ambos são fornecidos
+            if (!empty($validated['sector_id'])) {
+                $sector = Sector::findOrFail($validated['sector_id']);
+                if ($sector->area_id !== $validated['area_id']) {
+                    throw ValidationException::withMessages([
+                        'sector_id' => ["O setor selecionado não pertence à área escolhida."]
+                    ]);
+                }
+            }
+        } else {
+            // Se não há área selecionada, não pode haver setor
+            $validated['sector_id'] = null;
+        }
+
         if ($request->hasFile('photo')) {
+            // Remove a foto antiga se existir
             if ($equipment->photo_path) {
                 Storage::disk('public')->delete($equipment->photo_path);
             }
-            
             $path = $request->file('photo')->store('equipment-photos', 'public');
             $validated['photo_path'] = $path;
         }

@@ -26,7 +26,6 @@ class SectorController extends Controller
             $search = strtolower($search);
             $query->where(function ($query) use ($search) {
                 $query->whereRaw('LOWER(sectors.name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(sectors.description) LIKE ?', ["%{$search}%"])
                     ->orWhereExists(function ($query) use ($search) {
                         $query->from('plants')
                             ->join('areas', 'areas.plant_id', '=', 'plants.id')
@@ -79,7 +78,6 @@ class SectorController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
             'area_id' => 'required|exists:areas,id'
         ]);
 
@@ -174,7 +172,6 @@ class SectorController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
             'area_id' => 'required|exists:areas,id'
         ]);
 

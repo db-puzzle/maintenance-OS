@@ -34,8 +34,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Props {
     equipment: Equipment & {
         equipment_type: EquipmentType;
-        area: Area;
-        sector: Sector;
+        plant: Plant;
+        area?: Area & { plant: Plant };
+        sector?: Sector;
     };
     equipmentTypes: EquipmentType[];
     plants: Plant[];
@@ -47,9 +48,9 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
         serial_number: equipment.serial_number || '',
         equipment_type_id: equipment.equipment_type_id.toString(),
         description: equipment.description || '',
-        nickname: equipment.nickname || '',
         manufacturer: equipment.manufacturer || '',
         manufacturing_year: equipment.manufacturing_year?.toString() || '',
+        plant_id: equipment.plant?.id?.toString() || '',
         area_id: equipment.area_id?.toString() || '',
         sector_id: equipment.sector_id?.toString() || '',
         photo: null,
@@ -62,7 +63,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
     const [openArea, setOpenArea] = useState(false);
     const [openPlant, setOpenPlant] = useState(false);
     const [openSector, setOpenSector] = useState(false);
-    const [selectedPlant, setSelectedPlant] = useState<number | null>(equipment.area?.plant?.id || null);
+    const [selectedPlant, setSelectedPlant] = useState<number | null>(equipment.plant?.id || null);
     const [selectedArea, setSelectedArea] = useState<number | null>(equipment.area?.id || null);
 
     const availableAreas = selectedPlant
@@ -75,8 +76,9 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
 
     useEffect(() => {
         // Inicializa os valores quando o componente montar
-        if (equipment.area?.plant?.id) {
-            setSelectedPlant(equipment.area.plant.id);
+        if (equipment.plant?.id) {
+            setSelectedPlant(equipment.plant.id);
+            setData('plant_id', equipment.plant.id.toString());
         }
         if (equipment.area?.id) {
             setSelectedArea(equipment.area.id);
@@ -116,9 +118,9 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
         formData.append('serial_number', data.serial_number);
         formData.append('equipment_type_id', data.equipment_type_id.toString());
         formData.append('description', data.description);
-        formData.append('nickname', data.nickname);
         formData.append('manufacturer', data.manufacturer);
         formData.append('manufacturing_year', data.manufacturing_year);
+        formData.append('plant_id', data.plant_id || '');
         formData.append('area_id', data.area_id || '');
         formData.append('sector_id', data.sector_id || '');
         
@@ -154,7 +156,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Coluna 1: Foto */}
                             <div className="flex flex-col h-full">
-                                <Label className="mb-2">Foto do Equipamento</Label>
+                                <Label htmlFor="photo" className="mb-2">Foto do Equipamento</Label>
                                 <div className="flex-1 flex flex-col gap-2">
                                     <div className="flex-1 relative rounded-lg overflow-hidden bg-muted border min-h-[238px] max-h-[238px]">
                                         {previewUrl ? (
@@ -188,7 +190,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                                                 accept="image/*"
                                                 onChange={handleFileChange}
                                                 className="hidden"
-                                                id="photo-upload"
+                                                id="photo"
                                             />
                                             <Button
                                                 type="button"
@@ -196,7 +198,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                                                 className="w-full"
                                                 asChild
                                             >
-                                                <label htmlFor="photo-upload" className="flex items-center justify-center gap-2 cursor-pointer">
+                                                <label htmlFor="photo" className="flex items-center justify-center gap-2 cursor-pointer">
                                                     <Upload className="w-4 h-4" />
                                                     Selecionar Arquivo
                                                 </label>
@@ -232,13 +234,14 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
 
                                 {/* Tipo de Equipamento */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="equipment_type_id" className="flex items-center gap-1">
+                                    <Label htmlFor="equipment_type">
                                         Tipo de Equipamento
                                         <span className="text-destructive">*</span>
                                     </Label>
                                     <Popover open={openEquipmentType} onOpenChange={setOpenEquipmentType}>
                                         <PopoverTrigger asChild>
                                             <Button
+                                                id="equipment_type"
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={openEquipmentType}
@@ -315,13 +318,14 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                             <div className="space-y-6">
                                 {/* Planta */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="plant" className="flex items-center gap-1">
+                                    <Label htmlFor="plant">
                                         Planta
                                         <span className="text-destructive">*</span>
                                     </Label>
                                     <Popover open={openPlant} onOpenChange={setOpenPlant}>
                                         <PopoverTrigger asChild>
                                             <Button
+                                                id="plant"
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={openPlant}
@@ -346,6 +350,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                                                                 onSelect={(value) => {
                                                                     const plantId = parseInt(value);
                                                                     setSelectedPlant(plantId);
+                                                                    setData('plant_id', plantId.toString());
                                                                     setData('area_id', '');
                                                                     setData('sector_id', '');
                                                                     setOpenPlant(false);
@@ -369,13 +374,13 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
 
                                 {/* Área */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="area_id" className="flex items-center gap-1">
+                                    <Label htmlFor="area">
                                         Área
-                                        <span className="text-destructive">*</span>
                                     </Label>
                                     <Popover open={openArea} onOpenChange={setOpenArea}>
                                         <PopoverTrigger asChild>
                                             <Button
+                                                id="area"
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={openArea}
@@ -383,7 +388,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                                             >
                                                 {data.area_id
                                                     ? availableAreas.find((area) => area.id.toString() === data.area_id)?.name
-                                                    : "Selecione uma área"}
+                                                    : "Selecione uma área (opcional)"}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
@@ -400,6 +405,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                                                                 onSelect={(value) => {
                                                                     setData('area_id', value);
                                                                     setSelectedArea(parseInt(value));
+                                                                    setData('sector_id', ''); // Limpa o setor quando mudar a área
                                                                     setOpenArea(false);
                                                                 }}
                                                             >
@@ -422,10 +428,11 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
 
                                 {/* Setor */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="sector_id">Setor</Label>
+                                    <Label htmlFor="sector">Setor</Label>
                                     <Popover open={openSector} onOpenChange={setOpenSector}>
                                         <PopoverTrigger asChild>
                                             <Button
+                                                id="sector"
                                                 variant="outline"
                                                 role="combobox"
                                                 aria-expanded={openSector}

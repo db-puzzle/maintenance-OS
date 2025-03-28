@@ -16,14 +16,9 @@ class PlantsController extends Controller
         $direction = $request->input('direction', 'asc');
 
         $query = Plant::query()
-            ->withCount('areas')
+            ->withCount(['areas', 'equipment'])
             ->with(['areas' => function ($query) {
-                $query->withCount(['sectors' => function ($query) {
-                    $query->withCount('equipment');
-                }])
-                ->withCount(['equipment' => function ($query) {
-                    $query->whereNull('sector_id');
-                }]);
+                $query->withCount(['sectors', 'equipment']);
             }]);
 
         if ($search) {
@@ -35,9 +30,7 @@ class PlantsController extends Controller
 
         $plants = $query->get()->map(function ($plant) {
             $totalSectors = $plant->areas->sum('sectors_count');
-            $totalEquipment = $plant->areas->sum(function ($area) {
-                return $area->equipment_count + $area->sectors->sum('equipment_count');
-            });
+            $totalEquipment = $plant->equipment_count;
 
             return [
                 'id' => $plant->id,
@@ -121,12 +114,26 @@ class PlantsController extends Controller
         $areas = $plant->areas()->take(5)->get(['id', 'name']);
         $totalAreas = $plant->areas()->count();
 
+        $equipment = $plant->equipment()
+            ->whereNull('area_id')
+            ->whereNull('sector_id')
+            ->take(5)
+            ->get(['id', 'tag']);
+        $totalEquipment = $plant->equipment()
+            ->whereNull('area_id')
+            ->whereNull('sector_id')
+            ->count();
+
         return response()->json([
-            'can_delete' => $totalAreas === 0,
+            'can_delete' => $totalAreas === 0 && $totalEquipment === 0,
             'dependencies' => [
                 'areas' => [
                     'total' => $totalAreas,
                     'items' => $areas
+                ],
+                'equipment' => [
+                    'total' => $totalEquipment,
+                    'items' => $equipment
                 ]
             ]
         ]);
@@ -179,9 +186,7 @@ class PlantsController extends Controller
 
         // Busca as áreas com ordenação
         $areasQuery = $plant->areas()
-            ->withCount(['equipment' => function ($query) {
-                $query->whereNull('sector_id');
-            }, 'sectors'])
+            ->withCount(['equipment', 'sectors'])
             ->orderBy('name');
 
         // Aplica ordenação personalizada para áreas
@@ -217,22 +222,6 @@ class PlantsController extends Controller
             ->withCount('sectors')
             ->get()
             ->sum('sectors_count');
-
-        // Conta o total de equipamentos através das áreas e setores
-        $totalEquipment = $plant->areas()
-            ->with(['sectors' => function ($query) {
-                $query->withCount('equipment');
-            }])
-            ->withCount(['equipment' => function ($query) {
-                $query->whereNull('sector_id');
-            }])
-            ->get()
-            ->map(function ($area) {
-                $areaEquipmentCount = $area->equipment_count;
-                $sectorsEquipmentCount = $area->sectors->sum('equipment_count');
-                return $areaEquipmentCount + $sectorsEquipmentCount;
-            })
-            ->sum();
 
         // Busca os setores com suas áreas
         $sectorsQuery = $plant->areas()
@@ -285,51 +274,23 @@ class PlantsController extends Controller
             ['path' => request()->url(), 'pageName' => 'sectors_page']
         );
 
-        // Busca os equipamentos com suas áreas e setores
-        $equipmentQuery = $plant->areas()
-            ->with(['equipment.equipmentType', 'sectors.equipment.equipmentType'])
+        // Busca os equipamentos diretamente da planta
+        $equipmentQuery = $plant->equipment()
+            ->with(['equipmentType', 'area', 'sector'])
             ->get()
-            ->flatMap(function ($area) {
-                // Busca equipamentos que estão diretamente na área (sem setor)
-                $areaEquipment = $area->equipment()
-                    ->whereNull('sector_id')
-                    ->get()
-                    ->map(function ($item) use ($area) {
-                        return [
-                            'id' => $item->id,
-                            'tag' => $item->tag,
-                            'equipment_type' => $item->equipmentType ? [
-                                'id' => $item->equipmentType->id,
-                                'name' => $item->equipmentType->name,
-                            ] : null,
-                            'manufacturer' => $item->manufacturer,
-                            'manufacturing_year' => $item->manufacturing_year,
-                            'area_name' => $area->name,
-                            'sector_name' => null,
-                            'source' => 'area'
-                        ];
-                    });
-
-                // Busca equipamentos que estão nos setores da área
-                $sectorsEquipment = $area->sectors->flatMap(function ($sector) use ($area) {
-                    return $sector->equipment->map(function ($item) use ($area, $sector) {
-                        return [
-                            'id' => $item->id,
-                            'tag' => $item->tag,
-                            'equipment_type' => $item->equipmentType ? [
-                                'id' => $item->equipmentType->id,
-                                'name' => $item->equipmentType->name,
-                            ] : null,
-                            'manufacturer' => $item->manufacturer,
-                            'manufacturing_year' => $item->manufacturing_year,
-                            'area_name' => $area->name,
-                            'sector_name' => $sector->name,
-                            'source' => 'sector'
-                        ];
-                    });
-                });
-
-                return $areaEquipment->concat($sectorsEquipment);
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'tag' => $item->tag,
+                    'equipment_type' => $item->equipmentType ? [
+                        'id' => $item->equipmentType->id,
+                        'name' => $item->equipmentType->name,
+                    ] : null,
+                    'manufacturer' => $item->manufacturer,
+                    'manufacturing_year' => $item->manufacturing_year,
+                    'area_name' => $item->area ? $item->area->name : null,
+                    'sector_name' => $item->sector ? $item->sector->name : null,
+                ];
             })
             ->values();
 
@@ -373,7 +334,7 @@ class PlantsController extends Controller
             'sectors' => $sectors,
             'equipment' => $equipment,
             'totalSectors' => $totalSectors,
-            'totalEquipment' => $totalEquipment,
+            'totalEquipment' => $plant->equipment_count,
             'activeTab' => request()->get('tab', 'informacoes'),
             'filters' => [
                 'areas' => [

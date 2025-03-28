@@ -14,8 +14,9 @@ import HeadingSmall from '@/components/heading-small';
 interface Props {
     equipment: Equipment & {
         equipment_type: EquipmentType;
-        area: Area;
-        sector: Sector;
+        plant: Plant;
+        area?: Area & { plant: Plant };
+        sector?: Sector;
     };
 }
 
@@ -31,6 +32,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Show({ equipment }: Props) {
+    // Determina qual planta mostrar
+    const plantToShow = equipment.plant || equipment.area?.plant;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Equipamento ${equipment.tag}`} />
@@ -42,7 +46,14 @@ export default function Show({ equipment }: Props) {
                             <div className="space-y-1">
                                 <h1 className="text-3xl font-bold tracking-tight">{equipment.tag}</h1>
                                 <div className="text-sm text-muted-foreground">
-                                    {equipment.equipment_type?.name ?? 'Tipo não definido'}
+                                    {equipment.equipment_type ? (
+                                        <Link
+                                            href={route('cadastro.tipos-equipamento.show', equipment.equipment_type.id)}
+                                            className="hover:underline"
+                                        >
+                                            {equipment.equipment_type.name}
+                                        </Link>
+                                    ) : 'Tipo não definido'}
                                 </div>
                             </div>
                             <div className="flex gap-2">
@@ -105,7 +116,16 @@ export default function Show({ equipment }: Props) {
 
                                             <div className="grid gap-2">
                                                 <Label>Tipo</Label>
-                                                <div className="text-base text-muted-foreground">{equipment.equipment_type?.name ?? '-'}</div>
+                                                <div className="text-base">
+                                                    {equipment.equipment_type ? (
+                                                        <Link
+                                                            href={route('cadastro.tipos-equipamento.show', equipment.equipment_type.id)}
+                                                            className="text-primary hover:underline"
+                                                        >
+                                                            {equipment.equipment_type.name}
+                                                        </Link>
+                                                    ) : '-'}
+                                                </div>
                                             </div>
 
                                             <div className="grid gap-2">
@@ -124,12 +144,12 @@ export default function Show({ equipment }: Props) {
                                             <div className="grid gap-2">
                                                 <Label>Planta</Label>
                                                 <div className="text-base">
-                                                    {equipment.area?.plant ? (
+                                                    {plantToShow ? (
                                                         <Link
-                                                            href={route('cadastro.plantas.show', equipment.area.plant.id)}
+                                                            href={route('cadastro.plantas.show', plantToShow.id)}
                                                             className="text-primary hover:underline"
                                                         >
-                                                            {equipment.area.plant.name}
+                                                            {plantToShow.name}
                                                         </Link>
                                                     ) : '-'}
                                                 </div>

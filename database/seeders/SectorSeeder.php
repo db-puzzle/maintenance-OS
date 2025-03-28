@@ -21,13 +21,11 @@ class SectorSeeder extends Seeder
         $areaProducao = $areas->where('name', 'Produção')->first();
         Sector::create([
             'name' => 'Linha 1',
-            'description' => 'Linha de produção principal',
             'area_id' => $areaProducao->id
         ]);
 
         Sector::create([
             'name' => 'Linha 2',
-            'description' => 'Linha de produção secundária',
             'area_id' => $areaProducao->id
         ]);
 
@@ -35,13 +33,11 @@ class SectorSeeder extends Seeder
         $areaManutencao = $areas->where('name', 'Manutenção')->first();
         Sector::create([
             'name' => 'Mecânica',
-            'description' => 'Setor de manutenção mecânica',
             'area_id' => $areaManutencao->id
         ]);
 
         Sector::create([
             'name' => 'Elétrica',
-            'description' => 'Setor de manutenção elétrica',
             'area_id' => $areaManutencao->id
         ]);
 
@@ -49,13 +45,11 @@ class SectorSeeder extends Seeder
         $areaUtilidades = $areas->where('name', 'Utilidades')->first();
         Sector::create([
             'name' => 'Ar Comprimido',
-            'description' => 'Setor de ar comprimido',
             'area_id' => $areaUtilidades->id
         ]);
 
         Sector::create([
             'name' => 'Vapor',
-            'description' => 'Setor de geração de vapor',
             'area_id' => $areaUtilidades->id
         ]);
 
@@ -63,7 +57,6 @@ class SectorSeeder extends Seeder
         $areaQualidade = $areas->where('name', 'Qualidade')->first();
         Sector::create([
             'name' => 'Controle',
-            'description' => 'Setor de controle de qualidade',
             'area_id' => $areaQualidade->id
         ]);
 
@@ -71,7 +64,6 @@ class SectorSeeder extends Seeder
         $areaLogistica = $areas->where('name', 'Logística')->first();
         Sector::create([
             'name' => 'Armazenamento',
-            'description' => 'Setor de armazenamento',
             'area_id' => $areaLogistica->id
         ]);
 
@@ -79,7 +71,6 @@ class SectorSeeder extends Seeder
         $areaProducao2 = $areas->where('name', 'Produção 2')->first();
         Sector::create([
             'name' => 'Linha 3',
-            'description' => 'Linha de produção da planta 2',
             'area_id' => $areaProducao2->id
         ]);
 

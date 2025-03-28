@@ -180,36 +180,6 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('equipment_type')}
-                                        >
-                                            Tipo
-                                            <span className="ml-2">{getSortIcon('equipment_type')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('manufacturer')}
-                                        >
-                                            Fabricante
-                                            <span className="ml-2">{getSortIcon('manufacturer')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('manufacturing_year')}
-                                        >
-                                            Ano
-                                            <span className="ml-2">{getSortIcon('manufacturing_year')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
                                             onClick={() => handleSort('plant')}
                                         >
                                             Planta
@@ -236,6 +206,36 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                             <span className="ml-2">{getSortIcon('sector')}</span>
                                         </Button>
                                     </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('equipment_type')}
+                                        >
+                                            Tipo
+                                            <span className="ml-2">{getSortIcon('equipment_type')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('manufacturer')}
+                                        >
+                                            Fabricante
+                                            <span className="ml-2">{getSortIcon('manufacturer')}</span>
+                                        </Button>
+                                    </TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('manufacturing_year')}
+                                        >
+                                            Ano
+                                            <span className="ml-2">{getSortIcon('manufacturing_year')}</span>
+                                        </Button>
+                                    </TableHead>
                                     <TableHead className="w-[100px]">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -256,12 +256,12 @@ export default function Equipamentos({ equipment, filters }: Props) {
                                                 )}
                                             </div>
                                         </TableCell>
+                                        <TableCell>{machine.plant?.name ?? machine.area?.plant?.name ?? machine.sector?.area?.plant?.name ?? '-'}</TableCell>
+                                        <TableCell>{machine.area?.name ?? machine.sector?.area?.name ?? '-'}</TableCell>
+                                        <TableCell>{machine.sector?.name ?? '-'}</TableCell>
                                         <TableCell>{machine.equipment_type?.name ?? '-'}</TableCell>
                                         <TableCell>{machine.manufacturer ?? '-'}</TableCell>
                                         <TableCell>{machine.manufacturing_year ?? '-'}</TableCell>
-                                        <TableCell>{machine.area?.plant?.name ?? '-'}</TableCell>
-                                        <TableCell>{machine.area?.name ?? '-'}</TableCell>
-                                        <TableCell>{machine.sector?.name ?? '-'}</TableCell>
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" asChild>

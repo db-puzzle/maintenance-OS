@@ -26,6 +26,9 @@ class Plant extends Model
             if ($plant->areas()->exists()) {
                 throw new \Exception('Não é possível excluir uma planta que possui áreas.');
             }
+            if ($plant->equipment()->exists()) {
+                throw new \Exception('Não é possível excluir uma planta que possui equipamentos.');
+            }
         });
     }
 
@@ -37,5 +40,10 @@ class Plant extends Model
     public function sectors(): HasManyThrough
     {
         return $this->hasManyThrough(Sector::class, Area::class);
+    }
+
+    public function equipment(): HasMany
+    {
+        return $this->hasMany(Equipment::class);
     }
 } 

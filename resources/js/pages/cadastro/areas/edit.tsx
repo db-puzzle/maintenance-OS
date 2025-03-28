@@ -112,7 +112,7 @@ export default function EditArea({ area, plants }: Props) {
                                     value={data.plant_id}
                                     onValueChange={(value) => setData('plant_id', value)}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger id="plant_id">
                                         <SelectValue placeholder="Selecione uma planta" />
                                     </SelectTrigger>
                                     <SelectContent>

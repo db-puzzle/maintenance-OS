@@ -176,6 +176,7 @@ export default function CreatePlant() {
                                         <Popover open={open} onOpenChange={setOpen}>
                                             <PopoverTrigger asChild>
                                                 <Button
+                                                    id="state"
                                                     variant="outline"
                                                     role="combobox"
                                                     aria-expanded={open}

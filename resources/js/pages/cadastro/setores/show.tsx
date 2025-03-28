@@ -28,7 +28,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Sector {
     id: number;
     name: string;
-    description: string | null;
     area: {
         id: number;
         name: string;
@@ -44,7 +43,6 @@ interface Props {
     sector: {
         id: number;
         name: string;
-        description: string | null;
         area: {
             id: number;
             name: string;
@@ -160,10 +158,6 @@ export default function Show({ sector, equipment, activeTab, filters }: Props) {
                                         <div className="flex flex-col space-y-1.5">
                                             <Label htmlFor="name">Nome</Label>
                                             <div className="text-sm text-muted-foreground">{sector.name}</div>
-                                        </div>
-                                        <div className="flex flex-col space-y-1.5">
-                                            <Label htmlFor="description">Descrição</Label>
-                                            <div className="text-sm text-muted-foreground">{sector.description ?? '-'}</div>
                                         </div>
                                         <div className="flex flex-col space-y-1.5">
                                             <Label htmlFor="area">Área</Label>

@@ -65,7 +65,6 @@ interface PageProps {
 interface Sector {
     id: number;
     name: string;
-    description: string | null;
     area: {
         id: number;
         name: string;
@@ -249,23 +248,22 @@ export default function SectorIndex({ sectors, filters }: Props) {
                                         <Button 
                                             variant="ghost" 
                                             className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('area')}
-                                        >
-                                            Área
-                                            <span className="ml-2">{getSortIcon('area')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
                                             onClick={() => handleSort('plant')}
                                         >
                                             Planta
                                             <span className="ml-2">{getSortIcon('plant')}</span>
                                         </Button>
                                     </TableHead>
-                                    <TableHead>Descrição</TableHead>
+                                    <TableHead>
+                                        <Button 
+                                            variant="ghost" 
+                                            className="h-8 p-0 font-bold hover:bg-transparent"
+                                            onClick={() => handleSort('area')}
+                                        >
+                                            Área
+                                            <span className="ml-2">{getSortIcon('area')}</span>
+                                        </Button>
+                                    </TableHead>
                                     <TableHead>
                                         <Button 
                                             variant="ghost" 
@@ -289,16 +287,10 @@ export default function SectorIndex({ sectors, filters }: Props) {
                                         <TableCell>
                                             <div>
                                                 <div className="font-medium">{sector.name}</div>
-                                                {sector.description && (
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {sector.description}
-                                                    </div>
-                                                )}
                                             </div>
                                         </TableCell>
-                                        <TableCell>{sector.area?.name}</TableCell>
                                         <TableCell>{sector.area?.plant?.name}</TableCell>
-                                        <TableCell>{sector.description ?? '-'}</TableCell>
+                                        <TableCell>{sector.area?.name}</TableCell>
                                         <TableCell className="text-center">{sector.equipment_count ?? 0}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
