@@ -51,7 +51,7 @@ export default function CreateEquipmentType() {
             <Head title="Novo Tipo de Equipamento" />
 
             <CadastroLayout>
-                <div className="space-y-6">
+                <div className="space-y-6 max-w-2xl">
                     <div className="flex justify-between items-center">
                         <HeadingSmall 
                             title="Novo Tipo de Equipamento" 
@@ -60,22 +60,26 @@ export default function CreateEquipmentType() {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="space-y-4">
-                            <div>
-                                <Label htmlFor="name">Nome</Label>
+                        <div className="grid gap-6">
+                            <div className="grid gap-2">
+                                <Label htmlFor="name" className="flex items-center gap-1">
+                                    Nome
+                                    <span className="text-destructive">*</span>
+                                </Label>
                                 <Input
                                     id="name"
                                     type="text"
                                     value={data.name}
                                     onChange={e => setData('name', e.target.value)}
+                                    required
                                     className={cn(errors.name && "border-red-500")}
                                 />
                                 {errors.name && (
-                                    <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+                                    <p className="text-sm text-red-500">{errors.name}</p>
                                 )}
                             </div>
 
-                            <div>
+                            <div className="grid gap-2">
                                 <Label htmlFor="description">Descrição</Label>
                                 <Textarea
                                     id="description"
@@ -84,7 +88,7 @@ export default function CreateEquipmentType() {
                                     className={cn(errors.description && "border-red-500")}
                                 />
                                 {errors.description && (
-                                    <p className="text-sm text-red-500 mt-1">{errors.description}</p>
+                                    <p className="text-sm text-red-500">{errors.description}</p>
                                 )}
                             </div>
                         </div>
