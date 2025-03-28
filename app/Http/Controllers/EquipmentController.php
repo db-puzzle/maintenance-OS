@@ -224,4 +224,118 @@ class EquipmentController extends Controller
         }
         return back()->with('error', 'Não foi possível remover a foto.');
     }
+
+    public function import()
+    {
+        return Inertia::render('cadastro/equipamentos/import');
+    }
+
+    public function export()
+    {
+        return Inertia::render('cadastro/equipamentos/export');
+    }
+
+    public function exportData(Request $request)
+    {
+        \Log::info('Iniciando exportação de equipamentos', ['format' => $request->input('format')]);
+        
+        $format = $request->input('format', 'csv');
+        
+        // Busca todos os equipamentos com seus relacionamentos
+        $equipment = Equipment::with([
+            'equipmentType:id,name',
+            'plant:id,name',
+            'area:id,name,plant_id',
+            'sector:id,name,area_id'
+        ])->get();
+
+        \Log::info('Equipamentos carregados', ['count' => $equipment->count()]);
+
+        // Prepara os dados para exportação
+        $data = $equipment->map(function ($item) {
+            return [
+                'ID' => $item->id,
+                'Tag' => $item->tag,
+                'Número de Série' => $item->serial_number,
+                'Tipo de Equipamento' => $item->equipmentType?->name,
+                'Descrição' => $item->description,
+                'Fabricante' => $item->manufacturer,
+                'Ano de Fabricação' => $item->manufacturing_year,
+                'Planta' => $item->plant?->name,
+                'Área' => $item->area?->name,
+                'Setor' => $item->sector?->name,
+                'Data de Criação' => $item->created_at->format('d/m/Y H:i:s'),
+                'Última Atualização' => $item->updated_at->format('d/m/Y H:i:s'),
+            ];
+        })->toArray();
+
+        if ($format === 'csv') {
+            // Cria o arquivo CSV
+            $filename = 'equipamentos_' . date('Y-m-d_His') . '.csv';
+            $filepath = storage_path('app/public/exports/' . $filename);
+            
+            \Log::info('Criando arquivo CSV', [
+                'filename' => $filename,
+                'filepath' => $filepath
+            ]);
+
+            // Cria o diretório se não existir
+            if (!file_exists(storage_path('app/public/exports'))) {
+                mkdir(storage_path('app/public/exports'), 0755, true);
+                \Log::info('Diretório de exportação criado');
+            }
+
+            // Abre o arquivo para escrita
+            $file = fopen($filepath, 'w');
+
+            // Escreve o cabeçalho
+            fputcsv($file, array_keys($data[0]));
+
+            // Escreve os dados
+            foreach ($data as $row) {
+                fputcsv($file, $row);
+            }
+
+            fclose($file);
+
+            \Log::info('Arquivo CSV criado com sucesso');
+
+            // Se for uma requisição de download, retorna o arquivo
+            if ($request->has('download')) {
+                \Log::info('Iniciando download direto do arquivo');
+                return response()->download($filepath)->deleteFileAfterSend();
+            }
+
+            // Retorna a URL do arquivo para download
+            $downloadUrl = route('cadastro.equipamentos.export.download', ['filename' => $filename]);
+            \Log::info('Retornando URL para download', ['url' => $downloadUrl]);
+
+            return Inertia::render('cadastro/equipamentos/export', [
+                'success' => true,
+                'download_url' => $downloadUrl,
+                'filename' => $filename
+            ]);
+        }
+
+        \Log::warning('Formato não suportado', ['format' => $format]);
+        return Inertia::render('cadastro/equipamentos/export', [
+            'success' => false,
+            'error' => 'Formato não suportado'
+        ]);
+    }
+
+    public function downloadExport($filename)
+    {
+        \Log::info('Iniciando download do arquivo', ['filename' => $filename]);
+        
+        $filepath = storage_path('app/public/exports/' . $filename);
+        
+        if (!file_exists($filepath)) {
+            \Log::error('Arquivo não encontrado', ['filepath' => $filepath]);
+            return back()->with('error', 'Arquivo não encontrado');
+        }
+
+        \Log::info('Arquivo encontrado, iniciando download', ['filepath' => $filepath]);
+        return response()->download($filepath)->deleteFileAfterSend();
+    }
 } 

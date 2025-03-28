@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
-import { Cog, Building2, Map, Factory, Wrench } from 'lucide-react';
+import { Cog, Building2, Map, Factory, Wrench, FileSpreadsheet, ArrowUp, ArrowDown } from 'lucide-react';
 
 const sidebarNavItems: NavItem[] = [
     {
@@ -40,6 +40,31 @@ const separatedNavItem: NavItem = {
     icon: Wrench,
     activePattern: /^\/cadastro\/tipos-equipamento/,
 };
+
+const importExportNavItems: NavItem[] = [
+    {
+        title: 'Importar Equipamentos',
+        href: '/cadastro/equipamentos/importar',
+        icon: () => (
+            <div className="relative">
+                <FileSpreadsheet className="h-4 w-4" />
+                <ArrowUp className="h-3 w-3 absolute -top-1 -right-1" />
+            </div>
+        ),
+        activePattern: /^\/cadastro\/equipamentos\/importar/,
+    },
+    {
+        title: 'Exportar Equipamentos',
+        href: '/cadastro/equipamentos/exportar',
+        icon: () => (
+            <div className="relative">
+                <FileSpreadsheet className="h-4 w-4" />
+                <ArrowDown className="h-3 w-3 absolute -bottom-1 -right-1" />
+            </div>
+        ),
+        activePattern: /^\/cadastro\/equipamentos\/exportar/,
+    },
+];
 
 export default function CadastroLayout({ children }: PropsWithChildren) {
     // When server-side rendering, we only render the layout on the client...
@@ -87,6 +112,23 @@ export default function CadastroLayout({ children }: PropsWithChildren) {
                                 {separatedNavItem.title}
                             </Link>
                         </Button>
+                        <Separator className="my-4 mb-5" />
+                        {importExportNavItems.map((item) => (
+                            <Button
+                                key={item.href}
+                                size="sm"
+                                variant="ghost"
+                                asChild
+                                className={cn('w-full justify-start', {
+                                    'bg-muted': item.activePattern?.test(currentPath),
+                                })}
+                            >
+                                <Link href={item.href} prefetch>
+                                    {item.icon && <item.icon className="mr-2 h-4 w-4" />}
+                                    {item.title}
+                                </Link>
+                            </Button>
+                        ))}
                     </nav>
                 </aside>
 

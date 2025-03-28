@@ -1,3 +1,5 @@
+import { type ReactNode } from 'react';
+
 export interface Area {
     id: number;
     name: string;
@@ -69,4 +71,11 @@ export interface Plant {
 export interface BreadcrumbItem {
     title: string;
     href: string;
+}
+
+export interface NavItem {
+    title: string;
+    href: string;
+    icon?: React.ComponentType<{ className?: string }> | (() => ReactNode);
+    activePattern?: RegExp;
 } 
