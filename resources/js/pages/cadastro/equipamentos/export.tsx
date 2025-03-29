@@ -5,8 +5,6 @@ import * as React from "react";
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from "@/components/ui/progress";
 import {
@@ -28,13 +26,6 @@ interface PageProps {
     error?: string;
 }
 
-interface FlashMessage {
-    success?: boolean;
-    download_url?: string;
-    filename?: string;
-    error?: string;
-}
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Cadastro',
@@ -51,9 +42,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function ExportEquipment() {
-    const { data, setData, post, processing } = useForm({
-        format: 'csv',
-    });
+    const { post, processing } = useForm();
 
     const [showProgress, setShowProgress] = React.useState(false);
     const [progressValue, setProgressValue] = React.useState(0);
@@ -65,28 +54,20 @@ export default function ExportEquipment() {
         setProgressValue(0);
         setDownloadUrl(null);
         
-        console.log('Iniciando exportação...', { format: data.format });
-        
         post(route('cadastro.equipamentos.export.data'), {
             onSuccess: (page) => {
                 setProgressValue(100);
-                console.log('Resposta recebida:', page.props);
-                
                 const props = page.props as unknown as PageProps;
                 
                 if (props.success && props.download_url) {
-                    console.log('URL de download recebida:', props.download_url);
                     setDownloadUrl(props.download_url);
                 } else {
-                    console.warn('Resposta não contém URL de download:', props);
                     if (props.error) {
                         // TODO: Mostrar mensagem de erro para o usuário
-                        console.error('Erro retornado:', props.error);
                     }
                 }
             },
             onError: (errors) => {
-                console.error('Erro na exportação:', errors);
                 setShowProgress(false);
             },
         });
@@ -94,28 +75,19 @@ export default function ExportEquipment() {
 
     const handleDownload = () => {
         if (downloadUrl) {
-            console.log('Iniciando download do arquivo:', downloadUrl);
-            
             try {
-                // Cria um link temporário para fazer o download
                 const link = document.createElement('a');
                 link.href = downloadUrl;
-                link.setAttribute('download', ''); // Isso força o download ao invés de navegar
+                link.setAttribute('download', '');
                 document.body.appendChild(link);
-                console.log('Link de download criado:', link);
-                
                 link.click();
                 document.body.removeChild(link);
-                console.log('Download iniciado e link removido');
 
-                // Fecha o dialog após iniciar o download
                 setShowProgress(false);
                 setDownloadUrl(null);
             } catch (error) {
-                console.error('Erro ao fazer download:', error);
+                // TODO: Tratar erro de download
             }
-        } else {
-            console.warn('URL de download não disponível');
         }
     };
 
@@ -141,31 +113,10 @@ export default function ExportEquipment() {
                     />
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="format" className="flex items-center gap-1">
-                                    Formato do Arquivo
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Select 
-                                    value={data.format} 
-                                    onValueChange={(value) => setData('format', value)}
-                                >
-                                    <SelectTrigger id="format">
-                                        <SelectValue placeholder="Selecione o formato" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="csv">CSV</SelectItem>
-                                        <SelectItem value="xlsx">Excel (XLSX)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
                         <div className="flex items-center gap-4">
                             <Button type="submit" className="w-fit" disabled={processing}>
                                 <Download className="h-4 w-4 mr-2" />
-                                {processing ? 'Exportando...' : 'Exportar'}
+                                {processing ? 'Exportando...' : 'Exportar CSV'}
                             </Button>
                             <Button variant="outline" asChild>
                                 <Link href={route('cadastro.equipamentos')}>
@@ -181,7 +132,7 @@ export default function ExportEquipment() {
                         <DialogHeader>
                             <DialogTitle>Exportação de Equipamentos</DialogTitle>
                             <DialogDescription>
-                                Faça o download do arquivo CSV ou Excel.
+                                Faça o download do arquivo CSV.
                             </DialogDescription>
                         </DialogHeader>
 
