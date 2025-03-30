@@ -32,7 +32,6 @@ class EquipmentImportExportController extends Controller
         // Prepara os dados para exportação
         $data = $equipment->map(function ($item) {
             return [
-                'ID' => $item->id,
                 'Tag' => $item->tag,
                 'Número de Série' => $item->serial_number,
                 'Tipo de Equipamento' => $item->equipmentType?->name,
@@ -42,8 +41,6 @@ class EquipmentImportExportController extends Controller
                 'Planta' => $item->plant?->name,
                 'Área' => $item->area?->name,
                 'Setor' => $item->sector?->name,
-                'Data de Criação' => $item->created_at->format('d/m/Y H:i:s'),
-                'Última Atualização' => $item->updated_at->format('d/m/Y H:i:s'),
             ];
         })->toArray();
 
@@ -59,12 +56,20 @@ class EquipmentImportExportController extends Controller
         // Abre o arquivo para escrita
         $file = fopen($filepath, 'w');
 
+        // Função personalizada para escrever CSV sem escape
+        $writeCsvLine = function($file, $fields) {
+            $line = implode(',', array_map(function($field) {
+                return str_replace(',', ' ', $field); // Substitui vírgulas por espaços
+            }, $fields));
+            fwrite($file, $line . "\n");
+        };
+
         // Escreve o cabeçalho
-        fputcsv($file, array_keys($data[0]));
+        $writeCsvLine($file, array_keys($data[0]));
 
         // Escreve os dados
         foreach ($data as $row) {
-            fputcsv($file, $row);
+            $writeCsvLine($file, $row);
         }
 
         fclose($file);
@@ -103,38 +108,129 @@ class EquipmentImportExportController extends Controller
 
         $file = $request->file('file');
         $path = $file->getPathname();
-        
-        $data = [];
-        $headers = [];
-        
-        if (($handle = fopen($path, "r")) !== FALSE) {
+
+        // Validação adicional do conteúdo do arquivo
+        try {
+            // Verifica se o arquivo está vazio
+            if (filesize($path) === 0) {
+                return response()->json([
+                    'error' => 'O arquivo está vazio.'
+                ], 422);
+            }
+
+            // Tenta abrir o arquivo
+            if (($handle = fopen($path, "r")) === FALSE) {
+                return response()->json([
+                    'error' => 'Não foi possível abrir o arquivo.'
+                ], 422);
+            }
+
+            // Lê as primeiras linhas para validação
+            $firstLine = fgetcsv($handle);
+            if ($firstLine === FALSE || count($firstLine) < 1) {
+                fclose($handle);
+                return response()->json([
+                    'error' => 'O arquivo não contém dados válidos em formato CSV.'
+                ], 422);
+            }
+
+            // Verifica se há pelo menos uma coluna
+            if (count($firstLine) < 1) {
+                fclose($handle);
+                return response()->json([
+                    'error' => 'O arquivo CSV deve conter pelo menos uma coluna.'
+                ], 422);
+            }
+
+            // Verifica se há dados na segunda linha
+            $secondLine = fgetcsv($handle);
+            if ($secondLine === FALSE) {
+                fclose($handle);
+                return response()->json([
+                    'error' => 'O arquivo CSV deve conter pelo menos uma linha de dados além do cabeçalho.'
+                ], 422);
+            }
+
+            // Verifica se o número de colunas é consistente
+            if (count($secondLine) !== count($firstLine)) {
+                fclose($handle);
+                return response()->json([
+                    'error' => 'O número de colunas é inconsistente nas linhas do arquivo.'
+                ], 422);
+            }
+
+            // Volta para o início do arquivo
+            rewind($handle);
+            
+            $data = [];
+            $headers = [];
+            $validationErrors = [];
+            $totalLines = 0;
+            $currentLine = 0;
+            
             // Lê o cabeçalho
             $headers = fgetcsv($handle);
-            \Log::info('Cabeçalhos encontrados:', $headers);
+            
+            // Conta o total de linhas para cálculo de progresso
+            $totalLines = count(file($path)) - 1; // -1 para excluir o cabeçalho
             
             // Lê as linhas de dados
             while (($row = fgetcsv($handle)) !== FALSE) {
-                $data[] = array_combine($headers, $row);
+                $currentLine++;
+                
+                // Verifica consistência do número de colunas
+                if (count($row) !== count($headers)) {
+                    $validationErrors[] = "Linha {$currentLine}: Número de colunas inconsistente com o cabeçalho.";
+                    continue;
+                }
+
+                $rowData = array_combine($headers, $row);
+                
+                // Validação da Planta
+                if (empty($rowData['Planta'])) {
+                    $validationErrors[] = "TAG '{$rowData['Tag']}' não possui Planta associada. Todos os equipamentos devem ter uma Planta.";
+                }
+                
+                // Validação de Área quando há Setor
+                if (!empty($rowData['Setor']) && empty($rowData['Área'])) {
+                    $validationErrors[] = "TAG '{$rowData['Tag']}' possui Setor mas não possui Área. Equipamentos com Setor devem ter uma Área.";
+                }
+                
+                // Adiciona apenas as 10 primeiras linhas para exibição
+                if ($currentLine <= 10) {
+                    $data[] = $rowData;
+                }
             }
             
             fclose($handle);
-        }
 
-        \Log::info('Dados processados:', ['count' => count($data), 'sample' => $data[0] ?? null]);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'headers' => $headers,
+                    'data' => $data,
+                    'validationErrors' => $validationErrors,
+                    'progress' => 100,
+                    'totalLines' => $totalLines,
+                    'processedLines' => $currentLine
+                ]);
+            }
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'headers' => $headers,
-                'data' => $data
+            return Inertia::render('cadastro/equipamentos/import', [
+                'csvData' => [
+                    'headers' => $headers,
+                    'data' => $data,
+                    'validationErrors' => $validationErrors,
+                    'progress' => 100,
+                    'totalLines' => $totalLines,
+                    'processedLines' => $currentLine
+                ]
             ]);
-        }
 
-        return Inertia::render('cadastro/equipamentos/import', [
-            'csvData' => [
-                'headers' => $headers,
-                'data' => $data
-            ]
-        ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erro ao processar o arquivo: ' . $e->getMessage()
+            ], 422);
+        }
     }
 
     public function importData(Request $request)
@@ -150,7 +246,7 @@ class EquipmentImportExportController extends Controller
         $imported = 0;
         $errors = [];
 
-        foreach ($data as $row) {
+        foreach ($data as $index => $row) {
             try {
                 $equipmentData = [];
                 foreach ($mapping as $csvField => $dbField) {
@@ -168,7 +264,7 @@ class EquipmentImportExportController extends Controller
                 Equipment::create($equipmentData);
                 $imported++;
             } catch (\Exception $e) {
-                $errors[] = "Erro na linha {$imported}: " . $e->getMessage();
+                $errors[] = "Erro na linha {$index}: " . $e->getMessage();
             }
         }
 

@@ -1,6 +1,6 @@
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { Upload, X, Lightbulb } from 'lucide-react';
+import { Upload, X, Lightbulb, ArrowLeftRight } from 'lucide-react';
 import * as React from "react";
 import axios from 'axios';
 
@@ -38,7 +38,6 @@ import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
 
 const importFields = [
-    { value: 'id', label: 'ID' },
     { value: 'tag', label: 'Tag' },
     { value: 'serial_number', label: 'Número de Série' },
     { value: 'equipment_type_id', label: 'Tipo de Equipamento' },
@@ -69,44 +68,90 @@ export default function ImportEquipment() {
     const [processing, setProcessing] = React.useState(false);
     const [showProgress, setShowProgress] = React.useState(false);
     const [progressValue, setProgressValue] = React.useState(0);
-    const [csvData, setCsvData] = React.useState<{ headers: string[], data: any[] } | null>(null);
+    const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+    const [showErrorDialog, setShowErrorDialog] = React.useState(false);
+    const [errorMessage, setErrorMessage] = React.useState('');
+    const [csvData, setCsvData] = React.useState<{ 
+        headers: string[], 
+        data: any[], 
+        validationErrors: string[],
+        progress: number,
+        totalLines: number,
+        processedLines: number
+    } | null>(null);
     const [showFormat, setShowFormat] = React.useState(true);
     const [showFormatInstructions, setShowFormatInstructions] = React.useState(true);
     const [fieldMapping, setFieldMapping] = React.useState<Record<string, string>>({});
     const [showInstructions, setShowInstructions] = React.useState(true);
+    const [showTable, setShowTable] = React.useState(false);
+
+    const handleStartMapping = () => {
+        setShowProgress(false);
+        setShowTable(true);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) {
+            setSelectedFile(null);
+            return;
+        }
+
+        // Validação do tamanho do arquivo (1MB = 1024 * 1024 bytes)
+        const maxSize = 1024 * 1024; // 1MB
+        if (file.size > maxSize) {
+            setErrorMessage('O arquivo é muito grande. O tamanho máximo permitido é 1MB.');
+            setShowErrorDialog(true);
+            setSelectedFile(null);
+            return;
+        }
+
+        setSelectedFile(file);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!selectedFile) return;
+
         setShowProgress(true);
         setProgressValue(0);
         setProcessing(true);
+        setShowTable(false);
         
-        const fileInput = document.getElementById('file') as HTMLInputElement;
-        if (fileInput.files && fileInput.files[0]) {
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+        const formData = new FormData();
+        formData.append('file', selectedFile);
 
-            try {
-                const response = await axios.post(route('cadastro.equipamentos.import.analyze'), formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                        'Accept': 'application/json',
-                    }
-                });
-
-                console.log('Resposta do servidor:', response.data);
-                setCsvData(response.data);
-                setShowFormat(false);
-                setShowInstructions(true);
-                setProgressValue(100);
-                setTimeout(() => setShowProgress(false), 1000);
-            } catch (error) {
-                console.error('Erro ao processar arquivo:', error);
-                setProgressValue(0);
-                setShowProgress(false);
-            } finally {
-                setProcessing(false);
-            }
+        try {
+            const response = await axios.post(route('cadastro.equipamentos.import.analyze'), formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json',
+                }
+            });
+            
+            setCsvData({
+                headers: response.data.headers,
+                data: response.data.data,
+                validationErrors: response.data.validationErrors,
+                progress: response.data.progress,
+                totalLines: response.data.totalLines,
+                processedLines: response.data.processedLines
+            });
+            
+            setShowFormat(false);
+            setShowInstructions(true);
+            setProgressValue(response.data.progress);
+        } catch (error: any) {
+            console.error('Erro ao processar arquivo:', error);
+            setProgressValue(0);
+            setShowProgress(false);
+            
+            // Extrai a mensagem de erro da resposta
+            const errorMessage = error.response?.data?.error || 'Erro ao processar o arquivo CSV.';
+            setErrorMessage(errorMessage);
+            setShowErrorDialog(true);
+        } finally {
+            setProcessing(false);
         }
     };
 
@@ -182,18 +227,44 @@ export default function ImportEquipment() {
                                                 id="file"
                                                 type="file"
                                                 accept=".csv"
+                                                onChange={handleFileChange}
                                                 className="flex-1 file:mr-4 file:px-2 file:text-sm file:font-semibold"
                                             />
                                         </div>
-                                        <Button type="submit" disabled={processing}>
+                                        <Button 
+                                            type="submit" 
+                                            disabled={processing || !selectedFile}
+                                        >
                                             <Upload className="h-4 w-4 mr-2" />
                                             {processing ? 'Analisando...' : 'Analisar'}
                                         </Button>
                                     </div>
+                                    {!selectedFile && (
+                                        <p className="text-sm text-muted-foreground">
+                                            Selecione um arquivo CSV para análise (máximo 1MB)
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </form>
                     </div>
+
+                    {/* Diálogo de Erro */}
+                    <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Erro de Validação</DialogTitle>
+                                <DialogDescription>
+                                    {errorMessage}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button onClick={() => setShowErrorDialog(false)}>
+                                    OK
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
 
                     <div className="w-full">
                         {showFormat ? (
@@ -234,10 +305,10 @@ export default function ImportEquipment() {
                                     </div>
                                 )}
                             </div>
-                        ) : csvData && (
+                        ) : showTable && csvData && (
                             <div className="space-y-8">
                                 <div className="max-w-2xl">
-                                    {showInstructions && (
+                                    {showInstructions && !csvData.validationErrors?.length && (
                                         <div className="bg-muted rounded-lg p-4 relative">
                                             <Button 
                                                 variant="ghost" 
@@ -256,6 +327,24 @@ export default function ImportEquipment() {
                                         </div>
                                     )}
                                 </div>
+
+                                {csvData.validationErrors && csvData.validationErrors.length > 0 && (
+                                    <div className="max-w-2xl space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
+                                        <div className="relative space-y-0.5 text-red-600 dark:text-red-100">
+                                            <p className="font-medium">Atenção</p>
+                                            <p className="text-sm">Foram encontrados erros de validação no arquivo CSV.</p>
+                                        </div>
+                                        <ul className="list-disc list-inside space-y-1 text-sm text-red-600 dark:text-red-100">
+                                            {csvData.validationErrors.map((error, index) => (
+                                                <li key={index}>{error}</li>
+                                            ))}
+                                        </ul>
+                                        <div className="relative space-y-0.5 text-red-600 dark:text-red-100">
+                                            <p className="text-sm">Por favor, corrija os erros no arquivo CSV e tente a importação novamente.</p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="rounded-md">
                                     <Table>
                                         <TableHeader>
@@ -263,22 +352,26 @@ export default function ImportEquipment() {
                                                 {csvData.headers.map((header, index) => (
                                                     <TableHead key={index}>
                                                         <div className="space-y-2">
-                                                            <Select
-                                                                value={fieldMapping[header] || ''}
-                                                                onValueChange={(value) => handleFieldMappingChange(header, value)}
-                                                            >
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Selecione o campo" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="none">Não importar</SelectItem>
-                                                                    {importFields.map((field) => (
-                                                                        <SelectItem key={field.value} value={field.value}>
-                                                                            {field.label}
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
+                                                            {!csvData.validationErrors?.length && (
+                                                                <>
+                                                                    <Select
+                                                                        value={fieldMapping[header] || ''}
+                                                                        onValueChange={(value) => handleFieldMappingChange(header, value)}
+                                                                    >
+                                                                        <SelectTrigger>
+                                                                            <SelectValue placeholder="Selecione o campo" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="none">Não importar</SelectItem>
+                                                                            {importFields.map((field) => (
+                                                                                <SelectItem key={field.value} value={field.value}>
+                                                                                    {field.label}
+                                                                                </SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </>
+                                                            )}
                                                             <div className="font-bold ml-3">{header}</div>
                                                         </div>
                                                     </TableHead>
@@ -286,7 +379,7 @@ export default function ImportEquipment() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {csvData.data.slice(0, 10).map((row, rowIndex) => (
+                                            {csvData.data.map((row, rowIndex) => (
                                                 <TableRow key={rowIndex}>
                                                     {csvData.headers.map((header, colIndex) => (
                                                         <TableCell key={colIndex} className="ml-3">
@@ -299,26 +392,18 @@ export default function ImportEquipment() {
                                             ))}
                                         </TableBody>
                                     </Table>
-                                    {csvData.data.length > 10 && (
+                                    {csvData.totalLines > 10 && (
                                         <div className="text-sm text-muted-foreground mt-2">
-                                            Mostrando 10 de {csvData.data.length} linhas
+                                            Mostrando 10 de {csvData.totalLines} linhas
                                         </div>
                                     )}
-                                </div>
-                                <div className="flex justify-end">
-                                    <Button 
-                                        onClick={handleImport}
-                                        disabled={processing || Object.keys(fieldMapping).length === 0}
-                                    >
-                                        Importar
-                                    </Button>
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 -mt-20">
+                <div className="flex items-center gap-4">
                     <Button variant="outline" asChild>
                         <Link href={route('cadastro.equipamentos')}>
                             Cancelar
@@ -329,27 +414,43 @@ export default function ImportEquipment() {
                 <Dialog open={showProgress} onOpenChange={setShowProgress}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Importação de Equipamentos</DialogTitle>
+                            <DialogTitle>Analisando CSV</DialogTitle>
                             <DialogDescription>
-                                Importando equipamentos do arquivo CSV.
+                                Processando arquivo para importação.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm text-muted-foreground">
-                                    <span>{progressValue === 100 ? 'Importação concluída!' : 'Importando arquivo...'}</span>
+                                    <span>
+                                        {progressValue === 100 
+                                            ? 'Análise concluída!' 
+                                            : `Processando linha ${csvData?.processedLines || 0} de ${csvData?.totalLines || 0}...`}
+                                    </span>
                                     <span>{progressValue}%</span>
                                 </div>
                                 <Progress value={progressValue} className="w-full" />
                             </div>
+                            {progressValue === 100 && (
+                                <p className="text-sm text-muted-foreground text-left">
+                                    O próximo passo é fazer a correlação entre os campos do seu CSV e os campos esperados pelo sistema.
+                                </p>
+                            )}
                         </div>
 
                         <DialogFooter className="justify-center sm:justify-center pt-2">
-                            <Button disabled className="w-fit">
-                                <Upload className="h-4 w-4 mr-2" />
-                                {progressValue === 100 ? 'Concluído' : 'Importando...'}
-                            </Button>
+                            {progressValue === 100 ? (
+                                <Button onClick={handleStartMapping} className="w-fit">
+                                    <ArrowLeftRight className="h-4 w-4 mr-2" />
+                                    Fazer correlacionamento
+                                </Button>
+                            ) : (
+                                <Button disabled className="w-fit">
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Analisando...
+                                </Button>
+                            )}
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

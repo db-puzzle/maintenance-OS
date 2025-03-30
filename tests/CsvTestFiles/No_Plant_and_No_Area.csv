@@ -1,0 +1,25 @@
+Tag,Número de Série,Tipo de Equipamento,Descrição,Fabricante,Ano de Fabricação,Planta,Área,Setor
+BOMB001,SN-B001-2020,Bomba,Bomba centrífuga de alta pressão,WEG,2020,Superior Rafard,Produção,Linha 1
+MOTR002,SN-M002-2021,Motor Elétrico,Motor elétrico trifásico,ABB,2021,Superior Rafard,Manutenção,Mecânica
+VALV003,SN-V003-2019,Válvula,Válvula de controle pneumática,Emerson,2019,Superior Rafard,Utilidades,
+BOMB004,SN-B004-2022,Bomba,Bomba de água de resfriamento,KSB,2022,Superior Rafard,Utilidades,
+MOTR005,SN-M005-2023,Motor Elétrico,Motor de alta potência,Siemens,2023,Planta 2,Produção 2,Linha 3
+VALV006,SN-V006-2021,Válvula,Válvula de amostragem,Fisher,2021,Superior Rafard,Qualidade,
+BOMB007,SN-B007-2020,Bomba,Bomba de transferência,Grundfos,2020,Superior Rafard,Logística,
+MOTR008,SN-M008-2022,Motor Elétrico,Motor de reserva,WEG,2022,,Manutenção 2,
+COMP009,SN-C009-2023,Compressor de Ar,Compressor de ar industrial de alta pressão,Atlas Copco,2023,Superior Rafard,Utilidades,Ar Comprimido
+TORN010,SN-T010-2022,Torno CNC,Torno CNC de alta precisão,DMG Mori,2022,Superior Rafard,Produção,Linha 1
+FRES011,SN-F011-2023,Fresadora,Fresadora CNC de 5 eixos,Haas,2023,Superior Rafard,Produção,Linha 2
+LASR012,SN-L012-2022,Máquina de Corte a Laser,Cortadora a laser de alta potência,Trumpf,2022,Planta 2,Produção 2,
+INJE013,SN-I013-2023,Injetora de Plástico,Injetora de plástico de grande porte,Arburg,2023,Planta 2,Produção 2,Linha 3
+EMPI014,SN-E014-2021,Empilhadeira,Empilhadeira elétrica,Toyota,2021,Superior Rafard,Logística,Armazenamento
+SERV015,SN-S015-2023,Servidor,Servidor de alta performance,Dell,2023,Superior Rafard,Qualidade,
+SOLD016,SN-S016-2022,Máquina de Solda,Máquina de solda MIG/MAG,Lincoln Electric,2022,Superior Rafard,Manutenção,Mecânica
+GERA017,SN-G017-2023,Gerador,Gerador diesel de emergência,Cummins,2023,Superior Rafard,Utilidades,
+HVAC018,SN-H018-2022,Sistema HVAC,Sistema HVAC central,Trane,2022,Superior Rafard,Utilidades,
+ELEV019,SN-E019-2023,Elevador,Elevador de carga industrial,Otis,2023,Superior Rafard,Logística,
+ESTE020,SN-E020-2022,Esteira Transportadora,Esteira transportadora de rolos,Interroll,2022,Superior Rafard,Produção,Linha 1
+COMP021,SN-C021-2023,Compressor de Ar,Compressor de ar de baixa pressão,Ingersoll Rand,2023,Superior Rafard,,Mecânica
+TORN022,SN-T022-2022,Torno CNC,Torno CNC de pequeno porte,Okuma,2022,,Produção 2,
+FRES023,SN-F023-2023,Fresadora,Fresadora CNC de 3 eixos,Mazak,2023,Superior Rafard,Produção,Linha 2
+DELETE ME,,Fresadora,,,,Superior Itapira,,

@@ -7,15 +7,18 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\Cadastro\SectorController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\Cadastro\EquipmentTypeController;
+use App\Http\Controllers\EquipmentImportExportController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cadastro/equipamentos', [EquipmentController::class, 'index'])->name('cadastro.equipamentos');
     Route::get('cadastro/equipamentos/create', [EquipmentController::class, 'create'])->name('cadastro.equipamentos.create');
     Route::post('cadastro/equipamentos', [EquipmentController::class, 'store'])->name('cadastro.equipamentos.store');
-    Route::get('cadastro/equipamentos/importar', [EquipmentController::class, 'import'])->name('cadastro.equipamentos.import');
-    Route::get('cadastro/equipamentos/exportar', [EquipmentController::class, 'export'])->name('cadastro.equipamentos.export');
-    Route::post('cadastro/equipamentos/exportar', [EquipmentController::class, 'exportData'])->name('cadastro.equipamentos.export.data');
-    Route::get('cadastro/equipamentos/exportar/{filename}', [EquipmentController::class, 'downloadExport'])->name('cadastro.equipamentos.export.download');
+    Route::get('cadastro/equipamentos/importar', [EquipmentImportExportController::class, 'import'])->name('cadastro.equipamentos.import');
+    Route::post('cadastro/equipamentos/importar/analisar', [EquipmentImportExportController::class, 'analyzeCsv'])->name('cadastro.equipamentos.import.analyze');
+    Route::post('cadastro/equipamentos/importar/dados', [EquipmentImportExportController::class, 'importData'])->name('cadastro.equipamentos.import.data');
+    Route::get('cadastro/equipamentos/exportar', [EquipmentImportExportController::class, 'export'])->name('cadastro.equipamentos.export');
+    Route::post('cadastro/equipamentos/exportar', [EquipmentImportExportController::class, 'exportData'])->name('cadastro.equipamentos.export.data');
+    Route::get('cadastro/equipamentos/exportar/{filename}', [EquipmentImportExportController::class, 'downloadExport'])->name('cadastro.equipamentos.export.download');
     Route::get('cadastro/equipamentos/{equipment}', [EquipmentController::class, 'show'])->name('cadastro.equipamentos.show');
     Route::get('cadastro/equipamentos/{equipment}/edit', [EquipmentController::class, 'edit'])->name('cadastro.equipamentos.edit');
     Route::put('cadastro/equipamentos/{equipment}', [EquipmentController::class, 'update'])->name('cadastro.equipamentos.update');
