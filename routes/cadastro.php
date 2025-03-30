@@ -10,6 +10,17 @@ use App\Http\Controllers\Cadastro\EquipmentTypeController;
 use App\Http\Controllers\EquipmentImportExportController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::prefix('equipamentos')->name('equipamentos.')->group(function () {
+        Route::get('/', [EquipmentController::class, 'index'])->name('index');
+        Route::get('/criar', [EquipmentController::class, 'create'])->name('create');
+        Route::post('/', [EquipmentController::class, 'store'])->name('store');
+        Route::get('/{equipment}/editar', [EquipmentController::class, 'edit'])->name('edit');
+        Route::put('/{equipment}', [EquipmentController::class, 'update'])->name('update');
+        Route::delete('/{equipment}', [EquipmentController::class, 'destroy'])->name('destroy');
+        Route::get('/importar', [EquipmentImportExportController::class, 'showImportForm'])->name('import');
+        Route::post('/importar/analisar', [EquipmentImportExportController::class, 'analyzeCsv'])->name('import.analyze');
+        Route::post('/importar/dados', [EquipmentImportExportController::class, 'importData'])->name('import.data');
+    });
     Route::get('cadastro/equipamentos', [EquipmentController::class, 'index'])->name('cadastro.equipamentos');
     Route::get('cadastro/equipamentos/create', [EquipmentController::class, 'create'])->name('cadastro.equipamentos.create');
     Route::post('cadastro/equipamentos', [EquipmentController::class, 'store'])->name('cadastro.equipamentos.store');

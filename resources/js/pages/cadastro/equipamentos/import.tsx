@@ -64,6 +64,25 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+// Função para normalizar string (remover espaços e converter para minúsculo)
+const normalizeString = (str: string): string => {
+    return str.toLowerCase().replace(/\s+/g, '').trim();
+};
+
+// Função para encontrar o melhor match entre uma string e uma lista de campos
+const findBestMatch = (header: string, fields: typeof importFields): string => {
+    const normalizedHeader = normalizeString(header);
+    
+    for (const field of fields) {
+        const normalizedFieldLabel = normalizeString(field.label);
+        if (normalizedHeader === normalizedFieldLabel) {
+            return field.value;
+        }
+    }
+    
+    return '';
+};
+
 export default function ImportEquipment() {
     const [processing, setProcessing] = React.useState(false);
     const [showProgress, setShowProgress] = React.useState(false);
@@ -84,6 +103,33 @@ export default function ImportEquipment() {
     const [fieldMapping, setFieldMapping] = React.useState<Record<string, string>>({});
     const [showInstructions, setShowInstructions] = React.useState(true);
     const [showTable, setShowTable] = React.useState(false);
+    const [importing, setImporting] = React.useState(false);
+    const [importErrors, setImportErrors] = React.useState<string[]>([]);
+    const [showImportDialog, setShowImportDialog] = React.useState(false);
+    const [showDuplicatesDialog, setShowDuplicatesDialog] = React.useState(false);
+    const [duplicates, setDuplicates] = React.useState<any[]>([]);
+
+    // Função para validar o mapeamento dos campos
+    const isMappingValid = React.useCallback(() => {
+        if (!csvData?.headers || !fieldMapping) return false;
+
+        // Campos obrigatórios que devem estar mapeados
+        const requiredFields = [
+            'tag',
+            'plant_id',
+            'equipment_type_id'
+        ];
+
+        // Verifica se todos os campos obrigatórios estão mapeados
+        const hasAllRequiredFields = requiredFields.every(field => 
+            Object.values(fieldMapping).includes(field)
+        );
+
+        // Verifica se há pelo menos uma coluna mapeada
+        const hasAtLeastOneMapping = Object.values(fieldMapping).some(value => value !== '');
+
+        return hasAllRequiredFields && hasAtLeastOneMapping;
+    }, [csvData?.headers, fieldMapping]);
 
     const handleStartMapping = () => {
         setShowProgress(false);
@@ -138,6 +184,16 @@ export default function ImportEquipment() {
                 processedLines: response.data.processedLines
             });
             
+            // Mapeamento automático dos campos
+            const autoMapping: Record<string, string> = {};
+            response.data.headers.forEach((header: string) => {
+                const bestMatch = findBestMatch(header, importFields);
+                if (bestMatch) {
+                    autoMapping[header] = bestMatch;
+                }
+            });
+            setFieldMapping(autoMapping);
+            
             setShowFormat(false);
             setShowInstructions(true);
             setProgressValue(response.data.progress);
@@ -162,36 +218,149 @@ export default function ImportEquipment() {
         }));
     };
 
+    const handleCancelImport = async () => {
+        try {
+            // Envia requisição de cancelamento para o backend
+            await axios.post(route('cadastro.equipamentos.import.data'), {
+                data: csvData?.data,
+                mapping: fieldMapping,
+                cancel: true
+            }, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                withCredentials: true // Garante que os cookies de sessão sejam enviados
+            });
+
+            // Limpa o estado local
+            setShowDuplicatesDialog(false);
+            setShowFormat(true);
+            setCsvData(null);
+            setFieldMapping({});
+            setImporting(false);
+        } catch (error) {
+            console.error('Erro ao cancelar importação:', error);
+            // Mesmo com erro, limpa o estado local
+            setShowDuplicatesDialog(false);
+            setShowFormat(true);
+            setCsvData(null);
+            setFieldMapping({});
+            setImporting(false);
+        }
+    };
+
+    // Adiciona listener para fechamento da janela
+    React.useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (importing) {
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            }
+        };
+
+        const handleUnload = () => {
+            if (importing) {
+                // Usa sendBeacon para garantir que a requisição seja enviada mesmo com a janela fechando
+                const formData = new FormData();
+                formData.append('data', JSON.stringify(csvData?.data || []));
+                formData.append('mapping', JSON.stringify(fieldMapping || {}));
+                formData.append('cancel', 'true');
+                formData.append('X-Requested-With', 'XMLHttpRequest');
+                
+                navigator.sendBeacon(route('cadastro.equipamentos.import.data'), formData);
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('unload', handleUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('unload', handleUnload);
+        };
+    }, [importing, csvData, fieldMapping]);
+
     const handleImport = async () => {
         if (!csvData) return;
 
-        setProcessing(true);
-        setShowProgress(true);
-        setProgressValue(0);
+        setImporting(true);
+        setImportErrors([]);
 
         try {
+            console.log('Iniciando importação...', {
+                data: csvData.data,
+                mapping: fieldMapping
+            });
+
             const response = await axios.post(route('cadastro.equipamentos.import.data'), {
                 data: csvData.data,
                 mapping: fieldMapping
             });
 
-            console.log('Importação concluída:', response.data);
+            console.log('Resposta da importação:', response.data);
+
+            if (response.data.success) {
+                setShowFormat(true);
+                setCsvData(null);
+                setFieldMapping({});
+            }
+        } catch (error: any) {
+            console.error('Erro ao importar dados:', error);
+            if (error.response?.data?.hasDuplicates) {
+                setDuplicates(error.response.data.duplicates);
+                setShowDuplicatesDialog(true);
+            } else if (error.response?.data?.validationErrors) {
+                setImportErrors(error.response.data.validationErrors);
+                setShowImportDialog(true);
+            } else {
+                setErrorMessage('Erro ao importar os dados. Por favor, tente novamente.');
+                setShowErrorDialog(true);
+            }
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    const handleDuplicatesAction = async (action: 'skip' | 'overwrite') => {
+        setShowDuplicatesDialog(false);
+        setImporting(true);
+
+        try {
+            console.log('Iniciando importação com duplicatas...', {
+                data: csvData?.data,
+                mapping: fieldMapping,
+                action
+            });
+
+            const response = await axios.post(route('cadastro.equipamentos.import.data'), {
+                data: csvData?.data,
+                mapping: fieldMapping,
+                action
+            });
+
+            console.log('Resposta da importação:', response.data);
 
             if (response.data.success) {
                 // TODO: Mostrar mensagem de sucesso
                 setShowFormat(true);
                 setCsvData(null);
                 setFieldMapping({});
-            } else {
-                // TODO: Mostrar mensagem de erro
-                console.error('Erros na importação:', response.data.errors);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Erro ao importar dados:', error);
+            if (error.response?.data?.hasDuplicates) {
+                setDuplicates(error.response.data.duplicates);
+                setShowDuplicatesDialog(true);
+            } else if (error.response?.data?.validationErrors) {
+                setImportErrors(error.response.data.validationErrors);
+                setShowImportDialog(true);
+            } else {
+                setErrorMessage('Erro ao importar os dados. Por favor, tente novamente.');
+                setShowErrorDialog(true);
+            }
         } finally {
-            setProcessing(false);
-            setShowProgress(false);
-            setProgressValue(100);
+            setImporting(false);
         }
     };
 
@@ -241,7 +410,7 @@ export default function ImportEquipment() {
                                     </div>
                                     {!selectedFile && (
                                         <p className="text-sm text-muted-foreground">
-                                            Selecione um arquivo CSV para análise (máximo 1MB)
+                                            Selecione um arquivo CSV para importação (máximo 1 MB)
                                         </p>
                                     )}
                                 </div>
@@ -280,9 +449,9 @@ export default function ImportEquipment() {
                                             <X className="h-4 w-4" />
                                         </Button>
                                         <div className="space-y-1 pr-8">
-                                            <h3 className="text-base font-medium">Formato esperado do CSV</h3>
+                                            <h3 className="text-base font-medium">Colunas esperadas no CSV</h3>
                                             <p className="text-sm text-muted-foreground">
-                                                Seu arquivo CSV deve seguir o formato abaixo para uma importação bem-sucedida.
+                                                Seu arquivo CSV deve conter as colunas abaixo para uma importação bem-sucedida.
                                             </p>
                                             <div className="grid grid-cols-3 gap-x-12 gap-y-1 mt-4 font-mono text-sm">
                                                 <div>Tag</div>
@@ -350,29 +519,28 @@ export default function ImportEquipment() {
                                         <TableHeader>
                                             <TableRow>
                                                 {csvData.headers.map((header, index) => (
-                                                    <TableHead key={index}>
+                                                    <TableHead key={index} className="bg-muted/50 dark:bg-muted/30 pt-2">
                                                         <div className="space-y-2">
-                                                            {!csvData.validationErrors?.length && (
-                                                                <>
-                                                                    <Select
-                                                                        value={fieldMapping[header] || ''}
-                                                                        onValueChange={(value) => handleFieldMappingChange(header, value)}
-                                                                    >
-                                                                        <SelectTrigger>
-                                                                            <SelectValue placeholder="Selecione o campo" />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            <SelectItem value="none">Não importar</SelectItem>
-                                                                            {importFields.map((field) => (
-                                                                                <SelectItem key={field.value} value={field.value}>
-                                                                                    {field.label}
-                                                                                </SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </>
-                                                            )}
-                                                            <div className="font-bold ml-3">{header}</div>
+                                                            <Select
+                                                                value={fieldMapping[header] || ''}
+                                                                onValueChange={(value) => handleFieldMappingChange(header, value)}
+                                                            >
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Selecione o campo" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="none">Não importar</SelectItem>
+                                                                    {importFields.map((field) => (
+                                                                        <SelectItem key={field.value} value={field.value}>
+                                                                            {field.label}
+                                                                            {['tag', 'plant_id', 'equipment_type_id'].includes(field.value) && (
+                                                                                <span className="text-xs text-red-500 ml-1">*</span>
+                                                                            )}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <div className="font-bold ml-3 mb-2">{header}</div>
                                                         </div>
                                                     </TableHead>
                                                 ))}
@@ -397,6 +565,22 @@ export default function ImportEquipment() {
                                             Mostrando 10 de {csvData.totalLines} linhas
                                         </div>
                                     )}
+                                    {!isMappingValid() && (
+                                        <div className="mt-4 text-sm text-yellow-600 dark:text-yellow-100">
+                                            <p className="font-medium">Campos obrigatórios não mapeados:</p>
+                                            <ul className="list-disc list-inside mt-1">
+                                                {!Object.values(fieldMapping).includes('tag') && (
+                                                    <li>Tag</li>
+                                                )}
+                                                {!Object.values(fieldMapping).includes('plant_id') && (
+                                                    <li>Planta</li>
+                                                )}
+                                                {!Object.values(fieldMapping).includes('equipment_type_id') && (
+                                                    <li>Tipo de Equipamento</li>
+                                                )}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -409,7 +593,98 @@ export default function ImportEquipment() {
                             Cancelar
                         </Link>
                     </Button>
+                    {showTable && (
+                        <Button 
+                            onClick={() => handleImport()} 
+                            disabled={importing || !isMappingValid()}
+                        >
+                            <Upload className="h-4 w-4 mr-2" />
+                            {importing ? 'Importando...' : 'Importar'}
+                        </Button>
+                    )}
                 </div>
+
+                {/* Diálogo de Duplicatas */}
+                <Dialog open={showDuplicatesDialog} onOpenChange={(open) => {
+                    if (!open) {
+                        handleCancelImport();
+                    }
+                    setShowDuplicatesDialog(open);
+                }}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Equipamentos Duplicados</DialogTitle>
+                            <DialogDescription>
+                                Foram encontrados equipamentos com a mesma TAG na mesma localização. Como você deseja proceder?
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">Equipamentos duplicados:</p>
+                                <ul className="list-disc list-inside space-y-1 text-sm">
+                                    {duplicates.map((duplicate, index) => (
+                                        <li key={index}>
+                                            TAG: {duplicate.tag} - Planta: {duplicate.plant}
+                                            {duplicate.area && ` - Área: ${duplicate.area}`}
+                                            {duplicate.sector && ` - Setor: ${duplicate.sector}`}
+                                            (Linha {duplicate.line})
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="gap-2">
+                            <Button 
+                                variant="outline" 
+                                onClick={handleCancelImport}
+                                disabled={importing}
+                            >
+                                Cancelar Importação
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => handleDuplicatesAction('skip')}
+                                disabled={importing}
+                            >
+                                Pular Duplicatas
+                            </Button>
+                            <Button 
+                                onClick={() => handleDuplicatesAction('overwrite')}
+                                disabled={importing}
+                            >
+                                Sobrescrever
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Diálogo de Erro de Importação */}
+                <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Erros de Validação</DialogTitle>
+                            <DialogDescription>
+                                Foram encontrados erros de validação nos dados. Por favor, corrija-os antes de tentar importar novamente.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-4 py-4">
+                            <ul className="list-disc list-inside space-y-1 text-sm text-red-600 dark:text-red-100">
+                                {importErrors.map((error, index) => (
+                                    <li key={index}>{error}</li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <DialogFooter>
+                            <Button onClick={() => setShowImportDialog(false)}>
+                                OK
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 <Dialog open={showProgress} onOpenChange={setShowProgress}>
                     <DialogContent>
