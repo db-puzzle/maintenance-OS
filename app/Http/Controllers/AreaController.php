@@ -37,9 +37,8 @@ class AreaController extends Controller
 
         switch ($sort) {
             case 'plant':
-                $query->join('plants', 'areas.plant_id', '=', 'plants.id')
-                    ->orderBy('plants.name', $direction)
-                    ->select('areas.*');
+                $query->leftJoin('plants', 'areas.plant_id', '=', 'plants.id')
+                    ->orderBy('plants.name', $direction);
                 break;
             case 'equipment_count':
                 $query->orderBy('equipment_count', $direction);

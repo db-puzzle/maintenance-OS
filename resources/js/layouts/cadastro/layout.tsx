@@ -43,7 +43,7 @@ const separatedNavItem: NavItem = {
 
 const importExportNavItems: NavItem[] = [
     {
-        title: 'Importar Equipamentos',
+        title: 'Importar',
         href: '/cadastro/equipamentos/importar',
         icon: () => (
             <div className="relative">
@@ -54,7 +54,7 @@ const importExportNavItems: NavItem[] = [
         activePattern: /^\/cadastro\/equipamentos\/importar/,
     },
     {
-        title: 'Exportar Equipamentos',
+        title: 'Exportar',
         href: '/cadastro/equipamentos/exportar',
         icon: () => (
             <div className="relative">

@@ -313,21 +313,93 @@ export default function TiposEquipamento({ equipmentTypes, filters }: Props) {
                                     />
                                 </PaginationItem>
                                 
-                                {Array.from({ length: equipmentTypes.last_page }, (_, i) => i + 1).map((page) => (
-                                    <PaginationItem key={page}>
-                                        <PaginationLink 
-                                            href={route('cadastro.tipos-equipamento', { 
-                                                page,
-                                                search,
-                                                sort: filters.sort,
-                                                direction: filters.direction
-                                            })}
-                                            isActive={page === equipmentTypes.current_page}
-                                        >
-                                            {page}
-                                        </PaginationLink>
-                                    </PaginationItem>
-                                ))}
+                                {(() => {
+                                    const pages = [];
+                                    const totalPages = equipmentTypes.last_page;
+                                    const currentPage = equipmentTypes.current_page;
+
+                                    // Adiciona as 3 primeiras páginas
+                                    for (let i = 1; i <= Math.min(3, totalPages); i++) {
+                                        pages.push(
+                                            <PaginationItem key={i}>
+                                                <PaginationLink 
+                                                    href={route('cadastro.tipos-equipamento', { 
+                                                        page: i,
+                                                        search,
+                                                        sort: filters.sort,
+                                                        direction: filters.direction
+                                                    })}
+                                                    isActive={i === currentPage}
+                                                >
+                                                    {i}
+                                                </PaginationLink>
+                                            </PaginationItem>
+                                        );
+                                    }
+
+                                    // Adiciona reticências e páginas ao redor da página atual
+                                    if (totalPages > 5) {
+                                        if (currentPage > 4) {
+                                            pages.push(
+                                                <PaginationItem key="ellipsis-start">
+                                                    <span className="px-2">...</span>
+                                                </PaginationItem>
+                                            );
+                                        }
+
+                                        // Adiciona a página atual e duas páginas antes e depois
+                                        for (let i = Math.max(4, currentPage - 2); i <= Math.min(totalPages - 2, currentPage + 2); i++) {
+                                            if (i > 3 && i < totalPages - 1) {
+                                                pages.push(
+                                                    <PaginationItem key={i}>
+                                                        <PaginationLink 
+                                                            href={route('cadastro.tipos-equipamento', { 
+                                                                page: i,
+                                                                search,
+                                                                sort: filters.sort,
+                                                                direction: filters.direction
+                                                            })}
+                                                            isActive={i === currentPage}
+                                                        >
+                                                            {i}
+                                                        </PaginationLink>
+                                                    </PaginationItem>
+                                                );
+                                            }
+                                        }
+
+                                        if (currentPage < totalPages - 3) {
+                                            pages.push(
+                                                <PaginationItem key="ellipsis-end">
+                                                    <span className="px-2">...</span>
+                                                </PaginationItem>
+                                            );
+                                        }
+                                    }
+
+                                    // Adiciona as 2 últimas páginas
+                                    for (let i = Math.max(totalPages - 1, 4); i <= totalPages; i++) {
+                                        if (i > 3) {
+                                            pages.push(
+                                                <PaginationItem key={i}>
+                                                    <PaginationLink 
+                                                        href={route('cadastro.tipos-equipamento', { 
+                                                            page: i,
+                                                            search,
+                                                            sort: filters.sort,
+                                                            direction: filters.direction
+                                                        })}
+                                                        isActive={i === currentPage}
+                                                    >
+                                                        {i}
+                                                    </PaginationLink>
+                                                </PaginationItem>
+                                            );
+                                        }
+                                    }
+
+                                    return pages;
+                                })()}
 
                                 <PaginationItem>
                                     <PaginationNext 

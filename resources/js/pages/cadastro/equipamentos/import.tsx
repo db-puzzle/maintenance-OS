@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/react';
 import { Upload, X, Lightbulb, ArrowLeftRight } from 'lucide-react';
 import * as React from "react";
 import axios from 'axios';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -100,14 +101,18 @@ export default function ImportEquipment() {
     } | null>(null);
     const [showFormat, setShowFormat] = React.useState(true);
     const [showFormatInstructions, setShowFormatInstructions] = React.useState(true);
+    const [showDuplicateTagsInfo, setShowDuplicateTagsInfo] = React.useState(true);
     const [fieldMapping, setFieldMapping] = React.useState<Record<string, string>>({});
     const [showInstructions, setShowInstructions] = React.useState(true);
     const [showTable, setShowTable] = React.useState(false);
     const [importing, setImporting] = React.useState(false);
     const [importErrors, setImportErrors] = React.useState<string[]>([]);
     const [showImportDialog, setShowImportDialog] = React.useState(false);
-    const [showDuplicatesDialog, setShowDuplicatesDialog] = React.useState(false);
-    const [duplicates, setDuplicates] = React.useState<any[]>([]);
+    const [showImportProgress, setShowImportProgress] = React.useState(false);
+    const [importProgress, setImportProgress] = React.useState(0);
+    const [importProgressInterval, setImportProgressInterval] = React.useState<NodeJS.Timeout | null>(null);
+    const [importSuccess, setImportSuccess] = React.useState(false);
+    const [importStats, setImportStats] = React.useState<{ imported: number; skipped: number } | null>(null);
 
     // Função para validar o mapeamento dos campos
     const isMappingValid = React.useCallback(() => {
@@ -218,8 +223,77 @@ export default function ImportEquipment() {
         }));
     };
 
+    const handleImport = async () => {
+        if (!csvData) return;
+
+        // Primeiro, mostra o diálogo de progresso e inicia o monitoramento
+        setShowImportProgress(true);
+        setImportProgress(0);
+        setImporting(true);
+        setImportErrors([]);
+        setImportSuccess(false);
+        setImportStats(null);
+
+        // Inicia o intervalo ANTES da importação
+        const progressInterval = setInterval(async () => {
+            try {
+                const progressResponse = await axios.get(route('cadastro.equipamentos.import.progress'));
+                console.log('Verificando progresso:', progressResponse.data);
+                
+                if (progressResponse.data.progress !== undefined) {
+                    setImportProgress(progressResponse.data.progress);
+                }
+
+                if (!progressResponse.data.import_in_progress) {
+                    clearInterval(progressInterval);
+                }
+            } catch (error) {
+                console.error('Erro ao verificar progresso:', error);
+            }
+        }, 500);
+
+        setImportProgressInterval(progressInterval);
+
+        // Agora inicia a importação
+        try {
+            const response = await axios.post(route('cadastro.equipamentos.import.data'), {
+                data: csvData.data,
+                mapping: fieldMapping
+            });
+
+            if (response.data.success) {
+                setImportSuccess(true);
+                setImportStats({
+                    imported: response.data.imported,
+                    skipped: response.data.skipped
+                });
+                setShowFormat(true);
+                setCsvData(null);
+                setFieldMapping({});
+            }
+        } catch (error: any) {
+            if (error.response?.data?.validationErrors) {
+                setImportErrors(error.response.data.validationErrors);
+                setShowImportDialog(true);
+            } else {
+                setErrorMessage('Erro ao importar os dados. Por favor, tente novamente.');
+                setShowErrorDialog(true);
+            }
+        } finally {
+            clearInterval(progressInterval);
+            setImportProgressInterval(null);
+            setImporting(false);
+        }
+    };
+
     const handleCancelImport = async () => {
         try {
+            // Limpa o intervalo
+            if (importProgressInterval) {
+                clearInterval(importProgressInterval);
+                setImportProgressInterval(null);
+            }
+
             // Envia requisição de cancelamento para o backend
             await axios.post(route('cadastro.equipamentos.import.data'), {
                 data: csvData?.data,
@@ -229,24 +303,30 @@ export default function ImportEquipment() {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                withCredentials: true // Garante que os cookies de sessão sejam enviados
+                withCredentials: true
             });
 
             // Limpa o estado local
-            setShowDuplicatesDialog(false);
             setShowFormat(true);
             setCsvData(null);
             setFieldMapping({});
             setImporting(false);
+            setShowImportProgress(false);
         } catch (error) {
             console.error('Erro ao cancelar importação:', error);
             // Mesmo com erro, limpa o estado local
-            setShowDuplicatesDialog(false);
             setShowFormat(true);
             setCsvData(null);
             setFieldMapping({});
             setImporting(false);
+            setShowImportProgress(false);
         }
+    };
+
+    const handleCloseImportDialog = () => {
+        setShowImportProgress(false);
+        setImportSuccess(false);
+        setImportStats(null);
     };
 
     // Adiciona listener para fechamento da janela
@@ -281,88 +361,38 @@ export default function ImportEquipment() {
         };
     }, [importing, csvData, fieldMapping]);
 
-    const handleImport = async () => {
-        if (!csvData) return;
-
-        setImporting(true);
-        setImportErrors([]);
-
-        try {
-            console.log('Iniciando importação...', {
-                data: csvData.data,
-                mapping: fieldMapping
-            });
-
-            const response = await axios.post(route('cadastro.equipamentos.import.data'), {
-                data: csvData.data,
-                mapping: fieldMapping
-            });
-
-            console.log('Resposta da importação:', response.data);
-
-            if (response.data.success) {
-                setShowFormat(true);
-                setCsvData(null);
-                setFieldMapping({});
+    // Limpa o intervalo quando o componente é desmontado
+    React.useEffect(() => {
+        return () => {
+            if (importProgressInterval) {
+                clearInterval(importProgressInterval);
             }
-        } catch (error: any) {
-            console.error('Erro ao importar dados:', error);
-            if (error.response?.data?.hasDuplicates) {
-                setDuplicates(error.response.data.duplicates);
-                setShowDuplicatesDialog(true);
-            } else if (error.response?.data?.validationErrors) {
-                setImportErrors(error.response.data.validationErrors);
-                setShowImportDialog(true);
-            } else {
-                setErrorMessage('Erro ao importar os dados. Por favor, tente novamente.');
-                setShowErrorDialog(true);
-            }
-        } finally {
-            setImporting(false);
+        };
+    }, [importProgressInterval]);
+
+    // Adiciona um efeito para monitorar o estado de importação
+    React.useEffect(() => {
+        console.log('Efeito de monitoramento de importação:', {
+            importing,
+            showImportProgress,
+            importSuccess,
+            importProgress
+        });
+        
+        if (importing) {
+            setShowImportProgress(true);
         }
-    };
+    }, [importing, importProgress]);
 
-    const handleDuplicatesAction = async (action: 'skip' | 'overwrite') => {
-        setShowDuplicatesDialog(false);
-        setImporting(true);
-
-        try {
-            console.log('Iniciando importação com duplicatas...', {
-                data: csvData?.data,
-                mapping: fieldMapping,
-                action
-            });
-
-            const response = await axios.post(route('cadastro.equipamentos.import.data'), {
-                data: csvData?.data,
-                mapping: fieldMapping,
-                action
-            });
-
-            console.log('Resposta da importação:', response.data);
-
-            if (response.data.success) {
-                // TODO: Mostrar mensagem de sucesso
-                setShowFormat(true);
-                setCsvData(null);
-                setFieldMapping({});
-            }
-        } catch (error: any) {
-            console.error('Erro ao importar dados:', error);
-            if (error.response?.data?.hasDuplicates) {
-                setDuplicates(error.response.data.duplicates);
-                setShowDuplicatesDialog(true);
-            } else if (error.response?.data?.validationErrors) {
-                setImportErrors(error.response.data.validationErrors);
-                setShowImportDialog(true);
-            } else {
-                setErrorMessage('Erro ao importar os dados. Por favor, tente novamente.');
-                setShowErrorDialog(true);
-            }
-        } finally {
-            setImporting(false);
-        }
-    };
+    // Adiciona um efeito para monitorar mudanças no showImportProgress
+    React.useEffect(() => {
+        console.log('Estado do diálogo de progresso mudou:', {
+            showImportProgress,
+            importing,
+            importSuccess,
+            importProgress
+        });
+    }, [showImportProgress, importProgress]);
 
     React.useEffect(() => {
         if (showProgress && progressValue < 100) {
@@ -373,6 +403,11 @@ export default function ImportEquipment() {
             return () => clearInterval(timer);
         }
     }, [showProgress, progressValue]);
+
+    // Adiciona um efeito para monitorar mudanças no importProgress
+    React.useEffect(() => {
+        console.log('Progresso atualizado:', importProgress);
+    }, [importProgress]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -468,6 +503,36 @@ export default function ImportEquipment() {
                                                 <Lightbulb className="h-4 w-4 text-muted-foreground" />
                                                 <span className="font-medium">
                                                     Use a funcionalidade de exportar para faciliar a criação do modelo do arquivo CSV.
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {showDuplicateTagsInfo && (
+                                    <div className="bg-muted rounded-lg p-4 relative mt-4">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon"
+                                            className="absolute right-2 top-2 h-6 w-6 hover:bg-muted-foreground/20"
+                                            onClick={() => setShowDuplicateTagsInfo(false)}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                        <div className="space-y-1 pr-8">
+                                            <h3 className="text-base font-medium">Tags Duplicadas</h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Durante a importação, o sistema verifica automaticamente por tags duplicadas.
+                                            </p>
+                                            <div className="mt-4 space-y-2 text-sm">
+                                                <p>• Tags que já existem na mesma combinação de planta/área/setor não serão importadas</p>
+                                                <p>• A mesma tag pode existir em diferentes plantas, áreas ou setores</p>
+                                                <p>• Tags duplicadas dentro do arquivo CSV serão consideradas apenas uma vez</p>
+                                            </div>
+                                            <div className="mt-4 text-sm flex items-center gap-1.5">
+                                                <Lightbulb className="h-4 w-4 text-muted-foreground" />
+                                                <span className="font-medium">
+                                                    A importação mostrará ao final quantos tags foram pulados por duplicidade
                                                 </span>
                                             </div>
                                         </div>
@@ -593,72 +658,14 @@ export default function ImportEquipment() {
                             Cancelar
                         </Link>
                     </Button>
-                    {showTable && (
-                        <Button 
-                            onClick={() => handleImport()} 
-                            disabled={importing || !isMappingValid()}
-                        >
-                            <Upload className="h-4 w-4 mr-2" />
-                            {importing ? 'Importando...' : 'Importar'}
-                        </Button>
-                    )}
+                    <Button 
+                        onClick={() => handleImport()} 
+                        disabled={importing || !isMappingValid() || !selectedFile}
+                    >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {importing ? 'Importando...' : 'Importar'}
+                    </Button>
                 </div>
-
-                {/* Diálogo de Duplicatas */}
-                <Dialog open={showDuplicatesDialog} onOpenChange={(open) => {
-                    if (!open) {
-                        handleCancelImport();
-                    }
-                    setShowDuplicatesDialog(open);
-                }}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Equipamentos Duplicados</DialogTitle>
-                            <DialogDescription>
-                                Foram encontrados equipamentos com a mesma TAG na mesma localização. Como você deseja proceder?
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <p className="text-sm font-medium">Equipamentos duplicados:</p>
-                                <ul className="list-disc list-inside space-y-1 text-sm">
-                                    {duplicates.map((duplicate, index) => (
-                                        <li key={index}>
-                                            TAG: {duplicate.tag} - Planta: {duplicate.plant}
-                                            {duplicate.area && ` - Área: ${duplicate.area}`}
-                                            {duplicate.sector && ` - Setor: ${duplicate.sector}`}
-                                            (Linha {duplicate.line})
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-
-                        <DialogFooter className="gap-2">
-                            <Button 
-                                variant="outline" 
-                                onClick={handleCancelImport}
-                                disabled={importing}
-                            >
-                                Cancelar Importação
-                            </Button>
-                            <Button 
-                                variant="outline" 
-                                onClick={() => handleDuplicatesAction('skip')}
-                                disabled={importing}
-                            >
-                                Pular Duplicatas
-                            </Button>
-                            <Button 
-                                onClick={() => handleDuplicatesAction('overwrite')}
-                                disabled={importing}
-                            >
-                                Sobrescrever
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
 
                 {/* Diálogo de Erro de Importação */}
                 <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
@@ -724,6 +731,73 @@ export default function ImportEquipment() {
                                 <Button disabled className="w-fit">
                                     <Upload className="h-4 w-4 mr-2" />
                                     Analisando...
+                                </Button>
+                            )}
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Diálogo de Progresso da Importação */}
+                <Dialog 
+                    open={showImportProgress} 
+                    onOpenChange={(open) => {
+                        console.log('Tentativa de mudar estado do diálogo:', {
+                            open,
+                            importing,
+                            importSuccess
+                        });
+                        
+                        if (!open && importing && !importSuccess) {
+                            handleCancelImport();
+                        } else if (!open && importSuccess) {
+                            handleCloseImportDialog();
+                        }
+                        setShowImportProgress(open);
+                    }}
+                >
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>
+                                {importSuccess ? 'Importação Concluída' : 'Importando Equipamentos'}
+                            </DialogTitle>
+                            <DialogDescription>
+                                {importSuccess 
+                                    ? 'A importação foi concluída com sucesso!'
+                                    : 'A importação está em andamento. Por favor, aguarde...'}
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-4 py-4">
+                            {!importSuccess ? (
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-sm text-muted-foreground">
+                                        <span>Progresso da importação</span>
+                                        <span>{importProgress}%</span>
+                                    </div>
+                                    <Progress value={importProgress} className="w-full" />
+                                </div>
+                            ) : importStats && (
+                                <div className="space-y-2">
+                                    <div className="text-sm text-muted-foreground">
+                                        <p>Equipamentos importados: {importStats.imported}</p>
+                                        <p>Equipamentos pulados: {importStats.skipped}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <DialogFooter>
+                            {importSuccess ? (
+                                <Button onClick={handleCloseImportDialog}>
+                                    Fechar
+                                </Button>
+                            ) : (
+                                <Button 
+                                    variant="destructive" 
+                                    onClick={handleCancelImport}
+                                    disabled={importing}
+                                >
+                                    Cancelar Importação
                                 </Button>
                             )}
                         </DialogFooter>

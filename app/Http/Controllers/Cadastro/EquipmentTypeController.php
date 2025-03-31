@@ -11,7 +11,7 @@ class EquipmentTypeController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = 10;
+        $perPage = 8;
         $sort = $request->sort ?? 'name';
         $direction = $request->direction === 'desc' ? 'desc' : 'asc';
 

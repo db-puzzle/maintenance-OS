@@ -100,6 +100,23 @@ class EquipmentImportExportController extends Controller
         return response()->download($filepath)->deleteFileAfterSend();
     }
 
+    public function checkImportProgress()
+    {
+        $progress = session()->get('import_progress', 0);
+        $importInProgress = session()->get('import_in_progress', false);
+        
+        \Log::info('Verificando progresso da importação', [
+            'progress' => $progress,
+            'import_in_progress' => $importInProgress,
+            'session_id' => session()->getId()
+        ]);
+
+        return response()->json([
+            'progress' => $progress,
+            'import_in_progress' => $importInProgress
+        ]);
+    }
+
     public function analyzeCsv(Request $request)
     {
         $request->validate([
@@ -162,7 +179,8 @@ class EquipmentImportExportController extends Controller
             // Volta para o início do arquivo
             rewind($handle);
             
-            $data = [];
+            $previewData = []; // Dados para visualização (10 primeiras linhas)
+            $allData = []; // Todos os dados do arquivo
             $headers = [];
             $totalLines = 0;
             $currentLine = 0;
@@ -184,18 +202,24 @@ class EquipmentImportExportController extends Controller
 
                 $rowData = array_combine($headers, $row);
                 
+                // Adiciona à lista completa de dados
+                $allData[] = $rowData;
+                
                 // Adiciona apenas as 10 primeiras linhas para exibição
                 if ($currentLine <= 10) {
-                    $data[] = $rowData;
+                    $previewData[] = $rowData;
                 }
             }
             
             fclose($handle);
 
+            // Armazena todos os dados na sessão para uso posterior
+            session()->put('csv_data', $allData);
+
             if ($request->wantsJson()) {
                 return response()->json([
                     'headers' => $headers,
-                    'data' => $data,
+                    'data' => $previewData,
                     'progress' => 100,
                     'totalLines' => $totalLines,
                     'processedLines' => $currentLine
@@ -205,7 +229,7 @@ class EquipmentImportExportController extends Controller
             return Inertia::render('cadastro/equipamentos/import', [
                 'csvData' => [
                     'headers' => $headers,
-                    'data' => $data,
+                    'data' => $previewData,
                     'progress' => 100,
                     'totalLines' => $totalLines,
                     'processedLines' => $currentLine
@@ -223,10 +247,6 @@ class EquipmentImportExportController extends Controller
     {
         // Verifica se a conexão ainda está ativa
         if (!$request->isMethod('post')) {
-            \Log::warning('Tentativa de importação com método inválido', [
-                'method' => $request->method(),
-                'session_id' => session()->getId()
-            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Método de requisição inválido'
@@ -235,38 +255,27 @@ class EquipmentImportExportController extends Controller
 
         // Verifica se a sessão está ativa
         if (!$request->session()->isStarted()) {
-            \Log::warning('Tentativa de importação com sessão não iniciada', [
-                'session_id' => session()->getId()
-            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Sessão não iniciada'
             ], 419);
         }
 
-        \Log::info('Iniciando importação', [
-            'request_data' => $request->all(),
-            'action' => $request->input('action'),
-            'has_cancel' => $request->has('cancel'),
-            'session_id' => session()->getId()
-        ]);
-
         // Define um timeout para a operação
-        set_time_limit(300); // 5 minutos
-        ini_set('max_execution_time', 300);
+        set_time_limit(180); // 3 minutos
+        ini_set('max_execution_time', 180);
+
+        // Registra o início da importação
+        $startTime = microtime(true);
+        $maxExecutionTime = 180; // 3 minutos em segundos
 
         $request->validate([
-            'data' => 'required|array',
             'mapping' => 'required|array',
-            'action' => 'nullable|in:skip,overwrite',
             'cancel' => 'nullable|boolean'
         ]);
 
         // Se a requisição indicar cancelamento, retorna imediatamente
         if ($request->boolean('cancel')) {
-            \Log::info('Importação cancelada pelo usuário', [
-                'session_id' => session()->getId()
-            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Importação cancelada pelo usuário'
@@ -276,28 +285,47 @@ class EquipmentImportExportController extends Controller
         // Registra o início da importação na sessão
         session()->put('import_in_progress', true);
         session()->put('import_started_at', now());
+        session()->put('import_progress', 0);
+        session()->save();
 
-        $data = $request->input('data');
-        $mapping = $request->input('mapping');
-        $action = $request->input('action');
-
-        \Log::info('Dados recebidos', [
-            'data_count' => count($data),
-            'mapping' => $mapping,
-            'action' => $action
+        \Log::info('Iniciando importação', [
+            'session_id' => session()->getId(),
+            'import_in_progress' => session()->get('import_in_progress'),
+            'import_progress' => session()->get('import_progress')
         ]);
 
+        // Recupera todos os dados do CSV da sessão
+        $data = session()->get('csv_data');
+        if (!$data) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dados do CSV não encontrados. Por favor, faça o upload do arquivo novamente.'
+            ], 422);
+        }
+
+        $mapping = $request->input('mapping');
+        $totalRecords = count($data);
         $imported = 0;
         $skipped = 0;
         $errors = [];
         $validationErrors = [];
-        $duplicates = [];
+        $lastProgressUpdate = 0;
 
         // Primeiro, mapeia todos os dados
         $mappedData = [];
         foreach ($data as $index => $row) {
-            \Log::info("Processando linha {$index}", ['row' => $row]);
-            
+            // Verifica o tempo de execução
+            if (microtime(true) - $startTime > $maxExecutionTime) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tempo máximo de execução excedido. A importação foi cancelada.',
+                    'partial_import' => true,
+                    'imported' => $imported,
+                    'skipped' => $skipped,
+                    'errors' => $errors
+                ], 408);
+            }
+
             $mappedRow = [];
             foreach ($mapping as $csvField => $dbField) {
                 if (!empty($dbField)) {
@@ -305,11 +333,23 @@ class EquipmentImportExportController extends Controller
                 }
             }
             $mappedData[] = $mappedRow;
-            
-            \Log::info("Linha {$index} mapeada", ['mapped_row' => $mappedRow]);
-        }
 
-        \Log::info('Dados mapeados', ['mapped_data' => $mappedData]);
+            // Atualiza o progresso a cada 10 registros mapeados
+            if ($index - $lastProgressUpdate >= 10) {
+                $progress = round(($index + 1) / $totalRecords * 50); // Primeira metade do progresso
+                session()->put('import_progress', $progress);
+                session()->save();
+                
+                \Log::info('Progresso atualizado durante mapeamento', [
+                    'progress' => $progress,
+                    'index' => $index,
+                    'total_records' => $totalRecords,
+                    'session_id' => session()->getId()
+                ]);
+                
+                $lastProgressUpdate = $index;
+            }
+        }
 
         // Validação inicial dos dados
         foreach ($mappedData as $index => $row) {
@@ -326,125 +366,115 @@ class EquipmentImportExportController extends Controller
 
         // Se houver erros de validação, retorna sem importar
         if (!empty($validationErrors)) {
-            \Log::info('Erros de validação encontrados', ['validation_errors' => $validationErrors]);
             return response()->json([
                 'success' => false,
                 'validationErrors' => $validationErrors
             ], 422);
         }
 
-        // Verifica duplicatas de TAG
-        $duplicates = [];
-        foreach ($mappedData as $index => $row) {
-            // Busca os IDs reais das estruturas
-            $plant = \App\Models\Plant::where('name', $row['plant_id'])->first();
-            if (!$plant) {
-                continue;
-            }
-
-            $area = !empty($row['area_id']) ? \App\Models\Area::where('name', $row['area_id'])->first() : null;
-            if (!empty($row['area_id']) && !$area) {
-                continue;
-            }
-
-            $sector = !empty($row['sector_id']) ? \App\Models\Sector::where('name', $row['sector_id'])->first() : null;
-            if (!empty($row['sector_id']) && !$sector) {
-                continue;
-            }
-
-            // Verifica se já existe um equipamento com a mesma TAG na mesma localização no banco de dados
-            $existingEquipment = Equipment::where('tag', $row['tag'])
-                ->where('plant_id', $plant->id)
-                ->when($area, function ($query) use ($area) {
-                    return $query->where('area_id', $area->id);
-                })
-                ->when($sector, function ($query) use ($sector) {
-                    return $query->where('sector_id', $sector->id);
-                })
-                ->first();
-
-            if ($existingEquipment) {
-                $duplicates[] = [
-                    'tag' => $row['tag'],
-                    'plant' => $row['plant_id'],
-                    'area' => $row['area_id'] ?? null,
-                    'sector' => $row['sector_id'] ?? null,
-                    'line' => $index + 1
-                ];
-            }
-        }
-
-        // Se houver duplicatas e não houver ação definida, retorna para o usuário decidir
-        if (!empty($duplicates) && !$action) {
-            \Log::info('Duplicatas encontradas', ['duplicates' => $duplicates]);
-            return response()->json([
-                'success' => false,
-                'hasDuplicates' => true,
-                'duplicates' => $duplicates
-            ], 422);
-        }
-
-        // Se não houver duplicatas ou houver uma ação definida, procede com a importação
+        // Se não houver erros de validação, procede com a importação
         try {
             \DB::beginTransaction();
 
             // Cria plantas, áreas e setores necessários
             foreach ($mappedData as $index => $row) {
-                \Log::info("Processando estruturas para linha {$index}", ['row' => $row]);
-                
-                // Cria planta se não existir
-                if (!empty($row['plant_id'])) {
-                    $plant = \App\Models\Plant::firstOrCreate(
-                        ['name' => $row['plant_id']]
-                    );
-                    \Log::info("Planta processada", ['plant' => $plant]);
+                // Verifica o tempo de execução
+                if (microtime(true) - $startTime > $maxExecutionTime) {
+                    \DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tempo máximo de execução excedido. A importação foi cancelada.',
+                        'partial_import' => true,
+                        'imported' => $imported,
+                        'skipped' => $skipped,
+                        'errors' => $errors
+                    ], 408);
                 }
 
-                // Cria área se não existir
-                if (!empty($row['area_id'])) {
-                    $area = \App\Models\Area::firstOrCreate(
-                        [
-                            'name' => $row['area_id'],
-                            'plant_id' => $plant->id
-                        ]
-                    );
-                    \Log::info("Área processada", ['area' => $area]);
-                }
+                try {
+                    // Cria planta se não existir
+                    if (!empty($row['plant_id'])) {
+                        $plant = \App\Models\Plant::firstOrCreate(
+                            ['name' => $row['plant_id']]
+                        );
+                    }
 
-                // Cria setor se não existir
-                if (!empty($row['sector_id'])) {
-                    $sector = \App\Models\Sector::firstOrCreate(
-                        [
-                            'name' => $row['sector_id'],
-                            'area_id' => $area->id
-                        ]
-                    );
-                    \Log::info("Setor processado", ['sector' => $sector]);
+                    // Cria área se não existir
+                    if (!empty($row['area_id'])) {
+                        // Busca a área pelo nome E pela planta
+                        $area = \App\Models\Area::where('name', $row['area_id'])
+                            ->where('plant_id', $plant->id)
+                            ->first();
+
+                        if (!$area) {
+                            $area = \App\Models\Area::create([
+                                'name' => $row['area_id'],
+                                'plant_id' => $plant->id
+                            ]);
+                        }
+                    }
+
+                    // Cria setor se não existir
+                    if (!empty($row['sector_id'])) {
+                        // Busca o setor pelo nome E pela área
+                        $sector = \App\Models\Sector::where('name', $row['sector_id'])
+                            ->where('area_id', $area->id)
+                            ->first();
+
+                        if (!$sector) {
+                            $sector = \App\Models\Sector::create([
+                                'name' => $row['sector_id'],
+                                'area_id' => $area->id
+                            ]);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    throw $e;
                 }
             }
 
             // Cria os equipamentos
             foreach ($mappedData as $index => $row) {
+                // Verifica o tempo de execução
+                if (microtime(true) - $startTime > $maxExecutionTime) {
+                    \DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tempo máximo de execução excedido. A importação foi cancelada.',
+                        'partial_import' => true,
+                        'imported' => $imported,
+                        'skipped' => $skipped,
+                        'errors' => $errors
+                    ], 408);
+                }
+
                 try {
-                    \Log::info("Processando equipamento na linha {$index}", ['row' => $row]);
-                    
                     // Busca os IDs reais das estruturas
                     $plant = \App\Models\Plant::where('name', $row['plant_id'])->first();
-                    $area = !empty($row['area_id']) ? \App\Models\Area::where('name', $row['area_id'])->first() : null;
-                    $sector = !empty($row['sector_id']) ? \App\Models\Sector::where('name', $row['sector_id'])->first() : null;
-
-                    // Busca o ID do tipo de equipamento
-                    $equipmentType = \App\Models\EquipmentType::where('name', $row['equipment_type_id'])->first();
-                    if (!$equipmentType) {
-                        throw new \Exception("Tipo de equipamento '{$row['equipment_type_id']}' não encontrado");
+                    if (!$plant) {
+                        throw new \Exception("Planta '{$row['plant_id']}' não encontrada");
                     }
 
-                    \Log::info("Estruturas encontradas", [
-                        'plant' => $plant,
-                        'area' => $area,
-                        'sector' => $sector,
-                        'equipment_type' => $equipmentType
-                    ]);
+                    $area = !empty($row['area_id']) ? \App\Models\Area::where('name', $row['area_id'])
+                        ->where('plant_id', $plant->id)
+                        ->first() : null;
+
+                    if (!empty($row['area_id']) && !$area) {
+                        throw new \Exception("Área '{$row['area_id']}' não encontrada na planta '{$row['plant_id']}'");
+                    }
+
+                    $sector = !empty($row['sector_id']) ? \App\Models\Sector::where('name', $row['sector_id'])
+                        ->where('area_id', $area->id)
+                        ->first() : null;
+
+                    if (!empty($row['sector_id']) && !$sector) {
+                        throw new \Exception("Setor '{$row['sector_id']}' não encontrado na área '{$row['area_id']}'");
+                    }
+
+                    // Busca o ID do tipo de equipamento
+                    $equipmentType = \App\Models\EquipmentType::firstOrCreate(
+                        ['name' => $row['equipment_type_id']]
+                    );
 
                     // Verifica se já existe um equipamento com a mesma TAG na mesma localização
                     $existingEquipment = Equipment::where('tag', $row['tag'])
@@ -454,25 +484,8 @@ class EquipmentImportExportController extends Controller
                         ->first();
 
                     if ($existingEquipment) {
-                        \Log::info("Equipamento existente encontrado", ['equipment' => $existingEquipment]);
-                        
-                        if ($action === 'skip') {
-                            $skipped++;
-                            \Log::info("Pulando equipamento duplicado");
-                            continue;
-                        } else {
-                            \Log::info("Atualizando equipamento existente");
-                            // Atualiza o equipamento existente
-                            $existingEquipment->update([
-                                'serial_number' => $row['serial_number'] ?? $existingEquipment->serial_number,
-                                'equipment_type_id' => $equipmentType->id,
-                                'description' => $row['description'] ?? $existingEquipment->description,
-                                'manufacturer' => $row['manufacturer'] ?? $existingEquipment->manufacturer,
-                                'manufacturing_year' => $row['manufacturing_year'] ?? $existingEquipment->manufacturing_year,
-                            ]);
-                        }
+                        $skipped++;
                     } else {
-                        \Log::info("Criando novo equipamento");
                         // Cria novo equipamento
                         Equipment::create([
                             'tag' => $row['tag'],
@@ -485,38 +498,59 @@ class EquipmentImportExportController extends Controller
                             'area_id' => $area?->id,
                             'sector_id' => $sector?->id,
                         ]);
+                        $imported++;
                     }
-                    $imported++;
-                    \Log::info("Equipamento processado com sucesso", ['imported' => $imported]);
+
+                    // Atualiza o progresso a cada 10 registros
+                    if ($index - $lastProgressUpdate >= 10) {
+                        $progress = 50 + round(($index + 1) / $totalRecords * 50); // Segunda metade do progresso
+                        session()->put('import_progress', $progress);
+                        session()->save();
+                        
+                        \Log::info('Progresso atualizado durante importação', [
+                            'progress' => $progress,
+                            'index' => $index,
+                            'total_records' => $totalRecords,
+                            'session_id' => session()->getId()
+                        ]);
+                        
+                        $lastProgressUpdate = $index;
+                    }
                 } catch (\Exception $e) {
-                    \Log::error("Erro ao processar equipamento na linha {$index}", [
-                        'error' => $e->getMessage(),
-                        'row' => $row
-                    ]);
-                    $errors[] = "Erro ao criar equipamento na linha {$index}: " . $e->getMessage();
+                    $errors[] = [
+                        'line' => $index + 1,
+                        'tag' => $row['tag'] ?? 'N/A',
+                        'error' => $e->getMessage()
+                    ];
+                    continue; // Continua para a próxima linha
                 }
             }
 
             \DB::commit();
-            \Log::info('Importação concluída com sucesso', [
-                'imported' => $imported,
-                'skipped' => $skipped,
-                'errors' => $errors
-            ]);
+
+            // Limpa os dados da sessão após importação bem-sucedida
+            session()->forget('csv_data');
+            session()->forget('import_in_progress');
+            session()->forget('import_started_at');
+            session()->forget('import_progress');
 
             return response()->json([
                 'success' => true,
                 'imported' => $imported,
                 'skipped' => $skipped,
-                'errors' => $errors
+                'errors' => $errors,
+                'total_processed' => count($mappedData),
+                'total_errors' => count($errors)
             ]);
 
         } catch (\Exception $e) {
             \DB::rollBack();
-            \Log::error('Erro durante a importação', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            
+            // Limpa os dados da sessão em caso de erro
+            session()->forget('csv_data');
+            session()->forget('import_in_progress');
+            session()->forget('import_started_at');
+            session()->forget('import_progress');
             
             return response()->json([
                 'success' => false,

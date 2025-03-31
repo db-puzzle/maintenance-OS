@@ -2,6 +2,7 @@ import { type BreadcrumbItem, type Equipment, type EquipmentType, type Area, typ
 import { Head, useForm, router } from '@inertiajs/react';
 import { FormEvent, useState, useEffect } from 'react';
 import { toast } from "sonner";
+import { type UseFormReturn } from '@inertiajs/react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +56,9 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
         sector_id: equipment.sector_id?.toString() || '',
         photo: null,
         photo_path: equipment.photo_path
+    }, {
+        forceFormData: true,
+        preserveScroll: true
     });
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(equipment.photo_path ? `/storage/${equipment.photo_path}` : null);
@@ -86,7 +90,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
     }, [equipment]);
 
     const handleRemovePhoto = () => {
-        router.delete(route('equipamentos.remove-photo', equipment.id), {
+        router.delete(route('cadastro.equipamentos.remove-photo', equipment.id), {
             preserveScroll: true,
             onSuccess: () => {
                 setPreviewUrl(null);
@@ -111,26 +115,34 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
-
-        const formData = new FormData();
-        formData.append('_method', 'PUT');
-        formData.append('tag', data.tag);
-        formData.append('serial_number', data.serial_number);
-        formData.append('equipment_type_id', data.equipment_type_id.toString());
-        formData.append('description', data.description);
-        formData.append('manufacturer', data.manufacturer);
-        formData.append('manufacturing_year', data.manufacturing_year);
-        formData.append('plant_id', data.plant_id || '');
-        formData.append('area_id', data.area_id || '');
-        formData.append('sector_id', data.sector_id || '');
         
-        if (data.photo) {
-            formData.append('photo', data.photo);
+        // Validação da planta
+        if (!data.plant_id) {
+            toast.error("Erro ao atualizar equipamento", {
+                description: "A planta é obrigatória."
+            });
+            return;
         }
-        
+
+        // Criar um FormData para enviar o arquivo
+        const formData = new FormData();
+        Object.keys(data).forEach(key => {
+            // Não incluir o campo photo se for null
+            if (key === 'photo') {
+                if (data[key]) {
+                    formData.append(key, data[key] as File);
+                }
+            } else {
+                formData.append(key, data[key] as string);
+            }
+        });
+
         router.post(route('cadastro.equipamentos.update', equipment.id), formData, {
+            preserveScroll: true,
             onSuccess: () => {
                 toast.success(`O equipamento ${data.tag} foi atualizado com sucesso!`);
+                // Redireciona para a página de visualização
+                router.visit(route('cadastro.equipamentos.show', equipment.id));
             },
             onError: (errors) => {
                 toast.error("Erro ao atualizar equipamento", {
@@ -351,8 +363,9 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                                                                     const plantId = parseInt(value);
                                                                     setSelectedPlant(plantId);
                                                                     setData('plant_id', plantId.toString());
-                                                                    setData('area_id', '');
-                                                                    setData('sector_id', '');
+                                                                    setData('area_id', ''); // Limpa a área quando mudar a planta
+                                                                    setData('sector_id', ''); // Limpa o setor quando mudar a planta
+                                                                    setSelectedArea(null); // Reseta a área selecionada
                                                                     setOpenPlant(false);
                                                                 }}
                                                             >
@@ -385,6 +398,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                                                 role="combobox"
                                                 aria-expanded={openArea}
                                                 className="w-full justify-between"
+                                                disabled={!selectedPlant}
                                             >
                                                 {data.area_id
                                                     ? availableAreas.find((area) => area.id.toString() === data.area_id)?.name
@@ -437,10 +451,11 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                                                 role="combobox"
                                                 aria-expanded={openSector}
                                                 className="w-full justify-between"
+                                                disabled={!data.area_id}
                                             >
                                                 {data.sector_id
                                                     ? availableSectors.find((sector) => sector.id.toString() === data.sector_id)?.name
-                                                    : "Selecione um setor (opcional)"}
+                                                    : data.area_id ? "Selecione um setor (opcional)" : "Selecione uma área primeiro"}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>

@@ -17,7 +17,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('cadastro/tipos-equipamento', EquipmentTypeController::class)
         ->names('cadastro.tipos-equipamento')
         ->parameters(['tipos-equipamento' => 'equipmentType']);
-    Route::delete('/equipment/{equipment}/photo', [EquipmentController::class, 'removePhoto'])->name('equipamentos.remove-photo');
 });
 
 require __DIR__.'/settings.php';

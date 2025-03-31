@@ -11,7 +11,7 @@ class EquipmentTypeSeeder extends Seeder
     {
         // 1. Equipamentos Industriais & Máquinas
         EquipmentType::create([
-            'name' => 'Bomba',
+            'name' => 'Bomba centrífuga',
             'description' => 'Equipamento para movimentação de fluidos'
         ]);
 
@@ -26,32 +26,17 @@ class EquipmentTypeSeeder extends Seeder
         ]);
 
         EquipmentType::create([
-            'name' => 'Escavadeira',
-            'description' => 'Máquina pesada para escavação e movimentação de terra'
-        ]);
-
-        EquipmentType::create([
-            'name' => 'Carregadeira',
-            'description' => 'Equipamento para carregamento e transporte de materiais'
-        ]);
-
-        EquipmentType::create([
-            'name' => 'Motoniveladora',
-            'description' => 'Máquina para nivelamento e acabamento de terrenos'
-        ]);
-
-        EquipmentType::create([
-            'name' => 'Grua',
-            'description' => 'Equipamento para elevação e movimentação de cargas pesadas'
-        ]);
-
-        EquipmentType::create([
             'name' => 'Prensa Industrial',
             'description' => 'Equipamento para conformação e prensagem de materiais'
         ]);
 
         EquipmentType::create([
             'name' => 'Torno CNC',
+            'description' => 'Máquina de usinagem controlada por computador'
+        ]);
+
+        EquipmentType::create([
+            'name' => 'Torno Vertical CNC',
             'description' => 'Máquina de usinagem controlada por computador'
         ]);
 
@@ -63,6 +48,11 @@ class EquipmentTypeSeeder extends Seeder
         EquipmentType::create([
             'name' => 'Máquina de Corte a Laser',
             'description' => 'Equipamento de precisão para corte de materiais usando laser'
+        ]);
+
+        EquipmentType::create([
+            'name' => 'Máquina de Corte',
+            'description' => 'Equipamento de precisão para corte de materiais usando plasma e/ou oxicorte'
         ]);
 
         EquipmentType::create([
@@ -82,35 +72,19 @@ class EquipmentTypeSeeder extends Seeder
         ]);
 
         EquipmentType::create([
-            'name' => 'Empilhadeira',
+            'name' => 'Empilhadeira Elétrica',
             'description' => 'Veículo para movimentação de cargas em armazéns'
         ]);
 
         EquipmentType::create([
-            'name' => 'Locomotiva',
-            'description' => 'Veículo ferroviário para tração de vagões'
-        ]);
-
-        EquipmentType::create([
-            'name' => 'Trator Agrícola',
-            'description' => 'Veículo especializado para trabalhos agrícolas'
-        ]);
-
-        // 3. Equipamentos de TI & Escritório
-        EquipmentType::create([
-            'name' => 'Servidor',
-            'description' => 'Equipamento para processamento e armazenamento de dados'
-        ]);
-
-        EquipmentType::create([
-            'name' => 'Switch de Rede',
-            'description' => 'Equipamento para conexão de redes de computadores'
+            'name' => 'Empilhadeira a Gás',
+            'description' => 'Veículo para movimentação de cargas em armazéns'
         ]);
 
         // 4. Ferramentas & Equipamentos Manuais
         EquipmentType::create([
-            'name' => 'Furadeira Industrial',
-            'description' => 'Ferramenta elétrica para perfuração'
+            'name' => 'Furadeira Radial',
+            'description' => 'Ferramenta de usinagem para perfuração'
         ]);
 
         EquipmentType::create([
