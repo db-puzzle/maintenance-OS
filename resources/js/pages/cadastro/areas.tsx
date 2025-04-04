@@ -1,7 +1,7 @@
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import CadastroLayout from '@/layouts/cadastro/layout';
+import ListLayout from '@/layouts/cadastro/list-layout';
 import HeadingSmall from '@/components/heading-small';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -192,137 +192,119 @@ export default function Areas({ areas, filters }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Áreas" />
 
-            <CadastroLayout>
-                <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                        <HeadingSmall 
-                            title="Áreas" 
-                            description="Gerencie as áreas do sistema" 
-                        />
-                    </div>
-
-                    <div className="flex justify-between items-center gap-4">
-                        <div className="flex-1">
-                            <Input
-                                type="search"
-                                placeholder="Buscar por nome da área ou planta..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="max-w-sm"
-                            />
-                        </div>
-                        <Button asChild>
-                            <Link href={route('cadastro.areas.create')}>
-                                Nova Área
-                            </Link>
-                        </Button>
-                    </div>
-
-                    <div className="rounded-md w-full">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('name')}
-                                        >
-                                            Nome
-                                            <span className="ml-2">{getSortIcon('name')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('plant')}
-                                        >
-                                            Planta
-                                            <span className="ml-2">{getSortIcon('plant')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent w-full text-center"
-                                            onClick={() => handleSort('sectors_count')}
-                                        >
-                                            Setores
-                                            <span className="ml-2">{getSortIcon('sectors_count')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent w-full text-center"
-                                            onClick={() => handleSort('equipment_count')}
-                                        >
-                                            Equipamentos
-                                            <span className="ml-2">{getSortIcon('equipment_count')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead className="w-[100px]">Ações</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {areas.data.map((area) => (
-                                    <TableRow 
-                                        key={area.id}
-                                        className="cursor-pointer hover:bg-muted/50"
-                                        onClick={() => router.get(route('cadastro.areas.show', area.id))}
+            <ListLayout
+                title="Áreas"
+                description="Gerencie as áreas do sistema"
+                searchPlaceholder="Buscar por nome da área ou planta..."
+                searchValue={search}
+                onSearchChange={(value) => setSearch(value)}
+                createRoute={route('cadastro.areas.create')}
+                createButtonText="Nova Área"
+            >
+                <div className="rounded-md w-full">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent"
+                                        onClick={() => handleSort('name')}
                                     >
-                                        <TableCell>
-                                            <div>
-                                                <div className="font-medium">{area.name}</div>
-                                                {area.description && (
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {area.description}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{area.plant?.name || '-'}</TableCell>
-                                        <TableCell className="text-center">{area.sectors_count}</TableCell>
-                                        <TableCell className="text-center">{area.equipment_count}</TableCell>
-                                        <TableCell onClick={(e) => e.stopPropagation()}>
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button variant="ghost" size="icon" asChild>
-                                                    <Link href={route('cadastro.areas.edit', area.id)}>
-                                                        <span className="sr-only">Editar área</span>
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Link>
-                                                </Button>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon"
-                                                    onClick={() => checkDependencies(area)}
-                                                    disabled={isCheckingDependencies}
-                                                >
-                                                    <span className="sr-only">Excluir área</span>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    <div className="flex justify-center">
-                        <PaginationWrapper
-                            currentPage={areas.current_page}
-                            lastPage={areas.last_page}
-                            routeName="cadastro.areas"
-                            search={search}
-                            sort={filters.sort}
-                            direction={filters.direction}
-                            perPage={filters.per_page}
-                        />
-                    </div>
+                                        Nome
+                                        <span className="ml-2">{getSortIcon('name')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent"
+                                        onClick={() => handleSort('plant')}
+                                    >
+                                        Planta
+                                        <span className="ml-2">{getSortIcon('plant')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent w-full text-center"
+                                        onClick={() => handleSort('sectors_count')}
+                                    >
+                                        Setores
+                                        <span className="ml-2">{getSortIcon('sectors_count')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent w-full text-center"
+                                        onClick={() => handleSort('equipment_count')}
+                                    >
+                                        Equipamentos
+                                        <span className="ml-2">{getSortIcon('equipment_count')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[100px]">Ações</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {areas.data.map((area) => (
+                                <TableRow 
+                                    key={area.id}
+                                    className="cursor-pointer hover:bg-muted/50"
+                                    onClick={() => router.get(route('cadastro.areas.show', area.id))}
+                                >
+                                    <TableCell>
+                                        <div>
+                                            <div className="font-medium">{area.name}</div>
+                                            {area.description && (
+                                                <div className="text-sm text-muted-foreground">
+                                                    {area.description}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>{area.plant?.name || '-'}</TableCell>
+                                    <TableCell className="text-center">{area.sectors_count}</TableCell>
+                                    <TableCell className="text-center">{area.equipment_count}</TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Button variant="ghost" size="icon" asChild>
+                                                <Link href={route('cadastro.areas.edit', area.id)}>
+                                                    <span className="sr-only">Editar área</span>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon"
+                                                onClick={() => checkDependencies(area)}
+                                                disabled={isCheckingDependencies}
+                                            >
+                                                <span className="sr-only">Excluir área</span>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
-            </CadastroLayout>
+
+                <div className="flex justify-center">
+                    <PaginationWrapper
+                        currentPage={areas.current_page}
+                        lastPage={areas.last_page}
+                        routeName="cadastro.areas"
+                        search={search}
+                        sort={filters.sort}
+                        direction={filters.direction}
+                        perPage={filters.per_page}
+                    />
+                </div>
+            </ListLayout>
 
             {/* Diálogo de Dependências */}
             <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
