@@ -1,8 +1,7 @@
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import CadastroLayout from '@/layouts/cadastro/layout';
-import HeadingSmall from '@/components/heading-small';
+import ListLayout from '@/layouts/cadastro/list-layout';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
@@ -15,12 +14,12 @@ import { toast } from "sonner";
 import {
     Pagination,
     PaginationContent,
-    PaginationEllipsis,
     PaginationItem,
     PaginationLink,
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
+import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 
 interface PageProps {
     [key: string]: any;
@@ -30,6 +29,9 @@ interface PageProps {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Cadastro',
+    },
     {
         title: 'Plantas',
         href: '/cadastro/plantas',
@@ -59,6 +61,7 @@ interface Props {
         search: string;
         sort: string;
         direction: 'asc' | 'desc';
+        per_page: number;
     };
 }
 
@@ -185,241 +188,169 @@ export default function Plantas({ plants, filters }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Plantas" />
 
-            <CadastroLayout>
-                <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                        <HeadingSmall 
-                            title="Plantas" 
-                            description="Gerencie as plantas do sistema" 
-                        />
-                    </div>
-
-                    <div className="flex justify-between items-center gap-4">
-                        <div className="flex-1">
-                            <Input
-                                type="search"
-                                placeholder="Buscar por nome..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="max-w-sm"
-                            />
-                        </div>
-                        <Button asChild>
-                            <Link href={route('cadastro.plantas.create')}>
-                                Nova Planta
-                            </Link>
-                        </Button>
-                    </div>
-
-                    <div className="rounded-md w-full">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('name')}
-                                        >
-                                            Nome
-                                            <span className="ml-2">{getSortIcon('name')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead className="text-center">
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('areas_count')}
-                                        >
-                                            Áreas
-                                            <span className="ml-2">{getSortIcon('areas_count')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead className="text-center">
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('sectors_count')}
-                                        >
-                                            Setores
-                                            <span className="ml-2">{getSortIcon('sectors_count')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead className="text-center">
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('equipment_count')}
-                                        >
-                                            Equipamentos
-                                            <span className="ml-2">{getSortIcon('equipment_count')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead className="w-[100px]">Ações</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {plants.data.map((plant) => (
-                                    <TableRow 
-                                        key={plant.id}
-                                        className="cursor-pointer hover:bg-muted/50"
-                                        onClick={() => router.visit(route('cadastro.plantas.show', plant.id))}
+            <ListLayout
+                title="Plantas"
+                description="Gerencie as plantas do sistema"
+                searchPlaceholder="Buscar por nome..."
+                searchValue={search}
+                onSearchChange={(value) => setSearch(value)}
+                createRoute={route('cadastro.plantas.create')}
+                createButtonText="Nova Planta"
+            >
+                <div className="rounded-md w-full">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent"
+                                        onClick={() => handleSort('name')}
                                     >
-                                        <TableCell>
-                                            <div>
-                                                <div className="font-medium">{plant.name}</div>
-                                                {plant.description && (
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {plant.description}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center">{plant.areas_count}</TableCell>
-                                        <TableCell className="text-center">{plant.sectors_count}</TableCell>
-                                        <TableCell className="text-center">{plant.equipment_count}</TableCell>
-                                        <TableCell onClick={(e) => e.stopPropagation()}>
-                                            <div className="flex items-center gap-2">
-                                                <Button variant="ghost" size="icon" asChild>
-                                                    <Link href={route('cadastro.plantas.edit', plant.id)}>
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Link>
-                                                </Button>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon"
-                                                    onClick={() => checkDependencies(plant)}
-                                                    disabled={isCheckingDependencies}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    <div className="flex justify-center">
-                        <Pagination>
-                            <PaginationContent>
-                                <PaginationItem>
-                                    <PaginationPrevious 
-                                        href={route('cadastro.plantas', { 
-                                            page: plants.current_page - 1,
-                                            search,
-                                            sort: filters.sort,
-                                            direction: filters.direction
-                                        })}
-                                        className={plants.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
-                                    />
-                                </PaginationItem>
-                                
-                                {(() => {
-                                    const pages = [];
-                                    const totalPages = plants.last_page;
-                                    const currentPage = plants.current_page;
-
-                                    // Adiciona as 3 primeiras páginas
-                                    for (let i = 1; i <= Math.min(3, totalPages); i++) {
-                                        pages.push(
-                                            <PaginationItem key={i}>
-                                                <PaginationLink 
-                                                    href={route('cadastro.plantas', { 
-                                                        page: i,
-                                                        search,
-                                                        sort: filters.sort,
-                                                        direction: filters.direction
-                                                    })}
-                                                    isActive={i === currentPage}
-                                                >
-                                                    {i}
-                                                </PaginationLink>
-                                            </PaginationItem>
-                                        );
-                                    }
-
-                                    // Adiciona reticências e páginas ao redor da página atual
-                                    if (totalPages > 5) {
-                                        if (currentPage > 4) {
-                                            pages.push(
-                                                <PaginationItem key="ellipsis-start">
-                                                    <span className="px-2">...</span>
-                                                </PaginationItem>
-                                            );
-                                        }
-
-                                        // Adiciona a página atual e duas páginas antes e depois
-                                        for (let i = Math.max(4, currentPage - 2); i <= Math.min(totalPages - 2, currentPage + 2); i++) {
-                                            if (i > 3 && i < totalPages - 1) {
-                                                pages.push(
-                                                    <PaginationItem key={i}>
-                                                        <PaginationLink 
-                                                            href={route('cadastro.plantas', { 
-                                                                page: i,
-                                                                search,
-                                                                sort: filters.sort,
-                                                                direction: filters.direction
-                                                            })}
-                                                            isActive={i === currentPage}
-                                                        >
-                                                            {i}
-                                                        </PaginationLink>
-                                                    </PaginationItem>
-                                                );
-                                            }
-                                        }
-
-                                        if (currentPage < totalPages - 3) {
-                                            pages.push(
-                                                <PaginationItem key="ellipsis-end">
-                                                    <span className="px-2">...</span>
-                                                </PaginationItem>
-                                            );
-                                        }
-                                    }
-
-                                    // Adiciona as 2 últimas páginas
-                                    for (let i = Math.max(totalPages - 1, 4); i <= totalPages; i++) {
-                                        if (i > 3) {
-                                            pages.push(
-                                                <PaginationItem key={i}>
-                                                    <PaginationLink 
-                                                        href={route('cadastro.plantas', { 
-                                                            page: i,
-                                                            search,
-                                                            sort: filters.sort,
-                                                            direction: filters.direction
-                                                        })}
-                                                        isActive={i === currentPage}
+                                        Nome
+                                        <span className="ml-2">{getSortIcon('name')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="text-center">
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent"
+                                        onClick={() => handleSort('areas_count')}
+                                    >
+                                        Áreas
+                                        <span className="ml-2">{getSortIcon('areas_count')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="text-center">
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent"
+                                        onClick={() => handleSort('sectors_count')}
+                                    >
+                                        Setores
+                                        <span className="ml-2">{getSortIcon('sectors_count')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="text-center">
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent"
+                                        onClick={() => handleSort('equipment_count')}
+                                    >
+                                        Equipamentos
+                                        <span className="ml-2">{getSortIcon('equipment_count')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[100px]">Ações</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {plants.data.map((plant) => (
+                                <TableRow 
+                                    key={plant.id}
+                                    className="cursor-pointer hover:bg-muted/50"
+                                    onClick={() => router.visit(route('cadastro.plantas.show', plant.id))}
+                                >
+                                    <TableCell>
+                                        <div>
+                                            <div className="font-medium">{plant.name}</div>
+                                            {plant.description && (
+                                                <div className="text-sm text-muted-foreground">
+                                                    {plant.description}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-center">{plant.areas_count}</TableCell>
+                                    <TableCell className="text-center">{plant.sectors_count}</TableCell>
+                                    <TableCell className="text-center">{plant.equipment_count}</TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center gap-2">
+                                            <Button variant="ghost" size="icon" asChild>
+                                                <Link href={route('cadastro.plantas.edit', plant.id)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon"
+                                                        onClick={() => checkDependencies(plant)}
+                                                        disabled={isCheckingDependencies}
                                                     >
-                                                        {i}
-                                                    </PaginationLink>
-                                                </PaginationItem>
-                                            );
-                                        }
-                                    }
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogTitle>Você tem certeza que deseja excluir esta planta?</DialogTitle>
+                                                    <DialogDescription>
+                                                        Uma vez que a planta for excluída, todos os seus recursos e dados serão permanentemente excluídos. 
+                                                        Esta ação não pode ser desfeita.
+                                                    </DialogDescription>
+                                                    <div className="grid gap-2 py-4">
+                                                        <Label htmlFor="confirmation" className="sr-only">
+                                                            Confirmação
+                                                        </Label>
+                                                        <Input
+                                                            id="confirmation"
+                                                            type="text"
+                                                            value={confirmationText}
+                                                            onChange={(e) => setConfirmationText(e.target.value)}
+                                                            placeholder="Digite EXCLUIR para confirmar"
+                                                            autoComplete="off"
+                                                        />
+                                                    </div>
+                                                    <DialogFooter className="gap-2">
+                                                        <DialogClose asChild>
+                                                            <Button 
+                                                                variant="secondary"
+                                                                onClick={() => setConfirmationText('')}
+                                                            >
+                                                                Cancelar
+                                                            </Button>
+                                                        </DialogClose>
+                                                        <Button 
+                                                            variant="destructive" 
+                                                            disabled={isDeleting || !isConfirmationValid}
+                                                            onClick={() => selectedPlant && handleDelete(selectedPlant)}
+                                                        >
+                                                            {isDeleting ? 'Excluindo...' : 'Excluir planta'}
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
 
-                                    return pages;
-                                })()}
-
-                                <PaginationItem>
-                                    <PaginationNext 
-                                        href={route('cadastro.plantas', { 
-                                            page: plants.current_page + 1,
-                                            search,
-                                            sort: filters.sort,
-                                            direction: filters.direction
-                                        })}
-                                        className={plants.current_page === plants.last_page ? 'pointer-events-none opacity-50' : ''}
-                                    />
-                                </PaginationItem>
-                            </PaginationContent>
-                        </Pagination>
-                    </div>
+                            {plants.data.length === 0 && (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={5}
+                                        className="h-24 text-center"
+                                    >
+                                        Nenhuma planta encontrada.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
-            </CadastroLayout>
+
+                <div className="flex justify-center">
+                    <PaginationWrapper
+                        currentPage={plants.current_page}
+                        lastPage={plants.last_page}
+                        routeName="cadastro.plantas"
+                        search={search}
+                        sort={filters.sort}
+                        direction={filters.direction}
+                        perPage={filters.per_page}
+                    />
+                </div>
+            </ListLayout>
 
             {/* Diálogo de Dependências */}
             <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
@@ -485,48 +416,6 @@ export default function Plantas({ plants, filters }: Props) {
                             onClick={() => setShowDependenciesDialog(false)}
                         >
                             Fechar
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Diálogo de Confirmação de Exclusão */}
-            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                <DialogContent>
-                    <DialogTitle>Você tem certeza que deseja excluir esta planta?</DialogTitle>
-                    <DialogDescription>
-                        Uma vez que a planta for excluída, todos os seus recursos e dados serão permanentemente excluídos. 
-                        Esta ação não pode ser desfeita.
-                    </DialogDescription>
-                    <div className="grid gap-2 py-4">
-                        <Label htmlFor="confirmation" className="sr-only">
-                            Confirmação
-                        </Label>
-                        <Input
-                            id="confirmation"
-                            type="text"
-                            value={confirmationText}
-                            onChange={(e) => setConfirmationText(e.target.value)}
-                            placeholder="Digite EXCLUIR para confirmar"
-                            autoComplete="off"
-                        />
-                    </div>
-                    <DialogFooter className="gap-2">
-                        <Button 
-                            variant="secondary"
-                            onClick={() => {
-                                setShowDeleteDialog(false);
-                                setConfirmationText('');
-                            }}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button 
-                            variant="destructive" 
-                            disabled={isDeleting || !isConfirmationValid}
-                            onClick={() => selectedPlant && handleDelete(selectedPlant)}
-                        >
-                            {isDeleting ? 'Excluindo...' : 'Excluir planta'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

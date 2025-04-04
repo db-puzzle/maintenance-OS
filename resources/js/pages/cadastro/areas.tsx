@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from '@inertiajs/react';
 import { toast } from "sonner";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 
 interface PageProps {
     [key: string]: any;
@@ -22,6 +22,9 @@ interface PageProps {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Cadastro',
+    },
     {
         title: 'Áreas',
         href: '/cadastro/areas',
@@ -75,6 +78,7 @@ interface Props {
         search: string;
         sort: string;
         direction: 'asc' | 'desc';
+        per_page: number;
     };
 }
 
@@ -307,121 +311,15 @@ export default function Areas({ areas, filters }: Props) {
                     </div>
 
                     <div className="flex justify-center">
-                        <Pagination>
-                            <PaginationContent>
-                                <PaginationItem>
-                                    <PaginationPrevious 
-                                        href={route('cadastro.areas', { 
-                                            page: areas.current_page - 1,
-                                            search,
-                                            sort: filters.sort,
-                                            direction: filters.direction
-                                        })}
-                                        className={areas.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
-                                    />
-                                </PaginationItem>
-                                
-                                {(() => {
-                                    const pages = [];
-                                    const totalPages = areas.last_page;
-                                    const currentPage = areas.current_page;
-
-                                    // Adiciona as 3 primeiras páginas
-                                    for (let i = 1; i <= Math.min(3, totalPages); i++) {
-                                        pages.push(
-                                            <PaginationItem key={i}>
-                                                <PaginationLink 
-                                                    href={route('cadastro.areas', { 
-                                                        page: i,
-                                                        search,
-                                                        sort: filters.sort,
-                                                        direction: filters.direction
-                                                    })}
-                                                    isActive={i === currentPage}
-                                                >
-                                                    {i}
-                                                </PaginationLink>
-                                            </PaginationItem>
-                                        );
-                                    }
-
-                                    // Adiciona reticências e páginas ao redor da página atual
-                                    if (totalPages > 5) {
-                                        if (currentPage > 4) {
-                                            pages.push(
-                                                <PaginationItem key="ellipsis-start">
-                                                    <span className="px-2">...</span>
-                                                </PaginationItem>
-                                            );
-                                        }
-
-                                        // Adiciona a página atual e duas páginas antes e depois
-                                        for (let i = Math.max(4, currentPage - 2); i <= Math.min(totalPages - 2, currentPage + 2); i++) {
-                                            if (i > 3 && i < totalPages - 1) {
-                                                pages.push(
-                                                    <PaginationItem key={i}>
-                                                        <PaginationLink 
-                                                            href={route('cadastro.areas', { 
-                                                                page: i,
-                                                                search,
-                                                                sort: filters.sort,
-                                                                direction: filters.direction
-                                                            })}
-                                                            isActive={i === currentPage}
-                                                        >
-                                                            {i}
-                                                        </PaginationLink>
-                                                    </PaginationItem>
-                                                );
-                                            }
-                                        }
-
-                                        if (currentPage < totalPages - 3) {
-                                            pages.push(
-                                                <PaginationItem key="ellipsis-end">
-                                                    <span className="px-2">...</span>
-                                                </PaginationItem>
-                                            );
-                                        }
-                                    }
-
-                                    // Adiciona as 2 últimas páginas
-                                    for (let i = Math.max(totalPages - 1, 4); i <= totalPages; i++) {
-                                        if (i > 3) {
-                                            pages.push(
-                                                <PaginationItem key={i}>
-                                                    <PaginationLink 
-                                                        href={route('cadastro.areas', { 
-                                                            page: i,
-                                                            search,
-                                                            sort: filters.sort,
-                                                            direction: filters.direction
-                                                        })}
-                                                        isActive={i === currentPage}
-                                                    >
-                                                        {i}
-                                                    </PaginationLink>
-                                                </PaginationItem>
-                                            );
-                                        }
-                                    }
-
-                                    return pages;
-                                })()}
-
-                                <PaginationItem>
-                                    <PaginationNext 
-                                        href={route('cadastro.areas', { 
-                                            page: areas.current_page + 1,
-                                            search,
-                                            sort: filters.sort,
-                                            direction: filters.direction
-                                        })}
-                                        className={areas.current_page === areas.last_page ? 'pointer-events-none opacity-50' : ''}
-                                    />
-                                </PaginationItem>
-                            </PaginationContent>
-                        </Pagination>
+                        <PaginationWrapper
+                            currentPage={areas.current_page}
+                            lastPage={areas.last_page}
+                            routeName="cadastro.areas"
+                            search={search}
+                            sort={filters.sort}
+                            direction={filters.direction}
+                            perPage={filters.per_page}
+                        />
                     </div>
                 </div>
             </CadastroLayout>

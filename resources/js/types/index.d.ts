@@ -21,6 +21,7 @@ export interface NavItem {
     icon?: LucideIcon | null;
     isActive?: boolean;
     activePattern?: RegExp;
+    items?: Omit<NavItem, 'icon' | 'items'>[];
 }
 
 export interface SharedData {

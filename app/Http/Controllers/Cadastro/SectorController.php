@@ -13,7 +13,7 @@ class SectorController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = 8;
+        $perPage = $request->input('per_page', 8);
         $search = $request->input('search');
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
@@ -62,6 +62,7 @@ class SectorController extends Controller
                 'search' => $search,
                 'sort' => $sort,
                 'direction' => $direction,
+                'per_page' => $perPage,
             ],
         ]);
     }

@@ -11,7 +11,7 @@ class EquipmentTypeController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = 8;
+        $perPage = $request->input('per_page', 8);
         $sort = $request->sort ?? 'name';
         $direction = $request->direction === 'desc' ? 'desc' : 'asc';
 
@@ -42,7 +42,12 @@ class EquipmentTypeController extends Controller
 
         return Inertia::render('cadastro/tipos-equipamento', [
             'equipmentTypes' => $equipmentTypes,
-            'filters' => $request->only(['search', 'sort', 'direction'])
+            'filters' => [
+                'search' => $request->search,
+                'sort' => $sort,
+                'direction' => $direction,
+                'per_page' => $perPage,
+            ]
         ]);
     }
 

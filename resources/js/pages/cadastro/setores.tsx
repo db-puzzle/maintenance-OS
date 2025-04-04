@@ -26,13 +26,12 @@ import {
 import { toast } from "sonner";
 
 import AppLayout from '@/layouts/app-layout';
-import CadastroLayout from '@/layouts/cadastro/layout';
-import HeadingSmall from '@/components/heading-small';
+import ListLayout from '@/layouts/cadastro/list-layout';
+import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Cadastro',
-        href: '/cadastro/equipamentos',
     },
     {
         title: 'Setores',
@@ -52,6 +51,7 @@ interface Props {
         search: string;
         sort: string;
         direction: 'asc' | 'desc';
+        per_page: number;
     };
 }
 
@@ -204,259 +204,135 @@ export default function SectorIndex({ sectors, filters }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Setores" />
 
-            <CadastroLayout>
-                <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                        <HeadingSmall 
-                            title="Setores" 
-                            description="Gerencie os setores do sistema" 
-                        />
-                    </div>
-
-                    <div className="flex justify-between items-center gap-4">
-                        <div className="flex-1">
-                            <Input
-                                type="search"
-                                placeholder="Buscar por nome, descrição ou planta..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="max-w-sm"
-                            />
-                        </div>
-                        <Button asChild>
-                            <Link href={route('cadastro.setores.create')}>
-                                Novo Setor
-                            </Link>
-                        </Button>
-                    </div>
-
-                    <div className="rounded-md w-full">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('name')}
-                                        >
-                                            Nome
-                                            <span className="ml-2">{getSortIcon('name')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('plant')}
-                                        >
-                                            Planta
-                                            <span className="ml-2">{getSortIcon('plant')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('area')}
-                                        >
-                                            Área
-                                            <span className="ml-2">{getSortIcon('area')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead>
-                                        <Button 
-                                            variant="ghost" 
-                                            className="h-8 p-0 font-bold hover:bg-transparent"
-                                            onClick={() => handleSort('equipment_count')}
-                                        >
-                                            Equipamentos
-                                            <span className="ml-2">{getSortIcon('equipment_count')}</span>
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead className="w-[100px]">Ações</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {sectors.data.map((sector) => (
-                                    <TableRow 
-                                        key={sector.id}
-                                        className="cursor-pointer hover:bg-muted/50"
-                                        onClick={() => router.get(route('cadastro.setores.show', sector.id))}
+            <ListLayout
+                title="Setores"
+                description="Gerencie os setores do sistema"
+                searchPlaceholder="Buscar por nome, descrição ou planta..."
+                searchValue={search}
+                onSearchChange={(value) => setSearch(value)}
+                createRoute={route('cadastro.setores.create')}
+                createButtonText="Novo Setor"
+            >
+                <div className="rounded-md w-full">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent"
+                                        onClick={() => handleSort('name')}
                                     >
-                                        <TableCell>
-                                            <div>
-                                                <div className="font-medium">{sector.name}</div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{sector.area?.plant?.name}</TableCell>
-                                        <TableCell>{sector.area?.name}</TableCell>
-                                        <TableCell className="text-center">{sector.equipment_count ?? 0}</TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    asChild
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <Link href={route('cadastro.setores.edit', sector.id)}>
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Link>
-                                                </Button>
-                                                <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                checkDependencies(sector);
-                                                            }}
-                                                            disabled={isCheckingDependencies}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                </Dialog>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-
-                                {sectors.data.length === 0 && (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={5}
-                                            className="h-24 text-center"
-                                        >
-                                            Nenhum setor encontrado.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    <div className="flex justify-center">
-                        <Pagination>
-                            <PaginationContent>
-                                <PaginationItem>
-                                    <PaginationPrevious 
-                                        href={route('cadastro.setores', { 
-                                            page: sectors.current_page - 1,
-                                            search,
-                                            sort: filters.sort,
-                                            direction: filters.direction
-                                        })}
-                                        className={sectors.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
-                                    />
-                                </PaginationItem>
-                                
-                                {(() => {
-                                    const pages = [];
-                                    const totalPages = sectors.last_page;
-                                    const currentPage = sectors.current_page;
-
-                                    // Adiciona as 3 primeiras páginas
-                                    for (let i = 1; i <= Math.min(3, totalPages); i++) {
-                                        pages.push(
-                                            <PaginationItem key={i}>
-                                                <PaginationLink 
-                                                    href={route('cadastro.setores', { 
-                                                        page: i,
-                                                        search,
-                                                        sort: filters.sort,
-                                                        direction: filters.direction
-                                                    })}
-                                                    isActive={i === currentPage}
-                                                >
-                                                    {i}
-                                                </PaginationLink>
-                                            </PaginationItem>
-                                        );
-                                    }
-
-                                    // Adiciona reticências e páginas ao redor da página atual
-                                    if (totalPages > 5) {
-                                        if (currentPage > 4) {
-                                            pages.push(
-                                                <PaginationItem key="ellipsis-start">
-                                                    <span className="px-2">...</span>
-                                                </PaginationItem>
-                                            );
-                                        }
-
-                                        // Adiciona a página atual e duas páginas antes e depois
-                                        for (let i = Math.max(4, currentPage - 2); i <= Math.min(totalPages - 2, currentPage + 2); i++) {
-                                            if (i > 3 && i < totalPages - 1) {
-                                                pages.push(
-                                                    <PaginationItem key={i}>
-                                                        <PaginationLink 
-                                                            href={route('cadastro.setores', { 
-                                                                page: i,
-                                                                search,
-                                                                sort: filters.sort,
-                                                                direction: filters.direction
-                                                            })}
-                                                            isActive={i === currentPage}
-                                                        >
-                                                            {i}
-                                                        </PaginationLink>
-                                                    </PaginationItem>
-                                                );
-                                            }
-                                        }
-
-                                        if (currentPage < totalPages - 3) {
-                                            pages.push(
-                                                <PaginationItem key="ellipsis-end">
-                                                    <span className="px-2">...</span>
-                                                </PaginationItem>
-                                            );
-                                        }
-                                    }
-
-                                    // Adiciona as 2 últimas páginas
-                                    for (let i = Math.max(totalPages - 1, 4); i <= totalPages; i++) {
-                                        if (i > 3) {
-                                            pages.push(
-                                                <PaginationItem key={i}>
-                                                    <PaginationLink 
-                                                        href={route('cadastro.setores', { 
-                                                            page: i,
-                                                            search,
-                                                            sort: filters.sort,
-                                                            direction: filters.direction
-                                                        })}
-                                                        isActive={i === currentPage}
+                                        Nome
+                                        <span className="ml-2">{getSortIcon('name')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent"
+                                        onClick={() => handleSort('plant')}
+                                    >
+                                        Planta
+                                        <span className="ml-2">{getSortIcon('plant')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent"
+                                        onClick={() => handleSort('area')}
+                                    >
+                                        Área
+                                        <span className="ml-2">{getSortIcon('area')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="h-8 p-0 font-bold hover:bg-transparent"
+                                        onClick={() => handleSort('equipment_count')}
+                                    >
+                                        Equipamentos
+                                        <span className="ml-2">{getSortIcon('equipment_count')}</span>
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[100px]">Ações</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {sectors.data.map((sector) => (
+                                <TableRow 
+                                    key={sector.id}
+                                    className="cursor-pointer hover:bg-muted/50"
+                                    onClick={() => router.get(route('cadastro.setores.show', sector.id))}
+                                >
+                                    <TableCell>
+                                        <div>
+                                            <div className="font-medium">{sector.name}</div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>{sector.area?.plant?.name}</TableCell>
+                                    <TableCell>{sector.area?.name}</TableCell>
+                                    <TableCell className="text-center">{sector.equipment_count ?? 0}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                asChild
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <Link href={route('cadastro.setores.edit', sector.id)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            checkDependencies(sector);
+                                                        }}
+                                                        disabled={isCheckingDependencies}
                                                     >
-                                                        {i}
-                                                    </PaginationLink>
-                                                </PaginationItem>
-                                            );
-                                        }
-                                    }
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </DialogTrigger>
+                                            </Dialog>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
 
-                                    return pages;
-                                })()}
-
-                                <PaginationItem>
-                                    <PaginationNext 
-                                        href={route('cadastro.setores', { 
-                                            page: sectors.current_page + 1,
-                                            search,
-                                            sort: filters.sort,
-                                            direction: filters.direction
-                                        })}
-                                        className={sectors.current_page === sectors.last_page ? 'pointer-events-none opacity-50' : ''}
-                                    />
-                                </PaginationItem>
-                            </PaginationContent>
-                        </Pagination>
-                    </div>
+                            {sectors.data.length === 0 && (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={5}
+                                        className="h-24 text-center"
+                                    >
+                                        Nenhum setor encontrado.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
-            </CadastroLayout>
+
+                <div className="flex justify-center">
+                    <PaginationWrapper
+                        currentPage={sectors.current_page}
+                        lastPage={sectors.last_page}
+                        routeName="cadastro.setores"
+                        search={search}
+                        sort={filters.sort}
+                        direction={filters.direction}
+                        perPage={filters.per_page}
+                    />
+                </div>
+            </ListLayout>
 
             {/* Diálogo de Dependências */}
             <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
