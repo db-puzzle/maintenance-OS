@@ -2,17 +2,23 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/cadastro/list-layout';
-import HeadingSmall from '@/components/heading-small';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
+import { toast } from "sonner";
+import { DataTable, ColumnVisibility, type Column } from '@/components/data-table';
+import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import { Button } from '@/components/ui/button';
+import { MoreVertical } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from '@inertiajs/react';
-import { toast } from "sonner";
-import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
 
 interface PageProps {
     [key: string]: any;
@@ -83,10 +89,28 @@ interface Props {
 }
 
 export default function Areas({ areas, filters }: Props) {
+    const [search, setSearch] = useState(filters.search || '');
+    const [perPage, setPerPage] = useState(filters.per_page || 8);
+    const [sort, setSort] = useState(filters.sort || 'name');
+    const [direction, setDirection] = useState<'asc' | 'desc'>(filters.direction || 'asc');
+    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+        if (typeof window !== 'undefined') {
+            const savedVisibility = localStorage.getItem('areasColumnsVisibility');
+            if (savedVisibility) {
+                return JSON.parse(savedVisibility);
+            }
+        }
+        return {
+            name: true,
+            plant: true,
+            sectors_count: true,
+            equipment_count: true,
+        };
+    });
+
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedArea, setSelectedArea] = useState<Area | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
-    const [search, setSearch] = useState(filters.search || '');
     const [dependencies, setDependencies] = useState<Dependencies | null>(null);
     const [isCheckingDependencies, setIsCheckingDependencies] = useState(false);
     const [showDependenciesDialog, setShowDependenciesDialog] = useState(false);
@@ -107,16 +131,121 @@ export default function Areas({ areas, filters }: Props) {
                 route('cadastro.areas'),
                 { 
                     search,
-                    sort: filters.sort,
-                    direction: filters.direction,
-                    page: areas.current_page
+                    sort,
+                    direction,
+                    per_page: perPage
                 },
                 { preserveState: true, preserveScroll: true }
             );
         }, 300);
 
         return () => clearTimeout(searchTimeout);
-    }, [search, filters.sort, filters.direction]);
+    }, [search, sort, direction, perPage]);
+
+    const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
+        const newVisibility = {
+            ...columnVisibility,
+            [columnId]: value,
+        };
+        setColumnVisibility(newVisibility);
+        localStorage.setItem('areasColumnsVisibility', JSON.stringify(newVisibility));
+    };
+
+    const handleSort = (columnId: string) => {
+        if (sort === columnId) {
+            setDirection(direction === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSort(columnId);
+            setDirection('asc');
+        }
+    };
+
+    const columns: Column<Area>[] = [
+        {
+            id: "name",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('name')}>
+                    Nome
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Area }) => {
+                return (
+                    <div>
+                        <div className="font-medium">{row.original.name}</div>
+                        {row.original.description && (
+                            <div className="text-sm text-muted-foreground">
+                                {row.original.description}
+                            </div>
+                        )}
+                    </div>
+                );
+            },
+            width: "w-[300px]",
+        },
+        {
+            id: "plant",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('plant')}>
+                    Planta
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Area }) => row.original.plant?.name || '-',
+            width: "w-[200px]",
+        },
+        {
+            id: "sectors_count",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('sectors_count')}>
+                    Setores
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Area }) => row.original.sectors_count,
+            width: "w-[100px]",
+        },
+        {
+            id: "equipment_count",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('equipment_count')}>
+                    Equipamentos
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Area }) => row.original.equipment_count,
+            width: "w-[100px]",
+        },
+        {
+            id: "actions",
+            header: "Ações",
+            cell: (row: { original: Area }) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+                            size="icon"
+                        >
+                            <MoreVertical />
+                            <span className="sr-only">Abrir menu</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-32">
+                        <DropdownMenuItem asChild>
+                            <Link href={route('cadastro.areas.edit', row.original.id)}>
+                                Editar
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>
+                            Excluir
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+            width: "w-[80px]",
+        },
+    ];
 
     const handleDelete = (area: Area) => {
         setIsDeleting(true);
@@ -164,30 +293,6 @@ export default function Areas({ areas, filters }: Props) {
 
     const isConfirmationValid = confirmationText === 'EXCLUIR';
 
-    const handleSort = (column: string) => {
-        const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
-        
-        router.get(
-            route('cadastro.areas'),
-            { 
-                search,
-                sort: column,
-                direction,
-                page: 1
-            },
-            { preserveState: true }
-        );
-    };
-
-    const getSortIcon = (column: string) => {
-        if (filters.sort !== column) {
-            return <ArrowUpDown className="h-4 w-4" />;
-        }
-        return filters.direction === 'asc' ? 
-            <ArrowUp className="h-4 w-4" /> : 
-            <ArrowDown className="h-4 w-4" />;
-    };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Áreas" />
@@ -199,111 +304,36 @@ export default function Areas({ areas, filters }: Props) {
                 searchValue={search}
                 onSearchChange={(value) => setSearch(value)}
                 createRoute={route('cadastro.areas.create')}
-                createButtonText="Nova Área"
+                createButtonText="Adicionar"
+                actions={
+                    <div className="flex items-center gap-2">
+                        <ColumnVisibility
+                            columns={columns}
+                            columnVisibility={columnVisibility}
+                            onColumnVisibilityChange={handleColumnVisibilityChange}
+                        />
+                    </div>
+                }
             >
-                <div className="rounded-md w-full">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('name')}
-                                    >
-                                        Nome
-                                        <span className="ml-2">{getSortIcon('name')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('plant')}
-                                    >
-                                        Planta
-                                        <span className="ml-2">{getSortIcon('plant')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent w-full text-center"
-                                        onClick={() => handleSort('sectors_count')}
-                                    >
-                                        Setores
-                                        <span className="ml-2">{getSortIcon('sectors_count')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent w-full text-center"
-                                        onClick={() => handleSort('equipment_count')}
-                                    >
-                                        Equipamentos
-                                        <span className="ml-2">{getSortIcon('equipment_count')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead className="w-[100px]">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {areas.data.map((area) => (
-                                <TableRow 
-                                    key={area.id}
-                                    className="cursor-pointer hover:bg-muted/50"
-                                    onClick={() => router.get(route('cadastro.areas.show', area.id))}
-                                >
-                                    <TableCell>
-                                        <div>
-                                            <div className="font-medium">{area.name}</div>
-                                            {area.description && (
-                                                <div className="text-sm text-muted-foreground">
-                                                    {area.description}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{area.plant?.name || '-'}</TableCell>
-                                    <TableCell className="text-center">{area.sectors_count}</TableCell>
-                                    <TableCell className="text-center">{area.equipment_count}</TableCell>
-                                    <TableCell onClick={(e) => e.stopPropagation()}>
-                                        <div className="flex items-center justify-end gap-2">
-                                            <Button variant="ghost" size="icon" asChild>
-                                                <Link href={route('cadastro.areas.edit', area.id)}>
-                                                    <span className="sr-only">Editar área</span>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon"
-                                                onClick={() => checkDependencies(area)}
-                                                disabled={isCheckingDependencies}
-                                            >
-                                                <span className="sr-only">Excluir área</span>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                <DataTable
+                    data={areas.data}
+                    columns={columns}
+                    columnVisibility={columnVisibility}
+                    onColumnVisibilityChange={handleColumnVisibilityChange}
+                    onRowClick={(row) => router.get(route('cadastro.areas.show', row.id))}
+                    emptyMessage="Nenhuma área encontrada."
+                />
 
-                <div className="flex justify-center">
-                    <PaginationWrapper
-                        currentPage={areas.current_page}
-                        lastPage={areas.last_page}
-                        routeName="cadastro.areas"
-                        search={search}
-                        sort={filters.sort}
-                        direction={filters.direction}
-                        perPage={filters.per_page}
-                    />
-                </div>
+                <PaginationWrapper
+                    currentPage={areas.current_page}
+                    lastPage={areas.last_page}
+                    total={areas.total}
+                    routeName="cadastro.areas"
+                    search={search}
+                    sort={sort}
+                    direction={direction}
+                    perPage={perPage}
+                />
             </ListLayout>
 
             {/* Diálogo de Dependências */}

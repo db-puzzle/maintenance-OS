@@ -29,10 +29,22 @@ class EquipmentController extends Controller
             $query->where(function ($query) use ($search) {
                 $query->whereRaw('LOWER(equipment.tag) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(equipment.manufacturer) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(equipment.description) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(equipment.serial_number) LIKE ?', ["%{$search}%"])
                     ->orWhereExists(function ($query) use ($search) {
                         $query->from('plants')
                             ->whereColumn('plants.id', 'equipment.plant_id')
                             ->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"]);
+                    })
+                    ->orWhereExists(function ($query) use ($search) {
+                        $query->from('areas')
+                            ->whereColumn('areas.id', 'equipment.area_id')
+                            ->whereRaw('LOWER(areas.name) LIKE ?', ["%{$search}%"]);
+                    })
+                    ->orWhereExists(function ($query) use ($search) {
+                        $query->from('sectors')
+                            ->whereColumn('sectors.id', 'equipment.sector_id')
+                            ->whereRaw('LOWER(sectors.name) LIKE ?', ["%{$search}%"]);
                     });
             });
         }
@@ -42,6 +54,9 @@ class EquipmentController extends Controller
                 $query->join('equipment_types', 'equipment.equipment_type_id', '=', 'equipment_types.id')
                     ->orderBy('equipment_types.name', $direction)
                     ->select('equipment.*');
+                break;
+            case 'serial_number':
+                $query->orderBy('equipment.serial_number', $direction);
                 break;
             case 'sector':
                 $query->leftJoin('sectors', 'equipment.sector_id', '=', 'sectors.id')

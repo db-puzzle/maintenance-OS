@@ -10,6 +10,7 @@ interface ListLayoutProps {
     onSearchChange: (value: string) => void;
     createRoute: string;
     createButtonText: string;
+    actions?: ReactNode;
 }
 
 export default function ListLayout({
@@ -20,7 +21,8 @@ export default function ListLayout({
     searchValue,
     onSearchChange,
     createRoute,
-    createButtonText
+    createButtonText,
+    actions
 }: ListLayoutProps) {
     return (
         <div className="space-y-6 p-5">
@@ -32,6 +34,7 @@ export default function ListLayout({
                 onSearchChange={onSearchChange}
                 createRoute={createRoute}
                 createButtonText={createButtonText}
+                actions={actions}
             />
             {children}
         </div>

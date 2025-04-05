@@ -1,7 +1,8 @@
+import * as React from "react";
 import { type BreadcrumbItem, type Equipment } from '@/types';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { MoreVertical, ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon, ColumnsIcon, ChevronDownIcon, ArrowUpDown } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -14,17 +15,13 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert } from '@/components/ui/alert';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import {
     Select,
     SelectContent,
@@ -32,12 +29,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
 
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/cadastro/list-layout';
-import HeadingSmall from '@/components/heading-small';
-import InputError from '@/components/input-error';
+import { DataTable, ColumnVisibility, type Column } from '@/components/data-table';
 import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -74,77 +69,225 @@ interface PageProps {
 }
 
 export default function Equipamentos({ equipment, filters }: Props) {
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
-    const [confirmationText, setConfirmationText] = useState('');
     const [search, setSearch] = useState(filters.search || '');
     const [perPage, setPerPage] = useState(filters.per_page || 8);
+    const [sort, setSort] = useState(filters.sort || 'tag');
+    const [direction, setDirection] = useState<'asc' | 'desc'>(filters.direction || 'asc');
+    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+        // Tenta carregar do localStorage, se não existir, usa os valores padrão
+        if (typeof window !== 'undefined') {
+            const savedVisibility = localStorage.getItem('equipmentColumnsVisibility');
+            if (savedVisibility) {
+                return JSON.parse(savedVisibility);
+            }
+        }
+        return {
+            plant: true,
+            area: true,
+            sector: true,
+            equipment_type: true,
+            manufacturer: true,
+            manufacturing_year: true,
+            serial_number: true,
+        };
+    });
+
     const page = usePage<PageProps>();
-    const flash = page.props.flash;
     const { delete: destroy } = useForm();
 
     useEffect(() => {
-        const searchTimeout = setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             router.get(
                 route('cadastro.equipamentos'),
                 { 
                     search,
-                    sort: filters.sort,
-                    direction: filters.direction,
-                    page: equipment.current_page,
+                    sort,
+                    direction,
                     per_page: perPage
                 },
                 { preserveState: true, preserveScroll: true }
             );
         }, 300);
 
-        return () => clearTimeout(searchTimeout);
-    }, [search, filters.sort, filters.direction, perPage]);
+        return () => clearTimeout(timeoutId);
+    }, [search, perPage, sort, direction]);
 
-    const handleDelete = (id: number) => {
-        setIsDeleting(true);
-        destroy(route('cadastro.equipamentos.destroy', id), {
-            onFinish: () => {
-                setIsDeleting(false);
-                setSelectedEquipment(null);
-                setConfirmationText('');
-            },
-            onError: (errors) => {
-                setIsDeleting(false);
-                setSelectedEquipment(null);
-                setConfirmationText('');
-                toast.error("Erro ao excluir equipamento", {
-                    description: errors.message || 'Não foi possível excluir o equipamento.',
-                });
-            },
-        });
-    };
-
-    const isConfirmationValid = confirmationText === 'EXCLUIR';
-
-    const handleSort = (column: string) => {
-        const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
-        
+    const handlePerPageChange = (value: string) => {
+        setPerPage(Number(value));
         router.get(
             route('cadastro.equipamentos'),
             { 
                 search,
-                sort: column,
+                sort,
                 direction,
-                page: 1
+                page: 1,
+                per_page: value
             },
             { preserveState: true }
         );
     };
 
-    const getSortIcon = (column: string) => {
-        if (filters.sort !== column) {
-            return <ArrowUpDown className="h-4 w-4" />;
-        }
-        return filters.direction === 'asc' ? 
-            <ArrowUp className="h-4 w-4" /> : 
-            <ArrowDown className="h-4 w-4" />;
+    const handlePageChange = (newPage: number) => {
+        router.get(
+            route('cadastro.equipamentos'),
+            { 
+                search,
+                sort,
+                direction,
+                page: newPage + 1,
+                per_page: perPage
+            },
+            { preserveState: true }
+        );
     };
+
+    const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
+        const newVisibility = {
+            ...columnVisibility,
+            [columnId]: value,
+        };
+        setColumnVisibility(newVisibility);
+        localStorage.setItem('equipmentColumnsVisibility', JSON.stringify(newVisibility));
+    };
+
+    const handleSort = (columnId: string) => {
+        if (sort === columnId) {
+            setDirection(direction === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSort(columnId);
+            setDirection('asc');
+        }
+    };
+
+    const columns: Column<Equipment>[] = [
+        {
+            id: "tag",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('tag')}>
+                    TAG
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Equipment }) => {
+                return (
+                    <div>
+                        <div className="font-medium">{row.original.tag}</div>
+                        {row.original.description && (
+                            <div className="text-sm text-muted-foreground">
+                                {row.original.description.length > 40 
+                                    ? `${row.original.description.substring(0, 40)}...`
+                                    : row.original.description}
+                            </div>
+                        )}
+                    </div>
+                );
+            },
+            width: "w-[300px]",
+        },
+        {
+            id: "equipment_type",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('equipment_type')}>
+                    Tipo
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Equipment }) => row.original.equipment_type?.name ?? '-',
+            width: "w-[200px]",
+        },
+        {
+            id: "serial_number",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('serial_number')}>
+                    Número Serial
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Equipment }) => row.original.serial_number ?? '-',
+            width: "w-[200px]",
+        },
+        {
+            id: "plant",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('plant')}>
+                    Planta
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Equipment }) => row.original.plant?.name ?? row.original.area?.plant?.name ?? row.original.sector?.area?.plant?.name ?? '-',
+            width: "w-[200px]",
+        },
+        {
+            id: "area",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('area')}>
+                    Área
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Equipment }) => row.original.area?.name ?? row.original.sector?.area?.name ?? '-',
+            width: "w-[200px]",
+        },
+        {
+            id: "sector",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('sector')}>
+                    Setor
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Equipment }) => row.original.sector?.name ?? '-',
+            width: "w-[200px]",
+        },
+        {
+            id: "manufacturer",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('manufacturer')}>
+                    Fabricante
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Equipment }) => row.original.manufacturer ?? '-',
+            width: "w-[200px]",
+        },
+        {
+            id: "manufacturing_year",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('manufacturing_year')}>
+                    Ano
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Equipment }) => row.original.manufacturing_year ?? '-',
+            width: "w-[100px]",
+        },
+        {
+            id: "actions",
+            header: "Ações",
+            cell: (row: { original: Equipment }) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+                            size="icon"
+                        >
+                            <MoreVertical />
+                            <span className="sr-only">Abrir menu</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-32">
+                        <DropdownMenuItem asChild>
+                            <Link href={route('cadastro.equipamentos.edit', row.original.id)}>
+                                Editar
+                            </Link>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+            width: "w-[80px]",
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -153,197 +296,40 @@ export default function Equipamentos({ equipment, filters }: Props) {
             <ListLayout
                 title="Equipamentos"
                 description="Gerencie os equipamentos do sistema"
-                searchPlaceholder="Buscar por TAG, fabricante ou planta..."
+                searchPlaceholder="Buscar por TAG, S/N, fabricante ou descrição..."
                 searchValue={search}
                 onSearchChange={(value) => setSearch(value)}
                 createRoute={route('cadastro.equipamentos.create')}
-                createButtonText="Novo Equipamento"
+                createButtonText="Adicionar"
+                actions={
+                    <div className="flex items-center gap-2">
+                        <ColumnVisibility
+                            columns={columns}
+                            columnVisibility={columnVisibility}
+                            onColumnVisibilityChange={handleColumnVisibilityChange}
+                        />
+                    </div>
+                }
             >
-                <div className="rounded-md w-full">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('tag')}
-                                    >
-                                        TAG
-                                        <span className="ml-2">{getSortIcon('tag')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('plant')}
-                                    >
-                                        Planta
-                                        <span className="ml-2">{getSortIcon('plant')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('area')}
-                                    >
-                                        Área
-                                        <span className="ml-2">{getSortIcon('area')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('sector')}
-                                    >
-                                        Setor
-                                        <span className="ml-2">{getSortIcon('sector')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('equipment_type')}
-                                    >
-                                        Tipo
-                                        <span className="ml-2">{getSortIcon('equipment_type')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('manufacturer')}
-                                    >
-                                        Fabricante
-                                        <span className="ml-2">{getSortIcon('manufacturer')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('manufacturing_year')}
-                                    >
-                                        Ano
-                                        <span className="ml-2">{getSortIcon('manufacturing_year')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead className="w-[100px]">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {equipment.data.map((machine) => (
-                                <TableRow 
-                                    key={machine.id}
-                                    className="cursor-pointer hover:bg-muted/50"
-                                    onClick={() => router.get(route('cadastro.equipamentos.show', machine.id))}
-                                >
-                                    <TableCell>
-                                        <div>
-                                            <div className="font-medium">{machine.tag}</div>
-                                            {machine.description && (
-                                                <div className="text-sm text-muted-foreground">
-                                                    {machine.description}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{machine.plant?.name ?? machine.area?.plant?.name ?? machine.sector?.area?.plant?.name ?? '-'}</TableCell>
-                                    <TableCell>{machine.area?.name ?? machine.sector?.area?.name ?? '-'}</TableCell>
-                                    <TableCell>{machine.sector?.name ?? '-'}</TableCell>
-                                    <TableCell>{machine.equipment_type?.name ?? '-'}</TableCell>
-                                    <TableCell>{machine.manufacturer ?? '-'}</TableCell>
-                                    <TableCell>{machine.manufacturing_year ?? '-'}</TableCell>
-                                    <TableCell onClick={(e) => e.stopPropagation()}>
-                                        <div className="flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" asChild>
-                                                <Link href={route('cadastro.equipamentos.edit', machine.id)}>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon"
-                                                        onClick={() => setSelectedEquipment(machine)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogTitle>Você tem certeza que deseja excluir este equipamento?</DialogTitle>
-                                                    <DialogDescription>
-                                                        Uma vez que o equipamento for excluído, todos os seus recursos e dados serão permanentemente excluídos. 
-                                                        Esta ação não pode ser desfeita.
-                                                    </DialogDescription>
-                                                    <div className="grid gap-2 py-4">
-                                                        <Label htmlFor="confirmation" className="sr-only">
-                                                            Confirmação
-                                                        </Label>
-                                                        <Input
-                                                            id="confirmation"
-                                                            type="text"
-                                                            value={confirmationText}
-                                                            onChange={(e) => setConfirmationText(e.target.value)}
-                                                            placeholder="Digite EXCLUIR para confirmar"
-                                                            autoComplete="off"
-                                                        />
-                                                    </div>
-                                                    <DialogFooter className="gap-2">
-                                                        <DialogClose asChild>
-                                                            <Button 
-                                                                variant="secondary"
-                                                                onClick={() => setConfirmationText('')}
-                                                            >
-                                                                Cancelar
-                                                            </Button>
-                                                        </DialogClose>
-                                                        <Button 
-                                                            variant="destructive" 
-                                                            disabled={isDeleting || !isConfirmationValid}
-                                                            onClick={() => selectedEquipment && handleDelete(selectedEquipment.id)}
-                                                        >
-                                                            {isDeleting ? 'Excluindo...' : 'Excluir equipamento'}
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                <DataTable
+                    data={equipment.data}
+                    columns={columns}
+                    columnVisibility={columnVisibility}
+                    onColumnVisibilityChange={handleColumnVisibilityChange}
+                    onRowClick={(row) => router.get(route('cadastro.equipamentos.show', row.id))}
+                    emptyMessage="Nenhuma máquina encontrada."
+                />
 
-                            {equipment.data.length === 0 && (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={7}
-                                        className="h-24 text-center"
-                                    >
-                                        Nenhuma máquina encontrada.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-
-                <div className="flex justify-center">
-                    <PaginationWrapper
-                        currentPage={equipment.current_page}
-                        lastPage={equipment.last_page}
-                        routeName="cadastro.equipamentos"
-                        search={search}
-                        sort={filters.sort}
-                        direction={filters.direction}
-                        perPage={filters.per_page}
-                    />
-                </div>
+                <PaginationWrapper
+                    currentPage={equipment.current_page}
+                    lastPage={equipment.last_page}
+                    total={equipment.total}
+                    routeName="cadastro.equipamentos"
+                    search={search}
+                    sort={sort}
+                    direction={direction}
+                    perPage={perPage}
+                />
             </ListLayout>
         </AppLayout>
     );

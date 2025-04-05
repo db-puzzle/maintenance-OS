@@ -1,14 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
+import { ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
     Select,
     SelectContent,
@@ -16,11 +9,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Label } from '@/components/ui/label';
 import { route } from '@/utils/route';
 
 interface PaginationWrapperProps {
     currentPage: number;
     lastPage: number;
+    total: number;
     routeName: string;
     search?: string;
     sort?: string;
@@ -31,6 +26,7 @@ interface PaginationWrapperProps {
 export function PaginationWrapper({ 
     currentPage, 
     lastPage, 
+    total,
     routeName, 
     search = '', 
     sort = '', 
@@ -58,109 +54,94 @@ export function PaginationWrapper({
         );
     };
 
-    const generatePageNumbers = () => {
-        const pages = [];
-        const maxVisiblePages = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-        let endPage = Math.min(lastPage, startPage + maxVisiblePages - 1);
-
-        if (endPage - startPage + 1 < maxVisiblePages) {
-            startPage = Math.max(1, endPage - maxVisiblePages + 1);
-        }
-
-        if (startPage > 1) {
-            pages.push(1);
-            if (startPage > 2) {
-                pages.push('ellipsis');
-            }
-        }
-
-        for (let i = startPage; i <= endPage; i++) {
-            pages.push(i);
-        }
-
-        if (endPage < lastPage) {
-            if (endPage < lastPage - 1) {
-                pages.push('ellipsis');
-            }
-            pages.push(lastPage);
-        }
-
-        return pages;
+    const handlePageChange = (newPage: number) => {
+        router.get(
+            route(routeName),
+            { 
+                search,
+                sort,
+                direction,
+                page: newPage,
+                per_page: localPerPage
+            },
+            { preserveState: true }
+        );
     };
 
     return (
-        <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2 whitespace-nowrap w-[200px]">
-                <span className="text-sm text-muted-foreground">Registros por página:</span>
-                <Select
-                    value={localPerPage.toString()}
-                    onValueChange={handlePerPageChange}
-                >
-                    <SelectTrigger className="w-[100px]">
-                        <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="8">8</SelectItem>
-                        <SelectItem value="16">16</SelectItem>
-                        <SelectItem value="32">32</SelectItem>
-                        <SelectItem value="64">64</SelectItem>
-                    </SelectContent>
-                </Select>
+        <div className="flex items-center justify-between px-4">
+            <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">
+                {total} registros no total
             </div>
-            
-            <Pagination>
-                <PaginationContent>
-                    <PaginationItem>
-                        <PaginationPrevious
-                            href={currentPage > 1 ? route(routeName, {
-                                page: currentPage - 1,
-                                search,
-                                sort,
-                                direction,
-                                per_page: localPerPage
-                            }) : undefined}
-                            className={currentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
-                        />
-                    </PaginationItem>
-
-                    {generatePageNumbers().map((page, index) => (
-                        <PaginationItem key={index}>
-                            {page === 'ellipsis' ? (
-                                <PaginationEllipsis />
-                            ) : (
-                                <PaginationLink
-                                    href={route(routeName, {
-                                        page,
-                                        search,
-                                        sort,
-                                        direction,
-                                        per_page: localPerPage
-                                    })}
-                                    isActive={currentPage === page}
-                                >
-                                    {page}
-                                </PaginationLink>
-                            )}
-                        </PaginationItem>
-                    ))}
-
-                    <PaginationItem>
-                        <PaginationNext
-                            href={currentPage < lastPage ? route(routeName, {
-                                page: currentPage + 1,
-                                search,
-                                sort,
-                                direction,
-                                per_page: localPerPage
-                            }) : undefined}
-                            className={currentPage >= lastPage ? 'pointer-events-none opacity-50' : ''}
-                        />
-                    </PaginationItem>
-                </PaginationContent>
-            </Pagination>
-
-            <div className="w-[200px]"></div> {/* Espaçador à direita para balancear o layout */}
+            <div className="flex w-full items-center gap-8 lg:w-fit ml-auto">
+                <div className="hidden items-center gap-2 lg:flex">
+                    <Label htmlFor="rows-per-page" className="text-sm font-medium">
+                        Linhas por página
+                    </Label>
+                    <Select
+                        value={`${localPerPage}`}
+                        onValueChange={handlePerPageChange}
+                    >
+                        <SelectTrigger className="w-20" id="rows-per-page">
+                            <SelectValue
+                                placeholder={localPerPage}
+                            />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {[8, 16, 32, 64, 128].map((pageSize) => (
+                                <SelectItem key={pageSize} value={`${pageSize}`}>
+                                    {pageSize}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex w-fit items-center justify-center text-sm font-medium">
+                    Página {currentPage} de{" "}
+                    {lastPage}
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        className="hidden h-8 w-8 p-0 lg:flex"
+                        onClick={() => handlePageChange(1)}
+                        disabled={currentPage === 1}
+                    >
+                        <span className="sr-only">Ir para primeira página</span>
+                        <ChevronsLeftIcon />
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="size-8"
+                        size="icon"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                    >
+                        <span className="sr-only">Ir para página anterior</span>
+                        <ChevronLeftIcon />
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="size-8"
+                        size="icon"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage >= lastPage}
+                    >
+                        <span className="sr-only">Ir para próxima página</span>
+                        <ChevronRightIcon />
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="hidden size-8 lg:flex"
+                        size="icon"
+                        onClick={() => handlePageChange(lastPage)}
+                        disabled={currentPage >= lastPage}
+                    >
+                        <span className="sr-only">Ir para última página</span>
+                        <ChevronsRightIcon />
+                    </Button>
+                </div>
+            </div>
         </div>
     );
 } 

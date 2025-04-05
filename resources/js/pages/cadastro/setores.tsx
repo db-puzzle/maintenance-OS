@@ -1,33 +1,23 @@
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-
+import { toast } from "sonner";
+import { DataTable, ColumnVisibility, type Column } from '@/components/data-table';
+import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 import { Button } from '@/components/ui/button';
+import { MoreVertical, ArrowUpDown } from 'lucide-react';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
-import { toast } from "sonner";
 
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/cadastro/list-layout';
-import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -95,10 +85,28 @@ interface Dependencies {
 }
 
 export default function SectorIndex({ sectors, filters }: Props) {
+    const [search, setSearch] = useState(filters.search || '');
+    const [perPage, setPerPage] = useState(filters.per_page || 8);
+    const [sort, setSort] = useState(filters.sort || 'name');
+    const [direction, setDirection] = useState<'asc' | 'desc'>(filters.direction || 'asc');
+    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+        if (typeof window !== 'undefined') {
+            const savedVisibility = localStorage.getItem('sectorsColumnsVisibility');
+            if (savedVisibility) {
+                return JSON.parse(savedVisibility);
+            }
+        }
+        return {
+            name: true,
+            plant: true,
+            area: true,
+            equipment_count: true,
+        };
+    });
+
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
-    const [search, setSearch] = useState(filters.search || '');
     const [dependencies, setDependencies] = useState<Dependencies | null>(null);
     const [isCheckingDependencies, setIsCheckingDependencies] = useState(false);
     const [showDependenciesDialog, setShowDependenciesDialog] = useState(false);
@@ -120,16 +128,116 @@ export default function SectorIndex({ sectors, filters }: Props) {
                 route('cadastro.setores'),
                 { 
                     search,
-                    sort: filters.sort,
-                    direction: filters.direction,
-                    page: sectors.current_page
+                    sort,
+                    direction,
+                    per_page: perPage
                 },
                 { preserveState: true, preserveScroll: true }
             );
         }, 300);
 
         return () => clearTimeout(searchTimeout);
-    }, [search, filters.sort, filters.direction]);
+    }, [search, sort, direction, perPage]);
+
+    const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
+        const newVisibility = {
+            ...columnVisibility,
+            [columnId]: value,
+        };
+        setColumnVisibility(newVisibility);
+        localStorage.setItem('sectorsColumnsVisibility', JSON.stringify(newVisibility));
+    };
+
+    const handleSort = (columnId: string) => {
+        if (sort === columnId) {
+            setDirection(direction === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSort(columnId);
+            setDirection('asc');
+        }
+    };
+
+    const columns: Column<Sector>[] = [
+        {
+            id: "name",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('name')}>
+                    Nome
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Sector }) => {
+                return (
+                    <div>
+                        <div className="font-medium">{row.original.name}</div>
+                    </div>
+                );
+            },
+            width: "w-[300px]",
+        },
+        {
+            id: "plant",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('plant')}>
+                    Planta
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Sector }) => row.original.area?.plant?.name || '-',
+            width: "w-[200px]",
+        },
+        {
+            id: "area",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('area')}>
+                    Área
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Sector }) => row.original.area?.name || '-',
+            width: "w-[200px]",
+        },
+        {
+            id: "equipment_count",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('equipment_count')}>
+                    Equipamentos
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Sector }) => row.original.equipment_count ?? 0,
+            width: "w-[100px]",
+        },
+        {
+            id: "actions",
+            header: "Ações",
+            cell: (row: { original: Sector }) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+                            size="icon"
+                        >
+                            <MoreVertical />
+                            <span className="sr-only">Abrir menu</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-32">
+                        <DropdownMenuItem asChild>
+                            <Link href={route('cadastro.setores.edit', row.original.id)}>
+                                Editar
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>
+                            Excluir
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+            width: "w-[80px]",
+        },
+    ];
 
     const handleDelete = async (id: number) => {
         setIsDeleting(true);
@@ -152,30 +260,6 @@ export default function SectorIndex({ sectors, filters }: Props) {
     };
 
     const isConfirmationValid = confirmationText === 'EXCLUIR';
-
-    const handleSort = (column: string) => {
-        const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
-        
-        router.get(
-            route('cadastro.setores'),
-            { 
-                search,
-                sort: column,
-                direction,
-                page: 1
-            },
-            { preserveState: true }
-        );
-    };
-
-    const getSortIcon = (column: string) => {
-        if (filters.sort !== column) {
-            return <ArrowUpDown className="h-4 w-4" />;
-        }
-        return filters.direction === 'asc' ? 
-            <ArrowUp className="h-4 w-4" /> : 
-            <ArrowDown className="h-4 w-4" />;
-    };
 
     const checkDependencies = async (sector: Sector) => {
         setIsCheckingDependencies(true);
@@ -211,127 +295,36 @@ export default function SectorIndex({ sectors, filters }: Props) {
                 searchValue={search}
                 onSearchChange={(value) => setSearch(value)}
                 createRoute={route('cadastro.setores.create')}
-                createButtonText="Novo Setor"
+                createButtonText="Adicionar"
+                actions={
+                    <div className="flex items-center gap-2">
+                        <ColumnVisibility
+                            columns={columns}
+                            columnVisibility={columnVisibility}
+                            onColumnVisibilityChange={handleColumnVisibilityChange}
+                        />
+                    </div>
+                }
             >
-                <div className="rounded-md w-full">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('name')}
-                                    >
-                                        Nome
-                                        <span className="ml-2">{getSortIcon('name')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('plant')}
-                                    >
-                                        Planta
-                                        <span className="ml-2">{getSortIcon('plant')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('area')}
-                                    >
-                                        Área
-                                        <span className="ml-2">{getSortIcon('area')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button 
-                                        variant="ghost" 
-                                        className="h-8 p-0 font-bold hover:bg-transparent"
-                                        onClick={() => handleSort('equipment_count')}
-                                    >
-                                        Equipamentos
-                                        <span className="ml-2">{getSortIcon('equipment_count')}</span>
-                                    </Button>
-                                </TableHead>
-                                <TableHead className="w-[100px]">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sectors.data.map((sector) => (
-                                <TableRow 
-                                    key={sector.id}
-                                    className="cursor-pointer hover:bg-muted/50"
-                                    onClick={() => router.get(route('cadastro.setores.show', sector.id))}
-                                >
-                                    <TableCell>
-                                        <div>
-                                            <div className="font-medium">{sector.name}</div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{sector.area?.plant?.name}</TableCell>
-                                    <TableCell>{sector.area?.name}</TableCell>
-                                    <TableCell className="text-center">{sector.equipment_count ?? 0}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                asChild
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <Link href={route('cadastro.setores.edit', sector.id)}>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            checkDependencies(sector);
-                                                        }}
-                                                        disabled={isCheckingDependencies}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </DialogTrigger>
-                                            </Dialog>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                <DataTable
+                    data={sectors.data}
+                    columns={columns}
+                    columnVisibility={columnVisibility}
+                    onColumnVisibilityChange={handleColumnVisibilityChange}
+                    onRowClick={(row) => router.get(route('cadastro.setores.show', row.id))}
+                    emptyMessage="Nenhum setor encontrado."
+                />
 
-                            {sectors.data.length === 0 && (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={5}
-                                        className="h-24 text-center"
-                                    >
-                                        Nenhum setor encontrado.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-
-                <div className="flex justify-center">
-                    <PaginationWrapper
-                        currentPage={sectors.current_page}
-                        lastPage={sectors.last_page}
-                        routeName="cadastro.setores"
-                        search={search}
-                        sort={filters.sort}
-                        direction={filters.direction}
-                        perPage={filters.per_page}
-                    />
-                </div>
+                <PaginationWrapper
+                    currentPage={sectors.current_page}
+                    lastPage={sectors.last_page}
+                    total={sectors.total}
+                    routeName="cadastro.setores"
+                    search={search}
+                    sort={sort}
+                    direction={direction}
+                    perPage={perPage}
+                />
             </ListLayout>
 
             {/* Diálogo de Dependências */}
@@ -381,40 +374,30 @@ export default function SectorIndex({ sectors, filters }: Props) {
             {/* Diálogo de Confirmação de Exclusão */}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>
-                    <DialogTitle>Você tem certeza que deseja excluir este setor?</DialogTitle>
+                    <DialogTitle>Confirmar exclusão</DialogTitle>
                     <DialogDescription>
-                        Uma vez que o setor for excluído, todos os seus recursos e dados serão permanentemente excluídos. 
-                        Esta ação não pode ser desfeita.
+                        Tem certeza que deseja excluir o setor {selectedSector?.name}? Esta ação não pode ser desfeita.
                     </DialogDescription>
-                    <div className="grid gap-2 py-4">
-                        <Label htmlFor="confirmation" className="sr-only">
-                            Confirmação
-                        </Label>
-                        <Input
-                            id="confirmation"
-                            type="text"
-                            value={confirmationText}
-                            onChange={(e) => setConfirmationText(e.target.value)}
-                            placeholder="Digite EXCLUIR para confirmar"
-                            autoComplete="off"
-                        />
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmation">Digite EXCLUIR para confirmar</Label>
+                            <Input
+                                id="confirmation"
+                                value={confirmationText}
+                                onChange={(e) => setConfirmationText(e.target.value)}
+                            />
+                        </div>
                     </div>
-                    <DialogFooter className="gap-2">
-                        <Button 
-                            variant="secondary"
-                            onClick={() => {
-                                setShowDeleteDialog(false);
-                                setConfirmationText('');
-                            }}
-                        >
-                            Cancelar
-                        </Button>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary">Cancelar</Button>
+                        </DialogClose>
                         <Button 
                             variant="destructive" 
-                            disabled={isDeleting || !isConfirmationValid}
                             onClick={() => selectedSector && handleDelete(selectedSector.id)}
+                            disabled={!isConfirmationValid || isDeleting}
                         >
-                            {isDeleting ? 'Excluindo...' : 'Excluir setor'}
+                            {isDeleting ? 'Excluindo...' : 'Excluir'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
