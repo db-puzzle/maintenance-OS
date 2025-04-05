@@ -67,7 +67,7 @@ export function DataTable<T>({
                         data.map((row) => (
                             <TableRow 
                                 key={(row as any).id} 
-                                className="cursor-pointer hover:bg-muted/50"
+                                className="cursor-pointer hover:bg-muted/50 transition-colors"
                                 onClick={() => onRowClick?.(row)}
                             >
                                 {visibleColumns.map((column, index) => (
