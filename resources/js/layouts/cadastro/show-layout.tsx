@@ -8,10 +8,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EllipsisVertical } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { EllipsisVertical, Check } from "lucide-react";
 import { Link } from "@inertiajs/react";
 import { type ReactNode } from "react";
 import { type BreadcrumbItem } from "@/types";
+import { useState } from "react";
 
 interface Tab {
     id: string;
@@ -38,8 +46,10 @@ export default function ShowLayout({
     tabs,
     children,
 }: ShowLayoutProps) {
+    const [activeTab, setActiveTab] = useState(tabs ? tabs[0].id : '');
+
     return (
-        <div className="bg-background border-b border-border pt-4 md:pt-6">
+        <div className="bg-background pt-4 md:pt-6">
             <div className="container mx-auto lg:px-6 px-4 flex flex-col gap-6">
                 {/* Main content */}
                 <div className="flex justify-between md:items-center gap-6 md:flex-row flex-col">
@@ -55,7 +65,7 @@ export default function ShowLayout({
                     </div>
                     {/* Buttons */}
                     <div className="flex gap-2 justify-end flex-row-reverse md:flex-row">
-                        <div className="lg:hidden">
+                        <div className="hidden">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline" size="icon">
@@ -69,11 +79,11 @@ export default function ShowLayout({
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
-                        <Button variant="outline" className="hidden lg:inline-flex" asChild>
-                            <Link href={editRoute}>Editar</Link>
-                        </Button>
                         <Button variant="outline" asChild>
                             <Link href={backRoute}>Voltar</Link>
+                        </Button>
+                        <Button className="inline-flex" asChild>
+                            <Link href={editRoute}>Editar</Link>
                         </Button>
                     </div>
                 </div>
@@ -81,25 +91,58 @@ export default function ShowLayout({
             {/* Nav */}
             <div className="container mx-auto lg:px-6 px-4 py-6">
                 {tabs ? (
-                    <Tabs defaultValue={tabs[0].id} className="w-full">
-                        <TabsList className="flex w-fit">
+                    <div className="space-y-4">
+                        {/* Mobile Select */}
+                        <div className="md:hidden">
+                            <Select value={activeTab} onValueChange={setActiveTab}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue>
+                                        {tabs.find(tab => tab.id === activeTab)?.label}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {tabs.map((tab) => (
+                                        <SelectItem 
+                                            key={tab.id} 
+                                            value={tab.id}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <div className="w-4">
+                                                {activeTab === tab.id && (
+                                                    <Check className="h-4 w-4" />
+                                                )}
+                                            </div>
+                                            {tab.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {/* Desktop Tabs */}
+                        <div className="hidden md:block">
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                                <TabsList className="justify-start">
+                                    {tabs.map((tab) => (
+                                        <TabsTrigger 
+                                            key={tab.id} 
+                                            value={tab.id}
+                                            className="font-medium px-4 py-2 data-[state=active]:font-extrabold"
+                                        >
+                                            {tab.label}
+                                        </TabsTrigger>
+                                    ))}
+                                </TabsList>
+                            </Tabs>
+                        </div>
+                        {/* Tab Content - Shown for both mobile and desktop */}
+                        <div className="mt-4">
                             {tabs.map((tab) => (
-                                <TabsTrigger 
-                                    key={tab.id} 
-                                    value={tab.id}
-                                    className="font-medium px-4 py-2 data-[state=active]:font-extrabold"
-                                >
-                                    {tab.label}
-                                </TabsTrigger>
+                                <div key={tab.id} className={activeTab === tab.id ? 'block' : 'hidden'}>
+                                    {tab.content}
+                                </div>
                             ))}
-                        </TabsList>
-
-                        {tabs.map((tab) => (
-                            <TabsContent key={tab.id} value={tab.id}>
-                                {tab.content}
-                            </TabsContent>
-                        ))}
-                    </Tabs>
+                        </div>
+                    </div>
                 ) : (
                     children
                 )}

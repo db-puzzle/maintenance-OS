@@ -3,7 +3,8 @@ import { Head, Link } from '@inertiajs/react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Camera } from 'lucide-react';
+import { Camera, MessageSquare, Calendar, FileText } from 'lucide-react';
+import { EmptySection1 } from "@/components/ui/empty-section-1"
 
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/cadastro/show-layout';
@@ -38,15 +39,10 @@ export default function Show({ equipment }: Props) {
             label: 'Informações Gerais',
             content: (
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Informações Gerais</CardTitle>
-                        <CardDescription>Informações básicas sobre o equipamento</CardDescription>
-                    </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Coluna 1: Foto */}
                             <div className="flex flex-col h-full">
-                                <Label className="mb-2">Foto do Equipamento</Label>
                                 <div className="flex-1 relative rounded-lg overflow-hidden bg-muted min-h-[238px] max-h-[238px]">
                                     {equipment.photo_path ? (
                                         <img
@@ -154,14 +150,17 @@ export default function Show({ equipment }: Props) {
             label: 'Solicitações de Usuário',
             content: (
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Solicitações de Usuário</CardTitle>
-                        <CardDescription>Histórico de solicitações relacionadas a este equipamento</CardDescription>
-                    </CardHeader>
                     <CardContent>
-                        <div className="text-sm text-muted-foreground py-6 text-center">
-                            Em breve...
-                        </div>
+                        <EmptySection1 
+                            title="Nenhuma solicitação registrada"
+                            description="Registre solicitações de usuários para este equipamento"
+                            icon={MessageSquare}
+                            primaryButtonText="Nova solicitação"
+                            secondaryButtonText="Ver histórico"
+                            primaryButtonLink="#"
+                            secondaryButtonLink="#"
+                            showDashedBorder={false}
+                        />
                     </CardContent>
                 </Card>
             ),
@@ -171,14 +170,17 @@ export default function Show({ equipment }: Props) {
             label: 'Planos de Manutenção',
             content: (
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Planos de Manutenção</CardTitle>
-                        <CardDescription>Planos e cronogramas de manutenção do equipamento</CardDescription>
-                    </CardHeader>
                     <CardContent>
-                        <div className="text-sm text-muted-foreground py-6 text-center">
-                            Em breve...
-                        </div>
+                        <EmptySection1 
+                            title="Nenhum plano de manutenção"
+                            description="Crie planos de manutenção para este equipamento"
+                            icon={Calendar}
+                            primaryButtonText="Novo plano"
+                            secondaryButtonText="Ver cronograma"
+                            primaryButtonLink="#"
+                            secondaryButtonLink="#"
+                            showDashedBorder={false}
+                        />
                     </CardContent>
                 </Card>
             ),
@@ -188,14 +190,17 @@ export default function Show({ equipment }: Props) {
             label: 'Central de Logs',
             content: (
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Log de Operação / Manutenção</CardTitle>
-                        <CardDescription>Histórico de operações e manutenções realizadas</CardDescription>
-                    </CardHeader>
                     <CardContent>
-                        <div className="text-sm text-muted-foreground py-6 text-center">
-                            Em breve...
-                        </div>
+                        <EmptySection1 
+                            title="Nenhum registro de log"
+                            description="Registre operações e manutenções realizadas neste equipamento"
+                            icon={FileText}
+                            primaryButtonText="Novo registro"
+                            secondaryButtonText="Ver histórico"
+                            primaryButtonLink="#"
+                            secondaryButtonLink="#"
+                            showDashedBorder={false}
+                        />
                     </CardContent>
                 </Card>
             ),
