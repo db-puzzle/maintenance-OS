@@ -9,10 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InputError from '@/components/input-error';
-import HeadingSmall from '@/components/heading-small';
 
 import AppLayout from '@/layouts/app-layout';
-import CadastroLayout from '@/layouts/cadastro/layout';
+import EditLayout from '@/layouts/cadastro/edit-layout';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -56,8 +55,7 @@ export default function EditSector({ sector, plants }: Props) {
         ? plants.find(p => p.id === selectedPlant)?.areas || []
         : [];
 
-    const submit = (e: FormEvent) => {
-        e.preventDefault();
+    const handleSave = () => {
         put(route('cadastro.setores.update', sector.id), {
             onSuccess: () => {
                 // O flash message será exibido automaticamente
@@ -74,110 +72,96 @@ export default function EditSector({ sector, plants }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Editar Setor" />
 
-            <CadastroLayout>
-                <div className="space-y-6 max-w-2xl">
-                    <HeadingSmall 
-                        title="Editar Setor" 
-                        description="Atualize as informações do setor" 
-                    />
-
-                    <form onSubmit={submit} className="space-y-6">
-                        <div className="grid gap-6">
-                            {/* Nome */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="name" className="flex items-center gap-1">
-                                    Nome do Setor
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="name"
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    required
-                                    placeholder="Nome do setor"
-                                />
-                                <InputError message={errors.name} />
-                            </div>
-
-                            {/* Planta */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="plant" className="flex items-center gap-1">
-                                    Planta
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Select
-                                    value={selectedPlant?.toString()}
-                                    onValueChange={(value) => {
-                                        const plantId = parseInt(value);
-                                        setSelectedPlant(plantId);
-                                        setData('area_id', '');
-                                    }}
-                                >
-                                    <SelectTrigger id="plant">
-                                        <SelectValue placeholder="Selecione uma planta" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {plants.map((plant) => (
-                                            <SelectItem key={plant.id} value={plant.id.toString()}>
-                                                {plant.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Área */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="area_id" className="flex items-center gap-1">
-                                    Área
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Select
-                                    value={data.area_id}
-                                    onValueChange={(value) => setData('area_id', value)}
-                                    disabled={!selectedPlant}
-                                >
-                                    <SelectTrigger id="area_id">
-                                        <SelectValue placeholder={
-                                            !selectedPlant 
-                                                ? "Selecione uma planta primeiro" 
-                                                : "Selecione uma área"
-                                        } />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableAreas.length === 0 ? (
-                                            <div className="py-2 px-2 text-sm text-muted-foreground text-center">
-                                                Não existe nenhuma área nessa planta
-                                            </div>
-                                        ) : (
-                                            availableAreas.map((area) => (
-                                                <SelectItem key={area.id} value={area.id.toString()}>
-                                                    {area.name}
-                                                </SelectItem>
-                                            ))
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.area_id} />
-                            </div>
+            <EditLayout
+                title="Editar Setor"
+                subtitle="Atualize as informações do setor"
+                breadcrumbs={breadcrumbs}
+                backRoute={route('cadastro.setores')}
+                onSave={handleSave}
+                isSaving={processing}
+            >
+                <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6 max-w-2xl">
+                    <div className="grid gap-6">
+                        {/* Nome */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="name" className="flex items-center gap-1">
+                                Nome do Setor
+                                <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                                id="name"
+                                value={data.name}
+                                onChange={(e) => setData('name', e.target.value)}
+                                required
+                                placeholder="Nome do setor"
+                            />
+                            <InputError message={errors.name} />
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <Button type="submit" disabled={processing}>
-                                {processing ? 'Salvando...' : 'Salvar'}
-                            </Button>
-                            <Button 
-                                variant="outline" 
-                                onClick={() => router.visit(route('cadastro.setores'), { 
-                                    preserveState: false 
-                                })}
+                        {/* Planta */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="plant" className="flex items-center gap-1">
+                                Planta
+                                <span className="text-destructive">*</span>
+                            </Label>
+                            <Select
+                                value={selectedPlant?.toString()}
+                                onValueChange={(value) => {
+                                    const plantId = parseInt(value);
+                                    setSelectedPlant(plantId);
+                                    setData('area_id', '');
+                                }}
                             >
-                                Cancelar
-                            </Button>
+                                <SelectTrigger id="plant">
+                                    <SelectValue placeholder="Selecione uma planta" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {plants.map((plant) => (
+                                        <SelectItem key={plant.id} value={plant.id.toString()}>
+                                            {plant.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                    </form>
-                </div>
-            </CadastroLayout>
+
+                        {/* Área */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="area_id" className="flex items-center gap-1">
+                                Área
+                                <span className="text-destructive">*</span>
+                            </Label>
+                            <Select
+                                value={data.area_id}
+                                onValueChange={(value) => setData('area_id', value)}
+                                disabled={!selectedPlant}
+                            >
+                                <SelectTrigger id="area_id">
+                                    <SelectValue placeholder={
+                                        !selectedPlant 
+                                            ? "Selecione uma planta primeiro" 
+                                            : "Selecione uma área"
+                                    } />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableAreas.length === 0 ? (
+                                        <div className="py-2 px-2 text-sm text-muted-foreground text-center">
+                                            Não existe nenhuma área nessa planta
+                                        </div>
+                                    ) : (
+                                        availableAreas.map((area) => (
+                                            <SelectItem key={area.id} value={area.id.toString()}>
+                                                {area.name}
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.area_id} />
+                        </div>
+                    </div>
+                </form>
+            </EditLayout>
         </AppLayout>
     );
 } 

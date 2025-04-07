@@ -2,7 +2,6 @@ import { type BreadcrumbItem, type Equipment, type EquipmentType, type Area, typ
 import { Head, useForm, router } from '@inertiajs/react';
 import { FormEvent, useState, useEffect } from 'react';
 import { toast } from "sonner";
-import { type UseFormReturn } from '@inertiajs/react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +17,7 @@ import { cn } from '@/lib/utils';
 import DeleteEquipment from '@/components/delete-equipment';
 
 import AppLayout from '@/layouts/app-layout';
-import CadastroLayout from '@/layouts/cadastro/layout';
+import EditLayout from '@/layouts/cadastro/edit-layout';
 import HeadingSmall from '@/components/heading-small';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -44,7 +43,7 @@ interface Props {
 }
 
 export default function EditEquipment({ equipment, equipmentTypes, plants }: Props) {
-    const { data, setData, put, processing, errors } = useForm<EquipmentForm>({
+    const form = useForm<EquipmentForm>({
         tag: equipment.tag,
         serial_number: equipment.serial_number || '',
         equipment_type_id: equipment.equipment_type_id.toString(),
@@ -56,9 +55,6 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
         sector_id: equipment.sector_id?.toString() || '',
         photo: null,
         photo_path: equipment.photo_path
-    }, {
-        forceFormData: true,
-        preserveScroll: true
     });
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(equipment.photo_path ? `/storage/${equipment.photo_path}` : null);
@@ -79,10 +75,9 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
         : [];
 
     useEffect(() => {
-        // Inicializa os valores quando o componente montar
         if (equipment.plant?.id) {
             setSelectedPlant(equipment.plant.id);
-            setData('plant_id', equipment.plant.id.toString());
+            form.setData('plant_id', equipment.plant.id.toString());
         }
         if (equipment.area?.id) {
             setSelectedArea(equipment.area.id);
@@ -94,8 +89,8 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
             preserveScroll: true,
             onSuccess: () => {
                 setPreviewUrl(null);
-                setData('photo', null);
-                setData('photo_path', null);
+                form.setData('photo', null);
+                form.setData('photo_path', null);
             }
         });
     };
@@ -103,45 +98,46 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setData('photo', file);
+            form.setData('photo', file);
             setPreviewUrl(URL.createObjectURL(file));
         }
     };
 
     const handlePhotoCapture = (file: File) => {
-        setData('photo', file);
+        form.setData('photo', file);
         setPreviewUrl(URL.createObjectURL(file));
     };
 
-    const submit = (e: FormEvent) => {
-        e.preventDefault();
-        
-        // Validação da planta
-        if (!data.plant_id) {
+    const handleSubmit = () => {
+        if (!form.data.tag) {
+            toast.error("Erro ao atualizar equipamento", {
+                description: "A TAG é obrigatória."
+            });
+            return;
+        }
+
+        if (!form.data.plant_id) {
             toast.error("Erro ao atualizar equipamento", {
                 description: "A planta é obrigatória."
             });
             return;
         }
 
-        // Criar um FormData para enviar o arquivo
         const formData = new FormData();
-        Object.keys(data).forEach(key => {
-            // Não incluir o campo photo se for null
+        Object.keys(form.data).forEach(key => {
             if (key === 'photo') {
-                if (data[key]) {
-                    formData.append(key, data[key] as File);
+                if (form.data[key]) {
+                    formData.append(key, form.data[key] as File);
                 }
             } else {
-                formData.append(key, data[key] as string);
+                formData.append(key, form.data[key] as string);
             }
         });
 
         router.post(route('cadastro.equipamentos.update', equipment.id), formData, {
             preserveScroll: true,
             onSuccess: () => {
-                toast.success(`O equipamento ${data.tag} foi atualizado com sucesso!`);
-                // Redireciona para a página de visualização
+                toast.success(`O equipamento ${form.data.tag} foi atualizado com sucesso!`);
                 router.visit(route('cadastro.equipamentos.show', equipment.id));
             },
             onError: (errors) => {
@@ -156,392 +152,381 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Editar Equipamento" />
 
-            <CadastroLayout>
-                <div className="space-y-6 max-w-2xl">
-                    <HeadingSmall
-                        title="Editar Equipamento"
-                        description="Edite os dados do equipamento"
-                    />
-
-                    <form onSubmit={submit} className="space-y-6">
-                        {/* Primeira Linha: Foto e Campos Principais */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Coluna 1: Foto */}
-                            <div className="flex flex-col h-full">
-                                <Label htmlFor="photo" className="mb-2">Foto do Equipamento</Label>
-                                <div className="flex-1 flex flex-col gap-2">
-                                    <div className="flex-1 relative rounded-lg overflow-hidden bg-muted border min-h-[238px] max-h-[238px]">
-                                        {previewUrl ? (
-                                            <div className="relative w-full h-full">
-                                                <img
-                                                    src={previewUrl}
-                                                    alt="Preview"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive"
-                                                    size="sm"
-                                                    className="absolute top-2 right-2"
-                                                    onClick={handleRemovePhoto}
-                                                >
-                                                    Remover
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                                                <Camera className="w-12 h-12" />
-                                                <span className="text-sm">Nenhuma foto selecionada</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleFileChange}
-                                                className="hidden"
-                                                id="photo"
+            <EditLayout
+                title="Editar Equipamento"
+                subtitle="Edite os dados do equipamento"
+                breadcrumbs={breadcrumbs}
+                backRoute={route('cadastro.equipamentos.show', equipment.id)}
+                onSave={handleSubmit}
+                isSaving={form.processing}
+            >
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSubmit();
+                }} className="space-y-6">
+                    {/* Foto e Campos Principais */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Coluna 1: Foto */}
+                        <div className="flex flex-col h-full">
+                            <Label htmlFor="photo" className="mb-2">Foto do Equipamento</Label>
+                            <div className="flex-1 flex flex-col gap-2">
+                                <div className="flex-1 relative rounded-lg overflow-hidden bg-muted border min-h-[238px] max-h-[238px]">
+                                    {previewUrl ? (
+                                        <div className="relative w-full h-full">
+                                            <img
+                                                src={previewUrl}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
                                             />
                                             <Button
                                                 type="button"
-                                                variant="outline"
-                                                className="w-full"
-                                                asChild
+                                                variant="destructive"
+                                                size="sm"
+                                                className="absolute top-2 right-2"
+                                                onClick={handleRemovePhoto}
                                             >
-                                                <label htmlFor="photo" className="flex items-center justify-center gap-2 cursor-pointer">
-                                                    <Upload className="w-4 h-4" />
-                                                    Selecionar Arquivo
-                                                </label>
+                                                Remover
                                             </Button>
                                         </div>
+                                    ) : (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
+                                            <Camera className="w-12 h-12" />
+                                            <span className="text-sm">Nenhuma foto selecionada</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                            className="hidden"
+                                            id="photo"
+                                        />
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            onClick={() => setShowCamera(true)}
-                                            className="flex-1"
+                                            className="w-full"
+                                            asChild
                                         >
-                                            <Camera className="w-4 h-4 mr-2" />
-                                            Usar Câmera
+                                            <label htmlFor="photo" className="flex items-center justify-center gap-2 cursor-pointer">
+                                                <Upload className="w-4 h-4" />
+                                                Selecionar Arquivo
+                                            </label>
                                         </Button>
                                     </div>
-                                    <InputError message={errors.photo} />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setShowCamera(true)}
+                                        className="flex-1"
+                                    >
+                                        <Camera className="w-4 h-4 mr-2" />
+                                        Usar Câmera
+                                    </Button>
                                 </div>
+                                <InputError message={form.errors.photo} />
+                            </div>
+                        </div>
+
+                        {/* Coluna 2: Informações Básicas */}
+                        <div className="space-y-6">
+                            {/* TAG */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="tag">
+                                    TAG
+                                    <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    id="tag"
+                                    value={form.data.tag}
+                                    onChange={(e) => form.setData('tag', e.target.value)}
+                                    placeholder="TAG do equipamento"
+                                    className={cn(
+                                        "w-full",
+                                        form.errors.tag && "border-destructive focus-visible:ring-destructive"
+                                    )}
+                                />
+                                <InputError message={form.errors.tag} />
                             </div>
 
-                            {/* Coluna 2: Campos Principais */}
-                            <div className="space-y-6">
-                                {/* TAG */}
-                                <div className="grid gap-2">
-                                    <Label htmlFor="tag">TAG</Label>
-                                    <Input
-                                        id="tag"
-                                        value={data.tag}
-                                        onChange={(e) => setData('tag', e.target.value)}
-                                        placeholder="TAG do equipamento"
-                                    />
-                                    <InputError message={errors.tag} />
-                                </div>
+                            {/* Tipo de Equipamento */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="equipment_type">
+                                    Tipo de Equipamento
+                                    <span className="text-destructive">*</span>
+                                </Label>
+                                <Popover open={openEquipmentType} onOpenChange={setOpenEquipmentType}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            id="equipment_type"
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openEquipmentType}
+                                            className="w-full justify-between"
+                                        >
+                                            {form.data.equipment_type_id
+                                                ? equipmentTypes.find((type) => type.id.toString() === form.data.equipment_type_id)?.name
+                                                : "Selecione um tipo de equipamento"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar tipo de equipamento..." />
+                                            <CommandEmpty>Nenhum tipo de equipamento encontrado.</CommandEmpty>
+                                            <CommandGroup>
+                                                {equipmentTypes.map((type) => (
+                                                    <CommandItem
+                                                        key={type.id}
+                                                        value={type.name}
+                                                        onSelect={() => {
+                                                            form.setData('equipment_type_id', type.id.toString());
+                                                            setOpenEquipmentType(false);
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                form.data.equipment_type_id === type.id.toString() ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {type.name}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <InputError message={form.errors.equipment_type_id} />
+                            </div>
 
-                                {/* Tipo de Equipamento */}
-                                <div className="grid gap-2">
-                                    <Label htmlFor="equipment_type">
-                                        Tipo de Equipamento
-                                        <span className="text-destructive">*</span>
-                                    </Label>
-                                    <Popover open={openEquipmentType} onOpenChange={setOpenEquipmentType}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                id="equipment_type"
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openEquipmentType}
-                                                className="w-full justify-between"
-                                            >
-                                                {data.equipment_type_id
-                                                    ? equipmentTypes.find((type) => type.id.toString() === data.equipment_type_id)?.name
-                                                    : "Selecione um tipo de equipamento"}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Buscar tipo de equipamento..." />
-                                                <CommandEmpty>Nenhum tipo de equipamento encontrado.</CommandEmpty>
+                            {/* Número Serial */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="serial_number">Número Serial</Label>
+                                <Input
+                                    id="serial_number"
+                                    value={form.data.serial_number}
+                                    onChange={(e) => form.setData('serial_number', e.target.value)}
+                                    placeholder="Número serial do equipamento"
+                                />
+                                <InputError message={form.errors.serial_number} />
+                            </div>
+
+                            {/* Ano de Fabricação */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="manufacturing_year">Ano de Fabricação</Label>
+                                <Input
+                                    id="manufacturing_year"
+                                    type="number"
+                                    min="1900"
+                                    max={new Date().getFullYear()}
+                                    value={form.data.manufacturing_year}
+                                    onChange={(e) => form.setData('manufacturing_year', e.target.value)}
+                                    placeholder="Ano de fabricação"
+                                />
+                                <InputError message={form.errors.manufacturing_year} />
+                            </div>
+                        </div>
+
+                        {/* Coluna 3: Localização e Informações Adicionais */}
+                        <div className="space-y-6">
+                            {/* Planta */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="plant">
+                                    Planta
+                                    <span className="text-destructive">*</span>
+                                </Label>
+                                <Popover open={openPlant} onOpenChange={setOpenPlant}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            id="plant"
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openPlant}
+                                            className="w-full justify-between"
+                                        >
+                                            {selectedPlant
+                                                ? plants.find((plant) => plant.id === selectedPlant)?.name
+                                                : "Selecione uma planta"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar planta..." />
+                                            <CommandList>
+                                                <CommandEmpty>Nenhuma planta encontrada.</CommandEmpty>
                                                 <CommandGroup>
-                                                    {equipmentTypes.map((type) => (
+                                                    {plants.map((plant) => (
                                                         <CommandItem
-                                                            key={type.id}
-                                                            value={type.name}
-                                                            onSelect={() => {
-                                                                setData('equipment_type_id', type.id.toString());
-                                                                setOpenEquipmentType(false);
+                                                            key={plant.id}
+                                                            value={plant.id.toString()}
+                                                            onSelect={(value) => {
+                                                                const plantId = parseInt(value);
+                                                                setSelectedPlant(plantId);
+                                                                form.setData('plant_id', plantId.toString());
+                                                                form.setData('area_id', ''); // Limpa a área quando mudar a planta
+                                                                form.setData('sector_id', ''); // Limpa o setor quando mudar a planta
+                                                                setSelectedArea(null); // Reseta a área selecionada
+                                                                setOpenPlant(false);
                                                             }}
                                                         >
                                                             <Check
                                                                 className={cn(
                                                                     "mr-2 h-4 w-4",
-                                                                    data.equipment_type_id === type.id.toString() ? "opacity-100" : "opacity-0"
+                                                                    selectedPlant === plant.id ? "opacity-100" : "opacity-0"
                                                                 )}
                                                             />
-                                                            {type.name}
+                                                            {plant.name}
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <InputError message={errors.equipment_type_id} />
-                                </div>
-
-                                {/* Número Serial */}
-                                <div className="grid gap-2">
-                                    <Label htmlFor="serial_number">Número Serial</Label>
-                                    <Input
-                                        id="serial_number"
-                                        value={data.serial_number}
-                                        onChange={(e) => setData('serial_number', e.target.value)}
-                                        placeholder="Número serial do equipamento"
-                                    />
-                                    <InputError message={errors.serial_number} />
-                                </div>
-
-                                {/* Ano de Fabricação */}
-                                <div className="grid gap-2">
-                                    <Label htmlFor="manufacturing_year">Ano de Fabricação</Label>
-                                    <Input
-                                        id="manufacturing_year"
-                                        type="number"
-                                        min="1900"
-                                        max={new Date().getFullYear()}
-                                        value={data.manufacturing_year}
-                                        onChange={(e) => setData('manufacturing_year', e.target.value)}
-                                        placeholder="Ano de fabricação"
-                                    />
-                                    <InputError message={errors.manufacturing_year} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Segunda Linha: Localização e Informações Adicionais */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Coluna 3: Localização */}
-                            <div className="space-y-6">
-                                {/* Planta */}
-                                <div className="grid gap-2">
-                                    <Label htmlFor="plant">
-                                        Planta
-                                        <span className="text-destructive">*</span>
-                                    </Label>
-                                    <Popover open={openPlant} onOpenChange={setOpenPlant}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                id="plant"
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openPlant}
-                                                className="w-full justify-between"
-                                            >
-                                                {selectedPlant
-                                                    ? plants.find((plant) => plant.id === selectedPlant)?.name
-                                                    : "Selecione uma planta"}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Buscar planta..." />
-                                                <CommandList>
-                                                    <CommandEmpty>Nenhuma planta encontrada.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {plants.map((plant) => (
-                                                            <CommandItem
-                                                                key={plant.id}
-                                                                value={plant.id.toString()}
-                                                                onSelect={(value) => {
-                                                                    const plantId = parseInt(value);
-                                                                    setSelectedPlant(plantId);
-                                                                    setData('plant_id', plantId.toString());
-                                                                    setData('area_id', ''); // Limpa a área quando mudar a planta
-                                                                    setData('sector_id', ''); // Limpa o setor quando mudar a planta
-                                                                    setSelectedArea(null); // Reseta a área selecionada
-                                                                    setOpenPlant(false);
-                                                                }}
-                                                            >
-                                                                <Check
-                                                                    className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        selectedPlant === plant.id ? "opacity-100" : "opacity-0"
-                                                                    )}
-                                                                />
-                                                                {plant.name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-
-                                {/* Área */}
-                                <div className="grid gap-2">
-                                    <Label htmlFor="area">
-                                        Área
-                                    </Label>
-                                    <Popover open={openArea} onOpenChange={setOpenArea}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                id="area"
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openArea}
-                                                className="w-full justify-between"
-                                                disabled={!selectedPlant}
-                                            >
-                                                {data.area_id
-                                                    ? availableAreas.find((area) => area.id.toString() === data.area_id)?.name
-                                                    : "Selecione uma área (opcional)"}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Buscar área..." />
-                                                <CommandList>
-                                                    <CommandEmpty>Nenhuma área encontrada.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {availableAreas.map((area) => (
-                                                            <CommandItem
-                                                                key={area.id}
-                                                                value={area.id.toString()}
-                                                                onSelect={(value) => {
-                                                                    setData('area_id', value);
-                                                                    setSelectedArea(parseInt(value));
-                                                                    setData('sector_id', ''); // Limpa o setor quando mudar a área
-                                                                    setOpenArea(false);
-                                                                }}
-                                                            >
-                                                                <Check
-                                                                    className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        data.area_id === area.id.toString() ? "opacity-100" : "opacity-0"
-                                                                    )}
-                                                                />
-                                                                {area.name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <InputError message={errors.area_id} />
-                                </div>
-
-                                {/* Setor */}
-                                <div className="grid gap-2">
-                                    <Label htmlFor="sector">Setor</Label>
-                                    <Popover open={openSector} onOpenChange={setOpenSector}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                id="sector"
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openSector}
-                                                className="w-full justify-between"
-                                                disabled={!data.area_id}
-                                            >
-                                                {data.sector_id
-                                                    ? availableSectors.find((sector) => sector.id.toString() === data.sector_id)?.name
-                                                    : data.area_id ? "Selecione um setor (opcional)" : "Selecione uma área primeiro"}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Buscar setor..." />
-                                                <CommandList>
-                                                    <CommandEmpty>Nenhum setor encontrado.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {availableSectors.map((sector) => (
-                                                            <CommandItem
-                                                                key={sector.id}
-                                                                value={sector.id.toString()}
-                                                                onSelect={(value) => {
-                                                                    setData('sector_id', value);
-                                                                    setOpenSector(false);
-                                                                }}
-                                                            >
-                                                                <Check
-                                                                    className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        data.sector_id === sector.id.toString() ? "opacity-100" : "opacity-0"
-                                                                    )}
-                                                                />
-                                                                {sector.name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <InputError message={errors.sector_id} />
-                                </div>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
 
-                            {/* Coluna 4: Informações Adicionais */}
-                            <div className="flex flex-col h-full space-y-6">
-                                {/* Fabricante */}
-                                <div className="grid gap-2">
-                                    <Label htmlFor="manufacturer">Fabricante</Label>
-                                    <Input
-                                        id="manufacturer"
-                                        value={data.manufacturer}
-                                        onChange={(e) => setData('manufacturer', e.target.value)}
-                                        placeholder="Fabricante do equipamento"
-                                    />
-                                    <InputError message={errors.manufacturer} />
-                                </div>
+                            {/* Área */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="area">
+                                    Área
+                                </Label>
+                                <Popover open={openArea} onOpenChange={setOpenArea}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            id="area"
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openArea}
+                                            className="w-full justify-between"
+                                            disabled={!selectedPlant}
+                                        >
+                                            {form.data.area_id
+                                                ? availableAreas.find((area) => area.id.toString() === form.data.area_id)?.name
+                                                : "Selecione uma área (opcional)"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar área..." />
+                                            <CommandList>
+                                                <CommandEmpty>Nenhuma área encontrada.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {availableAreas.map((area) => (
+                                                        <CommandItem
+                                                            key={area.id}
+                                                            value={area.id.toString()}
+                                                            onSelect={(value) => {
+                                                                form.setData('area_id', value);
+                                                                setSelectedArea(parseInt(value));
+                                                                form.setData('sector_id', ''); // Limpa o setor quando mudar a área
+                                                                setOpenArea(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    form.data.area_id === area.id.toString() ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {area.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <InputError message={form.errors.area_id} />
+                            </div>
 
-                                {/* Descrição */}
-                                <div className="flex-1 flex flex-col gap-2">
-                                    <Label htmlFor="description">Descrição</Label>
-                                    <Textarea
-                                        id="description"
-                                        value={data.description}
-                                        onChange={(e) => setData('description', e.target.value)}
-                                        placeholder="Descrição da máquina"
-                                        className="flex-1 min-h-0"
-                                    />
-                                    <InputError message={errors.description} />
-                                </div>
+                            {/* Setor */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="sector">Setor</Label>
+                                <Popover open={openSector} onOpenChange={setOpenSector}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            id="sector"
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openSector}
+                                            className="w-full justify-between"
+                                            disabled={!form.data.area_id}
+                                        >
+                                            {form.data.sector_id
+                                                ? availableSectors.find((sector) => sector.id.toString() === form.data.sector_id)?.name
+                                                : form.data.area_id ? "Selecione um setor (opcional)" : "Selecione uma área primeiro"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar setor..." />
+                                            <CommandList>
+                                                <CommandEmpty>Nenhum setor encontrado.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {availableSectors.map((sector) => (
+                                                        <CommandItem
+                                                            key={sector.id}
+                                                            value={sector.id.toString()}
+                                                            onSelect={(value) => {
+                                                                form.setData('sector_id', value);
+                                                                setOpenSector(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    form.data.sector_id === sector.id.toString() ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {sector.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <InputError message={form.errors.sector_id} />
+                            </div>
+
+                            {/* Fabricante */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="manufacturer">Fabricante</Label>
+                                <Input
+                                    id="manufacturer"
+                                    value={form.data.manufacturer}
+                                    onChange={(e) => form.setData('manufacturer', e.target.value)}
+                                    placeholder="Fabricante do equipamento"
+                                />
+                                <InputError message={form.errors.manufacturer} />
                             </div>
                         </div>
+                    </div>
 
-                        <div className="flex items-center gap-4">
-                            <Button type="submit" disabled={processing}>
-                                Salvar
-                            </Button>
+                    {/* Descrição (Ocupa toda a largura) */}
+                    <div className="grid gap-2">
+                        <Label htmlFor="description">Descrição</Label>
+                        <Textarea
+                            id="description"
+                            value={form.data.description}
+                            onChange={(e) => form.setData('description', e.target.value)}
+                            placeholder="Descrição da máquina"
+                            className="min-h-[100px]"
+                        />
+                        <InputError message={form.errors.description} />
+                    </div>
+                </form>
 
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={processing}
-                                onClick={() => window.history.back()}
-                            >
-                                Cancelar
-                            </Button>
-                        </div>
-                    </form>
-                </div>
-
-                <div className="mt-12">
+                <div className="mt-12 w-full">
                     <DeleteEquipment equipmentId={equipment.id} equipmentTag={equipment.tag} />
                 </div>
-            </CadastroLayout>
+            </EditLayout>
 
             {showCamera && (
                 <CameraCapture

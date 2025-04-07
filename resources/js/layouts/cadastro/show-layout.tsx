@@ -65,24 +65,10 @@ export default function ShowLayout({
                     </div>
                     {/* Buttons */}
                     <div className="flex gap-2 justify-end flex-row-reverse md:flex-row">
-                        <div className="hidden">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="icon">
-                                        <EllipsisVertical className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem asChild>
-                                        <Link href={editRoute}>Editar</Link>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
                         <Button variant="outline" asChild>
                             <Link href={backRoute}>Voltar</Link>
                         </Button>
-                        <Button className="inline-flex" asChild>
+                        <Button asChild>
                             <Link href={editRoute}>Editar</Link>
                         </Button>
                     </div>

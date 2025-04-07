@@ -9,8 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from "sonner";
 
 import AppLayout from '@/layouts/app-layout';
-import CadastroLayout from '@/layouts/cadastro/layout';
-import HeadingSmall from '@/components/heading-small';
+import EditLayout from '@/layouts/cadastro/edit-layout';
 import InputError from '@/components/input-error';
 import { Textarea } from '@/components/ui/textarea';
 import React from 'react';
@@ -51,8 +50,7 @@ export default function Edit({ equipmentType }: Props) {
         description: equipmentType.description || '',
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSave = () => {
         put(route('cadastro.tipos-equipamento.update', equipmentType.id), {
             onError: (errors) => {
                 toast.error("Erro ao atualizar tipo de equipamento", {
@@ -66,62 +64,49 @@ export default function Edit({ equipmentType }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Editar Tipo de Equipamento" />
 
-            <CadastroLayout>
-                <div className="space-y-6 max-w-2xl">
-                    <div className="flex justify-between items-center">
-                        <HeadingSmall 
-                            title="Editar Tipo de Equipamento" 
-                            description="Edite as informações do tipo de equipamento" 
-                        />
+            <EditLayout
+                title="Editar Tipo de Equipamento"
+                subtitle="Edite as informações do tipo de equipamento"
+                breadcrumbs={breadcrumbs}
+                backRoute={route('cadastro.tipos-equipamento')}
+                onSave={handleSave}
+                isSaving={processing}
+            >
+                <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6 max-w-2xl">
+                    <div className="grid gap-6">
+                        <div className="grid gap-2">
+                            <Label htmlFor="name" className="flex items-center gap-1">
+                                Nome
+                                <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                                id="name"
+                                type="text"
+                                value={data.name}
+                                onChange={e => setData('name', e.target.value)}
+                                required
+                                className={cn(errors.name && "border-red-500")}
+                            />
+                            {errors.name && (
+                                <p className="text-sm text-red-500">{errors.name}</p>
+                            )}
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="description">Descrição</Label>
+                            <Textarea
+                                id="description"
+                                value={data.description}
+                                onChange={e => setData('description', e.target.value)}
+                                className={cn(errors.description && "border-red-500")}
+                            />
+                            {errors.description && (
+                                <p className="text-sm text-red-500">{errors.description}</p>
+                            )}
+                        </div>
                     </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name" className="flex items-center gap-1">
-                                    Nome
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    value={data.name}
-                                    onChange={e => setData('name', e.target.value)}
-                                    required
-                                    className={cn(errors.name && "border-red-500")}
-                                />
-                                {errors.name && (
-                                    <p className="text-sm text-red-500">{errors.name}</p>
-                                )}
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="description">Descrição</Label>
-                                <Textarea
-                                    id="description"
-                                    value={data.description}
-                                    onChange={e => setData('description', e.target.value)}
-                                    className={cn(errors.description && "border-red-500")}
-                                />
-                                {errors.description && (
-                                    <p className="text-sm text-red-500">{errors.description}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex justify-start gap-4">
-                            <Button type="submit" disabled={processing}>
-                                {processing ? 'Salvando...' : 'Salvar'}
-                            </Button>
-                            <Button variant="outline" asChild>
-                                <Link href={route('cadastro.tipos-equipamento')}>
-                                    Cancelar
-                                </Link>
-                            </Button>
-                        </div>
-                    </form>
-                </div>
-            </CadastroLayout>
+                </form>
+            </EditLayout>
         </AppLayout>
     );
 } 

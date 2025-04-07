@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Camera, MessageSquare, Calendar, FileText } from 'lucide-react';
 import { EmptySection1 } from "@/components/ui/empty-section-1"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
 
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/cadastro/show-layout';
@@ -40,15 +42,15 @@ export default function Show({ equipment }: Props) {
             content: (
                 <Card>
                     <CardContent>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-center">
                             {/* Coluna 1: Foto */}
-                            <div className="flex flex-col h-full">
-                                <div className="flex-1 relative rounded-lg overflow-hidden bg-muted min-h-[238px] max-h-[238px]">
+                            <div className="flex flex-col h-full justify-center">
+                                <div className={`flex-1 relative rounded-lg overflow-hidden ${!equipment.photo_path ? 'bg-muted' : ''} min-h-[238px] max-h-[238px]`}>
                                     {equipment.photo_path ? (
                                         <img
                                             src={`/storage/${equipment.photo_path}`}
                                             alt={`Foto do equipamento ${equipment.tag}`}
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-contain scale-120"
                                         />
                                     ) : (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
@@ -59,85 +61,81 @@ export default function Show({ equipment }: Props) {
                                 </div>
                             </div>
 
-                            {/* Coluna 2: Informações Básicas */}
-                            <div className="space-y-4">
-                                <div className="grid gap-2">
-                                    <Label>TAG</Label>
-                                    <div className="text-base text-muted-foreground">{equipment.tag}</div>
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label>Tipo</Label>
-                                    <div className="text-base">
-                                        {equipment.equipment_type ? (
-                                            <Link
-                                                href={route('cadastro.tipos-equipamento.show', equipment.equipment_type.id)}
-                                                className="text-primary hover:underline"
-                                            >
-                                                {equipment.equipment_type.name}
-                                            </Link>
-                                        ) : '-'}
+                            {/* Grid de Informações 2x3 */}
+                            <div className="lg:col-span-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* Linha 1 */}
+                                    <div className="space-y-4">
+                                        <div className="grid gap-2">
+                                            <Label>Número Serial</Label>
+                                            <div className="text-base text-muted-foreground">{equipment.serial_number ?? '-'}</div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="grid gap-2">
-                                    <Label>Número Serial</Label>
-                                    <div className="text-base text-muted-foreground">{equipment.serial_number ?? '-'}</div>
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label>Fabricante</Label>
-                                    <div className="text-base text-muted-foreground">{equipment.manufacturer ?? '-'}</div>
-                                </div>
-                            </div>
-
-                            {/* Coluna 3: Localização e Ano */}
-                            <div className="space-y-4">
-                                <div className="grid gap-2">
-                                    <Label>Planta</Label>
-                                    <div className="text-base">
-                                        {plantToShow ? (
-                                            <Link
-                                                href={route('cadastro.plantas.show', plantToShow.id)}
-                                                className="text-primary hover:underline"
-                                            >
-                                                {plantToShow.name}
-                                            </Link>
-                                        ) : '-'}
+                                    <div className="space-y-4">
+                                        <div className="grid gap-2">
+                                            <Label>Fabricante</Label>
+                                            <div className="text-base text-muted-foreground">{equipment.manufacturer ?? '-'}</div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="grid gap-2">
-                                    <Label>Área</Label>
-                                    <div className="text-base">
-                                        {equipment.area ? (
-                                            <Link
-                                                href={route('cadastro.areas.show', equipment.area.id)}
-                                                className="text-primary hover:underline"
-                                            >
-                                                {equipment.area.name}
-                                            </Link>
-                                        ) : '-'}
+                                    <div className="space-y-4">
+                                        <div className="grid gap-2">
+                                            <Label>Ano de Fabricação</Label>
+                                            <div className="text-base text-muted-foreground">{equipment.manufacturing_year ?? '-'}</div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="grid gap-2">
-                                    <Label>Setor</Label>
-                                    <div className="text-base">
-                                        {equipment.sector ? (
-                                            <Link
-                                                href={route('cadastro.setores.show', equipment.sector.id)}
-                                                className="text-primary hover:underline"
-                                            >
-                                                {equipment.sector.name}
-                                            </Link>
-                                        ) : '-'}
+                                    <Separator className="col-span-3 my-4" />
+
+                                    {/* Linha 2 */}
+                                    <div className="space-y-4">
+                                        <div className="grid gap-2">
+                                            <Label>Planta</Label>
+                                            <div className="text-base">
+                                                {plantToShow ? (
+                                                    <Link
+                                                        href={route('cadastro.plantas.show', plantToShow.id)}
+                                                        className="text-primary hover:underline"
+                                                    >
+                                                        {plantToShow.name}
+                                                    </Link>
+                                                ) : '-'}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="grid gap-2">
-                                    <Label>Ano de Fabricação</Label>
-                                    <div className="text-base text-muted-foreground">{equipment.manufacturing_year ?? '-'}</div>
+                                    <div className="space-y-4">
+                                        <div className="grid gap-2">
+                                            <Label>Área</Label>
+                                            <div className="text-base">
+                                                {equipment.area ? (
+                                                    <Link
+                                                        href={route('cadastro.areas.show', equipment.area.id)}
+                                                        className="text-primary hover:underline"
+                                                    >
+                                                        {equipment.area.name}
+                                                    </Link>
+                                                ) : '-'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="grid gap-2">
+                                            <Label>Setor</Label>
+                                            <div className="text-base">
+                                                {equipment.sector ? (
+                                                    <Link
+                                                        href={route('cadastro.setores.show', equipment.sector.id)}
+                                                        className="text-primary hover:underline"
+                                                    >
+                                                        {equipment.sector.name}
+                                                    </Link>
+                                                ) : '-'}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -226,6 +224,7 @@ export default function Show({ equipment }: Props) {
                 breadcrumbs={breadcrumbs}
                 editRoute={route('cadastro.equipamentos.edit', equipment.id)}
                 backRoute={route('cadastro.equipamentos')}
+                showEditButton={true}
                 tabs={tabs}
             />
         </AppLayout>
