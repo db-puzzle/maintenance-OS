@@ -8,6 +8,7 @@ use App\Http\Controllers\Cadastro\SectorController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\Cadastro\EquipmentTypeController;
 use App\Http\Controllers\EquipmentImportExportController;
+use App\Http\Controllers\ShiftController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('equipamentos')->name('equipamentos.')->group(function () {
@@ -72,4 +73,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('cadastro/tipos-equipamento/{equipmentType}', [EquipmentTypeController::class, 'update'])->name('cadastro.tipos-equipamento.update');
     Route::delete('cadastro/tipos-equipamento/{equipmentType}', [EquipmentTypeController::class, 'destroy'])->name('cadastro.tipos-equipamento.destroy');
     Route::get('cadastro/tipos-equipamento/{equipmentType}/check-dependencies', [EquipmentTypeController::class, 'checkDependencies'])->name('cadastro.tipos-equipamento.check-dependencies');
+
+    Route::get('cadastro/turnos', [ShiftController::class, 'index'])->name('cadastro.turnos');
+    Route::get('cadastro/turnos/create', [ShiftController::class, 'create'])->name('cadastro.turnos.create');
+    Route::post('cadastro/turnos', [ShiftController::class, 'store'])->name('cadastro.turnos.store');
+    Route::get('cadastro/turnos/{shift}', [ShiftController::class, 'show'])->name('cadastro.turnos.show');
+    Route::get('cadastro/turnos/{shift}/edit', [ShiftController::class, 'edit'])->name('cadastro.turnos.edit');
+    Route::put('cadastro/turnos/{shift}', [ShiftController::class, 'update'])->name('cadastro.turnos.update');
+    Route::delete('cadastro/turnos/{shift}', [ShiftController::class, 'destroy'])->name('cadastro.turnos.destroy');
+    Route::get('cadastro/turnos/{shift}/check-dependencies', [ShiftController::class, 'checkDependencies'])->name('cadastro.turnos.check-dependencies');
 }); 

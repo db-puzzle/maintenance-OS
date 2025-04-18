@@ -20,6 +20,10 @@ return new class extends Migration
             $table->foreignId('area_id')->nullable()->constrained()->onDelete('restrict');
             $table->foreignId('sector_id')->nullable()->constrained()->onDelete('restrict');
             $table->string('photo_path')->nullable();
+            $table->float('accumulated_hours')->default(0);
+            $table->timestamp('last_hours_update')->nullable();
+            $table->enum('hours_source', ['Manual', 'Shift', 'IoT_Integration', '3rd_Party_API'])->default('Manual');
+            $table->foreignId('shift_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });
     }

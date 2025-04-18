@@ -78,4 +78,5 @@ export interface NavItem {
     href: string;
     icon?: React.ComponentType<{ className?: string }> | (() => ReactNode);
     activePattern?: RegExp;
+    items?: Omit<NavItem, 'icon' | 'items'>[];
 } 
