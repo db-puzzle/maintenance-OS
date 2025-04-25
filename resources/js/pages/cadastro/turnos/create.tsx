@@ -758,11 +758,25 @@ export default function Create({}: CreateProps) {
                                 <div className="relative">
                                     {/* Visualização em timeline */}
                                     <div className={`transition-opacity duration-300 ${viewMode === 'timeline' ? 'opacity-100' : 'opacity-0 absolute inset-0 pointer-events-none'}`}>
-                                        <ShiftCalendarView schedules={data.schedules} />
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle>Visualização dos Turnos</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <ShiftCalendarView schedules={data.schedules} />
+                                            </CardContent>
+                                        </Card>
                                     </div>
                                     {/* Visualização em tabela */}
                                     <div className={`transition-opacity duration-300 ${viewMode === 'table' ? 'opacity-100' : 'opacity-0 absolute inset-0 pointer-events-none'}`}>
-                                        <ShiftTableView schedules={data.schedules} />
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle>Visão Geral Semanal</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <ShiftTableView schedules={data.schedules} />
+                                            </CardContent>
+                                        </Card>
                                     </div>
                                 </div>
                             </div>

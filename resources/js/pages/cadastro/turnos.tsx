@@ -134,6 +134,30 @@ export default function Index({ shifts, filters = {
         return () => clearTimeout(searchTimeout);
     }, [search, sort, direction, perPage]);
 
+    useEffect(() => {
+        const handleScroll = () => {
+            expandedShifts.forEach(shiftId => {
+                const element = document.getElementById(`shift-${shiftId}`);
+                if (element) {
+                    const rect = element.getBoundingClientRect();
+                    if (rect.top < 0) {
+                        const offset = 20;
+                        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+                        const offsetPosition = elementPosition - offset;
+
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            });
+        };
+
+        const timeoutId = setTimeout(handleScroll, 100);
+        return () => clearTimeout(timeoutId);
+    }, [expandedShifts]);
+
     const handleSort = (columnId: string) => {
         if (sort === columnId) {
             setDirection(direction === 'asc' ? 'desc' : 'asc');
@@ -210,9 +234,9 @@ export default function Index({ shifts, filters = {
                                 <AccordionItem 
                                     key={shift.id} 
                                     value={`shift-${shift.id}`}
-                                    className="border rounded-lg mb-4"
+                                    className="border rounded-lg mb-4 transition-all duration-200 ease-in-out"
                                 >
-                                    <div className="flex items-center justify-between px-4 py-3">
+                                    <AccordionTrigger className="flex items-center justify-between px-4 py-3 hover:no-underline data-[state=open]:bg-muted transition-colors duration-200">
                                         <div className="flex items-center space-x-4">
                                             <div className="text-left">
                                                 <h3 className="font-semibold text-lg">{shift.name}</h3>
@@ -228,55 +252,30 @@ export default function Index({ shifts, filters = {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center space-x-2">
-                                            <Link href={route('cadastro.turnos.edit', shift.id)}>
-                                                <Button variant="ghost" size="icon">
-                                                    <Pencil className="w-4 h-4" />
-                                                </Button>
-                                            </Link>
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon">
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Excluir turno</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            Tem certeza que deseja excluir este turno? Esta ação não pode ser desfeita.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDelete(shift.id)}>
-                                                            Excluir
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                            <AccordionTrigger 
-                                                className="ml-2"
-                                                onClick={() => toggleShiftExpansion(shift.id)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <AccordionContent className="px-4 py-4">
+                                    </AccordionTrigger>
+                                    <AccordionContent className="px-4 py-4 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
                                         <Tabs defaultValue="calendar" className="w-full">
-                                            <TabsList className="grid grid-cols-3 w-[400px] mb-4">
-                                                <TabsTrigger value="calendar" className="flex items-center gap-2">
-                                                    <Calendar className="h-4 w-4" />
-                                                    Calendário
-                                                </TabsTrigger>
-                                                <TabsTrigger value="table" className="flex items-center gap-2">
-                                                    <List className="h-4 w-4" />
-                                                    Tabela
-                                                </TabsTrigger>
-                                                <TabsTrigger value="equipment" className="flex items-center gap-2">
-                                                    <Settings className="h-4 w-4" />
-                                                    Equipamentos
-                                                </TabsTrigger>
-                                            </TabsList>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <TabsList className="grid grid-cols-3 w-[400px]">
+                                                    <TabsTrigger value="calendar" className="flex items-center gap-2">
+                                                        <Calendar className="h-4 w-4" />
+                                                        Calendário
+                                                    </TabsTrigger>
+                                                    <TabsTrigger value="table" className="flex items-center gap-2">
+                                                        <List className="h-4 w-4" />
+                                                        Tabela
+                                                    </TabsTrigger>
+                                                    <TabsTrigger value="equipment" className="flex items-center gap-2">
+                                                        <Settings className="h-4 w-4" />
+                                                        Equipamentos
+                                                    </TabsTrigger>
+                                                </TabsList>
+                                                <Link href={route('cadastro.turnos.edit', shift.id)}>
+                                                    <Button variant="outline" size="sm">
+                                                        Editar
+                                                    </Button>
+                                                </Link>
+                                            </div>
                                             <TabsContent value="calendar">
                                                 <ShiftCalendarView schedules={transformedSchedules} />
                                             </TabsContent>
@@ -284,7 +283,7 @@ export default function Index({ shifts, filters = {
                                                 <ShiftTableView schedules={transformedSchedules} />
                                             </TabsContent>
                                             <TabsContent value="equipment">
-                                                <div className="p-4 border rounded-lg">
+                                                <div className="p-4">
                                                     <h4 className="font-medium mb-4">Equipamentos Associados</h4>
                                                     {shift.equipment_count && shift.equipment_count > 0 ? (
                                                         <p>Lista de equipamentos aqui...</p>

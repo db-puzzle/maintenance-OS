@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface Break {
@@ -176,203 +175,198 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules }) => {
     };
 
     return (
-        <Card className="mt-6">
-            <CardHeader>
-                <CardTitle>Visualização dos Turnos</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="flex flex-col">
-                    {/* Cabeçalho com os dias da semana */}
-                    <div className="flex">
-                        <div className="w-20 flex-shrink-0 h-10 flex items-center justify-center font-medium border-r">
-                        </div>
-                        {weekdays.map((day) => {
-                            const schedule = schedules.find(s => s.weekday === day.key);
-                            if (!schedule) return null;
+        <div className="mt-6">
+            <div className="flex flex-col">
+                {/* Cabeçalho com os dias da semana */}
+                <div className="flex">
+                    <div className="w-20 flex-shrink-0 h-10 flex items-center justify-center font-medium border-r">
+                    </div>
+                    {weekdays.map((day) => {
+                        const schedule = schedules.find(s => s.weekday === day.key);
+                        if (!schedule) return null;
 
-                            const hasActiveShifts = schedule.shifts.some(shift => shift.active);
+                        const hasActiveShifts = schedule.shifts.some(shift => shift.active);
 
-                            return (
-                                <div
-                                    key={day.key}
-                                    className="flex-1 h-10 flex flex-col items-center justify-center border-b border-r px-2"
-                                >
-                                    <span className="font-medium text-sm">{day.label}</span>
-                                    <span className={cn(
-                                        "text-xs",
-                                        hasActiveShifts ? "text-green-600" : "text-red-600"
-                                    )}>
-                                        {hasActiveShifts ? "Ativo" : "Inativo"}
-                                    </span>
-                                </div>
-                            );
-                        })}
+                        return (
+                            <div
+                                key={day.key}
+                                className="flex-1 h-10 flex flex-col items-center justify-center border-b border-r px-2"
+                            >
+                                <span className="font-medium text-sm">{day.label}</span>
+                                <span className={cn(
+                                    "text-xs",
+                                    hasActiveShifts ? "text-green-600" : "text-red-600"
+                                )}>
+                                    {hasActiveShifts ? "Ativo" : "Inativo"}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Grid principal */}
+                <div className="flex">
+                    {/* Coluna de horas */}
+                    <div className="w-20 flex-shrink-0">
+                        {timeMarkers.map(({ hour, isNextDay }, index) => (
+                            <div
+                                key={index}
+                                className="h-12 flex items-center justify-center border-r text-xs text-gray-500 relative"
+                            >
+                                <span className="absolute -top-2.5">
+                                    {hour}h
+                                    {isNextDay && <span className="text-[10px] text-muted-foreground"> (dia seg.)</span>}
+                                </span>
+                            </div>
+                        ))}
                     </div>
 
-                    {/* Grid principal */}
-                    <div className="flex">
-                        {/* Coluna de horas */}
-                        <div className="w-20 flex-shrink-0">
-                            {timeMarkers.map(({ hour, isNextDay }, index) => (
-                                <div
-                                    key={index}
-                                    className="h-12 flex items-center justify-center border-r text-xs text-gray-500 relative"
-                                >
-                                    <span className="absolute -top-2.5">
-                                        {hour}h
-                                        {isNextDay && <span className="text-[10px] text-muted-foreground"> (dia seg.)</span>}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
+                    {/* Grid de turnos */}
+                    <div className="flex-1 grid grid-cols-7">
+                        {weekdays.map((day, dayIndex) => {
+                            const dayKey = day.key;
+                            const nextDayIndex = (dayIndex + 1) % 7;
+                            const nextDay = weekdays[nextDayIndex].key;
 
-                        {/* Grid de turnos */}
-                        <div className="flex-1 grid grid-cols-7">
-                            {weekdays.map((day, dayIndex) => {
-                                const dayKey = day.key;
-                                const nextDayIndex = (dayIndex + 1) % 7;
-                                const nextDay = weekdays[nextDayIndex].key;
+                            return (
+                                <div key={dayKey} className="relative">
+                                    {/* Renderiza as linhas da grade */}
+                                    {timeMarkers.map((_, index) => (
+                                        <div
+                                            key={index}
+                                            className="h-12 border-b border-r relative"
+                                        />
+                                    ))}
 
-                                return (
-                                    <div key={dayKey} className="relative">
-                                        {/* Renderiza as linhas da grade */}
-                                        {timeMarkers.map((_, index) => (
+                                    {/* Renderiza os turnos do dia atual */}
+                                    {schedules.find(s => s.weekday === dayKey)?.shifts.map((shift, index) => {
+                                        if (!shift.active) return null;
+                                        
+                                        const startMinutes = timeToMinutes(shift.start_time);
+                                        const endMinutes = timeToMinutes(shift.end_time);
+                                        
+                                        // Se o turno termina no dia seguinte
+                                        const isOvernight = endMinutes < startMinutes;
+                                        const currentDayEndMinutes = isOvernight ? 24 * 60 : endMinutes;
+                                        
+                                        // Calcula a posição relativa ao início da grade
+                                        const relativeStartMinutes = startMinutes - (earliestHour * 60);
+                                        const relativeEndMinutes = currentDayEndMinutes - (earliestHour * 60);
+                                        
+                                        return (
                                             <div
-                                                key={index}
-                                                className="h-12 border-b border-r relative"
-                                            />
-                                        ))}
+                                                key={`${index}-current`}
+                                                className="absolute left-0.5 right-0.5 bg-blue-500/50 rounded-sm"
+                                                style={{
+                                                    top: `${(relativeStartMinutes * 0.8) + 1}px`,
+                                                    height: `${(relativeEndMinutes - relativeStartMinutes) * 0.8 - 2}px`
+                                                }}
+                                            >
+                                                {/* Renderiza os intervalos do dia atual */}
+                                                {shift.breaks.map((breakTime, breakIndex) => {
+                                                    const breakStart = timeToMinutes(breakTime.start_time);
+                                                    const breakEnd = timeToMinutes(breakTime.end_time);
+                                                    const isBreakOvernight = breakEnd < breakStart;
+                                                    const currentDayBreakEnd = isBreakOvernight ? 24 * 60 : breakEnd;
+                                                    
+                                                    // Calcula a posição relativa ao início da grade
+                                                    const relativeBreakStart = breakStart - (earliestHour * 60);
+                                                    const relativeBreakEnd = currentDayBreakEnd - (earliestHour * 60);
+                                                    
+                                                    // Verifica se o intervalo está dentro do turno no dia atual
+                                                    if (breakStart >= startMinutes && breakStart < currentDayEndMinutes) {
+                                                        return (
+                                                            <div
+                                                                key={breakIndex}
+                                                                className="absolute left-0 right-0 bg-red-500/50 rounded-sm"
+                                                                style={{
+                                                                    top: `${(relativeBreakStart - relativeStartMinutes) * 0.8}px`,
+                                                                    height: `${(Math.min(relativeBreakEnd, relativeEndMinutes) - relativeBreakStart) * 0.8}px`
+                                                                }}
+                                                            />
+                                                        );
+                                                    }
+                                                    return null;
+                                                })}
+                                            </div>
+                                        );
+                                    })}
 
-                                        {/* Renderiza os turnos do dia atual */}
-                                        {schedules.find(s => s.weekday === dayKey)?.shifts.map((shift, index) => {
+                                    {/* Renderiza turnos que continuam do dia anterior */}
+                                    {schedules.map((schedule, scheduleIndex) => {
+                                        if (schedule.weekday !== weekdays[(dayIndex + 6) % 7].key) return null;
+                                        
+                                        return schedule.shifts.map((shift, shiftIndex) => {
                                             if (!shift.active) return null;
                                             
                                             const startMinutes = timeToMinutes(shift.start_time);
                                             const endMinutes = timeToMinutes(shift.end_time);
                                             
-                                            // Se o turno termina no dia seguinte
-                                            const isOvernight = endMinutes < startMinutes;
-                                            const currentDayEndMinutes = isOvernight ? 24 * 60 : endMinutes;
-                                            
-                                            // Calcula a posição relativa ao início da grade
-                                            const relativeStartMinutes = startMinutes - (earliestHour * 60);
-                                            const relativeEndMinutes = currentDayEndMinutes - (earliestHour * 60);
-                                            
-                                            return (
-                                                <div
-                                                    key={`${index}-current`}
-                                                    className="absolute left-0.5 right-0.5 bg-blue-500/50 rounded-sm"
-                                                    style={{
-                                                        top: `${(relativeStartMinutes * 0.8) + 1}px`,
-                                                        height: `${(relativeEndMinutes - relativeStartMinutes) * 0.8 - 2}px`
-                                                    }}
-                                                >
-                                                    {/* Renderiza os intervalos do dia atual */}
-                                                    {shift.breaks.map((breakTime, breakIndex) => {
-                                                        const breakStart = timeToMinutes(breakTime.start_time);
-                                                        const breakEnd = timeToMinutes(breakTime.end_time);
-                                                        const isBreakOvernight = breakEnd < breakStart;
-                                                        const currentDayBreakEnd = isBreakOvernight ? 24 * 60 : breakEnd;
-                                                        
-                                                        // Calcula a posição relativa ao início da grade
-                                                        const relativeBreakStart = breakStart - (earliestHour * 60);
-                                                        const relativeBreakEnd = currentDayBreakEnd - (earliestHour * 60);
-                                                        
-                                                        // Verifica se o intervalo está dentro do turno no dia atual
-                                                        if (breakStart >= startMinutes && breakStart < currentDayEndMinutes) {
-                                                            return (
-                                                                <div
-                                                                    key={breakIndex}
-                                                                    className="absolute left-0 right-0 bg-red-500/50 rounded-sm"
-                                                                    style={{
-                                                                        top: `${(relativeBreakStart - relativeStartMinutes) * 0.8}px`,
-                                                                        height: `${(Math.min(relativeBreakEnd, relativeEndMinutes) - relativeBreakStart) * 0.8}px`
-                                                                    }}
-                                                                />
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })}
-                                                </div>
-                                            );
-                                        })}
-
-                                        {/* Renderiza turnos que continuam do dia anterior */}
-                                        {schedules.map((schedule, scheduleIndex) => {
-                                            if (schedule.weekday !== weekdays[(dayIndex + 6) % 7].key) return null;
-                                            
-                                            return schedule.shifts.map((shift, shiftIndex) => {
-                                                if (!shift.active) return null;
+                                            // Verifica se é um turno noturno que continua no dia atual
+                                            if (endMinutes < startMinutes) {
+                                                const relativeEndMinutes = endMinutes - (earliestHour * 60);
                                                 
-                                                const startMinutes = timeToMinutes(shift.start_time);
-                                                const endMinutes = timeToMinutes(shift.end_time);
-                                                
-                                                // Verifica se é um turno noturno que continua no dia atual
-                                                if (endMinutes < startMinutes) {
-                                                    const relativeEndMinutes = endMinutes - (earliestHour * 60);
-                                                    
-                                                    return (
-                                                        <div
-                                                            key={`prev-${scheduleIndex}-${shiftIndex}`}
-                                                            className="absolute left-0.5 right-0.5 bg-blue-500/50 rounded-sm"
-                                                            style={{
-                                                                top: '0px',
-                                                                height: `${relativeEndMinutes * 0.8}px`
-                                                            }}
-                                                        >
-                                                            {/* Renderiza intervalos que continuam do dia anterior */}
-                                                            {shift.breaks.map((breakTime, breakIndex) => {
-                                                                const breakStart = timeToMinutes(breakTime.start_time);
-                                                                const breakEnd = timeToMinutes(breakTime.end_time);
-                                                                
-                                                                // Calcula a posição relativa ao início da grade
-                                                                const relativeBreakStart = breakStart - (earliestHour * 60);
-                                                                const relativeBreakEnd = breakEnd - (earliestHour * 60);
-                                                                
-                                                                // Verifica se é um intervalo que atravessa a meia-noite
-                                                                if (breakEnd < breakStart) {
-                                                                    return (
-                                                                        <div
-                                                                            key={`prev-break-${breakIndex}`}
-                                                                            className="absolute left-0 right-0 bg-red-500/50 rounded-sm"
-                                                                            style={{
-                                                                                top: '0px',
-                                                                                height: `${Math.min(relativeBreakEnd, relativeEndMinutes) * 0.8}px`
-                                                                            }}
-                                                                        />
-                                                                    );
-                                                                }
-                                                                
-                                                                // Verifica se é um intervalo que começa após a meia-noite, mas dentro do turno
-                                                                if (breakStart < endMinutes && breakEnd <= endMinutes) {
-                                                                    return (
-                                                                        <div
-                                                                            key={`current-break-${breakIndex}`}
-                                                                            className="absolute left-0 right-0 bg-red-500/50 rounded-sm"
-                                                                            style={{
-                                                                                top: `${relativeBreakStart * 0.8}px`,
-                                                                                height: `${(relativeBreakEnd - relativeBreakStart) * 0.8}px`
-                                                                            }}
-                                                                        />
-                                                                    );
-                                                                }
-                                                                
-                                                                return null;
-                                                            })}
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            });
-                                        })}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                                return (
+                                                    <div
+                                                        key={`prev-${scheduleIndex}-${shiftIndex}`}
+                                                        className="absolute left-0.5 right-0.5 bg-blue-500/50 rounded-sm"
+                                                        style={{
+                                                            top: '0px',
+                                                            height: `${relativeEndMinutes * 0.8}px`
+                                                        }}
+                                                    >
+                                                        {/* Renderiza intervalos que continuam do dia anterior */}
+                                                        {shift.breaks.map((breakTime, breakIndex) => {
+                                                            const breakStart = timeToMinutes(breakTime.start_time);
+                                                            const breakEnd = timeToMinutes(breakTime.end_time);
+                                                            
+                                                            // Calcula a posição relativa ao início da grade
+                                                            const relativeBreakStart = breakStart - (earliestHour * 60);
+                                                            const relativeBreakEnd = breakEnd - (earliestHour * 60);
+                                                            
+                                                            // Verifica se é um intervalo que atravessa a meia-noite
+                                                            if (breakEnd < breakStart) {
+                                                                return (
+                                                                    <div
+                                                                        key={`prev-break-${breakIndex}`}
+                                                                        className="absolute left-0 right-0 bg-red-500/50 rounded-sm"
+                                                                        style={{
+                                                                            top: '0px',
+                                                                            height: `${Math.min(relativeBreakEnd, relativeEndMinutes) * 0.8}px`
+                                                                        }}
+                                                                    />
+                                                                );
+                                                            }
+                                                            
+                                                            // Verifica se é um intervalo que começa após a meia-noite, mas dentro do turno
+                                                            if (breakStart < endMinutes && breakEnd <= endMinutes) {
+                                                                return (
+                                                                    <div
+                                                                        key={`current-break-${breakIndex}`}
+                                                                        className="absolute left-0 right-0 bg-red-500/50 rounded-sm"
+                                                                        style={{
+                                                                            top: `${relativeBreakStart * 0.8}px`,
+                                                                            height: `${(relativeBreakEnd - relativeBreakStart) * 0.8}px`
+                                                                        }}
+                                                                    />
+                                                                );
+                                                            }
+                                                            
+                                                            return null;
+                                                        })}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        });
+                                    })}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 };
 
