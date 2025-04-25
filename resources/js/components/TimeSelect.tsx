@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 export interface TimeSelectProps {
     value: string; // formato "HH:MM"
@@ -64,7 +65,7 @@ const TimeSelect: React.FC<TimeSelectProps> = ({ value, onChange, label }) => {
     };
     
     return (
-        <div className="space-y-2">
+        <div className="flex">
             {label && <Label>{label}</Label>}
             <div className="flex">
                 {/* Seletor de hora */}
