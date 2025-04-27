@@ -26,6 +26,7 @@ import CameraCapture from '@/components/camera-capture';
 import { cn } from '@/lib/utils';
 import SmartInput from "@/components/smart-input";
 import { SmartPopover } from "@/components/ui/smart-popover";
+import ItemSelect from '@/components/ItemSelect';
 
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/cadastro/create-layout';
@@ -206,20 +207,17 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
 
                             {/* Tipo de Equipamento */}
                             <div className="grid gap-2">
-                                <Label htmlFor="equipment_type">
-                                    Tipo de Equipamento
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <SmartPopover
-                                    id="equipment_type"
-                                    value={data.equipment_type_id}
-                                    options={equipmentTypes}
-                                    onChange={(value) => setData('equipment_type_id', value)}
-                                    onClearError={() => clearErrors('equipment_type_id')}
-                                    error={errors.equipment_type_id}
+                                <ItemSelect
+                                    label="Tipo de Equipamento"
+                                    items={equipmentTypes}
+                                    value={data.equipment_type_id || ''}
+                                    onValueChange={(value) => {
+                                        setData('equipment_type_id', value);
+                                        clearErrors('equipment_type_id');
+                                    }}
+                                    createRoute={route('cadastro.tipos-equipamento.create')}
                                     placeholder="Selecione um tipo de equipamento"
-                                    searchPlaceholder="Buscar tipo de equipamento..."
-                                    emptyMessage="Nenhum tipo de equipamento encontrado."
+                                    error={errors.equipment_type_id}
                                     required
                                 />
                             </div>
@@ -256,69 +254,56 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                         <div className="space-y-6">
                             {/* Planta */}
                             <div className="grid gap-2">
-                                <Label htmlFor="plant">
-                                    Planta
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <SmartPopover
-                                    id="plant"
-                                    value={data.plant_id}
-                                    options={plants}
-                                    onChange={(value) => {
+                                <ItemSelect
+                                    label="Planta"
+                                    items={plants}
+                                    value={data.plant_id || ''}
+                                    onValueChange={(value) => {
                                         setData('plant_id', value);
                                         setData('area_id', ''); // Limpa a área quando mudar a planta
                                         setData('sector_id', ''); // Limpa o setor quando mudar a planta
                                         clearErrors('plant_id');
                                     }}
-                                    error={errors.plant_id}
+                                    createRoute={route('cadastro.plantas.create')}
                                     placeholder="Selecione uma planta"
-                                    searchPlaceholder="Buscar planta..."
-                                    emptyMessage="Nenhuma planta encontrada."
+                                    error={errors.plant_id}
                                     required
                                 />
                             </div>
 
                             {/* Área */}
                             <div className="grid gap-2">
-                                <Label htmlFor="area">
-                                    Área
-                                </Label>
-                                <SmartPopover
-                                    id="area"
-                                    value={data.area_id}
-                                    options={availableAreas}
-                                    onChange={(value) => {
+                                <ItemSelect
+                                    label="Área"
+                                    items={availableAreas}
+                                    value={data.area_id || ''}
+                                    onValueChange={(value) => {
                                         setData('area_id', value);
                                         setData('sector_id', ''); // Limpa o setor quando mudar a área
                                         clearErrors('area_id');
                                     }}
+                                    createRoute={route('cadastro.areas.create')}
+                                    placeholder={data.plant_id ? "Selecione uma área (opcional)" : "Selecione uma planta primeiro"}
                                     error={errors.area_id}
-                                    placeholder="Selecione uma área (opcional)"
-                                    searchPlaceholder="Buscar área..."
-                                    emptyMessage="Nenhuma área encontrada."
                                     disabled={!data.plant_id}
                                 />
-                                <InputError message={errors.area_id} />
                             </div>
 
                             {/* Setor */}
                             <div className="grid gap-2">
-                                <Label htmlFor="sector">Setor</Label>
-                                <SmartPopover
-                                    id="sector"
-                                    value={data.sector_id}
-                                    options={availableSectors}
-                                    onChange={(value) => {
+                                <ItemSelect
+                                    label="Setor"
+                                    items={availableSectors}
+                                    value={data.sector_id || ''}
+                                    onValueChange={(value) => {
                                         setData('sector_id', value);
                                         clearErrors('sector_id');
                                     }}
-                                    error={errors.sector_id}
+                                    createRoute={route('cadastro.setores.create')}
                                     placeholder={data.area_id ? "Selecione um setor (opcional)" : "Selecione uma área primeiro"}
-                                    searchPlaceholder="Buscar setor..."
-                                    emptyMessage="Nenhum setor encontrado."
+                                    error={errors.sector_id}
                                     disabled={!data.area_id}
                                 />
-                                <InputError message={errors.sector_id} />
                             </div>
 
                             {/* Fabricante */}

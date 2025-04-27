@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InputError from '@/components/input-error';
 import HeadingSmall from '@/components/heading-small';
+import ItemSelect from '@/components/ItemSelect';
 
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/cadastro/layout';
@@ -94,64 +94,32 @@ export default function CreateSector({ plants }: Props) {
 
                             {/* Planta */}
                             <div className="grid gap-2">
-                                <Label htmlFor="plant" className="flex items-center gap-1">
-                                    Planta
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Select
-                                    value={selectedPlant?.toString()}
+                                <ItemSelect
+                                    label="Planta"
+                                    items={plants}
+                                    value={selectedPlant?.toString() || ''}
                                     onValueChange={(value) => {
                                         const plantId = parseInt(value);
                                         setSelectedPlant(plantId);
                                         setData('area_id', '');
                                     }}
-                                >
-                                    <SelectTrigger id="plant">
-                                        <SelectValue placeholder="Selecione uma planta" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {plants.map((plant) => (
-                                            <SelectItem key={plant.id} value={plant.id.toString()}>
-                                                {plant.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    createRoute={route('cadastro.plantas.create')}
+                                    placeholder="Selecione uma planta"
+                                />
                             </div>
 
                             {/* Área */}
                             <div className="grid gap-2">
-                                <Label htmlFor="area_id" className="flex items-center gap-1">
-                                    Área
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Select
-                                    value={data.area_id}
+                                <ItemSelect
+                                    label="Área"
+                                    items={availableAreas}
+                                    value={data.area_id || ''}
                                     onValueChange={(value) => setData('area_id', value)}
+                                    createRoute={route('cadastro.areas.create')}
+                                    placeholder={!selectedPlant ? "Selecione uma planta primeiro" : "Selecione uma área"}
+                                    error={errors.area_id}
                                     disabled={!selectedPlant}
-                                >
-                                    <SelectTrigger id="area_id">
-                                        <SelectValue placeholder={
-                                            !selectedPlant 
-                                                ? "Selecione uma planta primeiro" 
-                                                : "Selecione uma área"
-                                        } />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableAreas.length === 0 ? (
-                                            <div className="py-2 px-2 text-sm text-muted-foreground text-center">
-                                                Não existe nenhuma área nessa planta
-                                            </div>
-                                        ) : (
-                                            availableAreas.map((area) => (
-                                                <SelectItem key={area.id} value={area.id.toString()}>
-                                                    {area.name}
-                                                </SelectItem>
-                                            ))
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.area_id} />
+                                />
                             </div>
                         </div>
 

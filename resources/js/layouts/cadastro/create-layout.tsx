@@ -16,6 +16,7 @@ interface CreateLayoutProps {
     contentWidth?: 'full' | 'custom';
     contentClassName?: string;
     innerLayout?: boolean;
+    saveButtonText?: string;
 }
 
 export default function CreateLayout({
@@ -29,6 +30,7 @@ export default function CreateLayout({
     contentWidth = 'full',
     contentClassName,
     innerLayout = false,
+    saveButtonText = 'Criar',
 }: CreateLayoutProps) {
     const containerClass = contentWidth === 'custom' ? contentClassName : 'w-full';
     
@@ -56,7 +58,7 @@ export default function CreateLayout({
                             </Button>
                             {onSave && (
                                 <Button onClick={onSave} disabled={isSaving}>
-                                    Criar
+                                    {saveButtonText}
                                 </Button>
                             )}
                         </div>

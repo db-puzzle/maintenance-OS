@@ -3,18 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ShiftSchedule extends Model
 {
-    protected $fillable = ['shift_id', 'weekday', 'start_time', 'end_time'];
+    protected $fillable = [
+        'shift_id',
+        'weekday'
+    ];
 
-    public function shift()
+    public function shift(): BelongsTo
     {
         return $this->belongsTo(Shift::class);
     }
 
-    public function breaks()
+    public function shiftTimes(): HasMany
     {
-        return $this->hasMany(ShiftBreak::class);
+        return $this->hasMany(ShiftTime::class);
     }
 } 

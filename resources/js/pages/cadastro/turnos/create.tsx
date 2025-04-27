@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Copy, Save, Clock, Table, X } from 'lucide-react';
+import { Plus, Trash2, Copy, Save, Clock, Table, X, PlusCircle } from 'lucide-react';
 import ShiftTimeline from '@/components/ShiftTimeline';
 import ShiftTableView from '@/components/ShiftTableView';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,6 +19,7 @@ import ShiftCalendarView from '@/components/ShiftCalendarView';
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import ItemSelect from '@/components/ItemSelect';
 
 // Interface para representar um intervalo de descanso
 interface Break {
@@ -44,10 +45,16 @@ interface Schedule {
 interface FormData {
     [key: string]: any;
     name: string;
+    plant_id?: string;
     schedules: Schedule[];
 }
 
-interface CreateProps {}
+interface CreateProps {
+    plants: {
+        id: number;
+        name: string;
+    }[];
+}
 
 const weekdays = [
     { key: 'Monday', label: 'Segunda-feira' },
@@ -254,12 +261,13 @@ const isBreakOverlapping = (shift: Shift, currentBreak: Break, currentBreakIndex
 };
 
 // Componente principal da página de cadastro de turnos
-export default function Create({}: CreateProps) {
+const Create: React.FC<CreateProps> = ({ plants }) => {
     const { data, setData, post, processing, errors } = useForm<FormData>({
         name: '',
+        plant_id: '',
         schedules: weekdays.map(day => ({
             weekday: day.key,
-            shifts: [{
+            shifts: day.key === 'Saturday' || day.key === 'Sunday' ? [] : [{
                 start_time: '07:00',
                 end_time: '17:00',
                 active: true,
@@ -471,25 +479,41 @@ export default function Create({}: CreateProps) {
                 isSaving={processing}
                 contentWidth="custom"
                 contentClassName="w-[950px]"
+                saveButtonText="Salvar"
             >
                 <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
                     <div className="grid grid-cols-1 justify-items-start">
                         <div className="w-fit space-y-6">
                             {/* Campo de nome do turno */}
                             <div className="space-y-2 w-full">
-                                <Label htmlFor="name">
-                                    Nome do Turno <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="name"
-                                    value={data.name}
-                                    onChange={e => setData('name', e.target.value)}
-                                    required
-                                    placeholder="Digite o nome do turno"
-                                />
-                                {errors.name && (
-                                    <p className="text-sm text-destructive mt-1">{errors.name}</p>
-                                )}
+                                <div className="flex gap-4">
+                                    <div className="w-1/2">
+                                        <Label htmlFor="name">
+                                            Nome do Turno <span className="text-destructive">*</span>
+                                        </Label>
+                                        <Input
+                                            id="name"
+                                            value={data.name}
+                                            onChange={e => setData('name', e.target.value)}
+                                            required
+                                            placeholder="Digite o nome do turno"
+                                        />
+                                        {errors.name && (
+                                            <p className="text-sm text-destructive mt-1">{errors.name}</p>
+                                        )}
+                                    </div>
+                                    <div className="w-1/2">
+                                        <ItemSelect
+                                            label="Planta"
+                                            items={plants}
+                                            value={data.plant_id || ''}
+                                            onValueChange={(value) => setData('plant_id', value)}
+                                            createRoute={route('cadastro.plantas.create')}
+                                            placeholder="Selecione uma planta"
+                                            error={errors.plant_id}
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Seletor de dias da semana */}
@@ -786,4 +810,6 @@ export default function Create({}: CreateProps) {
             </CreateLayout>
         </AppLayout>
     );
-} 
+}
+
+export default Create; 

@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import DeleteEquipment from '@/components/delete-equipment';
+import ItemSelect from '@/components/ItemSelect';
 
 import AppLayout from '@/layouts/app-layout';
 import EditLayout from '@/layouts/cadastro/edit-layout';
@@ -253,53 +254,19 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
 
                             {/* Tipo de Equipamento */}
                             <div className="grid gap-2">
-                                <Label htmlFor="equipment_type">
-                                    Tipo de Equipamento
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Popover open={openEquipmentType} onOpenChange={setOpenEquipmentType}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            id="equipment_type"
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openEquipmentType}
-                                            className="w-full justify-between"
-                                        >
-                                            {form.data.equipment_type_id
-                                                ? equipmentTypes.find((type) => type.id.toString() === form.data.equipment_type_id)?.name
-                                                : "Selecione um tipo de equipamento"}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-full p-0">
-                                        <Command>
-                                            <CommandInput placeholder="Buscar tipo de equipamento..." />
-                                            <CommandEmpty>Nenhum tipo de equipamento encontrado.</CommandEmpty>
-                                            <CommandGroup>
-                                                {equipmentTypes.map((type) => (
-                                                    <CommandItem
-                                                        key={type.id}
-                                                        value={type.name}
-                                                        onSelect={() => {
-                                                            form.setData('equipment_type_id', type.id.toString());
-                                                            setOpenEquipmentType(false);
-                                                        }}
-                                                    >
-                                                        <Check
-                                                            className={cn(
-                                                                "mr-2 h-4 w-4",
-                                                                form.data.equipment_type_id === type.id.toString() ? "opacity-100" : "opacity-0"
-                                                            )}
-                                                        />
-                                                        {type.name}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                <InputError message={form.errors.equipment_type_id} />
+                                <ItemSelect
+                                    label="Tipo de Equipamento"
+                                    items={equipmentTypes}
+                                    value={form.data.equipment_type_id || ''}
+                                    onValueChange={(value) => {
+                                        form.setData('equipment_type_id', value);
+                                        form.clearErrors('equipment_type_id');
+                                    }}
+                                    createRoute={route('cadastro.tipos-equipamento.create')}
+                                    placeholder="Selecione um tipo de equipamento"
+                                    error={form.errors.equipment_type_id}
+                                    required
+                                />
                             </div>
 
                             {/* Número Serial */}
@@ -334,165 +301,56 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                         <div className="space-y-6">
                             {/* Planta */}
                             <div className="grid gap-2">
-                                <Label htmlFor="plant">
-                                    Planta
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Popover open={openPlant} onOpenChange={setOpenPlant}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            id="plant"
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openPlant}
-                                            className="w-full justify-between"
-                                        >
-                                            {selectedPlant
-                                                ? plants.find((plant) => plant.id === selectedPlant)?.name
-                                                : "Selecione uma planta"}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-full p-0">
-                                        <Command>
-                                            <CommandInput placeholder="Buscar planta..." />
-                                            <CommandList>
-                                                <CommandEmpty>Nenhuma planta encontrada.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {plants.map((plant) => (
-                                                        <CommandItem
-                                                            key={plant.id}
-                                                            value={plant.id.toString()}
-                                                            onSelect={(value) => {
-                                                                const plantId = parseInt(value);
-                                                                setSelectedPlant(plantId);
-                                                                form.setData('plant_id', plantId.toString());
-                                                                form.setData('area_id', ''); // Limpa a área quando mudar a planta
-                                                                form.setData('sector_id', ''); // Limpa o setor quando mudar a planta
-                                                                setSelectedArea(null); // Reseta a área selecionada
-                                                                setOpenPlant(false);
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    selectedPlant === plant.id ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {plant.name}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
+                                <ItemSelect
+                                    label="Planta"
+                                    items={plants}
+                                    value={form.data.plant_id || ''}
+                                    onValueChange={(value) => {
+                                        form.setData('plant_id', value);
+                                        form.setData('area_id', ''); // Limpa a área quando mudar a planta
+                                        form.setData('sector_id', ''); // Limpa o setor quando mudar a planta
+                                        form.clearErrors('plant_id');
+                                    }}
+                                    createRoute={route('cadastro.plantas.create')}
+                                    placeholder="Selecione uma planta"
+                                    error={form.errors.plant_id}
+                                    required
+                                />
                             </div>
 
                             {/* Área */}
                             <div className="grid gap-2">
-                                <Label htmlFor="area">
-                                    Área
-                                </Label>
-                                <Popover open={openArea} onOpenChange={setOpenArea}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            id="area"
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openArea}
-                                            className="w-full justify-between"
-                                            disabled={!selectedPlant}
-                                        >
-                                            {form.data.area_id
-                                                ? availableAreas.find((area) => area.id.toString() === form.data.area_id)?.name
-                                                : "Selecione uma área (opcional)"}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-full p-0">
-                                        <Command>
-                                            <CommandInput placeholder="Buscar área..." />
-                                            <CommandList>
-                                                <CommandEmpty>Nenhuma área encontrada.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {availableAreas.map((area) => (
-                                                        <CommandItem
-                                                            key={area.id}
-                                                            value={area.id.toString()}
-                                                            onSelect={(value) => {
-                                                                form.setData('area_id', value);
-                                                                setSelectedArea(parseInt(value));
-                                                                form.setData('sector_id', ''); // Limpa o setor quando mudar a área
-                                                                setOpenArea(false);
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    form.data.area_id === area.id.toString() ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {area.name}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                <InputError message={form.errors.area_id} />
+                                <ItemSelect
+                                    label="Área"
+                                    items={availableAreas}
+                                    value={form.data.area_id || ''}
+                                    onValueChange={(value) => {
+                                        form.setData('area_id', value);
+                                        form.setData('sector_id', ''); // Limpa o setor quando mudar a área
+                                        form.clearErrors('area_id');
+                                    }}
+                                    createRoute={route('cadastro.areas.create')}
+                                    placeholder={form.data.plant_id ? "Selecione uma área (opcional)" : "Selecione uma planta primeiro"}
+                                    error={form.errors.area_id}
+                                    disabled={!form.data.plant_id}
+                                />
                             </div>
 
                             {/* Setor */}
                             <div className="grid gap-2">
-                                <Label htmlFor="sector">Setor</Label>
-                                <Popover open={openSector} onOpenChange={setOpenSector}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            id="sector"
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openSector}
-                                            className="w-full justify-between"
-                                            disabled={!form.data.area_id}
-                                        >
-                                            {form.data.sector_id
-                                                ? availableSectors.find((sector) => sector.id.toString() === form.data.sector_id)?.name
-                                                : form.data.area_id ? "Selecione um setor (opcional)" : "Selecione uma área primeiro"}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-full p-0">
-                                        <Command>
-                                            <CommandInput placeholder="Buscar setor..." />
-                                            <CommandList>
-                                                <CommandEmpty>Nenhum setor encontrado.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {availableSectors.map((sector) => (
-                                                        <CommandItem
-                                                            key={sector.id}
-                                                            value={sector.id.toString()}
-                                                            onSelect={(value) => {
-                                                                form.setData('sector_id', value);
-                                                                setOpenSector(false);
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    form.data.sector_id === sector.id.toString() ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {sector.name}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                <InputError message={form.errors.sector_id} />
+                                <ItemSelect
+                                    label="Setor"
+                                    items={availableSectors}
+                                    value={form.data.sector_id || ''}
+                                    onValueChange={(value) => {
+                                        form.setData('sector_id', value);
+                                        form.clearErrors('sector_id');
+                                    }}
+                                    createRoute={route('cadastro.setores.create')}
+                                    placeholder={form.data.area_id ? "Selecione um setor (opcional)" : "Selecione uma área primeiro"}
+                                    error={form.errors.sector_id}
+                                    disabled={!form.data.area_id}
+                                />
                             </div>
 
                             {/* Fabricante */}

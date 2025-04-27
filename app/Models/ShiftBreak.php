@@ -3,17 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ShiftBreak extends Model
 {
     protected $fillable = [
-        'shift_schedule_id',
+        'shift_time_id',
         'start_time',
-        'end_time',
+        'end_time'
     ];
 
-    public function shiftSchedule()
+    public function shiftTime(): BelongsTo
     {
-        return $this->belongsTo(ShiftSchedule::class);
+        return $this->belongsTo(ShiftTime::class);
     }
 } 

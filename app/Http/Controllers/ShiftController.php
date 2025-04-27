@@ -15,7 +15,7 @@ class ShiftController extends Controller
 {
     public function index()
     {
-        $shifts = Shift::with(['schedules.breaks', 'plant'])->get();
+        $shifts = Shift::with(['schedules.shiftTimes.breaks', 'plant'])->get();
         return Inertia::render('cadastro/turnos', [
             'shifts' => $shifts->map(function ($shift) {
                 return [
@@ -28,12 +28,17 @@ class ShiftController extends Controller
                     'schedules' => $shift->schedules->map(function ($schedule) {
                         return [
                             'weekday' => $schedule->weekday,
-                            'start_time' => $schedule->start_time,
-                            'end_time' => $schedule->end_time,
-                            'breaks' => $schedule->breaks->map(function ($break) {
+                            'shifts' => $schedule->shiftTimes->map(function ($shiftTime) {
                                 return [
-                                    'start_time' => $break->start_time,
-                                    'end_time' => $break->end_time,
+                                    'start_time' => $shiftTime->start_time,
+                                    'end_time' => $shiftTime->end_time,
+                                    'active' => $shiftTime->active,
+                                    'breaks' => $shiftTime->breaks->map(function ($break) {
+                                        return [
+                                            'start_time' => $break->start_time,
+                                            'end_time' => $break->end_time,
+                                        ];
+                                    })->toArray(),
                                 ];
                             })->toArray(),
                         ];
@@ -170,18 +175,26 @@ class ShiftController extends Controller
                 $shift = Shift::create($shiftData);
 
                 foreach ($validated['schedules'] as $scheduleData) {
+                    // Cria um registro de schedule para cada dia
+                    $schedule = $shift->schedules()->create([
+                        'weekday' => $scheduleData['weekday']
+                    ]);
+
+                    // Para cada turno no dia
                     foreach ($scheduleData['shifts'] as $shiftData) {
                         if (!$shiftData['active']) continue;
 
-                        $schedule = $shift->schedules()->create([
-                            'weekday' => $scheduleData['weekday'],
+                        // Cria o turno associado ao schedule
+                        $shiftTime = $schedule->shiftTimes()->create([
                             'start_time' => $shiftData['start_time'],
-                            'end_time' => $shiftData['end_time']
+                            'end_time' => $shiftData['end_time'],
+                            'active' => $shiftData['active']
                         ]);
 
+                        // Cria os intervalos associados ao turno
                         if (isset($shiftData['breaks'])) {
                             foreach ($shiftData['breaks'] as $breakData) {
-                                $break = $schedule->breaks()->create([
+                                $shiftTime->breaks()->create([
                                     'start_time' => $breakData['start_time'],
                                     'end_time' => $breakData['end_time']
                                 ]);

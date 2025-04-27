@@ -9,7 +9,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, ArrowUpDown, Calendar, List, Settings } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowUpDown, Calendar, List, Settings, Clock } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/cadastro/list-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -30,6 +30,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ShiftCalendarView from '@/components/ShiftCalendarView';
 import ShiftTableView from '@/components/ShiftTableView';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface Break {
     start_time: string;
@@ -226,78 +227,102 @@ export default function Index({ shifts, filters = {
                 createButtonText="Adicionar"
             >
                 <div className="space-y-4">
-                    <Accordion type="single" collapsible className="w-full">
-                        {data.map((shift) => {
-                            const transformedSchedules = transformSchedules(shift.schedules);
-                            
-                            return (
-                                <AccordionItem 
-                                    key={shift.id} 
-                                    value={`shift-${shift.id}`}
-                                    className="border rounded-lg mb-4 transition-all duration-200 ease-in-out"
-                                >
-                                    <AccordionTrigger className="flex items-center justify-between px-4 py-3 hover:no-underline data-[state=open]:bg-muted transition-colors duration-200">
-                                        <div className="flex items-center space-x-4">
-                                            <div className="text-left">
-                                                <h3 className="font-semibold text-lg">{shift.name}</h3>
-                                                <div className="text-sm text-muted-foreground">
-                                                    {shift.plant?.name && (
-                                                        <span>Planta: {shift.plant.name}</span>
-                                                    )}
-                                                    {shift.equipment_count !== undefined && (
-                                                        <span className="ml-2">
-                                                            Equipamentos: {shift.equipment_count}
-                                                        </span>
-                                                    )}
+                    {data.length === 0 ? (
+                        <Card className="bg-muted/50 rounded-lg p-6 border transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
+                            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+                                <div className="size-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                                    <Clock className="size-6 text-muted-foreground" />
+                                </div>
+                                <h3 className="text-lg font-medium mb-1">Nenhum turno cadastrado</h3>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Adicione turnos para começar a gerenciar os horários de trabalho.
+                                </p>
+                                <Link href={route('cadastro.turnos.create')}>
+                                    <Button>
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Adicionar Turno
+                                    </Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Accordion type="single" collapsible className="w-full">
+                            {data.map((shift, idx) => {
+                                const transformedSchedules = transformSchedules(shift.schedules);
+                                const isLast = idx === data.length - 1;
+                                return (
+                                    <AccordionItem 
+                                        key={shift.id} 
+                                        value={`shift-${shift.id}`}
+                                        className="bg-muted/50 rounded-lg border transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] mb-4 last:mb-0"
+                                        showLastBorder={true}
+                                    >
+                                        <AccordionTrigger className="flex items-center justify-between px-4 py-3 hover:no-underline transition-colors duration-200">
+                                            <div className="flex items-center space-x-4">
+                                                <div className="text-left">
+                                                    <h3 className="font-semibold text-lg">{shift.name}</h3>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {shift.plant?.name && (
+                                                            <span>Planta: {shift.plant.name}</span>
+                                                        )}
+                                                        {shift.equipment_count !== undefined && (
+                                                            <span className="ml-2">
+                                                                Equipamentos: {shift.equipment_count}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="px-4 py-4 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-                                        <Tabs defaultValue="calendar" className="w-full">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <TabsList className="grid grid-cols-3 w-[400px]">
-                                                    <TabsTrigger value="calendar" className="flex items-center gap-2">
-                                                        <Calendar className="h-4 w-4" />
-                                                        Calendário
-                                                    </TabsTrigger>
-                                                    <TabsTrigger value="table" className="flex items-center gap-2">
-                                                        <List className="h-4 w-4" />
-                                                        Tabela
-                                                    </TabsTrigger>
-                                                    <TabsTrigger value="equipment" className="flex items-center gap-2">
-                                                        <Settings className="h-4 w-4" />
-                                                        Equipamentos
-                                                    </TabsTrigger>
-                                                </TabsList>
-                                                <Link href={route('cadastro.turnos.edit', shift.id)}>
-                                                    <Button variant="outline" size="sm">
-                                                        Editar
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                            <TabsContent value="calendar">
-                                                <ShiftCalendarView schedules={transformedSchedules} />
-                                            </TabsContent>
-                                            <TabsContent value="table">
-                                                <ShiftTableView schedules={transformedSchedules} />
-                                            </TabsContent>
-                                            <TabsContent value="equipment">
-                                                <div className="p-4">
-                                                    <h4 className="font-medium mb-4">Equipamentos Associados</h4>
-                                                    {shift.equipment_count && shift.equipment_count > 0 ? (
-                                                        <p>Lista de equipamentos aqui...</p>
-                                                    ) : (
-                                                        <p className="text-muted-foreground">Nenhum equipamento associado a este turno.</p>
-                                                    )}
+                                        </AccordionTrigger>
+                                        <AccordionContent className="px-4 py-4 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
+                                            <Tabs defaultValue="calendar" className="w-full">
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <TabsList className="grid grid-cols-3 w-[400px]">
+                                                        <TabsTrigger value="calendar" className="flex items-center gap-2">
+                                                            <Calendar className="h-4 w-4" />
+                                                            Calendário
+                                                        </TabsTrigger>
+                                                        <TabsTrigger value="table" className="flex items-center gap-2">
+                                                            <List className="h-4 w-4" />
+                                                            Tabela
+                                                        </TabsTrigger>
+                                                        <TabsTrigger value="equipment" className="flex items-center gap-2">
+                                                            <Settings className="h-4 w-4" />
+                                                            Equipamentos
+                                                        </TabsTrigger>
+                                                    </TabsList>
+                                                    <Link href={route('cadastro.turnos.edit', shift.id)}>
+                                                        <Button variant="outline" size="sm">
+                                                            Editar
+                                                        </Button>
+                                                    </Link>
                                                 </div>
-                                            </TabsContent>
-                                        </Tabs>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            );
-                        })}
-                    </Accordion>
+                                                <TabsContent value="calendar">
+                                                    <ShiftCalendarView 
+                                                        schedules={transformedSchedules} 
+                                                        showAllDays={true}
+                                                    />
+                                                </TabsContent>
+                                                <TabsContent value="table">
+                                                    <ShiftTableView schedules={transformedSchedules} />
+                                                </TabsContent>
+                                                <TabsContent value="equipment">
+                                                    <div className="p-4">
+                                                        <h4 className="font-medium mb-4">Equipamentos Associados</h4>
+                                                        {shift.equipment_count && shift.equipment_count > 0 ? (
+                                                            <p>Lista de equipamentos aqui...</p>
+                                                        ) : (
+                                                            <p className="text-muted-foreground">Nenhum equipamento associado a este turno.</p>
+                                                        )}
+                                                    </div>
+                                                </TabsContent>
+                                            </Tabs>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                );
+                            })}
+                        </Accordion>
+                    )}
 
                     {!Array.isArray(shifts) && (
                         <PaginationWrapper

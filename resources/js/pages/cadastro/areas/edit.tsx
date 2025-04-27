@@ -5,8 +5,8 @@ import EditLayout from '@/layouts/cadastro/edit-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
+import ItemSelect from '@/components/ItemSelect';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -92,28 +92,15 @@ export default function EditArea({ area, plants }: Props) {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="plant_id" className="flex items-center gap-1">
-                                Planta
-                                <span className="text-destructive">*</span>
-                            </Label>
-                            <Select
-                                value={data.plant_id}
+                            <ItemSelect
+                                label="Planta"
+                                items={plants}
+                                value={data.plant_id || ''}
                                 onValueChange={(value) => setData('plant_id', value)}
-                            >
-                                <SelectTrigger id="plant_id">
-                                    <SelectValue placeholder="Selecione uma planta" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {plants.map((plant) => (
-                                        <SelectItem key={plant.id} value={plant.id.toString()}>
-                                            {plant.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {errors.plant_id && (
-                                <p className="text-sm text-red-500">{errors.plant_id}</p>
-                            )}
+                                createRoute={route('cadastro.plantas.create')}
+                                placeholder="Selecione uma planta"
+                                error={errors.plant_id}
+                            />
                         </div>
                     </div>
                 </form>

@@ -20,6 +20,7 @@ interface Schedule {
 
 interface ShiftTimelineProps {
     schedules: Schedule[];
+    showAllDays?: boolean;
 }
 
 const weekdays = [
@@ -43,7 +44,7 @@ const minutesToTime = (minutes: number) => {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 };
 
-const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules }) => {
+const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDays = false }) => {
     // Função para encontrar o período mais extenso de horas em todos os dias
     const findTimeRange = () => {
         let earliestHour = 24;
@@ -183,9 +184,9 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules }) => {
                     </div>
                     {weekdays.map((day) => {
                         const schedule = schedules.find(s => s.weekday === day.key);
-                        if (!schedule) return null;
+                        if (!showAllDays && !schedule) return null;
 
-                        const hasActiveShifts = schedule.shifts.some(shift => shift.active);
+                        const hasActiveShifts = schedule?.shifts.some(shift => shift.active) ?? false;
 
                         return (
                             <div
@@ -225,6 +226,10 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules }) => {
                     <div className="flex-1 grid grid-cols-7">
                         {weekdays.map((day, dayIndex) => {
                             const dayKey = day.key;
+                            const schedule = schedules.find(s => s.weekday === dayKey);
+                            
+                            if (!showAllDays && !schedule) return null;
+
                             const nextDayIndex = (dayIndex + 1) % 7;
                             const nextDay = weekdays[nextDayIndex].key;
 
@@ -239,7 +244,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules }) => {
                                     ))}
 
                                     {/* Renderiza os turnos do dia atual */}
-                                    {schedules.find(s => s.weekday === dayKey)?.shifts.map((shift, index) => {
+                                    {schedule?.shifts.map((shift, index) => {
                                         if (!shift.active) return null;
                                         
                                         const startMinutes = timeToMinutes(shift.start_time);

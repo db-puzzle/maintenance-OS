@@ -12,12 +12,15 @@ function Accordion({
 
 function AccordionItem({
   className,
+  showLastBorder = false,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Item>) {
+}: React.ComponentProps<typeof AccordionPrimitive.Item> & {
+  showLastBorder?: boolean;
+}) {
   return (
     <AccordionPrimitive.Item
       data-slot="accordion-item"
-      className={cn("border-b last:border-b-0", className)}
+      className={cn("border-b", !showLastBorder && "last:border-b-0", className)}
       {...props}
     />
   )
