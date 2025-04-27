@@ -23,7 +23,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Cadastro',
-        href: '/cadastro/equipamentos',
+        href: '/asset-hierarchy/equipamentos',
         icon: ClipboardList,
     },
 ];

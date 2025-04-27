@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 
 export function route(name: string, params: Record<string, any> = {}): string {
     // Converte o nome da rota em um caminho
-    // Exemplo: 'cadastro.setores' -> '/cadastro/setores'
+    // Exemplo: 'asset-hierarchy.setores' -> '/asset-hierarchy/setores'
     const path = name.replace(/\./g, '/');
     
     const url = new URL(window.location.origin);

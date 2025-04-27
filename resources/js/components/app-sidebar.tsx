@@ -22,7 +22,7 @@ const gerenciamentoNavItems: NavGroup = {
         },
         {
             title: 'Equipamentos',
-            href: '/cadastro/equipamentos',
+            href: '/asset-hierarchy/equipamentos',
             icon: Cog,
         },
         {
@@ -43,23 +43,23 @@ const sistemaNavItems: NavGroup = {
             items: [
                 {
                     title: 'Turnos',
-                    href: '/cadastro/turnos',
+                    href: '/asset-hierarchy/turnos',
                 },
                 {
                     title: 'Setores',
-                    href: '/cadastro/setores',
+                    href: '/asset-hierarchy/setores',
                 },
                 {
                     title: 'Áreas',
-                    href: '/cadastro/areas',
+                    href: '/asset-hierarchy/areas',
                 },
                 {
                     title: 'Plantas',
-                    href: '/cadastro/plantas',
+                    href: '/asset-hierarchy/plantas',
                 },
                 {
                     title: 'Tipos de Equipamento',
-                    href: '/cadastro/tipos-equipamento',
+                    href: '/asset-hierarchy/tipos-equipamento',
                 },
             ],
         },
@@ -70,11 +70,11 @@ const sistemaNavItems: NavGroup = {
             items: [
                 {
                     title: 'Exportar Equipamentos',
-                    href: '/cadastro/equipamentos/exportar',
+                    href: '/asset-hierarchy/equipamentos/exportar',
                 },
                 {
                     title: 'Importar Equipamentos',
-                    href: '/cadastro/equipamentos/importar',
+                    href: '/asset-hierarchy/equipamentos/importar',
                 },
             ],
         },

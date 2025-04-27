@@ -21,7 +21,7 @@ export default function DeleteEquipment({ equipmentId, equipmentTag }: Props) {
     const deleteEquipment: FormEventHandler = (e) => {
         e.preventDefault();
 
-        destroy(route('cadastro.equipamentos.destroy', equipmentId), {
+        destroy(route('asset-hierarchy.equipamentos.destroy', equipmentId), {
             preserveScroll: true,
             onSuccess: () => {
                 closeModal();
