@@ -9,7 +9,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, ArrowUpDown, Calendar, List, Settings, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowUpDown, Calendar, List, Settings, Clock, MoreVertical, ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/cadastro/list-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -31,6 +31,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ShiftCalendarView from '@/components/ShiftCalendarView';
 import ShiftTableView from '@/components/ShiftTableView';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface Break {
     start_time: string;
@@ -58,6 +67,10 @@ interface ShiftData {
     };
     equipment_count?: number;
     schedules: Schedule[];
+    total_work_hours?: number;
+    total_work_minutes?: number;
+    total_break_hours?: number;
+    total_break_minutes?: number;
 }
 
 interface PageProps {
@@ -103,7 +116,11 @@ export default function Index({ shifts, filters = {
     const [perPage, setPerPage] = useState(filters?.per_page || 8);
     const [sort, setSort] = useState(filters?.sort || 'name');
     const [direction, setDirection] = useState<'asc' | 'desc'>(filters?.direction || 'asc');
-    const [expandedShifts, setExpandedShifts] = useState<Set<number>>(new Set());
+    const [expanded, setExpanded] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [selectedShift, setSelectedShift] = useState<ShiftData | null>(null);
+    const [confirmationText, setConfirmationText] = useState('');
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     const page = usePage<PageProps>();
     const flash = page.props.flash;
@@ -135,30 +152,6 @@ export default function Index({ shifts, filters = {
         return () => clearTimeout(searchTimeout);
     }, [search, sort, direction, perPage]);
 
-    useEffect(() => {
-        const handleScroll = () => {
-            expandedShifts.forEach(shiftId => {
-                const element = document.getElementById(`shift-${shiftId}`);
-                if (element) {
-                    const rect = element.getBoundingClientRect();
-                    if (rect.top < 0) {
-                        const offset = 20;
-                        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-                        const offsetPosition = elementPosition - offset;
-
-                        window.scrollTo({
-                            top: offsetPosition,
-                            behavior: 'smooth'
-                        });
-                    }
-                }
-            });
-        };
-
-        const timeoutId = setTimeout(handleScroll, 100);
-        return () => clearTimeout(timeoutId);
-    }, [expandedShifts]);
-
     const handleSort = (columnId: string) => {
         if (sort === columnId) {
             setDirection(direction === 'asc' ? 'desc' : 'asc');
@@ -169,23 +162,29 @@ export default function Index({ shifts, filters = {
     };
 
     const handleDelete = async (id: number) => {
+        const data = Array.isArray(shifts) ? shifts : shifts.data;
+        setSelectedShift(data.find((shift: ShiftData) => shift.id === id) || null);
+        setShowDeleteDialog(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!selectedShift) return;
+        
+        setIsDeleting(true);
         try {
-            await router.delete(route('cadastro.turnos.destroy', id));
+            await router.delete(route('cadastro.turnos.destroy', selectedShift.id));
             toast.success('Turno excluído com sucesso!');
+            setShowDeleteDialog(false);
+            setSelectedShift(null);
+            setConfirmationText('');
         } catch (error) {
             toast.error('Erro ao excluir turno');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
-    const toggleShiftExpansion = (shiftId: number) => {
-        const newExpandedShifts = new Set(expandedShifts);
-        if (newExpandedShifts.has(shiftId)) {
-            newExpandedShifts.delete(shiftId);
-        } else {
-            newExpandedShifts.add(shiftId);
-        }
-        setExpandedShifts(newExpandedShifts);
-    };
+    const isConfirmationValid = confirmationText === 'EXCLUIR';
 
     const data = Array.isArray(shifts) ? shifts : shifts.data;
 
@@ -212,6 +211,104 @@ export default function Index({ shifts, filters = {
             }] // Valor padrão se não houver turnos
         }));
     };
+
+    const columns = [
+        {
+            id: "name",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('name')}>
+                    Nome
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: ShiftData }) => row.original.name,
+            width: "w-[200px]",
+        },
+        {
+            id: "plant",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('plant_id')}>
+                    Planta
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: ShiftData }) => row.original.plant?.name || '-',
+            width: "w-[200px]",
+        },
+        {
+            id: "work_hours",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('total_work_hours')}>
+                    Horas de Trabalho
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: ShiftData }) => {
+                const hours = row.original.total_work_hours || 0;
+                const minutes = row.original.total_work_minutes || 0;
+                return `${hours}h ${minutes}m`;
+            },
+            width: "w-[150px]",
+        },
+        {
+            id: "break_hours",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('total_break_hours')}>
+                    Horas de Intervalo
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: ShiftData }) => {
+                const hours = row.original.total_break_hours || 0;
+                const minutes = row.original.total_break_minutes || 0;
+                return `${hours}h ${minutes}m`;
+            },
+            width: "w-[150px]",
+        },
+        {
+            id: "equipment_count",
+            header: (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('equipment_count')}>
+                    Equipamentos
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: ShiftData }) => row.original.equipment_count || 0,
+            width: "w-[150px]",
+        },
+        {
+            id: "actions",
+            header: "Ações",
+            cell: (row: { original: ShiftData }) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+                            size="icon"
+                        >
+                            <MoreVertical />
+                            <span className="sr-only">Abrir menu</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-32">
+                        <DropdownMenuItem onClick={() => setExpanded(expanded === row.original.id ? null : row.original.id)}>
+                            Visualizar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href={route('cadastro.turnos.edit', row.original.id)}>
+                                Editar
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(row.original.id)}>
+                            Excluir
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+            width: "w-[80px]",
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -246,82 +343,89 @@ export default function Index({ shifts, filters = {
                             </CardContent>
                         </Card>
                     ) : (
-                        <Accordion type="single" collapsible className="w-full">
-                            {data.map((shift, idx) => {
-                                const transformedSchedules = transformSchedules(shift.schedules);
-                                const isLast = idx === data.length - 1;
-                                return (
-                                    <AccordionItem 
-                                        key={shift.id} 
-                                        value={`shift-${shift.id}`}
-                                        className="bg-muted/50 rounded-lg border transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] mb-4 last:mb-0"
-                                        showLastBorder={true}
-                                    >
-                                        <AccordionTrigger className="flex items-center justify-between px-4 py-3 hover:no-underline transition-colors duration-200">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="text-left">
-                                                    <h3 className="font-semibold text-lg">{shift.name}</h3>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {shift.plant?.name && (
-                                                            <span>Planta: {shift.plant.name}</span>
-                                                        )}
-                                                        {shift.equipment_count !== undefined && (
-                                                            <span className="ml-2">
-                                                                Equipamentos: {shift.equipment_count}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent className="px-4 py-4 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-                                            <Tabs defaultValue="calendar" className="w-full">
-                                                <div className="flex justify-between items-center mb-4">
-                                                    <TabsList className="grid grid-cols-3 w-[400px]">
-                                                        <TabsTrigger value="calendar" className="flex items-center gap-2">
-                                                            <Calendar className="h-4 w-4" />
-                                                            Calendário
-                                                        </TabsTrigger>
-                                                        <TabsTrigger value="table" className="flex items-center gap-2">
-                                                            <List className="h-4 w-4" />
-                                                            Tabela
-                                                        </TabsTrigger>
-                                                        <TabsTrigger value="equipment" className="flex items-center gap-2">
-                                                            <Settings className="h-4 w-4" />
-                                                            Equipamentos
-                                                        </TabsTrigger>
-                                                    </TabsList>
-                                                    <Link href={route('cadastro.turnos.edit', shift.id)}>
-                                                        <Button variant="outline" size="sm">
-                                                            Editar
-                                                        </Button>
-                                                    </Link>
-                                                </div>
-                                                <TabsContent value="calendar">
-                                                    <ShiftCalendarView 
-                                                        schedules={transformedSchedules} 
-                                                        showAllDays={true}
-                                                    />
-                                                </TabsContent>
-                                                <TabsContent value="table">
-                                                    <ShiftTableView schedules={transformedSchedules} />
-                                                </TabsContent>
-                                                <TabsContent value="equipment">
-                                                    <div className="p-4">
-                                                        <h4 className="font-medium mb-4">Equipamentos Associados</h4>
-                                                        {shift.equipment_count && shift.equipment_count > 0 ? (
-                                                            <p>Lista de equipamentos aqui...</p>
-                                                        ) : (
-                                                            <p className="text-muted-foreground">Nenhum equipamento associado a este turno.</p>
-                                                        )}
-                                                    </div>
-                                                </TabsContent>
-                                            </Tabs>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                );
-                            })}
-                        </Accordion>
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader className="sticky top-0 z-10 bg-muted">
+                                    <TableRow>
+                                        <TableHead className="w-[40px] text-center" />
+                                        {columns.map((column, index) => (
+                                            <TableHead key={column.id} className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''}`}>
+                                                {column.header}
+                                            </TableHead>
+                                        ))}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data.map((shift) => [
+                                        <TableRow
+                                            key={shift.id}
+                                            className={`${expanded === shift.id ? 'bg-muted/50 hover:bg-background' : 'hover:bg-muted/30'} transition-colors cursor-pointer`}
+                                            onClick={(e) => {
+                                                // Evita conflito com ações (dropdown)
+                                                if ((e.target as HTMLElement).closest('.ignore-row-click')) return;
+                                                setExpanded(expanded === shift.id ? null : shift.id);
+                                            }}
+                                        >
+                                            <TableCell className="w-[40px] text-center align-middle">
+                                                {expanded === shift.id ? (
+                                                    <ChevronUpIcon className="h-4 w-4 mx-auto" />
+                                                ) : (
+                                                    <ChevronDownIcon className="h-4 w-4 mx-auto" />
+                                                )}
+                                            </TableCell>
+                                            {columns.map((column) => (
+                                                <TableCell key={column.id} className={column.width + (column.id === 'actions' ? ' ignore-row-click' : '')}>
+                                                    {column.cell({ original: shift })}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>,
+                                        expanded === shift.id && (
+                                            <TableRow key={`expanded-${shift.id}`} className="hover:bg-transparent"> 
+                                                <TableCell colSpan={columns.length + 1} className="p-0 bg-muted/50 border-t border-border/40">
+                                                    <Tabs defaultValue="calendar" className="w-full p-4">
+                                                        <div className="flex justify-between items-center mb-4">
+                                                            <TabsList className="grid grid-cols-3 w-[400px]">
+                                                                <TabsTrigger value="calendar" className="flex items-center gap-2">
+                                                                    <Calendar className="h-4 w-4" />
+                                                                    Calendário
+                                                                </TabsTrigger>
+                                                                <TabsTrigger value="table" className="flex items-center gap-2">
+                                                                    <List className="h-4 w-4" />
+                                                                    Tabela
+                                                                </TabsTrigger>
+                                                                <TabsTrigger value="equipment" className="flex items-center gap-2">
+                                                                    <Settings className="h-4 w-4" />
+                                                                    Equipamentos
+                                                                </TabsTrigger>
+                                                            </TabsList>
+                                                        </div>
+                                                        <TabsContent value="calendar">
+                                                            <ShiftCalendarView 
+                                                                schedules={transformSchedules(shift.schedules)} 
+                                                                showAllDays={true}
+                                                            />
+                                                        </TabsContent>
+                                                        <TabsContent value="table">
+                                                            <ShiftTableView schedules={transformSchedules(shift.schedules)} />
+                                                        </TabsContent>
+                                                        <TabsContent value="equipment">
+                                                            <div className="p-4">
+                                                                <h4 className="font-medium mb-4">Equipamentos Associados</h4>
+                                                                {shift.equipment_count && shift.equipment_count > 0 ? (
+                                                                    <p>Lista de equipamentos aqui...</p>
+                                                                ) : (
+                                                                    <p className="text-muted-foreground">Nenhum equipamento associado a este turno.</p>
+                                                                )}
+                                                            </div>
+                                                        </TabsContent>
+                                                    </Tabs>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    ])}
+                                </TableBody>
+                            </Table>
+                        </div>
                     )}
 
                     {!Array.isArray(shifts) && (
@@ -338,6 +442,38 @@ export default function Index({ shifts, filters = {
                     )}
                 </div>
             </ListLayout>
+
+            {/* Diálogo de Confirmação de Exclusão */}
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogContent>
+                    <DialogTitle>Confirmar exclusão</DialogTitle>
+                    <DialogDescription>
+                        Tem certeza que deseja excluir o turno {selectedShift?.name}? Esta ação não pode ser desfeita.
+                    </DialogDescription>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmation">Digite EXCLUIR para confirmar</Label>
+                            <Input
+                                id="confirmation"
+                                value={confirmationText}
+                                onChange={(e) => setConfirmationText(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary">Cancelar</Button>
+                        </DialogClose>
+                        <Button 
+                            variant="destructive" 
+                            onClick={confirmDelete}
+                            disabled={!isConfirmationValid || isDeleting}
+                        >
+                            {isDeleting ? 'Excluindo...' : 'Excluir'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 } 
