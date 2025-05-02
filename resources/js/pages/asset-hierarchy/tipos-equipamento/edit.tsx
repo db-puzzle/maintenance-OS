@@ -1,19 +1,15 @@
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type EquipmentType, type EquipmentTypeForm } from '@/types';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import TextInput from '@/components/TextInput';
 import { toast } from "sonner";
 
 import AppLayout from '@/layouts/app-layout';
 import EditLayout from '@/layouts/asset-hierarchy/edit-layout';
-import InputError from '@/components/input-error';
-import { Textarea } from '@/components/ui/textarea';
 import React from 'react';
-import { cn } from '@/lib/utils';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -26,26 +22,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface EquipmentTypeForm {
-    name: string;
-    description: string;
-    [key: string]: string;
-}
-
-interface EquipmentType {
-    id: number;
-    name: string;
-    description: string | null;
-    created_at: string;
-    updated_at: string;
-}
-
 interface Props {
     equipmentType: EquipmentType;
 }
 
 export default function Edit({ equipmentType }: Props) {
-    const { data, setData, put, processing, errors } = useForm<EquipmentTypeForm>({
+    const { data, setData, put, processing, errors, clearErrors } = useForm<EquipmentTypeForm>({
         name: equipmentType.name,
         description: equipmentType.description || '',
     });
@@ -74,36 +56,30 @@ export default function Edit({ equipmentType }: Props) {
             >
                 <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6 max-w-2xl">
                     <div className="grid gap-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="name" className="flex items-center gap-1">
-                                Nome
-                                <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                value={data.name}
-                                onChange={e => setData('name', e.target.value)}
-                                required
-                                className={cn(errors.name && "border-red-500")}
-                            />
-                            {errors.name && (
-                                <p className="text-sm text-red-500">{errors.name}</p>
-                            )}
-                        </div>
+                        <TextInput<EquipmentTypeForm>
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors
+                            }}
+                            name="name"
+                            label="Nome"
+                            placeholder="Nome do tipo de equipamento"
+                            required
+                        />
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="description">Descrição</Label>
-                            <Textarea
-                                id="description"
-                                value={data.description}
-                                onChange={e => setData('description', e.target.value)}
-                                className={cn(errors.description && "border-red-500")}
-                            />
-                            {errors.description && (
-                                <p className="text-sm text-red-500">{errors.description}</p>
-                            )}
-                        </div>
+                        <TextInput<EquipmentTypeForm>
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors
+                            }}
+                            name="description"
+                            label="Descrição"
+                            placeholder="Descrição do tipo de equipamento"
+                        />
                     </div>
                 </form>
             </EditLayout>

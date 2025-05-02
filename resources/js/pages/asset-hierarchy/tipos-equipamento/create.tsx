@@ -1,14 +1,10 @@
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type EquipmentTypeForm } from '@/types';
 import { Head, useForm, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/asset-hierarchy/layout';
 import HeadingSmall from '@/components/heading-small';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import InputError from '@/components/input-error';
-import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import TextInput from '@/components/TextInput';
 import { Link } from '@inertiajs/react';
 import { toast } from "sonner";
 
@@ -23,14 +19,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface EquipmentTypeForm {
-    name: string;
-    description: string;
-    [key: string]: string;
-}
-
 export default function CreateEquipmentType() {
-    const { data, setData, post, processing, errors } = useForm<EquipmentTypeForm>({
+    const { data, setData, post, processing, errors, clearErrors } = useForm<EquipmentTypeForm>({
         name: '',
         description: '',
     });
@@ -61,36 +51,30 @@ export default function CreateEquipmentType() {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name" className="flex items-center gap-1">
-                                    Nome
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    value={data.name}
-                                    onChange={e => setData('name', e.target.value)}
-                                    required
-                                    className={cn(errors.name && "border-red-500")}
-                                />
-                                {errors.name && (
-                                    <p className="text-sm text-red-500">{errors.name}</p>
-                                )}
-                            </div>
+                            <TextInput<EquipmentTypeForm>
+                                form={{
+                                    data,
+                                    setData,
+                                    errors,
+                                    clearErrors
+                                }}
+                                name="name"
+                                label="Nome"
+                                placeholder="Nome do tipo de equipamento"
+                                required
+                            />
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="description">Descrição</Label>
-                                <Textarea
-                                    id="description"
-                                    value={data.description}
-                                    onChange={e => setData('description', e.target.value)}
-                                    className={cn(errors.description && "border-red-500")}
-                                />
-                                {errors.description && (
-                                    <p className="text-sm text-red-500">{errors.description}</p>
-                                )}
-                            </div>
+                            <TextInput<EquipmentTypeForm>
+                                form={{
+                                    data,
+                                    setData,
+                                    errors,
+                                    clearErrors
+                                }}
+                                name="description"
+                                label="Descrição"
+                                placeholder="Descrição do tipo de equipamento"
+                            />
                         </div>
 
                         <div className="flex justify-start gap-4">

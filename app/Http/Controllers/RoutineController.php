@@ -60,7 +60,7 @@ class RoutineController extends Controller
     {
         $maintenancePlans = MaintenancePlan::where('status', 'Active')->get();
         
-        return Inertia::render('routines/create', [
+        return Inertia::render('routines/routine-editor', [
             'maintenancePlans' => $maintenancePlans
         ]);
     }

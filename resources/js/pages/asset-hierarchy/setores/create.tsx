@@ -1,15 +1,13 @@
-import { type BreadcrumbItem, type Area, type Plant, type SectorForm } from '@/types';
+import { type BreadcrumbItem, type Area, type SectorForm } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import { toast } from "sonner";
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import InputError from '@/components/input-error';
-import HeadingSmall from '@/components/heading-small';
+import TextInput from '@/components/TextInput';
 import ItemSelect from '@/components/ItemSelect';
+import HeadingSmall from '@/components/heading-small';
 
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/asset-hierarchy/layout';
@@ -77,20 +75,18 @@ export default function CreateSector({ plants }: Props) {
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-6">
                             {/* Nome */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="name" className="flex items-center gap-1">
-                                    Nome do Setor
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="name"
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    required
-                                    placeholder="Nome do setor"
-                                />
-                                <InputError message={errors.name} />
-                            </div>
+                            <TextInput<SectorForm>
+                                form={{
+                                    data,
+                                    setData,
+                                    errors,
+                                    clearErrors: () => {}
+                                }}
+                                name="name"
+                                label="Nome do Setor"
+                                placeholder="Nome do setor"
+                                required
+                            />
 
                             {/* Planta */}
                             <div className="grid gap-2">

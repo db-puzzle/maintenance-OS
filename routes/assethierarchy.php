@@ -77,14 +77,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('asset-hierarchy/tipos-equipamento/{equipmentType}', [EquipmentTypeController::class, 'destroy'])->name('asset-hierarchy.tipos-equipamento.destroy');
     Route::get('asset-hierarchy/tipos-equipamento/{equipmentType}/check-dependencies', [EquipmentTypeController::class, 'checkDependencies'])->name('asset-hierarchy.tipos-equipamento.check-dependencies');
 
-    Route::get('asset-hierarchy/turnos', [ShiftController::class, 'index'])->name('asset-hierarchy.turnos');
-    Route::get('asset-hierarchy/turnos/create', [ShiftController::class, 'create'])->name('asset-hierarchy.turnos.create');
-    Route::post('asset-hierarchy/turnos', [ShiftController::class, 'store'])->name('asset-hierarchy.turnos.store');
-    Route::get('asset-hierarchy/turnos/{shift}', [ShiftController::class, 'show'])->name('asset-hierarchy.turnos.show');
-    Route::get('asset-hierarchy/turnos/{shift}/edit', [ShiftController::class, 'edit'])->name('asset-hierarchy.turnos.edit');
-    Route::put('asset-hierarchy/turnos/{shift}', [ShiftController::class, 'update'])->name('asset-hierarchy.turnos.update');
-    Route::delete('asset-hierarchy/turnos/{shift}', [ShiftController::class, 'destroy'])->name('asset-hierarchy.turnos.destroy');
-    Route::get('asset-hierarchy/turnos/{shift}/check-dependencies', [ShiftController::class, 'checkDependencies'])->name('asset-hierarchy.turnos.check-dependencies');
+    Route::get('asset-hierarchy/shifts', [ShiftController::class, 'index'])->name('asset-hierarchy.shifts');
+    Route::get('asset-hierarchy/shifts/shift-editor', [ShiftController::class, 'create'])->name('asset-hierarchy.shifts.shift-editor');
+    Route::post('asset-hierarchy/shifts', [ShiftController::class, 'store'])->name('asset-hierarchy.shifts.store');
+    Route::get('asset-hierarchy/shifts/{shift}', [ShiftController::class, 'show'])->name('asset-hierarchy.shifts.show');
+    Route::get('asset-hierarchy/shifts/{shift}/edit', [ShiftController::class, 'edit'])->name('asset-hierarchy.shifts.edit');
+    Route::put('asset-hierarchy/shifts/{shift}', [ShiftController::class, 'update'])->name('asset-hierarchy.shifts.update');
+    Route::delete('asset-hierarchy/shifts/{shift}', [ShiftController::class, 'destroy'])->name('asset-hierarchy.shifts.destroy');
+    Route::get('asset-hierarchy/shifts/{shift}/check-dependencies', [ShiftController::class, 'checkDependencies'])->name('asset-hierarchy.shifts.check-dependencies');
 
     // Rotas de Asset
     Route::prefix('asset-hierarchy/assets')->name('asset-hierarchy.assets.')->group(function () {

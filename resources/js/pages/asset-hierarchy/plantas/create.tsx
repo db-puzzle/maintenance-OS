@@ -4,11 +4,10 @@ import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/asset-hierarchy/layout';
 import HeadingSmall from '@/components/heading-small';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import InputError from '@/components/input-error';
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import TextInput from "@/components/TextInput";
 import {
     Command,
     CommandEmpty,
@@ -104,55 +103,61 @@ export default function CreatePlant() {
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-6">
                             {/* Nome da Planta - Campo Obrigatório */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="name" className="flex items-center gap-1">
-                                    Nome da Planta
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="name"
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    required
-                                    placeholder="Nome da planta"
-                                />
-                                <InputError message={errors.name} />
-                            </div>
+                            <TextInput<PlantForm>
+                                form={{
+                                    data,
+                                    setData,
+                                    errors,
+                                    clearErrors: () => {}
+                                }}
+                                name="name"
+                                label="Nome da Planta"
+                                placeholder="Nome da planta"
+                                required
+                            />
 
                             {/* Endereço - Grid com 2 colunas */}
                             <div className="grid gap-2">
                                 <Label>Endereço</Label>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="col-span-2">
-                                        <Label htmlFor="street" className="text-sm text-muted-foreground">Rua</Label>
-                                        <Input
-                                            id="street"
-                                            value={data.street}
-                                            onChange={(e) => setData('street', e.target.value)}
+                                        <TextInput<PlantForm>
+                                            form={{
+                                                data,
+                                                setData,
+                                                errors,
+                                                clearErrors: () => {}
+                                            }}
+                                            name="street"
+                                            label="Rua"
                                             placeholder="Nome da rua"
                                         />
-                                        <InputError message={errors.street} />
                                     </div>
                                     <div>
-                                        <Label htmlFor="number" className="text-sm text-muted-foreground">Número</Label>
-                                        <Input
-                                            id="number"
-                                            value={data.number}
-                                            onChange={(e) => setData('number', e.target.value)}
+                                        <TextInput<PlantForm>
+                                            form={{
+                                                data,
+                                                setData,
+                                                errors,
+                                                clearErrors: () => {}
+                                            }}
+                                            name="number"
+                                            label="Número"
                                             placeholder="Número"
                                         />
-                                        <InputError message={errors.number} />
                                     </div>
                                     <div>
-                                        <Label htmlFor="zip_code" className="text-sm text-muted-foreground">CEP</Label>
-                                        <Input
-                                            id="zip_code"
-                                            value={data.zip_code}
-                                            onChange={handleCEPChange}
+                                        <TextInput<PlantForm>
+                                            form={{
+                                                data,
+                                                setData: (name, value) => handleCEPChange({ target: { value } } as any),
+                                                errors,
+                                                clearErrors: () => {}
+                                            }}
+                                            name="zip_code"
+                                            label="CEP"
                                             placeholder="00000-000"
-                                            maxLength={9}
                                         />
-                                        <InputError message={errors.zip_code} />
                                     </div>
                                 </div>
                             </div>
@@ -162,14 +167,17 @@ export default function CreatePlant() {
                                 <Label>Localização</Label>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <Label htmlFor="city" className="text-sm text-muted-foreground">Cidade</Label>
-                                        <Input
-                                            id="city"
-                                            value={data.city}
-                                            onChange={(e) => setData('city', e.target.value)}
+                                        <TextInput<PlantForm>
+                                            form={{
+                                                data,
+                                                setData,
+                                                errors,
+                                                clearErrors: () => {}
+                                            }}
+                                            name="city"
+                                            label="Cidade"
                                             placeholder="Cidade"
                                         />
-                                        <InputError message={errors.city} />
                                     </div>
                                     <div>
                                         <Label htmlFor="state" className="text-sm text-muted-foreground">Estado</Label>
@@ -217,22 +225,22 @@ export default function CreatePlant() {
                                                 </Command>
                                             </PopoverContent>
                                         </Popover>
-                                        <InputError message={errors.state} />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Coordenadas GPS */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="gps_coordinates">Coordenadas GPS</Label>
-                                <Input
-                                    id="gps_coordinates"
-                                    value={data.gps_coordinates}
-                                    onChange={(e) => setData('gps_coordinates', e.target.value)}
-                                    placeholder="Ex: -23.550520, -46.633308"
-                                />
-                                <InputError message={errors.gps_coordinates} />
-                            </div>
+                            <TextInput<PlantForm>
+                                form={{
+                                    data,
+                                    setData,
+                                    errors,
+                                    clearErrors: () => {}
+                                }}
+                                name="gps_coordinates"
+                                label="Coordenadas GPS"
+                                placeholder="Ex: -23.550520, -46.633308"
+                            />
                         </div>
 
                         <div className="flex items-center gap-4">

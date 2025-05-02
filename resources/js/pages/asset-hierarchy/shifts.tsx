@@ -102,7 +102,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
     {
         title: 'Turnos',
-        href: '/asset-hierarchy/turnos',
+        href: '/asset-hierarchy/shifts',
     },
 ];
 
@@ -138,7 +138,7 @@ export default function Index({ shifts, filters = {
     useEffect(() => {
         const searchTimeout = setTimeout(() => {
             router.get(
-                route('asset-hierarchy.turnos'),
+                route('asset-hierarchy.shifts'),
                 { 
                     search,
                     sort,
@@ -172,7 +172,7 @@ export default function Index({ shifts, filters = {
         
         setIsDeleting(true);
         try {
-            await router.delete(route('asset-hierarchy.turnos.destroy', selectedShift.id));
+            await router.delete(route('asset-hierarchy.shifts.destroy', selectedShift.id));
             toast.success('Turno excluído com sucesso!');
             setShowDeleteDialog(false);
             setSelectedShift(null);
@@ -284,23 +284,36 @@ export default function Index({ shifts, filters = {
                     <DropdownMenuTrigger asChild>
                         <Button
                             variant="ghost"
-                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted ignore-row-click"
                             size="icon"
                         >
                             <MoreVertical />
                             <span className="sr-only">Abrir menu</span>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-32">
-                        <DropdownMenuItem onClick={() => setExpanded(expanded === row.original.id ? null : row.original.id)}>
+                    <DropdownMenuContent align="end" className="w-32 ignore-row-click">
+                        <DropdownMenuItem 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setExpanded(expanded === row.original.id ? null : row.original.id);
+                            }}
+                        >
                             Visualizar
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.turnos.edit', row.original.id)}>
+                            <Link 
+                                href={route('asset-hierarchy.shifts.edit', row.original.id)}
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 Editar
                             </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(row.original.id)}>
+                        <DropdownMenuItem 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(row.original.id);
+                            }}
+                        >
                             Excluir
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -320,7 +333,7 @@ export default function Index({ shifts, filters = {
                 searchPlaceholder="Buscar por nome..."
                 searchValue={search}
                 onSearchChange={(value) => setSearch(value)}
-                createRoute={route('asset-hierarchy.turnos.create')}
+                createRoute={route('asset-hierarchy.shifts.shift-editor')}
                 createButtonText="Adicionar"
             >
                 <div className="space-y-4">
@@ -334,7 +347,7 @@ export default function Index({ shifts, filters = {
                                 <p className="text-sm text-muted-foreground mb-4">
                                     Adicione turnos para começar a gerenciar os horários de trabalho.
                                 </p>
-                                <Link href={route('asset-hierarchy.turnos.create')}>
+                                <Link href={route('asset-hierarchy.shifts.shift-editor')}>
                                     <Button>
                                         <Plus className="h-4 w-4 mr-2" />
                                         Adicionar Turno
@@ -361,8 +374,8 @@ export default function Index({ shifts, filters = {
                                             key={shift.id}
                                             className={`${expanded === shift.id ? 'bg-muted/50 hover:bg-background' : 'hover:bg-muted/30'} transition-colors cursor-pointer`}
                                             onClick={(e) => {
-                                                // Evita conflito com ações (dropdown)
-                                                if ((e.target as HTMLElement).closest('.ignore-row-click')) return;
+                                                // Evita conflito com ações (dropdown e links)
+                                                if ((e.target as HTMLElement).closest('.ignore-row-click, a, button')) return;
                                                 setExpanded(expanded === shift.id ? null : shift.id);
                                             }}
                                         >
@@ -433,7 +446,7 @@ export default function Index({ shifts, filters = {
                             currentPage={shifts.current_page}
                             lastPage={shifts.last_page}
                             total={shifts.total}
-                            routeName="asset-hierarchy.turnos"
+                            routeName="asset-hierarchy.shifts"
                             search={search}
                             sort={sort}
                             direction={direction}

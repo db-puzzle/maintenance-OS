@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import SmartInput from "@/components/smart-input";
 import { SmartPopover } from "@/components/ui/smart-popover";
 import ItemSelect from '@/components/ItemSelect';
+import TextInput from "@/components/TextInput";
 
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
@@ -187,23 +188,18 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                         {/* Coluna 2: Informações Básicas */}
                         <div className="space-y-6">
                             {/* TAG */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="tag">
-                                    TAG
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <SmartInput<EquipmentForm>
-                                    form={{
-                                        data,
-                                        setData,
-                                        errors,
-                                        clearErrors
-                                    }}
-                                    name="tag"
-                                    placeholder="Digite a TAG do equipamento"
-                                />
-                                <InputError message={errors.tag} />
-                            </div>
+                            <TextInput<EquipmentForm>
+                                form={{
+                                    data,
+                                    setData,
+                                    errors,
+                                    clearErrors
+                                }}
+                                name="tag"
+                                label="TAG"
+                                placeholder="Digite a TAG do equipamento"
+                                required
+                            />
 
                             {/* Tipo de Equipamento */}
                             <div className="grid gap-2">
@@ -223,31 +219,30 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                             </div>
 
                             {/* Número Serial */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="serial_number">Número Serial</Label>
-                                <Input
-                                    id="serial_number"
-                                    value={data.serial_number}
-                                    onChange={(e) => setData('serial_number', e.target.value)}
-                                    placeholder="Número serial do equipamento"
-                                />
-                                <InputError message={errors.serial_number} />
-                            </div>
+                            <TextInput<EquipmentForm>
+                                form={{
+                                    data,
+                                    setData,
+                                    errors,
+                                    clearErrors
+                                }}
+                                name="serial_number"
+                                label="Número Serial"
+                                placeholder="Número serial do equipamento"
+                            />
 
                             {/* Ano de Fabricação */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="manufacturing_year">Ano de Fabricação</Label>
-                                <Input
-                                    id="manufacturing_year"
-                                    type="number"
-                                    min="1900"
-                                    max={new Date().getFullYear()}
-                                    value={data.manufacturing_year}
-                                    onChange={(e) => setData('manufacturing_year', e.target.value)}
-                                    placeholder="Ano de fabricação"
-                                />
-                                <InputError message={errors.manufacturing_year} />
-                            </div>
+                            <TextInput<EquipmentForm>
+                                form={{
+                                    data,
+                                    setData,
+                                    errors,
+                                    clearErrors
+                                }}
+                                name="manufacturing_year"
+                                label="Ano de Fabricação"
+                                placeholder="Ano de fabricação"
+                            />
                         </div>
 
                         {/* Coluna 3: Localização e Informações Adicionais */}
@@ -307,16 +302,17 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                             </div>
 
                             {/* Fabricante */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="manufacturer">Fabricante</Label>
-                                <Input
-                                    id="manufacturer"
-                                    value={data.manufacturer}
-                                    onChange={(e) => setData('manufacturer', e.target.value)}
-                                    placeholder="Fabricante do equipamento"
-                                />
-                                <InputError message={errors.manufacturer} />
-                            </div>
+                            <TextInput<EquipmentForm>
+                                form={{
+                                    data,
+                                    setData,
+                                    errors,
+                                    clearErrors
+                                }}
+                                name="manufacturer"
+                                label="Fabricante"
+                                placeholder="Fabricante do equipamento"
+                            />
                         </div>
                     </div>
 

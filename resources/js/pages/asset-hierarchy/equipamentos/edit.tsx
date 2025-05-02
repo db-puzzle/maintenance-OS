@@ -16,6 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import DeleteEquipment from '@/components/delete-equipment';
 import ItemSelect from '@/components/ItemSelect';
+import TextInput from '@/components/TextInput';
 
 import AppLayout from '@/layouts/app-layout';
 import EditLayout from '@/layouts/asset-hierarchy/edit-layout';
@@ -234,23 +235,18 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                         {/* Coluna 2: Informações Básicas */}
                         <div className="space-y-6">
                             {/* TAG */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="tag">
-                                    TAG
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="tag"
-                                    value={form.data.tag}
-                                    onChange={(e) => form.setData('tag', e.target.value)}
-                                    placeholder="TAG do equipamento"
-                                    className={cn(
-                                        "w-full",
-                                        form.errors.tag && "border-destructive focus-visible:ring-destructive"
-                                    )}
-                                />
-                                <InputError message={form.errors.tag} />
-                            </div>
+                            <TextInput<EquipmentForm>
+                                form={{
+                                    data: form.data,
+                                    setData: form.setData,
+                                    errors: form.errors,
+                                    clearErrors: form.clearErrors
+                                }}
+                                name="tag"
+                                label="TAG"
+                                placeholder="TAG do equipamento"
+                                required
+                            />
 
                             {/* Tipo de Equipamento */}
                             <div className="grid gap-2">
@@ -270,31 +266,30 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                             </div>
 
                             {/* Número Serial */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="serial_number">Número Serial</Label>
-                                <Input
-                                    id="serial_number"
-                                    value={form.data.serial_number}
-                                    onChange={(e) => form.setData('serial_number', e.target.value)}
-                                    placeholder="Número serial do equipamento"
-                                />
-                                <InputError message={form.errors.serial_number} />
-                            </div>
+                            <TextInput<EquipmentForm>
+                                form={{
+                                    data: form.data,
+                                    setData: form.setData,
+                                    errors: form.errors,
+                                    clearErrors: form.clearErrors
+                                }}
+                                name="serial_number"
+                                label="Número Serial"
+                                placeholder="Número serial do equipamento"
+                            />
 
                             {/* Ano de Fabricação */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="manufacturing_year">Ano de Fabricação</Label>
-                                <Input
-                                    id="manufacturing_year"
-                                    type="number"
-                                    min="1900"
-                                    max={new Date().getFullYear()}
-                                    value={form.data.manufacturing_year}
-                                    onChange={(e) => form.setData('manufacturing_year', e.target.value)}
-                                    placeholder="Ano de fabricação"
-                                />
-                                <InputError message={form.errors.manufacturing_year} />
-                            </div>
+                            <TextInput<EquipmentForm>
+                                form={{
+                                    data: form.data,
+                                    setData: form.setData,
+                                    errors: form.errors,
+                                    clearErrors: form.clearErrors
+                                }}
+                                name="manufacturing_year"
+                                label="Ano de Fabricação"
+                                placeholder="Ano de fabricação"
+                            />
                         </div>
 
                         {/* Coluna 3: Localização e Informações Adicionais */}
@@ -354,16 +349,17 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                             </div>
 
                             {/* Fabricante */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="manufacturer">Fabricante</Label>
-                                <Input
-                                    id="manufacturer"
-                                    value={form.data.manufacturer}
-                                    onChange={(e) => form.setData('manufacturer', e.target.value)}
-                                    placeholder="Fabricante do equipamento"
-                                />
-                                <InputError message={form.errors.manufacturer} />
-                            </div>
+                            <TextInput<EquipmentForm>
+                                form={{
+                                    data: form.data,
+                                    setData: form.setData,
+                                    errors: form.errors,
+                                    clearErrors: form.clearErrors
+                                }}
+                                name="manufacturer"
+                                label="Fabricante"
+                                placeholder="Fabricante do equipamento"
+                            />
                         </div>
                     </div>
 

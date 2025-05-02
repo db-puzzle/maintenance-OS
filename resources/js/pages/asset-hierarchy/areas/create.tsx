@@ -3,10 +3,9 @@ import { Head, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { toast } from "sonner";
 import ItemSelect from '@/components/ItemSelect';
+import TextInput from '@/components/TextInput';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -33,7 +32,7 @@ interface Props {
 }
 
 export default function CreateArea({ plants }: Props) {
-    const { data, setData, post, processing, errors, reset } = useForm<AreaForm>({
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<AreaForm>({
         name: '',
         plant_id: '',
     });
@@ -63,22 +62,18 @@ export default function CreateArea({ plants }: Props) {
             >
                 <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6 max-w-2xl">
                     <div className="grid gap-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="name" className="flex items-center gap-1">
-                                Nome da Área
-                                <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                id="name"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                required
-                                placeholder="Nome da área"
-                            />
-                            {errors.name && (
-                                <p className="text-sm text-red-500">{errors.name}</p>
-                            )}
-                        </div>
+                        <TextInput<AreaForm>
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors
+                            }}
+                            name="name"
+                            label="Nome da Área"
+                            placeholder="Nome da área"
+                            required
+                        />
 
                         <div className="grid gap-2">
                             <ItemSelect

@@ -32,7 +32,7 @@ const gerenciamentoNavItems: NavGroup = {
             items: [
                 {
                     title: 'Rotinas',
-                    href: '/routines/create',
+                    href: '/routines/routine-editor',
                 },
             ],
         },
@@ -49,7 +49,7 @@ const sistemaNavItems: NavGroup = {
             items: [
                 {
                     title: 'Turnos',
-                    href: '/asset-hierarchy/turnos',
+                    href: '/asset-hierarchy/shifts',
                 },
                 {
                     title: 'Setores',

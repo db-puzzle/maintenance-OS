@@ -2,24 +2,23 @@ import React, { useState } from 'react';
 import { Head, useForm, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, Copy, Save, Clock, Table, X, PlusCircle } from 'lucide-react';
-import ShiftTimeline from '@/components/ShiftTimeline';
 import ShiftTableView from '@/components/ShiftTableView';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TimeSelect from '@/components/TimeSelect';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type ShiftForm } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ShiftCalendarView from '@/components/ShiftCalendarView';
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import ItemSelect from '@/components/ItemSelect';
+import TextInput from '@/components/TextInput';
 
 // Interface para representar um intervalo de descanso
 interface Break {
@@ -56,6 +55,16 @@ interface CreateProps {
     }[];
 }
 
+interface ShiftData {
+    id: number;
+    name: string;
+    plant?: {
+        id: number;
+        name: string;
+    };
+    schedules: Schedule[];
+}
+
 const weekdays = [
     { key: 'Monday', label: 'Segunda-feira' },
     { key: 'Tuesday', label: 'Terça-feira' },
@@ -69,14 +78,15 @@ const weekdays = [
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Cadastro',
+        href: '/asset-hierarchy/equipamentos',
     },
     {
         title: 'Turnos',
-        href: '/asset-hierarchy/turnos',
+        href: '/asset-hierarchy/shifts',
     },
     {
         title: 'Novo Turno',
-        href: '/asset-hierarchy/turnos/create',
+        href: '/asset-hierarchy/shifts/shift-editor',
     },
 ];
 
@@ -260,12 +270,16 @@ const isBreakOverlapping = (shift: Shift, currentBreak: Break, currentBreakIndex
     );
 };
 
-// Componente principal da página de asset-hierarchy de turnos
-const Create: React.FC<CreateProps> = ({ plants }) => {
-    const { data, setData, post, processing, errors } = useForm<FormData>({
-        name: '',
-        plant_id: '',
-        schedules: weekdays.map(day => ({
+interface ShiftFormProps extends CreateProps {
+    mode?: 'create' | 'edit';
+    shift?: ShiftData;
+}
+
+const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift }) => {
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm<ShiftForm>({
+        name: shift?.name || '',
+        plant_id: shift?.plant?.id?.toString() || '',
+        schedules: shift?.schedules || weekdays.map(day => ({
             weekday: day.key,
             shifts: day.key === 'Saturday' || day.key === 'Sunday' ? [] : [{
                 start_time: '07:00',
@@ -453,33 +467,70 @@ const Create: React.FC<CreateProps> = ({ plants }) => {
     };
 
     const handleSave = () => {
-        post(route('asset-hierarchy.turnos.store'), {
-            onSuccess: () => {
-                toast.success("Turno criado com sucesso!");
-            },
-            onError: (errors) => {
-                toast.error("Erro ao criar turno", {
-                    description: "Ocorreu um erro ao criar o turno. Por favor, verifique os dados e tente novamente."
-                });
-            }
-        });
+        // Remove os segundos de todos os horários antes de enviar
+        const formattedData = {
+            ...data,
+            schedules: data.schedules.map(schedule => ({
+                ...schedule,
+                shifts: schedule.shifts.map(shift => ({
+                    ...shift,
+                    start_time: shift.start_time?.substring(0, 5) || shift.start_time,
+                    end_time: shift.end_time?.substring(0, 5) || shift.end_time,
+                    breaks: shift.breaks.map(breakTime => ({
+                        start_time: breakTime.start_time?.substring(0, 5) || breakTime.start_time,
+                        end_time: breakTime.end_time?.substring(0, 5) || breakTime.end_time
+                    }))
+                }))
+            }))
+        };
+
+        // Atualiza os dados do formulário com os valores formatados
+        setData(formattedData);
+
+        if (mode === 'create') {
+            post(route('asset-hierarchy.shifts.store'), {
+                onSuccess: () => {
+                    toast.success("Turno criado com sucesso!");
+                },
+                onError: () => {
+                    toast.error("Erro ao criar turno", {
+                        description: "Ocorreu um erro. Por favor, verifique os dados e tente novamente."
+                    });
+                }
+            });
+        } else {
+            put(route('asset-hierarchy.shifts.update', shift?.id), {
+                onSuccess: () => {
+                    toast.success("Turno atualizado com sucesso!");
+                },
+                onError: () => {
+                    toast.error("Erro ao atualizar turno", {
+                        description: "Ocorreu um erro. Por favor, verifique os dados e tente novamente."
+                    });
+                }
+            });
+        }
     };
+
+    const isEditing = mode === 'edit';
+    const title = isEditing ? "Editar Turno" : "Cadastrar Turno";
+    const subtitle = isEditing ? "Edite as configurações do turno" : "Configure os turnos de trabalho";
+    const saveButtonText = isEditing ? "Salvar Alterações" : "Salvar";
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Cadastrar Turno" />
+            <Head title={title} />
 
-            {/* Layout principal de criação */}
             <CreateLayout
-                title="Cadastrar Turno"
-                subtitle="Configure os turnos de trabalho"
+                title={title}
+                subtitle={subtitle}
                 breadcrumbs={breadcrumbs}
-                backRoute={route('asset-hierarchy.turnos')}
+                backRoute={route('asset-hierarchy.shifts')}
                 onSave={handleSave}
                 isSaving={processing}
                 contentWidth="custom"
                 contentClassName="w-[950px]"
-                saveButtonText="Salvar"
+                saveButtonText={saveButtonText}
             >
                 <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
                     <div className="grid grid-cols-1 justify-items-start">
@@ -488,19 +539,18 @@ const Create: React.FC<CreateProps> = ({ plants }) => {
                             <div className="space-y-2 w-full">
                                 <div className="flex gap-4">
                                     <div className="w-1/2">
-                                        <Label htmlFor="name">
-                                            Nome do Turno <span className="text-destructive">*</span>
-                                        </Label>
-                                        <Input
-                                            id="name"
-                                            value={data.name}
-                                            onChange={e => setData('name', e.target.value)}
-                                            required
+                                        <TextInput<ShiftForm>
+                                            form={{
+                                                data,
+                                                setData,
+                                                errors,
+                                                clearErrors
+                                            }}
+                                            name="name"
+                                            label="Nome do Turno"
                                             placeholder="Digite o nome do turno"
+                                            required
                                         />
-                                        {errors.name && (
-                                            <p className="text-sm text-destructive mt-1">{errors.name}</p>
-                                        )}
                                     </div>
                                     <div className="w-1/2">
                                         <ItemSelect
@@ -812,4 +862,4 @@ const Create: React.FC<CreateProps> = ({ plants }) => {
     );
 }
 
-export default Create; 
+export default ShiftForm; 

@@ -80,6 +80,12 @@ export interface EquipmentType {
     updated_at: string;
 }
 
+export interface EquipmentTypeForm {
+    name: string;
+    description: string;
+    [key: string]: string | undefined;
+}
+
 export interface Area {
     id: number;
     name: string;
@@ -89,4 +95,37 @@ export interface Area {
     parentArea?: Area;
     created_at: string;
     updated_at: string;
+}
+
+export interface Sector {
+    id: number;
+    name: string;
+    area_id: number;
+    area: Area;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SectorForm {
+    name: string;
+    area_id: string;
+    [key: string]: string | undefined;
+}
+
+export interface ShiftForm {
+    name: string;
+    plant_id: string;
+    schedules: {
+        weekday: string;
+        shifts: {
+            start_time: string;
+            end_time: string;
+            active: boolean;
+            breaks: {
+                start_time: string;
+                end_time: string;
+            }[];
+        }[];
+    }[];
+    [key: string]: any;
 }
