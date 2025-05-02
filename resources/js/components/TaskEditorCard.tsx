@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, Save, X } from 'lucide-react';
+import ItemSelect from '@/components/ItemSelect';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Task {
     id?: number;
@@ -28,9 +29,22 @@ interface TaskEditorCardProps {
     onCancel: () => void;
 }
 
+const taskTypes = [
+    { id: 1, name: 'Registro (pergunta e resposta em texto)' },
+    { id: 2, name: 'Múltipla escolha' },
+    { id: 3, name: 'Medições' },
+    { id: 4, name: 'Registro fotográfico' }
+];
+
+const taskTypeMapping = {
+    1: 'question',
+    2: 'multiple_choice',
+    3: 'measurement',
+    4: 'photo'
+} as const;
+
 export default function TaskEditorCard({ onSave, onCancel }: TaskEditorCardProps) {
     const [taskType, setTaskType] = useState<Task['type']>('question');
-    const [taskDescription, setTaskDescription] = useState('');
     const [taskOptions, setTaskOptions] = useState(['Sim', 'Não']);
     const [measurementPoints, setMeasurementPoints] = useState([
         { name: 'Ponto A', min: 0, target: 0, max: 0, unit: 'mm' },
@@ -43,7 +57,7 @@ export default function TaskEditorCard({ onSave, onCancel }: TaskEditorCardProps
     const handleSaveTask = () => {
         const newTask: Task = {
             type: taskType,
-            description: taskDescription,
+            description: '',
             instructionImages: [],
             required: isRequired,
         };
@@ -75,22 +89,17 @@ export default function TaskEditorCard({ onSave, onCancel }: TaskEditorCardProps
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div>
-                    <Label htmlFor="taskType">Tipo</Label>
-                    <Select
-                        value={taskType}
-                        onValueChange={(value) => setTaskType(value as Task['type'])}
-                    >
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Selecione o tipo de tarefa" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="question">Registro (pergunta e resposta em texto)</SelectItem>
-                            <SelectItem value="multiple_choice">Múltipla escolha</SelectItem>
-                            <SelectItem value="measurement">Medições</SelectItem>
-                            <SelectItem value="photo">Registro fotográfico</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="grid gap-2">
+                    <ItemSelect
+                        label="Tipo de Tarefa"
+                        items={taskTypes}
+                        value={(Object.entries(taskTypeMapping).find(([_, type]) => type === taskType)?.[0] ?? '1').toString()}
+                        onValueChange={(value) => setTaskType(taskTypeMapping[Number(value) as keyof typeof taskTypeMapping])}
+                        placeholder="Selecione o tipo de tarefa"
+                        required
+                        canCreate={false}
+                        createRoute=""
+                    />
                 </div>
 
                 {taskType === 'multiple_choice' && (
