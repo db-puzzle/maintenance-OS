@@ -29,15 +29,21 @@ const gerenciamentoNavItems: NavGroup = {
             title: 'Manutenção',
             href: '#',
             icon: Wrench,
+            items: [
+                {
+                    title: 'Rotinas',
+                    href: '/routines/create',
+                },
+            ],
         },
     ],
 };
 
 const sistemaNavItems: NavGroup = {
-    title: 'Sistema',
+    title: 'Configurações',
     items: [
         {
-            title: 'Cadastro',
+            title: 'Hierarquia de Ativos',
             href: '#',
             icon: ClipboardList,
             items: [

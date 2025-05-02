@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Routine;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use App\Models\MaintenancePlan;
 
 class RoutineController extends Controller
 {
@@ -52,5 +54,14 @@ class RoutineController extends Controller
         ]));
 
         return response()->json($routine);
+    }
+
+    public function create()
+    {
+        $maintenancePlans = MaintenancePlan::where('status', 'Active')->get();
+        
+        return Inertia::render('routines/create', [
+            'maintenancePlans' => $maintenancePlans
+        ]);
     }
 } 
