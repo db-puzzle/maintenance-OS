@@ -28,8 +28,11 @@ class TaskExecutionController extends Controller
             'executed_at' => now(),
             'text_response' => $request->input('text_response'),
             'selected_option' => $request->input('selected_option'),
+            'selected_options' => $request->input('selected_options'),
             'measurement_values' => $request->input('measurement_values'),
-            'photo_urls' => $request->input('photo_urls')
+            'photo_urls' => $request->input('photo_urls'),
+            'code_reader_value' => $request->input('code_reader_value'),
+            'uploaded_files' => $request->input('uploaded_files')
         ]);
 
         return response()->json($taskExecution, 201);
@@ -40,8 +43,11 @@ class TaskExecutionController extends Controller
         $taskExecution->update($request->validate([
             'text_response' => 'nullable|string',
             'selected_option' => 'nullable|string',
+            'selected_options' => 'nullable|array',
             'measurement_values' => 'nullable|array',
-            'photo_urls' => 'nullable|array'
+            'photo_urls' => 'nullable|array',
+            'code_reader_value' => 'nullable|string',
+            'uploaded_files' => 'nullable|array'
         ]));
 
         return response()->json($taskExecution);

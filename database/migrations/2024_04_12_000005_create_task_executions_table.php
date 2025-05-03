@@ -15,8 +15,11 @@ return new class extends Migration
             $table->timestamp('executed_at')->nullable();
             $table->text('text_response')->nullable();
             $table->string('selected_option')->nullable();
+            $table->json('selected_options')->nullable();
             $table->json('measurement_values')->nullable();
             $table->json('photo_urls')->nullable();
+            $table->string('code_reader_value')->nullable();
+            $table->json('uploaded_files')->nullable();
             $table->timestamps();
         });
     }

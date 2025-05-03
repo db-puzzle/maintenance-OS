@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { PlusCircle, Save, X, GripVertical, Lightbulb, Plus, Clock, FileText, ListChecks, Ruler, Camera, CheckSquare, ClipboardCheck } from 'lucide-react';
+import { PlusCircle, Save, X, GripVertical, Lightbulb, Plus, Clock, FileText, ListChecks, Ruler, Camera, CheckSquare, ClipboardCheck, QrCode, Barcode, Upload, ScanBarcode } from 'lucide-react';
 import ItemSelect from '@/components/ItemSelect';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSortable } from '@dnd-kit/sortable';
@@ -32,6 +32,7 @@ import {
 interface TaskEditorCardProps {
     initialTask?: Task;
     onSave: (task: Task) => void;
+    onPreview: (task: Task) => void;
     onCancel: () => void;
     onNewTask: () => void;
 }
@@ -62,15 +63,44 @@ const taskTypes = [
         id: 4, 
         name: 'Medições', 
         icon: Ruler,
-        label: 'Instrução de Medição',
-        placeholder: 'Descreva as instruções para realizar as medições...'
+        label: 'Nome da Medição',
+        placeholder: 'Diâmetro do Eixo, Pressão do Ar, Temperatura do Motor, etc...'
     },
     { 
         id: 5, 
         name: 'Registro fotográfico', 
         icon: Camera,
-        label: 'Instrução para Foto',
-        placeholder: 'Descreva as instruções para o registro fotográfico...'
+        label: 'Nome da Foto',
+        placeholder: 'Vista Geral do Equipamento, Condição da Bucha, etc...'
+    },
+    { 
+        id: 6, 
+        name: 'Leitor de Código', 
+        icon: ScanBarcode,
+        label: 'Nome do Código',
+        placeholder: 'Número Serial, Código do Produto, Número do Lote, etc...'
+    },
+    { 
+        id: 7, 
+        name: 'Upload de Arquivo', 
+        icon: Upload,
+        label: 'Nome do Arquivo',
+        placeholder: 'Relatório de Inspeção, Ficha Técnica, Manual de Instruções, etc...'
+    }
+];
+
+const codeReaderTypes = [
+    { 
+        id: 1,
+        value: 'qr_code' as const,
+        name: 'QR Code',
+        icon: QrCode
+    },
+    { 
+        id: 2,
+        value: 'barcode' as const,
+        name: 'Código de Barras',
+        icon: Barcode
     }
 ];
 
@@ -79,20 +109,28 @@ const taskTypeMapping: Record<number, Task['type']> = {
     2: 'multiple_choice',
     3: 'multiple_select',
     4: 'measurement',
-    5: 'photo'
+    5: 'photo',
+    6: 'code_reader',
+    7: 'file_upload'
 } as const;
 
 interface TaskForm {
     description: string;
     photoInstructions: string;
+    codeReaderType: 'qr_code' | 'barcode' | undefined;
+    codeReaderInstructions: string;
+    fileUploadInstructions: string;
     options: { [key: number]: string };
-    [key: string]: string | number | boolean | File | null | { [key: number]: string };
+    [key: string]: string | number | boolean | File | null | { [key: number]: string } | undefined;
 }
 
-export default function TaskEditorCard({ initialTask, onSave, onCancel, onNewTask }: TaskEditorCardProps) {
+export default function TaskEditorCard({ initialTask, onSave, onPreview, onCancel, onNewTask }: TaskEditorCardProps) {
     const { data, setData, errors, clearErrors } = useForm<TaskForm>({
         description: '',
         photoInstructions: '',
+        codeReaderType: undefined,
+        codeReaderInstructions: '',
+        fileUploadInstructions: '',
         options: {}
     });
 
@@ -116,12 +154,37 @@ export default function TaskEditorCard({ initialTask, onSave, onCancel, onNewTas
     };
 
     const [taskType, setTaskType] = useState<Task['type'] | null>(null);
-    const [measurementPoints, setMeasurementPoints] = useState(initialTask?.measurementPoints || [
+    const [measurementPoints, setMeasurementPoints] = useState([
         { name: 'Ponto A', min: 0, target: 0, max: 0, unit: 'mm' },
         { name: 'Ponto B', min: 0, target: 0, max: 0, unit: 'mm' },
         { name: 'Ponto C', min: 0, target: 0, max: 0, unit: 'mm' }
     ]);
-    const [isRequired, setIsRequired] = useState(initialTask?.required ?? true);
+    const [isRequired, setIsRequired] = useState(true);
+
+    useEffect(() => {
+        if (initialTask) {
+            setData({
+                description: initialTask.description || '',
+                photoInstructions: initialTask.photoInstructions || '',
+                codeReaderType: initialTask.codeReaderType,
+                codeReaderInstructions: initialTask.codeReaderInstructions || '',
+                fileUploadInstructions: initialTask.fileUploadInstructions || '',
+                options: initialTask.options?.reduce((acc, option, index) => ({
+                    ...acc,
+                    [index + 1]: option
+                }), {}) || {}
+            });
+            setTaskType(initialTask.type);
+            setMeasurementPoints(
+                initialTask.measurementPoints || [
+                    { name: 'Ponto A', min: 0, target: 0, max: 0, unit: 'mm' },
+                    { name: 'Ponto B', min: 0, target: 0, max: 0, unit: 'mm' },
+                    { name: 'Ponto C', min: 0, target: 0, max: 0, unit: 'mm' }
+                ]
+            );
+            setIsRequired(initialTask.required);
+        }
+    }, [initialTask]);
 
     const isChoiceBasedTask = taskType === 'multiple_choice' || taskType === 'multiple_select';
     
@@ -175,6 +238,13 @@ export default function TaskEditorCard({ initialTask, onSave, onCancel, onNewTas
             newTask.measurementPoints = measurementPoints;
         } else if (taskType === 'photo') {
             newTask.photoInstructions = data.photoInstructions;
+        } else if (taskType === 'code_reader') {
+            if (data.codeReaderType) {
+                newTask.codeReaderType = data.codeReaderType;
+                newTask.codeReaderInstructions = data.codeReaderInstructions;
+            }
+        } else if (taskType === 'file_upload') {
+            newTask.fileUploadInstructions = data.fileUploadInstructions;
         }
 
         onSave(newTask);
@@ -242,6 +312,28 @@ export default function TaskEditorCard({ initialTask, onSave, onCancel, onNewTas
                         <Label htmlFor="required">Tarefa obrigatória</Label>
                     </div>
                 </div>
+
+                {taskType === 'code_reader' && (
+                    <div className="w-90">
+                        <ItemSelect
+                            items={codeReaderTypes}
+                            label="Tipo de Código"
+                            value={data.codeReaderType ? String(codeReaderTypes.find(t => t.value === data.codeReaderType)?.id || '') : ''}
+                            onValueChange={(value) => {
+                                const selectedType = codeReaderTypes.find(t => t.id === Number(value));
+                                if (selectedType) {
+                                    setData('codeReaderType', selectedType.value);
+                                } else {
+                                    setData('codeReaderType', undefined);
+                                }
+                            }}
+                            placeholder="Selecione o tipo de código"
+                            required
+                            canCreate={false}
+                            createRoute=""
+                        />
+                    </div>
+                )}
 
                 {taskType ? (
                     <div className="grid gap-2">
@@ -477,11 +569,42 @@ export default function TaskEditorCard({ initialTask, onSave, onCancel, onNewTas
                             }}
                             name="photoInstructions"
                             label="Instruções para Foto"
-                            placeholder="Instruções específicas para a foto a ser tirada..."
+                            placeholder="Como a foto deve ser tirada..."
                         />
                     </div>
                 )}
 
+                {taskType === 'code_reader' && (
+                    <div>
+                        <TextInput<TaskForm>
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors
+                            }}
+                            name="codeReaderInstructions"
+                            label="Instruções para Leitura de Código"
+                            placeholder="Como o código deve ser lido..."
+                        />
+                    </div>
+                )}
+
+                {taskType === 'file_upload' && (
+                    <div>
+                        <TextInput<TaskForm>
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors
+                            }}
+                            name="fileUploadInstructions"
+                            label="Instruções para Upload de Arquivo"
+                            placeholder="Faça o download do registro de vibração e armazene o arquivo aqui..."
+                        />
+                    </div>
+                )}
                 <div className="flex justify-between items-center mt-4">
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -520,10 +643,37 @@ export default function TaskEditorCard({ initialTask, onSave, onCancel, onNewTas
                         </Button>
                         <Button
                             type="button"
-                            onClick={handleSaveTask}
+                            onClick={() => {
+                                if (!taskType) return;
+                                
+                                const newTask: Task = {
+                                    type: taskType,
+                                    description: data.description,
+                                    instructionImages: initialTask?.instructionImages || [],
+                                    required: isRequired,
+                                };
+
+                                if (isChoiceBasedTask) {
+                                    newTask.options = Object.values(data.options);
+                                } else if (taskType === 'measurement') {
+                                    newTask.measurementPoints = measurementPoints;
+                                } else if (taskType === 'photo') {
+                                    newTask.photoInstructions = data.photoInstructions;
+                                } else if (taskType === 'code_reader') {
+                                    if (data.codeReaderType) {
+                                        newTask.codeReaderType = data.codeReaderType;
+                                        newTask.codeReaderInstructions = data.codeReaderInstructions;
+                                    }
+                                } else if (taskType === 'file_upload') {
+                                    newTask.fileUploadInstructions = data.fileUploadInstructions;
+                                }
+
+                                onPreview(newTask);
+                            }}
                             className="flex items-center gap-2"
+                            disabled={!taskType}
                         >
-                            Vizualizar
+                            Visualizar
                         </Button>
                     </div>
                 </div>

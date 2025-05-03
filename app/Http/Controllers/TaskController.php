@@ -18,10 +18,13 @@ class TaskController extends Controller
     {
         $task = $routine->tasks()->create($request->validate([
             'description' => 'required|string',
-            'type' => 'required|in:Text,MultipleChoice,Measurement,Photo',
+            'type' => 'required|in:Text,MultipleChoice,MultipleSelect,Measurement,Photo,CodeReader,FileUpload',
             'options' => 'nullable|array',
             'measurement_unit' => 'nullable|string',
-            'instruction_images' => 'nullable|array'
+            'instruction_images' => 'nullable|array',
+            'code_reader_type' => 'nullable|in:qr_code,barcode',
+            'code_reader_instructions' => 'nullable|string',
+            'file_upload_instructions' => 'nullable|string'
         ]));
 
         return response()->json($task, 201);
@@ -36,10 +39,13 @@ class TaskController extends Controller
     {
         $task->update($request->validate([
             'description' => 'required|string',
-            'type' => 'required|in:Text,MultipleChoice,Measurement,Photo',
+            'type' => 'required|in:Text,MultipleChoice,MultipleSelect,Measurement,Photo,CodeReader,FileUpload',
             'options' => 'nullable|array',
             'measurement_unit' => 'nullable|string',
-            'instruction_images' => 'nullable|array'
+            'instruction_images' => 'nullable|array',
+            'code_reader_type' => 'nullable|in:qr_code,barcode',
+            'code_reader_instructions' => 'nullable|string',
+            'file_upload_instructions' => 'nullable|string'
         ]));
 
         return response()->json($task);

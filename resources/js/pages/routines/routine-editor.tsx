@@ -157,12 +157,12 @@ export default function CreateRoutine({ }: Props) {
         handleNewTaskAtIndex(tasks.length - 1);
     };
 
-    const handleSaveTask = (index: number, newTask: Task) => {
+    const handleSaveTask = (index: number, newTask: Task, isPreview: boolean = false) => {
         const updatedTasks = [...tasks];
         updatedTasks[index] = { 
             ...newTask, 
             id: tasks[index].id || Math.max(...tasks.map(t => t.id || 0)) + 1,
-            isEditing: false 
+            isEditing: !isPreview // Se for preview, mantém editável
         };
         setTasks(updatedTasks);
     };
@@ -278,6 +278,7 @@ export default function CreateRoutine({ }: Props) {
                                                 key={`task-${task.id}`}
                                                 initialTask={task}
                                                 onSave={(newTask) => handleSaveTask(index, newTask)}
+                                                onPreview={(newTask) => handleSaveTask(index, newTask, true)}
                                                 onCancel={() => handleCancelTask(index)}
                                                 onNewTask={() => handleNewTaskAtIndex(index)}
                                             />
@@ -327,6 +328,7 @@ export default function CreateRoutine({ }: Props) {
                                                 key={`overlay-${task.id}`}
                                                 initialTask={task}
                                                 onSave={() => {}}
+                                                onPreview={() => {}}
                                                 onCancel={() => {}}
                                                 onNewTask={() => handleNewTaskAtIndex(tasks.findIndex(t => t.id === task.id))}
                                             />
