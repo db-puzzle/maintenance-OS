@@ -11,6 +11,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import TextInput from '@/components/TextInput';
 import { useForm } from '@inertiajs/react';
+import { Task } from '@/types/task';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -28,27 +29,11 @@ import {
     HoverCardTrigger,
 } from "@/components/ui/hover-card"
 
-interface Task {
-    id?: number;
-    type: 'question' | 'multiple_choice' | 'multiple_select' | 'measurement' | 'photo';
-    description: string;
-    options?: string[];
-    measurementPoints?: {
-        name: string;
-        min: number;
-        target: number;
-        max: number;
-        unit: string;
-    }[];
-    photoInstructions?: string;
-    instructionImages: string[];
-    required: boolean;
-}
-
 interface TaskEditorCardProps {
     initialTask?: Task;
     onSave: (task: Task) => void;
     onCancel: () => void;
+    onNewTask: () => void;
 }
 
 const taskTypes = [
@@ -104,7 +89,7 @@ interface TaskForm {
     [key: string]: string | number | boolean | File | null | { [key: number]: string };
 }
 
-export default function TaskEditorCard({ initialTask, onSave, onCancel }: TaskEditorCardProps) {
+export default function TaskEditorCard({ initialTask, onSave, onCancel, onNewTask }: TaskEditorCardProps) {
     const { data, setData, errors, clearErrors } = useForm<TaskForm>({
         description: '',
         photoInstructions: '',
@@ -527,9 +512,11 @@ export default function TaskEditorCard({ initialTask, onSave, onCancel }: TaskEd
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={onCancel}
+                            onClick={onNewTask}
+                            className="flex items-center gap-2"
                         >
-                            Cancelar
+                            <PlusCircle className="h-4 w-4" />
+                            Nova Tarefa Abaixo
                         </Button>
                         <Button
                             type="button"

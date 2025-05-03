@@ -14,6 +14,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskCard from '@/components/TaskCard';
 import TaskEditorCard from '@/components/TaskEditorCard';
+import { Task } from '@/types/task';
 import {
     DndContext,
     closestCenter,
@@ -49,24 +50,6 @@ interface RoutineForm {
     name: string;
     trigger_hours: string;
     type: number | undefined;
-}
-
-interface Task {
-    id?: number;
-    type: 'question' | 'multiple_choice' | 'measurement' | 'photo';
-    description: string;
-    options?: string[];
-    measurementPoints?: {
-        name: string;
-        min: number;
-        target: number;
-        max: number;
-        unit: string;
-    }[];
-    photoInstructions?: string;
-    instructionImages: string[];
-    required: boolean;
-    isEditing?: boolean;
 }
 
 interface Props {
@@ -154,7 +137,7 @@ export default function CreateRoutine({ }: Props) {
         });
     };
 
-    const handleNewTask = () => {
+    const handleNewTaskAtIndex = (index: number) => {
         const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id || 0)) + 1 : 1;
         const newTask: Task = {
             id: newId,
@@ -164,7 +147,14 @@ export default function CreateRoutine({ }: Props) {
             required: true,
             isEditing: true
         };
-        setTasks([...tasks, newTask]);
+        
+        const updatedTasks = [...tasks];
+        updatedTasks.splice(index + 1, 0, newTask);
+        setTasks(updatedTasks);
+    };
+
+    const handleNewTask = () => {
+        handleNewTaskAtIndex(tasks.length - 1);
     };
 
     const handleSaveTask = (index: number, newTask: Task) => {
@@ -289,6 +279,7 @@ export default function CreateRoutine({ }: Props) {
                                                 initialTask={task}
                                                 onSave={(newTask) => handleSaveTask(index, newTask)}
                                                 onCancel={() => handleCancelTask(index)}
+                                                onNewTask={() => handleNewTaskAtIndex(index)}
                                             />
                                         ) : (
                                             <TaskCard
@@ -310,7 +301,7 @@ export default function CreateRoutine({ }: Props) {
                                     type="button"
                                     variant="outline"
                                     onClick={handleNewTask}
-                                    className="flex items-center gap-2 w-fit"
+                                    className="mt-2 flex items-center gap-2 w-fit"
                                 >
                                     <PlusCircle size={16} />
                                     Nova Tarefa
@@ -337,6 +328,7 @@ export default function CreateRoutine({ }: Props) {
                                                 initialTask={task}
                                                 onSave={() => {}}
                                                 onCancel={() => {}}
+                                                onNewTask={() => handleNewTaskAtIndex(tasks.findIndex(t => t.id === task.id))}
                                             />
                                         ) : (
                                             <TaskCard

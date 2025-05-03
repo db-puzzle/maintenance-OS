@@ -4,33 +4,18 @@ import { Camera, FileText, List, MessageSquare, Pencil, GripVertical } from 'luc
 import { Button } from '@/components/ui/button';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Task } from '@/types/task';
 
 interface Break {
     start_time: string;
     end_time: string;
 }
 
-interface Task {
-    id?: number;
-    type: 'question' | 'multiple_choice' | 'measurement' | 'photo';
-    description: string;
-    options?: string[];
-    measurementPoints?: {
-        name: string;
-        min: number;
-        target: number;
-        max: number;
-        unit: string;
-    }[];
-    photoInstructions?: string;
-    instructionImages: string[];
-    required: boolean;
-}
-
 interface TaskCardProps {
     task: Task;
     index: number;
     onEdit: () => void;
+    onTypeChange: (type: Task['type']) => void;
 }
 
 const getTaskTypeIcon = (type: Task['type']) => {
@@ -48,7 +33,7 @@ const getTaskTypeIcon = (type: Task['type']) => {
     }
 };
 
-export default function TaskCard({ task, index, onEdit }: TaskCardProps) {
+export default function TaskCard({ task, index, onEdit, onTypeChange }: TaskCardProps) {
     const {
         attributes,
         listeners,
