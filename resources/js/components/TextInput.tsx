@@ -32,11 +32,13 @@ export default function TextInput<T extends FormData>({
                 {label}
                 {required && <span className="text-destructive"> *</span>}
             </Label>
-            <SmartInput<T>
-                form={form}
-                name={name}
-                placeholder={placeholder}
-            />
+            <div className="bg-background">
+                <SmartInput<T>
+                    form={form}
+                    name={name}
+                    placeholder={placeholder}
+                />
+            </div>
             <InputError message={form.errors[name]} />
         </div>
     );

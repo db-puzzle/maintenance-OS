@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, FileText, List, MessageSquare } from 'lucide-react';
+import { Camera, FileText, List, MessageSquare, Pencil, GripVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Break {
     start_time: string;
@@ -28,7 +30,7 @@ interface Task {
 interface TaskCardProps {
     task: Task;
     index: number;
-    onTypeChange: (type: Task['type']) => void;
+    onEdit: () => void;
 }
 
 const getTaskTypeIcon = (type: Task['type']) => {
@@ -46,28 +48,48 @@ const getTaskTypeIcon = (type: Task['type']) => {
     }
 };
 
-export default function TaskCard({ task, index, onTypeChange }: TaskCardProps) {
+export default function TaskCard({ task, index, onEdit }: TaskCardProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({
+        id: `task-${task.id}`,
+        animateLayoutChanges: () => false
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition: transition && 'transform 150ms ease',
+        opacity: isDragging ? 0.5 : undefined,
+        zIndex: isDragging ? 1 : undefined
+    };
+
     return (
-        <Card className="bg-muted/50 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
-            <CardHeader className="flex flex-col space-y-2">
+        <Card 
+            ref={setNodeRef}
+            style={style}
+            className={`bg-muted/30 ${isDragging ? 'shadow-lg' : ''}`}
+        >
+            <CardHeader>
                 <div className="flex items-center justify-between">
-                    <Label className="text-md font-semibold">Tarefa {index + 1}</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Select
-                        value={task.type}
-                        onValueChange={onTypeChange}
+                    <button
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-grab hover:cursor-grabbing touch-none"
                     >
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Selecione o tipo de tarefa" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="question">Registro (pergunta e resposta em texto)</SelectItem>
-                            <SelectItem value="multiple_choice">Múltipla escolha</SelectItem>
-                            <SelectItem value="measurement">Medições</SelectItem>
-                            <SelectItem value="photo">Registro fotográfico</SelectItem>
-                        </SelectContent>
-                    </Select>
+                        <GripVertical className="h-4 w-4 text-gray-500" />
+                    </button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onEdit}
+                    >
+                        <Pencil className="h-4 w-4" />
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent className="space-y-2">

@@ -1,15 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, Save, X } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { PlusCircle, Save, X, GripVertical, Lightbulb, Plus, Clock, FileText, ListChecks, Ruler, Camera, CheckSquare, ClipboardCheck } from 'lucide-react';
 import ItemSelect from '@/components/ItemSelect';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import TextInput from '@/components/TextInput';
+import { useForm } from '@inertiajs/react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from "@/components/ui/hover-card"
 
 interface Task {
     id?: number;
-    type: 'question' | 'multiple_choice' | 'measurement' | 'photo';
+    type: 'question' | 'multiple_choice' | 'multiple_select' | 'measurement' | 'photo';
     description: string;
     options?: string[];
     measurementPoints?: {
@@ -25,120 +46,325 @@ interface Task {
 }
 
 interface TaskEditorCardProps {
+    initialTask?: Task;
     onSave: (task: Task) => void;
     onCancel: () => void;
 }
 
 const taskTypes = [
-    { id: 1, name: 'Registro (pergunta e resposta em texto)' },
-    { id: 2, name: 'Múltipla escolha' },
-    { id: 3, name: 'Medições' },
-    { id: 4, name: 'Registro fotográfico' }
+    { 
+        id: 1, 
+        name: 'Registro (pergunta e resposta em texto)', 
+        icon: FileText,
+        label: 'Pergunta',
+        placeholder: 'Digite a pergunta que será respondida...'
+    },
+    { 
+        id: 2, 
+        name: 'Múltipla escolha', 
+        icon: CheckSquare,
+        label: 'Pergunta de Múltipla Escolha',
+        placeholder: 'Digite a pergunta para escolha da resposta...'
+    },
+    { 
+        id: 3, 
+        name: 'Múltipla seleção', 
+        icon: ListChecks,
+        label: 'Pergunta de Múltipla Seleção',
+        placeholder: 'Digite a pergunta para seleção das respostas...'
+    },
+    { 
+        id: 4, 
+        name: 'Medições', 
+        icon: Ruler,
+        label: 'Instrução de Medição',
+        placeholder: 'Descreva as instruções para realizar as medições...'
+    },
+    { 
+        id: 5, 
+        name: 'Registro fotográfico', 
+        icon: Camera,
+        label: 'Instrução para Foto',
+        placeholder: 'Descreva as instruções para o registro fotográfico...'
+    }
 ];
 
-const taskTypeMapping = {
+const taskTypeMapping: Record<number, Task['type']> = {
     1: 'question',
     2: 'multiple_choice',
-    3: 'measurement',
-    4: 'photo'
+    3: 'multiple_select',
+    4: 'measurement',
+    5: 'photo'
 } as const;
 
-export default function TaskEditorCard({ onSave, onCancel }: TaskEditorCardProps) {
-    const [taskType, setTaskType] = useState<Task['type']>('question');
-    const [taskOptions, setTaskOptions] = useState(['Sim', 'Não']);
-    const [measurementPoints, setMeasurementPoints] = useState([
+interface TaskForm {
+    description: string;
+    photoInstructions: string;
+    options: { [key: number]: string };
+    [key: string]: string | number | boolean | File | null | { [key: number]: string };
+}
+
+export default function TaskEditorCard({ initialTask, onSave, onCancel }: TaskEditorCardProps) {
+    const { data, setData, errors, clearErrors } = useForm<TaskForm>({
+        description: '',
+        photoInstructions: '',
+        options: {}
+    });
+
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({
+        id: `task-${initialTask?.id}`,
+        animateLayoutChanges: () => false
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition: transition && 'transform 150ms ease',
+        opacity: isDragging ? 0.5 : undefined,
+        zIndex: isDragging ? 1 : undefined
+    };
+
+    const [taskType, setTaskType] = useState<Task['type'] | null>(null);
+    const [measurementPoints, setMeasurementPoints] = useState(initialTask?.measurementPoints || [
         { name: 'Ponto A', min: 0, target: 0, max: 0, unit: 'mm' },
         { name: 'Ponto B', min: 0, target: 0, max: 0, unit: 'mm' },
         { name: 'Ponto C', min: 0, target: 0, max: 0, unit: 'mm' }
     ]);
-    const [photoInstructions, setPhotoInstructions] = useState('');
-    const [isRequired, setIsRequired] = useState(true);
+    const [isRequired, setIsRequired] = useState(initialTask?.required ?? true);
+
+    const isChoiceBasedTask = taskType === 'multiple_choice' || taskType === 'multiple_select';
+    
+    const taskLabels = taskType 
+        ? taskTypes.find(t => taskTypeMapping[t.id] === taskType) 
+        : { label: '', placeholder: 'Selecione um tipo de tarefa primeiro...' };
+
+    const addOption = () => {
+        const newOptions = { ...data.options };
+        const newIndex = Object.keys(newOptions).length + 1;
+        newOptions[newIndex] = '';
+        setData('options', newOptions);
+    };
+
+    const removeOption = (indexToRemove: number) => {
+        const entries = Object.entries(data.options)
+            .sort(([a], [b]) => Number(a) - Number(b))
+            .map(([key, value]) => ({
+                index: Number(key),
+                value: value || ''
+            }));
+        
+        const reindexedOptions = entries
+            .filter(entry => entry.index !== indexToRemove)
+            .reduce((acc, entry, idx) => {
+                const newIndex = idx + 1;
+                return {
+                    ...acc,
+                    [newIndex]: entry.value
+                };
+            }, {});
+        
+        setData('options', reindexedOptions);
+    };
 
     const handleSaveTask = () => {
+        if (!taskType) {
+            return;
+        }
+
         const newTask: Task = {
             type: taskType,
-            description: '',
-            instructionImages: [],
+            description: data.description,
+            instructionImages: initialTask?.instructionImages || [],
             required: isRequired,
         };
 
-        if (taskType === 'multiple_choice') {
-            newTask.options = taskOptions;
+        if (isChoiceBasedTask) {
+            newTask.options = Object.values(data.options);
         } else if (taskType === 'measurement') {
             newTask.measurementPoints = measurementPoints;
         } else if (taskType === 'photo') {
-            newTask.photoInstructions = photoInstructions;
+            newTask.photoInstructions = data.photoInstructions;
         }
 
         onSave(newTask);
     };
 
     return (
-        <Card className="bg-muted/50">
+        <Card 
+            ref={setNodeRef}
+            style={style}
+            className={`bg-muted/90 ${isDragging ? 'shadow-lg' : ''}`}
+        >
             <CardHeader>
                 <div className="flex justify-between items-center">
-                    <Label className="text-lg font-semibold">Nova Tarefa</Label>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={onCancel}
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            {...attributes}
+                            {...listeners}
+                            className="cursor-grab hover:cursor-grabbing touch-none"
+                        >
+                            <GripVertical className="h-4 w-4 text-gray-500" />
+                        </button>
+                        <Label className="text-lg font-semibold">Editar Tarefa</Label>
+                    </div>
+                    <HoverCard>
+                        <HoverCardTrigger asChild>
+                            <Lightbulb className="h-6 w-6 text-muted-foreground" />
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-120" align="end">
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-semibold">Dicas úteis:</h4>
+                                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                                    <li>Arraste o ícone <GripVertical className="h-3 w-3 inline-block text-muted-foreground" /> para reordenar as tarefas</li>
+                                </ul>
+                            </div>
+                        </HoverCardContent>
+                    </HoverCard>
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="grid gap-2">
-                    <ItemSelect
-                        label="Tipo de Tarefa"
-                        items={taskTypes}
-                        value={(Object.entries(taskTypeMapping).find(([_, type]) => type === taskType)?.[0] ?? '1').toString()}
-                        onValueChange={(value) => setTaskType(taskTypeMapping[Number(value) as keyof typeof taskTypeMapping])}
-                        placeholder="Selecione o tipo de tarefa"
-                        required
-                        canCreate={false}
-                        createRoute=""
-                    />
+                <div className="flex justify-between items-center">
+                    <div className="w-90">
+                        <ItemSelect
+                            label="Tipo de Tarefa"
+                            items={taskTypes}
+                            value={taskType ? (Object.entries(taskTypeMapping).find(([_, type]) => type === taskType)?.[0] ?? '') : ''}
+                            onValueChange={(value) => {
+                                if (value && value !== '') {
+                                    setTaskType(taskTypeMapping[Number(value) as keyof typeof taskTypeMapping]);
+                                } else {
+                                    setTaskType(null);
+                                }
+                            }}
+                            placeholder="Selecione o tipo de tarefa"
+                            required
+                            canCreate={false}
+                            createRoute=""
+                        />
+                    </div>
+                    <div className="flex items-center space-x-2 mt-6">
+                        <Switch
+                            id="required"
+                            checked={isRequired}
+                            onCheckedChange={setIsRequired}
+                        />
+                        <Label htmlFor="required">Tarefa obrigatória</Label>
+                    </div>
                 </div>
 
-                {taskType === 'multiple_choice' && (
-                    <div>
-                        <Label>Opções</Label>
-                        <div className="space-y-2">
-                            {taskOptions.map((option, index) => (
-                                <div key={index} className="flex gap-2">
-                                    <Input
-                                        value={option}
-                                        onChange={(e) => {
-                                            const newOptions = [...taskOptions];
-                                            newOptions[index] = e.target.value;
-                                            setTaskOptions(newOptions);
-                                        }}
-                                        placeholder={`Opção ${index + 1}`}
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => {
-                                            const newOptions = taskOptions.filter((_, i) => i !== index);
-                                            setTaskOptions(newOptions);
-                                        }}
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
+                {taskType ? (
+                    <div className="grid gap-2">
+                        <TextInput<TaskForm>
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors
+                            }}
+                            name="description"
+                            label={taskLabels?.label || ''}
+                            placeholder={taskLabels?.placeholder || ''}
+                            required
+                        />
+                    </div>
+                ) : (
+                    <Card className="bg-background shadow-none">
+                        <CardContent className="px-4 py-4 flex items-start space-x-4">
+                            <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center">
+                                <ClipboardCheck className="size-6 text-foreground/60" />
+                            </div>
+                            <div className="flex flex-col py-1">
+                                <h3 className="text-md font-medium">Configure sua tarefa</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Selecione um tipo de tarefa acima para começar a configuração.
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {isChoiceBasedTask && (
+                    <div className="grid gap-2">
+                        <div className="space-y-0.5 pl-4">
+                            <div className="flex justify-between items-center mb-2">
+                                <Label className="text-base font-medium pt-2 ml-2">
+                                    {taskType === 'multiple_choice' ? 'Opções de Escolha' : 'Opções de Seleção'}
+                                </Label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={addOption}
+                                    className="flex items-center gap-2"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Adicionar Opção
+                                </Button>
+                            </div>
+                            {Object.entries(data.options).length === 0 ? (
+                                <Card className="bg-background shadow-none">
+                                    <CardContent className="px-4 flex items-start space-x-4">
+                                        <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center">
+                                            <Clock className="size-6 text-foreground/60" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <h3 className="text-md font-medium">Nenhuma opção adicionada</h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Adicione opções de resposta para esta tarefa.
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <div className="space-y-2">
+                                    {Object.entries(data.options).map(([indexStr, value]) => {
+                                        const index = Number(indexStr);
+                                        return (
+                                            <Card key={index} className="bg-background shadow-none">
+                                                <CardContent className="flex items-center space-x-2">
+                                                    <div className="flex-1">
+                                                        <TextInput<TaskForm>
+                                                            form={{
+                                                                data: {
+                                                                    ...data,
+                                                                    [`option-${index}`]: data.options[index] || ''
+                                                                },
+                                                                setData: (field, value) => {
+                                                                    if (field === `option-${index}`) {
+                                                                        const newOptions = { ...data.options };
+                                                                        newOptions[index] = value;
+                                                                        setData('options', newOptions);
+                                                                    }
+                                                                },
+                                                                errors,
+                                                                clearErrors
+                                                            }}
+                                                            name={`option-${index}`}
+                                                            label={`Opção ${index}`}
+                                                            placeholder={`Descreva a opção ${index}`}
+                                                        />
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        variant="destructive"
+                                                        size="icon"
+                                                        className="h-6 w-6 mt-6"
+                                                        onClick={() => removeOption(index)}
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                    </Button>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
                                 </div>
-                            ))}
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setTaskOptions([...taskOptions, ''])}
-                                className="flex items-center gap-2"
-                            >
-                                <PlusCircle className="h-4 w-4" />
-                                Adicionar opção
-                            </Button>
+                            )}
                         </div>
                     </div>
                 )}
@@ -257,41 +483,62 @@ export default function TaskEditorCard({ onSave, onCancel }: TaskEditorCardProps
 
                 {taskType === 'photo' && (
                     <div>
-                        <Label>Instruções para Foto</Label>
-                        <Input
-                            value={photoInstructions}
-                            onChange={(e) => setPhotoInstructions(e.target.value)}
+                        <TextInput<TaskForm>
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors
+                            }}
+                            name="photoInstructions"
+                            label="Instruções para Foto"
                             placeholder="Instruções específicas para a foto a ser tirada..."
                         />
                     </div>
                 )}
 
-                <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        id="required"
-                        checked={isRequired}
-                        onChange={(e) => setIsRequired(e.target.checked)}
-                    />
-                    <Label htmlFor="required">Tarefa obrigatória</Label>
-                </div>
-
-                <div className="flex justify-end gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onCancel}
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
-                        type="button"
-                        onClick={handleSaveTask}
-                        className="flex items-center gap-2"
-                    >
-                        <Save className="h-4 w-4" />
-                        Salvar Tarefa
-                    </Button>
+                <div className="flex justify-between items-center mt-4">
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                className="flex items-center gap-2"
+                            >
+                                Excluir
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta ação não pode ser desfeita. A exclusão será permanente após a Rotina ser salva.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={onCancel}>
+                                    Sim, excluir tarefa
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    <div className="flex gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={onCancel}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleSaveTask}
+                            className="flex items-center gap-2"
+                        >
+                            Vizualizar
+                        </Button>
+                    </div>
                 </div>
             </CardContent>
         </Card>
