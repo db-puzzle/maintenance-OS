@@ -50,7 +50,7 @@ export default function ItemSelect({
                 {label}
                 {required && <span className="text-destructive ml-1">*</span>}
             </label>
-            <div className="bg-background">
+            <div className="bg-background rounded-md">
                 <Select
                     value={value}
                     onValueChange={onValueChange}
