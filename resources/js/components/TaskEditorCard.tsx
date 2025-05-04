@@ -15,7 +15,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import TextInput from '@/components/TextInput';
 import { useForm } from '@inertiajs/react';
-import { Task, TaskType, TaskTypes, CodeReaderTypes, TaskOperations } from '@/types/task';
+import { Task, TaskType, TaskTypes, CodeReaderTypes, TaskOperations, TaskState, Measurement } from '@/types/task';
 import { UnitCategory, MeasurementUnitCategories, findUnitCategory } from '@/types/units';
 import {
     AlertDialog,
@@ -36,11 +36,17 @@ import {
 import AddTaskButton from '@/components/AddTaskButton';
 
 interface TaskEditorCardProps {
+    /** A tarefa inicial sendo editada */
     initialTask?: Task;
+    /** Propriedades essenciais da tarefa em edição */
     task: Pick<Task, 'type' | 'measurementPoints' | 'options' | 'isRequired'>;
+    /** Callback para pré-visualizar a tarefa após edição */
     onPreview: (task: Task) => void;
+    /** Callback para remover a tarefa */
     onRemove: () => void;
-    onNewTask: () => void;
+    /** Callback para adicionar uma nova tarefa após esta */
+    onNewTask: (newTask?: Task) => void;
+    /** Callback para atualizar a tarefa com uma operação */
     updateTask: (operation: (task: Task) => Task) => void;
 }
 
@@ -103,7 +109,8 @@ export default function TaskEditorCard({
             type: taskType,
             description: data.description,
             instructionImages: initialTask?.instructionImages || [],
-            isRequired
+            isRequired,
+            state: TaskState.Viewing
         };
 
         if (isChoiceBasedTask) {
@@ -167,12 +174,12 @@ export default function TaskEditorCard({
         updateTask(task => TaskOperations.removeOption(task, index));
     };
 
-    const handleMeasurementPointsChange = (points: NonNullable<Task['measurementPoints']>) => {
-        updateTask(task => TaskOperations.updateMeasurementPoints(task, points));
+    const handleMeasurementsChange = (points: Measurement[]) => {
+        updateTask(task => TaskOperations.updateMeasurements(task, points));
     };
 
-    const handleAddMeasurementPoint = () => {
-        updateTask(task => TaskOperations.addMeasurementPoint(task));
+    const handleAddMeasurement = () => {
+        updateTask(task => TaskOperations.addMeasurement(task));
     };
 
     return (
@@ -370,7 +377,7 @@ export default function TaskEditorCard({
                                                 onChange={(e) => {
                                                     const newPoints = [...(measurementPoints || [])];
                                                     newPoints[index] = { ...newPoints[index], name: e.target.value };
-                                                    handleMeasurementPointsChange(newPoints);
+                                                    handleMeasurementsChange(newPoints);
                                                 }}
                                                 placeholder={`Ponto ${index + 1}`}
                                                 className="w-1/3"
@@ -381,7 +388,7 @@ export default function TaskEditorCard({
                                                 size="icon"
                                                 onClick={() => {
                                                     const newPoints = (measurementPoints || []).filter((_, i) => i !== index);
-                                                    handleMeasurementPointsChange(newPoints);
+                                                    handleMeasurementsChange(newPoints);
                                                 }}
                                             >
                                                 <X className="h-4 w-4" />
@@ -397,7 +404,7 @@ export default function TaskEditorCard({
                                                         onChange={(e) => {
                                                             const newPoints = [...(measurementPoints || [])];
                                                             newPoints[index] = { ...newPoints[index], min: parseFloat(e.target.value) };
-                                                            handleMeasurementPointsChange(newPoints);
+                                                            handleMeasurementsChange(newPoints);
                                                         }}
                                                     />
                                                 </div>
@@ -411,7 +418,7 @@ export default function TaskEditorCard({
                                                         onChange={(e) => {
                                                             const newPoints = [...(measurementPoints || [])];
                                                             newPoints[index] = { ...newPoints[index], target: parseFloat(e.target.value) };
-                                                            handleMeasurementPointsChange(newPoints);
+                                                            handleMeasurementsChange(newPoints);
                                                         }}
                                                     />
                                                 </div>
@@ -425,7 +432,7 @@ export default function TaskEditorCard({
                                                         onChange={(e) => {
                                                             const newPoints = [...(measurementPoints || [])];
                                                             newPoints[index] = { ...newPoints[index], max: parseFloat(e.target.value) };
-                                                            handleMeasurementPointsChange(newPoints);
+                                                            handleMeasurementsChange(newPoints);
                                                         }}
                                                     />
                                                 </div>
@@ -441,7 +448,7 @@ export default function TaskEditorCard({
                                                         const firstUnitInCategory = MeasurementUnitCategories[category as UnitCategory][0].value;
                                                         const newPoints = [...(measurementPoints || [])];
                                                         newPoints[index] = { ...newPoints[index], unit: firstUnitInCategory };
-                                                        handleMeasurementPointsChange(newPoints);
+                                                        handleMeasurementsChange(newPoints);
                                                     }}
                                                 >
                                                     <SelectTrigger>
@@ -468,7 +475,7 @@ export default function TaskEditorCard({
                                                         onValueChange={(value) => {
                                                             const newPoints = [...(measurementPoints || [])];
                                                             newPoints[index] = { ...newPoints[index], unit: value };
-                                                            handleMeasurementPointsChange(newPoints);
+                                                            handleMeasurementsChange(newPoints);
                                                         }}
                                                     >
                                                         <SelectTrigger>
@@ -491,7 +498,7 @@ export default function TaskEditorCard({
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={handleAddMeasurementPoint}
+                                onClick={handleAddMeasurement}
                                 className="flex items-center gap-2"
                             >
                                 <Plus className="h-4 w-4" />
@@ -578,8 +585,13 @@ export default function TaskEditorCard({
                         <AddTaskButton
                             label="Nova Tarefa Abaixo"
                             taskTypes={TaskTypes}
-                            onTaskTypeChange={(type) => updateTask(task => TaskOperations.updateType(task, type))}
-                            onNewTask={onNewTask}
+                            tasks={initialTask ? [initialTask] : undefined}
+                            currentIndex={0}
+                            onTaskAdded={(newTask) => {
+                                if (onNewTask) {
+                                    onNewTask(newTask);
+                                }
+                            }}
                         />
                         <Button
                             type="button"

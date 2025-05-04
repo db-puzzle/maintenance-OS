@@ -8,23 +8,32 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Task, TaskType, TaskTypes } from '@/types/task';
+import { Task, TaskType, TaskTypes, TaskOperations } from '@/types/task';
 import { LucideIcon } from 'lucide-react';
 import ItemSelect from '@/components/ItemSelect';
 
 interface AddTaskButtonProps {
     label: string;
     taskTypes: typeof TaskTypes;
-    onTaskTypeChange: (type: TaskType) => void;
-    onNewTask: () => void;
+    tasks?: Task[];
+    currentIndex?: number;
+    onTaskAdded?: (newTask: Task) => void;
 }
 
 export default function AddTaskButton({ 
     label,
     taskTypes,
-    onTaskTypeChange,
-    onNewTask 
+    tasks,
+    currentIndex = -1,
+    onTaskAdded = () => {}
 }: AddTaskButtonProps) {
+    const handleAddTask = (type: TaskType) => {
+        const newTask = TaskOperations.createAtIndex(tasks, currentIndex + 1, type);
+        if (onTaskAdded) {
+            onTaskAdded(newTask);
+        }
+    };
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -43,10 +52,7 @@ export default function AddTaskButton({
                 {taskTypes.map((type) => (
                     <DropdownMenuItem
                         key={type.id}
-                        onClick={() => {
-                            onTaskTypeChange(type.value);
-                            onNewTask();
-                        }}
+                        onClick={() => handleAddTask(type.value)}
                         className="flex items-center gap-2"
                     >
                         <type.icon className="h-4 w-4" />

@@ -78,7 +78,23 @@ export const CodeReaderTypes = [
     }
 ] as const;
 
-export const DefaultMeasurementPoints = [
+export enum TaskState {
+    Editing = 'Editing',
+    Previewing = 'Previewing',
+    Responding = 'Responding',
+    Viewing = 'Viewing'
+}
+
+// Utilizando o tipo de unidade de medição do arquivo units.ts
+export interface Measurement {
+    name: string;
+    min: number;
+    target: number;
+    max: number;
+    unit: typeof MeasurementUnits[number];
+}
+
+export const DefaultMeasurements: Measurement[] = [
     { name: 'Ponto A', min: 49, target: 50, max: 51, unit: 'mm' },
     { name: 'Ponto B', min: 49, target: 50, max: 51, unit: 'mm' },
     { name: 'Ponto C', min: 49, target: 50, max: 51, unit: 'mm' }
@@ -91,19 +107,13 @@ export interface Task {
     description: string;
     isRequired: boolean;
     options?: string[];
-    measurementPoints?: Array<{
-        name: string;
-        min: number;
-        target: number;
-        max: number;
-        unit: string;
-    }>;
+    measurementPoints?: Measurement[];
     photoInstructions?: string;
     codeReaderType?: (typeof CodeReaderTypes)[number]['value'];
     codeReaderInstructions?: string;
     fileUploadInstructions?: string;
     instructionImages: string[];
-    isEditing?: boolean;
+    state?: TaskState;
 }
 
 export const DefaultTaskValues = {
@@ -111,13 +121,7 @@ export const DefaultTaskValues = {
     isRequired: true,
     instructionImages: [] as string[],
     options: [] as string[],
-    measurementPoints: [] as Array<{
-        name: string;
-        min: number;
-        target: number;
-        max: number;
-        unit: string;
-    }>
+    measurementPoints: [] as Measurement[]
 } as const;
 
 // Operações de Tarefas
@@ -136,21 +140,42 @@ export const TaskOperations = {
         instructionImages: DefaultTaskValues.instructionImages,
         options: DefaultTaskValues.options,
         measurementPoints: DefaultTaskValues.measurementPoints,
-        isEditing: true
+        state: TaskState.Editing
     }),
 
-    generateNextId: (tasks: Task[]): string => {
-        const newId = tasks.length > 0 ? Math.max(...tasks.map(t => parseInt(t.id))) + 1 : 1;
-        return newId.toString();
+    generateNextId: (tasks: Task[] | undefined): string => {
+        if (!tasks || tasks.length === 0) return "1";
+        
+        // Encontra o maior ID numérico na lista atual
+        const maxId = Math.max(...tasks.map(t => {
+            const id = parseInt(t.id);
+            return isNaN(id) ? 0 : id;
+        }));
+        
+        // Retorna o próximo ID
+        return (maxId + 1).toString();
     },
 
     createAtIndex: (
-        tasks: Task[],
+        tasks: Task[] | undefined,
         index: number,
         type: TaskType,
         description: string = DefaultTaskValues.description,
         isRequired: boolean = DefaultTaskValues.isRequired
     ): Task => {
+        // Se não houver lista de tarefas ou ela estiver vazia
+        if (!tasks || tasks.length === 0 || index < 0) {
+            const newId = "1"; // Primeira tarefa sempre começa com ID 1
+            return TaskOperations.create(newId, type, description, isRequired);
+        }
+
+        // Se o índice for maior que o tamanho da lista, adiciona ao final
+        if (index >= tasks.length) {
+            const newId = TaskOperations.generateNextId(tasks);
+            return TaskOperations.create(newId, type, description, isRequired);
+        }
+
+        // Cria a nova tarefa com o próximo ID disponível
         const newId = TaskOperations.generateNextId(tasks);
         return TaskOperations.create(newId, type, description, isRequired);
     },
@@ -181,36 +206,70 @@ export const TaskOperations = {
         options
     }),
 
-    addMeasurementPoint: (task: Task): Task => ({
+    addMeasurement: (task: Task): Task => ({
         ...task,
         measurementPoints: [
             ...(task.measurementPoints || []),
             {
-                ...DefaultMeasurementPoints[0],
+                ...DefaultMeasurements[0],
                 name: `Ponto ${(task.measurementPoints || []).length + 1}`
             }
         ]
     }),
 
-    removeMeasurementPoint: (task: Task, pointIndex: number): Task => ({
+    removeMeasurement: (task: Task, pointIndex: number): Task => ({
         ...task,
         measurementPoints: (task.measurementPoints || []).filter((_, index) => index !== pointIndex)
     }),
 
-    updateMeasurementPoints: (
+    updateMeasurements: (
         task: Task,
-        points: NonNullable<Task['measurementPoints']>
+        points: Measurement[]
     ): Task => ({
         ...task,
         measurementPoints: points
     }),
 
-    convertTaskState: (taskState: Task): Task => ({
-        ...taskState,
-        options: taskState.options || [],
-        isRequired: taskState.isRequired,
-        taskType: taskState.type,
-        instructionImages: taskState.instructionImages || [],
-        measurementPoints: taskState.measurementPoints || []
-    })
+    convertTaskState: (task: Task): Task => ({
+        ...task,
+        options: task.options || [],
+        isRequired: task.isRequired,
+        taskType: task.type,
+        instructionImages: task.instructionImages || [],
+        measurementPoints: task.measurementPoints || []
+    }),
+
+    // Métodos de gerenciamento de estado
+    setEditing: (task: Task): Task => ({
+        ...task,
+        state: TaskState.Editing
+    }),
+
+    setPreviewing: (task: Task): Task => ({
+        ...task,
+        state: TaskState.Previewing
+    }),
+
+    setResponding: (task: Task): Task => ({
+        ...task,
+        state: TaskState.Responding
+    }),
+
+    setViewing: (task: Task): Task => ({
+        ...task,
+        state: TaskState.Viewing
+    }),
+
+    // Verificadores de estado
+    isEditing: (task: Task): boolean => 
+        task.state === TaskState.Editing,
+
+    isPreviewing: (task: Task): boolean => 
+        task.state === TaskState.Previewing,
+
+    isResponding: (task: Task): boolean => 
+        task.state === TaskState.Responding,
+
+    isViewing: (task: Task): boolean => 
+        task.state === TaskState.Viewing || task.state === undefined
 } as const; 

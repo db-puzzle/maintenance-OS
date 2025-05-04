@@ -14,7 +14,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskCard from '@/components/TaskCard';
 import TaskEditorCard from '@/components/TaskEditorCard';
-import { Task, TaskType, TaskTypes, TaskOperations } from '@/types/task';
+import { Task, TaskType, TaskTypes, TaskOperations, TaskState } from '@/types/task';
 import {
     DndContext,
     closestCenter,
@@ -70,26 +70,76 @@ export default function CreateRoutine({ }: Props) {
     const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(null);
     const [activeId, setActiveId] = useState<string | null>(null);
 
-    // Função utilitária para atualizar uma tarefa
-    const updateTask = (index: number, operation: (task: Task) => Task) => {
-        const updatedTasks = [...tasks];
-        updatedTasks[index] = operation(updatedTasks[index]);
-        setTasks(updatedTasks);
-    };
+    // Funções utilitárias para gerenciamento de tarefas
+    const taskMethods = {
+        // Atualizar uma tarefa existente
+        update: (index: number, operation: (task: Task) => Task) => {
+            const updatedTasks = [...tasks];
+            updatedTasks[index] = operation(updatedTasks[index]);
+            setTasks(updatedTasks);
+        },
 
-    // Função utilitária para adicionar uma nova tarefa
-    const addTask = (index: number, task: Task) => {
-        const updatedTasks = [...tasks];
-        updatedTasks.splice(index + 1, 0, task);
-        setTasks(updatedTasks);
-        setSelectedTaskIndex(index + 1);
-    };
+        // Adicionar uma nova tarefa
+        add: (index: number, task: Task) => {
+            // Certifique-se de que a tarefa tenha um ID único
+            const existingIds = new Set(tasks.map(t => t.id));
+            if (existingIds.has(task.id)) {
+                // Se o ID já existe, gere um novo
+                task = {
+                    ...task,
+                    id: TaskOperations.generateNextId(tasks)
+                };
+            }
+            
+            const updatedTasks = [...tasks];
+            updatedTasks.splice(index + 1, 0, task);
+            setTasks(updatedTasks);
+            setSelectedTaskIndex(index + 1);
+        },
 
-    // Função utilitária para remover uma tarefa
-    const removeTask = (index: number) => {
-        const updatedTasks = [...tasks];
-        updatedTasks.splice(index, 1);
-        setTasks(updatedTasks);
+        // Remover uma tarefa
+        remove: (index: number) => {
+            const updatedTasks = [...tasks];
+            updatedTasks.splice(index, 1);
+            setTasks(updatedTasks);
+        },
+
+        // Criar uma nova tarefa em um índice específico
+        createAt: (index: number, type?: TaskType, newTask?: Task) => {
+            if (!type && !newTask) return;
+            
+            let taskToAdd: Task;
+            
+            if (newTask) {
+                // Se uma tarefa já foi criada, use-a
+                taskToAdd = newTask;
+            } else if (type) {
+                // Caso contrário, crie uma nova tarefa com o tipo especificado
+                taskToAdd = TaskOperations.createAtIndex(
+                    tasks,
+                    index,
+                    type
+                );
+            } else {
+                return;
+            }
+            
+            taskMethods.add(index, taskToAdd);
+        },
+
+        // Alterar o estado de uma tarefa
+        setState: (index: number, state: TaskState) => {
+            taskMethods.update(index, task => ({
+                ...task,
+                state
+            }));
+        },
+
+        // Obter uma tarefa pelo ID (usado no arrastar e soltar)
+        getById: (id: string) => {
+            const taskId = parseInt(id.replace('task-', ''));
+            return tasks.find(task => task.id === taskId.toString());
+        }
     };
 
     const sensors = useSensors(
@@ -134,14 +184,9 @@ export default function CreateRoutine({ }: Props) {
         setActiveId(null);
     };
 
-    const getTaskById = (id: string) => {
-        const taskId = parseInt(id.replace('task-', ''));
-        return tasks.find(task => task.id === taskId.toString());
-    };
-
     const handleSave = () => {
-        // Remove isEditing flag from tasks before saving
-        const tasksToSave = tasks.map(({ isEditing, ...task }) => task);
+        // Remove state flag from tasks before saving
+        const tasksToSave = tasks.map(({ state, ...task }) => task);
         
         // Use o router.post diretamente
         router.post(route('routines.store'), {
@@ -159,39 +204,6 @@ export default function CreateRoutine({ }: Props) {
                 });
             }
         });
-    };
-
-    const handleNewTaskAtIndex = (index: number, type?: TaskType) => {
-        if (!type) return;
-        
-        const newTask = TaskOperations.createAtIndex(
-            tasks,
-            index,
-            type
-        );
-        
-        addTask(index, newTask);
-    };
-
-    const handleTaskTypeChange = (type: TaskType) => {
-        if (selectedTaskIndex !== null) {
-            // Se temos uma tarefa selecionada, apenas mudamos seu tipo
-            updateTask(selectedTaskIndex, task => TaskOperations.updateType(task, type));
-        } else {
-            // Caso contrário, criamos uma nova tarefa no final da lista
-            handleNewTaskAtIndex(tasks.length - 1, type);
-        }
-    };
-
-    const handleNewTask = () => {
-        handleNewTaskAtIndex(tasks.length - 1);
-    };
-
-    const handleEditTask = (index: number) => {
-        updateTask(index, task => ({
-            ...task,
-            isEditing: true
-        }));
     };
 
     return (
@@ -280,14 +292,19 @@ export default function CreateRoutine({ }: Props) {
                                                 <AddTaskButton
                                                     label="Nova Tarefa"
                                                     taskTypes={TaskTypes}
-                                                    onTaskTypeChange={handleTaskTypeChange}
-                                                    onNewTask={() => handleNewTask()}
+                                                    tasks={tasks}
+                                                    currentIndex={-1}
+                                                    onTaskAdded={(newTask) => {
+                                                        const updatedTasks = [...tasks, newTask];
+                                                        setTasks(updatedTasks);
+                                                        setSelectedTaskIndex(updatedTasks.length - 1);
+                                                    }}
                                                 />
                                             </CardContent>
                                         </Card>
                                     ) : (
                                         tasks.map((task, index) => (
-                                            task.isEditing ? (
+                                            TaskOperations.isEditing(task) ? (
                                                 <TaskEditorCard
                                                     key={`task-${task.id}`}
                                                     initialTask={TaskOperations.convertTaskState(task)}
@@ -297,31 +314,32 @@ export default function CreateRoutine({ }: Props) {
                                                         options: task.options,
                                                         isRequired: task.isRequired
                                                     }}
-                                                    onPreview={(newTask) => updateTask(index, t => ({
+                                                    onPreview={(newTask) => taskMethods.update(index, t => ({
                                                         ...TaskOperations.convertTaskState(newTask),
                                                         id: t.id
                                                     }))}
                                                     onRemove={() => {
                                                         if (!tasks[index].description) {
-                                                            removeTask(index);
+                                                            taskMethods.remove(index);
                                                         } else {
-                                                            updateTask(index, task => ({
-                                                                ...task,
-                                                                isEditing: false
-                                                            }));
+                                                            taskMethods.setState(index, TaskState.Viewing);
                                                         }
                                                     }}
-                                                    onNewTask={() => handleNewTaskAtIndex(index)}
-                                                    updateTask={(operation) => updateTask(index, operation)}
+                                                    onNewTask={(newTask) => taskMethods.createAt(index, undefined, newTask)}
+                                                    updateTask={(operation) => taskMethods.update(index, operation)}
                                                 />
                                             ) : (
                                                 <TaskCard
                                                     key={`task-${task.id}`}
                                                     task={TaskOperations.convertTaskState(task)}
                                                     index={index}
-                                                    onEdit={() => handleEditTask(index)}
-                                                    onTypeChange={(type) => updateTask(index, task => TaskOperations.updateType(task, type))}
-                                                    onNewTask={() => handleNewTaskAtIndex(index)}
+                                                    state={task.state || TaskState.Viewing}
+                                                    onEdit={() => taskMethods.setState(index, TaskState.Editing)}
+                                                    onTypeChange={(type) => taskMethods.update(index, task => TaskOperations.updateType(task, type))}
+                                                    onNewTask={(newTask) => taskMethods.createAt(index, undefined, newTask)}
+                                                    onPreview={() => taskMethods.setState(index, TaskState.Previewing)}
+                                                    onRespond={() => taskMethods.setState(index, TaskState.Responding)}
+                                                    onViewNormal={() => taskMethods.setState(index, TaskState.Viewing)}
                                                 />
                                             )
                                         ))
@@ -340,10 +358,10 @@ export default function CreateRoutine({ }: Props) {
                             }}>
                                 {activeId ? (
                                     (() => {
-                                        const task = getTaskById(activeId);
+                                        const task = taskMethods.getById(activeId);
                                         if (!task) return null;
                                         
-                                        return task.isEditing ? (
+                                        return TaskOperations.isEditing(task) ? (
                                             <TaskEditorCard
                                                 key={`overlay-${task.id}`}
                                                 initialTask={TaskOperations.convertTaskState(task)}
@@ -355,11 +373,11 @@ export default function CreateRoutine({ }: Props) {
                                                 }}
                                                 onPreview={() => {}}
                                                 onRemove={() => {}}
-                                                onNewTask={() => handleNewTaskAtIndex(tasks.findIndex(t => t.id === task.id))}
+                                                onNewTask={(newTask) => taskMethods.createAt(tasks.findIndex(t => t.id === task.id), undefined, newTask)}
                                                 updateTask={(operation) => {
                                                     const index = tasks.findIndex(t => t.id === task.id);
                                                     if (index !== -1) {
-                                                        updateTask(index, operation);
+                                                        taskMethods.update(index, operation);
                                                     }
                                                 }}
                                             />
@@ -368,9 +386,13 @@ export default function CreateRoutine({ }: Props) {
                                                 key={`overlay-${task.id}`}
                                                 task={TaskOperations.convertTaskState(task)}
                                                 index={tasks.findIndex(t => t.id === task.id)}
+                                                state={task.state || TaskState.Viewing}
                                                 onEdit={() => {}}
                                                 onTypeChange={() => {}}
-                                                onNewTask={() => handleNewTaskAtIndex(tasks.findIndex(t => t.id === task.id))}
+                                                onNewTask={(newTask) => taskMethods.createAt(tasks.findIndex(t => t.id === task.id), undefined, newTask)}
+                                                onPreview={() => {}}
+                                                onRespond={() => {}}
+                                                onViewNormal={() => {}}
                                             />
                                         );
                                     })()
