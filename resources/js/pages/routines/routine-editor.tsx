@@ -1,5 +1,5 @@
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,12 @@ import { toast } from "sonner";
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from '@/components/TextInput';
 import { useState, useEffect } from 'react';
-import { Camera, FileText, List, MessageSquare, PlusCircle, Save, X } from 'lucide-react';
+import { Camera, FileText, List, MessageSquare, PlusCircle, Save, X, ClipboardCheck, ListChecks, Ruler, CheckSquare, ScanBarcode, Upload } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskCard from '@/components/TaskCard';
 import TaskEditorCard from '@/components/TaskEditorCard';
-import { Task } from '@/types/task';
+import { Task, TaskType, TaskTypes, TaskOperations } from '@/types/task';
 import {
     DndContext,
     closestCenter,
@@ -25,6 +25,9 @@ import {
     MeasuringStrategy,
     DragOverlay,
     defaultDropAnimationSideEffects,
+    DragEndEvent,
+    MouseSensor,
+    TouchSensor,
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -33,6 +36,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
+import AddTaskButton from '@/components/AddTaskButton';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -63,7 +67,30 @@ export default function CreateRoutine({ }: Props) {
     });
 
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(null);
     const [activeId, setActiveId] = useState<string | null>(null);
+
+    // Função utilitária para atualizar uma tarefa
+    const updateTask = (index: number, operation: (task: Task) => Task) => {
+        const updatedTasks = [...tasks];
+        updatedTasks[index] = operation(updatedTasks[index]);
+        setTasks(updatedTasks);
+    };
+
+    // Função utilitária para adicionar uma nova tarefa
+    const addTask = (index: number, task: Task) => {
+        const updatedTasks = [...tasks];
+        updatedTasks.splice(index + 1, 0, task);
+        setTasks(updatedTasks);
+        setSelectedTaskIndex(index + 1);
+    };
+
+    // Função utilitária para remover uma tarefa
+    const removeTask = (index: number) => {
+        const updatedTasks = [...tasks];
+        updatedTasks.splice(index, 1);
+        setTasks(updatedTasks);
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -77,16 +104,8 @@ export default function CreateRoutine({ }: Props) {
     );
 
     useEffect(() => {
-        // Adiciona uma tarefa inicial quando o componente é montado
-        const initialTask: Task = {
-            id: 1,
-            type: 'question',
-            description: '',
-            instructionImages: [],
-            required: true,
-            isEditing: true
-        };
-        setTasks([initialTask]);
+        // Não vamos mais criar uma tarefa inicial automaticamente
+        setTasks([]);
     }, []);
 
     const handleDragStart = (event: any) => {
@@ -117,19 +136,24 @@ export default function CreateRoutine({ }: Props) {
 
     const getTaskById = (id: string) => {
         const taskId = parseInt(id.replace('task-', ''));
-        return tasks.find(task => task.id === taskId);
+        return tasks.find(task => task.id === taskId.toString());
     };
 
     const handleSave = () => {
         // Remove isEditing flag from tasks before saving
         const tasksToSave = tasks.map(({ isEditing, ...task }) => task);
         
-        post(route('routines.store'), {
+        // Use o router.post diretamente
+        router.post(route('routines.store'), {
+            name: data.name,
+            trigger_hours: data.trigger_hours,
+            type: data.type,
+            tasks: tasksToSave,
+        }, {
             onSuccess: () => {
-                reset();
                 toast.success("Rotina criada com sucesso!");
             },
-            onError: (errors) => {
+            onError: () => {
                 toast.error("Erro ao criar rotina", {
                     description: "Verifique os campos e tente novamente."
                 });
@@ -137,66 +161,37 @@ export default function CreateRoutine({ }: Props) {
         });
     };
 
-    const handleNewTaskAtIndex = (index: number) => {
-        const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id || 0)) + 1 : 1;
-        const newTask: Task = {
-            id: newId,
-            type: 'question',
-            description: '',
-            instructionImages: [],
-            required: true,
-            isEditing: true
-        };
+    const handleNewTaskAtIndex = (index: number, type?: TaskType) => {
+        if (!type) return;
         
-        const updatedTasks = [...tasks];
-        updatedTasks.splice(index + 1, 0, newTask);
-        setTasks(updatedTasks);
+        const newTask = TaskOperations.createAtIndex(
+            tasks,
+            index,
+            type
+        );
+        
+        addTask(index, newTask);
+    };
+
+    const handleTaskTypeChange = (type: TaskType) => {
+        if (selectedTaskIndex !== null) {
+            // Se temos uma tarefa selecionada, apenas mudamos seu tipo
+            updateTask(selectedTaskIndex, task => TaskOperations.updateType(task, type));
+        } else {
+            // Caso contrário, criamos uma nova tarefa no final da lista
+            handleNewTaskAtIndex(tasks.length - 1, type);
+        }
     };
 
     const handleNewTask = () => {
         handleNewTaskAtIndex(tasks.length - 1);
     };
 
-    const handleSaveTask = (index: number, newTask: Task, isPreview: boolean = false) => {
-        const updatedTasks = [...tasks];
-        updatedTasks[index] = { 
-            ...newTask, 
-            id: tasks[index].id || Math.max(...tasks.map(t => t.id || 0)) + 1,
-            isEditing: !isPreview // Se for preview, mantém editável
-        };
-        setTasks(updatedTasks);
-    };
-
-    const handleCancelTask = (index: number) => {
-        const updatedTasks = [...tasks];
-        if (!updatedTasks[index].description) {
-            // Remove task if it's empty
-            updatedTasks.splice(index, 1);
-        } else {
-            updatedTasks[index].isEditing = false;
-        }
-        setTasks(updatedTasks);
-    };
-
     const handleEditTask = (index: number) => {
-        const updatedTasks = [...tasks];
-        updatedTasks[index].isEditing = true;
-        setTasks(updatedTasks);
-    };
-
-    const getTaskTypeIcon = (type: Task['type']) => {
-        switch(type) {
-            case 'question':
-                return <MessageSquare className="text-blue-500" />;
-            case 'multiple_choice':
-                return <List className="text-green-500" />;
-            case 'measurement':
-                return <FileText className="text-orange-500" />;
-            case 'photo':
-                return <Camera className="text-purple-500" />;
-            default:
-                return <FileText className="text-gray-500" />;
-        }
+        updateTask(index, task => ({
+            ...task,
+            isEditing: true
+        }));
     };
 
     return (
@@ -272,41 +267,66 @@ export default function CreateRoutine({ }: Props) {
                                     items={tasks.map(task => `task-${task.id}`)}
                                     strategy={verticalListSortingStrategy}
                                 >
-                                    {tasks.map((task, index) => (
-                                        task.isEditing ? (
-                                            <TaskEditorCard
-                                                key={`task-${task.id}`}
-                                                initialTask={task}
-                                                onSave={(newTask) => handleSaveTask(index, newTask)}
-                                                onPreview={(newTask) => handleSaveTask(index, newTask, true)}
-                                                onCancel={() => handleCancelTask(index)}
-                                                onNewTask={() => handleNewTaskAtIndex(index)}
-                                            />
-                                        ) : (
-                                            <TaskCard
-                                                key={`task-${task.id}`}
-                                                task={task}
-                                                index={index}
-                                                onEdit={() => handleEditTask(index)}
-                                                onTypeChange={(type) => {
-                                                    const newTasks = [...tasks];
-                                                    newTasks[index].type = type;
-                                                    setTasks(newTasks);
-                                                }}
-                                            />
-                                        )
-                                    ))}
+                                    {tasks.length === 0 ? (
+                                        <Card className="bg-muted/30">
+                                            <CardContent className="px-6 py-8 flex flex-col items-center justify-center text-center">
+                                                <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                                                    <ClipboardCheck className="size-6 text-foreground/60" />
+                                                </div>
+                                                <h3 className="text-lg font-medium mb-2">Nenhuma tarefa adicionada</h3>
+                                                <p className="text-sm text-muted-foreground mb-6">
+                                                    Adicione tarefas para compor seu formulário.
+                                                </p>
+                                                <AddTaskButton
+                                                    label="Nova Tarefa"
+                                                    taskTypes={TaskTypes}
+                                                    onTaskTypeChange={handleTaskTypeChange}
+                                                    onNewTask={() => handleNewTask()}
+                                                />
+                                            </CardContent>
+                                        </Card>
+                                    ) : (
+                                        tasks.map((task, index) => (
+                                            task.isEditing ? (
+                                                <TaskEditorCard
+                                                    key={`task-${task.id}`}
+                                                    initialTask={TaskOperations.convertTaskState(task)}
+                                                    task={{
+                                                        type: task.type,
+                                                        measurementPoints: task.measurementPoints,
+                                                        options: task.options,
+                                                        isRequired: task.isRequired
+                                                    }}
+                                                    onPreview={(newTask) => updateTask(index, t => ({
+                                                        ...TaskOperations.convertTaskState(newTask),
+                                                        id: t.id
+                                                    }))}
+                                                    onRemove={() => {
+                                                        if (!tasks[index].description) {
+                                                            removeTask(index);
+                                                        } else {
+                                                            updateTask(index, task => ({
+                                                                ...task,
+                                                                isEditing: false
+                                                            }));
+                                                        }
+                                                    }}
+                                                    onNewTask={() => handleNewTaskAtIndex(index)}
+                                                    updateTask={(operation) => updateTask(index, operation)}
+                                                />
+                                            ) : (
+                                                <TaskCard
+                                                    key={`task-${task.id}`}
+                                                    task={TaskOperations.convertTaskState(task)}
+                                                    index={index}
+                                                    onEdit={() => handleEditTask(index)}
+                                                    onTypeChange={(type) => updateTask(index, task => TaskOperations.updateType(task, type))}
+                                                    onNewTask={() => handleNewTaskAtIndex(index)}
+                                                />
+                                            )
+                                        ))
+                                    )}
                                 </SortableContext>
-                                
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={handleNewTask}
-                                    className="mt-2 flex items-center gap-2 w-fit"
-                                >
-                                    <PlusCircle size={16} />
-                                    Nova Tarefa
-                                </Button>
                             </div>
 
                             <DragOverlay dropAnimation={{
@@ -326,19 +346,31 @@ export default function CreateRoutine({ }: Props) {
                                         return task.isEditing ? (
                                             <TaskEditorCard
                                                 key={`overlay-${task.id}`}
-                                                initialTask={task}
-                                                onSave={() => {}}
+                                                initialTask={TaskOperations.convertTaskState(task)}
+                                                task={{
+                                                    type: task.type,
+                                                    measurementPoints: task.measurementPoints,
+                                                    options: task.options,
+                                                    isRequired: task.isRequired
+                                                }}
                                                 onPreview={() => {}}
-                                                onCancel={() => {}}
+                                                onRemove={() => {}}
                                                 onNewTask={() => handleNewTaskAtIndex(tasks.findIndex(t => t.id === task.id))}
+                                                updateTask={(operation) => {
+                                                    const index = tasks.findIndex(t => t.id === task.id);
+                                                    if (index !== -1) {
+                                                        updateTask(index, operation);
+                                                    }
+                                                }}
                                             />
                                         ) : (
                                             <TaskCard
                                                 key={`overlay-${task.id}`}
-                                                task={task}
+                                                task={TaskOperations.convertTaskState(task)}
                                                 index={tasks.findIndex(t => t.id === task.id)}
                                                 onEdit={() => {}}
                                                 onTypeChange={() => {}}
+                                                onNewTask={() => handleNewTaskAtIndex(tasks.findIndex(t => t.id === task.id))}
                                             />
                                         );
                                     })()

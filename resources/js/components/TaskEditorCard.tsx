@@ -4,14 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { PlusCircle, Save, X, GripVertical, Lightbulb, Plus, Clock, FileText, ListChecks, Ruler, Camera, CheckSquare, ClipboardCheck, QrCode, Barcode, Upload, ScanBarcode } from 'lucide-react';
+import { 
+    X, GripVertical, Lightbulb, Plus, Clock, FileText, CheckSquare, 
+    ListChecks, Ruler, Camera, ScanBarcode, Upload, QrCode, Barcode,
+    ClipboardList, ChevronRight
+} from 'lucide-react';
 import ItemSelect from '@/components/ItemSelect';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import TextInput from '@/components/TextInput';
 import { useForm } from '@inertiajs/react';
-import { Task } from '@/types/task';
+import { Task, TaskType, TaskTypes, CodeReaderTypes, TaskOperations } from '@/types/task';
+import { UnitCategory, MeasurementUnitCategories, findUnitCategory } from '@/types/units';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -28,91 +33,16 @@ import {
     HoverCardContent,
     HoverCardTrigger,
 } from "@/components/ui/hover-card"
+import AddTaskButton from '@/components/AddTaskButton';
 
 interface TaskEditorCardProps {
     initialTask?: Task;
-    onSave: (task: Task) => void;
+    task: Pick<Task, 'type' | 'measurementPoints' | 'options' | 'isRequired'>;
     onPreview: (task: Task) => void;
-    onCancel: () => void;
+    onRemove: () => void;
     onNewTask: () => void;
+    updateTask: (operation: (task: Task) => Task) => void;
 }
-
-const taskTypes = [
-    { 
-        id: 1, 
-        name: 'Registro (pergunta e resposta em texto)', 
-        icon: FileText,
-        label: 'Pergunta',
-        placeholder: 'Digite a pergunta que será respondida...'
-    },
-    { 
-        id: 2, 
-        name: 'Múltipla escolha', 
-        icon: CheckSquare,
-        label: 'Pergunta de Múltipla Escolha',
-        placeholder: 'Digite a pergunta para escolha da resposta...'
-    },
-    { 
-        id: 3, 
-        name: 'Múltipla seleção', 
-        icon: ListChecks,
-        label: 'Pergunta de Múltipla Seleção',
-        placeholder: 'Digite a pergunta para seleção das respostas...'
-    },
-    { 
-        id: 4, 
-        name: 'Medições', 
-        icon: Ruler,
-        label: 'Nome da Medição',
-        placeholder: 'Diâmetro do Eixo, Pressão do Ar, Temperatura do Motor, etc...'
-    },
-    { 
-        id: 5, 
-        name: 'Registro fotográfico', 
-        icon: Camera,
-        label: 'Nome da Foto',
-        placeholder: 'Vista Geral do Equipamento, Condição da Bucha, etc...'
-    },
-    { 
-        id: 6, 
-        name: 'Leitor de Código', 
-        icon: ScanBarcode,
-        label: 'Nome do Código',
-        placeholder: 'Número Serial, Código do Produto, Número do Lote, etc...'
-    },
-    { 
-        id: 7, 
-        name: 'Upload de Arquivo', 
-        icon: Upload,
-        label: 'Nome do Arquivo',
-        placeholder: 'Relatório de Inspeção, Ficha Técnica, Manual de Instruções, etc...'
-    }
-];
-
-const codeReaderTypes = [
-    { 
-        id: 1,
-        value: 'qr_code' as const,
-        name: 'QR Code',
-        icon: QrCode
-    },
-    { 
-        id: 2,
-        value: 'barcode' as const,
-        name: 'Código de Barras',
-        icon: Barcode
-    }
-];
-
-const taskTypeMapping: Record<number, Task['type']> = {
-    1: 'question',
-    2: 'multiple_choice',
-    3: 'multiple_select',
-    4: 'measurement',
-    5: 'photo',
-    6: 'code_reader',
-    7: 'file_upload'
-} as const;
 
 interface TaskForm {
     description: string;
@@ -120,18 +50,25 @@ interface TaskForm {
     codeReaderType: 'qr_code' | 'barcode' | undefined;
     codeReaderInstructions: string;
     fileUploadInstructions: string;
-    options: { [key: number]: string };
-    [key: string]: string | number | boolean | File | null | { [key: number]: string } | undefined;
+    options: NonNullable<Task['options']>;
+    [key: string]: string | number | boolean | File | null | NonNullable<Task['options']> | undefined;
 }
 
-export default function TaskEditorCard({ initialTask, onSave, onPreview, onCancel, onNewTask }: TaskEditorCardProps) {
+export default function TaskEditorCard({ 
+    initialTask,
+    task: { type: taskType = 'question', measurementPoints = [], options = [], isRequired },
+    onPreview,
+    onRemove,
+    onNewTask,
+    updateTask
+}: TaskEditorCardProps) {
     const { data, setData, errors, clearErrors } = useForm<TaskForm>({
-        description: '',
-        photoInstructions: '',
-        codeReaderType: undefined,
-        codeReaderInstructions: '',
-        fileUploadInstructions: '',
-        options: {}
+        description: initialTask?.description || '',
+        photoInstructions: initialTask?.photoInstructions || '',
+        codeReaderType: initialTask?.codeReaderType,
+        codeReaderInstructions: initialTask?.codeReaderInstructions || '',
+        fileUploadInstructions: initialTask?.fileUploadInstructions || '',
+        options: options
     });
 
     const {
@@ -153,87 +90,24 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
         zIndex: isDragging ? 1 : undefined
     };
 
-    const [taskType, setTaskType] = useState<Task['type'] | null>(null);
-    const [measurementPoints, setMeasurementPoints] = useState([
-        { name: 'Ponto A', min: 0, target: 0, max: 0, unit: 'mm' },
-        { name: 'Ponto B', min: 0, target: 0, max: 0, unit: 'mm' },
-        { name: 'Ponto C', min: 0, target: 0, max: 0, unit: 'mm' }
-    ]);
-    const [isRequired, setIsRequired] = useState(true);
+    const [isChoiceBasedTask, setIsChoiceBasedTask] = useState(taskType === 'multiple_choice' || taskType === 'multiple_select');
 
-    useEffect(() => {
-        if (initialTask) {
-            setData({
-                description: initialTask.description || '',
-                photoInstructions: initialTask.photoInstructions || '',
-                codeReaderType: initialTask.codeReaderType,
-                codeReaderInstructions: initialTask.codeReaderInstructions || '',
-                fileUploadInstructions: initialTask.fileUploadInstructions || '',
-                options: initialTask.options?.reduce((acc, option, index) => ({
-                    ...acc,
-                    [index + 1]: option
-                }), {}) || {}
-            });
-            setTaskType(initialTask.type);
-            setMeasurementPoints(
-                initialTask.measurementPoints || [
-                    { name: 'Ponto A', min: 0, target: 0, max: 0, unit: 'mm' },
-                    { name: 'Ponto B', min: 0, target: 0, max: 0, unit: 'mm' },
-                    { name: 'Ponto C', min: 0, target: 0, max: 0, unit: 'mm' }
-                ]
-            );
-            setIsRequired(initialTask.required);
-        }
-    }, [initialTask]);
-
-    const isChoiceBasedTask = taskType === 'multiple_choice' || taskType === 'multiple_select';
-    
-    const taskLabels = taskType 
-        ? taskTypes.find(t => taskTypeMapping[t.id] === taskType) 
-        : { label: '', placeholder: 'Selecione um tipo de tarefa primeiro...' };
-
-    const addOption = () => {
-        const newOptions = { ...data.options };
-        const newIndex = Object.keys(newOptions).length + 1;
-        newOptions[newIndex] = '';
-        setData('options', newOptions);
-    };
-
-    const removeOption = (indexToRemove: number) => {
-        const entries = Object.entries(data.options)
-            .sort(([a], [b]) => Number(a) - Number(b))
-            .map(([key, value]) => ({
-                index: Number(key),
-                value: value || ''
-            }));
-        
-        const reindexedOptions = entries
-            .filter(entry => entry.index !== indexToRemove)
-            .reduce((acc, entry, idx) => {
-                const newIndex = idx + 1;
-                return {
-                    ...acc,
-                    [newIndex]: entry.value
-                };
-            }, {});
-        
-        setData('options', reindexedOptions);
-    };
-
-    const handleSaveTask = () => {
+    // Função utilitária para criar uma tarefa a partir do formulário
+    const createTaskFromForm = (): Task => {
         if (!taskType) {
-            return;
+            throw new Error("Tipo de tarefa não definido");
         }
 
         const newTask: Task = {
+            id: initialTask?.id || '0',
             type: taskType,
             description: data.description,
             instructionImages: initialTask?.instructionImages || [],
-            required: isRequired,
+            isRequired
         };
 
         if (isChoiceBasedTask) {
-            newTask.options = Object.values(data.options);
+            newTask.options = data.options;
         } else if (taskType === 'measurement') {
             newTask.measurementPoints = measurementPoints;
         } else if (taskType === 'photo') {
@@ -247,7 +121,58 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
             newTask.fileUploadInstructions = data.fileUploadInstructions;
         }
 
-        onSave(newTask);
+        return newTask;
+    };
+
+    useEffect(() => {
+        if (initialTask) {
+            setData({
+                description: initialTask.description || '',
+                photoInstructions: initialTask.photoInstructions || '',
+                codeReaderType: initialTask.codeReaderType,
+                codeReaderInstructions: initialTask.codeReaderInstructions || '',
+                fileUploadInstructions: initialTask.fileUploadInstructions || '',
+                options: initialTask.options || []
+            });
+            setIsChoiceBasedTask(initialTask.type === 'multiple_choice' || initialTask.type === 'multiple_select');
+        }
+    }, [initialTask]);
+
+    const taskLabels = taskType 
+        ? TaskTypes.find(t => t.value === taskType) 
+        : { label: '', placeholder: 'Selecione um tipo de tarefa primeiro...' };
+
+    const handleTypeChange = (value: string) => {
+        if (value && value !== '') {
+            const selectedType = TaskTypes.find(t => t.id === Number(value));
+            if (selectedType) {
+                updateTask(task => TaskOperations.updateType(task, selectedType.value));
+            }
+        }
+    };
+
+    const handleRequiredChange = (required: boolean) => {
+        updateTask(task => TaskOperations.updateRequired(task, required));
+    };
+
+    const handleOptionsChange = (newOptions: string[]) => {
+        updateTask(task => TaskOperations.updateOptions(task, newOptions));
+    };
+
+    const handleAddOption = () => {
+        updateTask(TaskOperations.addOption);
+    };
+
+    const handleRemoveOption = (index: number) => {
+        updateTask(task => TaskOperations.removeOption(task, index));
+    };
+
+    const handleMeasurementPointsChange = (points: NonNullable<Task['measurementPoints']>) => {
+        updateTask(task => TaskOperations.updateMeasurementPoints(task, points));
+    };
+
+    const handleAddMeasurementPoint = () => {
+        updateTask(task => TaskOperations.addMeasurementPoint(task));
     };
 
     return (
@@ -288,15 +213,9 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                     <div className="w-90">
                         <ItemSelect
                             label="Tipo de Tarefa"
-                            items={taskTypes}
-                            value={taskType ? (Object.entries(taskTypeMapping).find(([_, type]) => type === taskType)?.[0] ?? '') : ''}
-                            onValueChange={(value) => {
-                                if (value && value !== '') {
-                                    setTaskType(taskTypeMapping[Number(value) as keyof typeof taskTypeMapping]);
-                                } else {
-                                    setTaskType(null);
-                                }
-                            }}
+                            items={TaskTypes}
+                            value={taskType ? String(TaskTypes.find(t => t.value === taskType)?.id ?? '') : ''}
+                            onValueChange={handleTypeChange}
                             placeholder="Selecione o tipo de tarefa"
                             required
                             canCreate={false}
@@ -307,7 +226,7 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                         <Switch
                             id="required"
                             checked={isRequired}
-                            onCheckedChange={setIsRequired}
+                            onCheckedChange={handleRequiredChange}
                         />
                         <Label htmlFor="required">Tarefa obrigatória</Label>
                     </div>
@@ -316,11 +235,11 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                 {taskType === 'code_reader' && (
                     <div className="w-90">
                         <ItemSelect
-                            items={codeReaderTypes}
+                            items={CodeReaderTypes}
                             label="Tipo de Código"
-                            value={data.codeReaderType ? String(codeReaderTypes.find(t => t.value === data.codeReaderType)?.id || '') : ''}
+                            value={data.codeReaderType ? String(CodeReaderTypes.find(t => t.value === data.codeReaderType)?.id || '') : ''}
                             onValueChange={(value) => {
-                                const selectedType = codeReaderTypes.find(t => t.id === Number(value));
+                                const selectedType = CodeReaderTypes.find(t => t.id === Number(value));
                                 if (selectedType) {
                                     setData('codeReaderType', selectedType.value);
                                 } else {
@@ -353,14 +272,9 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                 ) : (
                     <Card className="bg-background shadow-none">
                         <CardContent className="px-4 py-4 flex items-start space-x-4">
-                            <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center">
-                                <ClipboardCheck className="size-6 text-foreground/60" />
-                            </div>
-                            <div className="flex flex-col py-1">
-                                <h3 className="text-md font-medium">Configure sua tarefa</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Selecione um tipo de tarefa acima para começar a configuração.
-                                </p>
+                            <div className="flex items-center gap-2">
+                                <ClipboardList className="size-6 text-foreground/60" />
+                                <span>Nenhuma tarefa cadastrada</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -377,14 +291,14 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={addOption}
+                                    onClick={handleAddOption}
                                     className="flex items-center gap-2"
                                 >
                                     <Plus className="h-4 w-4 mr-2" />
                                     Adicionar Opção
                                 </Button>
                             </div>
-                            {Object.entries(data.options).length === 0 ? (
+                            {options.length === 0 ? (
                                 <Card className="bg-background shadow-none">
                                     <CardContent className="px-4 flex items-start space-x-4">
                                         <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center">
@@ -400,46 +314,43 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                                 </Card>
                             ) : (
                                 <div className="space-y-2">
-                                    {Object.entries(data.options).map(([indexStr, value]) => {
-                                        const index = Number(indexStr);
-                                        return (
-                                            <Card key={index} className="bg-background shadow-none">
-                                                <CardContent className="flex items-center space-x-2">
-                                                    <div className="flex-1">
-                                                        <TextInput<TaskForm>
-                                                            form={{
-                                                                data: {
-                                                                    ...data,
-                                                                    [`option-${index}`]: data.options[index] || ''
-                                                                },
-                                                                setData: (field, value) => {
-                                                                    if (field === `option-${index}`) {
-                                                                        const newOptions = { ...data.options };
-                                                                        newOptions[index] = value;
-                                                                        setData('options', newOptions);
-                                                                    }
-                                                                },
-                                                                errors,
-                                                                clearErrors
-                                                            }}
-                                                            name={`option-${index}`}
-                                                            label={`Opção ${index}`}
-                                                            placeholder={`Descreva a opção ${index}`}
-                                                        />
-                                                    </div>
-                                                    <Button
-                                                        type="button"
-                                                        variant="destructive"
-                                                        size="icon"
-                                                        className="h-6 w-6 mt-6"
-                                                        onClick={() => removeOption(index)}
-                                                    >
-                                                        <X className="h-3 w-3" />
-                                                    </Button>
-                                                </CardContent>
-                                            </Card>
-                                        );
-                                    })}
+                                    {options.map((value, index) => (
+                                        <Card key={index} className="bg-background shadow-none">
+                                            <CardContent className="flex items-center space-x-2">
+                                                <div className="flex-1">
+                                                    <TextInput<TaskForm>
+                                                        form={{
+                                                            data: {
+                                                                ...data,
+                                                                [`option-${index}`]: value
+                                                            },
+                                                            setData: (field, value) => {
+                                                                if (field === `option-${index}`) {
+                                                                    const newOptions = [...options];
+                                                                    newOptions[index] = value;
+                                                                    handleOptionsChange(newOptions);
+                                                                }
+                                                            },
+                                                            errors,
+                                                            clearErrors
+                                                        }}
+                                                        name={`option-${index}`}
+                                                        label={`Opção ${index + 1}`}
+                                                        placeholder={`Descreva a opção ${index + 1}`}
+                                                    />
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    className="h-6 w-6 mt-6"
+                                                    onClick={() => handleRemoveOption(index)}
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -450,16 +361,16 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                     <div>
                         <Label>Pontos de Medição</Label>
                         <div className="space-y-4">
-                            {measurementPoints.map((point, index) => (
+                            {(measurementPoints || []).map((point, index) => (
                                 <Card key={index} className="bg-background">
                                     <CardContent className="pt-4">
                                         <div className="flex justify-between items-center mb-2">
                                             <Input
                                                 value={point.name}
                                                 onChange={(e) => {
-                                                    const newPoints = [...measurementPoints];
+                                                    const newPoints = [...(measurementPoints || [])];
                                                     newPoints[index] = { ...newPoints[index], name: e.target.value };
-                                                    setMeasurementPoints(newPoints);
+                                                    handleMeasurementPointsChange(newPoints);
                                                 }}
                                                 placeholder={`Ponto ${index + 1}`}
                                                 className="w-1/3"
@@ -469,8 +380,8 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() => {
-                                                    const newPoints = measurementPoints.filter((_, i) => i !== index);
-                                                    setMeasurementPoints(newPoints);
+                                                    const newPoints = (measurementPoints || []).filter((_, i) => i !== index);
+                                                    handleMeasurementPointsChange(newPoints);
                                                 }}
                                             >
                                                 <X className="h-4 w-4" />
@@ -484,9 +395,9 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                                                         type="number"
                                                         value={point.min}
                                                         onChange={(e) => {
-                                                            const newPoints = [...measurementPoints];
+                                                            const newPoints = [...(measurementPoints || [])];
                                                             newPoints[index] = { ...newPoints[index], min: parseFloat(e.target.value) };
-                                                            setMeasurementPoints(newPoints);
+                                                            handleMeasurementPointsChange(newPoints);
                                                         }}
                                                     />
                                                 </div>
@@ -498,9 +409,9 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                                                         type="number"
                                                         value={point.target}
                                                         onChange={(e) => {
-                                                            const newPoints = [...measurementPoints];
+                                                            const newPoints = [...(measurementPoints || [])];
                                                             newPoints[index] = { ...newPoints[index], target: parseFloat(e.target.value) };
-                                                            setMeasurementPoints(newPoints);
+                                                            handleMeasurementPointsChange(newPoints);
                                                         }}
                                                     />
                                                 </div>
@@ -512,9 +423,9 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                                                         type="number"
                                                         value={point.max}
                                                         onChange={(e) => {
-                                                            const newPoints = [...measurementPoints];
+                                                            const newPoints = [...(measurementPoints || [])];
                                                             newPoints[index] = { ...newPoints[index], max: parseFloat(e.target.value) };
-                                                            setMeasurementPoints(newPoints);
+                                                            handleMeasurementPointsChange(newPoints);
                                                         }}
                                                     />
                                                 </div>
@@ -522,25 +433,57 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                                         </div>
                                         <div className="mt-2">
                                             <Label>Unidade</Label>
-                                            <Select
-                                                value={point.unit}
-                                                onValueChange={(value) => {
-                                                    const newPoints = [...measurementPoints];
-                                                    newPoints[index] = { ...newPoints[index], unit: value };
-                                                    setMeasurementPoints(newPoints);
-                                                }}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="mm">mm</SelectItem>
-                                                    <SelectItem value="cm">cm</SelectItem>
-                                                    <SelectItem value="m">m</SelectItem>
-                                                    <SelectItem value="°C">°C</SelectItem>
-                                                    <SelectItem value="bar">bar</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <div className="space-y-2">
+                                                <Select
+                                                    value={findUnitCategory(point.unit)}
+                                                    onValueChange={(category) => {
+                                                        // Se mudar de categoria, seleciona a primeira unidade da nova categoria
+                                                        const firstUnitInCategory = MeasurementUnitCategories[category as UnitCategory][0].value;
+                                                        const newPoints = [...(measurementPoints || [])];
+                                                        newPoints[index] = { ...newPoints[index], unit: firstUnitInCategory };
+                                                        handleMeasurementPointsChange(newPoints);
+                                                    }}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Escolha uma categoria" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="max-h-[300px]">
+                                                        {Object.keys(MeasurementUnitCategories).map((category) => (
+                                                            <SelectItem key={category} value={category}>
+                                                                {category}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+
+                                                <div className="flex items-center gap-2 text-muted-foreground">
+                                                    <div className="h-px bg-border flex-grow"></div>
+                                                    <ChevronRight className="h-4 w-4" />
+                                                    <div className="h-px bg-border flex-grow"></div>
+                                                </div>
+
+                                                {point.unit && (
+                                                    <Select
+                                                        value={point.unit}
+                                                        onValueChange={(value) => {
+                                                            const newPoints = [...(measurementPoints || [])];
+                                                            newPoints[index] = { ...newPoints[index], unit: value };
+                                                            handleMeasurementPointsChange(newPoints);
+                                                        }}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Escolha uma unidade" />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="max-h-[300px]">
+                                                            {MeasurementUnitCategories[findUnitCategory(point.unit)].map(unit => (
+                                                                <SelectItem key={unit.value} value={unit.value}>
+                                                                    {unit.label}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                )}
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -548,10 +491,10 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => setMeasurementPoints([...measurementPoints, { name: `Ponto ${measurementPoints.length + 1}`, min: 0, target: 0, max: 0, unit: 'mm' }])}
+                                onClick={handleAddMeasurementPoint}
                                 className="flex items-center gap-2"
                             >
-                                <PlusCircle className="h-4 w-4" />
+                                <Plus className="h-4 w-4" />
                                 Adicionar ponto de medição
                             </Button>
                         </div>
@@ -625,50 +568,24 @@ export default function TaskEditorCard({ initialTask, onSave, onPreview, onCance
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={onCancel}>
+                                <Button variant="destructive" onClick={onRemove}>
                                     Sim, excluir tarefa
-                                </AlertDialogAction>
+                                </Button>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
                     <div className="flex gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={onNewTask}
-                            className="flex items-center gap-2"
-                        >
-                            <PlusCircle className="h-4 w-4" />
-                            Nova Tarefa Abaixo
-                        </Button>
+                        <AddTaskButton
+                            label="Nova Tarefa Abaixo"
+                            taskTypes={TaskTypes}
+                            onTaskTypeChange={(type) => updateTask(task => TaskOperations.updateType(task, type))}
+                            onNewTask={onNewTask}
+                        />
                         <Button
                             type="button"
                             onClick={() => {
                                 if (!taskType) return;
-                                
-                                const newTask: Task = {
-                                    type: taskType,
-                                    description: data.description,
-                                    instructionImages: initialTask?.instructionImages || [],
-                                    required: isRequired,
-                                };
-
-                                if (isChoiceBasedTask) {
-                                    newTask.options = Object.values(data.options);
-                                } else if (taskType === 'measurement') {
-                                    newTask.measurementPoints = measurementPoints;
-                                } else if (taskType === 'photo') {
-                                    newTask.photoInstructions = data.photoInstructions;
-                                } else if (taskType === 'code_reader') {
-                                    if (data.codeReaderType) {
-                                        newTask.codeReaderType = data.codeReaderType;
-                                        newTask.codeReaderInstructions = data.codeReaderInstructions;
-                                    }
-                                } else if (taskType === 'file_upload') {
-                                    newTask.fileUploadInstructions = data.fileUploadInstructions;
-                                }
-
-                                onPreview(newTask);
+                                onPreview(createTaskFromForm());
                             }}
                             className="flex items-center gap-2"
                             disabled={!taskType}

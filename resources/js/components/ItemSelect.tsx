@@ -9,7 +9,14 @@ import { LucideIcon } from 'lucide-react';
 
 export interface ItemSelectProps extends SelectProps {
     label: string;
-    items: Array<{ id: number; name: string; icon?: LucideIcon }>;
+    items: ReadonlyArray<{
+        readonly id: number;
+        readonly name: string;
+        readonly icon?: LucideIcon;
+        readonly value?: string;
+        readonly label?: string;
+        readonly placeholder?: string;
+    }>;
     value: string;
     onValueChange: (value: string) => void;
     createRoute: string;
