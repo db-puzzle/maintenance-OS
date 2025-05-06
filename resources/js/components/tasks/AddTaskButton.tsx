@@ -8,7 +8,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Task, TaskType, TaskTypes, TaskOperations } from '@/types/task';
+import { Task, TaskType, TaskTypes, TaskTypeGroups, TaskOperations } from '@/types/task';
 import { LucideIcon } from 'lucide-react';
 import ItemSelect from '@/components/ItemSelect';
 
@@ -49,7 +49,37 @@ export default function AddTaskButton({
             <DropdownMenuContent align="center" className="w-60">
                 <DropdownMenuLabel>Tipo de Tarefa</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {taskTypes.map((type) => (
+                
+                {/* Grupo de Medições */}
+                {TaskTypeGroups.measurementGroup.map((type) => (
+                    <DropdownMenuItem
+                        key={type.id}
+                        onClick={() => handleAddTask(type.value)}
+                        className="flex items-center gap-2"
+                    >
+                        <type.icon className="h-4 w-4" />
+                        <span>{type.name}</span>
+                    </DropdownMenuItem>
+                ))}
+                
+                <DropdownMenuSeparator />
+                
+                {/* Grupo de Questões */}
+                {TaskTypeGroups.questionGroup.map((type) => (
+                    <DropdownMenuItem
+                        key={type.id}
+                        onClick={() => handleAddTask(type.value)}
+                        className="flex items-center gap-2"
+                    >
+                        <type.icon className="h-4 w-4" />
+                        <span>{type.name}</span>
+                    </DropdownMenuItem>
+                ))}
+                
+                <DropdownMenuSeparator />
+                
+                {/* Grupo de Coleta de Dados */}
+                {TaskTypeGroups.dataCollectionGroup.map((type) => (
                     <DropdownMenuItem
                         key={type.id}
                         onClick={() => handleAddTask(type.value)}

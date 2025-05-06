@@ -14,6 +14,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskCard from '@/components/TaskCard';
 import TaskEditorCard from '@/components/TaskEditorCard';
+import { TaskBaseCard, TaskContent } from '@/components/tasks';
 import { Task, TaskType, TaskTypes, TaskOperations, TaskState } from '@/types/task';
 import {
     DndContext,
@@ -36,7 +37,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
-import AddTaskButton from '@/components/AddTaskButton';
+import AddTaskButton from '@/components/tasks/AddTaskButton';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -69,6 +70,31 @@ export default function CreateRoutine({ }: Props) {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(null);
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [cardMode, setCardMode] = useState<'edit' | 'preview'>('edit');
+    
+    // Estados para os exemplos
+    const [questionMode, setQuestionMode] = useState<'edit' | 'preview'>('edit');
+    const [choiceMode, setChoiceMode] = useState<'edit' | 'preview'>('edit');
+    const [selectMode, setSelectMode] = useState<'edit' | 'preview'>('edit');
+    const [measurementMode, setMeasurementMode] = useState<'edit' | 'preview'>('edit');
+    
+    // Estados para os títulos dos exemplos
+    const [questionTitle, setQuestionTitle] = useState('Pergunta Aberta');
+    const [choiceTitle, setChoiceTitle] = useState('Múltipla Escolha');
+    const [selectTitle, setSelectTitle] = useState('Múltipla Seleção');
+    const [measurementTitle, setMeasurementTitle] = useState('Medição');
+    const [photoTitle, setPhotoTitle] = useState('Captura de Foto');
+    const [codeReaderTitle, setCodeReaderTitle] = useState('Leitura de Código');
+    const [fileUploadTitle, setFileUploadTitle] = useState('Upload de Arquivo');
+
+    // Estados para controlar required de cada exemplo
+    const [questionRequired, setQuestionRequired] = useState(true);
+    const [choiceRequired, setChoiceRequired] = useState(true);
+    const [selectRequired, setSelectRequired] = useState(true);
+    const [measurementRequired, setMeasurementRequired] = useState(true);
+    const [photoRequired, setPhotoRequired] = useState(true);
+    const [codeReaderRequired, setCodeReaderRequired] = useState(true);
+    const [fileUploadRequired, setFileUploadRequired] = useState(true);
 
     // Funções utilitárias para gerenciamento de tarefas
     const taskMethods = {
@@ -185,15 +211,27 @@ export default function CreateRoutine({ }: Props) {
     };
 
     const handleSave = () => {
-        // Remove state flag from tasks before saving
-        const tasksToSave = tasks.map(({ state, ...task }) => task);
+        // Converte as tarefas para um formato compatível com FormDataConvertible
+        const tasksToSave = tasks.map(({ state, ...task }) => {
+            const formattedTask: Record<string, any> = {
+                ...task,
+                measurementPoints: task.measurementPoints?.map(point => ({
+                    name: point.name,
+                    min: point.min.toString(),
+                    target: point.target.toString(),
+                    max: point.max.toString(),
+                    unit: point.unit
+                }))
+            };
+            return formattedTask;
+        });
         
         // Use o router.post diretamente
         router.post(route('routines.store'), {
             name: data.name,
             trigger_hours: data.trigger_hours,
             type: data.type,
-            tasks: tasksToSave,
+            tasks: JSON.stringify(tasksToSave), // Convertendo para string
         }, {
             onSuccess: () => {
                 toast.success("Rotina criada com sucesso!");
@@ -399,6 +437,482 @@ export default function CreateRoutine({ }: Props) {
                                 ) : null}
                             </DragOverlay>
                         </DndContext>
+
+                        <div className="mt-8 border-t pt-4">
+                            <h3 className="text-lg font-medium mb-4">Exemplos do TaskBaseCard</h3>
+                            <div className="grid gap-4">
+                                {/* GRUPO DE QUESTÕES */}
+                                
+                                {/* Pergunta Aberta - Modo Edição/Visualização */}
+                                <TaskBaseCard
+                                    id="example-question-edit"
+                                    mode={questionMode}
+                                    icon={<CheckSquare className="size-5" />}
+                                    title={questionTitle}
+                                    onTitleChange={setQuestionTitle}
+                                    onRemove={() => {}}
+                                    onNewTask={() => {}}
+                                    onPreview={() => setQuestionMode('preview')}
+                                    onEdit={() => setQuestionMode('edit')}
+                                    taskTypes={TaskTypes}
+                                    tasks={[]}
+                                    currentIndex={0}
+                                    isRequired={questionRequired}
+                                    onRequiredChange={setQuestionRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-question',
+                                            type: 'question',
+                                            description: 'Descreva as condições da área de trabalho',
+                                            state: TaskState.Viewing,
+                                            isRequired: questionRequired,
+                                            instructionImages: []
+                                        }}
+                                        mode={questionMode}
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Pergunta Aberta - Modo Resposta */}
+                                <TaskBaseCard
+                                    id="example-question-respond"
+                                    mode="respond"
+                                    icon={<CheckSquare className="size-5" />}
+                                    title={questionTitle}
+                                    isLastTask={false}
+                                    onNext={() => {}}
+                                    isRequired={questionRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-question-respond',
+                                            type: 'question',
+                                            description: 'Descreva as condições da área de trabalho',
+                                            state: TaskState.Viewing,
+                                            isRequired: questionRequired,
+                                            instructionImages: []
+                                        }}
+                                        mode="respond"
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Múltipla Escolha - Modo Edição/Visualização */}
+                                <TaskBaseCard
+                                    id="example-multiple-choice-edit"
+                                    mode={choiceMode}
+                                    icon={<ListChecks className="size-5" />}
+                                    title={choiceTitle}
+                                    onTitleChange={setChoiceTitle}
+                                    onRemove={() => {}}
+                                    onNewTask={() => {}}
+                                    onPreview={() => setChoiceMode('preview')}
+                                    onEdit={() => setChoiceMode('edit')}
+                                    taskTypes={TaskTypes}
+                                    tasks={[]}
+                                    currentIndex={0}
+                                    isRequired={choiceRequired}
+                                    onRequiredChange={setChoiceRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-mc',
+                                            type: 'multiple_choice',
+                                            description: 'Qual o estado do equipamento?',
+                                            state: TaskState.Viewing,
+                                            isRequired: choiceRequired,
+                                            instructionImages: [],
+                                            options: [
+                                                'Operando normalmente',
+                                                'Operando com restrições',
+                                                'Em manutenção',
+                                                'Desligado'
+                                            ]
+                                        }}
+                                        mode={choiceMode}
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Múltipla Escolha - Modo Resposta */}
+                                <TaskBaseCard
+                                    id="example-multiple-choice-respond"
+                                    mode="respond"
+                                    icon={<ListChecks className="size-5" />}
+                                    title={choiceTitle}
+                                    isLastTask={false}
+                                    onNext={() => {}}
+                                    isRequired={choiceRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-mc-respond',
+                                            type: 'multiple_choice',
+                                            description: 'Qual o estado do equipamento?',
+                                            state: TaskState.Viewing,
+                                            isRequired: choiceRequired,
+                                            instructionImages: [],
+                                            options: [
+                                                'Operando normalmente',
+                                                'Operando com restrições',
+                                                'Em manutenção',
+                                                'Desligado'
+                                            ]
+                                        }}
+                                        mode="respond"
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Múltipla Seleção - Modo Edição/Visualização */}
+                                <TaskBaseCard
+                                    id="example-multiple-select-edit"
+                                    mode={selectMode}
+                                    icon={<ListChecks className="size-5" />}
+                                    title={selectTitle}
+                                    onTitleChange={setSelectTitle}
+                                    onRemove={() => {}}
+                                    onNewTask={() => {}}
+                                    onPreview={() => setSelectMode('preview')}
+                                    onEdit={() => setSelectMode('edit')}
+                                    taskTypes={TaskTypes}
+                                    tasks={[]}
+                                    currentIndex={0}
+                                    isRequired={selectRequired}
+                                    onRequiredChange={setSelectRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-ms',
+                                            type: 'multiple_select',
+                                            description: 'Quais problemas você observa?',
+                                            state: TaskState.Viewing,
+                                            isRequired: selectRequired,
+                                            instructionImages: [],
+                                            options: [
+                                                'Vibração excessiva',
+                                                'Ruído anormal',
+                                                'Superaquecimento',
+                                                'Vazamento de fluidos',
+                                                'Corrosão visível'
+                                            ]
+                                        }}
+                                        mode={selectMode}
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Múltipla Seleção - Modo Resposta */}
+                                <TaskBaseCard
+                                    id="example-multiple-select-respond"
+                                    mode="respond"
+                                    icon={<ListChecks className="size-5" />}
+                                    title={selectTitle}
+                                    isLastTask={false}
+                                    onNext={() => {}}
+                                    isRequired={selectRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-ms-respond',
+                                            type: 'multiple_select',
+                                            description: 'Quais problemas você observa?',
+                                            state: TaskState.Viewing,
+                                            isRequired: selectRequired,
+                                            instructionImages: [],
+                                            options: [
+                                                'Vibração excessiva',
+                                                'Ruído anormal',
+                                                'Superaquecimento',
+                                                'Vazamento de fluidos',
+                                                'Corrosão visível'
+                                            ]
+                                        }}
+                                        mode="respond"
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* GRUPO DE MEDIÇÕES */}
+                                
+                                {/* Medição - Modo Edição/Visualização */}
+                                <TaskBaseCard
+                                    id="example-measurement-edit"
+                                    mode={measurementMode}
+                                    icon={<Ruler className="size-5" />}
+                                    title={measurementTitle}
+                                    onTitleChange={setMeasurementTitle}
+                                    onRemove={() => {}}
+                                    onNewTask={() => {}}
+                                    onPreview={() => setMeasurementMode('preview')}
+                                    onEdit={() => setMeasurementMode('edit')}
+                                    taskTypes={TaskTypes}
+                                    tasks={[]}
+                                    currentIndex={0}
+                                    isRequired={measurementRequired}
+                                    onRequiredChange={setMeasurementRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-measurement',
+                                            type: 'measurement',
+                                            description: 'Registre as medições dos pontos',
+                                            state: TaskState.Viewing,
+                                            isRequired: measurementRequired,
+                                            instructionImages: [],
+                                            measurementPoints: [
+                                                {
+                                                    name: 'Temperatura',
+                                                    min: 20,
+                                                    target: 25,
+                                                    max: 30,
+                                                    unit: 'celsius'
+                                                },
+                                                {
+                                                    name: 'Pressão',
+                                                    min: 90,
+                                                    target: 100,
+                                                    max: 110,
+                                                    unit: 'kPa'
+                                                },
+                                                {
+                                                    name: 'Vibração',
+                                                    min: 0,
+                                                    target: 2,
+                                                    max: 5,
+                                                    unit: 'mm/s'
+                                                }
+                                            ]
+                                        }}
+                                        mode={measurementMode}
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Medição - Modo Resposta */}
+                                <TaskBaseCard
+                                    id="example-measurement-respond"
+                                    mode="respond"
+                                    icon={<Ruler className="size-5" />}
+                                    title={measurementTitle}
+                                    isLastTask={false}
+                                    onNext={() => {}}
+                                    isRequired={measurementRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-measurement-respond',
+                                            type: 'measurement',
+                                            description: 'Registre as medições dos pontos',
+                                            state: TaskState.Viewing,
+                                            isRequired: measurementRequired,
+                                            instructionImages: [],
+                                            measurementPoints: [
+                                                {
+                                                    name: 'Temperatura',
+                                                    min: 20,
+                                                    target: 25,
+                                                    max: 30,
+                                                    unit: 'celsius'
+                                                },
+                                                {
+                                                    name: 'Pressão',
+                                                    min: 90,
+                                                    target: 100,
+                                                    max: 110,
+                                                    unit: 'kPa'
+                                                },
+                                                {
+                                                    name: 'Vibração',
+                                                    min: 0,
+                                                    target: 2,
+                                                    max: 5,
+                                                    unit: 'mm/s'
+                                                }
+                                            ]
+                                        }}
+                                        mode="respond"
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* GRUPO DE COLETA DE DADOS */}
+                                
+                                {/* Foto - Modo Edição/Visualização */}
+                                <TaskBaseCard
+                                    id="example-photo-edit"
+                                    mode="edit"
+                                    icon={<Camera className="size-5" />}
+                                    title={photoTitle}
+                                    onTitleChange={setPhotoTitle}
+                                    onRemove={() => {}}
+                                    onNewTask={() => {}}
+                                    onPreview={() => {}}
+                                    onEdit={() => {}}
+                                    taskTypes={TaskTypes}
+                                    tasks={[]}
+                                    currentIndex={0}
+                                    isRequired={photoRequired}
+                                    onRequiredChange={setPhotoRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-photo',
+                                            type: 'photo',
+                                            description: 'Tire uma foto da área de trabalho',
+                                            photoInstructions: 'Certifique-se de capturar toda a área com boa iluminação e foco adequado.',
+                                            state: TaskState.Viewing,
+                                            isRequired: photoRequired,
+                                            instructionImages: []
+                                        }}
+                                        mode="edit"
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Foto - Modo Resposta */}
+                                <TaskBaseCard
+                                    id="example-photo-respond"
+                                    mode="respond"
+                                    icon={<Camera className="size-5" />}
+                                    title={photoTitle}
+                                    isLastTask={false}
+                                    onNext={() => {}}
+                                    isRequired={photoRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-photo-respond',
+                                            type: 'photo',
+                                            description: 'Tire uma foto da área de trabalho',
+                                            photoInstructions: 'Certifique-se de capturar toda a área com boa iluminação e foco adequado.',
+                                            state: TaskState.Viewing,
+                                            isRequired: photoRequired,
+                                            instructionImages: []
+                                        }}
+                                        mode="respond"
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Leitura de Código - Modo Edição/Visualização */}
+                                <TaskBaseCard
+                                    id="example-code-edit"
+                                    mode="edit"
+                                    icon={<ScanBarcode className="size-5" />}
+                                    title={codeReaderTitle}
+                                    onTitleChange={setCodeReaderTitle}
+                                    onRemove={() => {}}
+                                    onNewTask={() => {}}
+                                    onPreview={() => {}}
+                                    onEdit={() => {}}
+                                    taskTypes={TaskTypes}
+                                    tasks={[]}
+                                    currentIndex={0}
+                                    isRequired={codeReaderRequired}
+                                    onRequiredChange={setCodeReaderRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-qr',
+                                            type: 'code_reader',
+                                            description: 'Escaneie o QR Code do equipamento',
+                                            codeReaderType: 'qr_code',
+                                            codeReaderInstructions: 'Posicione o QR Code no centro da câmera e aguarde a leitura.',
+                                            state: TaskState.Viewing,
+                                            isRequired: codeReaderRequired,
+                                            instructionImages: []
+                                        }}
+                                        mode="edit"
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Leitura de Código - Modo Resposta */}
+                                <TaskBaseCard
+                                    id="example-code-respond"
+                                    mode="respond"
+                                    icon={<ScanBarcode className="size-5" />}
+                                    title={codeReaderTitle}
+                                    isLastTask={false}
+                                    onNext={() => {}}
+                                    isRequired={codeReaderRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-qr-respond',
+                                            type: 'code_reader',
+                                            description: 'Escaneie o QR Code do equipamento',
+                                            codeReaderType: 'qr_code',
+                                            codeReaderInstructions: 'Posicione o QR Code no centro da câmera e aguarde a leitura.',
+                                            state: TaskState.Viewing,
+                                            isRequired: codeReaderRequired,
+                                            instructionImages: []
+                                        }}
+                                        mode="respond"
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Upload de Arquivo - Modo Edição/Visualização */}
+                                <TaskBaseCard
+                                    id="example-upload-edit"
+                                    mode="edit"
+                                    icon={<Upload className="size-5" />}
+                                    title={fileUploadTitle}
+                                    onTitleChange={setFileUploadTitle}
+                                    onRemove={() => {}}
+                                    onNewTask={() => {}}
+                                    onPreview={() => {}}
+                                    onEdit={() => {}}
+                                    taskTypes={TaskTypes}
+                                    tasks={[]}
+                                    currentIndex={0}
+                                    isRequired={fileUploadRequired}
+                                    onRequiredChange={setFileUploadRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-upload',
+                                            type: 'file_upload',
+                                            description: 'Faça upload do relatório de vibração',
+                                            fileUploadInstructions: 'Envie o arquivo PDF gerado pelo equipamento de análise de vibração.',
+                                            state: TaskState.Viewing,
+                                            isRequired: fileUploadRequired,
+                                            instructionImages: []
+                                        }}
+                                        mode="edit"
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+
+                                {/* Upload de Arquivo - Modo Resposta */}
+                                <TaskBaseCard
+                                    id="example-upload-respond"
+                                    mode="respond"
+                                    icon={<Upload className="size-5" />}
+                                    title={fileUploadTitle}
+                                    isLastTask={false}
+                                    onNext={() => {}}
+                                    isRequired={fileUploadRequired}
+                                >
+                                    <TaskContent 
+                                        task={{
+                                            id: 'example-task-upload-respond',
+                                            type: 'file_upload',
+                                            description: 'Faça upload do relatório de vibração',
+                                            fileUploadInstructions: 'Envie o arquivo PDF gerado pelo equipamento de análise de vibração.',
+                                            state: TaskState.Viewing,
+                                            isRequired: fileUploadRequired,
+                                            instructionImages: []
+                                        }}
+                                        mode="respond"
+                                        onUpdate={() => {}}
+                                    />
+                                </TaskBaseCard>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </CreateLayout>

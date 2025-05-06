@@ -4,9 +4,10 @@ import { Camera, FileText, List, MessageSquare, Pencil, QrCode, Barcode, Upload,
 import { Button } from '@/components/ui/button';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Task, TaskState, TaskType, TaskTypes, Measurement } from '@/types/task';
+import { Task, TaskState, TaskType, TaskTypes, TaskOperations } from '@/types/task';
 import TextInput from '@/components/TextInput';
-import AddTaskButton from '@/components/AddTaskButton';
+import AddTaskButton from '@/components/tasks/AddTaskButton';
+import TaskDescriptionInput from '@/components/TaskDescriptionInput';
 
 interface TaskCardProps {
     /** A tarefa a ser exibida */
@@ -31,7 +32,7 @@ interface TaskCardProps {
 
 const getTaskTypeIcon = (type: TaskType, codeReaderType?: 'qr_code' | 'barcode') => {
     const taskType = TaskTypes.find(t => t.value === type);
-    return taskType ? <taskType.icon className="h-4 w-4" /> : <FileText className="h-4 w-4" />;
+    return taskType ? <taskType.icon className="h-6 w-6" /> : <FileText className="h-4 w-4" />;
 };
 
 export default function TaskCard({ 
@@ -98,14 +99,15 @@ export default function TaskCard({
     };
 
     const renderTaskContent = () => {
-        // Conteúdo principal da tarefa
+        const taskType = TaskTypes.find(t => t.value === task.type);
+        if (!taskType) return null;
+
         return (
-            <div className="flex items-center gap-2">
-                {getTaskTypeIcon(task.type, task.codeReaderType)}
-                <Label className={`text-lg font-semibold flex-1 ${!task.description ? 'text-muted-foreground' : ''}`}>
-                    {task.description || 'Clique em Editar para configurar a tarefa'}
-                </Label>
-            </div>
+            <TaskDescriptionInput
+                mode="view"
+                icon={taskType.icon}
+                value={task.description}
+            />
         );
     };
 

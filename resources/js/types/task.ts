@@ -1,63 +1,75 @@
 import { FileText, CheckSquare, ListChecks, Ruler, Camera, ScanBarcode, Upload, QrCode, Barcode } from 'lucide-react';
 import { UnitCategory, MeasurementUnit, MeasurementUnitCategories, MeasurementUnits, findUnitCategory } from './units';
 
+export const TaskTypeGroups = {
+    measurementGroup: [
+        { 
+            id: 1, 
+            name: 'Medição', 
+            icon: Ruler,
+            label: 'Nome da Medição',
+            placeholder: 'Diâmetro do Eixo, Pressão do Ar, Temperatura do Motor, etc...',
+            value: 'measurement' as const
+        },
+        { 
+            id: 2, 
+            name: 'Pergunta e resposta', 
+            icon: FileText,
+            label: 'Pergunta',
+            placeholder: 'Digite a pergunta que será respondida...',
+            value: 'question' as const
+        }
+    ],
+    questionGroup: [
+        { 
+            id: 3, 
+            name: 'Múltipla escolha', 
+            icon: CheckSquare,
+            label: 'Pergunta de Múltipla Escolha',
+            placeholder: 'Digite a pergunta para escolha da resposta...',
+            value: 'multiple_choice' as const
+        },
+        { 
+            id: 4, 
+            name: 'Múltipla seleção', 
+            icon: ListChecks,
+            label: 'Pergunta de Múltipla Seleção',
+            placeholder: 'Digite a pergunta para seleção das respostas...',
+            value: 'multiple_select' as const
+        }
+    ],
+    dataCollectionGroup: [
+        { 
+            id: 5, 
+            name: 'Registro fotográfico', 
+            icon: Camera,
+            label: 'Foto',
+            placeholder: 'Vista Geral do Equipamento, Condição da Bucha, etc...',
+            value: 'photo' as const
+        },
+        { 
+            id: 6, 
+            name: 'Leitor de Código', 
+            icon: ScanBarcode,
+            label: 'Nome do Código',
+            placeholder: 'Número Serial, Código do Produto, Número do Lote, etc...',
+            value: 'code_reader' as const
+        },
+        { 
+            id: 7, 
+            name: 'Upload de Arquivo', 
+            icon: Upload,
+            label: 'Nome do Arquivo',
+            placeholder: 'Relatório de Inspeção, Ficha Técnica, Manual de Instruções, etc...',
+            value: 'file_upload' as const
+        }
+    ]
+} as const;
+
 export const TaskTypes = [
-    { 
-        id: 1, 
-        name: 'Múltipla escolha', 
-        icon: CheckSquare,
-        label: 'Pergunta de Múltipla Escolha',
-        placeholder: 'Digite a pergunta para escolha da resposta...',
-        value: 'multiple_choice' as const
-    },
-    { 
-        id: 2, 
-        name: 'Múltipla seleção', 
-        icon: ListChecks,
-        label: 'Pergunta de Múltipla Seleção',
-        placeholder: 'Digite a pergunta para seleção das respostas...',
-        value: 'multiple_select' as const
-    },
-    { 
-        id: 3, 
-        name: 'Medições', 
-        icon: Ruler,
-        label: 'Nome da Medição',
-        placeholder: 'Diâmetro do Eixo, Pressão do Ar, Temperatura do Motor, etc...',
-        value: 'measurement' as const
-    },
-    { 
-        id: 4, 
-        name: 'Pergunta e resposta', 
-        icon: FileText,
-        label: 'Pergunta',
-        placeholder: 'Digite a pergunta que será respondida...',
-        value: 'question' as const
-    },
-    { 
-        id: 5, 
-        name: 'Registro fotográfico', 
-        icon: Camera,
-        label: 'Nome da Foto',
-        placeholder: 'Vista Geral do Equipamento, Condição da Bucha, etc...',
-        value: 'photo' as const
-    },
-    { 
-        id: 6, 
-        name: 'Leitor de Código', 
-        icon: ScanBarcode,
-        label: 'Nome do Código',
-        placeholder: 'Número Serial, Código do Produto, Número do Lote, etc...',
-        value: 'code_reader' as const
-    },
-    { 
-        id: 7, 
-        name: 'Upload de Arquivo', 
-        icon: Upload,
-        label: 'Nome do Arquivo',
-        placeholder: 'Relatório de Inspeção, Ficha Técnica, Manual de Instruções, etc...',
-        value: 'file_upload' as const
-    }
+    ...TaskTypeGroups.measurementGroup,
+    ...TaskTypeGroups.questionGroup,
+    ...TaskTypeGroups.dataCollectionGroup
 ] as const;
 
 // Inferir o tipo TaskType dos valores do TaskTypes
