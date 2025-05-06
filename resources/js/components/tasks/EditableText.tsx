@@ -39,6 +39,14 @@ export function EditableText({
         onChange(newValue);
     };
 
+    // Manipula a tecla Enter
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            inputRef.current?.blur();
+        }
+    };
+
     if (isEditing) {
         return (
             <div className="flex-1 min-w-0">
@@ -46,6 +54,7 @@ export function EditableText({
                     type="text"
                     value={localValue}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className={`${baseStyles} ${editingClassName}`}
                     autoFocus
                     ref={inputRef}

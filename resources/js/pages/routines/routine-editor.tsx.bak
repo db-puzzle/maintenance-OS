@@ -210,20 +210,19 @@ export default function CreateRoutine({ }: Props) {
 
     const handleSave = () => {
         // Converte as tarefas para um formato compatível com FormDataConvertible
-        const tasksToSave = tasks.map(task => ({
-            ...task,
-            measurement: task.measurement ? {
-                ...task.measurement,
-                name: task.measurement.name,
-                min: task.measurement.min,
-                target: task.measurement.target,
-                max: task.measurement.max,
-                unit: task.measurement.unit,
-                category: task.measurement.category
-            } : undefined,
-            options: task.options?.map(option => option) || [],
-            instructionImages: task.instructionImages || []
-        }));
+        const tasksToSave = tasks.map(({ state, ...task }) => {
+            const formattedTask: Record<string, any> = {
+                ...task,
+                measurementPoints: task.measurementPoints?.map(point => ({
+                    name: point.name,
+                    min: point.min !== undefined ? point.min.toString() : '0',
+                    target: point.target !== undefined ? point.target.toString() : '0',
+                    max: point.max !== undefined ? point.max.toString() : '0',
+                    unit: point.unit
+                }))
+            };
+            return formattedTask;
+        });
         
         // Use o router.post diretamente
         router.post(route('routines.store'), {
@@ -387,6 +386,13 @@ export default function CreateRoutine({ }: Props) {
                                                     onRequiredChange={(required) => 
                                                         taskMethods.update(index, t => TaskOperations.updateRequired(t, required))
                                                     }
+                                                    initialTask={TaskOperations.convertTaskState(task)}
+                                                    task={{
+                                                        type: task.type,
+                                                        measurement: task.measurement,
+                                                        options: task.options,
+                                                        isRequired: task.isRequired
+                                                    }}
                                                 >
                                                     <TaskContent
                                                         task={task}
@@ -430,6 +436,13 @@ export default function CreateRoutine({ }: Props) {
                                                 icon={icon}
                                                 title={task.description}
                                                 isRequired={task.isRequired}
+                                                initialTask={TaskOperations.convertTaskState(task)}
+                                                task={{
+                                                    type: task.type,
+                                                    measurement: task.measurement,
+                                                    options: task.options,
+                                                    isRequired: task.isRequired
+                                                }}
                                             >
                                                 <TaskContent
                                                     task={task}
@@ -464,6 +477,20 @@ export default function CreateRoutine({ }: Props) {
                                     currentIndex={0}
                                     isRequired={questionRequired}
                                     onRequiredChange={setQuestionRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-question',
+                                        type: 'question',
+                                        description: 'Descreva as condições da área de trabalho',
+                                        state: TaskState.Viewing,
+                                        isRequired: questionRequired,
+                                        instructionImages: []
+                                    })}
+                                    task={{
+                                        type: 'question',
+                                        measurement: null,
+                                        options: [],
+                                        isRequired: questionRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -488,6 +515,20 @@ export default function CreateRoutine({ }: Props) {
                                     isLastTask={false}
                                     onNext={() => {}}
                                     isRequired={questionRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-question-respond',
+                                        type: 'question',
+                                        description: 'Descreva as condições da área de trabalho',
+                                        state: TaskState.Viewing,
+                                        isRequired: questionRequired,
+                                        instructionImages: []
+                                    })}
+                                    task={{
+                                        type: 'question',
+                                        measurement: null,
+                                        options: [],
+                                        isRequired: questionRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -519,6 +560,26 @@ export default function CreateRoutine({ }: Props) {
                                     currentIndex={0}
                                     isRequired={choiceRequired}
                                     onRequiredChange={setChoiceRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-mc',
+                                        type: 'multiple_choice',
+                                        description: 'Qual o estado do equipamento?',
+                                        state: TaskState.Viewing,
+                                        isRequired: choiceRequired,
+                                        instructionImages: [],
+                                        options: [
+                                            'Operando normalmente',
+                                            'Operando com restrições',
+                                            'Em manutenção',
+                                            'Desligado'
+                                        ]
+                                    })}
+                                    task={{
+                                        type: 'multiple_choice',
+                                        measurement: null,
+                                        options: ['Operando normalmente', 'Operando com restrições', 'Em manutenção', 'Desligado'],
+                                        isRequired: choiceRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -549,6 +610,26 @@ export default function CreateRoutine({ }: Props) {
                                     isLastTask={false}
                                     onNext={() => {}}
                                     isRequired={choiceRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-mc-respond',
+                                        type: 'multiple_choice',
+                                        description: 'Qual o estado do equipamento?',
+                                        state: TaskState.Viewing,
+                                        isRequired: choiceRequired,
+                                        instructionImages: [],
+                                        options: [
+                                            'Operando normalmente',
+                                            'Operando com restrições',
+                                            'Em manutenção',
+                                            'Desligado'
+                                        ]
+                                    })}
+                                    task={{
+                                        type: 'multiple_choice',
+                                        measurement: null,
+                                        options: ['Operando normalmente', 'Operando com restrições', 'Em manutenção', 'Desligado'],
+                                        isRequired: choiceRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -586,6 +667,27 @@ export default function CreateRoutine({ }: Props) {
                                     currentIndex={0}
                                     isRequired={selectRequired}
                                     onRequiredChange={setSelectRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-ms',
+                                        type: 'multiple_select',
+                                        description: 'Quais problemas você observa?',
+                                        state: TaskState.Viewing,
+                                        isRequired: selectRequired,
+                                        instructionImages: [],
+                                        options: [
+                                            'Vibração excessiva',
+                                            'Ruído anormal',
+                                            'Superaquecimento',
+                                            'Vazamento de fluidos',
+                                            'Corrosão visível'
+                                        ]
+                                    })}
+                                    task={{
+                                        type: 'multiple_select',
+                                        measurement: null,
+                                        options: ['Vibração excessiva', 'Ruído anormal', 'Superaquecimento', 'Vazamento de fluidos', 'Corrosão visível'],
+                                        isRequired: selectRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -617,6 +719,27 @@ export default function CreateRoutine({ }: Props) {
                                     isLastTask={false}
                                     onNext={() => {}}
                                     isRequired={selectRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-ms-respond',
+                                        type: 'multiple_select',
+                                        description: 'Quais problemas você observa?',
+                                        state: TaskState.Viewing,
+                                        isRequired: selectRequired,
+                                        instructionImages: [],
+                                        options: [
+                                            'Vibração excessiva',
+                                            'Ruído anormal',
+                                            'Superaquecimento',
+                                            'Vazamento de fluidos',
+                                            'Corrosão visível'
+                                        ]
+                                    })}
+                                    task={{
+                                        type: 'multiple_select',
+                                        measurement: null,
+                                        options: ['Vibração excessiva', 'Ruído anormal', 'Superaquecimento', 'Vazamento de fluidos', 'Corrosão visível'],
+                                        isRequired: selectRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -657,6 +780,48 @@ export default function CreateRoutine({ }: Props) {
                                     currentIndex={0}
                                     isRequired={measurementRequired}
                                     onRequiredChange={setMeasurementRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-measurement',
+                                        type: 'measurement',
+                                        description: 'Registre as medições dos pontos',
+                                        state: TaskState.Viewing,
+                                        isRequired: measurementRequired,
+                                        instructionImages: [],
+                                        measurementPoints: [
+                                            {
+                                                name: 'Temperatura',
+                                                min: 20,
+                                                target: 25,
+                                                max: 30,
+                                                unit: 'celsius'
+                                            },
+                                            {
+                                                name: 'Pressão',
+                                                min: 90,
+                                                target: 100,
+                                                max: 110,
+                                                unit: 'kPa'
+                                            },
+                                            {
+                                                name: 'Vibração',
+                                                min: 0,
+                                                target: 2,
+                                                max: 5,
+                                                unit: 'mm/s'
+                                            }
+                                        ]
+                                    })}
+                                    task={{
+                                        type: 'measurement',
+                                        measurement: {
+                                            name: 'Temperatura',
+                                            min: 20,
+                                            target: 25,
+                                            max: 30,
+                                            unit: 'celsius'
+                                        },
+                                        isRequired: measurementRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -666,14 +831,29 @@ export default function CreateRoutine({ }: Props) {
                                             state: TaskState.Viewing,
                                             isRequired: measurementRequired,
                                             instructionImages: [],
-                                            measurement: {
-                                                name: 'Temperatura',
-                                                min: 20,
-                                                target: 25,
-                                                max: 30,
-                                                unit: 'celsius',
-                                                category: 'Temperatura'
-                                            }
+                                            measurementPoints: [
+                                                {
+                                                    name: 'Temperatura',
+                                                    min: 20,
+                                                    target: 25,
+                                                    max: 30,
+                                                    unit: 'celsius'
+                                                },
+                                                {
+                                                    name: 'Pressão',
+                                                    min: 90,
+                                                    target: 100,
+                                                    max: 110,
+                                                    unit: 'kPa'
+                                                },
+                                                {
+                                                    name: 'Vibração',
+                                                    min: 0,
+                                                    target: 2,
+                                                    max: 5,
+                                                    unit: 'mm/s'
+                                                }
+                                            ]
                                         }}
                                         mode={measurementMode}
                                         onUpdate={() => {}}
@@ -689,6 +869,48 @@ export default function CreateRoutine({ }: Props) {
                                     isLastTask={false}
                                     onNext={() => {}}
                                     isRequired={measurementRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-measurement-respond',
+                                        type: 'measurement',
+                                        description: 'Registre as medições dos pontos',
+                                        state: TaskState.Viewing,
+                                        isRequired: measurementRequired,
+                                        instructionImages: [],
+                                        measurementPoints: [
+                                            {
+                                                name: 'Temperatura',
+                                                min: 20,
+                                                target: 25,
+                                                max: 30,
+                                                unit: 'celsius'
+                                            },
+                                            {
+                                                name: 'Pressão',
+                                                min: 90,
+                                                target: 100,
+                                                max: 110,
+                                                unit: 'kPa'
+                                            },
+                                            {
+                                                name: 'Vibração',
+                                                min: 0,
+                                                target: 2,
+                                                max: 5,
+                                                unit: 'mm/s'
+                                            }
+                                        ]
+                                    })}
+                                    task={{
+                                        type: 'measurement',
+                                        measurement: {
+                                            name: 'Temperatura',
+                                            min: 20,
+                                            target: 25,
+                                            max: 30,
+                                            unit: 'celsius'
+                                        },
+                                        isRequired: measurementRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -698,14 +920,29 @@ export default function CreateRoutine({ }: Props) {
                                             state: TaskState.Viewing,
                                             isRequired: measurementRequired,
                                             instructionImages: [],
-                                            measurement: {
-                                                name: 'Temperatura',
-                                                min: 20,
-                                                target: 25,
-                                                max: 30,
-                                                unit: 'celsius',
-                                                category: 'Temperatura'
-                                            }
+                                            measurementPoints: [
+                                                {
+                                                    name: 'Temperatura',
+                                                    min: 20,
+                                                    target: 25,
+                                                    max: 30,
+                                                    unit: 'celsius'
+                                                },
+                                                {
+                                                    name: 'Pressão',
+                                                    min: 90,
+                                                    target: 100,
+                                                    max: 110,
+                                                    unit: 'kPa'
+                                                },
+                                                {
+                                                    name: 'Vibração',
+                                                    min: 0,
+                                                    target: 2,
+                                                    max: 5,
+                                                    unit: 'mm/s'
+                                                }
+                                            ]
                                         }}
                                         mode="respond"
                                         onUpdate={() => {}}
@@ -730,6 +967,21 @@ export default function CreateRoutine({ }: Props) {
                                     currentIndex={0}
                                     isRequired={photoRequired}
                                     onRequiredChange={setPhotoRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-photo',
+                                        type: 'photo',
+                                        description: 'Tire uma foto da área de trabalho',
+                                        photoInstructions: 'Certifique-se de capturar toda a área com boa iluminação e foco adequado.',
+                                        state: TaskState.Viewing,
+                                        isRequired: photoRequired,
+                                        instructionImages: []
+                                    })}
+                                    task={{
+                                        type: 'photo',
+                                        measurement: null,
+                                        options: [],
+                                        isRequired: photoRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -755,6 +1007,21 @@ export default function CreateRoutine({ }: Props) {
                                     isLastTask={false}
                                     onNext={() => {}}
                                     isRequired={photoRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-photo-respond',
+                                        type: 'photo',
+                                        description: 'Tire uma foto da área de trabalho',
+                                        photoInstructions: 'Certifique-se de capturar toda a área com boa iluminação e foco adequado.',
+                                        state: TaskState.Viewing,
+                                        isRequired: photoRequired,
+                                        instructionImages: []
+                                    })}
+                                    task={{
+                                        type: 'photo',
+                                        measurement: null,
+                                        options: [],
+                                        isRequired: photoRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -787,6 +1054,22 @@ export default function CreateRoutine({ }: Props) {
                                     currentIndex={0}
                                     isRequired={codeReaderRequired}
                                     onRequiredChange={setCodeReaderRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-qr',
+                                        type: 'code_reader',
+                                        description: 'Escaneie o QR Code do equipamento',
+                                        codeReaderType: 'qr_code',
+                                        codeReaderInstructions: 'Posicione o QR Code no centro da câmera e aguarde a leitura.',
+                                        state: TaskState.Viewing,
+                                        isRequired: codeReaderRequired,
+                                        instructionImages: []
+                                    })}
+                                    task={{
+                                        type: 'code_reader',
+                                        measurement: null,
+                                        options: [],
+                                        isRequired: codeReaderRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -813,6 +1096,22 @@ export default function CreateRoutine({ }: Props) {
                                     isLastTask={false}
                                     onNext={() => {}}
                                     isRequired={codeReaderRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-qr-respond',
+                                        type: 'code_reader',
+                                        description: 'Escaneie o QR Code do equipamento',
+                                        codeReaderType: 'qr_code',
+                                        codeReaderInstructions: 'Posicione o QR Code no centro da câmera e aguarde a leitura.',
+                                        state: TaskState.Viewing,
+                                        isRequired: codeReaderRequired,
+                                        instructionImages: []
+                                    })}
+                                    task={{
+                                        type: 'code_reader',
+                                        measurement: null,
+                                        options: [],
+                                        isRequired: codeReaderRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -846,6 +1145,21 @@ export default function CreateRoutine({ }: Props) {
                                     currentIndex={0}
                                     isRequired={fileUploadRequired}
                                     onRequiredChange={setFileUploadRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-upload',
+                                        type: 'file_upload',
+                                        description: 'Faça upload do relatório de vibração',
+                                        fileUploadInstructions: 'Envie o arquivo PDF gerado pelo equipamento de análise de vibração.',
+                                        state: TaskState.Viewing,
+                                        isRequired: fileUploadRequired,
+                                        instructionImages: []
+                                    })}
+                                    task={{
+                                        type: 'file_upload',
+                                        measurement: null,
+                                        options: [],
+                                        isRequired: fileUploadRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{
@@ -871,6 +1185,21 @@ export default function CreateRoutine({ }: Props) {
                                     isLastTask={false}
                                     onNext={() => {}}
                                     isRequired={fileUploadRequired}
+                                    initialTask={TaskOperations.convertTaskState({
+                                        id: 'example-task-upload-respond',
+                                        type: 'file_upload',
+                                        description: 'Faça upload do relatório de vibração',
+                                        fileUploadInstructions: 'Envie o arquivo PDF gerado pelo equipamento de análise de vibração.',
+                                        state: TaskState.Viewing,
+                                        isRequired: fileUploadRequired,
+                                        instructionImages: []
+                                    })}
+                                    task={{
+                                        type: 'file_upload',
+                                        measurement: null,
+                                        options: [],
+                                        isRequired: fileUploadRequired
+                                    }}
                                 >
                                     <TaskContent 
                                         task={{

@@ -16,7 +16,7 @@ import { CSS } from '@dnd-kit/utilities';
 import TextInput from '@/components/TextInput';
 import TaskDescriptionInput from '@/components/TaskDescriptionInput';
 import { useForm } from '@inertiajs/react';
-import { Task, TaskType, TaskTypes, TaskTypeGroups, CodeReaderTypes, TaskOperations, TaskState, Measurement } from '@/types/task';
+import { Task, TaskType, TaskTypes, TaskTypeGroups, CodeReaderTypes, TaskOperations, TaskState, Measurement, DefaultMeasurement } from '@/types/task';
 import { UnitCategory, MeasurementUnitCategories, findUnitCategory } from '@/types/units';
 import {
     AlertDialog,
@@ -40,7 +40,7 @@ interface TaskEditorCardProps {
     /** A tarefa inicial sendo editada */
     initialTask?: Task;
     /** Propriedades essenciais da tarefa em edição */
-    task: Pick<Task, 'type' | 'measurementPoints' | 'options' | 'isRequired'>;
+    task: Pick<Task, 'type' | 'measurement' | 'options' | 'isRequired'>;
     /** Callback para pré-visualizar a tarefa após edição */
     onPreview: (task: Task) => void;
     /** Callback para remover a tarefa */
@@ -63,7 +63,7 @@ interface TaskForm {
 
 export default function TaskEditorCard({ 
     initialTask,
-    task: { type: taskType = 'question', measurementPoints = [], options = [], isRequired },
+    task: { type: taskType = 'question', measurement, options = [], isRequired },
     onPreview,
     onRemove,
     onNewTask,
@@ -117,7 +117,7 @@ export default function TaskEditorCard({
         if (isChoiceBasedTask) {
             newTask.options = data.options;
         } else if (taskType === 'measurement') {
-            newTask.measurementPoints = measurementPoints;
+            newTask.measurement = measurement;
         } else if (taskType === 'photo') {
             newTask.photoInstructions = data.photoInstructions;
         } else if (taskType === 'code_reader') {
@@ -166,12 +166,8 @@ export default function TaskEditorCard({
         updateTask(task => TaskOperations.removeOption(task, index));
     };
 
-    const handleMeasurementsChange = (points: Measurement[]) => {
-        updateTask(task => TaskOperations.updateMeasurements(task, points));
-    };
-
-    const handleAddMeasurement = () => {
-        updateTask(task => TaskOperations.addMeasurement(task));
+    const handleMeasurementChange = (newMeasurement: Measurement) => {
+        updateTask(task => TaskOperations.updateMeasurement(task, newMeasurement));
     };
 
     return (
@@ -359,144 +355,99 @@ export default function TaskEditorCard({
 
                     {taskType === 'measurement' && (
                         <div>
-                            <Label>Pontos de Medição</Label>
+                            <Label>Medição</Label>
                             <div className="space-y-4">
-                                {(measurementPoints || []).map((point, index) => (
-                                    <Card key={index} className="bg-background">
-                                        <CardContent className="pt-4">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <Input
-                                                    value={point.name}
-                                                    onChange={(e) => {
-                                                        const newPoints = [...(measurementPoints || [])];
-                                                        newPoints[index] = { ...newPoints[index], name: e.target.value };
-                                                        handleMeasurementsChange(newPoints);
-                                                    }}
-                                                    placeholder={`Ponto ${index + 1}`}
-                                                    className="w-1/3"
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => {
-                                                        const newPoints = (measurementPoints || []).filter((_, i) => i !== index);
-                                                        handleMeasurementsChange(newPoints);
+                                <Card className="bg-background">
+                                    <CardContent className="pt-4">
+                                        <div className="mb-2">
+                                            <Input
+                                                value={measurement?.name || 'Medição'}
+                                                onChange={(e) => {
+                                                    handleMeasurementChange({
+                                                        ...(measurement || DefaultMeasurement),
+                                                        name: e.target.value
+                                                    });
+                                                }}
+                                                placeholder="Nome da medição"
+                                                className="w-full"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div>
+                                                <Label>Mínimo</Label>
+                                                <div className="flex">
+                                                    <Input
+                                                        type="number"
+                                                        value={measurement?.min}
+                                                        onChange={(e) => {
+                                                            handleMeasurementChange({
+                                                                ...(measurement || DefaultMeasurement),
+                                                                min: parseFloat(e.target.value)
+                                                            });
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <Label>Target</Label>
+                                                <div className="flex">
+                                                    <Input
+                                                        type="number"
+                                                        value={measurement?.target}
+                                                        onChange={(e) => {
+                                                            handleMeasurementChange({
+                                                                ...(measurement || DefaultMeasurement),
+                                                                target: parseFloat(e.target.value)
+                                                            });
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <Label>Máximo</Label>
+                                                <div className="flex">
+                                                    <Input
+                                                        type="number"
+                                                        value={measurement?.max}
+                                                        onChange={(e) => {
+                                                            handleMeasurementChange({
+                                                                ...(measurement || DefaultMeasurement),
+                                                                max: parseFloat(e.target.value)
+                                                            });
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-2">
+                                            <Label>Unidade</Label>
+                                            <div className="space-y-2">
+                                                <Select
+                                                    value={measurement?.unit ? findUnitCategory(measurement.unit) : 'Comprimento'}
+                                                    onValueChange={(category) => {
+                                                        // Se mudar de categoria, seleciona a primeira unidade da nova categoria
+                                                        const firstUnitInCategory = MeasurementUnitCategories[category as UnitCategory][0].value;
+                                                        handleMeasurementChange({
+                                                            ...(measurement || DefaultMeasurement),
+                                                            unit: firstUnitInCategory
+                                                        });
                                                     }}
                                                 >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Escolha uma categoria" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="max-h-[300px]">
+                                                        {Object.keys(MeasurementUnitCategories).map((category) => (
+                                                            <SelectItem key={category} value={category}>
+                                                                {category}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <div>
-                                                    <Label>Mínimo</Label>
-                                                    <div className="flex">
-                                                        <Input
-                                                            type="number"
-                                                            value={point.min}
-                                                            onChange={(e) => {
-                                                                const newPoints = [...(measurementPoints || [])];
-                                                                newPoints[index] = { ...newPoints[index], min: parseFloat(e.target.value) };
-                                                                handleMeasurementsChange(newPoints);
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <Label>Target</Label>
-                                                    <div className="flex">
-                                                        <Input
-                                                            type="number"
-                                                            value={point.target}
-                                                            onChange={(e) => {
-                                                                const newPoints = [...(measurementPoints || [])];
-                                                                newPoints[index] = { ...newPoints[index], target: parseFloat(e.target.value) };
-                                                                handleMeasurementsChange(newPoints);
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <Label>Máximo</Label>
-                                                    <div className="flex">
-                                                        <Input
-                                                            type="number"
-                                                            value={point.max}
-                                                            onChange={(e) => {
-                                                                const newPoints = [...(measurementPoints || [])];
-                                                                newPoints[index] = { ...newPoints[index], max: parseFloat(e.target.value) };
-                                                                handleMeasurementsChange(newPoints);
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="mt-2">
-                                                <Label>Unidade</Label>
-                                                <div className="space-y-2">
-                                                    <Select
-                                                        value={findUnitCategory(point.unit)}
-                                                        onValueChange={(category) => {
-                                                            // Se mudar de categoria, seleciona a primeira unidade da nova categoria
-                                                            const firstUnitInCategory = MeasurementUnitCategories[category as UnitCategory][0].value;
-                                                            const newPoints = [...(measurementPoints || [])];
-                                                            newPoints[index] = { ...newPoints[index], unit: firstUnitInCategory };
-                                                            handleMeasurementsChange(newPoints);
-                                                        }}
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Escolha uma categoria" />
-                                                        </SelectTrigger>
-                                                        <SelectContent className="max-h-[300px]">
-                                                            {Object.keys(MeasurementUnitCategories).map((category) => (
-                                                                <SelectItem key={category} value={category}>
-                                                                    {category}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-
-                                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                                        <div className="h-px bg-border flex-grow"></div>
-                                                        <ChevronRight className="h-4 w-4" />
-                                                        <div className="h-px bg-border flex-grow"></div>
-                                                    </div>
-
-                                                    {point.unit && (
-                                                        <Select
-                                                            value={point.unit}
-                                                            onValueChange={(value) => {
-                                                                const newPoints = [...(measurementPoints || [])];
-                                                                newPoints[index] = { ...newPoints[index], unit: value };
-                                                                handleMeasurementsChange(newPoints);
-                                                            }}
-                                                        >
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Escolha uma unidade" />
-                                                            </SelectTrigger>
-                                                            <SelectContent className="max-h-[300px]">
-                                                                {MeasurementUnitCategories[findUnitCategory(point.unit)].map(unit => (
-                                                                    <SelectItem key={unit.value} value={unit.value}>
-                                                                        {unit.label}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={handleAddMeasurement}
-                                    className="flex items-center gap-2"
-                                >
-                                    <Plus className="h-4 w-4" />
-                                    Adicionar ponto de medição
-                                </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             </div>
                         </div>
                     )}

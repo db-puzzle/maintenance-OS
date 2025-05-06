@@ -1,8 +1,14 @@
-import { Task, Measurement } from '@/types/task';
-import { useState } from 'react';
+import { Task, Measurement, DefaultMeasurement } from '@/types/task';
+import { useState, useEffect } from 'react';
 import { TaskCardMode } from './TaskContent';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MeasurementUnitCategories, UnitCategory } from '@/types/units';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import ItemSelect from '@/components/ItemSelect';
+import TextInput from '@/components/TextInput';
+import InputError from '@/components/input-error';
 
 interface MeasurementTaskContentProps {
     task: Task;
@@ -10,122 +16,263 @@ interface MeasurementTaskContentProps {
     onUpdate?: (updatedTask: Task) => void;
 }
 
+interface MeasurementFormData {
+    targetValue: string;
+    minValue: string;
+    maxValue: string;
+    [key: string]: any;
+}
+
 export default function MeasurementTaskContent({ task, mode, onUpdate }: MeasurementTaskContentProps) {
-    const [measurements, setMeasurements] = useState<{[pointId: string]: number}>(
-        (task.measurementPoints || []).reduce((acc, point, idx) => {
-            acc[idx.toString()] = 0;
-            return acc;
-        }, {} as {[pointId: string]: number})
-    );
+    const [value, setValue] = useState<number>(0);
+    const [category, setCategory] = useState<UnitCategory>('Comprimento');
+    const [selectedUnit, setSelectedUnit] = useState<string>('m');
+    const [minValue, setMinValue] = useState<number | undefined>(undefined);
+    const [maxValue, setMaxValue] = useState<number | undefined>(undefined);
+    const [targetValue, setTargetValue] = useState<number | undefined>(undefined);
+    const [formErrors, setFormErrors] = useState<Partial<Record<keyof MeasurementFormData, string>>>({});
+    const measurement = task.measurement || DefaultMeasurement;
+
+    // Garantir valores iniciais seguros
+    const defaultCategory = 'Comprimento';
     
-    const points = task.measurementPoints || [];
+    // Inicializar os valores com base no measurement
+    useEffect(() => {
+        if (measurement) {
+            const initialCategory = measurement.category || defaultCategory;
+            setCategory(initialCategory);
+            setSelectedUnit(measurement.unit || (MeasurementUnitCategories[initialCategory] && MeasurementUnitCategories[initialCategory][0].value));
+            setMinValue(measurement.min);
+            setMaxValue(measurement.max);
+            setTargetValue(measurement.target);
+        }
+    }, [measurement]);
+
+    // Verificar se a categoria existe no MeasurementUnitCategories
+    const safeCategory = Object.keys(MeasurementUnitCategories).includes(category) 
+        ? category 
+        : defaultCategory;
+
+    // Converter valores para exibição em formulário
+    const stringifyValue = (val: number | undefined): string => {
+        return val !== undefined ? String(val) : '';
+    };
+
+    // Objeto de formulário para usar com TextInput
+    const formData: MeasurementFormData = {
+        targetValue: stringifyValue(targetValue),
+        minValue: stringifyValue(minValue),
+        maxValue: stringifyValue(maxValue)
+    };
+    
+    const form = {
+        data: formData,
+        setData: (name: keyof MeasurementFormData, value: string) => {
+            const numValue = value === '' ? undefined : parseFloat(value);
+            
+            if (name === 'targetValue') {
+                setTargetValue(isNaN(numValue as number) ? undefined : numValue);
+                if (onUpdate) handleUpdate(numValue, minValue, maxValue);
+            } else if (name === 'minValue') {
+                setMinValue(isNaN(numValue as number) ? undefined : numValue);
+                if (onUpdate) handleUpdate(targetValue, numValue, maxValue);
+            } else if (name === 'maxValue') {
+                setMaxValue(isNaN(numValue as number) ? undefined : numValue);
+                if (onUpdate) handleUpdate(targetValue, minValue, numValue);
+            }
+        },
+        errors: formErrors,
+        clearErrors: (...fields: (keyof MeasurementFormData)[]) => {
+            const newErrors = { ...formErrors };
+            fields.forEach(field => delete newErrors[field]);
+            setFormErrors(newErrors);
+        }
+    };
+
+    const handleUpdate = (target = targetValue, min = minValue, max = maxValue) => {
+        if (onUpdate) {
+            onUpdate({
+                ...task,
+                measurement: {
+                    ...measurement,
+                    category,
+                    unit: selectedUnit,
+                    min,
+                    max,
+                    target
+                }
+            });
+        }
+    };
+
+    // Forçar a atualização do componente pai quando a categoria ou unidade mudar
+    const handleCategoryChange = (value: string) => {
+        if (value && Object.keys(MeasurementUnitCategories).includes(value)) {
+            const newCategory = value as UnitCategory;
+            // Selecionar a primeira unidade da categoria
+            const firstUnit = MeasurementUnitCategories[newCategory][0];
+            if (firstUnit) {
+                const newUnit = firstUnit.value;
+                // Atualizar estado local
+                setCategory(newCategory);
+                setSelectedUnit(newUnit);
+                
+                // Enviar para o componente pai
+                if (onUpdate) {
+                    onUpdate({
+                        ...task,
+                        measurement: {
+                            ...measurement,
+                            category: newCategory,
+                            unit: newUnit,
+                            min: minValue,
+                            max: maxValue,
+                            target: targetValue
+                        }
+                    });
+                }
+            }
+        }
+    };
+
+    const handleUnitChange = (value: string) => {
+        if (value) {
+            // Atualizar estado local
+            setSelectedUnit(value);
+            
+            // Enviar para o componente pai
+            if (onUpdate) {
+                onUpdate({
+                    ...task,
+                    measurement: {
+                        ...measurement,
+                        category,
+                        unit: value,
+                        min: minValue,
+                        max: maxValue,
+                        target: targetValue
+                    }
+                });
+            }
+        }
+    };
     
     if (mode === 'edit') {
         return (
             <div className="space-y-4">
-                <div className="p-4 bg-muted/30 rounded-md">
-                    <p>Tarefa de medição com {points.length} pontos. O usuário deverá inserir valores numéricos para cada ponto.</p>
-                    
-                    {points.length > 0 && (
-                        <div className="mt-4 space-y-2">
-                            <p className="font-medium">Pontos de medição:</p>
-                            <ul className="list-disc pl-5 space-y-2">
-                                {points.map((point, index) => (
-                                    <li key={index}>
-                                        <span className="font-medium">{point.name}</span>
-                                        <div className="text-sm text-muted-foreground">
-                                            <span>Mín: {point.min}, </span>
-                                            <span>Alvo: {point.target}, </span>
-                                            <span>Máx: {point.max}, </span>
-                                            <span>Unidade: {point.unit}</span>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
+                <div className="pl-4 pr-4 pb-4 bg-muted/30 rounded-md">
+                    <div className="grid grid-cols-27 gap-4">
+                        <div className="col-span-7 space-y-2">
+                            <ItemSelect
+                                label="Categoria"
+                                items={Object.keys(MeasurementUnitCategories).map(cat => ({
+                                    id: cat,
+                                    name: cat
+                                })) as any}
+                                value={category}
+                                onValueChange={handleCategoryChange}
+                                createRoute=""
+                                placeholder="Selecione uma categoria"
+                                canCreate={false}
+                            />
                         </div>
-                    )}
+
+                        <div className="col-span-7 space-y-2">
+                            <ItemSelect
+                                label="Unidade"
+                                items={MeasurementUnitCategories[safeCategory].map(unit => ({
+                                    id: unit.value,
+                                    name: unit.label
+                                })) as any}
+                                value={selectedUnit}
+                                onValueChange={handleUnitChange}
+                                createRoute=""
+                                placeholder="Selecione uma unidade"
+                                canCreate={false}
+                            />
+                        </div>
+
+                        <div className="col-span-1 flex items-center justify-center">
+                            <Separator orientation="vertical" className="h-auto" />
+                        </div>
+
+                        <div className="col-span-4 space-y-2">
+                            <TextInput<MeasurementFormData>
+                                form={form}
+                                name="targetValue"
+                                label="Valor Alvo"
+                                placeholder="Alvo"
+                            />
+                        </div>
+
+                        <div className="col-span-4 space-y-2">
+                            <TextInput<MeasurementFormData>
+                                form={form}
+                                name="minValue"
+                                label="Valor Mínimo"
+                                placeholder="Mínimo"
+                            />
+                        </div>
+
+                        <div className="col-span-4 space-y-2">
+                            <TextInput<MeasurementFormData>
+                                form={form}
+                                name="maxValue"
+                                label="Valor Máximo"
+                                placeholder="Máximo"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         );
     }
     
-    if (mode === 'preview') {
-        return (
-            <div className="space-y-4">
-                <div className="p-4 bg-muted/30 rounded-md">
-                    <p>O usuário deverá inserir medições para {points.length} pontos.</p>
-                    
-                    {points.length > 0 && (
-                        <div className="mt-4 space-y-2">
-                            <p className="font-medium">Pontos a serem medidos:</p>
-                            <ul className="list-disc pl-5 space-y-2">
-                                {points.map((point, index) => (
-                                    <li key={index}>
-                                        <span className="font-medium">{point.name}</span>
-                                        <div className="text-sm text-muted-foreground">
-                                            <span>Faixa esperada: {point.min} - {point.max} {point.unit}</span>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
+    // Modos 'preview' e 'respond'
+    const isOutOfRange = (measurement.min !== undefined && value < measurement.min) || 
+                        (measurement.max !== undefined && value > measurement.max);
     
-    // Modo 'respond'
     return (
         <div className="space-y-4">
-            {points.length === 0 ? (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                    <p className="text-yellow-700">Nenhum ponto de medição definido.</p>
+            <div className="space-y-2">
+                <Label 
+                    htmlFor="measurement-value" 
+                    className="flex justify-between"
+                >
+                    <span>{measurement.name || ''}</span>
+                    <span className="text-muted-foreground text-sm">
+                        {(measurement.min !== undefined || measurement.max !== undefined) && (
+                            <>
+                                ({measurement.min !== undefined ? measurement.min : '-'} - {measurement.max !== undefined ? measurement.max : '-'} {measurement.unit || ''})
+                            </>
+                        )}
+                        {measurement.target !== undefined && (
+                            <span className="ml-2">Alvo: {measurement.target} {measurement.unit || ''}</span>
+                        )}
+                    </span>
+                </Label>
+                <div className="flex items-center gap-2">
+                    <Input
+                        id="measurement-value"
+                        type="number"
+                        value={value === 0 ? '0' : value}
+                        onChange={(e) => {
+                            const newValue = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                            setValue(isNaN(newValue) ? 0 : newValue);
+                        }}
+                        className={isOutOfRange ? "border-red-500" : ""}
+                        disabled={mode === 'preview'}
+                    />
+                    <span>{measurement.unit || ''}</span>
                 </div>
-            ) : (
-                <div className="grid gap-4">
-                    {points.map((point, index) => {
-                        const pointId = index.toString();
-                        const value = measurements[pointId] || 0;
-                        const isOutOfRange = value < point.min || value > point.max;
-                        
-                        return (
-                            <div key={index} className="space-y-2">
-                                <Label 
-                                    htmlFor={`measurement-${index}`} 
-                                    className="flex justify-between"
-                                >
-                                    <span>{point.name}</span>
-                                    <span className="text-muted-foreground text-sm">
-                                        ({point.min} - {point.max} {point.unit})
-                                    </span>
-                                </Label>
-                                <div className="flex items-center gap-2">
-                                    <Input
-                                        id={`measurement-${index}`}
-                                        type="number"
-                                        value={value || ''}
-                                        onChange={(e) => {
-                                            const newValue = parseFloat(e.target.value);
-                                            setMeasurements({
-                                                ...measurements,
-                                                [pointId]: isNaN(newValue) ? 0 : newValue
-                                            });
-                                        }}
-                                        className={isOutOfRange ? "border-red-500" : ""}
-                                    />
-                                    <span>{point.unit}</span>
-                                </div>
-                                {isOutOfRange && (
-                                    <p className="text-red-500 text-sm">
-                                        O valor está fora da faixa recomendada.
-                                    </p>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+                {isOutOfRange && (
+                    <p className="text-red-500 text-sm">
+                        O valor está fora da faixa {measurement.min !== undefined ? `mínima (${measurement.min})` : ''} 
+                        {measurement.min !== undefined && measurement.max !== undefined ? ' e ' : ''}
+                        {measurement.max !== undefined ? `máxima (${measurement.max})` : ''}.
+                    </p>
+                )}
+            </div>
         </div>
     );
 } 

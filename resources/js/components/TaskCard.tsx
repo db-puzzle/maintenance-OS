@@ -147,20 +147,17 @@ export default function TaskCard({
                     </div>
                 )}
 
-                {task.type === 'measurement' && task.measurementPoints && (
-                    <div className="space-y-2 pl-4">
-                        <Label className="text-sm text-muted-foreground">Pontos de medição:</Label>
-                        {task.measurementPoints.map((point, i) => (
-                            <div key={i} className="flex flex-col gap-1 pl-2 border-l-2 border-muted py-2 px-3">
-                                <span className="font-medium">{point.name}</span>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <span>Min: {point.min}</span>
-                                    <span>Alvo: {point.target}</span>
-                                    <span>Max: {point.max}</span>
-                                    <span>Unidade: {point.unit}</span>
-                                </div>
-                            </div>
-                        ))}
+                {task.type === 'measurement' && task.measurement && (
+                    <div className="text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                            <span>{task.measurement.name}:</span>
+                            <span>
+                                {task.measurement.min !== undefined && `Min: ${task.measurement.min}`}
+                                {task.measurement.target !== undefined && ` Target: ${task.measurement.target}`}
+                                {task.measurement.max !== undefined && ` Max: ${task.measurement.max}`}
+                                {` ${task.measurement.unit}`}
+                            </span>
+                        </div>
                     </div>
                 )}
 

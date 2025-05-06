@@ -1,4 +1,4 @@
-import { FileText, CheckSquare, ListChecks, Ruler, Camera, ScanBarcode, Upload, QrCode, Barcode } from 'lucide-react';
+import { FileText, CheckSquare, ListChecks, Ruler, Camera, ScanBarcode, Upload, QrCode, Barcode, CircleCheck } from 'lucide-react';
 import { UnitCategory, MeasurementUnit, MeasurementUnitCategories, MeasurementUnits, findUnitCategory } from './units';
 
 export const TaskTypeGroups = {
@@ -24,7 +24,7 @@ export const TaskTypeGroups = {
         { 
             id: 3, 
             name: 'Múltipla escolha', 
-            icon: CheckSquare,
+            icon: CircleCheck,
             label: 'Pergunta de Múltipla Escolha',
             placeholder: 'Digite a pergunta para escolha da resposta...',
             value: 'multiple_choice' as const
@@ -100,17 +100,21 @@ export enum TaskState {
 // Utilizando o tipo de unidade de medição do arquivo units.ts
 export interface Measurement {
     name: string;
-    min: number;
-    target: number;
-    max: number;
+    min?: number;
+    target?: number;
+    max?: number;
     unit: typeof MeasurementUnits[number];
+    category: UnitCategory;
 }
 
-export const DefaultMeasurements: Measurement[] = [
-    { name: 'Ponto A', min: 49, target: 50, max: 51, unit: 'mm' },
-    { name: 'Ponto B', min: 49, target: 50, max: 51, unit: 'mm' },
-    { name: 'Ponto C', min: 49, target: 50, max: 51, unit: 'mm' }
-] as const;
+export const DefaultMeasurement: Measurement = {
+    name: 'Medição',
+    min: 0,
+    target: 0,
+    max: 0,
+    unit: 'mm',
+    category: 'Comprimento'
+} as const;
 
 export interface Task {
     id: string;
@@ -119,7 +123,7 @@ export interface Task {
     description: string;
     isRequired: boolean;
     options?: string[];
-    measurementPoints?: Measurement[];
+    measurement?: Measurement;
     photoInstructions?: string;
     codeReaderType?: (typeof CodeReaderTypes)[number]['value'];
     codeReaderInstructions?: string;
@@ -133,7 +137,7 @@ export const DefaultTaskValues = {
     isRequired: true,
     instructionImages: [] as string[],
     options: [] as string[],
-    measurementPoints: [] as Measurement[]
+    measurement: DefaultMeasurement
 } as const;
 
 // Operações de Tarefas
@@ -151,7 +155,7 @@ export const TaskOperations = {
         isRequired,
         instructionImages: DefaultTaskValues.instructionImages,
         options: DefaultTaskValues.options,
-        measurementPoints: DefaultTaskValues.measurementPoints,
+        measurement: DefaultTaskValues.measurement,
         state: TaskState.Editing
     }),
 
@@ -178,18 +182,39 @@ export const TaskOperations = {
         // Se não houver lista de tarefas ou ela estiver vazia
         if (!tasks || tasks.length === 0 || index < 0) {
             const newId = "1"; // Primeira tarefa sempre começa com ID 1
-            return TaskOperations.create(newId, type, description, isRequired);
+            const task = TaskOperations.create(newId, type, description, isRequired);
+            
+            // Se for uma tarefa de medição, garantir que tenha uma medição válida
+            if (type === 'measurement') {
+                task.measurement = { ...DefaultMeasurement };
+            }
+            
+            return task;
         }
 
         // Se o índice for maior que o tamanho da lista, adiciona ao final
         if (index >= tasks.length) {
             const newId = TaskOperations.generateNextId(tasks);
-            return TaskOperations.create(newId, type, description, isRequired);
+            const task = TaskOperations.create(newId, type, description, isRequired);
+            
+            // Se for uma tarefa de medição, garantir que tenha uma medição válida
+            if (type === 'measurement') {
+                task.measurement = { ...DefaultMeasurement };
+            }
+            
+            return task;
         }
 
         // Cria a nova tarefa com o próximo ID disponível
         const newId = TaskOperations.generateNextId(tasks);
-        return TaskOperations.create(newId, type, description, isRequired);
+        const task = TaskOperations.create(newId, type, description, isRequired);
+        
+        // Se for uma tarefa de medição, garantir que tenha uma medição válida
+        if (type === 'measurement') {
+            task.measurement = { ...DefaultMeasurement };
+        }
+        
+        return task;
     },
 
     updateType: (task: Task, type: TaskType): Task => ({
@@ -218,38 +243,30 @@ export const TaskOperations = {
         options
     }),
 
-    addMeasurement: (task: Task): Task => ({
-        ...task,
-        measurementPoints: [
-            ...(task.measurementPoints || []),
-            {
-                ...DefaultMeasurements[0],
-                name: `Ponto ${(task.measurementPoints || []).length + 1}`
-            }
-        ]
-    }),
-
-    removeMeasurement: (task: Task, pointIndex: number): Task => ({
-        ...task,
-        measurementPoints: (task.measurementPoints || []).filter((_, index) => index !== pointIndex)
-    }),
-
-    updateMeasurements: (
+    updateMeasurement: (
         task: Task,
-        points: Measurement[]
+        measurement: Measurement
     ): Task => ({
         ...task,
-        measurementPoints: points
+        measurement
     }),
 
-    convertTaskState: (task: Task): Task => ({
-        ...task,
-        options: task.options || [],
-        isRequired: task.isRequired,
-        taskType: task.type,
-        instructionImages: task.instructionImages || [],
-        measurementPoints: task.measurementPoints || []
-    }),
+    convertTaskState: (task: Task): Task => {
+        const updatedTask = {
+            ...task,
+            options: task.options || [],
+            isRequired: task.isRequired,
+            taskType: task.type,
+            instructionImages: task.instructionImages || [],
+        };
+
+        // Garantir que tarefas de medição tenham uma medição válida
+        if (task.type === 'measurement') {
+            updatedTask.measurement = task.measurement || { ...DefaultMeasurement };
+        }
+
+        return updatedTask;
+    },
 
     // Métodos de gerenciamento de estado
     setEditing: (task: Task): Task => ({
