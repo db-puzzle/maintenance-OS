@@ -1,4 +1,5 @@
-import { type BreadcrumbItem, type EquipmentType, type EquipmentTypeForm } from '@/types';
+import { type BreadcrumbItem } from '@/types';
+import { type EquipmentType, type EquipmentTypeForm } from '@/types/asset-hierarchy';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 

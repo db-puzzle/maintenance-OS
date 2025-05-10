@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
 import { Task, TaskType, TaskState } from '@/types/task';
 import QuestionTaskContent from './QuestionTaskContent';
 import MultipleChoiceTaskContent from './MultipleChoiceTaskContent';
@@ -16,9 +16,11 @@ interface TaskContentProps {
     mode: TaskCardMode;
     /** Callback para atualizar a tarefa */
     onUpdate?: (updatedTask: Task) => void;
+    /** Callback para alterar o ícone do card */
+    onIconChange?: (icon: React.ReactNode) => void;
 }
 
-export default function TaskContent({ task, mode, onUpdate }: TaskContentProps) {
+function TaskContent({ task, mode, onUpdate, onIconChange }: TaskContentProps) {
     // Verifica se a tarefa existe
     if (!task) {
         return <div className="p-4 text-muted-foreground">Tarefa não encontrada</div>;
@@ -36,7 +38,7 @@ export default function TaskContent({ task, mode, onUpdate }: TaskContentProps) 
         case 'photo':
             return <PhotoTaskContent task={task} mode={mode} onUpdate={onUpdate} />;
         case 'code_reader':
-            return <CodeReaderTaskContent task={task} mode={mode} onUpdate={onUpdate} />;
+            return <CodeReaderTaskContent task={task} mode={mode} onUpdate={onUpdate} onIconChange={onIconChange} />;
         case 'file_upload':
             return <FileUploadTaskContent task={task} mode={mode} onUpdate={onUpdate} />;
         default:
@@ -48,4 +50,6 @@ export default function TaskContent({ task, mode, onUpdate }: TaskContentProps) 
                 </div>
             );
     }
-} 
+}
+
+export default memo(TaskContent); 

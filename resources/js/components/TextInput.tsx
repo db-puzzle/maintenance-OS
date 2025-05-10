@@ -12,11 +12,15 @@ interface TextInputProps<T extends FormData> {
         setData: (name: keyof T, value: any) => void;
         errors: Partial<Record<keyof T, string>>;
         clearErrors: (...fields: (keyof T)[]) => void;
+        validateInput?: (value: string) => boolean;
+        processBlur?: (name: keyof T, value: string) => void;
     };
     name: keyof T;
     label: string;
     placeholder: string;
     required?: boolean;
+    onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+    validateInput?: (value: string) => boolean;
 }
 
 export default function TextInput<T extends FormData>({
@@ -24,7 +28,9 @@ export default function TextInput<T extends FormData>({
     name,
     label,
     placeholder,
-    required = false
+    required = false,
+    onBlur,
+    validateInput
 }: TextInputProps<T>) {
     return (
         <div className="grid gap-2">
@@ -37,6 +43,8 @@ export default function TextInput<T extends FormData>({
                     form={form}
                     name={name}
                     placeholder={placeholder}
+                    onBlur={onBlur}
+                    validateInput={validateInput || form.validateInput}
                 />
             </div>
             <InputError message={form.errors[name]} />

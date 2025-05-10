@@ -3,7 +3,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PlusCircle, Search } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import InputError from '@/components/input-error';
-import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
 import { LucideIcon } from 'lucide-react';
 
@@ -65,7 +64,7 @@ export default function ItemSelect({
                     {...props}
                 >
                     <SelectTrigger
-                        className={cn(error && 'border-destructive focus-visible:ring-destructive')}
+                        error={!!error}
                     >
                         <SelectValue placeholder={placeholder}>
                             {selectedItem && (

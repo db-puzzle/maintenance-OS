@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { TaskCardMode } from './TaskContent';
 import { Button } from '@/components/ui/button';
 import { Camera, Upload, Image } from 'lucide-react';
+import PhotoUploader from '@/components/PhotoUploader';
 
 interface PhotoTaskContentProps {
     task: Task;
@@ -11,88 +12,67 @@ interface PhotoTaskContentProps {
 }
 
 export default function PhotoTaskContent({ task, mode, onUpdate }: PhotoTaskContentProps) {
-    const [photoTaken, setPhotoTaken] = useState(false);
-    
-    const instructions = task.photoInstructions || 'Tire uma foto conforme as instruções.';
+    const [photo, setPhoto] = useState<File | null>(null);
+    const isPreview = mode === 'preview';
     
     if (mode === 'edit') {
         return (
             <div className="space-y-4">
-                <div className="p-4 bg-muted/30 rounded-md">
-                    <p>Esta tarefa solicita que o usuário tire uma foto.</p>
-                    
-                    {task.photoInstructions && (
-                        <div className="mt-2">
-                            <p className="font-medium">Instruções:</p>
-                            <p className="text-muted-foreground">{task.photoInstructions}</p>
-                        </div>
-                    )}
+                <div className="p-4">
+                    <p>"O usuário deverá tirar uma ou mais fotos durante a execução desta tarefa."</p>
                 </div>
             </div>
         );
     }
     
-    if (mode === 'preview') {
-        return (
-            <div className="space-y-4">
-                <div className="p-4 bg-muted/30 rounded-md">
-                    <p>O usuário deverá tirar uma foto durante a execução desta tarefa.</p>
-                    
-                    {task.photoInstructions && (
-                        <div className="mt-2">
-                            <p className="font-medium">Instruções para o usuário:</p>
-                            <p className="text-muted-foreground">{task.photoInstructions}</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
+    // Handler para quando uma foto é selecionada ou capturada
+    const handlePhotoChange = (file: File | null) => {
+        setPhoto(file);
+        
+        // Se tiver a função onUpdate, atualiza a tarefa
+        if (onUpdate && file) {
+            // Aqui você pode adicionar a lógica para atualizar a tarefa com a foto
+            const updatedTask = {
+                ...task,
+                // Propriedades para armazenar a foto, se necessário
+                // photo: file,
+                // Ou talvez apenas marcar como feita
+                completed: true
+            };
+            onUpdate(updatedTask);
+        }
+    };
     
-    // Modo 'respond'
     return (
         <div className="space-y-4">
-            <div className="p-4 bg-muted/30 rounded-md">
-                <p>{instructions}</p>
+            <div className="p-4">
+                <p>
+                    {isPreview 
+                        ? "O usuário deverá tirar uma ou mais fotos durante a execução desta tarefa."
+                        : "Tire uma foto conforme necessário."}
+                </p>
             </div>
             
-            {photoTaken ? (
+            {isPreview ? (
+                // No modo preview, mostramos apenas um placeholder simples
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-full h-64 bg-muted/50 rounded-md flex items-center justify-center relative">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <Image className="h-16 w-16 text-muted-foreground" />
+                    <div className="w-full h-64 bg-muted/50 rounded-md flex items-center justify-center">
+                        <div className="flex flex-col items-center justify-center">
+                            <Image className="h-16 w-16 text-muted-foreground mb-2" />
+                            <p className="text-muted-foreground">Prévia da câmera</p>
                         </div>
-                        <p className="text-muted-foreground z-10">Foto capturada</p>
                     </div>
-                    
-                    <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={() => setPhotoTaken(false)}
-                    >
-                        <Camera className="h-4 w-4 mr-2" />
-                        Tirar nova foto
-                    </Button>
                 </div>
             ) : (
-                <div className="flex gap-4">
-                    <Button 
-                        className="flex-1" 
-                        onClick={() => setPhotoTaken(true)}
-                    >
-                        <Camera className="h-4 w-4 mr-2" />
-                        Tirar foto
-                    </Button>
-                    
-                    <Button 
-                        variant="outline" 
-                        className="flex-1"
-                        onClick={() => setPhotoTaken(true)}
-                    >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Enviar foto
-                    </Button>
-                </div>
+                // No modo respond, usamos o PhotoUploader
+                <PhotoUploader
+                    label=""
+                    value={photo}
+                    onChange={handlePhotoChange}
+                    minHeight="min-h-[200px]"
+                    maxHeight="max-h-[200px]"
+                    id={`photo-task-${task.id}`}
+                />
             )}
         </div>
     );

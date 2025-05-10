@@ -11,7 +11,8 @@ import ShiftTableView from '@/components/ShiftTableView';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TimeSelect from '@/components/TimeSelect';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
-import { type BreadcrumbItem, type ShiftForm } from '@/types';
+import { type BreadcrumbItem } from '@/types';
+import { type ShiftForm } from '@/types/asset-hierarchy';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ShiftCalendarView from '@/components/ShiftCalendarView';
 import { toast } from "sonner";
@@ -698,11 +699,12 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                                                     {/* Botão para remover turno */}
                                                                     <Button
                                                                         type="button"
-                                                                        variant="destructive"
+                                                                        variant="ghost"
                                                                         size="icon"
                                                                         onClick={() => removeShift(dayIndex, shiftIndex)}
+                                                                        className="h-10 w-10"
                                                                     >
-                                                                        <Trash2 className="h-4 w-4" />
+                                                                        <Trash2 className="h-4 w-4 text-destructive" />
                                                                     </Button>
                                                                 </div>
                                                                 {overlappingShifts.length > 0 && (
@@ -771,12 +773,12 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                                                                                 {/* Botão para remover intervalo */}
                                                                                                 <Button
                                                                                                     type="button"
-                                                                                                    variant="destructive"
+                                                                                                    variant="ghost"
                                                                                                     size="icon"
-                                                                                                    className="h-6 w-6"
+                                                                                                    className="h-10 w-10"
                                                                                                     onClick={() => removeBreak(dayIndex, shiftIndex, breakIndex)}
                                                                                                 >
-                                                                                                    <X className="h-3 w-3" />
+                                                                                                    <Trash2 className="h-4 w-4 text-destructive" />
                                                                                                 </Button>
                                                                                             </div>
                                                                                             {!isValidInShift && (

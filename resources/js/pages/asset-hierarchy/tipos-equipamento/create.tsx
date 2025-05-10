@@ -1,4 +1,5 @@
-import { type BreadcrumbItem, type EquipmentTypeForm } from '@/types';
+import { type BreadcrumbItem } from '@/types';
+import { type EquipmentTypeForm } from '@/types/asset-hierarchy';
 import { Head, useForm, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/asset-hierarchy/layout';

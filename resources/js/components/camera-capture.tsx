@@ -27,7 +27,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
             }
 
             // Configurações básicas primeiro
-            let constraints = {
+            let constraints: MediaStreamConstraints = {
                 video: {
                     facingMode: isMobile ? 'environment' : 'user'
                 }
@@ -42,7 +42,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                         facingMode: isMobile ? 'environment' : 'user',
                         width: { ideal: isMobile ? window.innerWidth : 1920 },
                         height: { ideal: isMobile ? window.innerHeight : 1080 }
-                    }
+                    } as MediaTrackConstraints
                 };
 
                 // Tenta aplicar as configurações de qualidade
@@ -87,7 +87,9 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
         }
     };
 
-    const takePhoto = () => {
+    const takePhoto = (e: React.MouseEvent) => {
+        e.preventDefault(); // Previne a propagação do evento
+        
         if (videoRef.current) {
             const canvas = document.createElement('canvas');
             
@@ -119,7 +121,10 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
         }
     };
 
-    const handleClose = () => {
+    const handleClose = (e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+        }
         stopCamera();
         onClose();
     };
@@ -133,7 +138,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                             <X className="h-8 w-8" />
                         </div>
                         <p className="text-lg font-semibold">{error}</p>
-                        <Button onClick={handleClose}>Fechar</Button>
+                        <Button type="button" onClick={handleClose}>Fechar</Button>
                     </div>
                 </div>
             </div>
@@ -160,6 +165,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                         />
                         <div className="absolute top-4 right-4">
                             <Button
+                                type="button"
                                 variant="destructive"
                                 size="icon"
                                 className="h-12 w-12 rounded-full"
@@ -172,6 +178,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                     
                     <div className={`flex justify-center gap-4 ${isMobile ? 'fixed bottom-8 left-4 right-4' : ''}`}>
                         <Button
+                            type="button"
                             onClick={takePhoto}
                             disabled={isLoading}
                             className={`${isMobile ? 'h-16 text-lg rounded-full' : ''} w-full`}

@@ -1,4 +1,5 @@
-import { type BreadcrumbItem, type Equipment } from '@/types';
+import { type BreadcrumbItem } from '@/types';
+import { type Equipment } from '@/types/asset-hierarchy';
 import { Head, Link, router } from '@inertiajs/react';
 import { MapPin, Cog, Map, Factory, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 

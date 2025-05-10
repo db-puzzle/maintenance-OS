@@ -1,4 +1,5 @@
-import { type BreadcrumbItem, type Area, type SectorForm } from '@/types';
+import { type BreadcrumbItem } from '@/types';
+import { type Area, type SectorForm } from '@/types/asset-hierarchy';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import { toast } from "sonner";

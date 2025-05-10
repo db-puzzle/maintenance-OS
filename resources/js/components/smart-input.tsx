@@ -12,6 +12,8 @@ interface SmartInputProps<T extends Record<string, any>> {
     placeholder?: string;
     type?: string;
     className?: string;
+    onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+    validateInput?: (value: string) => boolean;
 }
 
 export default function SmartInput<T extends Record<string, any>>({
@@ -20,6 +22,8 @@ export default function SmartInput<T extends Record<string, any>>({
     placeholder,
     type = "text",
     className,
+    onBlur,
+    validateInput
 }: SmartInputProps<T>) {
     const { data, setData, errors, clearErrors } = form;
 
@@ -29,11 +33,19 @@ export default function SmartInput<T extends Record<string, any>>({
             type={type}
             value={data[name]}
             onChange={(e) => {
-                setData(name, e.target.value);
-                if (e.target.value) {
+                const value = e.target.value;
+                
+                // Se há uma função de validação, verificar se o valor é válido
+                if (validateInput && !validateInput(value)) {
+                    return;
+                }
+                
+                setData(name, value);
+                if (value) {
                     clearErrors(name);
                 }
             }}
+            onBlur={onBlur}
             placeholder={placeholder}
             className={cn(
                 "w-full",

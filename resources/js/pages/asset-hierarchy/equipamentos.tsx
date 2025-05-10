@@ -1,5 +1,6 @@
 import * as React from "react";
-import { type BreadcrumbItem, type Equipment } from '@/types';
+import { type BreadcrumbItem } from '@/types';
+import { type Equipment } from '@/types/asset-hierarchy';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { MoreVertical, ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon, ColumnsIcon, ChevronDownIcon, ArrowUpDown } from 'lucide-react';
@@ -38,6 +39,7 @@ import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Cadastro',
+        href: '/asset-hierarchy',
     },
     {
         title: 'Equipamentos',

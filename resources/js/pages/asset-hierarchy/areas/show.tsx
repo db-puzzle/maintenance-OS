@@ -1,5 +1,6 @@
-import { type BreadcrumbItem, type Equipment } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
+import { type BreadcrumbItem } from '@/types';
+import { type Equipment } from '@/types/asset-hierarchy';
+import { router, Head, Link } from '@inertiajs/react';
 import { Building2, MapPin, Cog, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -214,10 +215,14 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
                                             <TableRow 
                                                 key={sector.id}
                                                 className="cursor-pointer hover:bg-muted/50 h-12"
-                                                onClick={() => router.get(route('asset-hierarchy.setores.show', sector.id))}
                                             >
                                                 <TableCell>
-                                                    <div className="font-medium">{sector.name}</div>
+                                                    <Link
+                                                        href={route('asset-hierarchy.setores.show', sector.id)}
+                                                        className="font-medium hover:text-primary"
+                                                    >
+                                                        {sector.name}
+                                                    </Link>
                                                 </TableCell>
                                                 <TableCell className="text-center">
                                                     <span>{sector.equipment_count}</span>
@@ -345,10 +350,14 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
                                             <TableRow 
                                                 key={equipment.id}
                                                 className="cursor-pointer hover:bg-muted/50 h-12"
-                                                onClick={() => router.get(route('asset-hierarchy.equipamentos.show', equipment.id))}
                                             >
                                                 <TableCell>
-                                                    <div className="font-medium">{equipment.tag}</div>
+                                                    <Link
+                                                        href={route('asset-hierarchy.equipamentos.show', equipment.id)}
+                                                        className="font-medium hover:text-primary"
+                                                    >
+                                                        {equipment.tag}
+                                                    </Link>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">
                                                     {equipment.equipment_type?.name ?? '-'}
@@ -425,6 +434,7 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`Área ${area.name}`} />
             <ShowLayout
                 title={area.name}
                 subtitle={subtitle}

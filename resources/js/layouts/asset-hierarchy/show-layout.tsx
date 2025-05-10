@@ -1,13 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -15,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EllipsisVertical, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Link } from "@inertiajs/react";
 import { type ReactNode } from "react";
 import { type BreadcrumbItem } from "@/types";
@@ -35,6 +29,7 @@ interface ShowLayoutProps {
     backRoute: string;
     tabs: Tab[];
     children?: ReactNode;
+    showEditButton?: boolean;
 }
 
 export default function ShowLayout({
@@ -45,6 +40,7 @@ export default function ShowLayout({
     backRoute,
     tabs,
     children,
+    showEditButton = true,
 }: ShowLayoutProps) {
     const [activeTab, setActiveTab] = useState(tabs ? tabs[0].id : '');
 
@@ -68,9 +64,11 @@ export default function ShowLayout({
                         <Button variant="outline" asChild>
                             <Link href={backRoute}>Voltar</Link>
                         </Button>
-                        <Button asChild>
-                            <Link href={editRoute}>Editar</Link>
-                        </Button>
+                        {showEditButton && (
+                            <Button asChild>
+                                <Link href={editRoute}>Editar</Link>
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>

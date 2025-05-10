@@ -1,7 +1,8 @@
-import { type BreadcrumbItem, type EquipmentType, type Area, type EquipmentForm, type Sector, type Plant } from '@/types';
+import { type BreadcrumbItem } from '@/types';
+import { type EquipmentType, type Area, type EquipmentForm, type Sector, type Plant } from '@/types/asset-hierarchy';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, useMemo } from 'react';
-import { Check, ChevronsUpDown, Camera, Upload } from 'lucide-react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from "sonner";
 
 import { Button } from '@/components/ui/button';
@@ -22,12 +23,12 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import InputError from '@/components/input-error';
-import CameraCapture from '@/components/camera-capture';
 import { cn } from '@/lib/utils';
 import SmartInput from "@/components/smart-input";
 import { SmartPopover } from "@/components/ui/smart-popover";
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from "@/components/TextInput";
+import PhotoUploader from '@/components/PhotoUploader';
 
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
@@ -63,9 +64,6 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
         photo: null as File | null,
     });
 
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [showCamera, setShowCamera] = useState(false);
-
     const availableAreas = useMemo(() => {
         if (!data.plant_id) return [];
         const selectedPlant = plants.find(p => p.id.toString() === data.plant_id);
@@ -77,24 +75,6 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
         const selectedArea = availableAreas.find((a: Area) => a.id.toString() === data.area_id);
         return selectedArea?.sectors || [];
     }, [data.area_id, availableAreas]);
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setData('photo', file);
-            setPreviewUrl(URL.createObjectURL(file));
-        }
-    };
-
-    const handlePhotoCapture = (file: File) => {
-        setData('photo', file);
-        setPreviewUrl(URL.createObjectURL(file));
-    };
-
-    const handleRemovePhoto = () => {
-        setPreviewUrl(null);
-        setData('photo', null);
-    };
 
     const handleSave = () => {
         post(route('asset-hierarchy.equipamentos.store'), {
@@ -121,69 +101,13 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                 <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
                     {/* Foto e Campos Principais */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Coluna 1: Foto */}
-                        <div className="flex flex-col h-full">
-                            <Label htmlFor="photo" className="mb-2">Foto do Equipamento</Label>
-                            <div className="flex-1 flex flex-col gap-2">
-                                <div className="flex-1 relative rounded-lg overflow-hidden bg-muted border min-h-[238px] max-h-[238px]">
-                                    {previewUrl ? (
-                                        <div className="relative w-full h-full">
-                                            <img
-                                                src={previewUrl}
-                                                alt="Preview"
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="sm"
-                                                className="absolute top-2 right-2"
-                                                onClick={handleRemovePhoto}
-                                            >
-                                                Remover
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                                            <Camera className="w-12 h-12" />
-                                            <span className="text-sm">Nenhuma foto selecionada</span>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleFileChange}
-                                            className="hidden"
-                                            id="photo"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="w-full"
-                                            asChild
-                                        >
-                                            <label htmlFor="photo" className="flex items-center justify-center gap-2 cursor-pointer">
-                                                <Upload className="w-4 h-4" />
-                                                Selecionar Arquivo
-                                            </label>
-                                        </Button>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => setShowCamera(true)}
-                                        className="flex-1"
-                                    >
-                                        <Camera className="w-4 h-4 mr-2" />
-                                        Usar Câmera
-                                    </Button>
-                                </div>
-                                <InputError message={errors.photo} />
-                            </div>
-                        </div>
+                        {/* Coluna 1: Foto - utilizando o componente PhotoUploader */}
+                        <PhotoUploader 
+                            label="Foto do Equipamento"
+                            value={data.photo}
+                            onChange={(file) => setData('photo', file)}
+                            error={errors.photo}
+                        />
 
                         {/* Coluna 2: Informações Básicas */}
                         <div className="space-y-6">
@@ -330,13 +254,6 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                     </div>
                 </form>
             </CreateLayout>
-
-            {showCamera && (
-                <CameraCapture
-                    onCapture={handlePhotoCapture}
-                    onClose={() => setShowCamera(false)}
-                />
-            )}
         </AppLayout>
     );
 } 

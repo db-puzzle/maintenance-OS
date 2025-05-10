@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from '@/components/TextInput';
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 
 interface MeasurementTaskContentProps {
     task: Task;
@@ -20,6 +21,7 @@ interface MeasurementFormData {
     targetValue: string;
     minValue: string;
     maxValue: string;
+    measuredValue: string;
     [key: string]: any;
 }
 
@@ -30,6 +32,14 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
     const [minValue, setMinValue] = useState<number | undefined>(undefined);
     const [maxValue, setMaxValue] = useState<number | undefined>(undefined);
     const [targetValue, setTargetValue] = useState<number | undefined>(undefined);
+    const [isValueOutOfRange, setIsValueOutOfRange] = useState<boolean>(false);
+    const [isValueAtTarget, setIsValueAtTarget] = useState<boolean>(false);
+    const [formData, setFormData] = useState<MeasurementFormData>({
+        targetValue: '',
+        minValue: '',
+        maxValue: '',
+        measuredValue: '0'
+    });
     const [formErrors, setFormErrors] = useState<Partial<Record<keyof MeasurementFormData, string>>>({});
     const measurement = task.measurement || DefaultMeasurement;
 
@@ -45,6 +55,14 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
             setMinValue(measurement.min);
             setMaxValue(measurement.max);
             setTargetValue(measurement.target);
+            setValue(0); // Valor medido padrão
+            
+            setFormData({
+                targetValue: stringifyValue(measurement.target),
+                minValue: stringifyValue(measurement.min),
+                maxValue: stringifyValue(measurement.max),
+                measuredValue: '0'
+            });
         }
     }, [measurement]);
 
@@ -57,39 +75,123 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
     const stringifyValue = (val: number | undefined): string => {
         return val !== undefined ? String(val) : '';
     };
-
-    // Objeto de formulário para usar com TextInput
-    const formData: MeasurementFormData = {
-        targetValue: stringifyValue(targetValue),
-        minValue: stringifyValue(minValue),
-        maxValue: stringifyValue(maxValue)
+    
+    // Validação dos valores após as atualizações do formulário para target, min e max
+    useEffect(() => {
+        // Limpar erros existentes
+        const newErrors: Partial<Record<keyof MeasurementFormData, string>> = {};
+        
+        // Verificar inconsistências entre valores alvo, mínimo e máximo
+        if (targetValue !== undefined && minValue !== undefined && targetValue < minValue) {
+            newErrors.targetValue = `O valor alvo não pode ser menor que o mínimo (${minValue})`;
+        }
+        
+        if (targetValue !== undefined && maxValue !== undefined && targetValue > maxValue) {
+            newErrors.targetValue = `O valor alvo não pode ser maior que o máximo (${maxValue})`;
+        }
+        
+        if (minValue !== undefined && maxValue !== undefined && minValue > maxValue) {
+            newErrors.minValue = `O mínimo não pode ser maior que o máximo (${maxValue})`;
+            newErrors.maxValue = `O máximo não pode ser menor que o mínimo (${minValue})`;
+        }
+        
+        setFormErrors(newErrors);
+    }, [targetValue, minValue, maxValue]);
+    
+    // Função para validar entrada - apenas números, ponto e vírgula
+    const validateInput = (value: string): boolean => {
+        return value === '' || /^-?\d*[.,]?\d*$/.test(value);
+    };
+    
+    // Função para processar valor quando o campo perde o foco
+    const processBlur = (name: keyof MeasurementFormData, value: string) => {
+        // Processar o valor apenas quando o campo perde o foco
+        if (value === '') {
+            if (name === 'targetValue') {
+                setTargetValue(undefined);
+                if (onUpdate) handleUpdate(undefined, minValue, maxValue);
+            } else if (name === 'minValue') {
+                setMinValue(undefined);
+                if (onUpdate) handleUpdate(targetValue, undefined, maxValue);
+            } else if (name === 'maxValue') {
+                setMaxValue(undefined);
+                if (onUpdate) handleUpdate(targetValue, minValue, undefined);
+            } else if (name === 'measuredValue') {
+                setValue(0);
+                setFormData(prev => ({ ...prev, measuredValue: '0' }));
+                // Limpar erros ao redefinir o valor
+                setFormErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.measuredValue;
+                    return newErrors;
+                });
+            }
+            return;
+        }
+        
+        // Substituir vírgula por ponto para garantir o formato correto
+        const normalizedValue = value.replace(',', '.');
+        const numValue = parseFloat(normalizedValue);
+        
+        // Verificar se é um número válido, inclusive 0
+        if (isNaN(numValue)) {
+            return;
+        }
+        
+        if (name === 'targetValue') {
+            setTargetValue(numValue);
+            if (onUpdate) handleUpdate(numValue, minValue, maxValue);
+        } else if (name === 'minValue') {
+            setMinValue(numValue);
+            if (onUpdate) handleUpdate(targetValue, numValue, maxValue);
+        } else if (name === 'maxValue') {
+            setMaxValue(numValue);
+            if (onUpdate) handleUpdate(targetValue, minValue, numValue);
+        } else if (name === 'measuredValue') {
+            setValue(numValue);
+            
+            // Verificar limites apenas quando o campo perde o foco
+            const newErrors: Partial<Record<keyof MeasurementFormData, string>> = { ...formErrors };
+            delete newErrors.measuredValue;
+            
+            // Validar o valor medido contra os limites definidos
+            if (minValue !== undefined && numValue < minValue) {
+                newErrors.measuredValue = `O valor está abaixo do mínimo (${minValue})`;
+                setIsValueOutOfRange(true);
+            } else if (maxValue !== undefined && numValue > maxValue) {
+                newErrors.measuredValue = `O valor está acima do máximo (${maxValue})`;
+                setIsValueOutOfRange(true);
+            } else {
+                setIsValueOutOfRange(false);
+            }
+            
+            // Verificar se está no valor alvo
+            setIsValueAtTarget(targetValue !== undefined && numValue === targetValue);
+            
+            setFormErrors(newErrors);
+        }
     };
     
     const form = {
         data: formData,
         setData: (name: keyof MeasurementFormData, value: string) => {
-            const numValue = value === '' ? undefined : parseFloat(value);
-            
-            if (name === 'targetValue') {
-                setTargetValue(isNaN(numValue as number) ? undefined : numValue);
-                if (onUpdate) handleUpdate(numValue, minValue, maxValue);
-            } else if (name === 'minValue') {
-                setMinValue(isNaN(numValue as number) ? undefined : numValue);
-                if (onUpdate) handleUpdate(targetValue, numValue, maxValue);
-            } else if (name === 'maxValue') {
-                setMaxValue(isNaN(numValue as number) ? undefined : numValue);
-                if (onUpdate) handleUpdate(targetValue, minValue, numValue);
-            }
+            // Atualizar o formData imediatamente para refletir a entrada do usuário
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
         },
         errors: formErrors,
         clearErrors: (...fields: (keyof MeasurementFormData)[]) => {
             const newErrors = { ...formErrors };
             fields.forEach(field => delete newErrors[field]);
             setFormErrors(newErrors);
-        }
+        },
+        validateInput,
+        processBlur
     };
 
-    const handleUpdate = (target = targetValue, min = minValue, max = maxValue) => {
+    const handleUpdate = (target: number | undefined, min: number | undefined, max: number | undefined) => {
         if (onUpdate) {
             onUpdate({
                 ...task,
@@ -201,7 +303,8 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
                                 form={form}
                                 name="targetValue"
                                 label="Valor Alvo"
-                                placeholder="Alvo"
+                                placeholder="Sem Alvo"
+                                onBlur={(e) => form.processBlur('targetValue', e.target.value)}
                             />
                         </div>
 
@@ -210,7 +313,8 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
                                 form={form}
                                 name="minValue"
                                 label="Valor Mínimo"
-                                placeholder="Mínimo"
+                                placeholder="Sem Min"
+                                onBlur={(e) => form.processBlur('minValue', e.target.value)}
                             />
                         </div>
 
@@ -219,7 +323,8 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
                                 form={form}
                                 name="maxValue"
                                 label="Valor Máximo"
-                                placeholder="Máximo"
+                                placeholder="Sem Max"
+                                onBlur={(e) => form.processBlur('maxValue', e.target.value)}
                             />
                         </div>
                     </div>
@@ -229,49 +334,105 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
     }
     
     // Modos 'preview' e 'respond'
-    const isOutOfRange = (measurement.min !== undefined && value < measurement.min) || 
-                        (measurement.max !== undefined && value > measurement.max);
+    // Obtém a unidade que será mostrada após cada campo
+    const displayedUnit = measurement.unit || '';
     
     return (
         <div className="space-y-4">
-            <div className="space-y-2">
-                <Label 
-                    htmlFor="measurement-value" 
-                    className="flex justify-between"
-                >
-                    <span>{measurement.name || ''}</span>
-                    <span className="text-muted-foreground text-sm">
-                        {(measurement.min !== undefined || measurement.max !== undefined) && (
+            <div className="pl-4 pr-4 pb-4 rounded-md">
+                <div className="grid grid-cols-27 gap-4">
+                    <div className="col-span-7 space-y-2">
+                        {mode === 'preview' ? (
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium">Valor Medido</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        value={value}
+                                        className="bg-muted/50"
+                                        disabled
+                                    />
+                                    <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                                        {displayedUnit}
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
                             <>
-                                ({measurement.min !== undefined ? measurement.min : '-'} - {measurement.max !== undefined ? measurement.max : '-'} {measurement.unit || ''})
+                                <Label className="text-sm font-medium">Valor Medido</Label>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={formData.measuredValue}
+                                            onChange={(e) => {
+                                                const inputValue = e.target.value;
+                                                if (validateInput(inputValue)) {
+                                                    form.setData('measuredValue', inputValue);
+                                                }
+                                            }}
+                                            onBlur={(e) => form.processBlur('measuredValue', e.target.value)}
+                                            className={`${isValueOutOfRange ? "border-red-500 focus-visible:ring-red-500" : isValueAtTarget ? "border-green-500 focus-visible:ring-green-500" : ""}`}
+                                        />
+                                        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                                            {displayedUnit}
+                                        </span>
+                                    </div>
+                                    <InputError message={formErrors.measuredValue} />
+                                </div>
                             </>
                         )}
-                        {measurement.target !== undefined && (
-                            <span className="ml-2">Alvo: {measurement.target} {measurement.unit || ''}</span>
-                        )}
-                    </span>
-                </Label>
-                <div className="flex items-center gap-2">
-                    <Input
-                        id="measurement-value"
-                        type="number"
-                        value={value === 0 ? '0' : value}
-                        onChange={(e) => {
-                            const newValue = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                            setValue(isNaN(newValue) ? 0 : newValue);
-                        }}
-                        className={isOutOfRange ? "border-red-500" : ""}
-                        disabled={mode === 'preview'}
-                    />
-                    <span>{measurement.unit || ''}</span>
+                    </div>
+
+                    <div className="col-span-1 flex items-center justify-center">
+                        <Separator orientation="vertical" className="h-auto" />
+                    </div>
+
+                    <div className="col-span-6 space-y-2">
+                        <Label className="text-sm font-medium">Valor Alvo</Label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                value={targetValue !== undefined ? targetValue : ''}
+                                placeholder="Sem Alvo"
+                                className="bg-muted/50"
+                                disabled
+                            />
+                            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                                {displayedUnit}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="col-span-6 space-y-2">
+                        <Label className="text-sm font-medium">Valor Mínimo</Label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                value={minValue !== undefined ? minValue : ''}
+                                placeholder="Sem Min"
+                                className="bg-muted/50"
+                                disabled
+                            />
+                            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                                {displayedUnit}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="col-span-6 space-y-2">
+                        <Label className="text-sm font-medium">Valor Máximo</Label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                value={maxValue !== undefined ? maxValue : ''}
+                                placeholder="Sem Max"
+                                className="bg-muted/50"
+                                disabled
+                            />
+                            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                                {displayedUnit}
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                {isOutOfRange && (
-                    <p className="text-red-500 text-sm">
-                        O valor está fora da faixa {measurement.min !== undefined ? `mínima (${measurement.min})` : ''} 
-                        {measurement.min !== undefined && measurement.max !== undefined ? ' e ' : ''}
-                        {measurement.max !== undefined ? `máxima (${measurement.max})` : ''}.
-                    </p>
-                )}
             </div>
         </div>
     );

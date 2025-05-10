@@ -180,7 +180,7 @@ export default function TaskBaseCard({
                             <AlertDialogTrigger asChild>
                                 <Button
                                     type="button"
-                                    variant="destructive"
+                                    variant="warning"
                                     className="flex items-center gap-2"
                                 >
                                     Excluir

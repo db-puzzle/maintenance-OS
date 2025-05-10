@@ -109,9 +109,9 @@ export interface Measurement {
 
 export const DefaultMeasurement: Measurement = {
     name: 'Medição',
-    min: 0,
-    target: 0,
-    max: 0,
+    min: undefined,
+    target: undefined,
+    max: undefined,
     unit: 'mm',
     category: 'Comprimento'
 } as const;
@@ -124,7 +124,6 @@ export interface Task {
     isRequired: boolean;
     options?: string[];
     measurement?: Measurement;
-    photoInstructions?: string;
     codeReaderType?: (typeof CodeReaderTypes)[number]['value'];
     codeReaderInstructions?: string;
     fileUploadInstructions?: string;
@@ -185,7 +184,7 @@ export const TaskOperations = {
             const task = TaskOperations.create(newId, type, description, isRequired);
             
             // Se for uma tarefa de medição, garantir que tenha uma medição válida
-            if (type === 'measurement') {
+            if (type === 'measurement' && !task.measurement) {
                 task.measurement = { ...DefaultMeasurement };
             }
             
@@ -198,7 +197,7 @@ export const TaskOperations = {
             const task = TaskOperations.create(newId, type, description, isRequired);
             
             // Se for uma tarefa de medição, garantir que tenha uma medição válida
-            if (type === 'measurement') {
+            if (type === 'measurement' && !task.measurement) {
                 task.measurement = { ...DefaultMeasurement };
             }
             
@@ -210,7 +209,7 @@ export const TaskOperations = {
         const task = TaskOperations.create(newId, type, description, isRequired);
         
         // Se for uma tarefa de medição, garantir que tenha uma medição válida
-        if (type === 'measurement') {
+        if (type === 'measurement' && !task.measurement) {
             task.measurement = { ...DefaultMeasurement };
         }
         

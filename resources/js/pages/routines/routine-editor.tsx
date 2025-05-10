@@ -8,12 +8,13 @@ import { Label } from '@/components/ui/label';
 import { toast } from "sonner";
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from '@/components/TextInput';
-import { useState, useEffect } from 'react';
-import { Camera, FileText, List, MessageSquare, PlusCircle, Save, X, ClipboardCheck, ListChecks, Ruler, CheckSquare, ScanBarcode, Upload, CircleCheck } from 'lucide-react';
+import { useState, useEffect, memo } from 'react';
+import { Camera, FileText, List, MessageSquare, PlusCircle, Save, X, ClipboardCheck, ListChecks, Ruler, CheckSquare, ScanBarcode, Upload, CircleCheck, QrCode, Barcode } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TaskBaseCard, TaskContent } from '@/components/tasks';
-import { Task, TaskType, TaskTypes, TaskOperations, TaskState } from '@/types/task';
+import { Task, TaskType, TaskTypes, TaskOperations, TaskState, DefaultMeasurement } from '@/types/task';
+import { UnitCategory } from '@/types/units';
 import {
     DndContext,
     closestCenter,
@@ -70,6 +71,10 @@ export default function CreateRoutine({ }: Props) {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [cardMode, setCardMode] = useState<'edit' | 'preview'>('edit');
     
+    // Adicionar estados para última categoria e unidade selecionada
+    const [lastMeasurementCategory, setLastMeasurementCategory] = useState<UnitCategory>('Comprimento');
+    const [lastMeasurementUnit, setLastMeasurementUnit] = useState<string>('m');
+    
     // Estados para os exemplos
     const [questionMode, setQuestionMode] = useState<'edit' | 'preview'>('edit');
     const [choiceMode, setChoiceMode] = useState<'edit' | 'preview'>('edit');
@@ -83,7 +88,7 @@ export default function CreateRoutine({ }: Props) {
     const [measurementTitle, setMeasurementTitle] = useState('Medição');
     const [photoTitle, setPhotoTitle] = useState('Captura de Foto');
     const [codeReaderTitle, setCodeReaderTitle] = useState('Leitura de Código');
-    const [fileUploadTitle, setFileUploadTitle] = useState('Upload de Arquivo');
+    const [fileUploadTitle, setFileUploadTitle] = useState('Faça upload do relatório de vibração');
 
     // Estados para controlar required de cada exemplo
     const [questionRequired, setQuestionRequired] = useState(true);
@@ -93,6 +98,24 @@ export default function CreateRoutine({ }: Props) {
     const [photoRequired, setPhotoRequired] = useState(true);
     const [codeReaderRequired, setCodeReaderRequired] = useState(true);
     const [fileUploadRequired, setFileUploadRequired] = useState(true);
+    
+    // Estado para controlar o ícone do leitor de código
+    const [codeReaderIcon, setCodeReaderIcon] = useState<React.ReactNode>(null);
+    
+    // Estado para armazenar os ícones personalizados por ID de tarefa
+    const [taskIcons, setTaskIcons] = useState<Record<string, React.ReactNode>>({});
+    
+    // Função para atualizar o ícone de uma tarefa específica
+    const updateTaskIcon = (taskId: string, icon: React.ReactNode) => {
+        setTaskIcons(prev => {
+            // Se o ícone for igual ao anterior, não atualize o estado
+            if (prev[taskId] === icon) return prev;
+            return {
+                ...prev,
+                [taskId]: icon
+            };
+        });
+    };
 
     // Funções utilitárias para gerenciamento de tarefas
     const taskMethods = {
@@ -114,6 +137,10 @@ export default function CreateRoutine({ }: Props) {
                     id: TaskOperations.generateNextId(tasks)
                 };
             }
+            
+            // Definir ícone personalizado para tarefas de código de barras
+            // Não fazemos isso aqui para evitar loop infinito
+            // O ícone será definido pelo useEffect no componente CodeReaderTaskContent
             
             const updatedTasks = [...tasks];
             updatedTasks.splice(index + 1, 0, task);
@@ -137,6 +164,15 @@ export default function CreateRoutine({ }: Props) {
             if (newTask) {
                 // Se uma tarefa já foi criada, use-a
                 taskToAdd = newTask;
+                
+                // Se for uma tarefa de medição, use a última categoria/unidade selecionada
+                if (taskToAdd.type === 'measurement') {
+                    taskToAdd.measurement = {
+                        ...DefaultMeasurement,
+                        category: lastMeasurementCategory,
+                        unit: lastMeasurementUnit
+                    };
+                }
             } else if (type) {
                 // Caso contrário, crie uma nova tarefa com o tipo especificado
                 taskToAdd = TaskOperations.createAtIndex(
@@ -144,6 +180,20 @@ export default function CreateRoutine({ }: Props) {
                     index,
                     type
                 );
+                
+                // Se for uma tarefa de medição, use a última categoria/unidade selecionada
+                if (type === 'measurement') {
+                    taskToAdd.measurement = {
+                        ...DefaultMeasurement,
+                        category: lastMeasurementCategory,
+                        unit: lastMeasurementUnit
+                    };
+                }
+                
+                // Se for uma tarefa de código, defina o tipo padrão como barcode
+                if (type === 'code_reader') {
+                    taskToAdd.codeReaderType = 'barcode';
+                }
             } else {
                 return;
             }
@@ -343,7 +393,9 @@ export default function CreateRoutine({ }: Props) {
                                         tasks.map((task, index) => {
                                             // Determinar o ícone com base no tipo de tarefa
                                             const taskType = TaskTypes.find(t => t.value === task.type);
-                                            const icon = taskType ? <taskType.icon className="size-5" /> : <FileText className="size-5" />;
+                                            // Usar o ícone personalizado se existir, senão usar o padrão
+                                            const icon = taskIcons[task.id] || 
+                                                (taskType ? <taskType.icon className="size-5" /> : <FileText className="size-5" />);
                                             
                                             // Convertendo para o novo formato de card
                                             return (
@@ -395,7 +447,15 @@ export default function CreateRoutine({ }: Props) {
                                                                 TaskOperations.isResponding(task) ? 'respond' : 'preview'
                                                             )
                                                         )}
-                                                        onUpdate={(updatedTask) => taskMethods.update(index, () => updatedTask)}
+                                                        onUpdate={(updatedTask) => {
+                                                            // Atualizar última categoria/unidade quando uma tarefa de medição é atualizada
+                                                            if (updatedTask.type === 'measurement' && updatedTask.measurement) {
+                                                                setLastMeasurementCategory(updatedTask.measurement.category);
+                                                                setLastMeasurementUnit(updatedTask.measurement.unit);
+                                                            }
+                                                            taskMethods.update(index, () => updatedTask);
+                                                        }}
+                                                        onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
                                                     />
                                                 </TaskBaseCard>
                                             );
@@ -420,7 +480,9 @@ export default function CreateRoutine({ }: Props) {
                                         
                                         // Determinar o ícone com base no tipo de tarefa
                                         const taskType = TaskTypes.find(t => t.value === task.type);
-                                        const icon = taskType ? <taskType.icon className="size-5" /> : <FileText className="size-5" />;
+                                        // Usar o ícone personalizado se existir, senão usar o padrão
+                                        const icon = taskIcons[task.id] || 
+                                            (taskType ? <taskType.icon className="size-5" /> : <FileText className="size-5" />);
                                         
                                         return (
                                             <TaskBaseCard
@@ -435,6 +497,7 @@ export default function CreateRoutine({ }: Props) {
                                                     task={task}
                                                     mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
                                                     onUpdate={() => {}}
+                                                    onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
                                                 />
                                             </TaskBaseCard>
                                         );
@@ -736,7 +799,6 @@ export default function CreateRoutine({ }: Props) {
                                             id: 'example-task-photo',
                                             type: 'photo',
                                             description: 'Tire uma foto da área de trabalho',
-                                            photoInstructions: 'Certifique-se de capturar toda a área com boa iluminação e foco adequado.',
                                             state: TaskState.Viewing,
                                             isRequired: photoRequired,
                                             instructionImages: []
@@ -761,7 +823,6 @@ export default function CreateRoutine({ }: Props) {
                                             id: 'example-task-photo-respond',
                                             type: 'photo',
                                             description: 'Tire uma foto da área de trabalho',
-                                            photoInstructions: 'Certifique-se de capturar toda a área com boa iluminação e foco adequado.',
                                             state: TaskState.Viewing,
                                             isRequired: photoRequired,
                                             instructionImages: []
@@ -775,7 +836,7 @@ export default function CreateRoutine({ }: Props) {
                                 <TaskBaseCard
                                     id="example-code-edit"
                                     mode="edit"
-                                    icon={<ScanBarcode className="size-5" />}
+                                    icon={codeReaderIcon || <ScanBarcode className="size-5" />}
                                     title={codeReaderTitle}
                                     onTitleChange={setCodeReaderTitle}
                                     onRemove={() => {}}
@@ -801,6 +862,7 @@ export default function CreateRoutine({ }: Props) {
                                         }}
                                         mode="edit"
                                         onUpdate={() => {}}
+                                        onIconChange={setCodeReaderIcon}
                                     />
                                 </TaskBaseCard>
 
@@ -808,7 +870,7 @@ export default function CreateRoutine({ }: Props) {
                                 <TaskBaseCard
                                     id="example-code-respond"
                                     mode="respond"
-                                    icon={<ScanBarcode className="size-5" />}
+                                    icon={codeReaderIcon || <ScanBarcode className="size-5" />}
                                     title={codeReaderTitle}
                                     isLastTask={false}
                                     onNext={() => {}}
@@ -827,6 +889,7 @@ export default function CreateRoutine({ }: Props) {
                                         }}
                                         mode="respond"
                                         onUpdate={() => {}}
+                                        onIconChange={setCodeReaderIcon}
                                     />
                                 </TaskBaseCard>
 

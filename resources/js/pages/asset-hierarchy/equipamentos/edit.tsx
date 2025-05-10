@@ -1,4 +1,5 @@
-import { type BreadcrumbItem, type Equipment, type EquipmentType, type Area, type EquipmentForm, type Plant, type Sector } from '@/types';
+import { type BreadcrumbItem } from '@/types';
+import { type Equipment, type EquipmentType, type Area, type EquipmentForm, type Plant, type Sector } from '@/types/asset-hierarchy';
 import { Head, useForm, router } from '@inertiajs/react';
 import { FormEvent, useState, useEffect } from 'react';
 import { toast } from "sonner";
@@ -9,14 +10,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InputError from '@/components/input-error';
-import { Camera, Upload, ChevronsUpDown, Check } from 'lucide-react';
-import CameraCapture from '@/components/camera-capture';
+import { ChevronsUpDown, Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import DeleteEquipment from '@/components/delete-equipment';
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from '@/components/TextInput';
+import PhotoUploader from '@/components/PhotoUploader';
 
 import AppLayout from '@/layouts/app-layout';
 import EditLayout from '@/layouts/asset-hierarchy/edit-layout';
@@ -59,14 +60,12 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
         photo_path: equipment.photo_path
     });
 
-    const [previewUrl, setPreviewUrl] = useState<string | null>(equipment.photo_path ? `/storage/${equipment.photo_path}` : null);
-    const [showCamera, setShowCamera] = useState(false);
+    const [selectedPlant, setSelectedPlant] = useState<number | null>(equipment.plant?.id || null);
+    const [selectedArea, setSelectedArea] = useState<number | null>(equipment.area?.id || null);
     const [openEquipmentType, setOpenEquipmentType] = useState(false);
     const [openArea, setOpenArea] = useState(false);
     const [openPlant, setOpenPlant] = useState(false);
     const [openSector, setOpenSector] = useState(false);
-    const [selectedPlant, setSelectedPlant] = useState<number | null>(equipment.plant?.id || null);
-    const [selectedArea, setSelectedArea] = useState<number | null>(equipment.area?.id || null);
 
     const availableAreas = selectedPlant
         ? plants.find(p => p.id === selectedPlant)?.areas || []
@@ -85,30 +84,6 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
             setSelectedArea(equipment.area.id);
         }
     }, [equipment]);
-
-    const handleRemovePhoto = () => {
-        router.delete(route('asset-hierarchy.equipamentos.remove-photo', equipment.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setPreviewUrl(null);
-                form.setData('photo', null);
-                form.setData('photo_path', null);
-            }
-        });
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            form.setData('photo', file);
-            setPreviewUrl(URL.createObjectURL(file));
-        }
-    };
-
-    const handlePhotoCapture = (file: File) => {
-        form.setData('photo', file);
-        setPreviewUrl(URL.createObjectURL(file));
-    };
 
     const handleSubmit = () => {
         if (!form.data.tag) {
@@ -136,8 +111,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
             }
         });
 
-        router.post(route('asset-hierarchy.equipamentos.update', equipment.id), formData, {
-            preserveScroll: true,
+        form.put(route('asset-hierarchy.equipamentos.update', { equipment: equipment.id }), {
             onSuccess: () => {
                 toast.success(`O equipamento ${form.data.tag} foi atualizado com sucesso!`);
                 router.visit(route('asset-hierarchy.equipamentos.show', equipment.id));
@@ -152,15 +126,18 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Editar Equipamento" />
+            <Head title={`Editar Equipamento - ${equipment.tag}`} />
 
             <EditLayout
-                title="Editar Equipamento"
-                subtitle="Edite os dados do equipamento"
+                title={`Editar Equipamento ${equipment.tag}`}
+                subtitle="Modifique as informações do equipamento"
                 breadcrumbs={breadcrumbs}
-                backRoute={route('asset-hierarchy.equipamentos.show', equipment.id)}
+                backRoute={route('asset-hierarchy.equipamentos')}
                 onSave={handleSubmit}
                 isSaving={form.processing}
+                deleteAction={
+                    <DeleteEquipment equipment={equipment} />
+                }
             >
                 <form onSubmit={(e) => {
                     e.preventDefault();
@@ -168,69 +145,14 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                 }} className="space-y-6">
                     {/* Foto e Campos Principais */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Coluna 1: Foto */}
-                        <div className="flex flex-col h-full">
-                            <Label htmlFor="photo" className="mb-2">Foto do Equipamento</Label>
-                            <div className="flex-1 flex flex-col gap-2">
-                                <div className="flex-1 relative rounded-lg overflow-hidden bg-muted border min-h-[238px] max-h-[238px]">
-                                    {previewUrl ? (
-                                        <div className="relative w-full h-full">
-                                            <img
-                                                src={previewUrl}
-                                                alt="Preview"
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="sm"
-                                                className="absolute top-2 right-2"
-                                                onClick={handleRemovePhoto}
-                                            >
-                                                Remover
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                                            <Camera className="w-12 h-12" />
-                                            <span className="text-sm">Nenhuma foto selecionada</span>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleFileChange}
-                                            className="hidden"
-                                            id="photo"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="w-full"
-                                            asChild
-                                        >
-                                            <label htmlFor="photo" className="flex items-center justify-center gap-2 cursor-pointer">
-                                                <Upload className="w-4 h-4" />
-                                                Selecionar Arquivo
-                                            </label>
-                                        </Button>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => setShowCamera(true)}
-                                        className="flex-1"
-                                    >
-                                        <Camera className="w-4 h-4 mr-2" />
-                                        Usar Câmera
-                                    </Button>
-                                </div>
-                                <InputError message={form.errors.photo} />
-                            </div>
-                        </div>
+                        {/* Coluna 1: Foto - agora utilizando o componente PhotoUploader */}
+                        <PhotoUploader 
+                            label="Foto do Equipamento"
+                            value={form.data.photo}
+                            onChange={(file) => form.setData('photo', file)}
+                            error={form.errors.photo}
+                            initialPreview={form.data.photo_path ? `/storage/${form.data.photo_path}` : null}
+                        />
 
                         {/* Coluna 2: Informações Básicas */}
                         <div className="space-y-6">
@@ -376,18 +298,7 @@ export default function EditEquipment({ equipment, equipmentTypes, plants }: Pro
                         <InputError message={form.errors.description} />
                     </div>
                 </form>
-
-                <div className="mt-12 w-full">
-                    <DeleteEquipment equipmentId={equipment.id} equipmentTag={equipment.tag} />
-                </div>
             </EditLayout>
-
-            {showCamera && (
-                <CameraCapture
-                    onCapture={handlePhotoCapture}
-                    onClose={() => setShowCamera(false)}
-                />
-            )}
         </AppLayout>
     );
 } 
