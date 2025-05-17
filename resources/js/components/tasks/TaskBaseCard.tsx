@@ -139,7 +139,7 @@ export default function TaskBaseCard({
                                     viewClassName="text-lg font-medium"
                                 />
                                 {(isPreviewing || isResponding) && isRequired && (
-                                    <Badge variant="outline" className="flex-shrink-0">
+                                    <Badge variant="required" className="flex-shrink-0">
                                         Obrigatório
                                     </Badge>
                                 )}
