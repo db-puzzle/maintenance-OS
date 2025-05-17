@@ -35,42 +35,34 @@ export default function CreateLayout({
     const containerClass = contentWidth === 'custom' ? contentClassName : 'w-full';
     
     return (
-        <div className="bg-background pt-4 md:pt-6">
-            <div className={`container mx-auto lg:px-6 px-4 flex flex-col gap-6 ${innerLayout ? 'max-w-none p-0' : ''}`}>
-                {/* Wrapper div com a largura do conteúdo */}
-                <div className={containerClass}>
-                    {/* Main content */}
-                    <div className="flex justify-between md:items-center gap-6 md:flex-row flex-col w-full">
-                        <div className="space-y-2">
-                            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-                                {title}
-                            </h1>
-                            {subtitle && (
-                                <p className="text-sm lg:text-base text-muted-foreground">
-                                    {subtitle}
-                                </p>
-                            )}
-                        </div>
-                        {/* Buttons */}
-                        <div className="flex gap-2 justify-end flex-row-reverse md:flex-row">
-                            <Button variant="outline" asChild>
-                                <Link href={backRoute}>Cancelar</Link>
+        <div className="space-y-6 p-5">
+            <div className={`${containerClass}`}>
+                {/* Main content */}
+                <div className="flex justify-between md:items-center gap-6 md:flex-row flex-col w-full">
+                    <div className="flex flex-col gap-1">
+                        <h2 className="text-lg lg:text-xl font-semibold text-foreground leading-7">
+                            {title}
+                        </h2>
+                        {subtitle && (
+                            <p className="text-sm text-muted-foreground leading-5">
+                                {subtitle}
+                            </p>
+                        )}
+                    </div>
+                    {/* Buttons */}
+                    <div className="flex gap-2 justify-end flex-row-reverse md:flex-row w-full md:w-auto">
+                        <Button variant="outline" asChild className="flex-1 md:flex-none">
+                            <Link href={backRoute}>Cancelar</Link>
+                        </Button>
+                        {onSave && (
+                            <Button onClick={onSave} disabled={isSaving} className="flex-1 md:flex-none">
+                                {saveButtonText}
                             </Button>
-                            {onSave && (
-                                <Button onClick={onSave} disabled={isSaving}>
-                                    {saveButtonText}
-                                </Button>
-                            )}
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
-            {/* Content */}
-            <div className={`container mx-auto lg:px-6 px-4 py-6 ${innerLayout ? 'max-w-none p-0' : ''}`}>
-                <div className={containerClass}>
-                    {children}
-                </div>
-            </div>
+            {children}
         </div>
     );
 } 

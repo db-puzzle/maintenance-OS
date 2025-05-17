@@ -40,13 +40,13 @@ export default function AddTaskButton({
                 <Button
                     type="button"
                     variant="outline"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 whitespace-nowrap text-sm w-full justify-center"
                 >
                     <PlusCircle className="h-4 w-4" />
-                    {label}
+                    <span>{label}</span>
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-60">
+            <DropdownMenuContent align="end" className="w-60 max-w-[90vw]">
                 <DropdownMenuLabel>Tipo de Tarefa</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 

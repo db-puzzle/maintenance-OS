@@ -331,11 +331,11 @@ export default function CreateRoutine({ }: Props) {
                 onSave={handleSave}
                 isSaving={processing}
                 contentWidth="custom"
-                contentClassName="w-[950px]"
+                contentClassName=""
             >
                 <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
                     <div className="grid gap-6">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <TextInput<RoutineForm>
                                 form={{
                                     data,
@@ -370,7 +370,7 @@ export default function CreateRoutine({ }: Props) {
                             />
                         </div>
 
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                             <h3 className="text-lg font-medium">Tarefas da Rotina</h3>
                             <button 
                                 type="button"
@@ -380,12 +380,12 @@ export default function CreateRoutine({ }: Props) {
                                 {examplesVisible ? (
                                     <>
                                         <ChevronUp className="size-4" />
-                                        Ocultar exemplos
+                                        <span className="whitespace-nowrap">Ocultar exemplos</span>
                                     </>
                                 ) : (
                                     <>
                                         <ChevronDown className="size-4" />
-                                        Mostrar exemplos
+                                        <span className="whitespace-nowrap">Mostrar exemplos</span>
                                     </>
                                 )}
                             </button>
@@ -411,12 +411,12 @@ export default function CreateRoutine({ }: Props) {
                                 >
                                     {tasks.length === 0 ? (
                                         <Card className="bg-muted/30">
-                                            <CardContent className="px-6 py-8 flex flex-col items-center justify-center text-center">
+                                            <CardContent className="px-4 sm:px-6 py-8 flex flex-col items-center justify-center text-center">
                                                 <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                                                     <ClipboardCheck className="size-6 text-foreground/60" />
                                                 </div>
                                                 <h3 className="text-lg font-medium mb-2">Nenhuma tarefa adicionada</h3>
-                                                <p className="text-sm text-muted-foreground mb-6">
+                                                <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
                                                     Adicione tarefas para compor seu formulário.
                                                 </p>
                                                 <AddTaskButton

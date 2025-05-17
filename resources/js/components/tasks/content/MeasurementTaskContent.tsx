@@ -261,10 +261,10 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
     
     if (mode === 'edit') {
         return (
-            <div className="space-y-4">
+            <div className="space-y-3 lg:space-y-4">
                 <div className="pl-4 pr-4 pb-4 bg-muted/30 rounded-md">
-                    <div className="grid grid-cols-27 gap-4">
-                        <div className="col-span-7 space-y-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-27 gap-3 lg:gap-4">
+                        <div className="col-span-1 lg:col-span-7 space-y-2">
                             <ItemSelect
                                 label="Categoria"
                                 items={Object.keys(MeasurementUnitCategories).map(cat => ({
@@ -279,7 +279,7 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
                             />
                         </div>
 
-                        <div className="col-span-7 space-y-2">
+                        <div className="col-span-1 lg:col-span-7 space-y-2">
                             <ItemSelect
                                 label="Unidade"
                                 items={MeasurementUnitCategories[safeCategory].map(unit => ({
@@ -294,38 +294,44 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
                             />
                         </div>
 
-                        <div className="col-span-1 flex items-center justify-center">
+                        <div className="hidden lg:flex lg:col-span-1 items-center justify-center">
                             <Separator orientation="vertical" className="h-auto" />
                         </div>
-
-                        <div className="col-span-4 space-y-2">
-                            <TextInput<MeasurementFormData>
-                                form={form}
-                                name="targetValue"
-                                label="Valor Alvo"
-                                placeholder="Sem Alvo"
-                                onBlur={(e) => form.processBlur('targetValue', e.target.value)}
-                            />
+                        
+                        <div className="lg:hidden my-2">
+                            <Separator className="w-full" />
                         </div>
 
-                        <div className="col-span-4 space-y-2">
-                            <TextInput<MeasurementFormData>
-                                form={form}
-                                name="minValue"
-                                label="Valor Mínimo"
-                                placeholder="Sem Min"
-                                onBlur={(e) => form.processBlur('minValue', e.target.value)}
-                            />
-                        </div>
+                        <div className="grid grid-cols-3 gap-3 lg:gap-4 col-span-1 lg:col-span-12">
+                            <div className="col-span-1 space-y-2">
+                                <TextInput<MeasurementFormData>
+                                    form={form}
+                                    name="targetValue"
+                                    label="Valor Alvo"
+                                    placeholder="Sem Alvo"
+                                    onBlur={(e) => form.processBlur('targetValue', e.target.value)}
+                                />
+                            </div>
 
-                        <div className="col-span-4 space-y-2">
-                            <TextInput<MeasurementFormData>
-                                form={form}
-                                name="maxValue"
-                                label="Valor Máximo"
-                                placeholder="Sem Max"
-                                onBlur={(e) => form.processBlur('maxValue', e.target.value)}
-                            />
+                            <div className="col-span-1 space-y-2">
+                                <TextInput<MeasurementFormData>
+                                    form={form}
+                                    name="minValue"
+                                    label="Valor Mínimo"
+                                    placeholder="Sem Min"
+                                    onBlur={(e) => form.processBlur('minValue', e.target.value)}
+                                />
+                            </div>
+
+                            <div className="col-span-1 space-y-2">
+                                <TextInput<MeasurementFormData>
+                                    form={form}
+                                    name="maxValue"
+                                    label="Valor Máximo"
+                                    placeholder="Sem Max"
+                                    onBlur={(e) => form.processBlur('maxValue', e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -338,10 +344,10 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
     const displayedUnit = measurement.unit || '';
     
     return (
-        <div className="space-y-4">
+        <div className="space-y-3 lg:space-y-4">
             <div className="pl-4 pr-4 pb-4 rounded-md">
-                <div className="grid grid-cols-27 gap-4">
-                    <div className="col-span-7 space-y-2">
+                <div className="grid grid-cols-1 lg:grid-cols-27 gap-3 lg:gap-4">
+                    <div className="col-span-1 lg:col-span-7 space-y-2">
                         {mode === 'preview' ? (
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium">Valor Medido</Label>
@@ -384,52 +390,58 @@ export default function MeasurementTaskContent({ task, mode, onUpdate }: Measure
                         )}
                     </div>
 
-                    <div className="col-span-1 flex items-center justify-center">
+                    <div className="hidden lg:flex lg:col-span-1 items-center justify-center">
                         <Separator orientation="vertical" className="h-auto" />
                     </div>
 
-                    <div className="col-span-6 space-y-2">
-                        <Label className="text-sm font-medium">Valor Alvo</Label>
-                        <div className="flex items-center gap-2">
-                            <Input
-                                value={targetValue !== undefined ? targetValue : ''}
-                                placeholder="Sem Alvo"
-                                className="bg-muted/50"
-                                disabled
-                            />
-                            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                                {displayedUnit}
-                            </span>
-                        </div>
+                    <div className="lg:hidden my-2">
+                        <Separator className="w-full" />
                     </div>
 
-                    <div className="col-span-6 space-y-2">
-                        <Label className="text-sm font-medium">Valor Mínimo</Label>
-                        <div className="flex items-center gap-2">
-                            <Input
-                                value={minValue !== undefined ? minValue : ''}
-                                placeholder="Sem Min"
-                                className="bg-muted/50"
-                                disabled
-                            />
-                            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                                {displayedUnit}
-                            </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4 col-span-1 lg:col-span-19">
+                        <div className="col-span-1 space-y-2">
+                            <Label className="text-sm font-medium">Valor Alvo</Label>
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    value={targetValue !== undefined ? targetValue : ''}
+                                    placeholder="Sem Alvo"
+                                    className="bg-muted/50"
+                                    disabled
+                                />
+                                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                                    {displayedUnit}
+                                </span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="col-span-6 space-y-2">
-                        <Label className="text-sm font-medium">Valor Máximo</Label>
-                        <div className="flex items-center gap-2">
-                            <Input
-                                value={maxValue !== undefined ? maxValue : ''}
-                                placeholder="Sem Max"
-                                className="bg-muted/50"
-                                disabled
-                            />
-                            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                                {displayedUnit}
-                            </span>
+                        <div className="col-span-1 space-y-2">
+                            <Label className="text-sm font-medium">Valor Mínimo</Label>
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    value={minValue !== undefined ? minValue : ''}
+                                    placeholder="Sem Min"
+                                    className="bg-muted/50"
+                                    disabled
+                                />
+                                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                                    {displayedUnit}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="col-span-1 space-y-2">
+                            <Label className="text-sm font-medium">Valor Máximo</Label>
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    value={maxValue !== undefined ? maxValue : ''}
+                                    placeholder="Sem Max"
+                                    className="bg-muted/50"
+                                    disabled
+                                />
+                                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                                    {displayedUnit}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

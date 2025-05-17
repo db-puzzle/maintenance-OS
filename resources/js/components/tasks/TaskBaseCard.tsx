@@ -121,16 +121,48 @@ export default function TaskBaseCard({
         <Card 
             ref={setNodeRef}
             style={style}
-            className={`${isEditing ? 'bg-muted/90' : 'bg-background'} ${isDragging ? 'shadow-lg' : ''} transition-all duration-200 ease-in-out`}
+            className={`${isEditing ? 'bg-muted/90' : 'bg-background'} ${isDragging ? 'shadow-lg' : ''} transition-all duration-200 ease-in-out relative`}
         >
             <CardHeader className="pb-2">
-                <div className="flex justify-between items-center gap-4">
-                    <div className={`flex items-start gap-4 flex-1 min-w-0`}>
+                {/* Área de obrigatório em telas pequenas - aparece acima do título */}
+                <div className="flex justify-between items-center mb-2 lg:hidden h-6">
+                    <div className="flex items-center gap-2">
+                        {isEditing && !isResponding && !isPreviewing && (
+                            <>
+                                <Switch
+                                    id="required-mobile"
+                                    checked={isRequired}
+                                    onCheckedChange={onRequiredChange}
+                                />
+                                <Label htmlFor="required-mobile" className="text-sm text-muted-foreground">
+                                    Obrigatório
+                                </Label>
+                            </>
+                        )}
+                        {(isPreviewing || isResponding) && isRequired && (
+                            <Badge variant="required" className="flex-shrink-0">
+                                Obrigatório
+                            </Badge>
+                        )}
+                    </div>
+                    {!isResponding && !isPreviewing && (
+                        <button
+                            {...attributes}
+                            {...listeners}
+                            className="cursor-grab hover:cursor-grabbing touch-none lg:hidden"
+                        >
+                            <GripVertical className="h-4 w-4 text-gray-500" />
+                        </button>
+                    )}
+                </div>
+                
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center lg:gap-4">
+                    <div className={`flex items-start gap-4 flex-1 min-w-0 w-full`}>
                         <div className="text-primary flex-shrink-0" style={{ paddingTop: isEditing ? '0.5rem' : '0.3rem' }}>
                             {icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <EditableText
                                     value={title}
                                     onChange={handleTitleChange}
@@ -138,63 +170,65 @@ export default function TaskBaseCard({
                                     editingClassName="!text-lg font-medium bg-background"
                                     viewClassName="text-lg font-medium"
                                 />
-                                {(isPreviewing || isResponding) && isRequired && (
-                                    <Badge variant="required" className="flex-shrink-0">
-                                        Obrigatório
-                                    </Badge>
-                                )}
                             </div>
                         </div>
                     </div>
-                    {!isResponding && !isPreviewing && (
-                        <div className="flex-shrink-0 flex items-center gap-4">
-                            {isEditing && (
-                                <div className="flex items-center gap-2">
-                                    <Switch
-                                        id="required"
-                                        checked={isRequired}
-                                        onCheckedChange={onRequiredChange}
-                                    />
-                                    <Label htmlFor="required" className="text-sm text-muted-foreground">
-                                        Obrigatório
-                                    </Label>
-                                </div>
-                            )}
+
+                    <div className="flex-shrink-0 flex items-center gap-4 ml-auto">
+                        {/* Área de obrigatório em telas grandes - aparece ao lado do título */}
+                        {!isResponding && !isPreviewing && isEditing && (
+                            <div className="hidden lg:flex items-center gap-2">
+                                <Switch
+                                    id="required"
+                                    checked={isRequired}
+                                    onCheckedChange={onRequiredChange}
+                                />
+                                <Label htmlFor="required" className="text-sm text-muted-foreground">
+                                    Obrigatório
+                                </Label>
+                            </div>
+                        )}
+                        {(isPreviewing || isResponding) && isRequired && (
+                            <Badge variant="required" className="flex-shrink-0 hidden lg:flex">
+                                Obrigatório
+                            </Badge>
+                        )}
+                        {!isResponding && !isPreviewing && (
                             <button
                                 {...attributes}
                                 {...listeners}
-                                className="cursor-grab hover:cursor-grabbing touch-none"
+                                className="cursor-grab hover:cursor-grabbing touch-none hidden lg:block"
                             >
                                 <GripVertical className="h-4 w-4 text-gray-500" />
                             </button>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </CardHeader>
-            <CardContent className="pt-0 space-y-4">
+            <CardContent className="pt-0 space-y-2 lg:space-y-4">
                 {children}
 
-                <div className="flex justify-between items-center mt-4">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mt-4 gap-2 lg:gap-4">
                     {isEditing && onRemove && (
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button
                                     type="button"
                                     variant="warning"
-                                    className="flex items-center gap-2"
+                                    className="flex items-center gap-2 w-full lg:w-auto justify-center order-3 lg:order-none"
                                 >
                                     Excluir
                                 </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent>
+                            <AlertDialogContent className="max-w-[95vw] lg:max-w-lg">
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Esta ação não pode ser desfeita. A exclusão será permanente após a Rotina ser salva.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogFooter className="flex-col lg:flex-row gap-2">
+                                    <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
                                     <Button variant="destructive" onClick={onRemove}>
                                         Sim, excluir tarefa
                                     </Button>
@@ -204,8 +238,8 @@ export default function TaskBaseCard({
                     )}
                     
                     {isPreviewing && (
-                        <div className="flex-1">
-                            <span className="text-sm text-muted-foreground italic">
+                        <div className="w-full mb-2 lg:mb-0 lg:flex-1">
+                            <span className="text-sm text-muted-foreground italic block">
                                 Visualização apenas • Ações disponíveis durante execução da tarefa
                             </span>
                         </div>
@@ -215,15 +249,17 @@ export default function TaskBaseCard({
                         <div></div> /* Espaço vazio para manter o layout */
                     )}
                     
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex flex-col lg:flex-row gap-2 justify-end lg:ml-auto w-full lg:w-auto">
                         {!isResponding && onNewTask && (
-                            <AddTaskButton
-                                label="Nova Tarefa Abaixo"
-                                taskTypes={taskTypes || TaskTypes}
-                                tasks={tasks}
-                                currentIndex={currentIndex || 0}
-                                onTaskAdded={onNewTask}
-                            />
+                            <div className="w-full lg:w-auto order-2 lg:order-none">
+                                <AddTaskButton
+                                    label="Nova Tarefa Abaixo"
+                                    taskTypes={taskTypes || TaskTypes}
+                                    tasks={tasks}
+                                    currentIndex={currentIndex || 0}
+                                    onTaskAdded={onNewTask}
+                                />
+                            </div>
                         )}
                         
                         {isPreviewing && (
@@ -231,7 +267,7 @@ export default function TaskBaseCard({
                                 type="button"
                                 variant="default"
                                 onClick={onEdit}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 w-full lg:w-auto justify-center order-1 lg:order-none"
                             >
                                 Editar
                             </Button>
@@ -241,7 +277,7 @@ export default function TaskBaseCard({
                             <Button
                                 type="button"
                                 onClick={onPreview}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 w-full lg:w-auto justify-center order-1 lg:order-none"
                             >
                                 Visualizar
                             </Button>
@@ -251,7 +287,7 @@ export default function TaskBaseCard({
                             <Button
                                 type="button"
                                 onClick={isLastTask ? onFinish : onNext}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 w-full lg:w-auto justify-center order-1 lg:order-none"
                             >
                                 {isLastTask ? 'Finalizar' : 'Próxima'}
                             </Button>
