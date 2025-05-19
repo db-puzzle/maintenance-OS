@@ -49,7 +49,7 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
             <div className="space-y-4">
                 <div className="pl-4 pr-4 pb-4 bg-muted/30 rounded-md">
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                             {isMultipleSelect ? (
                                 <p className="text-base text-foreground">O usuário poderá selecionar várias opções.</p>
                             ) : (
@@ -60,7 +60,7 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
                                 variant="outline"
                                 size="sm"
                                 onClick={handleAddOption}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 w-full lg:w-auto justify-center"
                             >
                                 <PlusCircle className="h-4 w-4" />
                                 Adicionar Opção

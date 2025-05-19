@@ -187,6 +187,13 @@ export const TaskOperations = {
             if (type === 'measurement' && !task.measurement) {
                 task.measurement = { ...DefaultMeasurement };
             }
+
+            // Adicionar opções padrão para tarefas de múltipla escolha e múltipla seleção
+            if (type === 'multiple_choice') {
+                task.options = ['Opção 1', 'Opção 2'];
+            } else if (type === 'multiple_select') {
+                task.options = ['Opção 1', 'Opção 2', 'Opção 3'];
+            }
             
             return task;
         }
@@ -201,6 +208,13 @@ export const TaskOperations = {
                 task.measurement = { ...DefaultMeasurement };
             }
             
+            // Adicionar opções padrão para tarefas de múltipla escolha e múltipla seleção
+            if (type === 'multiple_choice') {
+                task.options = ['Opção 1', 'Opção 2'];
+            } else if (type === 'multiple_select') {
+                task.options = ['Opção 1', 'Opção 2', 'Opção 3'];
+            }
+            
             return task;
         }
 
@@ -211,6 +225,13 @@ export const TaskOperations = {
         // Se for uma tarefa de medição, garantir que tenha uma medição válida
         if (type === 'measurement' && !task.measurement) {
             task.measurement = { ...DefaultMeasurement };
+        }
+        
+        // Adicionar opções padrão para tarefas de múltipla escolha e múltipla seleção
+        if (type === 'multiple_choice') {
+            task.options = ['Opção 1', 'Opção 2'];
+        } else if (type === 'multiple_select') {
+            task.options = ['Opção 1', 'Opção 2', 'Opção 3'];
         }
         
         return task;

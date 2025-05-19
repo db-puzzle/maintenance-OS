@@ -22,8 +22,18 @@ const gerenciamentoNavItems: NavGroup = {
         },
         {
             title: 'Ativos',
-            href: '/asset-hierarchy/equipamentos',
+            href: '#',
             icon: Cog,
+            items: [
+                {
+                    title: 'Equipamentos',
+                    href: '/asset-hierarchy/equipamentos',
+                },
+                {
+                    title: 'Configuração BOM',
+                    href: '/items/bom-config',
+                },
+            ],
         },
         {
             title: 'Manutenção',

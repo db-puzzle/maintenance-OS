@@ -20,3 +20,4 @@ require __DIR__.'/auth.php';
 require __DIR__.'/asset-hierarchy.php';
 require __DIR__.'/maintenance.php';
 require __DIR__.'/scheduler.php';
+require __DIR__.'/item.php';

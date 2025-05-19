@@ -419,17 +419,19 @@ export default function CreateRoutine({ }: Props) {
                                                 <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
                                                     Adicione tarefas para compor seu formulário.
                                                 </p>
-                                                <AddTaskButton
-                                                    label="Nova Tarefa"
-                                                    taskTypes={TaskTypes}
-                                                    tasks={tasks}
-                                                    currentIndex={-1}
-                                                    onTaskAdded={(newTask) => {
-                                                        const updatedTasks = [...tasks, newTask];
-                                                        setTasks(updatedTasks);
-                                                        setSelectedTaskIndex(updatedTasks.length - 1);
-                                                    }}
-                                                />
+                                                <div className="w-full lg:w-auto">
+                                                    <AddTaskButton
+                                                        label="Nova Tarefa"
+                                                        taskTypes={TaskTypes}
+                                                        tasks={tasks}
+                                                        currentIndex={-1}
+                                                        onTaskAdded={(newTask) => {
+                                                            const updatedTasks = [...tasks, newTask];
+                                                            setTasks(updatedTasks);
+                                                            setSelectedTaskIndex(updatedTasks.length - 1);
+                                                        }}
+                                                    />
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     ) : (
