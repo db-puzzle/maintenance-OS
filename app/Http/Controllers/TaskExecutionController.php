@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RoutineExecution;
+use App\Models\Maintenance\RoutineExecution;
 use App\Models\Task;
 use App\Models\TaskExecution;
 use Illuminate\Http\Request;

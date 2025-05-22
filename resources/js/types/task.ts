@@ -1,4 +1,4 @@
-import { FileText, CheckSquare, ListChecks, Ruler, Camera, ScanBarcode, Upload, QrCode, Barcode, CircleCheck } from 'lucide-react';
+import { FileText, CheckSquare, ListChecks, Ruler, Camera, ScanBarcode, Upload, QrCode, Barcode, CircleCheck, Image, Video, FileText as FileTextIcon } from 'lucide-react';
 import { UnitCategory, MeasurementUnit, MeasurementUnitCategories, MeasurementUnits, findUnitCategory } from './units';
 
 export const TaskTypeGroups = {
@@ -116,6 +116,36 @@ export const DefaultMeasurement: Measurement = {
     category: 'Comprimento'
 } as const;
 
+export enum InstructionType {
+    Image = 'image',
+    Text = 'text',
+    Video = 'video'
+}
+
+export interface BaseInstruction {
+    id: string;
+    type: InstructionType;
+}
+
+export interface TextInstruction extends BaseInstruction {
+    type: InstructionType.Text;
+    content: string;
+}
+
+export interface ImageInstruction extends BaseInstruction {
+    type: InstructionType.Image;
+    imageUrl: string;
+    caption: string;
+}
+
+export interface VideoInstruction extends BaseInstruction {
+    type: InstructionType.Video;
+    videoUrl: string;
+    caption: string;
+}
+
+export type Instruction = TextInstruction | ImageInstruction | VideoInstruction;
+
 export interface Task {
     id: string;
     type: TaskType;
@@ -128,6 +158,7 @@ export interface Task {
     codeReaderInstructions?: string;
     fileUploadInstructions?: string;
     instructionImages: string[];
+    instructions: Instruction[];
     state?: TaskState;
 }
 
@@ -135,6 +166,7 @@ export const DefaultTaskValues = {
     description: '',
     isRequired: true,
     instructionImages: [] as string[],
+    instructions: [] as Instruction[],
     options: [] as string[],
     measurement: DefaultMeasurement
 } as const;
@@ -153,6 +185,7 @@ export const TaskOperations = {
         description,
         isRequired,
         instructionImages: DefaultTaskValues.instructionImages,
+        instructions: DefaultTaskValues.instructions,
         options: DefaultTaskValues.options,
         measurement: DefaultTaskValues.measurement,
         state: TaskState.Editing
@@ -278,6 +311,7 @@ export const TaskOperations = {
             isRequired: task.isRequired,
             taskType: task.type,
             instructionImages: task.instructionImages || [],
+            instructions: task.instructions || [],
         };
 
         // Garantir que tarefas de medição tenham uma medição válida
@@ -320,5 +354,37 @@ export const TaskOperations = {
         task.state === TaskState.Responding,
 
     isViewing: (task: Task): boolean => 
-        task.state === TaskState.Viewing || task.state === undefined
+        task.state === TaskState.Viewing || task.state === undefined,
+
+    // Métodos para gerenciar instruções
+    addInstruction: (task: Task, instruction: Instruction): Task => ({
+        ...task,
+        instructions: [...(task.instructions || []), instruction]
+    }),
+
+    removeInstruction: (task: Task, instructionId: string): Task => ({
+        ...task,
+        instructions: (task.instructions || []).filter(instruction => instruction.id !== instructionId)
+    }),
+
+    updateInstruction: (task: Task, updatedInstruction: Instruction): Task => ({
+        ...task,
+        instructions: (task.instructions || []).map(instruction => 
+            instruction.id === updatedInstruction.id ? updatedInstruction : instruction
+        )
+    }),
+
+    generateInstructionId: (task: Task): string => {
+        if (!task.instructions || task.instructions.length === 0) return "instr-1";
+        
+        // Extrair os números dos IDs existentes
+        const ids = task.instructions.map(instr => {
+            const match = instr.id.match(/instr-(\d+)/);
+            return match ? parseInt(match[1], 10) : 0;
+        });
+        
+        // Encontrar o maior ID e incrementar
+        const maxId = Math.max(...ids);
+        return `instr-${maxId + 1}`;
+    },
 } as const; 

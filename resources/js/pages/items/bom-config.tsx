@@ -5,6 +5,7 @@ import { Plus, Trash2, Save, Download, ChevronRight, ChevronDown, Edit, GripVert
 
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
+import ItemModal from './components/ItemModal';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -82,6 +83,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     
     const [expanded, setExpanded] = useState<Record<string, boolean>>({ '1': true, '1-1': true, '1-2': true });
     const [editingItem, setEditingItem] = useState<BOMItem | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [newItemParentId, setNewItemParentId] = useState<string | null>(null);
     const draggingRef = useRef<string | null>(null);
     const dragItemRef = useRef<HTMLElement | null>(null);
@@ -494,6 +496,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     // Function to handle edit item
     const handleEditItem = (item: BOMItem) => {
         setEditingItem({ ...item });
+        setIsModalOpen(true);
     };
 
     // Function to save edited item
@@ -506,6 +509,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
         
         setItems(updatedItems);
         setEditingItem(null);
+        setIsModalOpen(false);
     };
 
     // Function to add new item
@@ -526,6 +530,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
         
         setNewItemParentId(parentId);
         setEditingItem(newItem);
+        setIsModalOpen(true);
     };
 
     // Function to save new item
@@ -543,6 +548,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
         
         setEditingItem(null);
         setNewItemParentId(null);
+        setIsModalOpen(false);
     };
 
     // Function to delete an item
@@ -571,6 +577,13 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     React.useImperativeHandle(ref, () => ({
         handleExportBOM
     }));
+
+    // Função para lidar com o cancelamento de edição/adição
+    const handleCancelEdit = () => {
+        setEditingItem(null);
+        setNewItemParentId(null);
+        setIsModalOpen(false);
+    };
 
     // TreeItem component atualizado para incluir drop zones
     const TreeItem = ({ node, depth = 0, isLast = true, parentConnectorLines = [] }: { 
@@ -761,86 +774,17 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                 </div>
             </div>
             
-            {/* Edit/Add Item Modal */}
+            {/* Utilizar o componente ItemModal ao invés do modal inline */}
             {editingItem && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">
-                            {newItemParentId ? 'Adicionar Novo Item' : 'Editar Item'}
-                        </h2>
-                        
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2 border border-gray-300 rounded"
-                                    value={editingItem.name}
-                                    onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                                />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2 border border-gray-300 rounded"
-                                    value={editingItem.description}
-                                    onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
-                                />
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        className="w-full p-2 border border-gray-300 rounded"
-                                        value={editingItem.quantity}
-                                        onChange={(e) => setEditingItem({ ...editingItem, quantity: parseInt(e.target.value) || 1 })}
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
-                                    <select
-                                        className="w-full p-2 border border-gray-300 rounded"
-                                        value={editingItem.unit}
-                                        onChange={(e) => setEditingItem({ ...editingItem, unit: e.target.value })}
-                                    >
-                                        <option value="ea">ea (cada)</option>
-                                        <option value="kg">kg (quilograma)</option>
-                                        <option value="m">m (metro)</option>
-                                        <option value="L">L (litro)</option>
-                                        <option value="pcs">pçs (peças)</option>
-                                        <option value="set">conjunto</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="mt-6 flex justify-end gap-2">
-                            <button
-                                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-                                onClick={() => {
-                                    setEditingItem(null);
-                                    setNewItemParentId(null);
-                                }}
-                            >
-                                Cancelar
-                            </button>
-                            
-                            <button
-                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
-                                onClick={newItemParentId ? handleSaveNewItem : handleSaveEdit}
-                            >
-                                <Save size={16} />
-                                Salvar
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ItemModal 
+                    editingItem={editingItem}
+                    isNewItem={!!newItemParentId}
+                    onCancel={handleCancelEdit}
+                    onSave={newItemParentId ? handleSaveNewItem : handleSaveEdit}
+                    setEditingItem={setEditingItem}
+                    isOpen={isModalOpen}
+                    onOpenChange={setIsModalOpen}
+                />
             )}
         </div>
     );

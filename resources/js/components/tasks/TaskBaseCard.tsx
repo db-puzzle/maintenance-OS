@@ -24,6 +24,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import AddTaskButton from '@/components/tasks/AddTaskButton';
+import { TaskInstructionList } from '@/components/tasks/TaskInstructionList';
 
 export type TaskCardMode = 'edit' | 'preview' | 'respond';
 
@@ -64,6 +65,8 @@ interface TaskBaseCardProps {
     isRequired?: boolean;
     /** Callback para mudar a obrigatoriedade da tarefa */
     onRequiredChange?: (checked: boolean) => void;
+    /** Callback para atualizar a tarefa */
+    onTaskUpdate?: (updatedTask: Task) => void;
 }
 
 export default function TaskBaseCard({
@@ -84,7 +87,8 @@ export default function TaskBaseCard({
     tasks,
     currentIndex,
     isRequired,
-    onRequiredChange
+    onRequiredChange,
+    onTaskUpdate
 }: TaskBaseCardProps) {
     const {
         attributes,
@@ -116,6 +120,16 @@ export default function TaskBaseCard({
             onTitleChange(value);
         }
     };
+
+    // Função para atualizar as instruções da tarefa
+    const handleInstructionsUpdate = (updatedTask: Task) => {
+        if (onTaskUpdate) {
+            onTaskUpdate(updatedTask);
+        }
+    };
+    
+    // Encontrar a tarefa atual diretamente
+    const currentTask = tasks?.find(task => task.id === id);
 
     return (
         <Card 
@@ -206,7 +220,17 @@ export default function TaskBaseCard({
                 </div>
             </CardHeader>
             <CardContent className="pt-0 space-y-2 lg:space-y-4">
+                {/* Conteúdo principal da tarefa */}
                 {children}
+                
+                {/* Lista de instruções - exibir independentemente do modo */}
+                {currentTask && (
+                    <TaskInstructionList
+                        task={currentTask}
+                        mode={mode}
+                        onInstructionsUpdate={handleInstructionsUpdate}
+                    />
+                )}
 
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mt-4 gap-2 lg:gap-4">
                     {isEditing && onRemove && (

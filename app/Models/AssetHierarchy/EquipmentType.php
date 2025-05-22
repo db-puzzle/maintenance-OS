@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\AssetHierarchy;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EquipmentType extends Model
 {
@@ -13,7 +14,7 @@ class EquipmentType extends Model
         'description',
     ];
 
-    public function equipment()
+    public function equipment(): HasMany
     {
         return $this->hasMany(Equipment::class, 'equipment_type_id');
     }

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Equipment;
-use App\Models\Routine;
-use App\Models\RoutineExecution;
+use App\Models\Maintenance\Routine;
+use App\Models\Maintenance\RoutineExecution;
 use Illuminate\Http\Request;
 
 class RoutineExecutionController extends Controller

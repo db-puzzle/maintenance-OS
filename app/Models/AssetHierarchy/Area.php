@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\AssetHierarchy;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,4 +46,4 @@ class Area extends Model
             }
         });
     }
-}
+} 
