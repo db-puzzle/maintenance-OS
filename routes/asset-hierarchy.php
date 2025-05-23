@@ -9,8 +9,6 @@ use App\Http\Controllers\AssetHierarchy\EquipmentController;
 use App\Http\Controllers\AssetHierarchy\EquipmentTypeController;
 use App\Http\Controllers\AssetHierarchy\EquipmentImportExportController;
 use App\Http\Controllers\AssetHierarchy\ShiftController;
-use App\Http\Controllers\AssetHierarchy\AssetController;
-use App\Http\Controllers\AssetHierarchy\AssetImportExportController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('equipamentos')->name('equipamentos.')->group(function () {
@@ -85,20 +83,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('asset-hierarchy/shifts/{shift}', [ShiftController::class, 'update'])->name('asset-hierarchy.shifts.update');
     Route::delete('asset-hierarchy/shifts/{shift}', [ShiftController::class, 'destroy'])->name('asset-hierarchy.shifts.destroy');
     Route::get('asset-hierarchy/shifts/{shift}/check-dependencies', [ShiftController::class, 'checkDependencies'])->name('asset-hierarchy.shifts.check-dependencies');
-
-    // Rotas de Asset
-    Route::prefix('asset-hierarchy/assets')->name('asset-hierarchy.assets.')->group(function () {
-        Route::get('/', [AssetController::class, 'index'])->name('index');
-        Route::get('/create', [AssetController::class, 'create'])->name('create');
-        Route::post('/', [AssetController::class, 'store'])->name('store');
-        Route::get('/{asset}', [AssetController::class, 'show'])->name('show');
-        Route::get('/{asset}/edit', [AssetController::class, 'edit'])->name('edit');
-        Route::put('/{asset}', [AssetController::class, 'update'])->name('update');
-        Route::delete('/{asset}', [AssetController::class, 'destroy'])->name('destroy');
-        
-        // Rotas de importação/exportação
-        Route::get('/import', [AssetImportExportController::class, 'importForm'])->name('import.form');
-        Route::post('/import', [AssetImportExportController::class, 'import'])->name('import');
-        Route::get('/export', [AssetImportExportController::class, 'export'])->name('export');
-    });
 }); 

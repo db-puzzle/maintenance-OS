@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\EquipmentType;
+use App\Models\AssetHierarchy\EquipmentType;
 use Illuminate\Database\Seeder;
 
 class EquipmentTypeSeeder extends Seeder

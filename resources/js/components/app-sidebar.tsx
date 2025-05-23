@@ -16,44 +16,26 @@ const gerenciamentoNavItems: NavGroup = {
     title: 'Gerenciamento',
     items: [
         {
-            title: 'Dashboard',
-            href: '/dashboard',
+            title: 'Home',
+            href: '/home',
             icon: LayoutGrid,
         },
         {
-            title: 'Ativos',
+            title: 'Produção',
             href: '#',
             icon: Cog,
             items: [
                 {
-                    title: 'Equipamentos',
-                    href: '/asset-hierarchy/equipamentos',
+                    title: 'Dashboard',
+                    href: '#',
+                },
+                {
+                    title: 'Scheduler',
+                    href: '#',
                 },
                 {
                     title: 'Configuração BOM',
                     href: '/items/bom-config',
-                },
-            ],
-        },
-        {
-            title: 'Manutenção',
-            href: '#',
-            icon: Wrench,
-            items: [
-                {
-                    title: 'Rotinas',
-                    href: '/routines/routine-editor',
-                },
-            ],
-        },
-        {
-            title: 'Programação',
-            href: '#',
-            icon: ChartGantt,
-            items: [
-                {
-                    title: 'Scheduler',
-                    href: '/routines/routine-editor',
                 },
                 {
                     title: 'Rotas',
@@ -62,6 +44,48 @@ const gerenciamentoNavItems: NavGroup = {
                 {
                     title: 'Produtos',
                     href: '/routines/routine-editor',
+                },
+            ],
+        },
+        {
+            title: 'Qualidade',
+            href: '#',
+            icon: Wrench,
+            items: [
+                {
+                    title: 'Dashboard',
+                    href: '#',
+                },
+                {
+                    title: 'Inspeções',
+                    href: '/routines/routine-editor',
+                },
+                {
+                    title: 'Instrumentos',
+                    href: '#',
+                },
+            ],
+        },
+        {
+            title: 'Manutenção',
+            href: '#',
+            icon: ChartGantt,
+            items: [
+                {
+                    title: 'Dashboard',
+                    href: '/maintenance/dashboard',
+                },
+                {
+                    title: 'Equipamentos',
+                    href: '/asset-hierarchy/equipamentos',
+                },
+                {
+                    title: 'Planos de Manutenção',
+                    href: '#',
+                },
+                {
+                    title: 'Hierarquia de Ativos',
+                    href: '#',
                 },
             ],
         },
@@ -96,13 +120,6 @@ const sistemaNavItems: NavGroup = {
                     title: 'Tipos de Equipamento',
                     href: '/asset-hierarchy/tipos-equipamento',
                 },
-            ],
-        },
-        {
-            title: 'Import/Export',
-            href: '#',
-            icon: FileDown,
-            items: [
                 {
                     title: 'Exportar Equipamentos',
                     href: '/asset-hierarchy/equipamentos/exportar',
@@ -125,7 +142,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href="/dashboard" prefetch>
+                            <Link href="/home" prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Plant;
+use App\Models\AssetHierarchy\Plant;
 use Illuminate\Database\Seeder;
 
 class PlantSeeder extends Seeder

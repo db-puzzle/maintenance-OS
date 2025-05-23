@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\AssetHierarchy;
 
 use App\Http\Controllers\Controller;
-use App\Models\EquipmentType;
+use App\Models\AssetHierarchy\EquipmentType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 

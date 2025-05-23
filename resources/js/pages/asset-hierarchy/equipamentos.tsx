@@ -38,8 +38,8 @@ import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Cadastro',
-        href: '/asset-hierarchy',
+        title: 'Manutenção',
+        href: '/maintenance-dashboard',
     },
     {
         title: 'Equipamentos',

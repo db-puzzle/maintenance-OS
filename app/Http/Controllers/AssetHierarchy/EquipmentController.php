@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\AssetHierarchy;
 
 use App\Http\Controllers\Controller;
-use App\Models\Area;
-use App\Models\Equipment;
-use App\Models\EquipmentType;
-use App\Models\Plant;
-use App\Models\Sector;
+use App\Models\AssetHierarchy\Area;
+use App\Models\AssetHierarchy\Equipment;
+use App\Models\AssetHierarchy\EquipmentType;
+use App\Models\AssetHierarchy\Plant;
+use App\Models\AssetHierarchy\Sector;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;

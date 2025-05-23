@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Area;
-use App\Models\Sector;
+use App\Models\AssetHierarchy\Area;
+use App\Models\AssetHierarchy\Sector;
 use Illuminate\Database\Seeder;
 
 class SectorSeeder extends Seeder

@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\AssetHierarchy;
 
 use App\Http\Controllers\Controller;
-use App\Models\Shift;
-use App\Models\ShiftSchedule;
-use App\Models\ShiftBreak;
+use App\Models\AssetHierarchy\Shift;
+use App\Models\AssetHierarchy\ShiftSchedule;
+use App\Models\AssetHierarchy\ShiftBreak;
+use App\Models\AssetHierarchy\Plant;
 use App\Traits\ShiftTimeCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -64,7 +65,7 @@ class ShiftController extends Controller
     public function create()
     {
         return Inertia::render('asset-hierarchy/shifts/shift-editor', [
-            'plants' => \App\Models\Plant::all()
+            'plants' => Plant::all()
         ]);
     }
 
@@ -278,7 +279,7 @@ class ShiftController extends Controller
         ];
 
         return Inertia::render('asset-hierarchy/shifts/shift-editor', [
-            'plants' => \App\Models\Plant::all(),
+            'plants' => Plant::all(),
             'mode' => 'edit',
             'shift' => $formattedShift
         ]);

@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\Equipment;
-use App\Models\EquipmentType;
-use App\Models\Sector;
-use App\Models\Area;
-use App\Models\Plant;
+use App\Models\AssetHierarchy\Equipment;
+use App\Models\AssetHierarchy\EquipmentType;
+use App\Models\AssetHierarchy\Sector;
+use App\Models\AssetHierarchy\Area;
+use App\Models\AssetHierarchy\Plant;
 use Illuminate\Database\Seeder;
 
 class EquipmentSeeder extends Seeder

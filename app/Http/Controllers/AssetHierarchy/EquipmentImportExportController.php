@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\AssetHierarchy;
 
 use App\Http\Controllers\Controller;
-use App\Models\Equipment;
+use App\Models\AssetHierarchy\Equipment;
+use App\Models\AssetHierarchy\Plant;
+use App\Models\AssetHierarchy\Area;
+use App\Models\AssetHierarchy\Sector;
+use App\Models\AssetHierarchy\EquipmentType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
@@ -395,7 +399,7 @@ class EquipmentImportExportController extends Controller
                 try {
                     // Cria planta se não existir
                     if (!empty($row['plant_id'])) {
-                        $plant = \App\Models\Plant::firstOrCreate(
+                        $plant = Plant::firstOrCreate(
                             ['name' => $row['plant_id']]
                         );
                     }
@@ -403,12 +407,12 @@ class EquipmentImportExportController extends Controller
                     // Cria área se não existir
                     if (!empty($row['area_id'])) {
                         // Busca a área pelo nome E pela planta
-                        $area = \App\Models\Area::where('name', $row['area_id'])
+                        $area = Area::where('name', $row['area_id'])
                             ->where('plant_id', $plant->id)
                             ->first();
 
                         if (!$area) {
-                            $area = \App\Models\Area::create([
+                            $area = Area::create([
                                 'name' => $row['area_id'],
                                 'plant_id' => $plant->id
                             ]);
@@ -418,12 +422,12 @@ class EquipmentImportExportController extends Controller
                     // Cria setor se não existir
                     if (!empty($row['sector_id'])) {
                         // Busca o setor pelo nome E pela área
-                        $sector = \App\Models\Sector::where('name', $row['sector_id'])
+                        $sector = Sector::where('name', $row['sector_id'])
                             ->where('area_id', $area->id)
                             ->first();
 
                         if (!$sector) {
-                            $sector = \App\Models\Sector::create([
+                            $sector = Sector::create([
                                 'name' => $row['sector_id'],
                                 'area_id' => $area->id
                             ]);
@@ -451,12 +455,12 @@ class EquipmentImportExportController extends Controller
 
                 try {
                     // Busca os IDs reais das estruturas
-                    $plant = \App\Models\Plant::where('name', $row['plant_id'])->first();
+                    $plant = Plant::where('name', $row['plant_id'])->first();
                     if (!$plant) {
                         throw new \Exception("Planta '{$row['plant_id']}' não encontrada");
                     }
 
-                    $area = !empty($row['area_id']) ? \App\Models\Area::where('name', $row['area_id'])
+                    $area = !empty($row['area_id']) ? Area::where('name', $row['area_id'])
                         ->where('plant_id', $plant->id)
                         ->first() : null;
 
@@ -464,7 +468,7 @@ class EquipmentImportExportController extends Controller
                         throw new \Exception("Área '{$row['area_id']}' não encontrada na planta '{$row['plant_id']}'");
                     }
 
-                    $sector = !empty($row['sector_id']) ? \App\Models\Sector::where('name', $row['sector_id'])
+                    $sector = !empty($row['sector_id']) ? Sector::where('name', $row['sector_id'])
                         ->where('area_id', $area->id)
                         ->first() : null;
 
@@ -473,7 +477,7 @@ class EquipmentImportExportController extends Controller
                     }
 
                     // Busca o ID do tipo de equipamento
-                    $equipmentType = \App\Models\EquipmentType::firstOrCreate(
+                    $equipmentType = EquipmentType::firstOrCreate(
                         ['name' => $row['equipment_type_id']]
                     );
 

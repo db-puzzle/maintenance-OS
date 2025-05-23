@@ -2,7 +2,7 @@
 
 namespace App\Models\Maintenance;
 
-use App\Models\Equipment;
+use App\Models\AssetHierarchy\Equipment;
 use Illuminate\Database\Eloquent\Model;
 
 class MaintenancePlan extends Model

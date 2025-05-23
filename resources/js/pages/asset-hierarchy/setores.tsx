@@ -21,7 +21,12 @@ import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Cadastro',
+        title: 'Manutenção',
+        href: '/maintenance-dashboard',
+    },
+    {
+        title: 'Hierarquia de Ativos',
+        href: '/asset-hierarchy',
     },
     {
         title: 'Setores',
