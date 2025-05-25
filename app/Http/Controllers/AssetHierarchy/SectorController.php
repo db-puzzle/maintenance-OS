@@ -84,6 +84,12 @@ class SectorController extends Controller
 
         $sector = Sector::create($validated);
 
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Setor {$sector->name} criado com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
         return redirect()->route('asset-hierarchy.setores')
             ->with('success', "Setor {$sector->name} criado com sucesso.");
     }

@@ -52,6 +52,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface PlantForm {
+    [key: string]: any;
     name: string;
     street: string;
     number: string;
@@ -90,8 +91,9 @@ export default function EditPlant({ plant }: Props) {
             ...data,
             zip_code: data.zip_code.replace(/\D/g, '')
         };
-        put(route('asset-hierarchy.plantas.update', plant.id), formData, {
-            onError: (errors) => {
+        put(route('asset-hierarchy.plantas.update', plant.id), {
+            ...formData,
+            onError: (errors: any) => {
                 toast.error("Erro ao atualizar planta", {
                     description: "Verifique os campos e tente novamente."
                 });

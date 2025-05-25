@@ -1,23 +1,9 @@
 import React, { useState } from 'react';
-import { Calendar, Settings, Building, Play, Plus, RotateCcw, AlertTriangle, Edit, Building2, Factory, MapPin, Layers, Clock, ChevronRight, ClipboardList } from 'lucide-react';
+import { Calendar, Settings, Building, Play, Plus, RotateCcw, AlertTriangle, Edit, Building2, Factory, MapPin, Layers, Clock, ClipboardList } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-
-interface ActionItem {
-    name: string;
-    icon: any;
-    isDefault?: boolean;
-    description: string;
-    href?: string;
-}
-
-interface PathItem {
-    title: string;
-    icon: any;
-    description: string;
-    actions: ActionItem[];
-}
+import ActionShortcuts, { type ActionItem, type PathItem } from '@/components/ActionShortcuts';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -42,17 +28,19 @@ export default function DashboardMaintenance() {
                 { 
                     name: 'Planejar Execução', 
                     icon: Calendar, 
-                    isDefault: true,
+                    comingSoon: true,
                     description: 'Agendar e organizar execuções de manutenção'
                 },
                 { 
                     name: 'Executar Tarefa', 
                     icon: Play,
+                    comingSoon: true,
                     description: 'Executar tarefas de manutenção programadas'
                 },
                 { 
                     name: 'Criar Novo Plano', 
                     icon: Plus,
+                    comingSoon: true,
                     description: 'Configurar novos planos de manutenção preventiva'
                 }
             ]
@@ -65,17 +53,19 @@ export default function DashboardMaintenance() {
                 { 
                     name: 'Executar Rotina', 
                     icon: RotateCcw, 
-                    isDefault: true,
+                    comingSoon: true,
                     description: 'Executar rotinas de manutenção'
                 },
                 { 
                     name: 'Reportar Problema', 
                     icon: AlertTriangle,
+                    comingSoon: true,
                     description: 'Relatar problemas e falhas em equipamentos'
                 },
                 { 
                     name: 'Editar Equipamento', 
                     icon: Edit,
+                    comingSoon: true,
                     description: 'Atualizar informações e configurações'
                 },
                 { 
@@ -94,22 +84,25 @@ export default function DashboardMaintenance() {
                 { 
                     name: 'Empresas', 
                     icon: Building2, 
-                    isDefault: true,
+                    comingSoon: true,
                     description: 'Gerenciar informações das empresas'
                 },
                 { 
                     name: 'Plantas', 
                     icon: Factory,
+                    comingSoon: true,
                     description: 'Configurar e organizar plantas industriais'
                 },
                 { 
                     name: 'Áreas', 
                     icon: MapPin,
+                    comingSoon: true,
                     description: 'Definir e gerenciar áreas operacionais'
                 },
                 { 
                     name: 'Setores', 
                     icon: Layers,
+                    comingSoon: true,
                     description: 'Organizar setores dentro das áreas'
                 },
             ]
@@ -124,13 +117,6 @@ export default function DashboardMaintenance() {
             router.visit(action.href);
         } else {
             console.log(`Navegando para: ${pathKey} - ${actionName}`);
-        }
-    };
-
-    const handleQuickStart = (pathKey: keyof typeof paths) => {
-        const defaultAction = paths[pathKey].actions.find(action => action.isDefault);
-        if (defaultAction) {
-            handleActionClick(pathKey, defaultAction.name);
         }
     };
 
@@ -178,65 +164,11 @@ export default function DashboardMaintenance() {
                     </div>
                 </div>
 
-                {/* Detailed Actions Section */}
-                <div>
-                    <h2 className="text-xl font-semibold text-foreground mb-6">Atalhos</h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {Object.entries(paths).map(([key, path]) => {
-                            const IconComponent = path.icon;
-                            return (
-                                <div key={key} className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-                                    {/* Path Header */}
-                                    <div className="bg-muted p-6">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="bg-background p-2 rounded-lg">
-                                                <IconComponent size={28} className="text-foreground" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-xl font-semibold text-foreground">{path.title}</h3>
-                                                <p className="text-muted-foreground text-sm">{path.description}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Actions List */}
-                                    <div className="p-6">
-                                        <div className="space-y-3">
-                                            {path.actions.map((action, index) => {
-                                                const ActionIcon = action.icon;
-                                                return (
-                                                    <button
-                                                        key={index}
-                                                        onClick={() => handleActionClick(key, action.name)}
-                                                        className="w-full flex items-start space-x-3 p-4 rounded-lg hover:bg-input-focus hover:ring-ring/10 hover:ring-[1px] hover:border-ring transition-colors text-left group"
-                                                    >
-                                                        <div className="text-muted-foreground group-hover:text-foreground mt-0.5">
-                                                            <ActionIcon size={20} />
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center space-x-2">
-                                                                <h4 className="font-medium text-foreground group-hover:text-foreground">
-                                                                    {action.name}
-                                                                </h4>
-                                                                {action.isDefault && (
-                                                                    <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
-                                                                        Padrão
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <p className="text-sm text-muted-foreground mt-1">{action.description}</p>
-                                                        </div>
-                                                        <ChevronRight className="text-muted-foreground group-hover:text-foreground transition-colors mt-1" size={16} />
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                {/* ActionShortcuts Component */}
+                <ActionShortcuts 
+                    paths={paths}
+                    onActionClick={handleActionClick}
+                />
 
                 {/* Footer Info */}
                 <div className="mt-12 text-center text-muted-foreground text-sm">

@@ -1,7 +1,7 @@
 import { type BreadcrumbItem } from '@/types';
 import { type EquipmentType, type Area, type EquipmentForm, type Sector, type Plant } from '@/types/asset-hierarchy';
-import { Head, useForm } from '@inertiajs/react';
-import { useState, useMemo } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { useState, useMemo, useRef } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from "sonner";
 
@@ -22,6 +22,16 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 import InputError from '@/components/input-error';
 import { cn } from '@/lib/utils';
 import SmartInput from "@/components/smart-input";
@@ -29,6 +39,10 @@ import { SmartPopover } from "@/components/ui/smart-popover";
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from "@/components/TextInput";
 import PhotoUploader from '@/components/PhotoUploader';
+import CreatePlantSheet from '@/components/CreatePlantSheet';
+import CreateAreaSheet from '@/components/CreateAreaSheet';
+import CreateSectorSheet from '@/components/CreateSectorSheet';
+import CreateEquipmentTypeSheet from '@/components/CreateEquipmentTypeSheet';
 
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
@@ -86,6 +100,101 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
         });
     };
 
+    const handlePlantCreated = () => {
+        // Recarregar apenas os dados das plantas
+        router.reload({ 
+            only: ['plants'],
+            onSuccess: (page) => {
+                // Selecionar automaticamente a planta mais recente (última da lista)
+                const updatedPlants = page.props.plants as Plant[];
+                if (updatedPlants && updatedPlants.length > 0) {
+                    const newestPlant = updatedPlants[updatedPlants.length - 1];
+                    setData('plant_id', newestPlant.id.toString());
+                    // Limpar área e setor já que mudou a planta
+                    setData('area_id', '');
+                    setData('sector_id', '');
+                }
+            }
+        });
+    };
+
+    const handleAreaCreated = () => {
+        // Recarregar apenas os dados das plantas
+        router.reload({ 
+            only: ['plants'],
+            onSuccess: (page) => {
+                // Selecionar automaticamente a área mais recente da planta atual
+                const updatedPlants = page.props.plants as Plant[];
+                if (updatedPlants && data.plant_id) {
+                    const currentPlant = updatedPlants.find(p => p.id.toString() === data.plant_id);
+                    if (currentPlant?.areas && currentPlant.areas.length > 0) {
+                        const newestArea = currentPlant.areas[currentPlant.areas.length - 1];
+                        setData('area_id', newestArea.id.toString());
+                        // Limpar setor já que mudou a área
+                        setData('sector_id', '');
+                    }
+                }
+            }
+        });
+    };
+
+    const handleSectorCreated = () => {
+        // Recarregar apenas os dados das plantas
+        router.reload({ 
+            only: ['plants'],
+            onSuccess: (page) => {
+                // Selecionar automaticamente o setor mais recente da área atual
+                const updatedPlants = page.props.plants as Plant[];
+                if (updatedPlants && data.plant_id && data.area_id) {
+                    const currentPlant = updatedPlants.find(p => p.id.toString() === data.plant_id);
+                    const currentArea = currentPlant?.areas?.find((a: Area) => a.id.toString() === data.area_id);
+                    if (currentArea?.sectors && currentArea.sectors.length > 0) {
+                        const newestSector = currentArea.sectors[currentArea.sectors.length - 1];
+                        setData('sector_id', newestSector.id.toString());
+                    }
+                }
+            }
+        });
+    };
+
+    const handleEquipmentTypeCreated = () => {
+        // Recarregar apenas os dados dos tipos de equipamento
+        router.reload({ 
+            only: ['equipmentTypes'],
+            onSuccess: (page) => {
+                // Selecionar automaticamente o tipo de equipamento mais recente
+                const updatedEquipmentTypes = page.props.equipmentTypes as EquipmentType[];
+                if (updatedEquipmentTypes && updatedEquipmentTypes.length > 0) {
+                    const newestEquipmentType = updatedEquipmentTypes[updatedEquipmentTypes.length - 1];
+                    setData('equipment_type_id', newestEquipmentType.id.toString());
+                }
+            }
+        });
+    };
+
+    // Referências para os botões trigger
+    const plantSheetTriggerRef = useRef<HTMLButtonElement>(null);
+    const areaSheetTriggerRef = useRef<HTMLButtonElement>(null);
+    const sectorSheetTriggerRef = useRef<HTMLButtonElement>(null);
+    const equipmentTypeSheetTriggerRef = useRef<HTMLButtonElement>(null);
+
+    // Funções para abrir os sheets programaticamente
+    const handleCreatePlantClick = () => {
+        plantSheetTriggerRef.current?.click();
+    };
+
+    const handleCreateAreaClick = () => {
+        areaSheetTriggerRef.current?.click();
+    };
+
+    const handleCreateSectorClick = () => {
+        sectorSheetTriggerRef.current?.click();
+    };
+
+    const handleCreateEquipmentTypeClick = () => {
+        equipmentTypeSheetTriggerRef.current?.click();
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Novo Equipamento" />
@@ -130,15 +239,16 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                 <ItemSelect
                                     label="Tipo de Equipamento"
                                     items={equipmentTypes}
-                                    value={data.equipment_type_id || ''}
+                                    value={data.equipment_type_id?.toString() || ''}
                                     onValueChange={(value) => {
                                         setData('equipment_type_id', value);
                                         clearErrors('equipment_type_id');
                                     }}
-                                    createRoute={route('asset-hierarchy.tipos-equipamento.create')}
+                                    onCreateClick={handleCreateEquipmentTypeClick}
                                     placeholder="Selecione um tipo de equipamento"
                                     error={errors.equipment_type_id}
                                     required
+                                    canClear={true}
                                 />
                             </div>
 
@@ -176,17 +286,25 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                 <ItemSelect
                                     label="Planta"
                                     items={plants}
-                                    value={data.plant_id || ''}
+                                    value={data.plant_id?.toString() || ''}
                                     onValueChange={(value) => {
                                         setData('plant_id', value);
-                                        setData('area_id', ''); // Limpa a área quando mudar a planta
-                                        setData('sector_id', ''); // Limpa o setor quando mudar a planta
+                                        if (!value) {
+                                            // Se limpar a planta, limpar também área e setor
+                                            setData('area_id', '');
+                                            setData('sector_id', '');
+                                        } else {
+                                            // Se mudar a planta, limpar área e setor
+                                            setData('area_id', '');
+                                            setData('sector_id', '');
+                                        }
                                         clearErrors('plant_id');
                                     }}
-                                    createRoute={route('asset-hierarchy.plantas.create')}
+                                    onCreateClick={handleCreatePlantClick}
                                     placeholder="Selecione uma planta"
                                     error={errors.plant_id}
                                     required
+                                    canClear={true}
                                 />
                             </div>
 
@@ -195,16 +313,23 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                 <ItemSelect
                                     label="Área"
                                     items={availableAreas}
-                                    value={data.area_id || ''}
+                                    value={data.area_id?.toString() || ''}
                                     onValueChange={(value) => {
                                         setData('area_id', value);
-                                        setData('sector_id', ''); // Limpa o setor quando mudar a área
+                                        if (!value) {
+                                            // Se limpar a área, limpar também o setor
+                                            setData('sector_id', '');
+                                        } else {
+                                            // Se mudar a área, limpar o setor
+                                            setData('sector_id', '');
+                                        }
                                         clearErrors('area_id');
                                     }}
-                                    createRoute={route('asset-hierarchy.areas.create')}
+                                    onCreateClick={handleCreateAreaClick}
                                     placeholder={data.plant_id ? "Selecione uma área (opcional)" : "Selecione uma planta primeiro"}
                                     error={errors.area_id}
                                     disabled={!data.plant_id}
+                                    canClear={true}
                                 />
                             </div>
 
@@ -213,15 +338,16 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                                 <ItemSelect
                                     label="Setor"
                                     items={availableSectors}
-                                    value={data.sector_id || ''}
+                                    value={data.sector_id?.toString() || ''}
                                     onValueChange={(value) => {
                                         setData('sector_id', value);
                                         clearErrors('sector_id');
                                     }}
-                                    createRoute={route('asset-hierarchy.setores.create')}
+                                    onCreateClick={handleCreateSectorClick}
                                     placeholder={data.area_id ? "Selecione um setor (opcional)" : "Selecione uma área primeiro"}
                                     error={errors.sector_id}
                                     disabled={!data.area_id}
+                                    canClear={true}
                                 />
                             </div>
 
@@ -253,6 +379,57 @@ export default function CreateEquipment({ equipmentTypes, plants }: Props) {
                         <InputError message={errors.description} />
                     </div>
                 </form>
+
+                {/* CreatePlantSheet com SheetTrigger interno */}
+                <div style={{ display: 'none' }}>
+                    <CreatePlantSheet
+                        showTrigger={true}
+                        triggerText="Trigger Oculto"
+                        triggerVariant="outline"
+                        triggerRef={plantSheetTriggerRef}
+                        onSuccess={handlePlantCreated}
+                    />
+                </div>
+
+                {/* CreateAreaSheet com SheetTrigger interno */}
+                <div style={{ display: 'none' }}>
+                    <CreateAreaSheet
+                        showTrigger={true}
+                        triggerText="Trigger Oculto"
+                        triggerVariant="outline"
+                        triggerRef={areaSheetTriggerRef}
+                        plants={plants}
+                        selectedPlantId={data.plant_id?.toString()}
+                        disableParentFields={true}
+                        onSuccess={handleAreaCreated}
+                    />
+                </div>
+
+                {/* CreateSectorSheet com SheetTrigger interno */}
+                <div style={{ display: 'none' }}>
+                    <CreateSectorSheet
+                        showTrigger={true}
+                        triggerText="Trigger Oculto"
+                        triggerVariant="outline"
+                        triggerRef={sectorSheetTriggerRef}
+                        plants={plants}
+                        selectedPlantId={data.plant_id?.toString()}
+                        selectedAreaId={data.area_id?.toString()}
+                        disableParentFields={true}
+                        onSuccess={handleSectorCreated}
+                    />
+                </div>
+
+                {/* CreateEquipmentTypeSheet com SheetTrigger interno */}
+                <div style={{ display: 'none' }}>
+                    <CreateEquipmentTypeSheet
+                        showTrigger={true}
+                        triggerText="Trigger Oculto"
+                        triggerVariant="outline"
+                        triggerRef={equipmentTypeSheetTriggerRef}
+                        onSuccess={handleEquipmentTypeCreated}
+                    />
+                </div>
             </CreateLayout>
         </AppLayout>
     );

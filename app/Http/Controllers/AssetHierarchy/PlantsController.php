@@ -99,6 +99,12 @@ class PlantsController extends Controller
 
         $plant = Plant::create($validated);
 
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Planta {$plant->name} criada com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
         return redirect()->route('asset-hierarchy.plantas')
             ->with('success', "Planta {$plant->name} criada com sucesso.");
     }

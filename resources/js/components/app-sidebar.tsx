@@ -30,20 +30,16 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '#',
                 },
                 {
-                    title: 'Scheduler',
+                    title: 'Programação',
                     href: '#',
                 },
                 {
-                    title: 'Configuração BOM',
+                    title: 'BOMs',
                     href: '/items/bom-config',
                 },
                 {
                     title: 'Rotas',
                     href: '/scheduler/route-editor',
-                },
-                {
-                    title: 'Produtos',
-                    href: '/routines/routine-editor',
                 },
             ],
         },
@@ -57,11 +53,23 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '#',
                 },
                 {
+                    title: 'Realizar Inspeção',
+                    href: '#',
+                },
+                {
                     title: 'Inspeções',
                     href: '/routines/routine-editor',
                 },
                 {
-                    title: 'Instrumentos',
+                    title: 'RNCs',
+                    href: '#',
+                },
+                {
+                    title: 'Desvios',
+                    href: '#',
+                },
+                {
+                    title: 'Metrologia',
                     href: '#',
                 },
             ],
@@ -76,16 +84,24 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/maintenance/dashboard',
                 },
                 {
-                    title: 'Equipamentos',
+                    title: 'Programação',
+                    href: '#',
+                },
+                {
+                    title: 'Execução de OS',
+                    href: '#',
+                },
+                {
+                    title: 'Solicitações',
+                    href: '#',
+                },
+                {
+                    title: 'Rotinas',
+                    href: '#',
+                },
+                {
+                    title: 'Ativos',
                     href: '/asset-hierarchy/equipamentos',
-                },
-                {
-                    title: 'Planos de Manutenção',
-                    href: '#',
-                },
-                {
-                    title: 'Hierarquia de Ativos',
-                    href: '#',
                 },
             ],
         },

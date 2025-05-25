@@ -101,6 +101,12 @@ class EquipmentTypeController extends Controller
 
         $equipmentType = EquipmentType::create($validated);
 
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Tipo de equipamento {$equipmentType->name} criado com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
         return redirect()->route('asset-hierarchy.tipos-equipamento')
             ->with('success', "Tipo de equipamento {$equipmentType->name} criado com sucesso.");
     }

@@ -37,6 +37,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface PlantForm {
+    [key: string]: any;
     name: string;
     street: string;
     number: string;

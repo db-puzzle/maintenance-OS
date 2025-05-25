@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PlusCircle, Search } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import InputError from '@/components/input-error';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { LucideIcon } from 'lucide-react';
 
 export interface ItemSelectProps extends SelectProps {
@@ -18,13 +18,15 @@ export interface ItemSelectProps extends SelectProps {
     }>;
     value: string;
     onValueChange: (value: string) => void;
-    createRoute: string;
+    createRoute?: string;
+    onCreateClick?: () => void;
     placeholder?: string;
     error?: string;
     disabled?: boolean;
     canCreate?: boolean;
     required?: boolean;
     searchable?: boolean;
+    canClear?: boolean;
 }
 
 export default function ItemSelect({
@@ -33,22 +35,75 @@ export default function ItemSelect({
     value,
     onValueChange,
     createRoute,
+    onCreateClick,
     placeholder = 'Selecione um item',
     error,
     disabled = false,
     canCreate = true,
     required = false,
     searchable,
+    canClear = false,
     ...props
 }: ItemSelectProps) {
     const [search, setSearch] = useState('');
+    const [isSelectOpen, setIsSelectOpen] = useState(false);
     const showSearch = searchable ?? items.length > 8;
     const filteredItems = useMemo(() => {
         if (!showSearch || !search) return items;
         return items.filter(item => item.name.toLowerCase().includes(search.toLowerCase()));
     }, [items, search, showSearch]);
 
+    // Limpa o search quando o select é fechado
+    useEffect(() => {
+        if (!isSelectOpen) {
+            setSearch('');
+        }
+    }, [isSelectOpen]);
+
     const selectedItem = items.find(item => item.id.toString() === value);
+    const hasCreateOption = canCreate && (onCreateClick || createRoute);
+
+    // Função wrapper para interceptar o valor de limpar seleção
+    const handleValueChange = (newValue: string) => {
+        if (newValue === "__clear__") {
+            onValueChange("");
+        } else {
+            onValueChange(newValue);
+        }
+    };
+
+    const CreateButton = () => {
+        if (onCreateClick) {
+            return (
+                <button
+                    type="button"
+                    onClick={() => {
+                        onCreateClick();
+                        setIsSelectOpen(false);
+                    }}
+                    className="text-sm text-primary hover:underline flex items-center gap-2 px-2 py-1.5 w-full text-left"
+                >
+                    <PlusCircle className="h-4 w-4" />
+                    Criar novo(a) {label.toLowerCase()}
+                </button>
+            );
+        }
+
+        if (createRoute) {
+            return (
+                <Link 
+                    href={createRoute}
+                    className="text-sm text-primary hover:underline flex items-center gap-2 px-2 py-1.5"
+                    onClick={() => setIsSelectOpen(false)}
+                >
+                    <PlusCircle className="h-4 w-4" />
+                    Criar novo(a) {label.toLowerCase()}
+                </Link>
+            );
+        }
+
+        return null;
+    };
 
     return (
         <div className="grid gap-2">
@@ -59,8 +114,10 @@ export default function ItemSelect({
             <div className="bg-background rounded-md">
                 <Select
                     value={value}
-                    onValueChange={onValueChange}
+                    onValueChange={handleValueChange}
                     disabled={disabled}
+                    open={isSelectOpen}
+                    onOpenChange={setIsSelectOpen}
                     {...props}
                 >
                     <SelectTrigger
@@ -94,24 +151,29 @@ export default function ItemSelect({
                         {filteredItems.length === 0 ? (
                             <div className="flex flex-col">
                                 <div className="py-2 px-2 text-sm text-muted-foreground text-center">
-                                    {canCreate 
+                                    {hasCreateOption 
                                         ? `Nenhum(a) ${label.toLowerCase()} cadastrado(a)`
                                         : `Nenhum(a) ${label.toLowerCase()} disponível`}
                                 </div>
-                                {canCreate && (
+                                {hasCreateOption && (
                                     <div className="border-t">
-                                        <Link 
-                                            href={createRoute}
-                                            className="text-sm text-primary hover:underline flex items-center gap-2 px-2 py-1.5"
-                                        >
-                                            <PlusCircle className="h-4 w-4" />
-                                            Criar novo(a) {label.toLowerCase()}
-                                        </Link>
+                                        <CreateButton />
                                     </div>
                                 )}
                             </div>
                         ) : (
                             <>
+                                {/* Opção para limpar seleção */}
+                                {canClear && value && (
+                                    <>
+                                        <SelectItem value="__clear__">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <span>Limpar seleção</span>
+                                            </div>
+                                        </SelectItem>
+                                        <div className="border-t my-1" />
+                                    </>
+                                )}
                                 {filteredItems.map((item) => (
                                     <SelectItem key={item.id} value={item.id.toString()}>
                                         <div className="flex items-center gap-2">
@@ -120,15 +182,9 @@ export default function ItemSelect({
                                         </div>
                                     </SelectItem>
                                 ))}
-                                {canCreate && (
+                                {hasCreateOption && (
                                     <div className="border-t">
-                                        <Link 
-                                            href={createRoute}
-                                            className="text-sm text-primary hover:underline flex items-center gap-2 px-2 py-1.5"
-                                        >
-                                            <PlusCircle className="h-4 w-4" />
-                                            Criar novo(a) {label.toLowerCase()}
-                                        </Link>
+                                        <CreateButton />
                                     </div>
                                 )}
                             </>

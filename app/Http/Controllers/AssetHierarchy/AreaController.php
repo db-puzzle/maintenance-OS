@@ -93,6 +93,12 @@ class AreaController extends Controller
 
         $area = Area::create($validated);
 
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Área {$area->name} criada com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
         return redirect()->route('asset-hierarchy.areas')
             ->with('success', "Área {$area->name} criada com sucesso.");
     }
