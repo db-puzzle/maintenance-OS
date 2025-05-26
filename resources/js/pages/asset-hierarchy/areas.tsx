@@ -412,6 +412,7 @@ export default function Areas({ areas, filters }: Props) {
                             <Label htmlFor="confirmation">Digite EXCLUIR para confirmar</Label>
                             <Input
                                 id="confirmation"
+                                variant="destructive"
                                 value={confirmationText}
                                 onChange={(e) => setConfirmationText(e.target.value)}
                             />

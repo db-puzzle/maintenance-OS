@@ -117,8 +117,8 @@ const sistemaNavItems: NavGroup = {
             icon: ClipboardList,
             items: [
                 {
-                    title: 'Turnos',
-                    href: '/asset-hierarchy/shifts',
+                    title: 'Ativos',
+                    href: '/asset-hierarchy/ativos',
                 },
                 {
                     title: 'Setores',
@@ -131,6 +131,10 @@ const sistemaNavItems: NavGroup = {
                 {
                     title: 'Plantas',
                     href: '/asset-hierarchy/plantas',
+                },
+                {
+                    title: 'Turnos',
+                    href: '/asset-hierarchy/shifts',
                 },
                 {
                     title: 'Tipos de Ativo',

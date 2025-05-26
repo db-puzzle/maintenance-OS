@@ -153,7 +153,7 @@ class AssetController extends Controller
     public function edit(Asset $asset)
     {
         $loadedAsset = $asset->load(['assetType', 'plant', 'area.plant', 'sector']);
-        return Inertia::render('asset-hierarchy/ativos/edit', [
+        return Inertia::render('asset-hierarchy/ativos/create', [
             'asset' => $loadedAsset,
             'assetTypes' => AssetType::all(),
             'plants' => Plant::with('areas.sectors')->get(),

@@ -35,7 +35,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/ativos/exportar/{filename}', [AssetImportExportController::class, 'downloadExport'])->name('asset-hierarchy.ativos.export.download');
     Route::get('asset-hierarchy/ativos/{asset}', [AssetController::class, 'show'])->name('asset-hierarchy.ativos.show');
     Route::get('asset-hierarchy/ativos/{asset}/edit', [AssetController::class, 'edit'])->name('asset-hierarchy.ativos.edit');
-    Route::post('asset-hierarchy/ativos/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.ativos.update');
+    Route::put('asset-hierarchy/ativos/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.ativos.update');
     Route::delete('asset-hierarchy/ativos/{asset}', [AssetController::class, 'destroy'])->name('asset-hierarchy.ativos.destroy');
     Route::delete('asset-hierarchy/ativos/{asset}/photo', [AssetController::class, 'removePhoto'])->name('asset-hierarchy.ativos.remove-photo');
 
