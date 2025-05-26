@@ -283,27 +283,27 @@ function AssetFormFields({
     );
 }
 
-export default function CreateAsset({ assetTypes, plants, asset }: Props) {
+export default function AssetForm({ assetTypes, plants, asset }: Props) {
     const isEditing = !!asset;
     
     // Breadcrumbs dinâmicos baseados no modo (criar/editar)
     const breadcrumbs: BreadcrumbItem[] = isEditing ? [
         {
             title: 'Ativos',
-            href: '/asset-hierarchy/ativos',
+            href: '/asset-hierarchy/assets',
         },
         {
             title: 'Editar Ativo',
-            href: `/asset-hierarchy/ativos/${asset.id}/edit`,
+            href: `/asset-hierarchy/assets/${asset.id}/edit`,
         },
     ] : [
         {
             title: 'Ativos',
-            href: '/asset-hierarchy/ativos',
+            href: '/asset-hierarchy/assets',
         },
         {
             title: 'Novo Ativo',
-            href: '/asset-hierarchy/ativos/create',
+            href: '/asset-hierarchy/assets/create',
         },
     ];
 
@@ -347,10 +347,10 @@ export default function CreateAsset({ assetTypes, plants, asset }: Props) {
                 }
             });
 
-            put(route('asset-hierarchy.ativos.update', { asset: asset.id }), {
+            put(route('asset-hierarchy.assets.update', { asset: asset.id }), {
                 onSuccess: () => {
                     toast.success(`O ativo ${data.tag} foi atualizado com sucesso!`);
-                    router.visit(route('asset-hierarchy.ativos.show', asset.id));
+                    router.visit(route('asset-hierarchy.assets.show', asset.id));
                 },
                 onError: (errors) => {
                     toast.error("Erro ao atualizar ativo", {
@@ -360,7 +360,7 @@ export default function CreateAsset({ assetTypes, plants, asset }: Props) {
             });
         } else {
             // Lógica para criação
-            post(route('asset-hierarchy.ativos.store'), {
+            post(route('asset-hierarchy.assets.store'), {
                 onError: (errors) => {
                     toast.error("Erro ao criar ativo", {
                         description: "Verifique os campos e tente novamente."
@@ -508,7 +508,7 @@ export default function CreateAsset({ assetTypes, plants, asset }: Props) {
             <LayoutComponent
                 {...layoutProps}
                 breadcrumbs={breadcrumbs}
-                backRoute={route('asset-hierarchy.ativos')}
+                backRoute={route('asset-hierarchy.assets')}
                 onSave={handleSave}
                 isSaving={processing}
             >

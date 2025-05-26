@@ -11,7 +11,7 @@ use App\Http\Controllers\AssetHierarchy\AssetImportExportController;
 use App\Http\Controllers\AssetHierarchy\ShiftController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::prefix('ativos')->name('ativos.')->group(function () {
+    Route::prefix('assets')->name('assets.')->group(function () {
         Route::get('/', [AssetController::class, 'index'])->name('index');
         Route::get('/criar', [AssetController::class, 'create'])->name('create');
         Route::post('/', [AssetController::class, 'store'])->name('store');
@@ -23,21 +23,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/importar/dados', [AssetImportExportController::class, 'importData'])->name('import.data');
     });
 
-    Route::get('asset-hierarchy/ativos', [AssetController::class, 'index'])->name('asset-hierarchy.ativos');
-    Route::get('asset-hierarchy/ativos/create', [AssetController::class, 'create'])->name('asset-hierarchy.ativos.create');
-    Route::post('asset-hierarchy/ativos', [AssetController::class, 'store'])->name('asset-hierarchy.ativos.store');
-    Route::get('asset-hierarchy/ativos/importar', [AssetImportExportController::class, 'import'])->name('asset-hierarchy.ativos.import');
-    Route::post('asset-hierarchy/ativos/importar/analisar', [AssetImportExportController::class, 'analyzeCsv'])->name('asset-hierarchy.ativos.import.analyze');
-    Route::post('asset-hierarchy/ativos/importar/dados', [AssetImportExportController::class, 'importData'])->name('asset-hierarchy.ativos.import.data');
-    Route::get('asset-hierarchy/ativos/importar/progresso', [AssetImportExportController::class, 'checkImportProgress'])->name('asset-hierarchy.ativos.import.progress');
-    Route::get('asset-hierarchy/ativos/exportar', [AssetImportExportController::class, 'export'])->name('asset-hierarchy.ativos.export');
-    Route::post('asset-hierarchy/ativos/exportar', [AssetImportExportController::class, 'exportData'])->name('asset-hierarchy.ativos.export.data');
-    Route::get('asset-hierarchy/ativos/exportar/{filename}', [AssetImportExportController::class, 'downloadExport'])->name('asset-hierarchy.ativos.export.download');
-    Route::get('asset-hierarchy/ativos/{asset}', [AssetController::class, 'show'])->name('asset-hierarchy.ativos.show');
-    Route::get('asset-hierarchy/ativos/{asset}/edit', [AssetController::class, 'edit'])->name('asset-hierarchy.ativos.edit');
-    Route::put('asset-hierarchy/ativos/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.ativos.update');
-    Route::delete('asset-hierarchy/ativos/{asset}', [AssetController::class, 'destroy'])->name('asset-hierarchy.ativos.destroy');
-    Route::delete('asset-hierarchy/ativos/{asset}/photo', [AssetController::class, 'removePhoto'])->name('asset-hierarchy.ativos.remove-photo');
+    Route::get('asset-hierarchy/assets', [AssetController::class, 'index'])->name('asset-hierarchy.assets');
+    Route::get('asset-hierarchy/assets/create', [AssetController::class, 'create'])->name('asset-hierarchy.assets.create');
+    Route::post('asset-hierarchy/assets', [AssetController::class, 'store'])->name('asset-hierarchy.assets.store');
+    Route::get('asset-hierarchy/assets/importar', [AssetImportExportController::class, 'import'])->name('asset-hierarchy.assets.import');
+    Route::post('asset-hierarchy/assets/importar/analisar', [AssetImportExportController::class, 'analyzeCsv'])->name('asset-hierarchy.assets.import.analyze');
+    Route::post('asset-hierarchy/assets/importar/dados', [AssetImportExportController::class, 'importData'])->name('asset-hierarchy.assets.import.data');
+    Route::get('asset-hierarchy/assets/importar/progresso', [AssetImportExportController::class, 'checkImportProgress'])->name('asset-hierarchy.assets.import.progress');
+    Route::get('asset-hierarchy/assets/exportar', [AssetImportExportController::class, 'export'])->name('asset-hierarchy.assets.export');
+    Route::post('asset-hierarchy/assets/exportar', [AssetImportExportController::class, 'exportData'])->name('asset-hierarchy.assets.export.data');
+    Route::get('asset-hierarchy/assets/exportar/{filename}', [AssetImportExportController::class, 'downloadExport'])->name('asset-hierarchy.assets.export.download');
+    Route::get('asset-hierarchy/assets/{asset}', [AssetController::class, 'show'])->name('asset-hierarchy.assets.show');
+    Route::get('asset-hierarchy/assets/{asset}/edit', [AssetController::class, 'edit'])->name('asset-hierarchy.assets.edit');
+    Route::put('asset-hierarchy/assets/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.assets.update');
+    Route::delete('asset-hierarchy/assets/{asset}', [AssetController::class, 'destroy'])->name('asset-hierarchy.assets.destroy');
+    Route::delete('asset-hierarchy/assets/{asset}/photo', [AssetController::class, 'removePhoto'])->name('asset-hierarchy.assets.remove-photo');
 
     Route::get('asset-hierarchy/setores', [SectorController::class, 'index'])->name('asset-hierarchy.setores');
     Route::get('asset-hierarchy/setores/create', [SectorController::class, 'create'])->name('asset-hierarchy.setores.create');

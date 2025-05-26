@@ -101,7 +101,7 @@ const gerenciamentoNavItems: NavGroup = {
                 },
                 {
                     title: 'Ativos',
-                    href: '/asset-hierarchy/ativos',
+                    href: '/asset-hierarchy/assets',
                 },
             ],
         },
@@ -118,7 +118,7 @@ const sistemaNavItems: NavGroup = {
             items: [
                 {
                     title: 'Ativos',
-                    href: '/asset-hierarchy/ativos',
+                    href: '/asset-hierarchy/assets',
                 },
                 {
                     title: 'Setores',
@@ -142,11 +142,11 @@ const sistemaNavItems: NavGroup = {
                 },
                 {
                     title: 'Exportar Ativos',
-                    href: '/asset-hierarchy/ativos/exportar',
+                    href: '/asset-hierarchy/assets/exportar',
                 },
                 {
                     title: 'Importar Ativos',
-                    href: '/asset-hierarchy/ativos/importar',
+                    href: '/asset-hierarchy/assets/importar',
                 },
             ],
         },

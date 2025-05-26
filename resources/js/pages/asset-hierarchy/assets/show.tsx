@@ -1,6 +1,6 @@
 import { type BreadcrumbItem } from '@/types';
 import { type Asset, type AssetType, type Area, type Plant, type Sector } from '@/types/asset-hierarchy';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Camera, MessageSquare, Calendar, FileText } from 'lucide-react';
@@ -21,15 +21,21 @@ interface Props {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Ativos',
-        href: '/asset-hierarchy/ativos',
+        href: '/asset-hierarchy/assets',
     },
     {
-        title: 'Detalhes',
+        title: 'Detalhes do Ativo',
         href: '#',
     },
 ];
 
 export default function Show({ asset }: Props) {
+    const { url } = usePage();
+    
+    // Extrai o parâmetro tab da URL
+    const urlParams = new URLSearchParams(url.split('?')[1] || '');
+    const tabFromUrl = urlParams.get('tab');
+    
     // Determina qual planta mostrar
     const plantToShow = asset.plant || asset.area?.plant;
 
@@ -142,36 +148,16 @@ export default function Show({ asset }: Props) {
             ),
         },
         {
-            id: 'solicitacoes',
-            label: 'Solicitações de Usuário',
+            id: 'rotinas',
+            label: 'Rotinas de Manutenção',
             content: (
                 <Card>
                     <CardContent>
                         <EmptySection1 
-                            title="Nenhuma solicitação registrada"
-                            description="Registre solicitações de usuários para este ativo"
-                            icon={MessageSquare}
-                            primaryButtonText="Nova solicitação"
-                            secondaryButtonText="Ver histórico"
-                            primaryButtonLink="#"
-                            secondaryButtonLink="#"
-                            showDashedBorder={false}
-                        />
-                    </CardContent>
-                </Card>
-            ),
-        },
-        {
-            id: 'planos',
-            label: 'Planos de Manutenção',
-            content: (
-                <Card>
-                    <CardContent>
-                        <EmptySection1 
-                            title="Nenhum plano de manutenção"
-                            description="Crie planos de manutenção para este ativo"
+                            title="Nenhuma rotina de manutenção"
+                            description="Crie rotinas de manutenção para este ativo"
                             icon={Calendar}
-                            primaryButtonText="Novo plano"
+                            primaryButtonText="Nova rotina"
                             secondaryButtonText="Ver cronograma"
                             primaryButtonLink="#"
                             secondaryButtonLink="#"
@@ -182,16 +168,56 @@ export default function Show({ asset }: Props) {
             ),
         },
         {
-            id: 'log',
-            label: 'Central de Logs',
+            id: 'chamados',
+            label: 'Chamados',
             content: (
                 <Card>
                     <CardContent>
                         <EmptySection1 
-                            title="Nenhum registro de log"
-                            description="Registre operações e manutenções realizadas neste ativo"
+                            title="Nenhum chamado registrado"
+                            description="Registre chamados para este ativo"
+                            icon={MessageSquare}
+                            primaryButtonText="Novo chamado"
+                            secondaryButtonText="Ver histórico"
+                            primaryButtonLink="#"
+                            secondaryButtonLink="#"
+                            showDashedBorder={false}
+                        />
+                    </CardContent>
+                </Card>
+            ),
+        },
+        {
+            id: 'ordem-serviço',
+            label: 'Ordens de Serviço',
+            content: (
+                <Card>
+                    <CardContent>
+                        <EmptySection1 
+                            title="Nenhuma ordem de serviço"
+                            description="Registre ordens de serviço para este ativo"
                             icon={FileText}
-                            primaryButtonText="Novo registro"
+                            primaryButtonText="Nova ordem de serviço"
+                            secondaryButtonText="Ver histórico"
+                            primaryButtonLink="#"
+                            secondaryButtonLink="#"
+                            showDashedBorder={false}
+                        />
+                    </CardContent>
+                </Card>
+            ),
+        },
+        {
+            id: 'arquivos',
+            label: 'Arquivos',
+            content: (
+                <Card>
+                    <CardContent>
+                        <EmptySection1 
+                            title="Nenhum arquivo"
+                            description="Registre arquivos para este ativo"
+                            icon={FileText}
+                            primaryButtonText="Novo arquivo"
                             secondaryButtonText="Ver histórico"
                             primaryButtonLink="#"
                             secondaryButtonLink="#"
@@ -220,9 +246,10 @@ export default function Show({ asset }: Props) {
                     ) : 'Tipo não definido'
                 }
                 breadcrumbs={breadcrumbs}
-                editRoute={route('asset-hierarchy.ativos.edit', asset.id)}
-                backRoute={route('asset-hierarchy.ativos')}
+                editRoute={route('asset-hierarchy.assets.edit', asset.id)}
+                backRoute={route('asset-hierarchy.assets')}
                 tabs={tabs}
+                defaultActiveTab={tabFromUrl || undefined}
             />
         </AppLayout>
     );

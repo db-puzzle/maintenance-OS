@@ -353,7 +353,7 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                                             >
                                                 <TableCell>
                                                     <Link
-                                                        href={route('asset-hierarchy.ativos.show', asset.id)}
+                                                        href={route('asset-hierarchy.assets.show', asset.id)}
                                                         className="font-medium hover:text-primary"
                                                     >
                                                         {asset.tag}

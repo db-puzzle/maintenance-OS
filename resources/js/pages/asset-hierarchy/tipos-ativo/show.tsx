@@ -104,7 +104,7 @@ export default function Show({ assetType, asset, activeTab }: Props) {
                                             <TableRow 
                                                 key={asset.id}
                                                 className="cursor-pointer hover:bg-muted/50 h-12"
-                                                onClick={() => router.get(route('asset-hierarchy.ativos.show', asset.id))}
+                                                onClick={() => router.get(route('asset-hierarchy.assets.show', asset.id))}
                                             >
                                                 <TableCell>
                                                     <div className="font-medium">{asset.tag}</div>

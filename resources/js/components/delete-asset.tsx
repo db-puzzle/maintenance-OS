@@ -21,7 +21,7 @@ export default function DeleteAsset({ assetId, assetTag }: Props) {
     const deleteAsset: FormEventHandler = (e) => {
         e.preventDefault();
 
-        destroy(route('asset-hierarchy.ativos.destroy', assetId), {
+        destroy(route('asset-hierarchy.assets.destroy', assetId), {
             preserveScroll: true,
             onSuccess: () => {
                 closeModal();

@@ -53,15 +53,15 @@ const importFields = [
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Cadastro',
-        href: '/asset-hierarchy/ativos',
+        href: '/asset-hierarchy/assets',
     },
     {
         title: 'Ativos',
-        href: '/asset-hierarchy/ativos',
+        href: '/asset-hierarchy/assets',
     },
     {
         title: 'Importar Ativos',
-        href: '/asset-hierarchy/ativos/importar',
+        href: '/asset-hierarchy/assets/importar',
     },
 ];
 
@@ -173,7 +173,7 @@ export default function ImportAsset() {
         formData.append('file', selectedFile);
 
         try {
-            const response = await axios.post(route('asset-hierarchy.ativos.import.analyze'), formData, {
+            const response = await axios.post(route('asset-hierarchy.assets.import.analyze'), formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Accept': 'application/json',
@@ -237,7 +237,7 @@ export default function ImportAsset() {
         // Inicia o intervalo ANTES da importação
         const progressInterval = setInterval(async () => {
             try {
-                const progressResponse = await axios.get(route('asset-hierarchy.ativos.import.progress'));
+                const progressResponse = await axios.get(route('asset-hierarchy.assets.import.progress'));
                 console.log('Verificando progresso:', progressResponse.data);
                 
                 if (progressResponse.data.progress !== undefined) {
@@ -256,7 +256,7 @@ export default function ImportAsset() {
 
         // Agora inicia a importação
         try {
-            const response = await axios.post(route('asset-hierarchy.ativos.import.data'), {
+            const response = await axios.post(route('asset-hierarchy.assets.import.data'), {
                 data: csvData.data,
                 mapping: fieldMapping
             });
@@ -295,7 +295,7 @@ export default function ImportAsset() {
             }
 
             // Envia requisição de cancelamento para o backend
-            await axios.post(route('asset-hierarchy.ativos.import.data'), {
+            await axios.post(route('asset-hierarchy.assets.import.data'), {
                 data: csvData?.data,
                 mapping: fieldMapping,
                 cancel: true
@@ -348,7 +348,7 @@ export default function ImportAsset() {
                 formData.append('cancel', 'true');
                 formData.append('X-Requested-With', 'XMLHttpRequest');
                 
-                navigator.sendBeacon(route('asset-hierarchy.ativos.import.data'), formData);
+                navigator.sendBeacon(route('asset-hierarchy.assets.import.data'), formData);
             }
         };
 
@@ -654,7 +654,7 @@ export default function ImportAsset() {
 
                 <div className="flex items-center gap-4">
                     <Button variant="outline" asChild>
-                        <Link href={route('asset-hierarchy.ativos')}>
+                        <Link href={route('asset-hierarchy.assets')}>
                             Cancelar
                         </Link>
                     </Button>

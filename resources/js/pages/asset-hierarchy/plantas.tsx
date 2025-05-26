@@ -347,7 +347,7 @@ export default function Plantas({ plants, filters }: Props) {
                                             {dependencies.dependencies.asset.items.map(asset => (
                                                 <li key={asset.id}>
                                                     <Link
-                                                        href={route('asset-hierarchy.ativos.show', asset.id)}
+                                                        href={route('asset-hierarchy.assets.show', asset.id)}
                                                         className="text-primary hover:underline"
                                                     >
                                                         {asset.tag}

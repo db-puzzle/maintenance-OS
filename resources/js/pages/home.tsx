@@ -124,7 +124,7 @@ export default function Dashboard() {
                     name: 'Configurar Ativos', 
                     icon: Boxes,
                     description: 'Cadastro de ativos e ativos',
-                    href: '/asset-hierarchy/ativos'
+                    href: '/asset-hierarchy/assets'
                 }
             ]
         }

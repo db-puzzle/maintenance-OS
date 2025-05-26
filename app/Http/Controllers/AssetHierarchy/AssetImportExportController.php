@@ -16,12 +16,12 @@ class AssetImportExportController extends Controller
 {
     public function import()
     {
-        return Inertia::render('asset-hierarchy/ativos/import');
+        return Inertia::render('asset-hierarchy/assets/import');
     }
 
     public function export()
     {
-        return Inertia::render('asset-hierarchy/ativos/export');
+        return Inertia::render('asset-hierarchy/assets/export');
     }
 
     public function exportData(Request $request)
@@ -85,9 +85,9 @@ class AssetImportExportController extends Controller
         }
 
         // Retorna a URL do arquivo para download
-        $downloadUrl = route('asset-hierarchy.ativos.export.download', ['filename' => $filename]);
+        $downloadUrl = route('asset-hierarchy.assets.export.download', ['filename' => $filename]);
 
-        return Inertia::render('asset-hierarchy/ativos/export', [
+        return Inertia::render('asset-hierarchy/assets/export', [
             'success' => true,
             'download_url' => $downloadUrl,
             'filename' => $filename
@@ -231,7 +231,7 @@ class AssetImportExportController extends Controller
                 ]);
             }
 
-            return Inertia::render('asset-hierarchy/ativos/import', [
+            return Inertia::render('asset-hierarchy/assets/import', [
                 'csvData' => [
                     'headers' => $headers,
                     'data' => $previewData,

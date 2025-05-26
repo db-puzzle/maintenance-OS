@@ -30,6 +30,7 @@ interface ShowLayoutProps {
     tabs: Tab[];
     children?: ReactNode;
     showEditButton?: boolean;
+    defaultActiveTab?: string;
 }
 
 export default function ShowLayout({
@@ -41,8 +42,9 @@ export default function ShowLayout({
     tabs,
     children,
     showEditButton = true,
+    defaultActiveTab,
 }: ShowLayoutProps) {
-    const [activeTab, setActiveTab] = useState(tabs ? tabs[0].id : '');
+    const [activeTab, setActiveTab] = useState(defaultActiveTab || (tabs ? tabs[0].id : ''));
 
     return (
         <div className="bg-background pt-4 md:pt-6">

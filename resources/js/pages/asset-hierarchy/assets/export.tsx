@@ -29,15 +29,15 @@ interface PageProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Cadastro',
-        href: '/asset-hierarchy/ativos',
+        href: '/asset-hierarchy/assets',
     },
     {
         title: 'Ativos',
-        href: '/asset-hierarchy/ativos',
+        href: '/asset-hierarchy/assets',
     },
     {
         title: 'Exportar Ativos',
-        href: '/asset-hierarchy/ativos/exportar',
+        href: '/asset-hierarchy/assets/exportar',
     },
 ];
 
@@ -54,7 +54,7 @@ export default function ExportAsset() {
         setProgressValue(0);
         setDownloadUrl(null);
         
-        post(route('asset-hierarchy.ativos.export.data'), {
+        post(route('asset-hierarchy.assets.export.data'), {
             onSuccess: (page) => {
                 setProgressValue(100);
                 const props = page.props as unknown as PageProps;
@@ -119,7 +119,7 @@ export default function ExportAsset() {
                                 {processing ? 'Exportando...' : 'Exportar CSV'}
                             </Button>
                             <Button variant="outline" asChild>
-                                <Link href={route('asset-hierarchy.ativos')}>
+                                <Link href={route('asset-hierarchy.assets')}>
                                     Cancelar
                                 </Link>
                             </Button>

@@ -43,7 +43,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
     {
         title: 'Ativos',
-        href: '/asset-hierarchy/ativos',
+        href: '/asset-hierarchy/assets',
     },
 ];
 
@@ -70,7 +70,7 @@ interface PageProps {
     };
 }
 
-export default function Ativos({ asset, filters }: Props) {
+export default function Assets({ asset, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [perPage, setPerPage] = useState(filters.per_page || 8);
     const [sort, setSort] = useState(filters.sort || 'tag');
@@ -100,7 +100,7 @@ export default function Ativos({ asset, filters }: Props) {
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             router.get(
-                route('asset-hierarchy.ativos'),
+                route('asset-hierarchy.assets'),
                 { 
                     search,
                     sort,
@@ -117,7 +117,7 @@ export default function Ativos({ asset, filters }: Props) {
     const handlePerPageChange = (value: string) => {
         setPerPage(Number(value));
         router.get(
-            route('asset-hierarchy.ativos'),
+            route('asset-hierarchy.assets'),
             { 
                 search,
                 sort,
@@ -131,7 +131,7 @@ export default function Ativos({ asset, filters }: Props) {
 
     const handlePageChange = (newPage: number) => {
         router.get(
-            route('asset-hierarchy.ativos'),
+            route('asset-hierarchy.assets'),
             { 
                 search,
                 sort,
@@ -280,7 +280,7 @@ export default function Ativos({ asset, filters }: Props) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.ativos.edit', row.original.id)}>
+                            <Link href={route('asset-hierarchy.assets.edit', row.original.id)}>
                                 Editar
                             </Link>
                         </DropdownMenuItem>
@@ -301,7 +301,7 @@ export default function Ativos({ asset, filters }: Props) {
                 searchPlaceholder="Buscar por TAG, S/N, fabricante ou descrição..."
                 searchValue={search}
                 onSearchChange={(value) => setSearch(value)}
-                createRoute={route('asset-hierarchy.ativos.create')}
+                createRoute={route('asset-hierarchy.assets.create')}
                 createButtonText="Adicionar"
                 actions={
                     <div className="flex items-center gap-2">
@@ -318,7 +318,7 @@ export default function Ativos({ asset, filters }: Props) {
                     columns={columns}
                     columnVisibility={columnVisibility}
                     onColumnVisibilityChange={handleColumnVisibilityChange}
-                    onRowClick={(row) => router.get(route('asset-hierarchy.ativos.show', row.id))}
+                    onRowClick={(row) => router.get(route('asset-hierarchy.assets.show', row.id))}
                     emptyMessage="Nenhuma máquina encontrada."
                 />
 
@@ -326,7 +326,7 @@ export default function Ativos({ asset, filters }: Props) {
                     currentPage={asset.current_page}
                     lastPage={asset.last_page}
                     total={asset.total}
-                    routeName="asset-hierarchy.ativos"
+                    routeName="asset-hierarchy.assets"
                     search={search}
                     sort={sort}
                     direction={direction}

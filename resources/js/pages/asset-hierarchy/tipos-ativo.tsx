@@ -336,7 +336,7 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
                                             {dependencies.asset.map(asset => (
                                                 <li key={asset.id}>
                                                     <Link
-                                                        href={route('asset-hierarchy.ativos.show', asset.id)}
+                                                        href={route('asset-hierarchy.assets.show', asset.id)}
                                                         className="text-primary hover:underline inline-flex items-center gap-1"
                                                     >
                                                         {asset.tag}

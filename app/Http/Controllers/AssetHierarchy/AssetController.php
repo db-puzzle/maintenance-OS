@@ -80,7 +80,7 @@ class AssetController extends Controller
 
         $asset = $query->paginate($perPage)->withQueryString();
 
-        return Inertia::render('asset-hierarchy/ativos', [
+        return Inertia::render('asset-hierarchy/assets', [
             'asset' => $asset,
             'filters' => [
                 'search' => $search,
@@ -93,7 +93,7 @@ class AssetController extends Controller
 
     public function create()
     {
-        return Inertia::render('asset-hierarchy/ativos/create', [
+        return Inertia::render('asset-hierarchy/assets/asset-form', [
             'assetTypes' => AssetType::all(),
             'plants' => Plant::with('areas.sectors')->get(),
         ]);
@@ -146,14 +146,14 @@ class AssetController extends Controller
 
         $asset = Asset::create($validated);
 
-        return redirect()->route('asset-hierarchy.ativos')
+        return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset, 'tab' => 'rotinas'])
             ->with('success', "Ativo {$asset->tag} criado com sucesso.");
     }
 
     public function edit(Asset $asset)
     {
         $loadedAsset = $asset->load(['assetType', 'plant', 'area.plant', 'sector']);
-        return Inertia::render('asset-hierarchy/ativos/create', [
+        return Inertia::render('asset-hierarchy/assets/asset-form', [
             'asset' => $loadedAsset,
             'assetTypes' => AssetType::all(),
             'plants' => Plant::with('areas.sectors')->get(),
@@ -163,7 +163,7 @@ class AssetController extends Controller
     public function show(Asset $asset)
     {
         $loadedAsset = $asset->load(['assetType', 'plant', 'area.plant', 'sector']);
-        return Inertia::render('asset-hierarchy/ativos/show', [
+        return Inertia::render('asset-hierarchy/assets/show', [
             'asset' => $loadedAsset,
         ]);
     }
@@ -248,7 +248,8 @@ class AssetController extends Controller
 
             $asset->update($validated);
 
-            return back()->with('success', "O ativo {$asset->tag} foi atualizado com sucesso.");
+            return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset, 'tab' => 'rotinas'])
+                ->with('success', "O ativo {$asset->tag} foi atualizado com sucesso.");
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
@@ -266,7 +267,7 @@ class AssetController extends Controller
 
         $asset->delete();
 
-        return redirect()->route('asset-hierarchy.ativos')
+        return redirect()->route('asset-hierarchy.assets')
             ->with('success', "O ativo {$assetTag} foi excluído com sucesso.");
     }
 

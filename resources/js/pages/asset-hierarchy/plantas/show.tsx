@@ -521,7 +521,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                             <TableRow 
                                                 key={item.id}
                                                 className="cursor-pointer hover:bg-muted/50 h-12"
-                                                onClick={() => router.get(route('asset-hierarchy.ativos.show', item.id))}
+                                                onClick={() => router.get(route('asset-hierarchy.assets.show', item.id))}
                                             >
                                                 <TableCell>
                                                     <div className="font-medium">{item.tag}</div>

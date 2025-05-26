@@ -23,7 +23,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Cadastro',
-        href: '/asset-hierarchy/ativos',
+        href: '/asset-hierarchy/assets',
         icon: ClipboardList,
     },
 ];
