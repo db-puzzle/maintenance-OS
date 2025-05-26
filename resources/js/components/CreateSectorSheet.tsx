@@ -116,14 +116,14 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                 </SheetTrigger>
             )}
             <SheetContent className="sm:max-w-lg">
-                <SheetHeader className="mb-4">
+                <SheetHeader className="">
                     <SheetTitle>Novo Setor</SheetTitle>
                     <SheetDescription>
                         Adicione um novo setor ao sistema
                     </SheetDescription>
                 </SheetHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6 m-4">
                     <div className="grid gap-6">
                         {/* Nome do Setor - Campo Obrigatório */}
                         <TextInput<SectorForm>
@@ -180,7 +180,10 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                         </div>
                     </div>
 
-                    <SheetFooter className="flex justify-end gap-2 mt-6">
+                    <SheetFooter className="flex justify-end gap-2">
+                        <Button type="submit" disabled={processing}>
+                            {processing ? 'Salvando...' : 'Salvar'}
+                        </Button>
                         <Button
                             type="button"
                             variant="outline"
@@ -188,9 +191,6 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                             disabled={processing}
                         >
                             Cancelar
-                        </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Salvando...' : 'Salvar'}
                         </Button>
                     </SheetFooter>
                 </form>

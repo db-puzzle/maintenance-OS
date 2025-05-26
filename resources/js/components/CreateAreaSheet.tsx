@@ -105,14 +105,14 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
                 </SheetTrigger>
             )}
             <SheetContent className="sm:max-w-lg">
-                <SheetHeader className="mb-4">
+                <SheetHeader className="">
                     <SheetTitle>Nova Área</SheetTitle>
                     <SheetDescription>
                         Adicione uma nova área ao sistema
                     </SheetDescription>
                 </SheetHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6 m-4">
                     <div className="grid gap-6">
                         {/* Nome da Área - Campo Obrigatório */}
                         <TextInput<AreaForm>
@@ -148,7 +148,10 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
                         </div>
                     </div>
 
-                    <SheetFooter className="flex justify-end gap-2 mt-6">
+                    <SheetFooter className="flex justify-end gap-2">
+                        <Button type="submit" disabled={processing}>
+                            {processing ? 'Salvando...' : 'Salvar'}
+                        </Button>
                         <Button
                             type="button"
                             variant="outline"
@@ -157,9 +160,7 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
                         >
                             Cancelar
                         </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Salvando...' : 'Salvar'}
-                        </Button>
+                        
                     </SheetFooter>
                 </form>
             </SheetContent>
