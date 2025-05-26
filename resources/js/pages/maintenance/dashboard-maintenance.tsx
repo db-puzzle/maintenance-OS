@@ -45,8 +45,8 @@ export default function DashboardMaintenance() {
                 }
             ]
         },
-        equipment: {
-            title: 'Equipamentos',
+        asset: {
+            title: 'Ativos',
             icon: Settings,
             description: 'Gestão de ativos',
             actions: [
@@ -60,10 +60,10 @@ export default function DashboardMaintenance() {
                     name: 'Reportar Problema', 
                     icon: AlertTriangle,
                     comingSoon: true,
-                    description: 'Relatar problemas e falhas em equipamentos'
+                    description: 'Relatar problemas e falhas em ativos'
                 },
                 { 
-                    name: 'Editar Equipamento', 
+                    name: 'Editar Ativo', 
                     icon: Edit,
                     comingSoon: true,
                     description: 'Atualizar informações e configurações'
@@ -129,14 +129,14 @@ export default function DashboardMaintenance() {
                 <div>
                     <h2 className="text-xl font-semibold text-foreground mb-6">Dashboard de Manutenção</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* Chart 1 - Equipamentos por Status */}
+                        {/* Chart 1 - Ativos por Status */}
                         <div className="bg-card border-border border rounded-xl p-6">
                             <div className="mb-4">
-                                <h3 className="font-semibold text-foreground mb-2">Equipamentos por Status</h3>
-                                <p className="text-sm text-muted-foreground">Distribuição dos equipamentos por status operacional</p>
+                                <h3 className="font-semibold text-foreground mb-2">Ativos por Status</h3>
+                                <p className="text-sm text-muted-foreground">Distribuição dos ativos por status operacional</p>
                             </div>
                             <div className="bg-muted rounded-lg h-48 flex items-center justify-center">
-                                <p className="text-muted-foreground text-sm">Gráfico de Donut - Status dos Equipamentos</p>
+                                <p className="text-muted-foreground text-sm">Gráfico de Donut - Status dos Ativos</p>
                             </div>
                         </div>
 

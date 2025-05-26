@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PlusCircle, Search } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import InputError from '@/components/input-error';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, forwardRef } from 'react';
 import { LucideIcon } from 'lucide-react';
 
 export interface ItemSelectProps extends SelectProps {
@@ -29,7 +29,7 @@ export interface ItemSelectProps extends SelectProps {
     canClear?: boolean;
 }
 
-export default function ItemSelect({
+const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(({
     label,
     items,
     value,
@@ -44,7 +44,7 @@ export default function ItemSelect({
     searchable,
     canClear = false,
     ...props
-}: ItemSelectProps) {
+}, ref) => {
     const [search, setSearch] = useState('');
     const [isSelectOpen, setIsSelectOpen] = useState(false);
     const showSearch = searchable ?? items.length > 8;
@@ -121,6 +121,7 @@ export default function ItemSelect({
                     {...props}
                 >
                     <SelectTrigger
+                        ref={ref}
                         error={!!error}
                     >
                         <SelectValue placeholder={placeholder}>
@@ -195,4 +196,8 @@ export default function ItemSelect({
             {error && <InputError message={error} />}
         </div>
     );
-} 
+});
+
+ItemSelect.displayName = 'ItemSelect';
+
+export default ItemSelect; 

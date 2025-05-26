@@ -113,7 +113,7 @@ export default function Dashboard() {
                     name: 'Solicitar Manutenção', 
                     icon: MessageSquare,
                     comingSoon: true,
-                    description: 'Solicitação sobre equipamentos e ativos'
+                    description: 'Solicitação sobre ativos e ativos'
                 },
                 { 
                     name: 'Configurar Rotinas de Manutenção', 
@@ -123,8 +123,8 @@ export default function Dashboard() {
                 { 
                     name: 'Configurar Ativos', 
                     icon: Boxes,
-                    description: 'Cadastro de equipamentos e ativos',
-                    href: '/asset-hierarchy/equipamentos'
+                    description: 'Cadastro de ativos e ativos',
+                    href: '/asset-hierarchy/ativos'
                 }
             ]
         }

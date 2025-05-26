@@ -20,7 +20,7 @@ class ShiftController extends Controller
 
     public function index()
     {
-        $shifts = Shift::with(['schedules.shiftTimes.breaks', 'plant', 'equipments'])->get();
+        $shifts = Shift::with(['schedules.shiftTimes.breaks', 'plant', 'assets'])->get();
         return Inertia::render('asset-hierarchy/shifts', [
             'shifts' => $shifts->map(function ($shift) {
                 $schedules = $shift->schedules->map(function ($schedule) {
@@ -51,7 +51,7 @@ class ShiftController extends Controller
                         'id' => $shift->plant->id,
                         'name' => $shift->plant->name,
                     ] : null,
-                    'equipment_count' => $shift->equipment_count,
+                    'asset_count' => $shift->asset_count,
                     'total_work_hours' => $totals['work_hours'],
                     'total_work_minutes' => $totals['work_minutes'],
                     'total_break_hours' => $totals['break_hours'],

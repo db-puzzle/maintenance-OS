@@ -20,7 +20,7 @@ class DashboardController extends Controller
     // private function getDashboardStats()
     // {
     //     return [
-    //         'total_equipment' => Equipment::count(),
+    //         'total_asset' => Asset::count(),
     //         'pending_maintenance' => MaintenancePlan::where('status', 'pending')->count(),
     //         'overdue_tasks' => RoutineExecution::where('status', 'overdue')->count(),
     //     ];

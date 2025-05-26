@@ -1,5 +1,5 @@
 import { type BreadcrumbItem } from '@/types';
-import { type Equipment } from '@/types/asset-hierarchy';
+import { type Asset } from '@/types/asset-hierarchy';
 import { router, Head, Link } from '@inertiajs/react';
 import { Building2, MapPin, Cog, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -29,7 +29,7 @@ interface Area {
         id: number;
         name: string;
     };
-    equipment: Equipment[];
+    asset: Asset[];
     sectors: Sector[];
     created_at: string;
     updated_at: string;
@@ -39,7 +39,7 @@ interface Sector {
     id: number;
     name: string;
     description: string | null;
-    equipment_count: number;
+    asset_count: number;
 }
 
 interface Props {
@@ -58,29 +58,29 @@ interface Props {
         per_page: number;
         total: number;
     };
-    equipment: {
-        data: Equipment[];
+    asset: {
+        data: Asset[];
         current_page: number;
         last_page: number;
         per_page: number;
         total: number;
     };
-    totalEquipmentCount: number;
+    totalAssetCount: number;
     activeTab: string;
     filters: {
         sectors: {
             sort: string;
             direction: string;
         };
-        equipment: {
+        asset: {
             sort: string;
             direction: string;
         };
     };
 }
 
-export default function Show({ area, sectors, equipment, totalEquipmentCount, activeTab, filters }: Props) {
-    const handleSort = (section: 'sectors' | 'equipment', column: string) => {
+export default function Show({ area, sectors, asset, totalAssetCount, activeTab, filters }: Props) {
+    const handleSort = (section: 'sectors' | 'asset', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
         
         router.get(
@@ -96,7 +96,7 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
         );
     };
 
-    const getSortIcon = (section: 'sectors' | 'equipment', column: string) => {
+    const getSortIcon = (section: 'sectors' | 'asset', column: string) => {
         if (filters[section].sort !== column) {
             return <ArrowUpDown className="h-4 w-4" />;
         }
@@ -136,7 +136,7 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
             <Separator orientation="vertical" className="h-4" />
             <div className="flex items-center gap-1">
                 <Cog className="h-4 w-4" />
-                <span>{totalEquipmentCount || 0} equipamentos</span>
+                <span>{totalAssetCount || 0} ativos</span>
             </div>
         </div>
     );
@@ -192,11 +192,11 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
                                             </TableHead>
                                             <TableHead 
                                                 className="w-[15%] text-center cursor-pointer h-12"
-                                                onClick={() => handleSort('sectors', 'equipment_count')}
+                                                onClick={() => handleSort('sectors', 'asset_count')}
                                             >
                                                 <div className="flex items-center justify-center gap-1">
-                                                    Equipamentos
-                                                    {getSortIcon('sectors', 'equipment_count')}
+                                                    Ativos
+                                                    {getSortIcon('sectors', 'asset_count')}
                                                 </div>
                                             </TableHead>
                                             <TableHead 
@@ -225,7 +225,7 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
                                                     </Link>
                                                 </TableCell>
                                                 <TableCell className="text-center">
-                                                    <span>{sector.equipment_count}</span>
+                                                    <span>{sector.asset_count}</span>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground pl-8">
                                                     {sector.description ?? '-'}
@@ -293,80 +293,80 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
             )
         },
         {
-            id: 'equipamentos',
-            label: 'Equipamentos',
+            id: 'ativos',
+            label: 'Ativos',
             content: (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Equipamentos</CardTitle>
-                        <CardDescription>Lista de equipamentos vinculados a esta área</CardDescription>
+                        <CardTitle>Ativos</CardTitle>
+                        <CardDescription>Lista de ativos vinculados a esta área</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {equipment.data.length > 0 ? (
+                        {asset.data.length > 0 ? (
                             <div className="rounded-md">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead 
                                                 className="cursor-pointer h-12"
-                                                onClick={() => handleSort('equipment', 'tag')}
+                                                onClick={() => handleSort('asset', 'tag')}
                                             >
                                                 <div className="flex items-center gap-1">
                                                     TAG
-                                                    {getSortIcon('equipment', 'tag')}
+                                                    {getSortIcon('asset', 'tag')}
                                                 </div>
                                             </TableHead>
                                             <TableHead 
                                                 className="cursor-pointer h-12"
-                                                onClick={() => handleSort('equipment', 'type')}
+                                                onClick={() => handleSort('asset', 'type')}
                                             >
                                                 <div className="flex items-center gap-1">
                                                     Tipo
-                                                    {getSortIcon('equipment', 'type')}
+                                                    {getSortIcon('asset', 'type')}
                                                 </div>
                                             </TableHead>
                                             <TableHead 
                                                 className="cursor-pointer h-12"
-                                                onClick={() => handleSort('equipment', 'manufacturer')}
+                                                onClick={() => handleSort('asset', 'manufacturer')}
                                             >
                                                 <div className="flex items-center gap-1">
                                                     Fabricante
-                                                    {getSortIcon('equipment', 'manufacturer')}
+                                                    {getSortIcon('asset', 'manufacturer')}
                                                 </div>
                                             </TableHead>
                                             <TableHead 
                                                 className="cursor-pointer h-12"
-                                                onClick={() => handleSort('equipment', 'year')}
+                                                onClick={() => handleSort('asset', 'year')}
                                             >
                                                 <div className="flex items-center gap-1">
                                                     Ano
-                                                    {getSortIcon('equipment', 'year')}
+                                                    {getSortIcon('asset', 'year')}
                                                 </div>
                                             </TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {equipment.data.map((equipment) => (
+                                        {asset.data.map((asset) => (
                                             <TableRow 
-                                                key={equipment.id}
+                                                key={asset.id}
                                                 className="cursor-pointer hover:bg-muted/50 h-12"
                                             >
                                                 <TableCell>
                                                     <Link
-                                                        href={route('asset-hierarchy.equipamentos.show', equipment.id)}
+                                                        href={route('asset-hierarchy.ativos.show', asset.id)}
                                                         className="font-medium hover:text-primary"
                                                     >
-                                                        {equipment.tag}
+                                                        {asset.tag}
                                                     </Link>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">
-                                                    {equipment.equipment_type?.name ?? '-'}
+                                                    {asset.asset_type?.name ?? '-'}
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">
-                                                    {equipment.manufacturer ?? '-'}
+                                                    {asset.manufacturer ?? '-'}
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">
-                                                    {equipment.manufacturing_year ?? '-'}
+                                                    {asset.manufacturing_year ?? '-'}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -375,7 +375,7 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
                             </div>
                         ) : (
                             <div className="text-sm text-muted-foreground py-6 text-center">
-                                Nenhum equipamento cadastrado nesta área.
+                                Nenhum ativo cadastrado nesta área.
                             </div>
                         )}
                         <div className="flex justify-center mt-4">
@@ -385,26 +385,26 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
                                         <PaginationPrevious 
                                             href={route('asset-hierarchy.areas.show', { 
                                                 area: area.id,
-                                                equipment_page: equipment.current_page - 1,
-                                                tab: 'equipamentos',
-                                                equipment_sort: filters.equipment.sort,
-                                                equipment_direction: filters.equipment.direction
+                                                asset_page: asset.current_page - 1,
+                                                tab: 'ativos',
+                                                asset_sort: filters.asset.sort,
+                                                asset_direction: filters.asset.direction
                                             })}
-                                            className={equipment.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                            className={asset.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                         />
                                     </PaginationItem>
                                     
-                                    {Array.from({ length: equipment.last_page }, (_, i) => i + 1).map((page) => (
-                                        <PaginationItem key={`equipment-pagination-${page}`}>
+                                    {Array.from({ length: asset.last_page }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={`asset-pagination-${page}`}>
                                             <PaginationLink 
                                                 href={route('asset-hierarchy.areas.show', { 
                                                     area: area.id,
-                                                    equipment_page: page,
-                                                    tab: 'equipamentos',
-                                                    equipment_sort: filters.equipment.sort,
-                                                    equipment_direction: filters.equipment.direction
+                                                    asset_page: page,
+                                                    tab: 'ativos',
+                                                    asset_sort: filters.asset.sort,
+                                                    asset_direction: filters.asset.direction
                                                 })}
-                                                isActive={page === equipment.current_page}
+                                                isActive={page === asset.current_page}
                                             >
                                                 {page}
                                             </PaginationLink>
@@ -415,12 +415,12 @@ export default function Show({ area, sectors, equipment, totalEquipmentCount, ac
                                         <PaginationNext 
                                             href={route('asset-hierarchy.areas.show', { 
                                                 area: area.id,
-                                                equipment_page: equipment.current_page + 1,
-                                                tab: 'equipamentos',
-                                                equipment_sort: filters.equipment.sort,
-                                                equipment_direction: filters.equipment.direction
+                                                asset_page: asset.current_page + 1,
+                                                tab: 'ativos',
+                                                asset_sort: filters.asset.sort,
+                                                asset_direction: filters.asset.direction
                                             })}
-                                            className={equipment.current_page === equipment.last_page ? 'pointer-events-none opacity-50' : ''}
+                                            className={asset.current_page === asset.last_page ? 'pointer-events-none opacity-50' : ''}
                                         />
                                     </PaginationItem>
                                 </PaginationContent>

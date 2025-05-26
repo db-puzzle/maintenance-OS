@@ -44,7 +44,7 @@ export const TaskTypeGroups = {
             name: 'Registro fotográfico', 
             icon: Camera,
             label: 'Foto',
-            placeholder: 'Vista Geral do Equipamento, Condição da Bucha, etc...',
+            placeholder: 'Vista Geral do Ativo, Condição da Bucha, etc...',
             value: 'photo' as const
         },
         { 

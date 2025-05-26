@@ -15,7 +15,7 @@ import EditLayout from '@/layouts/asset-hierarchy/edit-layout';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Cadastro',
-        href: '/asset-hierarchy/equipamentos',
+        href: '/asset-hierarchy/ativos',
     },
     {
         title: 'Setores',

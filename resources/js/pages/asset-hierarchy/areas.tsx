@@ -46,13 +46,13 @@ interface Area {
         id: number;
         name: string;
     } | null;
-    equipment_count: number;
+    asset_count: number;
     sectors_count: number;
     created_at: string;
     updated_at: string;
 }
 
-interface Equipment {
+interface Asset {
     id: number;
     tag: string;
     description: string | null;
@@ -61,9 +61,9 @@ interface Equipment {
 interface Dependencies {
     can_delete: boolean;
     dependencies: {
-        equipment: {
+        asset: {
             total: number;
-            items: Equipment[];
+            items: Asset[];
         };
         sectors: {
             total: number;
@@ -104,7 +104,7 @@ export default function Areas({ areas, filters }: Props) {
             name: true,
             plant: true,
             sectors_count: true,
-            equipment_count: true,
+            asset_count: true,
         };
     });
 
@@ -206,14 +206,14 @@ export default function Areas({ areas, filters }: Props) {
             width: "w-[100px]",
         },
         {
-            id: "equipment_count",
+            id: "asset_count",
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('equipment_count')}>
-                    Equipamentos
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('asset_count')}>
+                    Ativos
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
-            cell: (row: { original: Area }) => row.original.equipment_count,
+            cell: (row: { original: Area }) => row.original.asset_count,
             width: "w-[100px]",
         },
         {
@@ -343,23 +343,23 @@ export default function Areas({ areas, filters }: Props) {
                     <DialogDescription asChild>
                         <div className="space-y-6">
                             <div className="text-sm">
-                                Esta área possui equipamento(s) e/ou setor(es) vinculado(s) e não pode ser excluída até que todos sejam removidos ou movidos para outra área.
+                                Esta área possui ativo(s) e/ou setor(es) vinculado(s) e não pode ser excluída até que todos sejam removidos ou movidos para outra área.
                             </div>
                             
                             <div className="space-y-6">
-                                {dependencies?.dependencies?.equipment?.total && dependencies.dependencies.equipment.total > 0 && (
+                                {dependencies?.dependencies?.asset?.total && dependencies.dependencies.asset.total > 0 && (
                                     <div>
                                         <div className="font-medium text-sm">
-                                            Total de Equipamentos Vinculados: {dependencies.dependencies.equipment.total}
+                                            Total de Ativos Vinculados: {dependencies.dependencies.asset.total}
                                         </div>
                                         <ul className="list-disc list-inside space-y-2 text-sm">
-                                            {dependencies.dependencies.equipment.items.map(equipment => (
-                                                <li key={equipment.id}>
+                                            {dependencies.dependencies.asset.items.map(asset => (
+                                                <li key={asset.id}>
                                                     <Link
-                                                        href={route('asset-hierarchy.equipamentos.show', equipment.id)}
+                                                        href={route('asset-hierarchy.ativos.show', asset.id)}
                                                         className="text-primary hover:underline"
                                                     >
-                                                        {equipment.tag}
+                                                        {asset.tag}
                                                     </Link>
                                                 </li>
                                             ))}

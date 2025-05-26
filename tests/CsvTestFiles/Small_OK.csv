@@ -1,4 +1,4 @@
-Tag,Número de Série,Tipo de Equipamento,Descrição,Fabricante,Ano de Fabricação,Planta,Área,Setor
+Tag,Número de Série,Tipo de Ativo,Descrição,Fabricante,Ano de Fabricação,Planta,Área,Setor
 BOMB001,SN-B001-2020,Bomba,Bomba centrífuga de alta pressão,WEG,2020,Superior Rafard,Produção,Linha 1
 MOTR002,SN-M002-2021,Motor Elétrico,Motor elétrico trifásico,ABB,2021,Superior Rafard,Manutenção,Mecânica
 VALV003,SN-V003-2019,Válvula,Válvula de controle pneumática,Emerson,2019,Superior Rafard,Utilidades,

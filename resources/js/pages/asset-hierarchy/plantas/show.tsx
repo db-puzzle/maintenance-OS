@@ -44,7 +44,7 @@ interface Area {
     id: number;
     name: string;
     plant_id: number;
-    equipment_count: number;
+    asset_count: number;
     sectors_count: number;
 }
 
@@ -62,7 +62,7 @@ interface Props {
             id: number;
             name: string;
             description: string | null;
-            equipment_count: number;
+            asset_count: number;
             area: {
                 id: number;
                 name: string;
@@ -73,11 +73,11 @@ interface Props {
         per_page: number;
         total: number;
     };
-    equipment: {
+    asset: {
         data: {
             id: number;
             tag: string;
-            equipment_type: {
+            asset_type: {
                 id: number;
                 name: string;
             } | null;
@@ -92,7 +92,7 @@ interface Props {
         total: number;
     };
     totalSectors: number;
-    totalEquipment: number;
+    totalAsset: number;
     activeTab: string;
     filters: {
         areas: {
@@ -103,15 +103,15 @@ interface Props {
             sort: string;
             direction: string;
         };
-        equipment: {
+        asset: {
             sort: string;
             direction: string;
         };
     };
 }
 
-export default function ShowPlant({ plant, areas, sectors, equipment, totalSectors, totalEquipment, activeTab, filters }: Props) {
-    const handleSort = (section: 'areas' | 'sectors' | 'equipment', column: string) => {
+export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, totalAsset, activeTab, filters }: Props) {
+    const handleSort = (section: 'areas' | 'sectors' | 'asset', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
         
         router.get(
@@ -127,7 +127,7 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
         );
     };
 
-    const getSortIcon = (section: 'areas' | 'sectors' | 'equipment', column: string) => {
+    const getSortIcon = (section: 'areas' | 'sectors' | 'asset', column: string) => {
         if (filters[section].sort !== column) {
             return <ArrowUpDown className="h-4 w-4" />;
         }
@@ -150,7 +150,7 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
             <Separator orientation="vertical" className="h-4" />
             <div className="flex items-center gap-1">
                 <Cog className="h-4 w-4" />
-                <span>{totalEquipment} equipamentos</span>
+                <span>{totalAsset} ativos</span>
             </div>
         </div>
     );
@@ -239,11 +239,11 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                             </TableHead>
                                             <TableHead 
                                                 className="cursor-pointer text-center h-12"
-                                                onClick={() => handleSort('areas', 'equipment_count')}
+                                                onClick={() => handleSort('areas', 'asset_count')}
                                             >
                                                 <div className="flex items-center justify-center gap-1">
-                                                    Equipamentos
-                                                    {getSortIcon('areas', 'equipment_count')}
+                                                    Ativos
+                                                    {getSortIcon('areas', 'asset_count')}
                                                 </div>
                                             </TableHead>
                                             <TableHead 
@@ -265,7 +265,7 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                                 onClick={() => router.get(route('asset-hierarchy.areas.show', area.id))}
                                             >
                                                 <TableCell className="font-medium">{area.name}</TableCell>
-                                                <TableCell className="text-center">{area.equipment_count}</TableCell>
+                                                <TableCell className="text-center">{area.asset_count}</TableCell>
                                                 <TableCell className="text-center">{area.sectors_count}</TableCell>
                                             </TableRow>
                                         ))}
@@ -364,11 +364,11 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                             </TableHead>
                                             <TableHead 
                                                 className="cursor-pointer text-center"
-                                                onClick={() => handleSort('sectors', 'equipment_count')}
+                                                onClick={() => handleSort('sectors', 'asset_count')}
                                             >
                                                 <div className="flex items-center justify-center gap-1">
-                                                    Equipamentos
-                                                    {getSortIcon('sectors', 'equipment_count')}
+                                                    Ativos
+                                                    {getSortIcon('sectors', 'asset_count')}
                                                 </div>
                                             </TableHead>
                                         </TableRow>
@@ -390,7 +390,7 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                                 </TableCell>
                                                 <TableCell>{sector.area.name}</TableCell>
                                                 <TableCell className="text-center">
-                                                    {sector.equipment_count}
+                                                    {sector.asset_count}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -455,79 +455,79 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
             )
         },
         {
-            id: 'equipamentos',
-            label: 'Equipamentos',
+            id: 'ativos',
+            label: 'Ativos',
             content: (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Equipamentos</CardTitle>
-                        <CardDescription>Lista de equipamentos vinculados a esta planta</CardDescription>
+                        <CardTitle>Ativos</CardTitle>
+                        <CardDescription>Lista de ativos vinculados a esta planta</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {equipment.data.length > 0 ? (
+                        {asset.data.length > 0 ? (
                             <div className="rounded-md">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead 
                                                 className="cursor-pointer h-12"
-                                                onClick={() => handleSort('equipment', 'tag')}
+                                                onClick={() => handleSort('asset', 'tag')}
                                             >
                                                 <div className="flex items-center gap-1">
                                                     TAG
-                                                    {getSortIcon('equipment', 'tag')}
+                                                    {getSortIcon('asset', 'tag')}
                                                 </div>
                                             </TableHead>
                                             <TableHead 
                                                 className="cursor-pointer h-12"
-                                                onClick={() => handleSort('equipment', 'type')}
+                                                onClick={() => handleSort('asset', 'type')}
                                             >
                                                 <div className="flex items-center gap-1">
                                                     Tipo
-                                                    {getSortIcon('equipment', 'type')}
+                                                    {getSortIcon('asset', 'type')}
                                                 </div>
                                             </TableHead>
                                             <TableHead 
                                                 className="cursor-pointer h-12"
-                                                onClick={() => handleSort('equipment', 'location')}
+                                                onClick={() => handleSort('asset', 'location')}
                                             >
                                                 <div className="flex items-center gap-1">
                                                     Localização
-                                                    {getSortIcon('equipment', 'location')}
+                                                    {getSortIcon('asset', 'location')}
                                                 </div>
                                             </TableHead>
                                             <TableHead 
                                                 className="cursor-pointer h-12"
-                                                onClick={() => handleSort('equipment', 'manufacturer')}
+                                                onClick={() => handleSort('asset', 'manufacturer')}
                                             >
                                                 <div className="flex items-center gap-1">
                                                     Fabricante
-                                                    {getSortIcon('equipment', 'manufacturer')}
+                                                    {getSortIcon('asset', 'manufacturer')}
                                                 </div>
                                             </TableHead>
                                             <TableHead 
                                                 className="cursor-pointer h-12"
-                                                onClick={() => handleSort('equipment', 'year')}
+                                                onClick={() => handleSort('asset', 'year')}
                                             >
                                                 <div className="flex items-center gap-1">
                                                     Ano
-                                                    {getSortIcon('equipment', 'year')}
+                                                    {getSortIcon('asset', 'year')}
                                                 </div>
                                             </TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {equipment.data.map((item) => (
+                                        {asset.data.map((item) => (
                                             <TableRow 
                                                 key={item.id}
                                                 className="cursor-pointer hover:bg-muted/50 h-12"
-                                                onClick={() => router.get(route('asset-hierarchy.equipamentos.show', item.id))}
+                                                onClick={() => router.get(route('asset-hierarchy.ativos.show', item.id))}
                                             >
                                                 <TableCell>
                                                     <div className="font-medium">{item.tag}</div>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">
-                                                    {item.equipment_type?.name ?? '-'}
+                                                    {item.asset_type?.name ?? '-'}
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">
                                                     {item.area_name}
@@ -546,7 +546,7 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                             </div>
                         ) : (
                             <div className="text-sm text-muted-foreground py-6 text-center">
-                                Nenhum equipamento cadastrado nesta planta.
+                                Nenhum ativo cadastrado nesta planta.
                             </div>
                         )}
                         <div className="flex justify-center mt-4">
@@ -556,26 +556,26 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                         <PaginationPrevious 
                                             href={route('asset-hierarchy.plantas.show', { 
                                                 plant: plant.id,
-                                                equipment_page: equipment.current_page - 1,
-                                                tab: 'equipamentos',
-                                                equipment_sort: filters.equipment.sort,
-                                                equipment_direction: filters.equipment.direction
+                                                asset_page: asset.current_page - 1,
+                                                tab: 'ativos',
+                                                asset_sort: filters.asset.sort,
+                                                asset_direction: filters.asset.direction
                                             })}
-                                            className={equipment.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                            className={asset.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                         />
                                     </PaginationItem>
                                     
-                                    {Array.from({ length: equipment.last_page }, (_, i) => i + 1).map((page) => (
-                                        <PaginationItem key={`equipment-pagination-${page}`}>
+                                    {Array.from({ length: asset.last_page }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={`asset-pagination-${page}`}>
                                             <PaginationLink 
                                                 href={route('asset-hierarchy.plantas.show', { 
                                                     plant: plant.id,
-                                                    equipment_page: page,
-                                                    tab: 'equipamentos',
-                                                    equipment_sort: filters.equipment.sort,
-                                                    equipment_direction: filters.equipment.direction
+                                                    asset_page: page,
+                                                    tab: 'ativos',
+                                                    asset_sort: filters.asset.sort,
+                                                    asset_direction: filters.asset.direction
                                                 })}
-                                                isActive={page === equipment.current_page}
+                                                isActive={page === asset.current_page}
                                             >
                                                 {page}
                                             </PaginationLink>
@@ -586,12 +586,12 @@ export default function ShowPlant({ plant, areas, sectors, equipment, totalSecto
                                         <PaginationNext 
                                             href={route('asset-hierarchy.plantas.show', { 
                                                 plant: plant.id,
-                                                equipment_page: equipment.current_page + 1,
-                                                tab: 'equipamentos',
-                                                equipment_sort: filters.equipment.sort,
-                                                equipment_direction: filters.equipment.direction
+                                                asset_page: asset.current_page + 1,
+                                                tab: 'ativos',
+                                                asset_sort: filters.asset.sort,
+                                                asset_direction: filters.asset.direction
                                             })}
-                                            className={equipment.current_page === equipment.last_page ? 'pointer-events-none opacity-50' : ''}
+                                            className={asset.current_page === asset.last_page ? 'pointer-events-none opacity-50' : ''}
                                         />
                                     </PaginationItem>
                                 </PaginationContent>

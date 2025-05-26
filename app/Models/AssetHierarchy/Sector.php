@@ -22,9 +22,9 @@ class Sector extends Model
         return $this->belongsTo(Area::class);
     }
 
-    public function equipment(): HasMany
+    public function asset(): HasMany
     {
-        return $this->hasMany(Equipment::class);
+        return $this->hasMany(Asset::class);
     }
 
     protected static function boot()
@@ -32,8 +32,8 @@ class Sector extends Model
         parent::boot();
 
         static::deleting(function ($sector) {
-            if ($sector->equipment()->exists()) {
-                throw new \Exception('Não é possível excluir um setor que possui equipamentos.');
+            if ($sector->asset()->exists()) {
+                throw new \Exception('Não é possível excluir um setor que possui ativos.');
             }
         });
     }

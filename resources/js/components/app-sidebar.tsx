@@ -13,7 +13,7 @@ interface NavGroup {
 }
 
 const gerenciamentoNavItems: NavGroup = {
-    title: 'Gerenciamento',
+    title: '',
     items: [
         {
             title: 'Home',
@@ -101,7 +101,7 @@ const gerenciamentoNavItems: NavGroup = {
                 },
                 {
                     title: 'Ativos',
-                    href: '/asset-hierarchy/equipamentos',
+                    href: '/asset-hierarchy/ativos',
                 },
             ],
         },
@@ -133,16 +133,16 @@ const sistemaNavItems: NavGroup = {
                     href: '/asset-hierarchy/plantas',
                 },
                 {
-                    title: 'Tipos de Equipamento',
-                    href: '/asset-hierarchy/tipos-equipamento',
+                    title: 'Tipos de Ativo',
+                    href: '/asset-hierarchy/tipos-ativo',
                 },
                 {
-                    title: 'Exportar Equipamentos',
-                    href: '/asset-hierarchy/equipamentos/exportar',
+                    title: 'Exportar Ativos',
+                    href: '/asset-hierarchy/ativos/exportar',
                 },
                 {
-                    title: 'Importar Equipamentos',
-                    href: '/asset-hierarchy/equipamentos/importar',
+                    title: 'Importar Ativos',
+                    href: '/asset-hierarchy/ativos/importar',
                 },
             ],
         },

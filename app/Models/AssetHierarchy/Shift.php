@@ -28,14 +28,14 @@ class Shift extends Model
         return $this->hasMany(ShiftSchedule::class);
     }
 
-    public function equipments(): HasMany
+    public function assets(): HasMany
     {
-        return $this->hasMany(Equipment::class);
+        return $this->hasMany(Asset::class);
     }
 
-    public function getEquipmentCountAttribute(): int
+    public function getAssetCountAttribute(): int
     {
-        return $this->equipments()->count();
+        return $this->assets()->count();
     }
 
     public function calculateTotals()

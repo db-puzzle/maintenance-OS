@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Maintenance;
 
 use App\Http\Controllers\Controller;
-use App\Models\AssetHierarchy\Equipment;
+use App\Models\AssetHierarchy\Asset;
 use App\Models\Maintenance\MaintenancePlan;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,7 +12,7 @@ class MaintenancePlanController extends Controller
 {
     public function index()
     {
-        $maintenancePlans = MaintenancePlan::with(['equipment', 'routines'])->get();
+        $maintenancePlans = MaintenancePlan::with(['asset', 'routines'])->get();
         
         if (request()->wantsJson()) {
             return response()->json($maintenancePlans);
@@ -25,17 +25,17 @@ class MaintenancePlanController extends Controller
 
     public function create()
     {
-        $equipment = Equipment::all();
+        $asset = Asset::all();
         
         return Inertia::render('Maintenance/Plans/Create', [
-            'equipment' => $equipment
+            'asset' => $asset
         ]);
     }
     
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'equipment_id' => 'nullable|exists:equipment,id',
+            'asset_id' => 'nullable|exists:asset,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'required|in:Active,Inactive'
@@ -53,7 +53,7 @@ class MaintenancePlanController extends Controller
 
     public function show(MaintenancePlan $maintenancePlan)
     {
-        $maintenancePlan->load(['equipment', 'routines']);
+        $maintenancePlan->load(['asset', 'routines']);
         
         if (request()->wantsJson()) {
             return response()->json($maintenancePlan);
@@ -66,19 +66,19 @@ class MaintenancePlanController extends Controller
     
     public function edit(MaintenancePlan $maintenancePlan)
     {
-        $maintenancePlan->load(['equipment', 'routines']);
-        $equipment = Equipment::all();
+        $maintenancePlan->load(['asset', 'routines']);
+        $asset = Asset::all();
         
         return Inertia::render('Maintenance/Plans/Edit', [
             'maintenancePlan' => $maintenancePlan,
-            'equipment' => $equipment
+            'asset' => $asset
         ]);
     }
 
     public function update(Request $request, MaintenancePlan $maintenancePlan)
     {
         $validated = $request->validate([
-            'equipment_id' => 'nullable|exists:equipment,id',
+            'asset_id' => 'nullable|exists:asset,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'required|in:Active,Inactive'

@@ -5,39 +5,39 @@ use Inertia\Inertia;
 use App\Http\Controllers\AssetHierarchy\PlantsController;
 use App\Http\Controllers\AssetHierarchy\AreaController;
 use App\Http\Controllers\AssetHierarchy\SectorController;
-use App\Http\Controllers\AssetHierarchy\EquipmentController;
-use App\Http\Controllers\AssetHierarchy\EquipmentTypeController;
-use App\Http\Controllers\AssetHierarchy\EquipmentImportExportController;
+use App\Http\Controllers\AssetHierarchy\AssetController;
+use App\Http\Controllers\AssetHierarchy\AssetTypeController;
+use App\Http\Controllers\AssetHierarchy\AssetImportExportController;
 use App\Http\Controllers\AssetHierarchy\ShiftController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::prefix('equipamentos')->name('equipamentos.')->group(function () {
-        Route::get('/', [EquipmentController::class, 'index'])->name('index');
-        Route::get('/criar', [EquipmentController::class, 'create'])->name('create');
-        Route::post('/', [EquipmentController::class, 'store'])->name('store');
-        Route::get('/{equipment}/editar', [EquipmentController::class, 'edit'])->name('edit');
-        Route::put('/{equipment}', [EquipmentController::class, 'update'])->name('update');
-        Route::delete('/{equipment}', [EquipmentController::class, 'destroy'])->name('destroy');
-        Route::get('/importar', [EquipmentImportExportController::class, 'showImportForm'])->name('import');
-        Route::post('/importar/analisar', [EquipmentImportExportController::class, 'analyzeCsv'])->name('import.analyze');
-        Route::post('/importar/dados', [EquipmentImportExportController::class, 'importData'])->name('import.data');
+    Route::prefix('ativos')->name('ativos.')->group(function () {
+        Route::get('/', [AssetController::class, 'index'])->name('index');
+        Route::get('/criar', [AssetController::class, 'create'])->name('create');
+        Route::post('/', [AssetController::class, 'store'])->name('store');
+        Route::get('/{asset}/editar', [AssetController::class, 'edit'])->name('edit');
+        Route::put('/{asset}', [AssetController::class, 'update'])->name('update');
+        Route::delete('/{asset}', [AssetController::class, 'destroy'])->name('destroy');
+        Route::get('/importar', [AssetImportExportController::class, 'showImportForm'])->name('import');
+        Route::post('/importar/analisar', [AssetImportExportController::class, 'analyzeCsv'])->name('import.analyze');
+        Route::post('/importar/dados', [AssetImportExportController::class, 'importData'])->name('import.data');
     });
 
-    Route::get('asset-hierarchy/equipamentos', [EquipmentController::class, 'index'])->name('asset-hierarchy.equipamentos');
-    Route::get('asset-hierarchy/equipamentos/create', [EquipmentController::class, 'create'])->name('asset-hierarchy.equipamentos.create');
-    Route::post('asset-hierarchy/equipamentos', [EquipmentController::class, 'store'])->name('asset-hierarchy.equipamentos.store');
-    Route::get('asset-hierarchy/equipamentos/importar', [EquipmentImportExportController::class, 'import'])->name('asset-hierarchy.equipamentos.import');
-    Route::post('asset-hierarchy/equipamentos/importar/analisar', [EquipmentImportExportController::class, 'analyzeCsv'])->name('asset-hierarchy.equipamentos.import.analyze');
-    Route::post('asset-hierarchy/equipamentos/importar/dados', [EquipmentImportExportController::class, 'importData'])->name('asset-hierarchy.equipamentos.import.data');
-    Route::get('asset-hierarchy/equipamentos/importar/progresso', [EquipmentImportExportController::class, 'checkImportProgress'])->name('asset-hierarchy.equipamentos.import.progress');
-    Route::get('asset-hierarchy/equipamentos/exportar', [EquipmentImportExportController::class, 'export'])->name('asset-hierarchy.equipamentos.export');
-    Route::post('asset-hierarchy/equipamentos/exportar', [EquipmentImportExportController::class, 'exportData'])->name('asset-hierarchy.equipamentos.export.data');
-    Route::get('asset-hierarchy/equipamentos/exportar/{filename}', [EquipmentImportExportController::class, 'downloadExport'])->name('asset-hierarchy.equipamentos.export.download');
-    Route::get('asset-hierarchy/equipamentos/{equipment}', [EquipmentController::class, 'show'])->name('asset-hierarchy.equipamentos.show');
-    Route::get('asset-hierarchy/equipamentos/{equipment}/edit', [EquipmentController::class, 'edit'])->name('asset-hierarchy.equipamentos.edit');
-    Route::post('asset-hierarchy/equipamentos/{equipment}', [EquipmentController::class, 'update'])->name('asset-hierarchy.equipamentos.update');
-    Route::delete('asset-hierarchy/equipamentos/{equipment}', [EquipmentController::class, 'destroy'])->name('asset-hierarchy.equipamentos.destroy');
-    Route::delete('asset-hierarchy/equipamentos/{equipment}/photo', [EquipmentController::class, 'removePhoto'])->name('asset-hierarchy.equipamentos.remove-photo');
+    Route::get('asset-hierarchy/ativos', [AssetController::class, 'index'])->name('asset-hierarchy.ativos');
+    Route::get('asset-hierarchy/ativos/create', [AssetController::class, 'create'])->name('asset-hierarchy.ativos.create');
+    Route::post('asset-hierarchy/ativos', [AssetController::class, 'store'])->name('asset-hierarchy.ativos.store');
+    Route::get('asset-hierarchy/ativos/importar', [AssetImportExportController::class, 'import'])->name('asset-hierarchy.ativos.import');
+    Route::post('asset-hierarchy/ativos/importar/analisar', [AssetImportExportController::class, 'analyzeCsv'])->name('asset-hierarchy.ativos.import.analyze');
+    Route::post('asset-hierarchy/ativos/importar/dados', [AssetImportExportController::class, 'importData'])->name('asset-hierarchy.ativos.import.data');
+    Route::get('asset-hierarchy/ativos/importar/progresso', [AssetImportExportController::class, 'checkImportProgress'])->name('asset-hierarchy.ativos.import.progress');
+    Route::get('asset-hierarchy/ativos/exportar', [AssetImportExportController::class, 'export'])->name('asset-hierarchy.ativos.export');
+    Route::post('asset-hierarchy/ativos/exportar', [AssetImportExportController::class, 'exportData'])->name('asset-hierarchy.ativos.export.data');
+    Route::get('asset-hierarchy/ativos/exportar/{filename}', [AssetImportExportController::class, 'downloadExport'])->name('asset-hierarchy.ativos.export.download');
+    Route::get('asset-hierarchy/ativos/{asset}', [AssetController::class, 'show'])->name('asset-hierarchy.ativos.show');
+    Route::get('asset-hierarchy/ativos/{asset}/edit', [AssetController::class, 'edit'])->name('asset-hierarchy.ativos.edit');
+    Route::post('asset-hierarchy/ativos/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.ativos.update');
+    Route::delete('asset-hierarchy/ativos/{asset}', [AssetController::class, 'destroy'])->name('asset-hierarchy.ativos.destroy');
+    Route::delete('asset-hierarchy/ativos/{asset}/photo', [AssetController::class, 'removePhoto'])->name('asset-hierarchy.ativos.remove-photo');
 
     Route::get('asset-hierarchy/setores', [SectorController::class, 'index'])->name('asset-hierarchy.setores');
     Route::get('asset-hierarchy/setores/create', [SectorController::class, 'create'])->name('asset-hierarchy.setores.create');
@@ -66,14 +66,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('asset-hierarchy/plantas/{plant}', [PlantsController::class, 'destroy'])->name('asset-hierarchy.plantas.destroy');
     Route::get('asset-hierarchy/plantas/{plant}/check-dependencies', [PlantsController::class, 'checkDependencies'])->name('asset-hierarchy.plantas.check-dependencies');
 
-    Route::get('asset-hierarchy/tipos-equipamento', [EquipmentTypeController::class, 'index'])->name('asset-hierarchy.tipos-equipamento');
-    Route::get('asset-hierarchy/tipos-equipamento/create', [EquipmentTypeController::class, 'create'])->name('asset-hierarchy.tipos-equipamento.create');
-    Route::post('asset-hierarchy/tipos-equipamento', [EquipmentTypeController::class, 'store'])->name('asset-hierarchy.tipos-equipamento.store');
-    Route::get('asset-hierarchy/tipos-equipamento/{equipmentType}', [EquipmentTypeController::class, 'show'])->name('asset-hierarchy.tipos-equipamento.show');
-    Route::get('asset-hierarchy/tipos-equipamento/{equipmentType}/edit', [EquipmentTypeController::class, 'edit'])->name('asset-hierarchy.tipos-equipamento.edit');
-    Route::put('asset-hierarchy/tipos-equipamento/{equipmentType}', [EquipmentTypeController::class, 'update'])->name('asset-hierarchy.tipos-equipamento.update');
-    Route::delete('asset-hierarchy/tipos-equipamento/{equipmentType}', [EquipmentTypeController::class, 'destroy'])->name('asset-hierarchy.tipos-equipamento.destroy');
-    Route::get('asset-hierarchy/tipos-equipamento/{equipmentType}/check-dependencies', [EquipmentTypeController::class, 'checkDependencies'])->name('asset-hierarchy.tipos-equipamento.check-dependencies');
+    Route::get('asset-hierarchy/tipos-ativo', [AssetTypeController::class, 'index'])->name('asset-hierarchy.tipos-ativo');
+    Route::get('asset-hierarchy/tipos-ativo/create', [AssetTypeController::class, 'create'])->name('asset-hierarchy.tipos-ativo.create');
+    Route::post('asset-hierarchy/tipos-ativo', [AssetTypeController::class, 'store'])->name('asset-hierarchy.tipos-ativo.store');
+    Route::get('asset-hierarchy/tipos-ativo/{assetType}', [AssetTypeController::class, 'show'])->name('asset-hierarchy.tipos-ativo.show');
+    Route::get('asset-hierarchy/tipos-ativo/{assetType}/edit', [AssetTypeController::class, 'edit'])->name('asset-hierarchy.tipos-ativo.edit');
+    Route::put('asset-hierarchy/tipos-ativo/{assetType}', [AssetTypeController::class, 'update'])->name('asset-hierarchy.tipos-ativo.update');
+    Route::delete('asset-hierarchy/tipos-ativo/{assetType}', [AssetTypeController::class, 'destroy'])->name('asset-hierarchy.tipos-ativo.destroy');
+    Route::get('asset-hierarchy/tipos-ativo/{assetType}/check-dependencies', [AssetTypeController::class, 'checkDependencies'])->name('asset-hierarchy.tipos-ativo.check-dependencies');
 
     Route::get('asset-hierarchy/shifts', [ShiftController::class, 'index'])->name('asset-hierarchy.shifts');
     Route::get('asset-hierarchy/shifts/shift-editor', [ShiftController::class, 'create'])->name('asset-hierarchy.shifts.shift-editor');

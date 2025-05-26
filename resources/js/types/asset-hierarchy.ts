@@ -1,14 +1,14 @@
-export interface Equipment {
+export interface Asset {
     id: number;
     tag: string;
     serial_number: string | null;
-    equipment_type_id: number;
+    asset_type_id: number;
     description: string | null;
     manufacturer: string | null;
     manufacturing_year: number | null;
     area_id: number;
     photo_path: string | null;
-    equipment_type: EquipmentType | null;
+    asset_type: AssetType | null;
     area: Area | null;
     sector?: Sector | null;
     plant?: Plant | null;
@@ -18,10 +18,10 @@ export interface Equipment {
     updated_at: string;
 }
 
-export interface EquipmentForm {
+export interface AssetForm {
     tag: string;
     serial_number: string;
-    equipment_type_id: number | string;
+    asset_type_id: number | string;
     description: string;
     manufacturer: string;
     manufacturing_year: string;
@@ -33,7 +33,7 @@ export interface EquipmentForm {
     [key: string]: string | number | File | null | undefined;
 }
 
-export interface EquipmentType {
+export interface AssetType {
     id: number;
     name: string;
     description: string | null;
@@ -41,7 +41,7 @@ export interface EquipmentType {
     updated_at: string;
 }
 
-export interface EquipmentTypeForm {
+export interface AssetTypeForm {
     name: string;
     description: string;
     [key: string]: string | undefined;

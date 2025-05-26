@@ -28,9 +28,9 @@ class Area extends Model
         return $this->hasMany(Sector::class);
     }
 
-    public function equipment(): HasMany
+    public function asset(): HasMany
     {
-        return $this->hasMany(Equipment::class);
+        return $this->hasMany(Asset::class);
     }
 
     protected static function boot()
@@ -41,8 +41,8 @@ class Area extends Model
             if ($area->sectors()->exists()) {
                 throw new \Exception('Não é possível excluir uma área que possui setores.');
             }
-            if ($area->equipment()->exists()) {
-                throw new \Exception('Não é possível excluir uma área que possui equipamentos.');
+            if ($area->asset()->exists()) {
+                throw new \Exception('Não é possível excluir uma área que possui ativos.');
             }
         });
     }

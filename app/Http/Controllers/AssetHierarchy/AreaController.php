@@ -22,7 +22,7 @@ class AreaController extends Controller
 
         $query = Area::query()
             ->with(['plant'])
-            ->withCount(['equipment', 'sectors']);
+            ->withCount(['asset', 'sectors']);
 
         if ($search) {
             $search = strtolower($search);
@@ -41,8 +41,8 @@ class AreaController extends Controller
                 $query->leftJoin('plants', 'areas.plant_id', '=', 'plants.id')
                     ->orderBy('plants.name', $direction);
                 break;
-            case 'equipment_count':
-                $query->orderBy('equipment_count', $direction);
+            case 'asset_count':
+                $query->orderBy('asset_count', $direction);
                 break;
             case 'sectors_count':
                 $query->orderBy('sectors_count', $direction);
@@ -112,20 +112,20 @@ class AreaController extends Controller
         $area->load('plant');
 
         $sectorsPage = request()->get('sectors_page', 1);
-        $equipmentPage = request()->get('equipment_page', 1);
+        $assetPage = request()->get('asset_page', 1);
         $perPage = 10;
 
         // Parâmetros de ordenação para setores
         $sectorsSort = request()->get('sectors_sort', 'name');
         $sectorsDirection = request()->get('sectors_direction', 'asc');
 
-        // Parâmetros de ordenação para equipamentos
-        $equipmentSort = request()->get('equipment_sort', 'tag');
-        $equipmentDirection = request()->get('equipment_direction', 'asc');
+        // Parâmetros de ordenação para ativos
+        $assetSort = request()->get('asset_sort', 'tag');
+        $assetDirection = request()->get('asset_direction', 'asc');
 
-        // Busca os setores com contagem de equipamentos
+        // Busca os setores com contagem de ativos
         $sectorsQuery = $area->sectors()
-            ->withCount('equipment')
+            ->withCount('asset')
             ->get();
 
         // Aplica ordenação personalizada para setores
@@ -135,8 +135,8 @@ class AreaController extends Controller
             switch ($sectorsSort) {
                 case 'name':
                     return strcmp($a->name, $b->name) * $direction;
-                case 'equipment_count':
-                    return (($a->equipment_count ?? 0) - ($b->equipment_count ?? 0)) * $direction;
+                case 'asset_count':
+                    return (($a->asset_count ?? 0) - ($b->asset_count ?? 0)) * $direction;
                 case 'description':
                     return strcmp($a->description ?? '', $b->description ?? '') * $direction;
                 default:
@@ -157,20 +157,20 @@ class AreaController extends Controller
             ['path' => request()->url(), 'pageName' => 'sectors_page']
         );
 
-        // Busca os equipamentos
-        $equipmentQuery = $area->equipment()
-            ->with('equipmentType')
+        // Busca os ativos
+        $assetQuery = $area->asset()
+            ->with('assetType')
             ->get();
 
-        // Aplica ordenação personalizada para equipamentos
-        $equipmentQuery = $equipmentQuery->sort(function ($a, $b) use ($equipmentSort, $equipmentDirection) {
-            $direction = $equipmentDirection === 'asc' ? 1 : -1;
+        // Aplica ordenação personalizada para ativos
+        $assetQuery = $assetQuery->sort(function ($a, $b) use ($assetSort, $assetDirection) {
+            $direction = $assetDirection === 'asc' ? 1 : -1;
             
-            switch ($equipmentSort) {
+            switch ($assetSort) {
                 case 'tag':
                     return strcmp($a->tag, $b->tag) * $direction;
                 case 'type':
-                    return strcmp($a->equipmentType?->name ?? '', $b->equipmentType?->name ?? '') * $direction;
+                    return strcmp($a->assetType?->name ?? '', $b->assetType?->name ?? '') * $direction;
                 case 'manufacturer':
                     return strcmp($a->manufacturer ?? '', $b->manufacturer ?? '') * $direction;
                 case 'year':
@@ -180,22 +180,22 @@ class AreaController extends Controller
             }
         });
 
-        // Pagina os equipamentos
-        $allEquipment = $equipmentQuery->all();
-        $equipmentOffset = ($equipmentPage - 1) * $perPage;
-        $equipmentItems = array_slice($allEquipment, $equipmentOffset, $perPage);
+        // Pagina os ativos
+        $allAsset = $assetQuery->all();
+        $assetOffset = ($assetPage - 1) * $perPage;
+        $assetItems = array_slice($allAsset, $assetOffset, $perPage);
         
-        $equipment = new \Illuminate\Pagination\LengthAwarePaginator(
-            collect($equipmentItems),
-            count($allEquipment),
+        $asset = new \Illuminate\Pagination\LengthAwarePaginator(
+            collect($assetItems),
+            count($allAsset),
             $perPage,
-            $equipmentPage,
-            ['path' => request()->url(), 'pageName' => 'equipment_page']
+            $assetPage,
+            ['path' => request()->url(), 'pageName' => 'asset_page']
         );
 
-        // Conta o total de equipamentos (incluindo os dos setores)
-        $totalEquipmentCount = $area->equipment()->count() + 
-            $area->sectors()->withCount('equipment')->get()->sum('equipment_count');
+        // Conta o total de ativos (incluindo os dos setores)
+        $totalAssetCount = $area->asset()->count() + 
+            $area->sectors()->withCount('asset')->get()->sum('asset_count');
 
         return Inertia::render('asset-hierarchy/areas/show', [
             'area' => [
@@ -207,17 +207,17 @@ class AreaController extends Controller
                 ],
             ],
             'sectors' => $sectors,
-            'equipment' => $equipment,
-            'totalEquipmentCount' => $totalEquipmentCount,
+            'asset' => $asset,
+            'totalAssetCount' => $totalAssetCount,
             'activeTab' => request()->get('tab', 'informacoes'),
             'filters' => [
                 'sectors' => [
                     'sort' => $sectorsSort,
                     'direction' => $sectorsDirection,
                 ],
-                'equipment' => [
-                    'sort' => $equipmentSort,
-                    'direction' => $equipmentDirection,
+                'asset' => [
+                    'sort' => $assetSort,
+                    'direction' => $assetDirection,
                 ],
             ],
         ]);
@@ -263,18 +263,18 @@ class AreaController extends Controller
 
     public function checkDependencies(Area $area)
     {
-        $equipment = $area->equipment()->take(5)->get(['id', 'tag', 'description']);
-        $totalEquipment = $area->equipment()->count();
+        $asset = $area->asset()->take(5)->get(['id', 'tag', 'description']);
+        $totalAsset = $area->asset()->count();
 
         $sectors = $area->sectors()->take(5)->get(['id', 'name']);
         $totalSectors = $area->sectors()->count();
 
         return response()->json([
-            'can_delete' => $totalEquipment === 0 && $totalSectors === 0,
+            'can_delete' => $totalAsset === 0 && $totalSectors === 0,
             'dependencies' => [
-                'equipment' => [
-                    'total' => $totalEquipment,
-                    'items' => $equipment
+                'asset' => [
+                    'total' => $totalAsset,
+                    'items' => $asset
                 ],
                 'sectors' => [
                     'total' => $totalSectors,

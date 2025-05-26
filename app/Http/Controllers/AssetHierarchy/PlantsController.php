@@ -17,9 +17,9 @@ class PlantsController extends Controller
         $direction = $request->input('direction', 'asc');
 
         $query = Plant::query()
-            ->withCount(['areas', 'equipment'])
+            ->withCount(['areas', 'asset'])
             ->with(['areas' => function ($query) {
-                $query->withCount(['sectors', 'equipment']);
+                $query->withCount(['sectors', 'asset']);
             }]);
 
         if ($search) {
@@ -31,7 +31,7 @@ class PlantsController extends Controller
 
         $plants = $query->get()->map(function ($plant) {
             $totalSectors = $plant->areas->sum('sectors_count');
-            $totalEquipment = $plant->equipment_count;
+            $totalAsset = $plant->asset_count;
 
             return [
                 'id' => $plant->id,
@@ -39,7 +39,7 @@ class PlantsController extends Controller
                 'description' => $plant->description,
                 'areas_count' => $plant->areas_count,
                 'sectors_count' => $totalSectors,
-                'equipment_count' => $totalEquipment,
+                'asset_count' => $totalAsset,
                 'created_at' => $plant->created_at,
                 'updated_at' => $plant->updated_at,
             ];
@@ -122,26 +122,26 @@ class PlantsController extends Controller
         $areas = $plant->areas()->take(5)->get(['id', 'name']);
         $totalAreas = $plant->areas()->count();
 
-        $equipment = $plant->equipment()
+        $asset = $plant->asset()
             ->whereNull('area_id')
             ->whereNull('sector_id')
             ->take(5)
             ->get(['id', 'tag']);
-        $totalEquipment = $plant->equipment()
+        $totalAsset = $plant->asset()
             ->whereNull('area_id')
             ->whereNull('sector_id')
             ->count();
 
         return response()->json([
-            'can_delete' => $totalAreas === 0 && $totalEquipment === 0,
+            'can_delete' => $totalAreas === 0 && $totalAsset === 0,
             'dependencies' => [
                 'areas' => [
                     'total' => $totalAreas,
                     'items' => $areas
                 ],
-                'equipment' => [
-                    'total' => $totalEquipment,
-                    'items' => $equipment
+                'asset' => [
+                    'total' => $totalAsset,
+                    'items' => $asset
                 ]
             ]
         ]);
@@ -177,7 +177,7 @@ class PlantsController extends Controller
         // Busca a página atual e parâmetros de ordenação para cada seção
         $areasPage = request()->get('areas_page', 1);
         $sectorsPage = request()->get('sectors_page', 1);
-        $equipmentPage = request()->get('equipment_page', 1);
+        $assetPage = request()->get('asset_page', 1);
         $perPage = 10;
 
         // Parâmetros de ordenação para áreas
@@ -188,13 +188,13 @@ class PlantsController extends Controller
         $sectorsSort = request()->get('sectors_sort', 'name');
         $sectorsDirection = request()->get('sectors_direction', 'asc');
 
-        // Parâmetros de ordenação para equipamentos
-        $equipmentSort = request()->get('equipment_sort', 'tag');
-        $equipmentDirection = request()->get('equipment_direction', 'asc');
+        // Parâmetros de ordenação para ativos
+        $assetSort = request()->get('asset_sort', 'tag');
+        $assetDirection = request()->get('asset_direction', 'asc');
 
         // Busca as áreas com ordenação
         $areasQuery = $plant->areas()
-            ->withCount(['equipment', 'sectors'])
+            ->withCount(['asset', 'sectors'])
             ->orderBy('name');
 
         // Aplica ordenação personalizada para áreas
@@ -202,8 +202,8 @@ class PlantsController extends Controller
             case 'name':
                 $areasQuery->orderBy('name', $areasDirection);
                 break;
-            case 'equipment_count':
-                $areasQuery->orderBy('equipment_count', $areasDirection);
+            case 'asset_count':
+                $areasQuery->orderBy('asset_count', $areasDirection);
                 break;
             case 'sectors_count':
                 $areasQuery->orderBy('sectors_count', $areasDirection);
@@ -234,7 +234,7 @@ class PlantsController extends Controller
         // Busca os setores com suas áreas
         $sectorsQuery = $plant->areas()
             ->with(['sectors' => function ($query) use ($sectorsSort, $sectorsDirection) {
-                $query->withCount('equipment');
+                $query->withCount('asset');
             }])
             ->get()
             ->pluck('sectors')
@@ -244,7 +244,7 @@ class PlantsController extends Controller
                     'id' => $sector->id,
                     'name' => $sector->name,
                     'description' => $sector->description,
-                    'equipment_count' => $sector->equipment_count,
+                    'asset_count' => $sector->asset_count,
                     'area' => [
                         'id' => $sector->area->id,
                         'name' => $sector->area->name,
@@ -262,8 +262,8 @@ class PlantsController extends Controller
                     return strcmp($a['name'], $b['name']) * $direction;
                 case 'area':
                     return strcmp($a['area']['name'], $b['area']['name']) * $direction;
-                case 'equipment_count':
-                    return (($a['equipment_count'] ?? 0) - ($b['equipment_count'] ?? 0)) * $direction;
+                case 'asset_count':
+                    return (($a['asset_count'] ?? 0) - ($b['asset_count'] ?? 0)) * $direction;
                 default:
                     return 0;
             }
@@ -282,17 +282,17 @@ class PlantsController extends Controller
             ['path' => request()->url(), 'pageName' => 'sectors_page']
         );
 
-        // Busca os equipamentos diretamente da planta
-        $equipmentQuery = $plant->equipment()
-            ->with(['equipmentType', 'area', 'sector'])
+        // Busca os ativos diretamente da planta
+        $assetQuery = $plant->asset()
+            ->with(['assetType', 'area', 'sector'])
             ->get()
             ->map(function ($item) {
                 return [
                     'id' => $item->id,
                     'tag' => $item->tag,
-                    'equipment_type' => $item->equipmentType ? [
-                        'id' => $item->equipmentType->id,
-                        'name' => $item->equipmentType->name,
+                    'asset_type' => $item->assetType ? [
+                        'id' => $item->assetType->id,
+                        'name' => $item->assetType->name,
                     ] : null,
                     'manufacturer' => $item->manufacturer,
                     'manufacturing_year' => $item->manufacturing_year,
@@ -302,15 +302,15 @@ class PlantsController extends Controller
             })
             ->values();
 
-        // Aplica ordenação personalizada para equipamentos
-        $equipmentQuery = $equipmentQuery->sort(function ($a, $b) use ($equipmentSort, $equipmentDirection) {
-            $direction = $equipmentDirection === 'asc' ? 1 : -1;
+        // Aplica ordenação personalizada para ativos
+        $assetQuery = $assetQuery->sort(function ($a, $b) use ($assetSort, $assetDirection) {
+            $direction = $assetDirection === 'asc' ? 1 : -1;
             
-            switch ($equipmentSort) {
+            switch ($assetSort) {
                 case 'tag':
                     return strcmp($a['tag'], $b['tag']) * $direction;
                 case 'type':
-                    return strcmp($a['equipment_type']['name'] ?? '', $b['equipment_type']['name'] ?? '') * $direction;
+                    return strcmp($a['asset_type']['name'] ?? '', $b['asset_type']['name'] ?? '') * $direction;
                 case 'location':
                     return strcmp($a['area_name'] . ($a['sector_name'] ? ' / ' . $a['sector_name'] : ''), 
                                 $b['area_name'] . ($b['sector_name'] ? ' / ' . $b['sector_name'] : '')) * $direction;
@@ -323,26 +323,26 @@ class PlantsController extends Controller
             }
         });
 
-        // Pagina os equipamentos
-        $allEquipment = $equipmentQuery->all();
-        $offset = ($equipmentPage - 1) * $perPage;
-        $items = array_slice($allEquipment, $offset, $perPage);
+        // Pagina os ativos
+        $allAsset = $assetQuery->all();
+        $offset = ($assetPage - 1) * $perPage;
+        $items = array_slice($allAsset, $offset, $perPage);
         
-        $equipment = new \Illuminate\Pagination\LengthAwarePaginator(
+        $asset = new \Illuminate\Pagination\LengthAwarePaginator(
             collect($items),
-            count($allEquipment),
+            count($allAsset),
             $perPage,
-            $equipmentPage,
-            ['path' => request()->url(), 'pageName' => 'equipment_page']
+            $assetPage,
+            ['path' => request()->url(), 'pageName' => 'asset_page']
         );
 
         return Inertia::render('asset-hierarchy/plantas/show', [
             'plant' => $plant,
             'areas' => $areas,
             'sectors' => $sectors,
-            'equipment' => $equipment,
+            'asset' => $asset,
             'totalSectors' => $totalSectors,
-            'totalEquipment' => $plant->equipment_count,
+            'totalAsset' => $plant->asset_count,
             'activeTab' => request()->get('tab', 'informacoes'),
             'filters' => [
                 'areas' => [
@@ -353,9 +353,9 @@ class PlantsController extends Controller
                     'sort' => $sectorsSort,
                     'direction' => $sectorsDirection,
                 ],
-                'equipment' => [
-                    'sort' => $equipmentSort,
-                    'direction' => $equipmentDirection,
+                'asset' => [
+                    'sort' => $assetSort,
+                    'direction' => $assetDirection,
                 ],
             ],
         ]);

@@ -1,5 +1,5 @@
 import { type BreadcrumbItem } from '@/types';
-import { type Equipment } from '@/types/asset-hierarchy';
+import { type Asset } from '@/types/asset-hierarchy';
 import { Head, Link, router } from '@inertiajs/react';
 import { MapPin, Cog, Map, Factory, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
@@ -35,8 +35,8 @@ interface Props {
             };
         };
     };
-    equipment: {
-        data: Equipment[];
+    asset: {
+        data: Asset[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -44,24 +44,24 @@ interface Props {
     };
     activeTab: string;
     filters: {
-        equipment: {
+        asset: {
             sort: string;
             direction: string;
         };
     };
 }
 
-export default function Show({ sector, equipment, activeTab, filters }: Props) {
+export default function Show({ sector, asset, activeTab, filters }: Props) {
     const handleSort = (column: string) => {
-        const direction = filters.equipment.sort === column && filters.equipment.direction === 'asc' ? 'desc' : 'asc';
+        const direction = filters.asset.sort === column && filters.asset.direction === 'asc' ? 'desc' : 'asc';
         
         router.get(
             route('asset-hierarchy.setores.show', { 
                 setor: sector.id,
                 tab: activeTab,
-                equipment_sort: column,
-                equipment_direction: direction,
-                equipment_page: 1
+                asset_sort: column,
+                asset_direction: direction,
+                asset_page: 1
             }),
             {},
             { preserveState: true }
@@ -69,10 +69,10 @@ export default function Show({ sector, equipment, activeTab, filters }: Props) {
     };
 
     const getSortIcon = (column: string) => {
-        if (filters.equipment.sort !== column) {
+        if (filters.asset.sort !== column) {
             return <ArrowUpDown className="h-4 w-4" />;
         }
-        return filters.equipment.direction === 'asc' ? 
+        return filters.asset.direction === 'asc' ? 
             <ArrowUp className="h-4 w-4" /> : 
             <ArrowDown className="h-4 w-4" />;
     };
@@ -91,7 +91,7 @@ export default function Show({ sector, equipment, activeTab, filters }: Props) {
             <Separator orientation="vertical" className="h-4" />
             <div className="flex items-center gap-1">
                 <Cog className="h-4 w-4" />
-                <span>{equipment.total} equipamentos</span>
+                <span>{asset.total} ativos</span>
             </div>
         </div>
     );
@@ -126,16 +126,16 @@ export default function Show({ sector, equipment, activeTab, filters }: Props) {
             )
         },
         {
-            id: 'equipamentos',
-            label: 'Equipamentos',
+            id: 'ativos',
+            label: 'Ativos',
             content: (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Equipamentos</CardTitle>
-                        <CardDescription>Lista de equipamentos vinculados a este setor</CardDescription>
+                        <CardTitle>Ativos</CardTitle>
+                        <CardDescription>Lista de ativos vinculados a este setor</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {equipment.data.length > 0 ? (
+                        {asset.data.length > 0 ? (
                             <div className="rounded-md">
                                 <Table>
                                     <TableHeader>
@@ -179,23 +179,23 @@ export default function Show({ sector, equipment, activeTab, filters }: Props) {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {equipment.data.map((equipment) => (
+                                        {asset.data.map((asset) => (
                                             <TableRow 
-                                                key={equipment.id}
+                                                key={asset.id}
                                                 className="cursor-pointer hover:bg-muted/50 h-12"
-                                                onClick={() => router.get(route('asset-hierarchy.equipamentos.show', equipment.id))}
+                                                onClick={() => router.get(route('asset-hierarchy.ativos.show', asset.id))}
                                             >
                                                 <TableCell>
-                                                    <div className="font-medium">{equipment.tag}</div>
+                                                    <div className="font-medium">{asset.tag}</div>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">
-                                                    {equipment.equipment_type?.name ?? '-'}
+                                                    {asset.asset_type?.name ?? '-'}
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">
-                                                    {equipment.manufacturer ?? '-'}
+                                                    {asset.manufacturer ?? '-'}
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">
-                                                    {equipment.manufacturing_year ?? '-'}
+                                                    {asset.manufacturing_year ?? '-'}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -204,7 +204,7 @@ export default function Show({ sector, equipment, activeTab, filters }: Props) {
                             </div>
                         ) : (
                             <div className="text-sm text-muted-foreground py-6 text-center">
-                                Nenhum equipamento cadastrado neste setor.
+                                Nenhum ativo cadastrado neste setor.
                             </div>
                         )}
                         <div className="flex justify-center mt-4">
@@ -214,26 +214,26 @@ export default function Show({ sector, equipment, activeTab, filters }: Props) {
                                         <PaginationPrevious 
                                             href={route('asset-hierarchy.setores.show', { 
                                                 setor: sector.id,
-                                                equipment_page: equipment.current_page - 1,
-                                                tab: 'equipamentos',
-                                                equipment_sort: filters.equipment.sort,
-                                                equipment_direction: filters.equipment.direction
+                                                asset_page: asset.current_page - 1,
+                                                tab: 'ativos',
+                                                asset_sort: filters.asset.sort,
+                                                asset_direction: filters.asset.direction
                                             })}
-                                            className={equipment.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
+                                            className={asset.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                         />
                                     </PaginationItem>
                                     
-                                    {Array.from({ length: equipment.last_page }, (_, i) => i + 1).map((page) => (
-                                        <PaginationItem key={`equipment-pagination-${page}`}>
+                                    {Array.from({ length: asset.last_page }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={`asset-pagination-${page}`}>
                                             <PaginationLink 
                                                 href={route('asset-hierarchy.setores.show', { 
                                                     setor: sector.id,
-                                                    equipment_page: page,
-                                                    tab: 'equipamentos',
-                                                    equipment_sort: filters.equipment.sort,
-                                                    equipment_direction: filters.equipment.direction
+                                                    asset_page: page,
+                                                    tab: 'ativos',
+                                                    asset_sort: filters.asset.sort,
+                                                    asset_direction: filters.asset.direction
                                                 })}
-                                                isActive={page === equipment.current_page}
+                                                isActive={page === asset.current_page}
                                             >
                                                 {page}
                                             </PaginationLink>
@@ -244,12 +244,12 @@ export default function Show({ sector, equipment, activeTab, filters }: Props) {
                                         <PaginationNext 
                                             href={route('asset-hierarchy.setores.show', { 
                                                 setor: sector.id,
-                                                equipment_page: equipment.current_page + 1,
-                                                tab: 'equipamentos',
-                                                equipment_sort: filters.equipment.sort,
-                                                equipment_direction: filters.equipment.direction
+                                                asset_page: asset.current_page + 1,
+                                                tab: 'ativos',
+                                                asset_sort: filters.asset.sort,
+                                                asset_direction: filters.asset.direction
                                             })}
-                                            className={equipment.current_page === equipment.last_page ? 'pointer-events-none opacity-50' : ''}
+                                            className={asset.current_page === asset.last_page ? 'pointer-events-none opacity-50' : ''}
                                         />
                                     </PaginationItem>
                                 </PaginationContent>

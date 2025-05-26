@@ -20,7 +20,7 @@ class SectorController extends Controller
 
         $query = Sector::query()
             ->with(['area.plant'])
-            ->withCount('equipment');
+            ->withCount('asset');
 
         if ($search) {
             $search = strtolower($search);
@@ -47,8 +47,8 @@ class SectorController extends Controller
                     ->orderBy('plants.name', $direction)
                     ->select('sectors.*');
                 break;
-            case 'equipment_count':
-                $query->orderBy('equipment_count', $direction);
+            case 'asset_count':
+                $query->orderBy('asset_count', $direction);
                 break;
             default:
                 $query->orderBy($sort, $direction);
@@ -107,23 +107,23 @@ class SectorController extends Controller
     {
         $setor->load(['area.plant']);
         
-        // Busca a página atual e parâmetros de ordenação para equipamentos
-        $equipmentPage = request()->get('equipment_page', 1);
+        // Busca a página atual e parâmetros de ordenação para ativos
+        $assetPage = request()->get('asset_page', 1);
         $perPage = 10;
-        $equipmentSort = request()->get('equipment_sort', 'tag');
-        $equipmentDirection = request()->get('equipment_direction', 'asc');
+        $assetSort = request()->get('asset_sort', 'tag');
+        $assetDirection = request()->get('asset_direction', 'asc');
 
-        // Busca os equipamentos com ordenação
-        $equipmentQuery = $setor->equipment()
-            ->with('equipmentType')
+        // Busca os ativos com ordenação
+        $assetQuery = $setor->asset()
+            ->with('assetType')
             ->get()
             ->map(function ($item) {
                 return [
                     'id' => $item->id,
                     'tag' => $item->tag,
-                    'equipment_type' => $item->equipmentType ? [
-                        'id' => $item->equipmentType->id,
-                        'name' => $item->equipmentType->name,
+                    'asset_type' => $item->assetType ? [
+                        'id' => $item->assetType->id,
+                        'name' => $item->assetType->name,
                     ] : null,
                     'manufacturer' => $item->manufacturer,
                     'manufacturing_year' => $item->manufacturing_year,
@@ -131,15 +131,15 @@ class SectorController extends Controller
             })
             ->values();
 
-        // Aplica ordenação personalizada para equipamentos
-        $equipmentQuery = $equipmentQuery->sort(function ($a, $b) use ($equipmentSort, $equipmentDirection) {
-            $direction = $equipmentDirection === 'asc' ? 1 : -1;
+        // Aplica ordenação personalizada para ativos
+        $assetQuery = $assetQuery->sort(function ($a, $b) use ($assetSort, $assetDirection) {
+            $direction = $assetDirection === 'asc' ? 1 : -1;
             
-            switch ($equipmentSort) {
+            switch ($assetSort) {
                 case 'tag':
                     return strcmp($a['tag'], $b['tag']) * $direction;
                 case 'type':
-                    return strcmp($a['equipment_type']['name'] ?? '', $b['equipment_type']['name'] ?? '') * $direction;
+                    return strcmp($a['asset_type']['name'] ?? '', $b['asset_type']['name'] ?? '') * $direction;
                 case 'manufacturer':
                     return strcmp($a['manufacturer'] ?? '', $b['manufacturer'] ?? '') * $direction;
                 case 'year':
@@ -149,27 +149,27 @@ class SectorController extends Controller
             }
         });
 
-        // Pagina os equipamentos
-        $allEquipment = $equipmentQuery->all();
-        $equipmentOffset = ($equipmentPage - 1) * $perPage;
-        $equipmentItems = array_slice($allEquipment, $equipmentOffset, $perPage);
+        // Pagina os ativos
+        $allAsset = $assetQuery->all();
+        $assetOffset = ($assetPage - 1) * $perPage;
+        $assetItems = array_slice($allAsset, $assetOffset, $perPage);
         
-        $equipment = new \Illuminate\Pagination\LengthAwarePaginator(
-            collect($equipmentItems),
-            count($allEquipment),
+        $asset = new \Illuminate\Pagination\LengthAwarePaginator(
+            collect($assetItems),
+            count($allAsset),
             $perPage,
-            $equipmentPage,
-            ['path' => request()->url(), 'pageName' => 'equipment_page']
+            $assetPage,
+            ['path' => request()->url(), 'pageName' => 'asset_page']
         );
 
         return Inertia::render('asset-hierarchy/setores/show', [
             'sector' => $setor,
-            'equipment' => $equipment,
+            'asset' => $asset,
             'activeTab' => request()->get('tab', 'informacoes'),
             'filters' => [
-                'equipment' => [
-                    'sort' => $equipmentSort,
-                    'direction' => $equipmentDirection,
+                'asset' => [
+                    'sort' => $assetSort,
+                    'direction' => $assetDirection,
                 ],
             ],
         ]);
@@ -190,8 +190,8 @@ class SectorController extends Controller
 
     public function destroy(Sector $setor)
     {
-        if ($setor->equipment()->exists()) {
-            return back()->with('error', 'Não é possível excluir um setor que possui equipamentos.');
+        if ($setor->asset()->exists()) {
+            return back()->with('error', 'Não é possível excluir um setor que possui ativos.');
         }
 
         $setorName = $setor->name;
@@ -202,15 +202,15 @@ class SectorController extends Controller
 
     public function checkDependencies(Sector $setor)
     {
-        $equipment = $setor->equipment()->take(5)->get(['id', 'tag', 'description']);
-        $totalEquipment = $setor->equipment()->count();
+        $asset = $setor->asset()->take(5)->get(['id', 'tag', 'description']);
+        $totalAsset = $setor->asset()->count();
 
         return response()->json([
-            'can_delete' => $totalEquipment === 0,
+            'can_delete' => $totalAsset === 0,
             'dependencies' => [
-                'equipment' => [
-                    'total' => $totalEquipment,
-                    'items' => $equipment
+                'asset' => [
+                    'total' => $totalAsset,
+                    'items' => $asset
                 ]
             ]
         ]);

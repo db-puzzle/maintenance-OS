@@ -53,7 +53,7 @@ interface ShiftData {
         id: number;
         name: string;
     };
-    equipment_count?: number;
+    asset_count?: number;
     schedules: Schedule[];
     total_work_hours?: number;
     total_work_minutes?: number;
@@ -259,14 +259,14 @@ export default function Index({ shifts, filters = {
             width: "w-[150px]",
         },
         {
-            id: "equipment_count",
+            id: "asset_count",
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('equipment_count')}>
-                    Equipamentos
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('asset_count')}>
+                    Ativos
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
-            cell: (row: { original: ShiftData }) => row.original.equipment_count || 0,
+            cell: (row: { original: ShiftData }) => row.original.asset_count || 0,
             width: "w-[150px]",
         },
         {
@@ -399,9 +399,9 @@ export default function Index({ shifts, filters = {
                                                                     <List className="h-4 w-4" />
                                                                     Tabela
                                                                 </TabsTrigger>
-                                                                <TabsTrigger value="equipment" className="flex items-center gap-2">
+                                                                <TabsTrigger value="asset" className="flex items-center gap-2">
                                                                     <Settings className="h-4 w-4" />
-                                                                    Equipamentos
+                                                                    Ativos
                                                                 </TabsTrigger>
                                                             </TabsList>
                                                         </div>
@@ -414,13 +414,13 @@ export default function Index({ shifts, filters = {
                                                         <TabsContent value="table">
                                                             <ShiftTableView schedules={transformSchedules(shift.schedules)} />
                                                         </TabsContent>
-                                                        <TabsContent value="equipment">
+                                                        <TabsContent value="asset">
                                                             <div className="p-4">
-                                                                <h4 className="font-medium mb-4">Equipamentos Associados</h4>
-                                                                {shift.equipment_count && shift.equipment_count > 0 ? (
-                                                                    <p>Lista de equipamentos aqui...</p>
+                                                                <h4 className="font-medium mb-4">Ativos Associados</h4>
+                                                                {shift.asset_count && shift.asset_count > 0 ? (
+                                                                    <p>Lista de ativos aqui...</p>
                                                                 ) : (
-                                                                    <p className="text-muted-foreground">Nenhum equipamento associado a este turno.</p>
+                                                                    <p className="text-muted-foreground">Nenhum ativo associado a este turno.</p>
                                                                 )}
                                                             </div>
                                                         </TabsContent>

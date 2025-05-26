@@ -79,7 +79,7 @@ const weekdays = [
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Cadastro',
-        href: '/asset-hierarchy/equipamentos',
+        href: '/asset-hierarchy/ativos',
     },
     {
         title: 'Turnos',
