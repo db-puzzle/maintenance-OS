@@ -1,41 +1,11 @@
 import { type BreadcrumbItem } from '@/types';
 import { type Asset, type AssetType, type Area, type AssetForm, type Sector, type Plant } from '@/types/asset-hierarchy';
 import { Head, useForm, router } from '@inertiajs/react';
-import { useState, useMemo, useRef } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { useMemo, useRef } from 'react';
 import { toast } from "sonner";
-
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-    Sheet,
-    SheetClose,
-    SheetContent,
-    SheetDescription,
-    SheetFooter,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from "@/components/ui/sheet";
 import InputError from '@/components/input-error';
-import { cn } from '@/lib/utils';
-import SmartInput from "@/components/smart-input";
-import { SmartPopover } from "@/components/ui/smart-popover";
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from "@/components/TextInput";
 import PhotoUploader from '@/components/PhotoUploader';

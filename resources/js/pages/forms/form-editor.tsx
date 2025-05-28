@@ -3,10 +3,9 @@ import { Head, useForm, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
 import { toast } from "sonner";
-import ItemSelect from '@/components/ItemSelect';
 import TextInput from '@/components/TextInput';
-import { useState, useEffect, memo, useRef } from 'react';
-import { Camera, FileText, ClipboardCheck, ListChecks, Ruler, CheckSquare, ScanBarcode, Upload, CircleCheck, QrCode, Barcode } from 'lucide-react';
+import { useState } from 'react';
+import { ClipboardCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { TaskBaseCard, TaskContent } from '@/components/tasks';
 import { Task, TaskType, TaskTypes, TaskOperations, TaskState, DefaultMeasurement } from '@/types/task';
@@ -21,9 +20,6 @@ import {
     MeasuringStrategy,
     DragOverlay,
     defaultDropAnimationSideEffects,
-    DragEndEvent,
-    MouseSensor,
-    TouchSensor,
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -34,50 +30,94 @@ import {
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 import AddTaskButton from '@/components/tasks/AddTaskButton';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Rotinas',
-        href: '/routines/index',
-    },
-    {
-        title: 'Nova Rotina',
-        href: '/routines/routine-editor',
-    },
-];
+interface FormData {
+    id?: number;
+    name?: string;
+    tasks?: Task[];
+}
 
-interface RoutineForm {
-    [key: string]: string | number | undefined;
-    name: string;
-    trigger_hours: string;
-    type: number | undefined;
+interface EntityData {
+    id: number;
+    name?: string;
+    tag?: string;
 }
 
 interface Props {
+    form?: FormData;
+    entity: EntityData;
+    entityType: 'routine' | 'inspection' | 'report';
+    breadcrumbs?: BreadcrumbItem[];
+    backRoute?: string;
+    saveRoute?: string;
+    title?: string;
+    subtitle?: string;
 }
 
-export default function CreateRoutine({ }: Props) {
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<RoutineForm>({
-        name: '',
-        trigger_hours: '',
-        type: undefined,
-    });
+interface FormSubmitData {
+    [key: string]: string | number | undefined;
+}
 
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(null);
+const EntityLabels = {
+    routine: {
+        singular: 'Rotina',
+        plural: 'Rotinas',
+        form: 'Formulário da Rotina'
+    },
+    inspection: {
+        singular: 'Inspeção',
+        plural: 'Inspeções',
+        form: 'Formulário de Inspeção'
+    },
+    report: {
+        singular: 'Relatório',
+        plural: 'Relatórios',
+        form: 'Formulário de Relatório'
+    }
+};
+
+export default function FormEditor({
+    form,
+    entity,
+    entityType,
+    breadcrumbs,
+    backRoute,
+    saveRoute,
+    title,
+    subtitle
+}: Props) {
+    const entityLabel = EntityLabels[entityType];
+    const entityDisplayName = entity.name || entity.tag || `${entityLabel.singular} ${entity.id}`;
+
+    const defaultBreadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Ativos',
+            href: '/asset-hierarchy/assets',
+        },
+        {
+            title: entityDisplayName,
+            href: '#',
+        },
+        {
+            title: entityLabel.form,
+            href: '#',
+        },
+    ];
+
+    const { data, setData, processing, errors, clearErrors } = useForm<FormSubmitData>({});
+
+    const [tasks, setTasks] = useState<Task[]>(form?.tasks || []);
     const [activeId, setActiveId] = useState<string | null>(null);
-    const [cardMode, setCardMode] = useState<'edit' | 'preview'>('edit');
-    
-    // Adicionar estados para última categoria e unidade selecionada
+
+    // Estados para última categoria e unidade selecionada
     const [lastMeasurementCategory, setLastMeasurementCategory] = useState<UnitCategory>('Comprimento');
     const [lastMeasurementUnit, setLastMeasurementUnit] = useState<string>('m');
-    
+
     // Estado para armazenar os ícones personalizados por ID de tarefa
     const [taskIcons, setTaskIcons] = useState<Record<string, React.ReactNode>>({});
-    
+
     // Função para atualizar o ícone de uma tarefa específica
     const updateTaskIcon = (taskId: string, icon: React.ReactNode) => {
         setTaskIcons(prev => {
-            // Se o ícone for igual ao anterior, não atualize o estado
             if (prev[taskId] === icon) return prev;
             return {
                 ...prev,
@@ -88,53 +128,39 @@ export default function CreateRoutine({ }: Props) {
 
     // Funções utilitárias para gerenciamento de tarefas
     const taskMethods = {
-        // Atualizar uma tarefa existente
         update: (index: number, operation: (task: Task) => Task) => {
             const updatedTasks = [...tasks];
             updatedTasks[index] = operation(updatedTasks[index]);
             setTasks(updatedTasks);
         },
 
-        // Adicionar uma nova tarefa
         add: (index: number, task: Task) => {
-            // Certifique-se de que a tarefa tenha um ID único
             const existingIds = new Set(tasks.map(t => t.id));
             if (existingIds.has(task.id)) {
-                // Se o ID já existe, gere um novo
                 task = {
                     ...task,
                     id: TaskOperations.generateNextId(tasks)
                 };
             }
-            
-            // Definir ícone personalizado para tarefas de código de barras
-            // Não fazemos isso aqui para evitar loop infinito
-            // O ícone será definido pelo useEffect no componente CodeReaderTaskContent
-            
+
             const updatedTasks = [...tasks];
             updatedTasks.splice(index + 1, 0, task);
             setTasks(updatedTasks);
-            setSelectedTaskIndex(index + 1);
         },
 
-        // Remover uma tarefa
         remove: (index: number) => {
             const updatedTasks = [...tasks];
             updatedTasks.splice(index, 1);
             setTasks(updatedTasks);
         },
 
-        // Criar uma nova tarefa em um índice específico
         createAt: (index: number, type?: TaskType, newTask?: Task) => {
             if (!type && !newTask) return;
-            
+
             let taskToAdd: Task;
-            
+
             if (newTask) {
-                // Se uma tarefa já foi criada, use-a
                 taskToAdd = newTask;
-                
-                // Se for uma tarefa de medição, use a última categoria/unidade selecionada
                 if (taskToAdd.type === 'measurement') {
                     taskToAdd.measurement = {
                         ...DefaultMeasurement,
@@ -143,14 +169,12 @@ export default function CreateRoutine({ }: Props) {
                     };
                 }
             } else if (type) {
-                // Caso contrário, crie uma nova tarefa com o tipo especificado
                 taskToAdd = TaskOperations.createAtIndex(
                     tasks,
                     index,
                     type
                 );
-                
-                // Se for uma tarefa de medição, use a última categoria/unidade selecionada
+
                 if (type === 'measurement') {
                     taskToAdd.measurement = {
                         ...DefaultMeasurement,
@@ -158,19 +182,17 @@ export default function CreateRoutine({ }: Props) {
                         unit: lastMeasurementUnit
                     };
                 }
-                
-                // Se for uma tarefa de código, defina o tipo padrão como barcode
+
                 if (type === 'code_reader') {
                     taskToAdd.codeReaderType = 'barcode';
                 }
             } else {
                 return;
             }
-            
+
             taskMethods.add(index, taskToAdd);
         },
 
-        // Alterar o estado de uma tarefa
         setState: (index: number, state: TaskState) => {
             taskMethods.update(index, task => ({
                 ...task,
@@ -178,7 +200,6 @@ export default function CreateRoutine({ }: Props) {
             }));
         },
 
-        // Obter uma tarefa pelo ID (usado no arrastar e soltar)
         getById: (id: string) => {
             const taskId = parseInt(id.replace('task-', ''));
             return tasks.find(task => task.id === taskId.toString());
@@ -196,11 +217,6 @@ export default function CreateRoutine({ }: Props) {
         })
     );
 
-    useEffect(() => {
-        // Não vamos mais criar uma tarefa inicial automaticamente
-        setTasks([]);
-    }, []);
-
     const handleDragStart = (event: any) => {
         setActiveId(event.active.id);
     };
@@ -214,7 +230,6 @@ export default function CreateRoutine({ }: Props) {
                 const oldIndex = items.findIndex((item) => `task-${item.id}` === active.id);
                 const newIndex = items.findIndex((item) => `task-${item.id}` === over.id);
 
-                // Se ambos os índices são válidos, faça a reordenação
                 if (oldIndex !== -1 && newIndex !== -1) {
                     return arrayMove(items, oldIndex, newIndex);
                 }
@@ -228,7 +243,11 @@ export default function CreateRoutine({ }: Props) {
     };
 
     const handleSave = () => {
-        // Converte as tarefas para um formato compatível com FormDataConvertible
+        if (!saveRoute) {
+            toast.error('Rota de salvamento não configurada');
+            return;
+        }
+
         const tasksToSave = tasks.map(task => ({
             ...task,
             measurement: task.measurement ? {
@@ -243,34 +262,33 @@ export default function CreateRoutine({ }: Props) {
             options: task.options?.map(option => option) || [],
             instructionImages: task.instructionImages || []
         }));
-        
-        // Use o router.post diretamente
-        router.post(route('routines.store'), {
-            name: data.name,
-            trigger_hours: data.trigger_hours,
-            type: data.type,
-            tasks: JSON.stringify(tasksToSave), // Convertendo para string
+
+        router.post(saveRoute, {
+            tasks: JSON.stringify(tasksToSave),
         }, {
             onSuccess: () => {
-                toast.success("Rotina criada com sucesso!");
+                toast.success("Formulário salvo com sucesso!");
             },
             onError: () => {
-                toast.error("Erro ao criar rotina", {
+                toast.error("Erro ao salvar formulário", {
                     description: "Verifique os campos e tente novamente."
                 });
             }
         });
     };
 
+    const pageTitle = title || entityLabel.form;
+    const pageSubtitle = subtitle || entityDisplayName;
+
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Nova Rotina" />
+        <AppLayout breadcrumbs={breadcrumbs || defaultBreadcrumbs}>
+            <Head title={`${pageTitle} - ${pageSubtitle}`} />
 
             <CreateLayout
-                title="Nova Rotina"
-                subtitle="Adicione uma nova rotina de manutenção"
-                breadcrumbs={breadcrumbs}
-                backRoute={route('routines.index')}
+                title={pageTitle}
+                subtitle={pageSubtitle}
+                breadcrumbs={breadcrumbs || defaultBreadcrumbs}
+                backRoute={backRoute || '#'}
                 onSave={handleSave}
                 isSaving={processing}
                 contentWidth="custom"
@@ -278,43 +296,8 @@ export default function CreateRoutine({ }: Props) {
             >
                 <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
                     <div className="grid gap-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <TextInput<RoutineForm>
-                                form={{
-                                    data,
-                                    setData,
-                                    errors,
-                                    clearErrors
-                                }}
-                                name="name"
-                                label="Nome da Rotina"
-                                placeholder="Escreva o nome da rotina"
-                                required
-                            />
-                            <ItemSelect
-                                label="Tipo de Rotina"
-                                items={[
-                                    { id: 1, name: 'Inspeção' },
-                                    { id: 2, name: 'Manutenção Preventiva' },
-                                    { id: 3, name: 'Manutenção Corretiva' }
-                                ]}
-                                value={data.type ? data.type.toString() : ''}
-                                onValueChange={(value) => {
-                                    if (value && value !== '') {
-                                        setData('type', Number(value));
-                                    } else {
-                                        setData('type', undefined);
-                                    }
-                                }}
-                                placeholder="Selecione o tipo de rotina"
-                                required
-                                canCreate={false}
-                                createRoute=""
-                            />
-                        </div>
-
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                            <h3 className="text-lg font-medium">Tarefas da Rotina</h3>
+                            <h3 className="text-lg font-medium">Tarefas do Formulário</h3>
                         </div>
 
                         <DndContext
@@ -343,7 +326,7 @@ export default function CreateRoutine({ }: Props) {
                                                 </div>
                                                 <h3 className="text-lg font-medium mb-2">Nenhuma tarefa adicionada</h3>
                                                 <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
-                                                    Adicione tarefas para compor seu formulário.
+                                                    Adicione tarefas para compor o formulário.
                                                 </p>
                                                 <div className="w-full sm:w-auto">
                                                     <AddTaskButton
@@ -354,7 +337,6 @@ export default function CreateRoutine({ }: Props) {
                                                         onTaskAdded={(newTask) => {
                                                             const updatedTasks = [...tasks, newTask];
                                                             setTasks(updatedTasks);
-                                                            setSelectedTaskIndex(updatedTasks.length - 1);
                                                         }}
                                                     />
                                                 </div>
@@ -362,13 +344,10 @@ export default function CreateRoutine({ }: Props) {
                                         </Card>
                                     ) : (
                                         tasks.map((task, index) => {
-                                            // Determinar o ícone com base no tipo de tarefa
                                             const taskType = TaskTypes.find(t => t.value === task.type);
-                                            // Usar o ícone personalizado se existir, senão usar o padrão
-                                            const icon = taskIcons[task.id] || 
-                                                (taskType ? <taskType.icon className="size-5" /> : <FileText className="size-5" />);
-                                            
-                                            // Convertendo para o novo formato de card
+                                            const icon = taskIcons[task.id] ||
+                                                (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
+
                                             return (
                                                 <TaskBaseCard
                                                     key={`task-${task.id}`}
@@ -407,7 +386,7 @@ export default function CreateRoutine({ }: Props) {
                                                     tasks={tasks}
                                                     currentIndex={index}
                                                     isRequired={task.isRequired}
-                                                    onRequiredChange={(required) => 
+                                                    onRequiredChange={(required) =>
                                                         taskMethods.update(index, t => TaskOperations.updateRequired(t, required))
                                                     }
                                                     onTaskUpdate={(updatedTask) => {
@@ -422,7 +401,6 @@ export default function CreateRoutine({ }: Props) {
                                                             )
                                                         )}
                                                         onUpdate={(updatedTask) => {
-                                                            // Atualizar última categoria/unidade quando uma tarefa de medição é atualizada
                                                             if (updatedTask.type === 'measurement' && updatedTask.measurement) {
                                                                 setLastMeasurementCategory(updatedTask.measurement.category);
                                                                 setLastMeasurementUnit(updatedTask.measurement.unit);
@@ -451,13 +429,11 @@ export default function CreateRoutine({ }: Props) {
                                     (() => {
                                         const task = taskMethods.getById(activeId);
                                         if (!task) return null;
-                                        
-                                        // Determinar o ícone com base no tipo de tarefa
+
                                         const taskType = TaskTypes.find(t => t.value === task.type);
-                                        // Usar o ícone personalizado se existir, senão usar o padrão
-                                        const icon = taskIcons[task.id] || 
-                                            (taskType ? <taskType.icon className="size-5" /> : <FileText className="size-5" />);
-                                        
+                                        const icon = taskIcons[task.id] ||
+                                            (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
+
                                         return (
                                             <TaskBaseCard
                                                 key={`overlay-${task.id}`}
@@ -466,12 +442,12 @@ export default function CreateRoutine({ }: Props) {
                                                 icon={icon}
                                                 title={task.description}
                                                 isRequired={task.isRequired}
-                                                onTaskUpdate={() => {}}
+                                                onTaskUpdate={() => { }}
                                             >
                                                 <TaskContent
                                                     task={task}
                                                     mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
-                                                    onUpdate={() => {}}
+                                                    onUpdate={() => { }}
                                                     onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
                                                 />
                                             </TaskBaseCard>

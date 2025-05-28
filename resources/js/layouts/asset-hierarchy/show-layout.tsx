@@ -44,7 +44,7 @@ export default function ShowLayout({
     showEditButton = true,
     defaultActiveTab,
 }: ShowLayoutProps) {
-    const [activeTab, setActiveTab] = useState(defaultActiveTab || (tabs ? tabs[0].id : ''));
+    const [activeTab, setActiveTab] = useState(defaultActiveTab || (tabs && tabs.length > 0 ? tabs[0].id : ''));
 
     return (
         <div className="bg-background pt-4 md:pt-6">
@@ -76,7 +76,7 @@ export default function ShowLayout({
             </div>
             {/* Nav */}
             <div className="container mx-auto lg:px-6 px-4 py-6">
-                {tabs ? (
+                {tabs && tabs.length > 0 ? (
                     <div className="space-y-4">
                         {/* Mobile Select */}
                         <div className="md:hidden">

@@ -29,6 +29,7 @@ interface PageProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Cadastro',
+        href: '/asset-hierarchy',
     },
     {
         title: 'Tipos de Ativo',

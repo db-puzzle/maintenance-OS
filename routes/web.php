@@ -7,7 +7,7 @@ use App\Http\Controllers\PlantsController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
-})->name('home');
+})->name('welcome');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('home', function () {

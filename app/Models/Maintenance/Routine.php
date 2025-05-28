@@ -3,13 +3,15 @@
 namespace App\Models\Maintenance;
 
 use App\Models\Forms\Form;
+use App\Models\AssetHierarchy\Asset;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Routine extends Model
 {
-    protected $fillable = ['maintenance_plan_id', 'form_id', 'name', 'trigger_hours', 'type'];
+    protected $fillable = ['form_id', 'name', 'trigger_hours', 'type', 'status', 'description'];
 
     protected $casts = [
         'trigger_hours' => 'integer',
@@ -20,9 +22,10 @@ class Routine extends Model
     const TYPE_MAINTENANCE_ROUTINE = 2;
     const TYPE_MAINTENANCE_REPORT = 3;
 
-    public function maintenancePlan(): BelongsTo
+    public function assets(): BelongsToMany
     {
-        return $this->belongsTo(MaintenancePlan::class);
+        return $this->belongsToMany(Asset::class, 'asset_routine')
+            ->withTimestamps();
     }
 
     public function form(): BelongsTo

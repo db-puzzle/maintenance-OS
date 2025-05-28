@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::create('forms', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
             $table->boolean('is_active')->default(true);
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();

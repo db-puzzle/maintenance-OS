@@ -25,7 +25,7 @@ class RoutineExecutionController extends Controller
     
     public function create(Routine $routine = null)
     {
-        $routines = Routine::with('maintenancePlan')->get();
+        $routines = Routine::with('assets')->get();
         
         return Inertia::render('Maintenance/Executions/Create', [
             'routines' => $routines,

@@ -21,7 +21,7 @@ class DashboardController extends Controller
     // {
     //     return [
     //         'total_asset' => Asset::count(),
-    //         'pending_maintenance' => MaintenancePlan::where('status', 'pending')->count(),
+    //         'pending_routines' => Routine::where('status', 'Active')->count(),
     //         'overdue_tasks' => RoutineExecution::where('status', 'overdue')->count(),
     //     ];
     // }

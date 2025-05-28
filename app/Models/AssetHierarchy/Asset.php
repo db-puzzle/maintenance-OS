@@ -4,6 +4,8 @@ namespace App\Models\AssetHierarchy;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Maintenance\Routine;
 
 class Asset extends Model
 {
@@ -70,5 +72,11 @@ class Asset extends Model
     public function sector(): BelongsTo
     {
         return $this->belongsTo(Sector::class);
+    }
+    
+    public function routines(): BelongsToMany
+    {
+        return $this->belongsToMany(Routine::class, 'asset_routine')
+            ->withTimestamps();
     }
 } 

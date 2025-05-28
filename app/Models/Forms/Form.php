@@ -15,7 +15,6 @@ class Form extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'name',
         'is_active',
         'created_by'
     ];
@@ -63,7 +62,6 @@ class Form extends Model
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
             'tasks' => $this->tasks->map(fn($task) => $task->toSnapshot())->toArray()
         ];
     }
