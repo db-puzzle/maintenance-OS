@@ -312,6 +312,10 @@ export default function Show({ asset }: Props) {
                         icon={MessageSquare}
                         title="Nenhum histórico registrado"
                         description="Quando houver algum histórico para este ativo, ele será exibido aqui."
+                        primaryButtonText="Ver detalhes"
+                        primaryButtonAction={() => {
+                            // Implementar ação para ver detalhes do histórico ou navegar
+                        }}
                     />
                 </div>
             ),

@@ -22,11 +22,13 @@ export interface PathItem {
 interface ActionShortcutsProps {
     title?: string;
     paths: Record<string, PathItem>;
+    onActionClick?: (pathKey: string, actionName: string) => void;
 }
 
-export default function ActionShortcuts({ 
-    title = "Atalhos", 
-    paths
+export default function ActionShortcuts({
+    title = "Atalhos",
+    paths,
+    onActionClick
 }: ActionShortcutsProps) {
     return (
         <div>
@@ -35,16 +37,14 @@ export default function ActionShortcuts({
                 {Object.entries(paths).map(([key, path]) => {
                     const IconComponent = path.icon;
                     const hasQuickAction = !!path.href;
-                    
+
                     // Conteúdo comum extraído
                     const headerContent = (
                         <div className="flex items-center space-x-3">
-                            <div className={`bg-background p-2 rounded-lg transition-colors duration-200 ${
-                                hasQuickAction ? 'group-hover:bg-ring/10 group-hover:ring-ring/10' : ''
-                            }`}>
-                                <IconComponent size={28} className={`text-foreground ${
-                                    hasQuickAction ? 'group-hover:text-ring' : ''
-                                }`} />
+                            <div className={`bg-background p-2 rounded-lg transition-colors duration-200 ${hasQuickAction ? 'group-hover:bg-ring/10 group-hover:ring-ring/10' : ''
+                                }`}>
+                                <IconComponent size={28} className={`text-foreground ${hasQuickAction ? 'group-hover:text-ring' : ''
+                                    }`} />
                             </div>
                             <div className="flex-1">
                                 <h3 className="text-xl font-semibold text-foreground">{path.title}</h3>
@@ -64,7 +64,7 @@ export default function ActionShortcuts({
                     } : {
                         className: "bg-muted p-6"
                     };
-                    
+
                     return (
                         <div key={key} className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                             {/* Path Header - Dinâmico */}
@@ -78,31 +78,34 @@ export default function ActionShortcuts({
                                     {path.actions.map((action, index) => {
                                         const ActionIcon = action.icon;
                                         const hasActionLink = !!action.href;
-                                        
+
                                         return (
                                             <button
                                                 key={index}
-                                                onClick={() => router.visit(action.href!)}
-                                                className={`w-full flex items-start space-x-3 p-4 rounded-lg text-left ${
-                                                    hasActionLink 
+                                                onClick={() => {
+                                                    if (onActionClick) {
+                                                        onActionClick(key, action.name);
+                                                    } else if (action.href) {
+                                                        router.visit(action.href);
+                                                    }
+                                                }}
+                                                className={`w-full flex items-start space-x-3 p-4 rounded-lg text-left ${hasActionLink
                                                         ? 'hover:bg-input-focus hover:ring-ring/10 hover:ring-[1px] hover:border-ring transition-colors group'
                                                         : 'group'
-                                                }`}
+                                                    }`}
                                             >
-                                                <div className={`mt-0.5 ${
-                                                    hasActionLink 
-                                                        ? 'text-muted-foreground group-hover:text-foreground'
-                                                        : 'text-muted-foreground'
-                                                }`}>
+                                                <div className={`mt-0.5 ${hasActionLink
+                                                    ? 'text-muted-foreground group-hover:text-foreground'
+                                                    : 'text-muted-foreground'
+                                                    }`}>
                                                     <ActionIcon size={20} />
                                                 </div>
                                                 <div className="flex-1">
                                                     <div className="flex items-center space-x-2">
-                                                        <h4 className={`font-medium ${
-                                                            hasActionLink 
-                                                                ? 'text-foreground group-hover:text-foreground'
-                                                                : 'text-foreground'
-                                                        }`}>
+                                                        <h4 className={`font-medium ${hasActionLink
+                                                            ? 'text-foreground group-hover:text-foreground'
+                                                            : 'text-foreground'
+                                                            }`}>
                                                             {action.name}
                                                         </h4>
                                                         {action.isDefault && (

@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { 
-    X, GripVertical, Lightbulb, Plus, Clock, FileText, CheckSquare, 
+import {
+    X, GripVertical, Lightbulb, Plus, Clock, FileText, CheckSquare,
     ListChecks, Ruler, Camera, ScanBarcode, Upload, QrCode, Barcode,
     ClipboardList, ChevronRight
 } from 'lucide-react';
@@ -53,7 +53,6 @@ interface TaskEditorCardProps {
 
 interface TaskForm {
     description: string;
-    photoInstructions: string;
     codeReaderType: 'qr_code' | 'barcode' | undefined;
     codeReaderInstructions: string;
     fileUploadInstructions: string;
@@ -61,7 +60,7 @@ interface TaskForm {
     [key: string]: string | number | boolean | File | null | NonNullable<Task['options']> | undefined;
 }
 
-export default function TaskEditorCard({ 
+export default function TaskEditorCard({
     initialTask,
     task: { type: taskType = 'question', measurement, options = [], isRequired },
     onPreview,
@@ -71,7 +70,6 @@ export default function TaskEditorCard({
 }: TaskEditorCardProps) {
     const { data, setData, errors, clearErrors } = useForm<TaskForm>({
         description: initialTask?.description || '',
-        photoInstructions: initialTask?.photoInstructions || '',
         codeReaderType: initialTask?.codeReaderType,
         codeReaderInstructions: initialTask?.codeReaderInstructions || '',
         fileUploadInstructions: initialTask?.fileUploadInstructions || '',
@@ -110,6 +108,7 @@ export default function TaskEditorCard({
             type: taskType,
             description: data.description,
             instructionImages: initialTask?.instructionImages || [],
+            instructions: initialTask?.instructions || [],
             isRequired,
             state: TaskState.Viewing
         };
@@ -118,8 +117,6 @@ export default function TaskEditorCard({
             newTask.options = data.options;
         } else if (taskType === 'measurement') {
             newTask.measurement = measurement;
-        } else if (taskType === 'photo') {
-            newTask.photoInstructions = data.photoInstructions;
         } else if (taskType === 'code_reader') {
             if (data.codeReaderType) {
                 newTask.codeReaderType = data.codeReaderType;
@@ -136,7 +133,6 @@ export default function TaskEditorCard({
         if (initialTask) {
             setData({
                 description: initialTask.description || '',
-                photoInstructions: initialTask.photoInstructions || '',
                 codeReaderType: initialTask.codeReaderType,
                 codeReaderInstructions: initialTask.codeReaderInstructions || '',
                 fileUploadInstructions: initialTask.fileUploadInstructions || '',
@@ -146,8 +142,8 @@ export default function TaskEditorCard({
         }
     }, [initialTask]);
 
-    const taskLabels = taskType 
-        ? TaskTypes.find(t => t.value === taskType) 
+    const taskLabels = taskType
+        ? TaskTypes.find(t => t.value === taskType)
         : null;
 
     const handleRequiredChange = (required: boolean) => {
@@ -171,7 +167,7 @@ export default function TaskEditorCard({
     };
 
     return (
-        <Card 
+        <Card
             ref={setNodeRef}
             style={style}
             className={`bg-muted/90 ${isDragging ? 'shadow-lg' : ''}`}
@@ -454,17 +450,9 @@ export default function TaskEditorCard({
 
                     {taskType === 'photo' && (
                         <div>
-                            <TextInput<TaskForm>
-                                form={{
-                                    data,
-                                    setData,
-                                    errors,
-                                    clearErrors
-                                }}
-                                name="photoInstructions"
-                                label="Instruções para Foto"
-                                placeholder="Como a foto deve ser tirada..."
-                            />
+                            <p className="text-sm text-muted-foreground">
+                                Instruções para registro fotográfico serão configuradas através do sistema de instruções.
+                            </p>
                         </div>
                     )}
 

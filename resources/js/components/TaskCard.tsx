@@ -35,12 +35,12 @@ const getTaskTypeIcon = (type: TaskType, codeReaderType?: 'qr_code' | 'barcode')
     return taskType ? <taskType.icon className="h-6 w-6" /> : <FileText className="h-4 w-4" />;
 };
 
-export default function TaskCard({ 
-    task, 
-    index, 
+export default function TaskCard({
+    task,
+    index,
     state,
-    onEdit, 
-    onTypeChange, 
+    onEdit,
+    onTypeChange,
     onNewTask,
     onPreview,
     onRespond,
@@ -121,7 +121,7 @@ export default function TaskCard({
                         {task.description}
                     </Label>
                 </div>
-                
+
                 {/* Campos específicos por tipo de tarefa */}
                 {task.type === 'multiple_choice' && task.options && (
                     <div className="space-y-2 pl-4">
@@ -161,9 +161,14 @@ export default function TaskCard({
                     </div>
                 )}
 
-                {task.type === 'photo' && task.photoInstructions && (
+                {task.type === 'photo' && task.instructions && task.instructions.length > 0 && (
                     <div className="pl-4 text-muted-foreground">
-                        <p>{task.photoInstructions}</p>
+                        {task.instructions.map((instruction, index) => {
+                            if (instruction.type === 'text') {
+                                return <p key={instruction.id}>{instruction.content}</p>;
+                            }
+                            return null;
+                        })}
                     </div>
                 )}
 
@@ -193,7 +198,7 @@ export default function TaskCard({
                         {task.description}
                     </Label>
                 </div>
-                
+
                 {/* Campos de resposta específicos por tipo de tarefa */}
                 {/* Aqui seria implementado o formulário real de resposta */}
                 <div className="pl-4 text-muted-foreground italic">
@@ -204,7 +209,7 @@ export default function TaskCard({
     };
 
     return (
-        <Card 
+        <Card
             ref={setNodeRef}
             style={style}
             className={`bg-muted/30 ${isDragging ? 'shadow-lg' : ''}`}
