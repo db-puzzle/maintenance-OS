@@ -82,11 +82,11 @@ function TabsList({
 
       {/* Desktop tabs */}
       <div className="hidden sm:block">
-        <div className="border-b border-gray-200 dark:border-gray-800">
+        <div className="border-b border-t py-2 border-gray-200 dark:border-gray-800">
           <TabsPrimitive.List
             data-slot="tabs-list"
             className={cn(
-              "-mb-px flex space-x-8",
+              "flex space-x-4",
               className
             )}
             {...props}
@@ -107,11 +107,11 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-all duration-200",
-        "border-transparent text-foreground/70 hover:border-gray-300 hover:text-gray-700",
-        "dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300",
-        "data-[state=active]:border-ring data-[state=active]:text-ring",
-        "dark:data-[state=active]:border-ring dark:data-[state=active]:text-ring",
+        "rounded-md px-3 py-2 text-sm font-medium transition-all duration-200",
+        "text-gray-500 hover:text-gray-700",
+        "dark:text-gray-400 dark:hover:text-gray-300",
+        "data-[state=active]:bg-gray-100 data-[state=active]:text-gray-700",
+        "dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-gray-300",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         "disabled:pointer-events-none disabled:opacity-50",
         className

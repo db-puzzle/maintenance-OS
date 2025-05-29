@@ -29,7 +29,7 @@ export function ListTableHeader({
         <div className="flex w-full flex-col justify-between gap-4">
             {/* Title and description */}
             <div className="flex flex-col gap-1">
-                <h2 className="text-foreground text-lg leading-7 font-semibold lg:text-xl">{title}</h2>
+                <h2 className="text-foreground text-xl leading-7 font-semibold lg:text-2xl">{title}</h2>
                 <p className="text-muted-foreground text-sm leading-5">{description}</p>
             </div>
 

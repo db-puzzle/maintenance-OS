@@ -165,6 +165,8 @@ class AssetController extends Controller
         $loadedAsset = $asset->load(['assetType', 'plant', 'area.plant', 'sector', 'routines.form']);
         return Inertia::render('asset-hierarchy/assets/show', [
             'asset' => $loadedAsset,
+            'assetTypes' => AssetType::all(),
+            'plants' => Plant::with('areas.sectors')->get(),
         ]);
     }
 

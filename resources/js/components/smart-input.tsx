@@ -12,6 +12,7 @@ interface SmartInputProps<T extends Record<string, any>> {
     placeholder?: string;
     type?: string;
     className?: string;
+    disabled?: boolean;
     onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
     validateInput?: (value: string) => boolean;
 }
@@ -22,6 +23,7 @@ export default function SmartInput<T extends Record<string, any>>({
     placeholder,
     type = 'text',
     className,
+    disabled = false,
     onBlur,
     validateInput,
 }: SmartInputProps<T>) {
@@ -47,6 +49,7 @@ export default function SmartInput<T extends Record<string, any>>({
             }}
             onBlur={onBlur}
             placeholder={placeholder}
+            disabled={disabled}
             className={cn('w-full', errors[name] && 'border-destructive', className)}
         />
     );

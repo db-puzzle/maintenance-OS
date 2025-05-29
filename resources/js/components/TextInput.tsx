@@ -19,6 +19,7 @@ interface TextInputProps<T extends FormData> {
     label: string;
     placeholder: string;
     required?: boolean;
+    disabled?: boolean;
     onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
     validateInput?: (value: string) => boolean;
 }
@@ -29,6 +30,7 @@ export default function TextInput<T extends FormData>({
     label,
     placeholder,
     required = false,
+    disabled = false,
     onBlur,
     validateInput,
 }: TextInputProps<T>) {
@@ -43,6 +45,7 @@ export default function TextInput<T extends FormData>({
                     form={form}
                     name={name}
                     placeholder={placeholder}
+                    disabled={disabled}
                     onBlur={onBlur}
                     validateInput={validateInput || form.validateInput}
                 />

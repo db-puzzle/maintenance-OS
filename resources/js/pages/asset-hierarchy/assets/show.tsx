@@ -1,15 +1,13 @@
 import CreateRoutineButton from '@/components/CreateRoutineButton';
 import RoutineList from '@/components/RoutineList';
-import { Card, CardContent } from '@/components/ui/card';
+import AssetFormComponent from '@/components/AssetFormComponent';
 import EmptyCard from '@/components/ui/empty-card';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type Area, type Asset, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { Calendar, Camera, FileText, MessageSquare } from 'lucide-react';
+import { Calendar, FileText, MessageSquare } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -21,6 +19,8 @@ interface Props {
         sector?: Sector;
         routines?: Array<any>;
     };
+    plants: Plant[];
+    assetTypes: AssetType[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -34,7 +34,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Show({ asset }: Props) {
+export default function Show({ asset, plants, assetTypes }: Props) {
     const { url } = usePage();
 
     // Extrai o parâmetro tab da URL
@@ -83,115 +83,14 @@ export default function Show({ asset }: Props) {
             id: 'informacoes',
             label: 'Informações Gerais',
             content: (
-                <Card>
-                    <CardContent>
-                        <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-4">
-                            {/* Coluna 1: Foto */}
-                            <div className="flex h-full flex-col justify-center">
-                                <div
-                                    className={`relative flex-1 overflow-hidden rounded-lg ${!asset.photo_path ? 'bg-muted' : ''} max-h-[238px] min-h-[238px]`}
-                                >
-                                    {asset.photo_path ? (
-                                        <img
-                                            src={`/storage/${asset.photo_path}`}
-                                            alt={`Foto do ativo ${asset.tag}`}
-                                            className="h-full w-full scale-120 object-contain"
-                                        />
-                                    ) : (
-                                        <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-2">
-                                            <Camera className="h-12 w-12" />
-                                            <span className="text-sm">Sem foto</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Grid de Informações 2x3 */}
-                            <div className="lg:col-span-3">
-                                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                                    {/* Linha 1 */}
-                                    <div className="space-y-4">
-                                        <div className="grid gap-2">
-                                            <Label>Número Serial</Label>
-                                            <div className="text-muted-foreground text-base">{asset.serial_number ?? '-'}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="grid gap-2">
-                                            <Label>Fabricante</Label>
-                                            <div className="text-muted-foreground text-base">{asset.manufacturer ?? '-'}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="grid gap-2">
-                                            <Label>Ano de Fabricação</Label>
-                                            <div className="text-muted-foreground text-base">{asset.manufacturing_year ?? '-'}</div>
-                                        </div>
-                                    </div>
-
-                                    <Separator className="col-span-3 my-4" />
-
-                                    {/* Linha 2 */}
-                                    <div className="space-y-4">
-                                        <div className="grid gap-2">
-                                            <Label>Planta</Label>
-                                            <div className="text-base">
-                                                {plantToShow ? (
-                                                    <Link
-                                                        href={route('asset-hierarchy.plantas.show', plantToShow.id)}
-                                                        className="text-primary hover:underline"
-                                                    >
-                                                        {plantToShow.name}
-                                                    </Link>
-                                                ) : (
-                                                    '-'
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="grid gap-2">
-                                            <Label>Área</Label>
-                                            <div className="text-base">
-                                                {asset.area ? (
-                                                    <Link
-                                                        href={route('asset-hierarchy.areas.show', asset.area.id)}
-                                                        className="text-primary hover:underline"
-                                                    >
-                                                        {asset.area.name}
-                                                    </Link>
-                                                ) : (
-                                                    '-'
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="grid gap-2">
-                                            <Label>Setor</Label>
-                                            <div className="text-base">
-                                                {asset.sector ? (
-                                                    <Link
-                                                        href={route('asset-hierarchy.setores.show', asset.sector.id)}
-                                                        className="text-primary hover:underline"
-                                                    >
-                                                        {asset.sector.name}
-                                                    </Link>
-                                                ) : (
-                                                    '-'
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="pt-8 p-4">
+                    <AssetFormComponent
+                        asset={asset}
+                        plants={plants}
+                        assetTypes={assetTypes}
+                        initialMode="view"
+                    />
+                </div>
             ),
         },
         {
