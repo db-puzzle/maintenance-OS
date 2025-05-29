@@ -1,13 +1,12 @@
+import TaskDescriptionInput from '@/components/TaskDescriptionInput';
+import AddTaskButton from '@/components/tasks/AddTaskButton';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Camera, FileText, List, MessageSquare, Pencil, QrCode, Barcode, Upload, ScanBarcode, CheckSquare, ListChecks, Ruler, PlusCircle, Eye, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Task, TaskState, TaskType, TaskTypes } from '@/types/task';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Task, TaskState, TaskType, TaskTypes, TaskOperations } from '@/types/task';
-import TextInput from '@/components/TextInput';
-import AddTaskButton from '@/components/tasks/AddTaskButton';
-import TaskDescriptionInput from '@/components/TaskDescriptionInput';
+import { ArrowLeft, FileText } from 'lucide-react';
 
 interface TaskCardProps {
     /** A tarefa a ser exibida */
@@ -31,38 +30,21 @@ interface TaskCardProps {
 }
 
 const getTaskTypeIcon = (type: TaskType, codeReaderType?: 'qr_code' | 'barcode') => {
-    const taskType = TaskTypes.find(t => t.value === type);
+    const taskType = TaskTypes.find((t) => t.value === type);
     return taskType ? <taskType.icon className="h-6 w-6" /> : <FileText className="h-4 w-4" />;
 };
 
-export default function TaskCard({
-    task,
-    index,
-    state,
-    onEdit,
-    onTypeChange,
-    onNewTask,
-    onPreview,
-    onRespond,
-    onViewNormal
-}: TaskCardProps) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging
-    } = useSortable({
+export default function TaskCard({ task, index, state, onEdit, onTypeChange, onNewTask, onPreview, onRespond, onViewNormal }: TaskCardProps) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: `task-${task.id}`,
-        animateLayoutChanges: () => false
+        animateLayoutChanges: () => false,
     });
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition: transition && 'transform 150ms ease',
         opacity: isDragging ? 0.5 : undefined,
-        zIndex: isDragging ? 1 : undefined
+        zIndex: isDragging ? 1 : undefined,
     };
 
     const renderStateActions = () => {
@@ -71,25 +53,15 @@ export default function TaskCard({
                 return null;
             case TaskState.Previewing:
                 return (
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={onViewNormal}
-                    >
-                        <ArrowLeft className="h-4 w-4 mr-1" />
+                    <Button type="button" variant="ghost" size="sm" onClick={onViewNormal}>
+                        <ArrowLeft className="mr-1 h-4 w-4" />
                         Voltar
                     </Button>
                 );
             case TaskState.Responding:
                 return (
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={onViewNormal}
-                    >
-                        <ArrowLeft className="h-4 w-4 mr-1" />
+                    <Button type="button" variant="ghost" size="sm" onClick={onViewNormal}>
+                        <ArrowLeft className="mr-1 h-4 w-4" />
                         Voltar
                     </Button>
                 );
@@ -99,16 +71,10 @@ export default function TaskCard({
     };
 
     const renderTaskContent = () => {
-        const taskType = TaskTypes.find(t => t.value === task.type);
+        const taskType = TaskTypes.find((t) => t.value === task.type);
         if (!taskType) return null;
 
-        return (
-            <TaskDescriptionInput
-                mode="view"
-                icon={taskType.icon}
-                value={task.description}
-            />
-        );
+        return <TaskDescriptionInput mode="view" icon={taskType.icon} value={task.description} />;
     };
 
     const renderPreviewContent = () => {
@@ -117,18 +83,16 @@ export default function TaskCard({
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
                     {getTaskTypeIcon(task.type, task.codeReaderType)}
-                    <Label className="text-lg font-semibold">
-                        {task.description}
-                    </Label>
+                    <Label className="text-lg font-semibold">{task.description}</Label>
                 </div>
 
                 {/* Campos específicos por tipo de tarefa */}
                 {task.type === 'multiple_choice' && task.options && (
                     <div className="space-y-2 pl-4">
-                        <Label className="text-sm text-muted-foreground">Escolha uma opção:</Label>
+                        <Label className="text-muted-foreground text-sm">Escolha uma opção:</Label>
                         {task.options.map((option, i) => (
                             <div key={i} className="flex items-center gap-2 pl-2">
-                                <div className="size-4 rounded-full border border-muted-foreground"></div>
+                                <div className="border-muted-foreground size-4 rounded-full border"></div>
                                 <span>{option}</span>
                             </div>
                         ))}
@@ -137,10 +101,10 @@ export default function TaskCard({
 
                 {task.type === 'multiple_select' && task.options && (
                     <div className="space-y-2 pl-4">
-                        <Label className="text-sm text-muted-foreground">Selecione as opções:</Label>
+                        <Label className="text-muted-foreground text-sm">Selecione as opções:</Label>
                         {task.options.map((option, i) => (
                             <div key={i} className="flex items-center gap-2 pl-2">
-                                <div className="size-4 rounded border border-muted-foreground"></div>
+                                <div className="border-muted-foreground size-4 rounded border"></div>
                                 <span>{option}</span>
                             </div>
                         ))}
@@ -148,7 +112,7 @@ export default function TaskCard({
                 )}
 
                 {task.type === 'measurement' && task.measurement && (
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-muted-foreground text-sm">
                         <div className="flex items-center gap-1">
                             <span>{task.measurement.name}:</span>
                             <span>
@@ -162,7 +126,7 @@ export default function TaskCard({
                 )}
 
                 {task.type === 'photo' && task.instructions && task.instructions.length > 0 && (
-                    <div className="pl-4 text-muted-foreground">
+                    <div className="text-muted-foreground pl-4">
                         {task.instructions.map((instruction, index) => {
                             if (instruction.type === 'text') {
                                 return <p key={instruction.id}>{instruction.content}</p>;
@@ -173,14 +137,14 @@ export default function TaskCard({
                 )}
 
                 {task.type === 'code_reader' && task.codeReaderInstructions && (
-                    <div className="pl-4 text-muted-foreground">
+                    <div className="text-muted-foreground pl-4">
                         <p>Tipo: {task.codeReaderType === 'qr_code' ? 'QR Code' : 'Código de Barras'}</p>
                         <p>{task.codeReaderInstructions}</p>
                     </div>
                 )}
 
                 {task.type === 'file_upload' && task.fileUploadInstructions && (
-                    <div className="pl-4 text-muted-foreground">
+                    <div className="text-muted-foreground pl-4">
                         <p>{task.fileUploadInstructions}</p>
                     </div>
                 )}
@@ -194,28 +158,22 @@ export default function TaskCard({
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
                     {getTaskTypeIcon(task.type, task.codeReaderType)}
-                    <Label className="text-lg font-semibold">
-                        {task.description}
-                    </Label>
+                    <Label className="text-lg font-semibold">{task.description}</Label>
                 </div>
 
                 {/* Campos de resposta específicos por tipo de tarefa */}
                 {/* Aqui seria implementado o formulário real de resposta */}
-                <div className="pl-4 text-muted-foreground italic">
-                    Interface de resposta para {TaskTypes.find(t => t.value === task.type)?.name}
+                <div className="text-muted-foreground pl-4 italic">
+                    Interface de resposta para {TaskTypes.find((t) => t.value === task.type)?.name}
                 </div>
             </div>
         );
     };
 
     return (
-        <Card
-            ref={setNodeRef}
-            style={style}
-            className={`bg-muted/30 ${isDragging ? 'shadow-lg' : ''}`}
-        >
+        <Card ref={setNodeRef} style={style} className={`bg-muted/30 ${isDragging ? 'shadow-lg' : ''}`}>
             <CardHeader>
-                <div className="flex items-center gap-2 justify-between">
+                <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                         {state === TaskState.Viewing && renderTaskContent()}
                         {state === TaskState.Previewing && renderPreviewContent()}
@@ -223,7 +181,9 @@ export default function TaskCard({
                     </div>
 
                     <div className="flex items-center gap-1">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${task.isRequired ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-500'}`}>
+                        <span
+                            className={`rounded-full px-2 py-0.5 text-xs ${task.isRequired ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-500'}`}
+                        >
                             {task.isRequired ? 'Obrigatório' : 'Opcional'}
                         </span>
                         {renderStateActions()}
@@ -244,11 +204,7 @@ export default function TaskCard({
                                 }
                             }}
                         />
-                        <Button
-                            type="button"
-                            onClick={onEdit}
-                            className="flex items-center gap-2"
-                        >
+                        <Button type="button" onClick={onEdit} className="flex items-center gap-2">
                             Editar
                         </Button>
                     </div>
@@ -256,4 +212,4 @@ export default function TaskCard({
             )}
         </Card>
     );
-} 
+}

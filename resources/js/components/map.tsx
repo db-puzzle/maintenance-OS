@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
+import { useEffect, useRef } from 'react';
 
 interface MapProps {
     coordinates: string | null;
@@ -12,7 +12,7 @@ export default function Map({ coordinates, className = '' }: MapProps) {
     useEffect(() => {
         if (!coordinates || !mapRef.current) return;
 
-        const [lat, lng] = coordinates.split(',').map(coord => parseFloat(coord.trim()));
+        const [lat, lng] = coordinates.split(',').map((coord) => parseFloat(coord.trim()));
 
         if (isNaN(lat) || isNaN(lng)) return;
 
@@ -29,7 +29,7 @@ export default function Map({ coordinates, className = '' }: MapProps) {
                 mapTypeControl: true,
                 mapTypeControlOptions: {
                     style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-                    mapTypeIds: ['satellite', 'roadmap']
+                    mapTypeIds: ['satellite', 'roadmap'],
                 },
                 streetViewControl: false,
                 fullscreenControl: false,
@@ -37,7 +37,7 @@ export default function Map({ coordinates, className = '' }: MapProps) {
                 mapTypeId: 'satellite',
                 tilt: 0,
                 heading: 0,
-                restriction: undefined
+                restriction: undefined,
             });
 
             const marker = new google.maps.marker.AdvancedMarkerElement({
@@ -49,15 +49,13 @@ export default function Map({ coordinates, className = '' }: MapProps) {
     }, [coordinates]);
 
     return (
-        <div 
-            ref={mapRef} 
-            className={`w-full h-[300px] md:h-[400px] lg:h-[500px] rounded-lg ${className} ${
+        <div
+            ref={mapRef}
+            className={`h-[300px] w-full rounded-lg md:h-[400px] lg:h-[500px] ${className} ${
                 !coordinates ? 'bg-muted flex items-center justify-center' : ''
             }`}
         >
-            {!coordinates && (
-                <p className="text-muted-foreground">Coordenadas GPS não disponíveis</p>
-            )}
+            {!coordinates && <p className="text-muted-foreground">Coordenadas GPS não disponíveis</p>}
         </div>
     );
-} 
+}

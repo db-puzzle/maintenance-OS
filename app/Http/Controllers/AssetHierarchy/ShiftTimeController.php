@@ -21,7 +21,8 @@ class ShiftTimeController extends Controller
         $shiftTime->update($validated);
         $shiftTime->shift->calculateTotals();
 
-        return response()->json($shiftTime);
+        return redirect()->back()
+            ->with('success', 'Horário do turno atualizado com sucesso.');
     }
 
     public function store(Request $request)
@@ -37,7 +38,8 @@ class ShiftTimeController extends Controller
         $shiftTime = ShiftTime::create($validated);
         $shiftTime->shift->calculateTotals();
 
-        return response()->json($shiftTime, 201);
+        return redirect()->back()
+            ->with('success', 'Horário do turno criado com sucesso.');
     }
 
     public function destroy(ShiftTime $shiftTime)
@@ -46,6 +48,7 @@ class ShiftTimeController extends Controller
         $shiftTime->delete();
         $shift->calculateTotals();
 
-        return response()->json(null, 204);
+        return redirect()->back()
+            ->with('success', 'Horário do turno excluído com sucesso.');
     }
 } 

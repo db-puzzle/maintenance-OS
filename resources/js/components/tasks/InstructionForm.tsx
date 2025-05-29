@@ -1,16 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { ImageInstruction, Instruction, InstructionType, TextInstruction, VideoInstruction } from '@/types/task';
 import { FileText, Image, Video } from 'lucide-react';
-import { 
-    Instruction, 
-    InstructionType, 
-    TextInstruction, 
-    ImageInstruction, 
-    VideoInstruction 
-} from '@/types/task';
+import { useEffect, useState } from 'react';
 
 interface InstructionFormProps {
     /** Instrução atual */
@@ -23,12 +17,7 @@ interface InstructionFormProps {
     disableTypeChange?: boolean;
 }
 
-export function InstructionForm({ 
-    instruction, 
-    onChange, 
-    onTypeChange, 
-    disableTypeChange = false 
-}: InstructionFormProps) {
+export function InstructionForm({ instruction, onChange, onTypeChange, disableTypeChange = false }: InstructionFormProps) {
     const [activeTab, setActiveTab] = useState<string>(instruction.type);
 
     // Atualiza a aba ativa se o tipo de instrução mudar externamente
@@ -43,7 +32,7 @@ export function InstructionForm({
 
     const renderTextForm = () => {
         const textInstruction = instruction as TextInstruction;
-        
+
         return (
             <div className="space-y-4">
                 <div className="space-y-2">
@@ -54,7 +43,7 @@ export function InstructionForm({
                         onChange={(e) => {
                             onChange({
                                 ...textInstruction,
-                                content: e.target.value
+                                content: e.target.value,
                             });
                         }}
                         placeholder="Digite o texto da instrução"
@@ -67,7 +56,7 @@ export function InstructionForm({
 
     const renderImageForm = () => {
         const imageInstruction = instruction as ImageInstruction;
-        
+
         return (
             <div className="space-y-4">
                 <div className="space-y-2">
@@ -78,13 +67,13 @@ export function InstructionForm({
                         onChange={(e) => {
                             onChange({
                                 ...imageInstruction,
-                                imageUrl: e.target.value
+                                imageUrl: e.target.value,
                             });
                         }}
                         placeholder="https://exemplo.com/imagem.jpg"
                     />
                 </div>
-                
+
                 <div className="space-y-2">
                     <Label htmlFor="image-caption">Legenda</Label>
                     <Input
@@ -93,21 +82,21 @@ export function InstructionForm({
                         onChange={(e) => {
                             onChange({
                                 ...imageInstruction,
-                                caption: e.target.value
+                                caption: e.target.value,
                             });
                         }}
                         placeholder="Descreva a imagem"
                     />
                 </div>
-                
+
                 {imageInstruction.imageUrl && (
                     <div className="mt-4">
-                        <p className="text-sm text-muted-foreground mb-2">Visualização:</p>
-                        <div className="relative rounded-md overflow-hidden bg-muted">
-                            <img 
-                                src={imageInstruction.imageUrl} 
-                                alt={imageInstruction.caption || "Visualização"} 
-                                className="w-full h-auto object-cover max-h-48"
+                        <p className="text-muted-foreground mb-2 text-sm">Visualização:</p>
+                        <div className="bg-muted relative overflow-hidden rounded-md">
+                            <img
+                                src={imageInstruction.imageUrl}
+                                alt={imageInstruction.caption || 'Visualização'}
+                                className="h-auto max-h-48 w-full object-cover"
                             />
                         </div>
                     </div>
@@ -118,7 +107,7 @@ export function InstructionForm({
 
     const renderVideoForm = () => {
         const videoInstruction = instruction as VideoInstruction;
-        
+
         return (
             <div className="space-y-4">
                 <div className="space-y-2">
@@ -129,13 +118,13 @@ export function InstructionForm({
                         onChange={(e) => {
                             onChange({
                                 ...videoInstruction,
-                                videoUrl: e.target.value
+                                videoUrl: e.target.value,
                             });
                         }}
                         placeholder="https://exemplo.com/video.mp4"
                     />
                 </div>
-                
+
                 <div className="space-y-2">
                     <Label htmlFor="video-caption">Legenda</Label>
                     <Input
@@ -144,22 +133,18 @@ export function InstructionForm({
                         onChange={(e) => {
                             onChange({
                                 ...videoInstruction,
-                                caption: e.target.value
+                                caption: e.target.value,
                             });
                         }}
                         placeholder="Descreva o vídeo"
                     />
                 </div>
-                
+
                 {videoInstruction.videoUrl && (
                     <div className="mt-4">
-                        <p className="text-sm text-muted-foreground mb-2">Visualização:</p>
-                        <div className="relative rounded-md overflow-hidden bg-muted aspect-video">
-                            <video 
-                                src={videoInstruction.videoUrl} 
-                                controls
-                                className="w-full h-full object-cover"
-                            />
+                        <p className="text-muted-foreground mb-2 text-sm">Visualização:</p>
+                        <div className="bg-muted relative aspect-video overflow-hidden rounded-md">
+                            <video src={videoInstruction.videoUrl} controls className="h-full w-full object-cover" />
                         </div>
                     </div>
                 )}
@@ -183,12 +168,8 @@ export function InstructionForm({
     return (
         <div className="space-y-6 pt-4">
             {!disableTypeChange && (
-                <Tabs 
-                    value={activeTab} 
-                    onValueChange={handleTabChange}
-                    className="w-full"
-                >
-                    <TabsList className="grid grid-cols-3 mb-4">
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                    <TabsList className="mb-4 grid grid-cols-3">
                         <TabsTrigger value={InstructionType.Image} className="flex items-center gap-2">
                             <Image className="h-4 w-4" />
                             <span>Imagem</span>
@@ -206,7 +187,7 @@ export function InstructionForm({
             )}
 
             {disableTypeChange && (
-                <div className="flex items-center gap-2 mb-4">
+                <div className="mb-4 flex items-center gap-2">
                     <div className="text-primary mr-2">
                         {instruction.type === InstructionType.Text && <FileText className="h-5 w-5" />}
                         {instruction.type === InstructionType.Image && <Image className="h-5 w-5" />}
@@ -223,4 +204,4 @@ export function InstructionForm({
             {renderContentForm()}
         </div>
     );
-} 
+}

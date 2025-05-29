@@ -1,6 +1,6 @@
-import { type BreadcrumbItem } from '@/types';
 import FormEditor from '@/pages/forms/form-editor';
 import FormViewer from '@/pages/forms/form-viewer';
+import { type BreadcrumbItem } from '@/types';
 
 interface InspectionFormData {
     id: number;
@@ -86,10 +86,10 @@ export function InspectionFormViewer({ inspection, asset, mode = 'view' }: Inspe
             mode={mode}
             breadcrumbs={breadcrumbs}
             backRoute={route('asset-hierarchy.assets.show', { asset: asset.id, tab: 'inspections' })}
-            submitRoute={route('asset-hierarchy.assets.inspections.executions.store', { 
-                asset: asset.id, 
-                inspection: inspection.id 
+            submitRoute={route('asset-hierarchy.assets.inspections.executions.store', {
+                asset: asset.id,
+                inspection: inspection.id,
             })}
         />
     );
-} 
+}

@@ -1,23 +1,17 @@
-import { type BreadcrumbItem } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import ListLayout from '@/layouts/asset-hierarchy/list-layout';
-import { useState, useEffect } from 'react';
-import { toast } from "sonner";
-import { DataTable, ColumnVisibility, type Column } from '@/components/data-table';
-import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import { ColumnVisibility, DataTable, type Column } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, ArrowUpDown } from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link } from '@inertiajs/react';
+import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import AppLayout from '@/layouts/app-layout';
+import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { type BreadcrumbItem } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { ArrowUpDown, MoreVertical } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface PageProps {
     [key: string]: any;
@@ -92,11 +86,11 @@ export default function Plantas({ plants, filters }: Props) {
         dependencies: {
             areas: {
                 total: number;
-                items: { id: number; name: string; }[];
+                items: { id: number; name: string }[];
             };
             asset: {
                 total: number;
-                items: { id: number; tag: string; }[];
+                items: { id: number; tag: string }[];
             };
         };
     } | null>(null);
@@ -108,7 +102,7 @@ export default function Plantas({ plants, filters }: Props) {
 
     useEffect(() => {
         if (flash?.success) {
-            toast.success("Operação realizada com sucesso!", {
+            toast.success('Operação realizada com sucesso!', {
                 description: flash.success,
             });
         }
@@ -118,13 +112,13 @@ export default function Plantas({ plants, filters }: Props) {
         const searchTimeout = setTimeout(() => {
             router.get(
                 route('asset-hierarchy.plantas'),
-                { 
+                {
                     search,
                     sort,
                     direction,
-                    per_page: perPage
+                    per_page: perPage,
                 },
-                { preserveState: true, preserveScroll: true }
+                { preserveState: true, preserveScroll: true },
             );
         }, 300);
 
@@ -151,9 +145,9 @@ export default function Plantas({ plants, filters }: Props) {
 
     const columns: Column<Plant>[] = [
         {
-            id: "name",
+            id: 'name',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('name')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('name')}>
                     Nome
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
@@ -162,77 +156,65 @@ export default function Plantas({ plants, filters }: Props) {
                 return (
                     <div>
                         <div className="font-medium">{row.original.name}</div>
-                        {row.original.description && (
-                            <div className="text-sm text-muted-foreground">
-                                {row.original.description}
-                            </div>
-                        )}
+                        {row.original.description && <div className="text-muted-foreground text-sm">{row.original.description}</div>}
                     </div>
                 );
             },
-            width: "w-[300px]",
+            width: 'w-[300px]',
         },
         {
-            id: "areas_count",
+            id: 'areas_count',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('areas_count')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('areas_count')}>
                     Áreas
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Plant }) => row.original.areas_count,
-            width: "w-[100px]",
+            width: 'w-[100px]',
         },
         {
-            id: "sectors_count",
+            id: 'sectors_count',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('sectors_count')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('sectors_count')}>
                     Setores
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Plant }) => row.original.sectors_count,
-            width: "w-[100px]",
+            width: 'w-[100px]',
         },
         {
-            id: "asset_count",
+            id: 'asset_count',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('asset_count')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('asset_count')}>
                     Ativos
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Plant }) => row.original.asset_count,
-            width: "w-[100px]",
+            width: 'w-[100px]',
         },
         {
-            id: "actions",
-            header: "Ações",
+            id: 'actions',
+            header: 'Ações',
             cell: (row: { original: Plant }) => (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-                            size="icon"
-                        >
+                        <Button variant="ghost" className="text-muted-foreground data-[state=open]:bg-muted flex size-8" size="icon">
                             <MoreVertical />
                             <span className="sr-only">Abrir menu</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.plantas.edit', row.original.id)}>
-                                Editar
-                            </Link>
+                            <Link href={route('asset-hierarchy.plantas.edit', row.original.id)}>Editar</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>
-                            Excluir
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>Excluir</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
-            width: "w-[80px]",
+            width: 'w-[80px]',
         },
     ];
 
@@ -250,7 +232,7 @@ export default function Plantas({ plants, filters }: Props) {
                 setSelectedPlant(null);
                 setConfirmationText('');
                 setShowDeleteDialog(false);
-                toast.error("Erro ao excluir planta", {
+                toast.error('Erro ao excluir planta', {
                     description: errors.message || 'Não foi possível excluir a planta.',
                 });
             },
@@ -260,20 +242,20 @@ export default function Plantas({ plants, filters }: Props) {
     const checkDependencies = async (plant: Plant) => {
         setIsCheckingDependencies(true);
         setSelectedPlant(plant);
-        
+
         try {
             const response = await fetch(route('asset-hierarchy.plantas.check-dependencies', plant.id));
             const data = await response.json();
             setDependencies(data);
-            
+
             if (data.can_delete) {
                 setShowDeleteDialog(true);
             } else {
                 setShowDependenciesDialog(true);
             }
         } catch (error) {
-            toast.error("Erro ao verificar dependências", {
-                description: "Não foi possível verificar as dependências da planta.",
+            toast.error('Erro ao verificar dependências', {
+                description: 'Não foi possível verificar as dependências da planta.',
             });
         } finally {
             setIsCheckingDependencies(false);
@@ -332,20 +314,20 @@ export default function Plantas({ plants, filters }: Props) {
                     <DialogDescription asChild>
                         <div className="space-y-6">
                             <div className="text-sm">
-                                Esta planta possui área(s) e/ou ativo(s) vinculado(s) e não pode ser excluída até que todas as áreas 
-                                e ativos sejam removidos ou movidos para outra planta.
+                                Esta planta possui área(s) e/ou ativo(s) vinculado(s) e não pode ser excluída até que todas as áreas e ativos sejam
+                                removidos ou movidos para outra planta.
                             </div>
-                            
+
                             <div className="space-y-6">
                                 {/* Ativos Vinculados */}
                                 <div className="space-y-3">
-                                    <div className="font-medium text-sm">
+                                    <div className="text-sm font-medium">
                                         Total de Ativos Vinculados: {dependencies?.dependencies?.asset?.total || 0}
                                     </div>
 
                                     {dependencies?.dependencies?.asset?.items && dependencies.dependencies.asset.items.length > 0 && (
-                                        <ul className="list-disc list-inside space-y-2 text-sm">
-                                            {dependencies.dependencies.asset.items.map(asset => (
+                                        <ul className="list-inside list-disc space-y-2 text-sm">
+                                            {dependencies.dependencies.asset.items.map((asset) => (
                                                 <li key={asset.id}>
                                                     <Link
                                                         href={route('asset-hierarchy.assets.show', asset.id)}
@@ -361,13 +343,13 @@ export default function Plantas({ plants, filters }: Props) {
 
                                 {/* Áreas Vinculadas */}
                                 <div className="space-y-3">
-                                    <div className="font-medium text-sm">
+                                    <div className="text-sm font-medium">
                                         Total de Áreas Vinculadas: {dependencies?.dependencies?.areas?.total || 0}
                                     </div>
 
                                     {dependencies?.dependencies?.areas?.items && dependencies.dependencies.areas.items.length > 0 && (
-                                        <ul className="list-disc list-inside space-y-2 text-sm">
-                                            {dependencies.dependencies.areas.items.map(area => (
+                                        <ul className="list-inside list-disc space-y-2 text-sm">
+                                            {dependencies.dependencies.areas.items.map((area) => (
                                                 <li key={area.id}>
                                                     <Link
                                                         href={route('asset-hierarchy.areas.show', area.id)}
@@ -384,10 +366,7 @@ export default function Plantas({ plants, filters }: Props) {
                         </div>
                     </DialogDescription>
                     <DialogFooter>
-                        <Button 
-                            variant="secondary" 
-                            onClick={() => setShowDependenciesDialog(false)}
-                        >
+                        <Button variant="secondary" onClick={() => setShowDependenciesDialog(false)}>
                             Fechar
                         </Button>
                     </DialogFooter>
@@ -416,8 +395,8 @@ export default function Plantas({ plants, filters }: Props) {
                         <DialogClose asChild>
                             <Button variant="secondary">Cancelar</Button>
                         </DialogClose>
-                        <Button 
-                            variant="destructive" 
+                        <Button
+                            variant="destructive"
                             onClick={() => selectedPlant && handleDelete(selectedPlant)}
                             disabled={!isConfirmationValid || isDeleting}
                         >
@@ -428,4 +407,4 @@ export default function Plantas({ plants, filters }: Props) {
             </Dialog>
         </AppLayout>
     );
-} 
+}

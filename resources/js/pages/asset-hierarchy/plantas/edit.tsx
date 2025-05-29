@@ -1,29 +1,18 @@
-import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, Link } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import EditLayout from '@/layouts/asset-hierarchy/edit-layout';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import InputError from '@/components/input-error';
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { estados } from '@/data/estados';
+import AppLayout from '@/layouts/app-layout';
+import EditLayout from '@/layouts/asset-hierarchy/edit-layout';
+import { cn } from '@/lib/utils';
+import { type BreadcrumbItem } from '@/types';
+import { Head, useForm } from '@inertiajs/react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from "sonner";
+import { toast } from 'sonner';
 
 interface Plant {
     id: number;
@@ -89,15 +78,15 @@ export default function EditPlant({ plant }: Props) {
     const handleSave = () => {
         const formData = {
             ...data,
-            zip_code: data.zip_code.replace(/\D/g, '')
+            zip_code: data.zip_code.replace(/\D/g, ''),
         };
         put(route('asset-hierarchy.plantas.update', plant.id), {
             ...formData,
             onError: (errors: any) => {
-                toast.error("Erro ao atualizar planta", {
-                    description: "Verifique os campos e tente novamente."
+                toast.error('Erro ao atualizar planta', {
+                    description: 'Verifique os campos e tente novamente.',
                 });
-            }
+            },
         });
     };
 
@@ -113,7 +102,13 @@ export default function EditPlant({ plant }: Props) {
                 onSave={handleSave}
                 isSaving={processing}
             >
-                <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6 max-w-2xl">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSave();
+                    }}
+                    className="max-w-2xl space-y-6"
+                >
                     <div className="grid gap-6">
                         {/* Nome da Planta - Campo Obrigatório */}
                         <div className="grid gap-2">
@@ -136,7 +131,9 @@ export default function EditPlant({ plant }: Props) {
                             <Label>Endereço</Label>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-2">
-                                    <Label htmlFor="street" className="text-sm text-muted-foreground">Rua</Label>
+                                    <Label htmlFor="street" className="text-muted-foreground text-sm">
+                                        Rua
+                                    </Label>
                                     <Input
                                         id="street"
                                         value={data.street}
@@ -146,24 +143,17 @@ export default function EditPlant({ plant }: Props) {
                                     <InputError message={errors.street} />
                                 </div>
                                 <div>
-                                    <Label htmlFor="number" className="text-sm text-muted-foreground">Número</Label>
-                                    <Input
-                                        id="number"
-                                        value={data.number}
-                                        onChange={(e) => setData('number', e.target.value)}
-                                        placeholder="Número"
-                                    />
+                                    <Label htmlFor="number" className="text-muted-foreground text-sm">
+                                        Número
+                                    </Label>
+                                    <Input id="number" value={data.number} onChange={(e) => setData('number', e.target.value)} placeholder="Número" />
                                     <InputError message={errors.number} />
                                 </div>
                                 <div>
-                                    <Label htmlFor="zip_code" className="text-sm text-muted-foreground">CEP</Label>
-                                    <Input
-                                        id="zip_code"
-                                        value={data.zip_code}
-                                        onChange={handleCEPChange}
-                                        placeholder="00000-000"
-                                        maxLength={9}
-                                    />
+                                    <Label htmlFor="zip_code" className="text-muted-foreground text-sm">
+                                        CEP
+                                    </Label>
+                                    <Input id="zip_code" value={data.zip_code} onChange={handleCEPChange} placeholder="00000-000" maxLength={9} />
                                     <InputError message={errors.zip_code} />
                                 </div>
                             </div>
@@ -174,17 +164,16 @@ export default function EditPlant({ plant }: Props) {
                             <Label>Localização</Label>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <Label htmlFor="city" className="text-sm text-muted-foreground">Cidade</Label>
-                                    <Input
-                                        id="city"
-                                        value={data.city}
-                                        onChange={(e) => setData('city', e.target.value)}
-                                        placeholder="Cidade"
-                                    />
+                                    <Label htmlFor="city" className="text-muted-foreground text-sm">
+                                        Cidade
+                                    </Label>
+                                    <Input id="city" value={data.city} onChange={(e) => setData('city', e.target.value)} placeholder="Cidade" />
                                     <InputError message={errors.city} />
                                 </div>
                                 <div>
-                                    <Label htmlFor="state" className="text-sm text-muted-foreground">Estado</Label>
+                                    <Label htmlFor="state" className="text-muted-foreground text-sm">
+                                        Estado
+                                    </Label>
                                     <Popover open={open} onOpenChange={setOpen}>
                                         <PopoverTrigger asChild>
                                             <Button
@@ -194,9 +183,7 @@ export default function EditPlant({ plant }: Props) {
                                                 aria-expanded={open}
                                                 className="w-full justify-between"
                                             >
-                                                {data.state
-                                                    ? estados.find((estado) => estado.value === data.state)?.label
-                                                    : "Selecione um estado..."}
+                                                {data.state ? estados.find((estado) => estado.value === data.state)?.label : 'Selecione um estado...'}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
@@ -211,14 +198,14 @@ export default function EditPlant({ plant }: Props) {
                                                                 key={estado.value}
                                                                 value={estado.value}
                                                                 onSelect={(currentValue) => {
-                                                                    setData('state', currentValue === data.state ? "" : currentValue);
+                                                                    setData('state', currentValue === data.state ? '' : currentValue);
                                                                     setOpen(false);
                                                                 }}
                                                             >
                                                                 <Check
                                                                     className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        data.state === estado.value ? "opacity-100" : "opacity-0"
+                                                                        'mr-2 h-4 w-4',
+                                                                        data.state === estado.value ? 'opacity-100' : 'opacity-0',
                                                                     )}
                                                                 />
                                                                 {estado.label}
@@ -250,4 +237,4 @@ export default function EditPlant({ plant }: Props) {
             </EditLayout>
         </AppLayout>
     );
-} 
+}

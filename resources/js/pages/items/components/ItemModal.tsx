@@ -1,17 +1,10 @@
-import React from 'react';
-import { Save } from 'lucide-react';
-import { 
-    Sheet, 
-    SheetContent, 
-    SheetHeader, 
-    SheetTitle, 
-    SheetDescription,
-    SheetFooter
-} from '@/components/ui/sheet';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Save } from 'lucide-react';
+import React from 'react';
 
 interface BOMItem {
     id: string;
@@ -32,28 +25,18 @@ interface ItemModalProps {
     onOpenChange: (open: boolean) => void;
 }
 
-const ItemModal: React.FC<ItemModalProps> = ({ 
-    editingItem, 
-    isNewItem, 
-    onCancel, 
-    onSave, 
-    setEditingItem,
-    isOpen,
-    onOpenChange
-}) => {
+const ItemModal: React.FC<ItemModalProps> = ({ editingItem, isNewItem, onCancel, onSave, setEditingItem, isOpen, onOpenChange }) => {
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
             <SheetContent className="sm:max-w-md">
                 <div className="px-8">
                     <SheetHeader className="mb-4">
-                        <SheetTitle>
-                            {isNewItem ? 'Adicionar Novo Item' : 'Editar Item'}
-                        </SheetTitle>
+                        <SheetTitle>{isNewItem ? 'Adicionar Novo Item' : 'Editar Item'}</SheetTitle>
                         <SheetDescription>
                             {isNewItem ? 'Adicione um novo item à estrutura BOM' : 'Edite as informações do item selecionado'}
                         </SheetDescription>
                     </SheetHeader>
-                    
+
                     <div className="space-y-6 py-4">
                         <div className="space-y-4">
                             <div className="space-y-2">
@@ -65,7 +48,7 @@ const ItemModal: React.FC<ItemModalProps> = ({
                                     onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
                                 />
                             </div>
-                            
+
                             <div className="space-y-2">
                                 <Label htmlFor="description">Descrição</Label>
                                 <Input
@@ -75,7 +58,7 @@ const ItemModal: React.FC<ItemModalProps> = ({
                                     onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
                                 />
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="quantity">Quantidade</Label>
@@ -87,13 +70,10 @@ const ItemModal: React.FC<ItemModalProps> = ({
                                         onChange={(e) => setEditingItem({ ...editingItem, quantity: parseInt(e.target.value) || 1 })}
                                     />
                                 </div>
-                                
+
                                 <div className="space-y-2">
                                     <Label htmlFor="unit">Unidade</Label>
-                                    <Select 
-                                        value={editingItem.unit}
-                                        onValueChange={(value) => setEditingItem({ ...editingItem, unit: value })}
-                                    >
+                                    <Select value={editingItem.unit} onValueChange={(value) => setEditingItem({ ...editingItem, unit: value })}>
                                         <SelectTrigger id="unit">
                                             <SelectValue placeholder="Selecione a unidade" />
                                         </SelectTrigger>
@@ -110,19 +90,14 @@ const ItemModal: React.FC<ItemModalProps> = ({
                             </div>
                         </div>
                     </div>
-                    
-                    <SheetFooter className="flex justify-end gap-2 mt-6">
-                        <Button
-                            variant="outline"
-                            onClick={onCancel}
-                        >
+
+                    <SheetFooter className="mt-6 flex justify-end gap-2">
+                        <Button variant="outline" onClick={onCancel}>
                             Cancelar
                         </Button>
-                        
-                        <Button
-                            onClick={onSave}
-                        >
-                            <Save className="w-4 h-4 mr-2" />
+
+                        <Button onClick={onSave}>
+                            <Save className="mr-2 h-4 w-4" />
                             Salvar
                         </Button>
                     </SheetFooter>
@@ -132,4 +107,4 @@ const ItemModal: React.FC<ItemModalProps> = ({
     );
 };
 
-export default ItemModal; 
+export default ItemModal;

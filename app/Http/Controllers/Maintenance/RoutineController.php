@@ -19,10 +19,6 @@ class RoutineController extends Controller
     {
         $routines = Routine::with(['assets', 'form', 'routineExecutions'])->get();
         
-        if (request()->wantsJson()) {
-            return response()->json($routines);
-        }
-        
         return Inertia::render('Maintenance/Routines/Index', [
             'routines' => $routines
         ]);
@@ -69,10 +65,6 @@ class RoutineController extends Controller
         $routine = Routine::create($validated);
         $routine->assets()->attach($assetIds);
 
-        if ($request->wantsJson()) {
-            return response()->json($routine->load('assets'), 201);
-        }
-        
         return redirect()->route('maintenance.routines.edit', $routine)
             ->with('success', 'Rotina criada com sucesso.');
     }
@@ -80,10 +72,6 @@ class RoutineController extends Controller
     public function show(Routine $routine)
     {
         $routine->load(['assets', 'form', 'routineExecutions']);
-        
-        if (request()->wantsJson()) {
-            return response()->json($routine);
-        }
         
         return Inertia::render('Maintenance/Routines/Show', [
             'routine' => $routine
@@ -135,10 +123,6 @@ class RoutineController extends Controller
         $routine->update($validated);
         $routine->assets()->sync($assetIds);
 
-        if ($request->wantsJson()) {
-            return response()->json($routine->load('assets'));
-        }
-        
         return redirect()->back()
             ->with('success', 'Rotina atualizada com sucesso.');
     }
@@ -147,21 +131,11 @@ class RoutineController extends Controller
     {
         // Verificar se existem execuções associadas
         if ($routine->routineExecutions()->count() > 0) {
-            if (request()->wantsJson()) {
-                return response()->json([
-                    'message' => 'Não é possível excluir uma rotina com execuções associadas'
-                ], 422);
-            }
-            
             return redirect()->back()
                 ->with('error', 'Não é possível excluir uma rotina com execuções associadas.');
         }
 
         $routine->delete();
-        
-        if (request()->wantsJson()) {
-            return response()->json(['message' => 'Rotina excluída com sucesso']);
-        }
         
         return redirect()->route('maintenance.routines.index')
             ->with('success', 'Rotina excluída com sucesso.');
@@ -175,10 +149,6 @@ class RoutineController extends Controller
         ]);
         $execution->save();
 
-        if (request()->wantsJson()) {
-            return response()->json($execution, 201);
-        }
-        
         return redirect()->route('maintenance.executions.edit', $execution)
             ->with('success', 'Nova execução da rotina criada com sucesso.');
     }
@@ -186,10 +156,6 @@ class RoutineController extends Controller
     public function executions(Routine $routine)
     {
         $executions = $routine->routineExecutions()->with(['executor'])->get();
-        
-        if (request()->wantsJson()) {
-            return response()->json($executions);
-        }
         
         return Inertia::render('Maintenance/Routines/Executions', [
             'routine' => $routine,
@@ -286,13 +252,6 @@ class RoutineController extends Controller
             $this->createFormTask($routine->form, $taskData, $index);
         }
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'message' => 'Formulário salvo com sucesso',
-                'form' => $routine->fresh()->form
-            ]);
-        }
-
         return redirect()->back()
             ->with('success', 'Formulário salvo com sucesso.');
     }
@@ -362,10 +321,6 @@ class RoutineController extends Controller
     {
         $routines = $asset->routines()->with(['form', 'routineExecutions'])->get();
         
-        if (request()->wantsJson()) {
-            return response()->json($routines);
-        }
-        
         return Inertia::render('asset-hierarchy/assets/routines', [
             'asset' => $asset,
             'routines' => $routines
@@ -390,10 +345,6 @@ class RoutineController extends Controller
         $routine->assets()->attach($asset->id);
         $routine->load('assets', 'form');
 
-        if ($request->wantsJson()) {
-            return response()->json($routine, 201);
-        }
-
         return redirect()->back()
             ->with('success', 'Rotina criada com sucesso.')
             ->with('newRoutine', $routine->toArray());
@@ -403,9 +354,6 @@ class RoutineController extends Controller
     {
         // Verificar se a rotina está associada ao ativo
         if (!$asset->routines()->where('routines.id', $routine->id)->exists()) {
-            if ($request->wantsJson()) {
-                return response()->json(['error' => 'Esta rotina não está associada a este ativo.'], 404);
-            }
             return redirect()->back()
                 ->with('error', 'Esta rotina não está associada a este ativo.');
         }
@@ -423,10 +371,6 @@ class RoutineController extends Controller
         ]);
 
         $routine->update($validated);
-
-        if ($request->wantsJson()) {
-            return response()->json($routine->load('assets'), 200);
-        }
         
         return redirect()->back()
             ->with('success', 'Rotina atualizada com sucesso.');
@@ -436,9 +380,6 @@ class RoutineController extends Controller
     {
         // Verificar se a rotina está associada ao ativo
         if (!$asset->routines()->where('routines.id', $routine->id)->exists()) {
-            if (request()->wantsJson()) {
-                return response()->json(['error' => 'Esta rotina não está associada a este ativo.'], 404);
-            }
             return redirect()->back()
                 ->with('error', 'Esta rotina não está associada a este ativo.');
         }
@@ -461,10 +402,6 @@ class RoutineController extends Controller
         } else {
             // Apenas desassociar do ativo
             $asset->routines()->detach($routine->id);
-        }
-
-        if (request()->wantsJson()) {
-            return response()->json(['message' => "Rotina '{$routineName}' removida do ativo com sucesso."]);
         }
 
         return redirect()->back()
@@ -555,13 +492,6 @@ class RoutineController extends Controller
         // Criar novas tarefas
         foreach ($tasksData as $index => $taskData) {
             $this->createFormTask($routine->form, $taskData, $index);
-        }
-
-        if ($request->wantsJson()) {
-            return response()->json([
-                'message' => 'Formulário salvo com sucesso',
-                'form' => $routine->fresh()->form
-            ]);
         }
 
         return redirect()->back()
@@ -736,13 +666,6 @@ class RoutineController extends Controller
                     ]);
                 }
             }
-        }
-
-        if ($request->wantsJson()) {
-            return response()->json([
-                'message' => 'Formulário preenchido com sucesso',
-                'execution' => $formExecution->load('responses.attachments')
-            ]);
         }
 
         return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset->id, 'tab' => 'rotinas'])

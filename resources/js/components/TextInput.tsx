@@ -1,6 +1,6 @@
-import { Label } from "@/components/ui/label";
-import InputError from "@/components/input-error";
-import SmartInput from "@/components/smart-input";
+import InputError from '@/components/input-error';
+import SmartInput from '@/components/smart-input';
+import { Label } from '@/components/ui/label';
 
 interface FormData {
     [key: string]: any;
@@ -30,7 +30,7 @@ export default function TextInput<T extends FormData>({
     placeholder,
     required = false,
     onBlur,
-    validateInput
+    validateInput,
 }: TextInputProps<T>) {
     return (
         <div className="grid gap-2">
@@ -50,4 +50,4 @@ export default function TextInput<T extends FormData>({
             <InputError message={form.errors[name]} />
         </div>
     );
-} 
+}

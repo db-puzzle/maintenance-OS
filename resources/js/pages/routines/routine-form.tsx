@@ -19,4 +19,4 @@ interface Props {
 
 export default function RoutineFormPage({ routine, asset, mode = 'view' }: Props) {
     return <RoutineFormViewer routine={routine} asset={asset} mode={mode} />;
-} 
+}

@@ -18,10 +18,6 @@ class TaskResponseController extends Controller
     {
         $responses = $formExecution->taskResponses()->with('attachments')->get();
         
-        if (request()->wantsJson()) {
-            return response()->json($responses);
-        }
-        
         return Inertia::render('Forms/Responses/Index', [
             'execution' => $formExecution,
             'responses' => $responses
@@ -48,10 +44,6 @@ class TaskResponseController extends Controller
         }
         
         if (!$taskSnapshot) {
-            if ($request->wantsJson()) {
-                return response()->json(['error' => 'Tarefa não encontrada no formulário.'], 400);
-            }
-            
             return redirect()->back()->with('error', 'Tarefa não encontrada no formulário.');
         }
         
@@ -62,10 +54,6 @@ class TaskResponseController extends Controller
             
         if ($existingResponse) {
             $existingResponse->complete($validated['response']);
-            
-            if ($request->wantsJson()) {
-                return response()->json($existingResponse);
-            }
             
             return redirect()->back()->with('success', 'Resposta atualizada com sucesso.');
         }
@@ -86,10 +74,6 @@ class TaskResponseController extends Controller
             $formExecution->complete();
         }
         
-        if ($request->wantsJson()) {
-            return response()->json($taskResponse, 201);
-        }
-        
         return redirect()->back()->with('success', 'Resposta salva com sucesso.');
     }
 
@@ -99,19 +83,11 @@ class TaskResponseController extends Controller
     public function show(FormExecution $formExecution, TaskResponse $taskResponse)
     {
         if ($taskResponse->form_execution_id !== $formExecution->id) {
-            if (request()->wantsJson()) {
-                return response()->json(['error' => 'Esta resposta não pertence a esta execução.'], 400);
-            }
-            
             return redirect()->route('forms.executions.show', $formExecution)
                 ->with('error', 'Esta resposta não pertence a esta execução.');
         }
         
         $taskResponse->load('attachments');
-        
-        if (request()->wantsJson()) {
-            return response()->json($taskResponse);
-        }
         
         return Inertia::render('Forms/Responses/Show', [
             'execution' => $formExecution,
@@ -125,18 +101,10 @@ class TaskResponseController extends Controller
     public function update(Request $request, FormExecution $formExecution, TaskResponse $taskResponse)
     {
         if ($taskResponse->form_execution_id !== $formExecution->id) {
-            if ($request->wantsJson()) {
-                return response()->json(['error' => 'Esta resposta não pertence a esta execução.'], 400);
-            }
-            
             return redirect()->back()->with('error', 'Esta resposta não pertence a esta execução.');
         }
         
         if (!$formExecution->isInProgress()) {
-            if ($request->wantsJson()) {
-                return response()->json(['error' => 'Não é possível atualizar respostas - formulário não está em andamento.'], 400);
-            }
-            
             return redirect()->back()->with('error', 'Não é possível atualizar respostas - formulário não está em andamento.');
         }
         
@@ -145,10 +113,6 @@ class TaskResponseController extends Controller
         ]);
         
         $taskResponse->complete($validated['response']);
-        
-        if ($request->wantsJson()) {
-            return response()->json($taskResponse);
-        }
         
         return redirect()->back()->with('success', 'Resposta atualizada com sucesso.');
     }

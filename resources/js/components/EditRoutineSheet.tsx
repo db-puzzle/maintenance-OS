@@ -1,22 +1,14 @@
-import React from 'react';
-import { toast } from "sonner";
 import { router } from '@inertiajs/react';
+import React from 'react';
+import { toast } from 'sonner';
 
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetDescription,
-    SheetFooter,
-    SheetTrigger
-} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, X, FileText } from 'lucide-react';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
+import { FileText, Save, X } from 'lucide-react';
 import { Routine } from './RoutineList';
 
 interface RoutineForm {
@@ -37,7 +29,7 @@ interface EditRoutineSheetProps {
     assetId?: number;
     // Props para SheetTrigger
     triggerText?: string;
-    triggerVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+    triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
     triggerIcon?: React.ReactNode;
@@ -46,12 +38,12 @@ interface EditRoutineSheetProps {
 const routineTypes = [
     { value: '1', label: 'Inspeção' },
     { value: '2', label: 'Rotina de Manutenção' },
-    { value: '3', label: 'Relatório de Manutenção' }
+    { value: '3', label: 'Relatório de Manutenção' },
 ];
 
 const routineStatuses = [
     { value: 'Active', label: 'Ativo' },
-    { value: 'Inactive', label: 'Inativo' }
+    { value: 'Inactive', label: 'Inativo' },
 ];
 
 const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
@@ -61,18 +53,18 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
     routine,
     isNew = false,
     assetId,
-    triggerText = "Editar Rotina",
-    triggerVariant = "outline",
+    triggerText = 'Editar Rotina',
+    triggerVariant = 'outline',
     showTrigger = false,
     triggerRef,
-    triggerIcon
+    triggerIcon,
 }) => {
     const [data, setData] = React.useState<RoutineForm>({
         name: routine?.name || '',
         trigger_hours: routine?.trigger_hours || 0,
         type: routine?.type || 2,
         status: routine?.status || 'Active',
-        description: routine?.description || ''
+        description: routine?.description || '',
     });
 
     const [processing, setProcessing] = React.useState(false);
@@ -81,8 +73,8 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
     const [internalSheetOpen, setInternalSheetOpen] = React.useState(false);
 
     // Determina se deve usar controle interno ou externo
-    const sheetOpen = (isOpen !== undefined) ? isOpen : internalSheetOpen;
-    const setSheetOpen = (isOpen !== undefined && onOpenChange) ? onOpenChange : setInternalSheetOpen;
+    const sheetOpen = isOpen !== undefined ? isOpen : internalSheetOpen;
+    const setSheetOpen = isOpen !== undefined && onOpenChange ? onOpenChange : setInternalSheetOpen;
 
     // Atualiza os dados quando a routine muda
     React.useEffect(() => {
@@ -92,7 +84,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 trigger_hours: routine.trigger_hours || 0,
                 type: routine.type || 2,
                 status: routine.status || 'Active',
-                description: routine.description || ''
+                description: routine.description || '',
             });
         }
     }, [routine]);
@@ -142,7 +134,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
 
             router.post(route('maintenance.assets.routines.store', assetId), data, {
                 onSuccess: () => {
-                    toast.success("Rotina criada com sucesso!");
+                    toast.success('Rotina criada com sucesso!');
                     setProcessing(false);
                     setSheetOpen(false);
                     // Recarregar a página para mostrar a nova rotina com o ID correto
@@ -150,11 +142,11 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 },
                 onError: (errors: any) => {
                     console.error('Erro ao criar rotina:', errors);
-                    if (errors.name) setErrors(prev => ({ ...prev, name: errors.name }));
-                    if (errors.trigger_hours) setErrors(prev => ({ ...prev, trigger_hours: errors.trigger_hours }));
+                    if (errors.name) setErrors((prev) => ({ ...prev, name: errors.name }));
+                    if (errors.trigger_hours) setErrors((prev) => ({ ...prev, trigger_hours: errors.trigger_hours }));
                     toast.error('Erro ao criar rotina. Verifique os campos e tente novamente.');
                     setProcessing(false);
-                }
+                },
             });
         } else {
             // Atualizar rotina existente usando RoutineController
@@ -173,18 +165,18 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             router.put(route('maintenance.assets.routines.update', { asset: assetId, routine: routine.id }), data, {
                 onSuccess: (response: any) => {
                     const savedRoutine: Routine = response.props?.routine || { ...routine, ...data };
-                    toast.success("Rotina atualizada com sucesso!");
+                    toast.success('Rotina atualizada com sucesso!');
                     setProcessing(false);
                     setSheetOpen(false);
                     onSuccess?.(savedRoutine);
                 },
                 onError: (errors: any) => {
                     console.error('Erro ao atualizar rotina:', errors);
-                    if (errors.name) setErrors(prev => ({ ...prev, name: errors.name }));
-                    if (errors.trigger_hours) setErrors(prev => ({ ...prev, trigger_hours: errors.trigger_hours }));
+                    if (errors.name) setErrors((prev) => ({ ...prev, name: errors.name }));
+                    if (errors.trigger_hours) setErrors((prev) => ({ ...prev, trigger_hours: errors.trigger_hours }));
                     toast.error('Erro ao atualizar rotina. Verifique os campos e tente novamente.');
                     setProcessing(false);
-                }
+                },
             });
         }
     };
@@ -197,7 +189,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 trigger_hours: routine.trigger_hours || 0,
                 type: routine.type || 2,
                 status: routine.status || 'Active',
-                description: routine.description || ''
+                description: routine.description || '',
             });
         } else {
             setData({
@@ -205,7 +197,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 trigger_hours: 0,
                 type: 2,
                 status: 'Active',
-                description: ''
+                description: '',
             });
         }
         setErrors({});
@@ -213,10 +205,10 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
     };
 
     const updateData = (key: keyof RoutineForm, value: any) => {
-        setData(prev => ({ ...prev, [key]: value }));
+        setData((prev) => ({ ...prev, [key]: value }));
         // Limpar erro do campo quando ele é alterado
         if (errors[key]) {
-            setErrors(prev => ({ ...prev, [key]: undefined }));
+            setErrors((prev) => ({ ...prev, [key]: undefined }));
         }
     };
 
@@ -236,12 +228,10 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                         <FileText className="h-5 w-5" />
                         {isNew ? 'Nova Rotina de Manutenção' : 'Editar Rotina'}
                     </SheetTitle>
-                    <SheetDescription>
-                        {isNew ? 'Configure uma nova rotina de manutenção' : 'Atualize os dados da rotina'}
-                    </SheetDescription>
+                    <SheetDescription>{isNew ? 'Configure uma nova rotina de manutenção' : 'Atualize os dados da rotina'}</SheetDescription>
                 </SheetHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6 m-4">
+                <form onSubmit={handleSubmit} className="m-4 space-y-6">
                     <div className="space-y-4">
                         {/* Nome da Rotina */}
                         <div className="space-y-2">
@@ -253,9 +243,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                 placeholder="Ex: Verificação mensal de óleo"
                                 className={errors.name ? 'border-red-500' : ''}
                             />
-                            {errors.name && (
-                                <p className="text-sm text-red-500">{errors.name}</p>
-                            )}
+                            {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                         </div>
 
                         {/* Intervalo de Acionamento */}
@@ -271,22 +259,15 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                 className={errors.trigger_hours ? 'border-red-500' : ''}
                             />
                             {data.trigger_hours > 0 && (
-                                <p className="text-sm text-muted-foreground">
-                                    Equivale a: {formatTriggerHours(data.trigger_hours)}
-                                </p>
+                                <p className="text-muted-foreground text-sm">Equivale a: {formatTriggerHours(data.trigger_hours)}</p>
                             )}
-                            {errors.trigger_hours && (
-                                <p className="text-sm text-red-500">{errors.trigger_hours}</p>
-                            )}
+                            {errors.trigger_hours && <p className="text-sm text-red-500">{errors.trigger_hours}</p>}
                         </div>
 
                         {/* Tipo de Rotina */}
                         <div className="space-y-2">
                             <Label htmlFor="type">Tipo de Rotina</Label>
-                            <Select
-                                value={data.type.toString()}
-                                onValueChange={(value) => updateData('type', parseInt(value) as 1 | 2 | 3)}
-                            >
+                            <Select value={data.type.toString()} onValueChange={(value) => updateData('type', parseInt(value) as 1 | 2 | 3)}>
                                 <SelectTrigger id="type">
                                     <SelectValue />
                                 </SelectTrigger>
@@ -303,10 +284,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                         {/* Status */}
                         <div className="space-y-2">
                             <Label htmlFor="status">Status</Label>
-                            <Select
-                                value={data.status}
-                                onValueChange={(value) => updateData('status', value as 'Active' | 'Inactive')}
-                            >
+                            <Select value={data.status} onValueChange={(value) => updateData('status', value as 'Active' | 'Inactive')}>
                                 <SelectTrigger id="status">
                                     <SelectValue />
                                 </SelectTrigger>
@@ -334,20 +312,12 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                     </div>
 
                     <SheetFooter className="flex justify-end gap-2">
-                        <Button
-                            type="submit"
-                            disabled={processing || !data.name || data.trigger_hours <= 0}
-                        >
-                            <Save className="h-4 w-4 mr-1" />
+                        <Button type="submit" disabled={processing || !data.name || data.trigger_hours <= 0}>
+                            <Save className="mr-1 h-4 w-4" />
                             {processing ? 'Salvando...' : 'Salvar'}
                         </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleCancel}
-                            disabled={processing}
-                        >
-                            <X className="h-4 w-4 mr-1" />
+                        <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
+                            <X className="mr-1 h-4 w-4" />
                             Cancelar
                         </Button>
                     </SheetFooter>
@@ -357,4 +327,4 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
     );
 };
 
-export default EditRoutineSheet; 
+export default EditRoutineSheet;

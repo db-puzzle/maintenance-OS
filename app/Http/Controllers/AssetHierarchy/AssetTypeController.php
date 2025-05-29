@@ -148,10 +148,24 @@ class AssetTypeController extends Controller
         $asset = $assetType->asset()->take(5)->get(['id', 'tag', 'description']);
         $totalAsset = $assetType->asset()->count();
 
-        return response()->json([
-            'hasDependencies' => $totalAsset > 0,
-            'asset' => $asset,
-            'totalAsset' => $totalAsset,
+        $hasDependencies = $totalAsset > 0;
+
+        // Se não há dependências, redirecionar para confirmação de exclusão
+        if (!$hasDependencies) {
+            return redirect()->route('asset-hierarchy.tipos-ativo')
+                ->with('info', "O tipo de ativo {$assetType->name} pode ser excluído com segurança.");
+        }
+
+        // Se há dependências, mostrar página com detalhes das dependências
+        return Inertia::render('asset-hierarchy/tipos-ativo/dependencies', [
+            'assetType' => $assetType,
+            'dependencies' => [
+                'asset' => [
+                    'total' => $totalAsset,
+                    'items' => $asset
+                ]
+            ],
+            'hasDependencies' => true
         ]);
     }
 } 

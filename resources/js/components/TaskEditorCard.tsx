@@ -1,26 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import {
-    X, GripVertical, Lightbulb, Plus, Clock, FileText, CheckSquare,
-    ListChecks, Ruler, Camera, ScanBarcode, Upload, QrCode, Barcode,
-    ClipboardList, ChevronRight
-} from 'lucide-react';
 import ItemSelect from '@/components/ItemSelect';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import TextInput from '@/components/TextInput';
 import TaskDescriptionInput from '@/components/TaskDescriptionInput';
-import { useForm } from '@inertiajs/react';
-import { Task, TaskType, TaskTypes, TaskTypeGroups, CodeReaderTypes, TaskOperations, TaskState, Measurement, DefaultMeasurement } from '@/types/task';
-import { UnitCategory, MeasurementUnitCategories, findUnitCategory } from '@/types/units';
+import AddTaskButton from '@/components/tasks/AddTaskButton';
+import TextInput from '@/components/TextInput';
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
@@ -28,13 +11,20 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
-} from "@/components/ui/hover-card"
-import AddTaskButton from '@/components/tasks/AddTaskButton';
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { CodeReaderTypes, DefaultMeasurement, Measurement, Task, TaskOperations, TaskState, TaskTypes } from '@/types/task';
+import { MeasurementUnitCategories, UnitCategory, findUnitCategory } from '@/types/units';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useForm } from '@inertiajs/react';
+import { ClipboardList, Clock, GripVertical, Plus, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface TaskEditorCardProps {
     /** A tarefa inicial sendo editada */
@@ -66,33 +56,26 @@ export default function TaskEditorCard({
     onPreview,
     onRemove,
     onNewTask,
-    updateTask
+    updateTask,
 }: TaskEditorCardProps) {
     const { data, setData, errors, clearErrors } = useForm<TaskForm>({
         description: initialTask?.description || '',
         codeReaderType: initialTask?.codeReaderType,
         codeReaderInstructions: initialTask?.codeReaderInstructions || '',
         fileUploadInstructions: initialTask?.fileUploadInstructions || '',
-        options: options
+        options: options,
     });
 
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging
-    } = useSortable({
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: `task-${initialTask?.id}`,
-        animateLayoutChanges: () => false
+        animateLayoutChanges: () => false,
     });
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition: transition && 'transform 150ms ease',
         opacity: isDragging ? 0.5 : undefined,
-        zIndex: isDragging ? 1 : undefined
+        zIndex: isDragging ? 1 : undefined,
     };
 
     const [isChoiceBasedTask, setIsChoiceBasedTask] = useState(taskType === 'multiple_choice' || taskType === 'multiple_select');
@@ -100,7 +83,7 @@ export default function TaskEditorCard({
     // Função utilitária para criar uma tarefa a partir do formulário
     const createTaskFromForm = (): Task => {
         if (!taskType) {
-            throw new Error("Tipo de tarefa não definido");
+            throw new Error('Tipo de tarefa não definido');
         }
 
         const newTask: Task = {
@@ -110,7 +93,7 @@ export default function TaskEditorCard({
             instructionImages: initialTask?.instructionImages || [],
             instructions: initialTask?.instructions || [],
             isRequired,
-            state: TaskState.Viewing
+            state: TaskState.Viewing,
         };
 
         if (isChoiceBasedTask) {
@@ -136,22 +119,20 @@ export default function TaskEditorCard({
                 codeReaderType: initialTask.codeReaderType,
                 codeReaderInstructions: initialTask.codeReaderInstructions || '',
                 fileUploadInstructions: initialTask.fileUploadInstructions || '',
-                options: initialTask.options || []
+                options: initialTask.options || [],
             });
             setIsChoiceBasedTask(initialTask.type === 'multiple_choice' || initialTask.type === 'multiple_select');
         }
     }, [initialTask]);
 
-    const taskLabels = taskType
-        ? TaskTypes.find(t => t.value === taskType)
-        : null;
+    const taskLabels = taskType ? TaskTypes.find((t) => t.value === taskType) : null;
 
     const handleRequiredChange = (required: boolean) => {
-        updateTask(task => TaskOperations.updateRequired(task, required));
+        updateTask((task) => TaskOperations.updateRequired(task, required));
     };
 
     const handleOptionsChange = (newOptions: string[]) => {
-        updateTask(task => TaskOperations.updateOptions(task, newOptions));
+        updateTask((task) => TaskOperations.updateOptions(task, newOptions));
     };
 
     const handleAddOption = () => {
@@ -159,21 +140,17 @@ export default function TaskEditorCard({
     };
 
     const handleRemoveOption = (index: number) => {
-        updateTask(task => TaskOperations.removeOption(task, index));
+        updateTask((task) => TaskOperations.removeOption(task, index));
     };
 
     const handleMeasurementChange = (newMeasurement: Measurement) => {
-        updateTask(task => TaskOperations.updateMeasurement(task, newMeasurement));
+        updateTask((task) => TaskOperations.updateMeasurement(task, newMeasurement));
     };
 
     return (
-        <Card
-            ref={setNodeRef}
-            style={style}
-            className={`bg-muted/90 ${isDragging ? 'shadow-lg' : ''}`}
-        >
+        <Card ref={setNodeRef} style={style} className={`bg-muted/90 ${isDragging ? 'shadow-lg' : ''}`}>
             <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between">
                     {taskType && taskLabels && (
                         <TaskDescriptionInput<TaskForm>
                             mode="edit"
@@ -182,7 +159,7 @@ export default function TaskEditorCard({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors
+                                clearErrors,
                             }}
                             name="description"
                             value={data.description}
@@ -192,20 +169,12 @@ export default function TaskEditorCard({
                     )}
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                            <Switch
-                                id="required"
-                                checked={isRequired}
-                                onCheckedChange={handleRequiredChange}
-                            />
-                            <Label htmlFor="required" className="text-sm text-muted-foreground">
+                            <Switch id="required" checked={isRequired} onCheckedChange={handleRequiredChange} />
+                            <Label htmlFor="required" className="text-muted-foreground text-sm">
                                 Obrigatório
                             </Label>
                         </div>
-                        <button
-                            {...attributes}
-                            {...listeners}
-                            className="cursor-grab hover:cursor-grabbing touch-none"
-                        >
+                        <button {...attributes} {...listeners} className="cursor-grab touch-none hover:cursor-grabbing">
                             <GripVertical className="h-4 w-4 text-gray-500" />
                         </button>
                     </div>
@@ -215,9 +184,9 @@ export default function TaskEditorCard({
                 <div className="flex flex-col gap-4">
                     {!taskType && (
                         <Card className="bg-background shadow-none">
-                            <CardContent className="px-4 py-4 flex items-start space-x-4">
+                            <CardContent className="flex items-start space-x-4 px-4 py-4">
                                 <div className="flex items-center gap-2">
-                                    <ClipboardList className="size-6 text-foreground/60" />
+                                    <ClipboardList className="text-foreground/60 size-6" />
                                     <span>Nenhuma tarefa cadastrada</span>
                                 </div>
                             </CardContent>
@@ -229,9 +198,9 @@ export default function TaskEditorCard({
                             <ItemSelect
                                 items={CodeReaderTypes}
                                 label="Tipo de Código"
-                                value={data.codeReaderType ? String(CodeReaderTypes.find(t => t.value === data.codeReaderType)?.id || '') : ''}
+                                value={data.codeReaderType ? String(CodeReaderTypes.find((t) => t.value === data.codeReaderType)?.id || '') : ''}
                                 onValueChange={(value) => {
-                                    const selectedType = CodeReaderTypes.find(t => t.id === Number(value));
+                                    const selectedType = CodeReaderTypes.find((t) => t.id === Number(value));
                                     if (selectedType) {
                                         setData('codeReaderType', selectedType.value);
                                     } else {
@@ -253,7 +222,7 @@ export default function TaskEditorCard({
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors
+                                    clearErrors,
                                 }}
                                 name="description"
                                 label={taskLabels?.label || ''}
@@ -263,9 +232,9 @@ export default function TaskEditorCard({
                         </div>
                     ) : (
                         <Card className="bg-background shadow-none">
-                            <CardContent className="px-4 py-4 flex items-start space-x-4">
+                            <CardContent className="flex items-start space-x-4 px-4 py-4">
                                 <div className="flex items-center gap-2">
-                                    <ClipboardList className="size-6 text-foreground/60" />
+                                    <ClipboardList className="text-foreground/60 size-6" />
                                     <span>Nenhuma tarefa cadastrada</span>
                                 </div>
                             </CardContent>
@@ -275,32 +244,24 @@ export default function TaskEditorCard({
                     {isChoiceBasedTask && (
                         <div className="grid gap-2">
                             <div className="space-y-0.5 pl-4">
-                                <div className="flex justify-between items-center mb-2">
-                                    <Label className="text-base font-medium pt-2 ml-2">
+                                <div className="mb-2 flex items-center justify-between">
+                                    <Label className="ml-2 pt-2 text-base font-medium">
                                         {taskType === 'multiple_choice' ? 'Opções de Escolha' : 'Opções de Seleção'}
                                     </Label>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleAddOption}
-                                        className="flex items-center gap-2"
-                                    >
-                                        <Plus className="h-4 w-4 mr-2" />
+                                    <Button type="button" variant="outline" size="sm" onClick={handleAddOption} className="flex items-center gap-2">
+                                        <Plus className="mr-2 h-4 w-4" />
                                         Adicionar Opção
                                     </Button>
                                 </div>
                                 {options.length === 0 ? (
                                     <Card className="bg-background shadow-none">
-                                        <CardContent className="px-4 flex items-start space-x-4">
-                                            <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center">
-                                                <Clock className="size-6 text-foreground/60" />
+                                        <CardContent className="flex items-start space-x-4 px-4">
+                                            <div className="bg-muted/50 flex size-12 items-center justify-center rounded-full">
+                                                <Clock className="text-foreground/60 size-6" />
                                             </div>
                                             <div className="flex flex-col">
                                                 <h3 className="text-md font-medium">Nenhuma opção adicionada</h3>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Adicione opções de resposta para esta tarefa.
-                                                </p>
+                                                <p className="text-muted-foreground text-sm">Adicione opções de resposta para esta tarefa.</p>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -314,7 +275,7 @@ export default function TaskEditorCard({
                                                             form={{
                                                                 data: {
                                                                     ...data,
-                                                                    [`option-${index}`]: value
+                                                                    [`option-${index}`]: value,
                                                                 },
                                                                 setData: (field, value) => {
                                                                     if (field === `option-${index}`) {
@@ -324,7 +285,7 @@ export default function TaskEditorCard({
                                                                     }
                                                                 },
                                                                 errors,
-                                                                clearErrors
+                                                                clearErrors,
                                                             }}
                                                             name={`option-${index}`}
                                                             label={`Opção ${index + 1}`}
@@ -335,7 +296,7 @@ export default function TaskEditorCard({
                                                         type="button"
                                                         variant="destructive"
                                                         size="icon"
-                                                        className="h-6 w-6 mt-6"
+                                                        className="mt-6 h-6 w-6"
                                                         onClick={() => handleRemoveOption(index)}
                                                     >
                                                         <X className="h-3 w-3" />
@@ -361,7 +322,7 @@ export default function TaskEditorCard({
                                                 onChange={(e) => {
                                                     handleMeasurementChange({
                                                         ...(measurement || DefaultMeasurement),
-                                                        name: e.target.value
+                                                        name: e.target.value,
                                                     });
                                                 }}
                                                 placeholder="Nome da medição"
@@ -378,7 +339,7 @@ export default function TaskEditorCard({
                                                         onChange={(e) => {
                                                             handleMeasurementChange({
                                                                 ...(measurement || DefaultMeasurement),
-                                                                min: parseFloat(e.target.value)
+                                                                min: parseFloat(e.target.value),
                                                             });
                                                         }}
                                                     />
@@ -393,7 +354,7 @@ export default function TaskEditorCard({
                                                         onChange={(e) => {
                                                             handleMeasurementChange({
                                                                 ...(measurement || DefaultMeasurement),
-                                                                target: parseFloat(e.target.value)
+                                                                target: parseFloat(e.target.value),
                                                             });
                                                         }}
                                                     />
@@ -408,7 +369,7 @@ export default function TaskEditorCard({
                                                         onChange={(e) => {
                                                             handleMeasurementChange({
                                                                 ...(measurement || DefaultMeasurement),
-                                                                max: parseFloat(e.target.value)
+                                                                max: parseFloat(e.target.value),
                                                             });
                                                         }}
                                                     />
@@ -425,7 +386,7 @@ export default function TaskEditorCard({
                                                         const firstUnitInCategory = MeasurementUnitCategories[category as UnitCategory][0].value;
                                                         handleMeasurementChange({
                                                             ...(measurement || DefaultMeasurement),
-                                                            unit: firstUnitInCategory
+                                                            unit: firstUnitInCategory,
                                                         });
                                                     }}
                                                 >
@@ -450,7 +411,7 @@ export default function TaskEditorCard({
 
                     {taskType === 'photo' && (
                         <div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-muted-foreground text-sm">
                                 Instruções para registro fotográfico serão configuradas através do sistema de instruções.
                             </p>
                         </div>
@@ -463,7 +424,7 @@ export default function TaskEditorCard({
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors
+                                    clearErrors,
                                 }}
                                 name="codeReaderInstructions"
                                 label="Instruções para Leitura de Código"
@@ -479,7 +440,7 @@ export default function TaskEditorCard({
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors
+                                    clearErrors,
                                 }}
                                 name="fileUploadInstructions"
                                 label="Instruções para Upload de Arquivo"
@@ -488,14 +449,10 @@ export default function TaskEditorCard({
                         </div>
                     )}
 
-                    <div className="flex justify-between items-center mt-4">
+                    <div className="mt-4 flex items-center justify-between">
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    className="flex items-center gap-2"
-                                >
+                                <Button type="button" variant="destructive" className="flex items-center gap-2">
                                     Excluir
                                 </Button>
                             </AlertDialogTrigger>
@@ -543,4 +500,4 @@ export default function TaskEditorCard({
             </CardContent>
         </Card>
     );
-} 
+}

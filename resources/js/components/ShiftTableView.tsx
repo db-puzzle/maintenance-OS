@@ -1,6 +1,5 @@
-import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface Break {
     start_time: string;
@@ -46,8 +45,8 @@ export default function ShiftTableView({ schedules }: ShiftTableViewProps) {
                 </TableHeader>
                 <TableBody>
                     {weekdays.map((day) => {
-                        const schedule = schedules.find(s => s.weekday === day.key);
-                        const activeShifts = schedule?.shifts.filter(s => s.active) || [];
+                        const schedule = schedules.find((s) => s.weekday === day.key);
+                        const activeShifts = schedule?.shifts.filter((s) => s.active) || [];
 
                         return (
                             <TableRow key={day.key}>
@@ -89,4 +88,4 @@ export default function ShiftTableView({ schedules }: ShiftTableViewProps) {
             </Table>
         </div>
     );
-} 
+}

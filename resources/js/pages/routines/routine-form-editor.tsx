@@ -18,4 +18,4 @@ interface Props {
 
 export default function RoutineFormEditorPage({ routine, asset }: Props) {
     return <RoutineFormEditor routine={routine} asset={asset} />;
-} 
+}

@@ -1,19 +1,19 @@
-import { type BreadcrumbItem } from '@/types';
-import { type Asset, type AssetType, type Area, type AssetForm, type Sector, type Plant } from '@/types/asset-hierarchy';
-import { Head, useForm, router } from '@inertiajs/react';
-import { useMemo, useRef } from 'react';
-import { toast } from "sonner";
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import CreateAreaSheet from '@/components/CreateAreaSheet';
+import CreateAssetTypeSheet from '@/components/CreateAssetTypeSheet';
+import CreatePlantSheet from '@/components/CreatePlantSheet';
+import CreateSectorSheet from '@/components/CreateSectorSheet';
+import DeleteAsset from '@/components/delete-asset';
 import InputError from '@/components/input-error';
 import ItemSelect from '@/components/ItemSelect';
-import TextInput from "@/components/TextInput";
 import PhotoUploader from '@/components/PhotoUploader';
-import CreatePlantSheet from '@/components/CreatePlantSheet';
-import CreateAreaSheet from '@/components/CreateAreaSheet';
-import CreateSectorSheet from '@/components/CreateSectorSheet';
-import CreateAssetTypeSheet from '@/components/CreateAssetTypeSheet';
-import DeleteAsset from '@/components/delete-asset';
+import TextInput from '@/components/TextInput';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { type BreadcrumbItem } from '@/types';
+import { type Area, type Asset, type AssetForm, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useMemo, useRef } from 'react';
+import { toast } from 'sonner';
 
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
@@ -70,14 +70,14 @@ function AssetFormFields({
     handleCreateAssetTypeClick,
     handleCreatePlantClick,
     handleCreateAreaClick,
-    handleCreateSectorClick
+    handleCreateSectorClick,
 }: AssetFormFieldsProps) {
     return (
         <>
             {/* Foto e Campos Principais */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Coluna 1: Foto */}
-                <PhotoUploader 
+                <PhotoUploader
                     label="Foto do Ativo"
                     value={data.photo}
                     onChange={(file) => setData('photo', file)}
@@ -93,7 +93,7 @@ function AssetFormFields({
                             data,
                             setData,
                             errors,
-                            clearErrors
+                            clearErrors,
                         }}
                         name="tag"
                         label="TAG"
@@ -126,7 +126,7 @@ function AssetFormFields({
                             data,
                             setData,
                             errors,
-                            clearErrors
+                            clearErrors,
                         }}
                         name="serial_number"
                         label="Número Serial"
@@ -139,7 +139,7 @@ function AssetFormFields({
                             data,
                             setData,
                             errors,
-                            clearErrors
+                            clearErrors,
                         }}
                         name="manufacturing_year"
                         label="Ano de Fabricação"
@@ -196,7 +196,7 @@ function AssetFormFields({
                                 clearErrors('area_id');
                             }}
                             onCreateClick={handleCreateAreaClick}
-                            placeholder={data.plant_id ? "Selecione uma área (opcional)" : "Selecione uma planta primeiro"}
+                            placeholder={data.plant_id ? 'Selecione uma área (opcional)' : 'Selecione uma planta primeiro'}
                             error={errors.area_id}
                             disabled={!data.plant_id}
                             canClear={true}
@@ -215,7 +215,7 @@ function AssetFormFields({
                                 clearErrors('sector_id');
                             }}
                             onCreateClick={handleCreateSectorClick}
-                            placeholder={data.area_id ? "Selecione um setor (opcional)" : "Selecione uma área primeiro"}
+                            placeholder={data.area_id ? 'Selecione um setor (opcional)' : 'Selecione uma área primeiro'}
                             error={errors.sector_id}
                             disabled={!data.area_id}
                             canClear={true}
@@ -228,7 +228,7 @@ function AssetFormFields({
                             data,
                             setData,
                             errors,
-                            clearErrors
+                            clearErrors,
                         }}
                         name="manufacturer"
                         label="Fabricante"
@@ -255,27 +255,29 @@ function AssetFormFields({
 
 export default function AssetForm({ assetTypes, plants, asset }: Props) {
     const isEditing = !!asset;
-    
+
     // Breadcrumbs dinâmicos baseados no modo (criar/editar)
-    const breadcrumbs: BreadcrumbItem[] = isEditing ? [
-        {
-            title: 'Ativos',
-            href: '/asset-hierarchy/assets',
-        },
-        {
-            title: 'Editar Ativo',
-            href: `/asset-hierarchy/assets/${asset.id}/edit`,
-        },
-    ] : [
-        {
-            title: 'Ativos',
-            href: '/asset-hierarchy/assets',
-        },
-        {
-            title: 'Novo Ativo',
-            href: '/asset-hierarchy/assets/create',
-        },
-    ];
+    const breadcrumbs: BreadcrumbItem[] = isEditing
+        ? [
+              {
+                  title: 'Ativos',
+                  href: '/asset-hierarchy/assets',
+              },
+              {
+                  title: 'Editar Ativo',
+                  href: `/asset-hierarchy/assets/${asset.id}/edit`,
+              },
+          ]
+        : [
+              {
+                  title: 'Ativos',
+                  href: '/asset-hierarchy/assets',
+              },
+              {
+                  title: 'Novo Ativo',
+                  href: '/asset-hierarchy/assets/create',
+              },
+          ];
 
     const { data, setData, post, put, processing, errors, clearErrors } = useForm<AssetForm>({
         tag: asset?.tag || '',
@@ -293,7 +295,7 @@ export default function AssetForm({ assetTypes, plants, asset }: Props) {
 
     const availableAreas = useMemo(() => {
         if (!data.plant_id) return [];
-        const selectedPlant = plants.find(p => p.id.toString() === data.plant_id);
+        const selectedPlant = plants.find((p) => p.id.toString() === data.plant_id);
         return selectedPlant?.areas || [];
     }, [data.plant_id, plants]);
 
@@ -307,7 +309,7 @@ export default function AssetForm({ assetTypes, plants, asset }: Props) {
         if (isEditing) {
             // Lógica para edição
             const formData = new FormData();
-            Object.keys(data).forEach(key => {
+            Object.keys(data).forEach((key) => {
                 if (key === 'photo') {
                     if (data[key]) {
                         formData.append(key, data[key] as File);
@@ -323,26 +325,26 @@ export default function AssetForm({ assetTypes, plants, asset }: Props) {
                     router.visit(route('asset-hierarchy.assets.show', asset.id));
                 },
                 onError: (errors) => {
-                    toast.error("Erro ao atualizar ativo", {
-                        description: "Verifique os campos e tente novamente."
+                    toast.error('Erro ao atualizar ativo', {
+                        description: 'Verifique os campos e tente novamente.',
                     });
-                }
+                },
             });
         } else {
             // Lógica para criação
             post(route('asset-hierarchy.assets.store'), {
                 onError: (errors) => {
-                    toast.error("Erro ao criar ativo", {
-                        description: "Verifique os campos e tente novamente."
+                    toast.error('Erro ao criar ativo', {
+                        description: 'Verifique os campos e tente novamente.',
                     });
-                }
+                },
             });
         }
     };
 
     const handlePlantCreated = () => {
         // Recarregar apenas os dados das plantas
-        router.reload({ 
+        router.reload({
             only: ['plants'],
             onSuccess: (page) => {
                 // Selecionar automaticamente a planta mais recente (última da lista)
@@ -353,68 +355,68 @@ export default function AssetForm({ assetTypes, plants, asset }: Props) {
                     // Limpar área e setor já que mudou a planta
                     setData('area_id', '');
                     setData('sector_id', '');
-                    
+
                     // Focar no campo da planta após um pequeno delay para garantir que a UI foi atualizada
                     setTimeout(() => {
                         plantSelectRef.current?.focus();
                     }, 100);
                 }
-            }
+            },
         });
     };
 
     const handleAreaCreated = () => {
         // Recarregar apenas os dados das plantas
-        router.reload({ 
+        router.reload({
             only: ['plants'],
             onSuccess: (page) => {
                 // Selecionar automaticamente a área mais recente da planta atual
                 const updatedPlants = page.props.plants as Plant[];
                 if (updatedPlants && data.plant_id) {
-                    const currentPlant = updatedPlants.find(p => p.id.toString() === data.plant_id);
+                    const currentPlant = updatedPlants.find((p) => p.id.toString() === data.plant_id);
                     if (currentPlant?.areas && currentPlant.areas.length > 0) {
                         const newestArea = currentPlant.areas[currentPlant.areas.length - 1];
                         setData('area_id', newestArea.id.toString());
                         // Limpar setor já que mudou a área
                         setData('sector_id', '');
-                        
+
                         // Focar no campo da área após um pequeno delay para garantir que a UI foi atualizada
                         setTimeout(() => {
                             areaSelectRef.current?.focus();
                         }, 100);
                     }
                 }
-            }
+            },
         });
     };
 
     const handleSectorCreated = () => {
         // Recarregar apenas os dados das plantas
-        router.reload({ 
+        router.reload({
             only: ['plants'],
             onSuccess: (page) => {
                 // Selecionar automaticamente o setor mais recente da área atual
                 const updatedPlants = page.props.plants as Plant[];
                 if (updatedPlants && data.plant_id && data.area_id) {
-                    const currentPlant = updatedPlants.find(p => p.id.toString() === data.plant_id);
+                    const currentPlant = updatedPlants.find((p) => p.id.toString() === data.plant_id);
                     const currentArea = currentPlant?.areas?.find((a: Area) => a.id.toString() === data.area_id);
                     if (currentArea?.sectors && currentArea.sectors.length > 0) {
                         const newestSector = currentArea.sectors[currentArea.sectors.length - 1];
                         setData('sector_id', newestSector.id.toString());
-                        
+
                         // Focar no campo do setor após um pequeno delay para garantir que a UI foi atualizada
                         setTimeout(() => {
                             sectorSelectRef.current?.focus();
                         }, 100);
                     }
                 }
-            }
+            },
         });
     };
 
     const handleAssetTypeCreated = () => {
         // Recarregar apenas os dados dos tipos de ativo
-        router.reload({ 
+        router.reload({
             only: ['assetTypes'],
             onSuccess: (page) => {
                 // Selecionar automaticamente o tipo de ativo mais recente
@@ -422,13 +424,13 @@ export default function AssetForm({ assetTypes, plants, asset }: Props) {
                 if (updatedAssetTypes && updatedAssetTypes.length > 0) {
                     const newestAssetType = updatedAssetTypes[updatedAssetTypes.length - 1];
                     setData('asset_type_id', newestAssetType.id.toString());
-                    
+
                     // Focar no campo do tipo de ativo após um pequeno delay para garantir que a UI foi atualizada
                     setTimeout(() => {
                         assetTypeSelectRef.current?.focus();
                     }, 100);
                 }
-            }
+            },
         });
     };
 
@@ -463,17 +465,19 @@ export default function AssetForm({ assetTypes, plants, asset }: Props) {
 
     // Layout component baseado no modo
     const LayoutComponent = isEditing ? EditLayout : CreateLayout;
-    const layoutProps = isEditing ? {
-        title: `${asset.tag}`,
-        subtitle: "Modifique as informações do ativo"
-    } : {
-        title: "Novo Ativo",
-        subtitle: "Cadastre um novo ativo"
-    };
+    const layoutProps = isEditing
+        ? {
+              title: `${asset.tag}`,
+              subtitle: 'Modifique as informações do ativo',
+          }
+        : {
+              title: 'Novo Ativo',
+              subtitle: 'Cadastre um novo ativo',
+          };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={isEditing ? `${asset.tag}` : "Novo Ativo"} />
+            <Head title={isEditing ? `${asset.tag}` : 'Novo Ativo'} />
 
             <LayoutComponent
                 {...layoutProps}
@@ -482,7 +486,13 @@ export default function AssetForm({ assetTypes, plants, asset }: Props) {
                 onSave={handleSave}
                 isSaving={processing}
             >
-                <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSave();
+                    }}
+                    className="space-y-6"
+                >
                     <AssetFormFields
                         data={data}
                         setData={setData}
@@ -566,4 +576,4 @@ export default function AssetForm({ assetTypes, plants, asset }: Props) {
             </div>
         </AppLayout>
     );
-} 
+}

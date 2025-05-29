@@ -1,14 +1,8 @@
-import { useState, useEffect } from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ImageInstruction, Instruction, InstructionType, Task, TaskOperations, TextInstruction, VideoInstruction } from '@/types/task';
+import { useEffect, useState } from 'react';
 import { InstructionForm } from './InstructionForm';
-import { Instruction, InstructionType, Task, TaskOperations, TextInstruction, ImageInstruction, VideoInstruction } from '@/types/task';
 
 interface AddInstructionModalProps {
     /** Indica se o modal está aberto */
@@ -23,26 +17,26 @@ interface AddInstructionModalProps {
 
 export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructionModalProps) {
     const [instructionType, setInstructionType] = useState<InstructionType>(InstructionType.Image);
-    
+
     // Valores padrão para cada tipo de instrução
     const defaultTextInstruction: TextInstruction = {
         id: TaskOperations.generateInstructionId(task),
         type: InstructionType.Text,
-        content: ''
+        content: '',
     };
 
     const defaultImageInstruction: ImageInstruction = {
         id: TaskOperations.generateInstructionId(task),
         type: InstructionType.Image,
         imageUrl: '',
-        caption: ''
+        caption: '',
     };
 
     const defaultVideoInstruction: VideoInstruction = {
         id: TaskOperations.generateInstructionId(task),
         type: InstructionType.Video,
         videoUrl: '',
-        caption: ''
+        caption: '',
     };
 
     // Função para obter a instrução padrão baseada no tipo
@@ -60,7 +54,7 @@ export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructi
     };
 
     const [instruction, setInstruction] = useState<Instruction>(getDefaultInstructionByType(instructionType));
-    
+
     // Reinicia o formulário quando o modal é aberto
     useEffect(() => {
         if (open) {
@@ -82,7 +76,7 @@ export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructi
         // Regenera o ID para garantir unicidade
         const newInstruction = {
             ...instruction,
-            id: TaskOperations.generateInstructionId(task)
+            id: TaskOperations.generateInstructionId(task),
         };
         onAdd(newInstruction);
     };
@@ -98,13 +92,9 @@ export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructi
                     <DialogTitle>Adicionar Instrução</DialogTitle>
                 </DialogHeader>
 
-                <InstructionForm
-                    instruction={instruction}
-                    onChange={handleFormChange}
-                    onTypeChange={handleTypeChange}
-                />
+                <InstructionForm instruction={instruction} onChange={handleFormChange} onTypeChange={handleTypeChange} />
 
-                <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+                <DialogFooter className="mt-4 flex-col gap-2 sm:flex-row">
                     <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
                         Cancelar
                     </Button>
@@ -115,4 +105,4 @@ export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructi
             </DialogContent>
         </Dialog>
     );
-} 
+}

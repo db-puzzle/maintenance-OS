@@ -1,3 +1,3 @@
-export { default as TaskBaseCard } from './TaskBaseCard';
+export * from './content';
 export { EditableText } from './EditableText';
-export * from './content'; 
+export { default as TaskBaseCard } from './TaskBaseCard';

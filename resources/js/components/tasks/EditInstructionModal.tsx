@@ -1,14 +1,8 @@
-import { useState } from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { InstructionForm } from './InstructionForm';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Instruction, InstructionType } from '@/types/task';
+import { useState } from 'react';
+import { InstructionForm } from './InstructionForm';
 
 interface EditInstructionModalProps {
     /** Indica se o modal está aberto */
@@ -23,7 +17,7 @@ interface EditInstructionModalProps {
 
 export function EditInstructionModal({ open, onClose, onSave, instruction: initialInstruction }: EditInstructionModalProps) {
     const [instruction, setInstruction] = useState<Instruction>(initialInstruction);
-    
+
     const handleFormChange = (updatedInstruction: Instruction) => {
         setInstruction(updatedInstruction);
     };
@@ -44,14 +38,9 @@ export function EditInstructionModal({ open, onClose, onSave, instruction: initi
                     <DialogTitle>Editar Instrução</DialogTitle>
                 </DialogHeader>
 
-                <InstructionForm
-                    instruction={instruction}
-                    onChange={handleFormChange}
-                    onTypeChange={handleTypeChange}
-                    disableTypeChange
-                />
+                <InstructionForm instruction={instruction} onChange={handleFormChange} onTypeChange={handleTypeChange} disableTypeChange />
 
-                <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+                <DialogFooter className="mt-4 flex-col gap-2 sm:flex-row">
                     <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
                         Cancelar
                     </Button>

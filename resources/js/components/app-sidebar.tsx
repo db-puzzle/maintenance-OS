@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, ClipboardList, Building2, Map, Factory, Wrench, FileDown, FileUp, Cog, ChartGantt } from 'lucide-react';
+import { ChartGantt, ClipboardList, Cog, LayoutGrid, Wrench } from 'lucide-react';
 import AppLogo from './app-logo';
 
 interface NavGroup {
@@ -157,7 +157,7 @@ const footerNavItems: NavItem[] = [];
 
 export function AppSidebar() {
     return (
-        <Sidebar collapsible="icon" variant="floating">
+        <Sidebar collapsible="icon" variant="sidebar">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>

@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Avoid making changes to base components unless explicitly directed to do so.

@@ -1,23 +1,17 @@
-import { type BreadcrumbItem } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import ListLayout from '@/layouts/asset-hierarchy/list-layout';
-import { useState, useEffect } from 'react';
-import { toast } from "sonner";
-import { DataTable, ColumnVisibility, type Column } from '@/components/data-table';
-import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import { ColumnVisibility, DataTable, type Column } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, ArrowUpDown, ExternalLink } from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link } from '@inertiajs/react';
+import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import AppLayout from '@/layouts/app-layout';
+import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { type BreadcrumbItem } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { ArrowUpDown, ExternalLink, MoreVertical } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface PageProps {
     [key: string]: any;
@@ -104,7 +98,7 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
 
     useEffect(() => {
         if (flash?.success) {
-            toast.success("Sucesso!", {
+            toast.success('Sucesso!', {
                 description: flash.success,
             });
         }
@@ -114,13 +108,13 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
         const searchTimeout = setTimeout(() => {
             router.get(
                 route('asset-hierarchy.tipos-ativo'),
-                { 
+                {
                     search,
                     sort,
                     direction,
-                    per_page: perPage
+                    per_page: perPage,
                 },
-                { preserveState: true, preserveScroll: true }
+                { preserveState: true, preserveScroll: true },
             );
         }, 300);
 
@@ -147,9 +141,9 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
 
     const columns: Column<AssetType>[] = [
         {
-            id: "name",
+            id: 'name',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('name')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('name')}>
                     Nome
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
@@ -158,66 +152,54 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
                 return (
                     <div>
                         <div className="font-medium">{row.original.name}</div>
-                        {row.original.description && (
-                            <div className="text-sm text-muted-foreground">
-                                {row.original.description}
-                            </div>
-                        )}
+                        {row.original.description && <div className="text-muted-foreground text-sm">{row.original.description}</div>}
                     </div>
                 );
             },
-            width: "w-[300px]",
+            width: 'w-[300px]',
         },
         {
-            id: "description",
+            id: 'description',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('description')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('description')}>
                     Descrição
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: AssetType }) => row.original.description || '-',
-            width: "w-[300px]",
+            width: 'w-[300px]',
         },
         {
-            id: "asset_count",
+            id: 'asset_count',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('asset_count')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('asset_count')}>
                     Ativos
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: AssetType }) => row.original.asset_count,
-            width: "w-[100px]",
+            width: 'w-[100px]',
         },
         {
-            id: "actions",
-            header: "Ações",
+            id: 'actions',
+            header: 'Ações',
             cell: (row: { original: AssetType }) => (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-                            size="icon"
-                        >
+                        <Button variant="ghost" className="text-muted-foreground data-[state=open]:bg-muted flex size-8" size="icon">
                             <MoreVertical />
                             <span className="sr-only">Abrir menu</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.tipos-ativo.edit', row.original.id)}>
-                                Editar
-                            </Link>
+                            <Link href={route('asset-hierarchy.tipos-ativo.edit', row.original.id)}>Editar</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>
-                            Excluir
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>Excluir</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
-            width: "w-[80px]",
+            width: 'w-[80px]',
         },
     ];
 
@@ -235,7 +217,7 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
                 setSelectedAssetType(null);
                 setConfirmationText('');
                 setShowDeleteDialog(false);
-                toast.error("Erro ao excluir tipo de ativo", {
+                toast.error('Erro ao excluir tipo de ativo', {
                     description: errors.message || 'Não foi possível excluir o tipo de ativo.',
                 });
             },
@@ -245,20 +227,20 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
     const checkDependencies = async (assetType: AssetType) => {
         setIsCheckingDependencies(true);
         setSelectedAssetType(assetType);
-        
+
         try {
             const response = await fetch(route('asset-hierarchy.tipos-ativo.check-dependencies', assetType.id));
             const data = await response.json();
             setDependencies(data);
-            
+
             if (!data.hasDependencies) {
                 setShowDeleteDialog(true);
             } else {
                 setShowDependenciesDialog(true);
             }
         } catch (error) {
-            toast.error("Erro ao verificar dependências", {
-                description: "Não foi possível verificar as dependências do tipo de ativo.",
+            toast.error('Erro ao verificar dependências', {
+                description: 'Não foi possível verificar as dependências do tipo de ativo.',
             });
         } finally {
             setIsCheckingDependencies(false);
@@ -317,28 +299,24 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
                     <DialogDescription asChild>
                         <div className="space-y-6">
                             <div className="text-sm">
-                                Este tipo de ativo possui ativos vinculados e não pode ser excluído até que todos 
-                                os ativos sejam removidos ou alterados para outro tipo.
+                                Este tipo de ativo possui ativos vinculados e não pode ser excluído até que todos os ativos sejam removidos ou
+                                alterados para outro tipo.
                             </div>
-                            
+
                             <div className="space-y-6">
                                 <div className="space-y-2">
-                                    <div className="font-medium text-sm">
-                                        Total de Ativos Vinculados: {dependencies?.totalAsset}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground italic">
-                                        Clique no código do ativo para detalhes
-                                    </div>
+                                    <div className="text-sm font-medium">Total de Ativos Vinculados: {dependencies?.totalAsset}</div>
+                                    <div className="text-muted-foreground text-sm italic">Clique no código do ativo para detalhes</div>
                                 </div>
 
                                 {dependencies?.asset && dependencies.asset.length > 0 && (
                                     <div className="space-y-3">
-                                        <ul className="list-disc list-inside space-y-2 text-sm">
-                                            {dependencies.asset.map(asset => (
+                                        <ul className="list-inside list-disc space-y-2 text-sm">
+                                            {dependencies.asset.map((asset) => (
                                                 <li key={asset.id}>
                                                     <Link
                                                         href={route('asset-hierarchy.assets.show', asset.id)}
-                                                        className="text-primary hover:underline inline-flex items-center gap-1"
+                                                        className="text-primary inline-flex items-center gap-1 hover:underline"
                                                     >
                                                         {asset.tag}
                                                         <ExternalLink className="h-3 w-3" />
@@ -352,10 +330,7 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
                         </div>
                     </DialogDescription>
                     <DialogFooter>
-                        <Button 
-                            variant="secondary" 
-                            onClick={() => setShowDependenciesDialog(false)}
-                        >
+                        <Button variant="secondary" onClick={() => setShowDependenciesDialog(false)}>
                             Fechar
                         </Button>
                     </DialogFooter>
@@ -384,8 +359,8 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
                         <DialogClose asChild>
                             <Button variant="secondary">Cancelar</Button>
                         </DialogClose>
-                        <Button 
-                            variant="destructive" 
+                        <Button
+                            variant="destructive"
                             onClick={() => selectedAssetType && handleDelete(selectedAssetType)}
                             disabled={!isConfirmationValid || isDeleting}
                         >
@@ -396,4 +371,4 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
             </Dialog>
         </AppLayout>
     );
-} 
+}

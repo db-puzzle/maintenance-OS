@@ -20,10 +20,6 @@ class TaskInstructionController extends Controller
         $instructions = $formTask->instructions;
         $formTask->load('form');
         
-        if (request()->wantsJson()) {
-            return response()->json($instructions);
-        }
-        
         return Inertia::render('Forms/Instructions/Index', [
             'formTask' => $formTask,
             'instructions' => $instructions
@@ -85,10 +81,6 @@ class TaskInstructionController extends Controller
         
         $instruction = $formTask->instructions()->create($data);
         
-        if ($request->wantsJson()) {
-            return response()->json($instruction, 201);
-        }
-        
         return redirect()->route('forms.tasks.edit', [$formTask->form, $formTask])
             ->with('success', 'Instrução adicionada com sucesso.');
     }
@@ -99,10 +91,6 @@ class TaskInstructionController extends Controller
     public function show(TaskInstruction $instruction)
     {
         $instruction->load('formTask.form');
-        
-        if (request()->wantsJson()) {
-            return response()->json($instruction);
-        }
         
         return Inertia::render('Forms/Instructions/Show', [
             'instruction' => $instruction
@@ -173,10 +161,6 @@ class TaskInstructionController extends Controller
         
         $instruction->update($data);
         
-        if ($request->wantsJson()) {
-            return response()->json($instruction);
-        }
-        
         return redirect()->route('forms.tasks.edit', [$instruction->formTask->form, $instruction->formTask])
             ->with('success', 'Instrução atualizada com sucesso.');
     }
@@ -205,10 +189,6 @@ class TaskInstructionController extends Controller
             }
         });
         
-        if (request()->wantsJson()) {
-            return response()->noContent();
-        }
-        
         return redirect()->route('forms.tasks.edit', [$form, $formTask])
             ->with('success', 'Instrução excluída com sucesso.');
     }
@@ -228,10 +208,6 @@ class TaskInstructionController extends Controller
         // Check if all instructions belong to this task
         $instructionCount = $formTask->instructions()->whereIn('id', $instructionIds)->count();
         if ($instructionCount !== count($instructionIds)) {
-            if ($request->wantsJson()) {
-                return response()->json(['error' => 'Algumas instruções não pertencem a esta tarefa.'], 400);
-            }
-            
             return redirect()->back()->with('error', 'Algumas instruções não pertencem a esta tarefa.');
         }
         
@@ -240,10 +216,6 @@ class TaskInstructionController extends Controller
                 TaskInstruction::where('id', $id)->update(['position' => $position + 1]);
             }
         });
-        
-        if ($request->wantsJson()) {
-            return response()->json(['message' => 'Ordem das instruções atualizada com sucesso.']);
-        }
         
         return redirect()->back()->with('success', 'Ordem das instruções atualizada com sucesso.');
     }

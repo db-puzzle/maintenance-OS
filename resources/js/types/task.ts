@@ -1,100 +1,96 @@
-import { FileText, CheckSquare, ListChecks, Ruler, Camera, ScanBarcode, Upload, QrCode, Barcode, CircleCheck, Image, Video, FileText as FileTextIcon } from 'lucide-react';
-import { UnitCategory, MeasurementUnit, MeasurementUnitCategories, MeasurementUnits, findUnitCategory } from './units';
+import { Barcode, Camera, CircleCheck, FileText, ListChecks, QrCode, Ruler, ScanBarcode, Upload } from 'lucide-react';
+import { MeasurementUnits, UnitCategory } from './units';
 
 export const TaskTypeGroups = {
     measurementGroup: [
-        { 
-            id: 1, 
-            name: 'Medição', 
+        {
+            id: 1,
+            name: 'Medição',
             icon: Ruler,
             label: 'Nome da Medição',
             placeholder: 'Diâmetro do Eixo, Pressão do Ar, Temperatura do Motor, etc...',
-            value: 'measurement' as const
+            value: 'measurement' as const,
         },
-        { 
-            id: 2, 
-            name: 'Pergunta e resposta', 
+        {
+            id: 2,
+            name: 'Pergunta e resposta',
             icon: FileText,
             label: 'Pergunta',
             placeholder: 'Digite a pergunta que será respondida...',
-            value: 'question' as const
-        }
+            value: 'question' as const,
+        },
     ],
     questionGroup: [
-        { 
-            id: 3, 
-            name: 'Múltipla escolha', 
+        {
+            id: 3,
+            name: 'Múltipla escolha',
             icon: CircleCheck,
             label: 'Pergunta de Múltipla Escolha',
             placeholder: 'Digite a pergunta para escolha da resposta...',
-            value: 'multiple_choice' as const
+            value: 'multiple_choice' as const,
         },
-        { 
-            id: 4, 
-            name: 'Múltipla seleção', 
+        {
+            id: 4,
+            name: 'Múltipla seleção',
             icon: ListChecks,
             label: 'Pergunta de Múltipla Seleção',
             placeholder: 'Digite a pergunta para seleção das respostas...',
-            value: 'multiple_select' as const
-        }
+            value: 'multiple_select' as const,
+        },
     ],
     dataCollectionGroup: [
-        { 
-            id: 5, 
-            name: 'Registro fotográfico', 
+        {
+            id: 5,
+            name: 'Registro fotográfico',
             icon: Camera,
             label: 'Foto',
             placeholder: 'Vista Geral do Ativo, Condição da Bucha, etc...',
-            value: 'photo' as const
+            value: 'photo' as const,
         },
-        { 
-            id: 6, 
-            name: 'Leitor de Código', 
+        {
+            id: 6,
+            name: 'Leitor de Código',
             icon: ScanBarcode,
             label: 'Nome do Código',
             placeholder: 'Número Serial, Código do Produto, Número do Lote, etc...',
-            value: 'code_reader' as const
+            value: 'code_reader' as const,
         },
-        { 
-            id: 7, 
-            name: 'Upload de Arquivo', 
+        {
+            id: 7,
+            name: 'Upload de Arquivo',
             icon: Upload,
             label: 'Nome do Arquivo',
             placeholder: 'Relatório de Inspeção, Ficha Técnica, Manual de Instruções, etc...',
-            value: 'file_upload' as const
-        }
-    ]
+            value: 'file_upload' as const,
+        },
+    ],
 } as const;
 
-export const TaskTypes = [
-    ...TaskTypeGroups.measurementGroup,
-    ...TaskTypeGroups.questionGroup,
-    ...TaskTypeGroups.dataCollectionGroup
-] as const;
+export const TaskTypes = [...TaskTypeGroups.measurementGroup, ...TaskTypeGroups.questionGroup, ...TaskTypeGroups.dataCollectionGroup] as const;
 
 // Inferir o tipo TaskType dos valores do TaskTypes
-export type TaskType = typeof TaskTypes[number]['value'];
+export type TaskType = (typeof TaskTypes)[number]['value'];
 
 export const CodeReaderTypes = [
-    { 
+    {
         id: 1,
         value: 'qr_code' as const,
         name: 'QR Code',
-        icon: QrCode
+        icon: QrCode,
     },
-    { 
+    {
         id: 2,
         value: 'barcode' as const,
         name: 'Código de Barras',
-        icon: Barcode
-    }
+        icon: Barcode,
+    },
 ] as const;
 
 export enum TaskState {
     Editing = 'Editing',
     Previewing = 'Previewing',
     Responding = 'Responding',
-    Viewing = 'Viewing'
+    Viewing = 'Viewing',
 }
 
 // Utilizando o tipo de unidade de medição do arquivo units.ts
@@ -103,7 +99,7 @@ export interface Measurement {
     min?: number;
     target?: number;
     max?: number;
-    unit: typeof MeasurementUnits[number];
+    unit: (typeof MeasurementUnits)[number];
     category: UnitCategory;
 }
 
@@ -113,13 +109,13 @@ export const DefaultMeasurement: Measurement = {
     target: undefined,
     max: undefined,
     unit: 'mm',
-    category: 'Comprimento'
+    category: 'Comprimento',
 } as const;
 
 export enum InstructionType {
     Image = 'image',
     Text = 'text',
-    Video = 'video'
+    Video = 'video',
 }
 
 export interface BaseInstruction {
@@ -168,7 +164,7 @@ export const DefaultTaskValues = {
     instructionImages: [] as string[],
     instructions: [] as Instruction[],
     options: [] as string[],
-    measurement: DefaultMeasurement
+    measurement: DefaultMeasurement,
 } as const;
 
 // Operações de Tarefas
@@ -177,7 +173,7 @@ export const TaskOperations = {
         id: string,
         type: TaskType,
         description: string = DefaultTaskValues.description,
-        isRequired: boolean = DefaultTaskValues.isRequired
+        isRequired: boolean = DefaultTaskValues.isRequired,
     ): Task => ({
         id,
         type,
@@ -188,18 +184,20 @@ export const TaskOperations = {
         instructions: DefaultTaskValues.instructions,
         options: DefaultTaskValues.options,
         measurement: DefaultTaskValues.measurement,
-        state: TaskState.Editing
+        state: TaskState.Editing,
     }),
 
     generateNextId: (tasks: Task[] | undefined): string => {
-        if (!tasks || tasks.length === 0) return "1";
-        
+        if (!tasks || tasks.length === 0) return '1';
+
         // Encontra o maior ID numérico na lista atual
-        const maxId = Math.max(...tasks.map(t => {
-            const id = parseInt(t.id);
-            return isNaN(id) ? 0 : id;
-        }));
-        
+        const maxId = Math.max(
+            ...tasks.map((t) => {
+                const id = parseInt(t.id);
+                return isNaN(id) ? 0 : id;
+            }),
+        );
+
         // Retorna o próximo ID
         return (maxId + 1).toString();
     },
@@ -209,13 +207,13 @@ export const TaskOperations = {
         index: number,
         type: TaskType,
         description: string = DefaultTaskValues.description,
-        isRequired: boolean = DefaultTaskValues.isRequired
+        isRequired: boolean = DefaultTaskValues.isRequired,
     ): Task => {
         // Se não houver lista de tarefas ou ela estiver vazia
         if (!tasks || tasks.length === 0 || index < 0) {
-            const newId = "1"; // Primeira tarefa sempre começa com ID 1
+            const newId = '1'; // Primeira tarefa sempre começa com ID 1
             const task = TaskOperations.create(newId, type, description, isRequired);
-            
+
             // Se for uma tarefa de medição, garantir que tenha uma medição válida
             if (type === 'measurement' && !task.measurement) {
                 task.measurement = { ...DefaultMeasurement };
@@ -227,7 +225,7 @@ export const TaskOperations = {
             } else if (type === 'multiple_select') {
                 task.options = ['Opção 1', 'Opção 2', 'Opção 3'];
             }
-            
+
             return task;
         }
 
@@ -235,73 +233,70 @@ export const TaskOperations = {
         if (index >= tasks.length) {
             const newId = TaskOperations.generateNextId(tasks);
             const task = TaskOperations.create(newId, type, description, isRequired);
-            
+
             // Se for uma tarefa de medição, garantir que tenha uma medição válida
             if (type === 'measurement' && !task.measurement) {
                 task.measurement = { ...DefaultMeasurement };
             }
-            
+
             // Adicionar opções padrão para tarefas de múltipla escolha e múltipla seleção
             if (type === 'multiple_choice') {
                 task.options = ['Opção 1', 'Opção 2'];
             } else if (type === 'multiple_select') {
                 task.options = ['Opção 1', 'Opção 2', 'Opção 3'];
             }
-            
+
             return task;
         }
 
         // Cria a nova tarefa com o próximo ID disponível
         const newId = TaskOperations.generateNextId(tasks);
         const task = TaskOperations.create(newId, type, description, isRequired);
-        
+
         // Se for uma tarefa de medição, garantir que tenha uma medição válida
         if (type === 'measurement' && !task.measurement) {
             task.measurement = { ...DefaultMeasurement };
         }
-        
+
         // Adicionar opções padrão para tarefas de múltipla escolha e múltipla seleção
         if (type === 'multiple_choice') {
             task.options = ['Opção 1', 'Opção 2'];
         } else if (type === 'multiple_select') {
             task.options = ['Opção 1', 'Opção 2', 'Opção 3'];
         }
-        
+
         return task;
     },
 
     updateType: (task: Task, type: TaskType): Task => ({
         ...task,
         type,
-        taskType: type
+        taskType: type,
     }),
 
     updateRequired: (task: Task, isRequired: boolean): Task => ({
         ...task,
-        isRequired
+        isRequired,
     }),
 
     addOption: (task: Task): Task => ({
         ...task,
-        options: [...(task.options || []), '']
+        options: [...(task.options || []), ''],
     }),
 
     removeOption: (task: Task, optionIndex: number): Task => ({
         ...task,
-        options: (task.options || []).filter((_, index) => index !== optionIndex)
+        options: (task.options || []).filter((_, index) => index !== optionIndex),
     }),
 
     updateOptions: (task: Task, options: string[]): Task => ({
         ...task,
-        options
+        options,
     }),
 
-    updateMeasurement: (
-        task: Task,
-        measurement: Measurement
-    ): Task => ({
+    updateMeasurement: (task: Task, measurement: Measurement): Task => ({
         ...task,
-        measurement
+        measurement,
     }),
 
     convertTaskState: (task: Task): Task => {
@@ -325,66 +320,60 @@ export const TaskOperations = {
     // Métodos de gerenciamento de estado
     setEditing: (task: Task): Task => ({
         ...task,
-        state: TaskState.Editing
+        state: TaskState.Editing,
     }),
 
     setPreviewing: (task: Task): Task => ({
         ...task,
-        state: TaskState.Previewing
+        state: TaskState.Previewing,
     }),
 
     setResponding: (task: Task): Task => ({
         ...task,
-        state: TaskState.Responding
+        state: TaskState.Responding,
     }),
 
     setViewing: (task: Task): Task => ({
         ...task,
-        state: TaskState.Viewing
+        state: TaskState.Viewing,
     }),
 
     // Verificadores de estado
-    isEditing: (task: Task): boolean => 
-        task.state === TaskState.Editing,
+    isEditing: (task: Task): boolean => task.state === TaskState.Editing,
 
-    isPreviewing: (task: Task): boolean => 
-        task.state === TaskState.Previewing,
+    isPreviewing: (task: Task): boolean => task.state === TaskState.Previewing,
 
-    isResponding: (task: Task): boolean => 
-        task.state === TaskState.Responding,
+    isResponding: (task: Task): boolean => task.state === TaskState.Responding,
 
-    isViewing: (task: Task): boolean => 
-        task.state === TaskState.Viewing || task.state === undefined,
+    isViewing: (task: Task): boolean => task.state === TaskState.Viewing || task.state === undefined,
 
     // Métodos para gerenciar instruções
     addInstruction: (task: Task, instruction: Instruction): Task => ({
         ...task,
-        instructions: [...(task.instructions || []), instruction]
+        instructions: [...(task.instructions || []), instruction],
     }),
 
     removeInstruction: (task: Task, instructionId: string): Task => ({
         ...task,
-        instructions: (task.instructions || []).filter(instruction => instruction.id !== instructionId)
+        instructions: (task.instructions || []).filter((instruction) => instruction.id !== instructionId),
     }),
 
     updateInstruction: (task: Task, updatedInstruction: Instruction): Task => ({
         ...task,
-        instructions: (task.instructions || []).map(instruction => 
-            instruction.id === updatedInstruction.id ? updatedInstruction : instruction
-        )
+        instructions: (task.instructions || []).map((instruction) => (instruction.id === updatedInstruction.id ? updatedInstruction : instruction)),
     }),
 
     generateInstructionId: (task: Task): string => {
-        if (!task.instructions || task.instructions.length === 0) return "instr-1";
-        
+        if (!task.instructions || task.instructions.length === 0) return 'instr-1';
+
         // Extrair os números dos IDs existentes
-        const ids = task.instructions.map(instr => {
+        const ids = task.instructions.map((instr) => {
             const match = instr.id.match(/instr-(\d+)/);
             return match ? parseInt(match[1], 10) : 0;
         });
-        
+
         // Encontrar o maior ID e incrementar
         const maxId = Math.max(...ids);
         return `instr-${maxId + 1}`;
     },
-} as const; 
+} as const;

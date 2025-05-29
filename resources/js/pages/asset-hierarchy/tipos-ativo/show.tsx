@@ -1,15 +1,15 @@
 import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
-import { Head, Link, router } from '@inertiajs/react';
-import { Settings, Cog } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { Cog, Settings } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
+import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -40,7 +40,7 @@ interface Props {
 
 export default function Show({ assetType, asset, activeTab }: Props) {
     const subtitle = (
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="text-muted-foreground flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
                 <Settings className="h-4 w-4" />
                 <span>Tipo de Ativo</span>
@@ -67,16 +67,16 @@ export default function Show({ assetType, asset, activeTab }: Props) {
                         <div className="grid w-full items-center gap-4">
                             <div className="flex flex-col space-y-1.5">
                                 <Label htmlFor="name">Nome</Label>
-                                <div className="text-sm text-muted-foreground">{assetType.name}</div>
+                                <div className="text-muted-foreground text-sm">{assetType.name}</div>
                             </div>
                             <div className="flex flex-col space-y-1.5">
                                 <Label htmlFor="description">Descrição</Label>
-                                <div className="text-sm text-muted-foreground">{assetType.description ?? '-'}</div>
+                                <div className="text-muted-foreground text-sm">{assetType.description ?? '-'}</div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-            )
+            ),
         },
         {
             id: 'ativos',
@@ -101,54 +101,46 @@ export default function Show({ assetType, asset, activeTab }: Props) {
                                     </TableHeader>
                                     <TableBody>
                                         {asset.data.map((asset) => (
-                                            <TableRow 
+                                            <TableRow
                                                 key={asset.id}
-                                                className="cursor-pointer hover:bg-muted/50 h-12"
+                                                className="hover:bg-muted/50 h-12 cursor-pointer"
                                                 onClick={() => router.get(route('asset-hierarchy.assets.show', asset.id))}
                                             >
                                                 <TableCell>
                                                     <div className="font-medium">{asset.tag}</div>
                                                 </TableCell>
-                                                <TableCell className="text-sm text-muted-foreground">
-                                                    {asset.area?.name ?? '-'}
-                                                </TableCell>
-                                                <TableCell className="text-sm text-muted-foreground">
-                                                    {asset.manufacturer ?? '-'}
-                                                </TableCell>
-                                                <TableCell className="text-sm text-muted-foreground">
-                                                    {asset.manufacturing_year ?? '-'}
-                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{asset.area?.name ?? '-'}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturer ?? '-'}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturing_year ?? '-'}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
                             </div>
                         ) : (
-                            <div className="text-sm text-muted-foreground py-6 text-center">
-                                Nenhum ativo cadastrado deste tipo.
-                            </div>
+                            <div className="text-muted-foreground py-6 text-center text-sm">Nenhum ativo cadastrado deste tipo.</div>
                         )}
-                        <div className="flex justify-center mt-4">
+                        <div className="mt-4 flex justify-center">
                             <Pagination>
                                 <PaginationContent>
                                     <PaginationItem>
-                                        <PaginationPrevious 
-                                            href={route('asset-hierarchy.tipos-ativo.show', { 
+                                        <PaginationPrevious
+                                            href={route('asset-hierarchy.tipos-ativo.show', {
                                                 assetType: assetType.id,
                                                 asset_page: asset.current_page - 1,
-                                                tab: 'ativos'
+                                                tab: 'ativos',
                                             })}
                                             className={asset.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                         />
                                     </PaginationItem>
-                                    
+
                                     {Array.from({ length: asset.last_page }, (_, i) => i + 1).map((page) => (
                                         <PaginationItem key={`asset-pagination-${page}`}>
-                                            <PaginationLink 
-                                                href={route('asset-hierarchy.tipos-ativo.show', { 
+                                            <PaginationLink
+                                                href={route('asset-hierarchy.tipos-ativo.show', {
                                                     assetType: assetType.id,
                                                     asset_page: page,
-                                                    tab: 'ativos'
+                                                    tab: 'ativos',
                                                 })}
                                                 isActive={page === asset.current_page}
                                             >
@@ -158,11 +150,11 @@ export default function Show({ assetType, asset, activeTab }: Props) {
                                     ))}
 
                                     <PaginationItem>
-                                        <PaginationNext 
-                                            href={route('asset-hierarchy.tipos-ativo.show', { 
+                                        <PaginationNext
+                                            href={route('asset-hierarchy.tipos-ativo.show', {
                                                 assetType: assetType.id,
                                                 asset_page: asset.current_page + 1,
-                                                tab: 'ativos'
+                                                tab: 'ativos',
                                             })}
                                             className={asset.current_page === asset.last_page ? 'pointer-events-none opacity-50' : ''}
                                         />
@@ -172,8 +164,8 @@ export default function Show({ assetType, asset, activeTab }: Props) {
                         </div>
                     </CardContent>
                 </Card>
-            )
-        }
+            ),
+        },
     ];
 
     return (
@@ -188,4 +180,4 @@ export default function Show({ assetType, asset, activeTab }: Props) {
             />
         </AppLayout>
     );
-} 
+}

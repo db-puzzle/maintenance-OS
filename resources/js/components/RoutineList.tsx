@@ -1,20 +1,14 @@
-import { useRef, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Clock, FileText, Edit2, Plus, ClipboardCheck, MoreVertical, Eye, Trash2 } from 'lucide-react';
-import { Task } from '@/types/task';
-import { Link, router } from '@inertiajs/react';
 import EditRoutineSheet from '@/components/EditRoutineSheet';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Task } from '@/types/task';
+import { Link, router } from '@inertiajs/react';
+import { ClipboardCheck, Clock, Edit2, Eye, FileText, MoreVertical, Plus, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 export interface Routine {
@@ -44,7 +38,7 @@ interface RoutineListProps {
 const routineTypes = [
     { value: '1', label: 'Inspeção' },
     { value: '2', label: 'Rotina de Manutenção' },
-    { value: '3', label: 'Relatório de Manutenção' }
+    { value: '3', label: 'Relatório de Manutenção' },
 ];
 
 export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew = false, assetId }: RoutineListProps) {
@@ -67,7 +61,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
         type: 2 as const,
         status: 'Active' as const,
         description: '',
-        form: undefined
+        form: undefined,
     };
 
     const formatTriggerHours = (hours: number) => {
@@ -123,7 +117,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
             onError: () => {
                 toast.error('Erro ao excluir rotina. Tente novamente.');
                 setIsDeleting(false);
-            }
+            },
         });
     };
 
@@ -138,17 +132,13 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
     if (isNew) {
         return (
             <>
-                <Card className="border-dashed border-2 hover:border-primary/50 transition-colors">
+                <Card className="hover:border-primary/50 border-2 border-dashed transition-colors">
                     <CardContent className="flex flex-col items-center justify-center p-8">
-                        <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold text-center mb-2">
-                            Nova Rotina de Manutenção
-                        </h3>
-                        <p className="text-sm text-muted-foreground text-center mb-4">
-                            Configure uma nova rotina de manutenção para este ativo
-                        </p>
+                        <FileText className="text-muted-foreground mb-4 h-12 w-12" />
+                        <h3 className="mb-2 text-center text-lg font-semibold">Nova Rotina de Manutenção</h3>
+                        <p className="text-muted-foreground mb-4 text-center text-sm">Configure uma nova rotina de manutenção para este ativo</p>
                         <Button onClick={handleEditClick}>
-                            <Plus className="h-4 w-4 mr-1" />
+                            <Plus className="mr-1 h-4 w-4" />
                             Criar Rotina
                         </Button>
                     </CardContent>
@@ -179,30 +169,30 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                 <div className="min-w-0">
                     <div className="flex items-start gap-x-3">
                         <p className="text-sm font-semibold text-gray-900">{routineData.name}</p>
-                        <p className={`mt-0.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${routineData.status === 'Active'
-                            ? 'text-green-700 bg-green-50 ring-green-600/20'
-                            : 'text-gray-600 bg-gray-50 ring-gray-500/10'
-                            }`}>
+                        <p
+                            className={`mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${routineData.status === 'Active'
+                                ? 'bg-green-50 text-green-700 ring-green-600/20'
+                                : 'bg-gray-50 text-gray-600 ring-gray-500/10'
+                                }`}
+                        >
                             {routineData.status === 'Active' ? 'Ativo' : 'Inativo'}
                         </p>
                     </div>
                     <div className="mt-1 flex items-center gap-x-2 text-xs text-gray-500">
-                        <p className="whitespace-nowrap flex items-center gap-1">
+                        <p className="flex items-center gap-1 whitespace-nowrap">
                             <Clock className="h-3 w-3" />
                             Intervalo: {formatTriggerHours(routineData.trigger_hours)}
                         </p>
                         <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
                             <circle r={1} cx={1} cy={1} />
                         </svg>
-                        <p className="truncate">
-                            {routineTypes.find(t => t.value === routineData.type.toString())?.label}
-                        </p>
+                        <p className="truncate">{routineTypes.find((t) => t.value === routineData.type.toString())?.label}</p>
                         {routineData.form && (
                             <>
                                 <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
                                     <circle r={1} cx={1} cy={1} />
                                 </svg>
-                                <p className="truncate flex items-center gap-1">
+                                <p className="flex items-center gap-1 truncate">
                                     <FileText className="h-3 w-3" />
                                     {routineData.form.tasks?.length || 0} tarefas
                                 </p>
@@ -216,8 +206,8 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                             href={route('maintenance.assets.routines.form', { asset: assetId, routine: routineData.id, mode: 'fill' })}
                             className="hidden sm:block"
                         >
-                            <Button size="sm">
-                                <ClipboardCheck className="h-4 w-4 mr-1" />
+                            <Button size="sm" variant="action">
+                                <ClipboardCheck className="mr-1 h-4 w-4" />
                                 Executar
                             </Button>
                         </Link>
@@ -227,7 +217,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                             className="hidden sm:block"
                         >
                             <Button size="sm" variant="secondary">
-                                <FileText className="h-4 w-4 mr-1" />
+                                <FileText className="mr-1 h-4 w-4" />
                                 Criar Tarefas
                             </Button>
                         </Link>
@@ -245,10 +235,14 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                     <>
                                         <DropdownMenuItem asChild className="sm:hidden">
                                             <Link
-                                                href={route('maintenance.assets.routines.form', { asset: assetId, routine: routineData.id, mode: 'fill' })}
+                                                href={route('maintenance.assets.routines.form', {
+                                                    asset: assetId,
+                                                    routine: routineData.id,
+                                                    mode: 'fill',
+                                                })}
                                                 className="flex items-center"
                                             >
-                                                <ClipboardCheck className="h-4 w-4 mr-2" />
+                                                <ClipboardCheck className="mr-2 h-4 w-4" />
                                                 Executar
                                             </Link>
                                         </DropdownMenuItem>
@@ -261,7 +255,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                                 href={route('maintenance.assets.routines.form-editor', { asset: assetId, routine: routineData.id })}
                                                 className="flex items-center"
                                             >
-                                                <FileText className="h-4 w-4 mr-2" />
+                                                <FileText className="mr-2 h-4 w-4" />
                                                 Criar Tarefas
                                             </Link>
                                         </DropdownMenuItem>
@@ -273,17 +267,17 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                         href={route('maintenance.assets.routines.executions', { asset: assetId, routine: routineData.id })}
                                         className="flex items-center"
                                     >
-                                        <Eye className="h-4 w-4 mr-2" />
+                                        <Eye className="mr-2 h-4 w-4" />
                                         Visualizar Execuções
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={handleEditClick}>
-                                    <Edit2 className="h-4 w-4 mr-2" />
+                                    <Edit2 className="mr-2 h-4 w-4" />
                                     Editar
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    <Trash2 className="mr-2 h-4 w-4" />
                                     Excluir
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -312,13 +306,11 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="secondary" onClick={cancelDelete}>Cancelar</Button>
+                            <Button variant="secondary" onClick={cancelDelete}>
+                                Cancelar
+                            </Button>
                         </DialogClose>
-                        <Button
-                            variant="destructive"
-                            onClick={confirmDelete}
-                            disabled={!isConfirmationValid || isDeleting}
-                        >
+                        <Button variant="destructive" onClick={confirmDelete} disabled={!isConfirmationValid || isDeleting}>
                             {isDeleting ? 'Excluindo...' : 'Excluir'}
                         </Button>
                     </DialogFooter>
@@ -342,4 +334,4 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
             </div>
         </>
     );
-} 
+}

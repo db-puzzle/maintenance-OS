@@ -152,7 +152,8 @@ class FormExecutionController extends Controller
      */
     public function progress(FormExecution $formExecution)
     {
-        return response()->json([
+        return Inertia::render('Forms/Executions/Progress', [
+            'execution' => $formExecution,
             'percentage' => $formExecution->getProgressPercentage(),
             'status' => $formExecution->status
         ]);

@@ -1,19 +1,11 @@
-import React, { useState, useMemo } from 'react';
 import { useForm } from '@inertiajs/react';
-import { toast } from "sonner";
+import React, { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetDescription,
-    SheetFooter,
-    SheetTrigger
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import TextInput from '@/components/TextInput';
 import ItemSelect from '@/components/ItemSelect';
+import TextInput from '@/components/TextInput';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { type Plant } from '@/types/asset-hierarchy';
 
 interface SectorForm {
@@ -32,7 +24,7 @@ interface CreateSectorSheetProps {
     disableParentFields?: boolean;
     // Props para SheetTrigger
     triggerText?: string;
-    triggerVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+    triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
@@ -45,10 +37,10 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
     selectedPlantId,
     selectedAreaId,
     disableParentFields = false,
-    triggerText = "Novo Setor",
-    triggerVariant = "outline",
+    triggerText = 'Novo Setor',
+    triggerVariant = 'outline',
     showTrigger = false,
-    triggerRef
+    triggerRef,
 }) => {
     const { data, setData, post, processing, errors, reset } = useForm<SectorForm>({
         name: '',
@@ -74,31 +66,31 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
 
     const availableAreas = useMemo(() => {
         if (!localSelectedPlant) return [];
-        const selectedPlant = plants.find(p => p.id.toString() === localSelectedPlant);
+        const selectedPlant = plants.find((p) => p.id.toString() === localSelectedPlant);
         return selectedPlant?.areas || [];
     }, [localSelectedPlant, plants]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         const formData = {
             ...data,
-            stay: true // Indica que deve permanecer na mesma página
+            stay: true, // Indica que deve permanecer na mesma página
         };
-        
+
         post(route('asset-hierarchy.setores.store'), {
             ...formData,
             onSuccess: () => {
-                toast.success("Setor criado com sucesso!");
+                toast.success('Setor criado com sucesso!');
                 reset();
                 setSheetOpen(false);
                 onSuccess?.();
             },
             onError: (errors: any) => {
-                toast.error("Erro ao criar setor", {
-                    description: "Verifique os campos e tente novamente."
+                toast.error('Erro ao criar setor', {
+                    description: 'Verifique os campos e tente novamente.',
                 });
-            }
+            },
         });
     };
 
@@ -112,18 +104,18 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             {showTrigger && (
                 <SheetTrigger asChild>
-                    <Button variant={triggerVariant} ref={triggerRef}>{triggerText}</Button>
+                    <Button variant={triggerVariant} ref={triggerRef}>
+                        {triggerText}
+                    </Button>
                 </SheetTrigger>
             )}
             <SheetContent className="sm:max-w-lg">
                 <SheetHeader className="">
                     <SheetTitle>Novo Setor</SheetTitle>
-                    <SheetDescription>
-                        Adicione um novo setor ao sistema
-                    </SheetDescription>
+                    <SheetDescription>Adicione um novo setor ao sistema</SheetDescription>
                 </SheetHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6 m-4">
+                <form onSubmit={handleSubmit} className="m-4 space-y-6">
                     <div className="grid gap-6">
                         {/* Nome do Setor - Campo Obrigatório */}
                         <TextInput<SectorForm>
@@ -131,7 +123,7 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {}
+                                clearErrors: () => {},
                             }}
                             name="name"
                             label="Nome do Setor"
@@ -154,9 +146,7 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                                 disabled={disableParentFields}
                             />
                             {disableParentFields && (
-                                <p className="text-sm text-muted-foreground">
-                                    A planta foi pré-selecionada e não pode ser alterada.
-                                </p>
+                                <p className="text-muted-foreground text-sm">A planta foi pré-selecionada e não pode ser alterada.</p>
                             )}
                         </div>
 
@@ -167,15 +157,13 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                                 items={availableAreas}
                                 value={data.area_id?.toString() || ''}
                                 onValueChange={(value) => setData('area_id', value)}
-                                placeholder={!localSelectedPlant ? "Selecione uma planta primeiro" : "Selecione uma área"}
+                                placeholder={!localSelectedPlant ? 'Selecione uma planta primeiro' : 'Selecione uma área'}
                                 error={errors.area_id}
                                 disabled={disableParentFields || !localSelectedPlant}
                                 required={!disableParentFields}
                             />
                             {disableParentFields && (
-                                <p className="text-sm text-muted-foreground">
-                                    A área foi pré-selecionada e não pode ser alterada.
-                                </p>
+                                <p className="text-muted-foreground text-sm">A área foi pré-selecionada e não pode ser alterada.</p>
                             )}
                         </div>
                     </div>
@@ -184,12 +172,7 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                         <Button type="submit" disabled={processing}>
                             {processing ? 'Salvando...' : 'Salvar'}
                         </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleCancel}
-                            disabled={processing}
-                        >
+                        <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
                             Cancelar
                         </Button>
                     </SheetFooter>
@@ -199,4 +182,4 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
     );
 };
 
-export default CreateSectorSheet; 
+export default CreateSectorSheet;

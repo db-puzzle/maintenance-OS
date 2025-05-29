@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
 import { ListTableHeader } from '@/components/table-headers/list-table-header';
+import { ReactNode } from 'react';
 
 interface ListLayoutProps {
     children: ReactNode;
@@ -22,7 +22,7 @@ export default function ListLayout({
     onSearchChange,
     createRoute,
     createButtonText,
-    actions
+    actions,
 }: ListLayoutProps) {
     return (
         <div className="space-y-6 p-5">
@@ -39,4 +39,4 @@ export default function ListLayout({
             {children}
         </div>
     );
-} 
+}

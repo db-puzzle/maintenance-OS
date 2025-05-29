@@ -1,13 +1,12 @@
-import { type BreadcrumbItem } from '@/types';
-import { type AssetTypeForm } from '@/types/asset-hierarchy';
-import { Head, useForm, router } from '@inertiajs/react';
+import HeadingSmall from '@/components/heading-small';
+import TextInput from '@/components/TextInput';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/asset-hierarchy/layout';
-import HeadingSmall from '@/components/heading-small';
-import { Button } from '@/components/ui/button';
-import TextInput from '@/components/TextInput';
-import { Link } from '@inertiajs/react';
-import { toast } from "sonner";
+import { type BreadcrumbItem } from '@/types';
+import { type AssetTypeForm } from '@/types/asset-hierarchy';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { toast } from 'sonner';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,10 +29,10 @@ export default function CreateAssetType() {
         e.preventDefault();
         post(route('asset-hierarchy.tipos-ativo.store'), {
             onError: (errors) => {
-                toast.error("Erro ao criar tipo de ativo", {
-                    description: "Verifique os campos e tente novamente."
+                toast.error('Erro ao criar tipo de ativo', {
+                    description: 'Verifique os campos e tente novamente.',
                 });
-            }
+            },
         });
     };
 
@@ -42,12 +41,9 @@ export default function CreateAssetType() {
             <Head title="Novo Tipo de Ativo" />
 
             <CadastroLayout>
-                <div className="space-y-6 max-w-2xl">
-                    <div className="flex justify-between items-center">
-                        <HeadingSmall 
-                            title="Novo Tipo de Ativo" 
-                            description="Crie um novo tipo de ativo no sistema" 
-                        />
+                <div className="max-w-2xl space-y-6">
+                    <div className="flex items-center justify-between">
+                        <HeadingSmall title="Novo Tipo de Ativo" description="Crie um novo tipo de ativo no sistema" />
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -57,7 +53,7 @@ export default function CreateAssetType() {
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors
+                                    clearErrors,
                                 }}
                                 name="name"
                                 label="Nome"
@@ -70,7 +66,7 @@ export default function CreateAssetType() {
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors
+                                    clearErrors,
                                 }}
                                 name="description"
                                 label="Descrição"
@@ -83,9 +79,7 @@ export default function CreateAssetType() {
                                 {processing ? 'Salvando...' : 'Salvar'}
                             </Button>
                             <Button variant="outline" asChild>
-                                <Link href={route('asset-hierarchy.tipos-ativo')}>
-                                    Cancelar
-                                </Link>
+                                <Link href={route('asset-hierarchy.tipos-ativo')}>Cancelar</Link>
                             </Button>
                         </div>
                     </form>
@@ -93,4 +87,4 @@ export default function CreateAssetType() {
             </CadastroLayout>
         </AppLayout>
     );
-} 
+}

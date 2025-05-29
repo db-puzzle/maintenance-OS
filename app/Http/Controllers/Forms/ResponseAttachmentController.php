@@ -17,11 +17,6 @@ class ResponseAttachmentController extends Controller
     public function index(TaskResponse $taskResponse)
     {
         $attachments = $taskResponse->attachments;
-        
-        if (request()->wantsJson()) {
-            return response()->json($attachments);
-        }
-        
         $taskResponse->load('formExecution');
         
         return Inertia::render('Forms/Attachments/Index', [
@@ -53,10 +48,6 @@ class ResponseAttachmentController extends Controller
             'metadata' => $request->metadata,
         ]);
         
-        if ($request->wantsJson()) {
-            return response()->json($attachment, 201);
-        }
-        
         return redirect()->back()->with('success', 'Anexo carregado com sucesso.');
     }
 
@@ -65,10 +56,6 @@ class ResponseAttachmentController extends Controller
      */
     public function show(ResponseAttachment $attachment)
     {
-        if (request()->wantsJson()) {
-            return response()->json($attachment);
-        }
-        
         $attachment->load('taskResponse.formExecution');
         
         return Inertia::render('Forms/Attachments/Show', [
@@ -94,10 +81,6 @@ class ResponseAttachmentController extends Controller
     public function destroy(ResponseAttachment $attachment)
     {
         $attachment->delete();
-        
-        if (request()->wantsJson()) {
-            return response()->noContent();
-        }
         
         return redirect()->back()->with('success', 'Anexo excluído com sucesso.');
     }

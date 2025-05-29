@@ -1,17 +1,16 @@
-import { type BreadcrumbItem } from '@/types';
-import { type Asset, type AssetType, type Area, type Plant, type Sector } from '@/types/asset-hierarchy';
-import { Head, Link, usePage, router } from '@inertiajs/react';
+import CreateRoutineButton from '@/components/CreateRoutineButton';
+import RoutineList from '@/components/RoutineList';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Camera, MessageSquare, Calendar, FileText } from 'lucide-react';
 import EmptyCard from '@/components/ui/empty-card';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import { useState, useRef } from 'react';
-import RoutineList from '@/components/RoutineList';
-import CreateRoutineButton from '@/components/CreateRoutineButton';
+import { type BreadcrumbItem } from '@/types';
+import { type Area, type Asset, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { Calendar, Camera, FileText, MessageSquare } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -53,9 +52,9 @@ export default function Show({ asset }: Props) {
 
     // Handlers para rotinas
     const handleSaveRoutine = (routine: any) => {
-        if (routine.id && routines.find(r => r.id === routine.id)) {
+        if (routine.id && routines.find((r) => r.id === routine.id)) {
             // Atualizar rotina existente
-            setRoutines(routines.map(r => r.id === routine.id ? routine : r));
+            setRoutines(routines.map((r) => (r.id === routine.id ? routine : r)));
             toast.success('Rotina atualizada com sucesso!');
         } else {
             // Para novas rotinas, apenas adicionar ao estado (a criação já foi feita pelo EditRoutineSheet)
@@ -72,7 +71,7 @@ export default function Show({ asset }: Props) {
 
     const handleDeleteRoutine = (routine: any) => {
         // Remover a rotina da listagem
-        setRoutines(routines.filter(r => r.id !== routine.id));
+        setRoutines(routines.filter((r) => r.id !== routine.id));
     };
 
     const handleNewRoutineClick = () => {
@@ -86,19 +85,21 @@ export default function Show({ asset }: Props) {
             content: (
                 <Card>
                     <CardContent>
-                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-center">
+                        <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-4">
                             {/* Coluna 1: Foto */}
-                            <div className="flex flex-col h-full justify-center">
-                                <div className={`flex-1 relative rounded-lg overflow-hidden ${!asset.photo_path ? 'bg-muted' : ''} min-h-[238px] max-h-[238px]`}>
+                            <div className="flex h-full flex-col justify-center">
+                                <div
+                                    className={`relative flex-1 overflow-hidden rounded-lg ${!asset.photo_path ? 'bg-muted' : ''} max-h-[238px] min-h-[238px]`}
+                                >
                                     {asset.photo_path ? (
                                         <img
                                             src={`/storage/${asset.photo_path}`}
                                             alt={`Foto do ativo ${asset.tag}`}
-                                            className="w-full h-full object-contain scale-120"
+                                            className="h-full w-full scale-120 object-contain"
                                         />
                                     ) : (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                                            <Camera className="w-12 h-12" />
+                                        <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-2">
+                                            <Camera className="h-12 w-12" />
                                             <span className="text-sm">Sem foto</span>
                                         </div>
                                     )}
@@ -107,26 +108,26 @@ export default function Show({ asset }: Props) {
 
                             {/* Grid de Informações 2x3 */}
                             <div className="lg:col-span-3">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                                     {/* Linha 1 */}
                                     <div className="space-y-4">
                                         <div className="grid gap-2">
                                             <Label>Número Serial</Label>
-                                            <div className="text-base text-muted-foreground">{asset.serial_number ?? '-'}</div>
+                                            <div className="text-muted-foreground text-base">{asset.serial_number ?? '-'}</div>
                                         </div>
                                     </div>
 
                                     <div className="space-y-4">
                                         <div className="grid gap-2">
                                             <Label>Fabricante</Label>
-                                            <div className="text-base text-muted-foreground">{asset.manufacturer ?? '-'}</div>
+                                            <div className="text-muted-foreground text-base">{asset.manufacturer ?? '-'}</div>
                                         </div>
                                     </div>
 
                                     <div className="space-y-4">
                                         <div className="grid gap-2">
                                             <Label>Ano de Fabricação</Label>
-                                            <div className="text-base text-muted-foreground">{asset.manufacturing_year ?? '-'}</div>
+                                            <div className="text-muted-foreground text-base">{asset.manufacturing_year ?? '-'}</div>
                                         </div>
                                     </div>
 
@@ -144,7 +145,9 @@ export default function Show({ asset }: Props) {
                                                     >
                                                         {plantToShow.name}
                                                     </Link>
-                                                ) : '-'}
+                                                ) : (
+                                                    '-'
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -160,7 +163,9 @@ export default function Show({ asset }: Props) {
                                                     >
                                                         {asset.area.name}
                                                     </Link>
-                                                ) : '-'}
+                                                ) : (
+                                                    '-'
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -176,7 +181,9 @@ export default function Show({ asset }: Props) {
                                                     >
                                                         {asset.sector.name}
                                                     </Link>
-                                                ) : '-'}
+                                                ) : (
+                                                    '-'
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -210,11 +217,13 @@ export default function Show({ asset }: Props) {
                         <>
                             {/* Lista de rotinas existentes */}
 
-                            <div className="p-4">
+                            <div className="p-4 bg-background-muted">
                                 <h3 className="text-base/7 font-semibold text-gray-900">Rotinas Disponíveis</h3>
-                                <p className="mt-1 max-w-2xl text-sm/6 text-gray-500">Execute, crie ou edite rotinas de manutenção para este ativo.</p>
+                                <p className="mt-1 max-w-2xl text-sm/6 text-gray-500">
+                                    Execute, crie ou edite rotinas de manutenção para este ativo.
+                                </p>
                                 <div className="p-4">
-                                    <ul role="list" className="divide-y divide-gray-100 border-t border-b border-gray-100" >
+                                    <ul role="list" className="divide-y divide-gray-100 border-t border-b border-gray-100">
                                         {routines.map((routine) => (
                                             <RoutineList
                                                 key={routine.id}
@@ -242,12 +251,7 @@ export default function Show({ asset }: Props) {
 
                     {/* CreateRoutineButton oculto para ser acionado programaticamente */}
                     <div style={{ display: 'none' }}>
-                        <CreateRoutineButton
-                            ref={createRoutineButtonRef}
-                            onSuccess={handleCreateSuccess}
-                            text="Nova Rotina"
-                            assetId={asset.id}
-                        />
+                        <CreateRoutineButton ref={createRoutineButtonRef} onSuccess={handleCreateSuccess} text="Nova Rotina" assetId={asset.id} />
                     </div>
                 </div>
             ),
@@ -330,13 +334,12 @@ export default function Show({ asset }: Props) {
                 title={asset.tag}
                 subtitle={
                     asset.asset_type ? (
-                        <Link
-                            href={route('asset-hierarchy.tipos-ativo.show', asset.asset_type.id)}
-                            className="hover:underline"
-                        >
+                        <Link href={route('asset-hierarchy.tipos-ativo.show', asset.asset_type.id)} className="hover:underline">
                             {asset.asset_type.name}
                         </Link>
-                    ) : 'Tipo não definido'
+                    ) : (
+                        'Tipo não definido'
+                    )
                 }
                 breadcrumbs={breadcrumbs}
                 editRoute={route('asset-hierarchy.assets.edit', asset.id)}
@@ -346,4 +349,4 @@ export default function Show({ asset }: Props) {
             />
         </AppLayout>
     );
-} 
+}

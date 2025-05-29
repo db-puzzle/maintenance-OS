@@ -1,40 +1,16 @@
-import * as React from "react";
 import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
-import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
-import { MoreVertical, ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon, ColumnsIcon, ChevronDownIcon, ArrowUpDown } from 'lucide-react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { ArrowUpDown, MoreVertical } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
+import { ColumnVisibility, DataTable, type Column } from '@/components/data-table';
+import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
-import { DataTable, ColumnVisibility, type Column } from '@/components/data-table';
-import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -101,13 +77,13 @@ export default function Assets({ asset, filters }: Props) {
         const timeoutId = setTimeout(() => {
             router.get(
                 route('asset-hierarchy.assets'),
-                { 
+                {
                     search,
                     sort,
                     direction,
-                    per_page: perPage
+                    per_page: perPage,
                 },
-                { preserveState: true, preserveScroll: true }
+                { preserveState: true, preserveScroll: true },
             );
         }, 300);
 
@@ -118,28 +94,28 @@ export default function Assets({ asset, filters }: Props) {
         setPerPage(Number(value));
         router.get(
             route('asset-hierarchy.assets'),
-            { 
+            {
                 search,
                 sort,
                 direction,
                 page: 1,
-                per_page: value
+                per_page: value,
             },
-            { preserveState: true }
+            { preserveState: true },
         );
     };
 
     const handlePageChange = (newPage: number) => {
         router.get(
             route('asset-hierarchy.assets'),
-            { 
+            {
                 search,
                 sort,
                 direction,
                 page: newPage + 1,
-                per_page: perPage
+                per_page: perPage,
             },
-            { preserveState: true }
+            { preserveState: true },
         );
     };
 
@@ -163,9 +139,9 @@ export default function Assets({ asset, filters }: Props) {
 
     const columns: Column<Asset>[] = [
         {
-            id: "tag",
+            id: 'tag',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('tag')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('tag')}>
                     TAG
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
@@ -175,119 +151,112 @@ export default function Assets({ asset, filters }: Props) {
                     <div>
                         <div className="font-medium">{row.original.tag}</div>
                         {row.original.description && (
-                            <div className="text-sm text-muted-foreground">
-                                {row.original.description.length > 40 
-                                    ? `${row.original.description.substring(0, 40)}...`
-                                    : row.original.description}
+                            <div className="text-muted-foreground text-sm">
+                                {row.original.description.length > 40 ? `${row.original.description.substring(0, 40)}...` : row.original.description}
                             </div>
                         )}
                     </div>
                 );
             },
-            width: "w-[300px]",
+            width: 'w-[300px]',
         },
         {
-            id: "asset_type",
+            id: 'asset_type',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('asset_type')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('asset_type')}>
                     Tipo
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Asset }) => row.original.asset_type?.name ?? '-',
-            width: "w-[200px]",
+            width: 'w-[200px]',
         },
         {
-            id: "serial_number",
+            id: 'serial_number',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('serial_number')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('serial_number')}>
                     Número Serial
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Asset }) => row.original.serial_number ?? '-',
-            width: "w-[200px]",
+            width: 'w-[200px]',
         },
         {
-            id: "plant",
+            id: 'plant',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('plant')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('plant')}>
                     Planta
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
-            cell: (row: { original: Asset }) => row.original.plant?.name ?? row.original.area?.plant?.name ?? row.original.sector?.area?.plant?.name ?? '-',
-            width: "w-[200px]",
+            cell: (row: { original: Asset }) =>
+                row.original.plant?.name ?? row.original.area?.plant?.name ?? row.original.sector?.area?.plant?.name ?? '-',
+            width: 'w-[200px]',
         },
         {
-            id: "area",
+            id: 'area',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('area')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('area')}>
                     Área
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Asset }) => row.original.area?.name ?? row.original.sector?.area?.name ?? '-',
-            width: "w-[200px]",
+            width: 'w-[200px]',
         },
         {
-            id: "sector",
+            id: 'sector',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('sector')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('sector')}>
                     Setor
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Asset }) => row.original.sector?.name ?? '-',
-            width: "w-[200px]",
+            width: 'w-[200px]',
         },
         {
-            id: "manufacturer",
+            id: 'manufacturer',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('manufacturer')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('manufacturer')}>
                     Fabricante
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Asset }) => row.original.manufacturer ?? '-',
-            width: "w-[200px]",
+            width: 'w-[200px]',
         },
         {
-            id: "manufacturing_year",
+            id: 'manufacturing_year',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('manufacturing_year')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('manufacturing_year')}>
                     Ano
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Asset }) => row.original.manufacturing_year ?? '-',
-            width: "w-[100px]",
+            width: 'w-[100px]',
         },
         {
-            id: "actions",
-            header: "Ações",
+            id: 'actions',
+            header: 'Ações',
             cell: (row: { original: Asset }) => (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-                            size="icon"
-                        >
+                        <Button variant="ghost" className="text-muted-foreground data-[state=open]:bg-muted flex size-8" size="icon">
                             <MoreVertical />
                             <span className="sr-only">Abrir menu</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.assets.edit', row.original.id)}>
-                                Editar
-                            </Link>
+                            <Link href={route('asset-hierarchy.assets.edit', row.original.id)}>Editar</Link>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
-            width: "w-[80px]",
+            width: 'w-[80px]',
         },
     ];
 
@@ -335,4 +304,4 @@ export default function Assets({ asset, filters }: Props) {
             </ListLayout>
         </AppLayout>
     );
-} 
+}

@@ -1,13 +1,13 @@
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 import { Task } from '@/types/task';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { TaskCardMode } from './TaskContent';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { PlusCircle, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface MultipleChoiceTaskContentProps {
     task: Task;
@@ -42,25 +42,25 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
     };
 
     // Filtra opções vazias para os modos preview e respond
-    const validOptions = mode === 'edit' ? options : options.filter(option => option.trim() !== '');
+    const validOptions = mode === 'edit' ? options : options.filter((option) => option.trim() !== '');
 
     if (mode === 'edit') {
         return (
             <div className="space-y-4">
-                <div className="pl-4 pr-4 pb-4 bg-muted/30 rounded-md">
+                <div className="bg-muted/30 rounded-md pr-4 pb-4 pl-4">
                     <div className="space-y-4">
-                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                             {isMultipleSelect ? (
-                                <p className="text-base text-foreground">O usuário poderá selecionar várias opções.</p>
+                                <p className="text-foreground text-base">O usuário poderá selecionar várias opções.</p>
                             ) : (
-                                <p className="text-base text-foreground">O usuário poderá selecionar apenas uma opção.</p>
+                                <p className="text-foreground text-base">O usuário poderá selecionar apenas uma opção.</p>
                             )}
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={handleAddOption}
-                                className="flex items-center gap-2 w-full lg:w-auto justify-center"
+                                className="flex w-full items-center justify-center gap-2 lg:w-auto"
                             >
                                 <PlusCircle className="h-4 w-4" />
                                 Adicionar Opção
@@ -76,14 +76,8 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
                                         placeholder={`Opção ${index + 1}`}
                                         className="flex-1"
                                     />
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleRemoveOption(index)}
-                                        className="h-10 w-10"
-                                    >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveOption(index)} className="h-10 w-10">
+                                        <Trash2 className="text-destructive h-4 w-4" />
                                     </Button>
                                 </div>
                             ))}
@@ -99,7 +93,7 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
 
         if (validOptions.length === 0) {
             return (
-                <div className="p-4 bg-muted/30 rounded-md">
+                <div className="bg-muted/30 rounded-md p-4">
                     <p className="text-muted-foreground">Nenhuma opção válida disponível.</p>
                 </div>
             );
@@ -117,21 +111,15 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
                                     onCheckedChange={(checked) => {
                                         if (!isPreview) {
                                             if (checked) {
-                                                setSelectedOptions(prev => [...prev, option]);
+                                                setSelectedOptions((prev) => [...prev, option]);
                                             } else {
-                                                setSelectedOptions(prev => prev.filter(item => item !== option));
+                                                setSelectedOptions((prev) => prev.filter((item) => item !== option));
                                             }
                                         }
                                     }}
                                     disabled={isPreview}
                                 />
-                                <Label 
-                                    htmlFor={`option-${index}`} 
-                                    className={cn(
-                                        "text-base",
-                                        isPreview && "text-muted-foreground"
-                                    )}
-                                >
+                                <Label htmlFor={`option-${index}`} className={cn('text-base', isPreview && 'text-muted-foreground')}>
                                     {option}
                                 </Label>
                             </div>
@@ -143,21 +131,11 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
 
         return (
             <div className="space-y-4">
-                <RadioGroup 
-                    value={selectedOption} 
-                    onValueChange={(value) => !isPreview && setSelectedOption(value)}
-                    disabled={isPreview}
-                >
+                <RadioGroup value={selectedOption} onValueChange={(value) => !isPreview && setSelectedOption(value)} disabled={isPreview}>
                     {validOptions.map((option, index) => (
                         <div key={index} className="flex items-center space-x-2">
                             <RadioGroupItem id={`option-${index}`} value={option} disabled={isPreview} />
-                            <Label 
-                                htmlFor={`option-${index}`} 
-                                className={cn(
-                                    "text-base",
-                                    isPreview && "text-muted-foreground"
-                                )}
-                            >
+                            <Label htmlFor={`option-${index}`} className={cn('text-base', isPreview && 'text-muted-foreground')}>
                                 {option}
                             </Label>
                         </div>
@@ -168,4 +146,4 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
     }
 
     return null;
-} 
+}

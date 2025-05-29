@@ -1,13 +1,11 @@
 import { type BreadcrumbItem } from '@/types';
 import { type Area, type Sector, type SectorForm } from '@/types/asset-hierarchy';
-import { Head, useForm, router } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
-import { toast } from "sonner";
+import { Head, useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import TextInput from '@/components/TextInput';
 import ItemSelect from '@/components/ItemSelect';
+import TextInput from '@/components/TextInput';
 
 import AppLayout from '@/layouts/app-layout';
 import EditLayout from '@/layouts/asset-hierarchy/edit-layout';
@@ -50,9 +48,7 @@ export default function EditSector({ sector, plants }: Props) {
 
     const [selectedPlant, setSelectedPlant] = useState<number | null>(sector.area.plant.id);
 
-    const availableAreas = selectedPlant
-        ? plants.find(p => p.id === selectedPlant)?.areas || []
-        : [];
+    const availableAreas = selectedPlant ? plants.find((p) => p.id === selectedPlant)?.areas || [] : [];
 
     const handleSave = () => {
         put(route('asset-hierarchy.setores.update', sector.id), {
@@ -60,10 +56,10 @@ export default function EditSector({ sector, plants }: Props) {
                 // O flash message será exibido automaticamente
             },
             onError: (errors) => {
-                toast.error("Erro ao atualizar setor", {
-                    description: "Verifique os campos e tente novamente."
+                toast.error('Erro ao atualizar setor', {
+                    description: 'Verifique os campos e tente novamente.',
                 });
-            }
+            },
         });
     };
 
@@ -79,7 +75,13 @@ export default function EditSector({ sector, plants }: Props) {
                 onSave={handleSave}
                 isSaving={processing}
             >
-                <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6 max-w-2xl">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSave();
+                    }}
+                    className="max-w-2xl space-y-6"
+                >
                     <div className="grid gap-6">
                         {/* Nome */}
                         <TextInput<SectorForm>
@@ -87,7 +89,7 @@ export default function EditSector({ sector, plants }: Props) {
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {}
+                                clearErrors: () => {},
                             }}
                             name="name"
                             label="Nome do Setor"
@@ -119,7 +121,7 @@ export default function EditSector({ sector, plants }: Props) {
                                 value={data.area_id || ''}
                                 onValueChange={(value) => setData('area_id', value)}
                                 createRoute={route('asset-hierarchy.areas.create')}
-                                placeholder={!selectedPlant ? "Selecione uma planta primeiro" : "Selecione uma área"}
+                                placeholder={!selectedPlant ? 'Selecione uma planta primeiro' : 'Selecione uma área'}
                                 error={errors.area_id}
                                 disabled={!selectedPlant}
                             />
@@ -129,4 +131,4 @@ export default function EditSector({ sector, plants }: Props) {
             </EditLayout>
         </AppLayout>
     );
-} 
+}

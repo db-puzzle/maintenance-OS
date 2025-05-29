@@ -5,9 +5,11 @@ Este diretório contém componentes generalizados para criar e visualizar formul
 ## Componentes Principais
 
 ### FormEditor
+
 Componente para editar/criar formulários com drag-and-drop de tarefas.
 
 **Props:**
+
 - `form?: FormData` - Dados do formulário existente (opcional para novos formulários)
 - `entity: EntityData` - Dados da entidade (rotina/inspeção/relatório)
 - `entityType: 'routine' | 'inspection' | 'report'` - Tipo da entidade
@@ -18,9 +20,11 @@ Componente para editar/criar formulários com drag-and-drop de tarefas.
 - `subtitle?: string` - Subtítulo personalizado
 
 ### FormViewer
+
 Componente para visualizar e preencher formulários.
 
 **Props:**
+
 - `form: FormData` - Dados do formulário
 - `entity: EntityData` - Dados da entidade
 - `entityType: 'routine' | 'inspection' | 'report'` - Tipo da entidade
@@ -32,6 +36,7 @@ Componente para visualizar e preencher formulários.
 ## Como Usar
 
 ### 1. Para Rotinas
+
 ```tsx
 import FormEditor from '@/pages/forms/form-editor';
 import FormViewer from '@/pages/forms/form-viewer';
@@ -55,6 +60,7 @@ import FormViewer from '@/pages/forms/form-viewer';
 ```
 
 ### 2. Para Inspeções
+
 ```tsx
 <FormEditor
     form={inspection.form}
@@ -73,6 +79,7 @@ import FormViewer from '@/pages/forms/form-viewer';
 ```
 
 ### 3. Para Relatórios
+
 ```tsx
 <FormEditor
     form={report.form}
@@ -146,6 +153,7 @@ Para migrar componentes específicos existentes:
 ## Exemplos Completos
 
 Veja os arquivos de exemplo:
+
 - `inspections/inspection-form-example.tsx`
 - `reports/report-form-example.tsx`
-- `routines/routine-form-wrapper.tsx` 
+- `routines/routine-form-wrapper.tsx`

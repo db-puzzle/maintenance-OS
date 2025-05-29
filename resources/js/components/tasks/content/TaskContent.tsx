@@ -1,11 +1,11 @@
-import { ReactNode, memo } from 'react';
-import { Task, TaskType, TaskState } from '@/types/task';
-import QuestionTaskContent from './QuestionTaskContent';
-import MultipleChoiceTaskContent from './MultipleChoiceTaskContent';
-import MeasurementTaskContent from './MeasurementTaskContent';
-import PhotoTaskContent from './PhotoTaskContent';
+import { Task } from '@/types/task';
+import { memo } from 'react';
 import CodeReaderTaskContent from './CodeReaderTaskContent';
 import FileUploadTaskContent from './FileUploadTaskContent';
+import MeasurementTaskContent from './MeasurementTaskContent';
+import MultipleChoiceTaskContent from './MultipleChoiceTaskContent';
+import PhotoTaskContent from './PhotoTaskContent';
+import QuestionTaskContent from './QuestionTaskContent';
 
 export type TaskCardMode = 'edit' | 'preview' | 'respond';
 
@@ -23,7 +23,7 @@ interface TaskContentProps {
 function TaskContent({ task, mode, onUpdate, onIconChange }: TaskContentProps) {
     // Verifica se a tarefa existe
     if (!task) {
-        return <div className="p-4 text-muted-foreground">Tarefa não encontrada</div>;
+        return <div className="text-muted-foreground p-4">Tarefa não encontrada</div>;
     }
 
     // Seleciona o componente com base no tipo de tarefa
@@ -43,13 +43,11 @@ function TaskContent({ task, mode, onUpdate, onIconChange }: TaskContentProps) {
             return <FileUploadTaskContent task={task} mode={mode} onUpdate={onUpdate} />;
         default:
             return (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                    <p className="text-yellow-700">
-                        Tipo de tarefa não implementado: {task.type}
-                    </p>
+                <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4">
+                    <p className="text-yellow-700">Tipo de tarefa não implementado: {task.type}</p>
                 </div>
             );
     }
 }
 
-export default memo(TaskContent); 
+export default memo(TaskContent);

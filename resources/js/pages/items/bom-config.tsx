@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { Plus, Trash2, Save, Download, ChevronRight, ChevronDown, Edit, GripVertical } from 'lucide-react';
+import { ChevronDown, ChevronRight, Edit, GripVertical, Plus, Trash2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
@@ -49,38 +49,36 @@ interface VisualBOMBuilderProps {
 
 const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, VisualBOMBuilderProps>((props, ref) => {
     const [items, setItems] = useState<BOMItem[]>([
-        { 
-            id: '1', 
-            name: 'Main Assembly', 
-            description: 'Top level assembly', 
-            quantity: 1, 
-            unit: 'ea', 
+        {
+            id: '1',
+            name: 'Main Assembly',
+            description: 'Top level assembly',
+            quantity: 1,
+            unit: 'ea',
             children: [
-                { 
-                    id: '1-1', 
-                    name: 'Sub-Assembly A', 
-                    description: 'First sub-assembly', 
-                    quantity: 2, 
-                    unit: 'ea', 
+                {
+                    id: '1-1',
+                    name: 'Sub-Assembly A',
+                    description: 'First sub-assembly',
+                    quantity: 2,
+                    unit: 'ea',
                     children: [
                         { id: '1-1-1', name: 'Component X', description: 'Metal bracket', quantity: 4, unit: 'ea', children: [] },
-                        { id: '1-1-2', name: 'Component Y', description: 'Fastener set', quantity: 12, unit: 'ea', children: [] }
-                    ] 
+                        { id: '1-1-2', name: 'Component Y', description: 'Fastener set', quantity: 12, unit: 'ea', children: [] },
+                    ],
                 },
-                { 
-                    id: '1-2', 
-                    name: 'Sub-Assembly B', 
-                    description: 'Second sub-assembly', 
-                    quantity: 1, 
-                    unit: 'ea', 
-                    children: [
-                        { id: '1-2-1', name: 'Component Z', description: 'Circuit board', quantity: 1, unit: 'ea', children: [] }
-                    ] 
-                }
-            ] 
-        }
+                {
+                    id: '1-2',
+                    name: 'Sub-Assembly B',
+                    description: 'Second sub-assembly',
+                    quantity: 1,
+                    unit: 'ea',
+                    children: [{ id: '1-2-1', name: 'Component Z', description: 'Circuit board', quantity: 1, unit: 'ea', children: [] }],
+                },
+            ],
+        },
     ]);
-    
+
     const [expanded, setExpanded] = useState<Record<string, boolean>>({ '1': true, '1-1': true, '1-2': true });
     const [editingItem, setEditingItem] = useState<BOMItem | null>(null);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -88,7 +86,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     const draggingRef = useRef<string | null>(null);
     const dragItemRef = useRef<HTMLElement | null>(null);
     const dropTypeRef = useRef<'as-child' | 'reorder' | null>(null);
-    const reorderInfoRef = useRef<{parentId: string, index: number} | null>(null);
+    const reorderInfoRef = useRef<{ parentId: string; index: number } | null>(null);
 
     // Helper function to find and update an item in the tree
     const findItemById = (items: BOMItem[], id: string): BOMItem | null => {
@@ -106,14 +104,14 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
 
     // Helper function to update the items tree
     const updateItemsTree = (items: BOMItem[], id: string, updateFn: (item: BOMItem) => BOMItem): BOMItem[] => {
-        return items.map(item => {
+        return items.map((item) => {
             if (item.id === id) {
                 return updateFn(item);
             }
             if (item.children && item.children.length > 0) {
                 return {
                     ...item,
-                    children: updateItemsTree(item.children, id, updateFn)
+                    children: updateItemsTree(item.children, id, updateFn),
                 };
             }
             return item;
@@ -126,29 +124,29 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
             if (item.id === id) {
                 return acc;
             }
-            
+
             if (item.children && item.children.length > 0) {
                 const newChildren = removeItemFromTree(item.children, id);
                 return [...acc, { ...item, children: newChildren }];
             }
-            
+
             return [...acc, item];
         }, []);
     };
 
     // Helper function to add a child to an item
     const addChildToItem = (items: BOMItem[], parentId: string, newChild: BOMItem): BOMItem[] => {
-        return items.map(item => {
+        return items.map((item) => {
             if (item.id === parentId) {
                 return {
                     ...item,
-                    children: [...item.children, newChild]
+                    children: [...item.children, newChild],
                 };
             }
             if (item.children && item.children.length > 0) {
                 return {
                     ...item,
-                    children: addChildToItem(item.children, parentId, newChild)
+                    children: addChildToItem(item.children, parentId, newChild),
                 };
             }
             return item;
@@ -157,9 +155,9 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
 
     // Function to toggle expanded state
     const toggleExpand = (id: string) => {
-        setExpanded(prev => ({
+        setExpanded((prev) => ({
             ...prev,
-            [id]: !prev[id]
+            [id]: !prev[id],
         }));
     };
 
@@ -167,7 +165,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     useEffect(() => {
         // Adicionar uma classe específica para os itens arrastáveis
         const allDraggableItems = document.querySelectorAll('.drag-handle');
-        allDraggableItems.forEach(item => {
+        allDraggableItems.forEach((item) => {
             item.setAttribute('draggable', 'true');
         });
 
@@ -185,7 +183,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     // Function to handle drag start - simplificado e mais direto
     const handleDragStart = (e: React.DragEvent, id: string) => {
         e.stopPropagation();
-        
+
         // Configurar dataTransfer diretamente
         if (e.dataTransfer && e.dataTransfer.setData) {
             try {
@@ -195,50 +193,45 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                 console.error('Error setting data transfer:', error);
             }
         }
-        
+
         // Rastrear o item arrastado na referência
         draggingRef.current = id;
-        
+
         // Adicionar classe visualmente no elemento
         const container = document.querySelector(`[data-id="${id}"]`) as HTMLElement;
         if (container) {
             container.classList.add('opacity-50');
         }
-        
+
         // Desabilitar animações durante o arrasto
         document.body.classList.add('dragging-active');
-        
+
         // Log para debug
         console.log('Drag started:', id);
     };
 
     // Função atualizada para adicionar um item em uma posição específica dentro de um pai
-    const insertItemAtPosition = (
-        items: BOMItem[], 
-        parentId: string, 
-        newItem: BOMItem, 
-        position: number
-    ): BOMItem[] => {
-        return items.map(item => {
+    const insertItemAtPosition = (items: BOMItem[], parentId: string, newItem: BOMItem, position: number): BOMItem[] => {
+        return items.map((item) => {
             if (item.id === parentId) {
                 // Criar uma cópia dos filhos
                 const newChildren = [...item.children];
                 // Inserir o novo item na posição específica
                 newChildren.splice(position, 0, newItem);
-                
+
                 return {
                     ...item,
-                    children: newChildren
+                    children: newChildren,
                 };
             }
-            
+
             if (item.children && item.children.length > 0) {
                 return {
                     ...item,
-                    children: insertItemAtPosition(item.children, parentId, newItem, position)
+                    children: insertItemAtPosition(item.children, parentId, newItem, position),
                 };
             }
-            
+
             return item;
         });
     };
@@ -247,11 +240,11 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     const getParentId = (items: BOMItem[], childId: string, parentId: string = ''): string => {
         for (const item of items) {
             // Verificar se este item é o pai
-            const isParent = item.children.some(child => child.id === childId);
+            const isParent = item.children.some((child) => child.id === childId);
             if (isParent) {
                 return item.id;
             }
-            
+
             // Verificar recursivamente nos filhos
             if (item.children.length > 0) {
                 const foundParentId = getParentId(item.children, childId, item.id);
@@ -260,7 +253,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                 }
             }
         }
-        
+
         return parentId;
     };
 
@@ -269,55 +262,55 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
         // Encontrar o pai
         const parentId = getParentId(items, itemId);
         if (!parentId) return -1;
-        
+
         // Encontrar o pai na árvore
         const parent = findItemById(items, parentId);
         if (!parent) return -1;
-        
+
         // Encontrar o índice do item nos filhos do pai
-        return parent.children.findIndex(child => child.id === itemId);
+        return parent.children.findIndex((child) => child.id === itemId);
     };
 
     // Function to handle drag over - atualizada para lidar com drop zones
     const handleDragOver = (e: React.DragEvent, targetId: string, dropType: 'as-child' | 'reorder' = 'as-child', position?: number) => {
         // Sempre previnir o comportamento padrão para permitir o drop
         e.preventDefault();
-        
+
         // Verificar se estamos arrastando algo
         if (!draggingRef.current) return;
-        
+
         // Não destacar o item sendo arrastado
         if (draggingRef.current === targetId) return;
-        
+
         // Se for drop para reordenar, não precisamos da verificação de filhos
         if (dropType === 'as-child') {
             // Verificar se o alvo é um filho do item arrastado (para prevenir referência circular)
             const isChildOfDragged = checkIfChildOfDragged(draggingRef.current, targetId);
             if (isChildOfDragged) return;
         }
-        
+
         // Remover qualquer destaque existente
-        document.querySelectorAll('.highlight-drop-area').forEach(el => {
+        document.querySelectorAll('.highlight-drop-area').forEach((el) => {
             el.classList.remove('border-blue-500', 'border-2', 'bg-blue-50', 'highlight-drop-area');
         });
-        
-        document.querySelectorAll('.highlight-reorder-area').forEach(el => {
+
+        document.querySelectorAll('.highlight-reorder-area').forEach((el) => {
             el.classList.remove('border-blue-500', 'border-2', 'h-2', 'bg-blue-500', 'highlight-reorder-area');
         });
-        
+
         // Armazenar o tipo de operação atual
         dropTypeRef.current = dropType;
-        
+
         if (dropType === 'reorder' && position !== undefined) {
             // Para reordenação, precisamos destacar a drop zone
             const container = e.currentTarget as HTMLElement;
             if (container) {
                 container.classList.add('border-blue-500', 'border-2', 'h-2', 'bg-blue-500', 'highlight-reorder-area');
-                
+
                 // Armazenar informações sobre onde estamos reordenando
                 reorderInfoRef.current = {
                     parentId: targetId,
-                    index: position
+                    index: position,
                 };
             }
         } else {
@@ -327,7 +320,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                 container.classList.add('border-blue-500', 'border-2', 'bg-blue-50', 'highlight-drop-area');
             }
         }
-        
+
         // Definir o efeito de drop
         e.dataTransfer.dropEffect = 'move';
     };
@@ -335,16 +328,16 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     // Função helper para verificar referência circular
     const checkIfChildOfDragged = (draggedId: string, targetId: string): boolean => {
         const draggedItem = findItemById(items, draggedId);
-        
+
         const checkChildren = (item: BOMItem): boolean => {
             if (item.id === targetId) return true;
             if (item.children && item.children.length > 0) {
-                return item.children.some(child => checkChildren(child));
+                return item.children.some((child) => checkChildren(child));
             }
             return false;
         };
-        
-        return draggedItem ? draggedItem.children.some(child => checkChildren(child)) : false;
+
+        return draggedItem ? draggedItem.children.some((child) => checkChildren(child)) : false;
     };
 
     // Function to handle drag leave - atualizada para lidar com os dois tipos de áreas
@@ -353,20 +346,20 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
         if (e.currentTarget && e.relatedTarget) {
             const currentTarget = e.currentTarget as HTMLElement;
             const relatedTarget = e.relatedTarget as HTMLElement;
-            
+
             // Se o relatedTarget é filho do currentTarget, não remover os destaques
             if (currentTarget.contains(relatedTarget)) {
                 return;
             }
         }
-        
+
         const container = e.currentTarget as HTMLElement;
-        
+
         // Remover o destaque visual baseado na classe
         if (container.classList.contains('highlight-drop-area')) {
             container.classList.remove('border-blue-500', 'border-2', 'bg-blue-50', 'highlight-drop-area');
         }
-        
+
         if (container.classList.contains('highlight-reorder-area')) {
             container.classList.remove('border-blue-500', 'border-2', 'h-2', 'bg-blue-500', 'highlight-reorder-area');
         }
@@ -375,10 +368,10 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     // Function to handle drag end
     const handleDragEnd = (e: React.DragEvent) => {
         // Remover classes visuais de todos os elementos
-        document.querySelectorAll('.droppable-area').forEach(el => {
+        document.querySelectorAll('.droppable-area').forEach((el) => {
             el.classList.remove('border-blue-500', 'border-2', 'bg-blue-50', 'opacity-50');
         });
-        
+
         // Limpar a referência de arrasto
         if (draggingRef.current) {
             const draggedElement = document.querySelector(`[data-id="${draggingRef.current}"]`);
@@ -387,10 +380,10 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
             }
             draggingRef.current = null;
         }
-        
+
         // Reabilitar animações
         document.body.classList.remove('dragging-active');
-        
+
         // Log para debug
         console.log('Drag ended');
     };
@@ -399,12 +392,12 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     const handleDrop = (e: React.DragEvent, targetId: string) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         // Remover destaques visuais
-        document.querySelectorAll('.highlight-drop-area, .highlight-reorder-area').forEach(el => {
+        document.querySelectorAll('.highlight-drop-area, .highlight-reorder-area').forEach((el) => {
             el.classList.remove('border-blue-500', 'border-2', 'bg-blue-50', 'h-2', 'bg-blue-500', 'highlight-drop-area', 'highlight-reorder-area');
         });
-        
+
         // Recuperar o ID do item arrastado
         const draggedId = draggingRef.current;
         if (!draggedId) {
@@ -421,16 +414,16 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                 return;
             }
         }
-        
+
         const finalDraggedId = draggingRef.current;
         if (!finalDraggedId) return;
-        
+
         // Não permitir drop no próprio item
         if (finalDraggedId === targetId && dropTypeRef.current === 'as-child') {
             resetDragState();
             return;
         }
-        
+
         // Verificar referência circular para adição como filho
         if (dropTypeRef.current === 'as-child' && checkIfChildOfDragged(finalDraggedId, targetId)) {
             // Mostrar feedback de erro
@@ -444,43 +437,43 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
             resetDragState();
             return;
         }
-        
+
         // Obter o item arrastado
         const draggedItem = findItemById(items, finalDraggedId);
         if (!draggedItem) {
             resetDragState();
             return;
         }
-        
+
         // Criar uma cópia dos itens sem o item arrastado
         const newItems = removeItemFromTree(items, finalDraggedId);
         let updatedItems: BOMItem[];
-        
+
         // Processar de acordo com o tipo de operação
         if (dropTypeRef.current === 'reorder' && reorderInfoRef.current) {
             // Reordenação: inserir o item na posição específica dentro do pai
             const { parentId, index } = reorderInfoRef.current;
             updatedItems = insertItemAtPosition(newItems, parentId, draggedItem, index);
-            
+
             // Garantir que o nó pai esteja expandido
-            setExpanded(prev => ({
+            setExpanded((prev) => ({
                 ...prev,
-                [parentId]: true
+                [parentId]: true,
             }));
         } else {
             // Adição como filho: adicionar ao final dos filhos do alvo
             updatedItems = addChildToItem(newItems, targetId, draggedItem);
-            
+
             // Expandir o nó alvo
-            setExpanded(prev => ({
+            setExpanded((prev) => ({
                 ...prev,
-                [targetId]: true
+                [targetId]: true,
             }));
         }
-        
+
         // Atualizar o estado
         setItems(updatedItems);
-        
+
         // Limpar estado de drag
         resetDragState();
     };
@@ -502,11 +495,11 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     // Function to save edited item
     const handleSaveEdit = () => {
         if (!editingItem) return;
-        
+
         const updatedItems = updateItemsTree(items, editingItem.id, () => ({
-            ...editingItem
+            ...editingItem,
         }));
-        
+
         setItems(updatedItems);
         setEditingItem(null);
         setIsModalOpen(false);
@@ -516,18 +509,18 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     const handleAddItem = (parentId: string) => {
         const parent = findItemById(items, parentId);
         if (!parent) return;
-        
+
         const newId = `${parentId}-${parent.children.length + 1}`;
-        
+
         const newItem: BOMItem = {
             id: newId,
             name: 'Novo Item',
             description: 'Descrição',
             quantity: 1,
             unit: 'ea',
-            children: []
+            children: [],
         };
-        
+
         setNewItemParentId(parentId);
         setEditingItem(newItem);
         setIsModalOpen(true);
@@ -536,16 +529,16 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     // Function to save new item
     const handleSaveNewItem = () => {
         if (!editingItem || !newItemParentId) return;
-        
+
         const updatedItems = addChildToItem(items, newItemParentId, editingItem);
         setItems(updatedItems);
-        
+
         // Expand the parent to show the new item
-        setExpanded(prev => ({
+        setExpanded((prev) => ({
             ...prev,
-            [newItemParentId]: true
+            [newItemParentId]: true,
         }));
-        
+
         setEditingItem(null);
         setNewItemParentId(null);
         setIsModalOpen(false);
@@ -555,7 +548,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     const handleDeleteItem = (id: string) => {
         // Don't allow deleting the root item
         if (id === '1') return;
-        
+
         const updatedItems = removeItemFromTree(items, id);
         setItems(updatedItems);
     };
@@ -563,10 +556,10 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     // Function to export BOM as JSON
     const handleExportBOM = () => {
         const dataStr = JSON.stringify(items, null, 2);
-        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-        
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
         const exportFileDefaultName = 'bom.json';
-        
+
         const linkElement = document.createElement('a');
         linkElement.setAttribute('href', dataUri);
         linkElement.setAttribute('download', exportFileDefaultName);
@@ -575,7 +568,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
 
     // Exporte a função handleExportBOM através do ref
     React.useImperativeHandle(ref, () => ({
-        handleExportBOM
+        handleExportBOM,
     }));
 
     // Função para lidar com o cancelamento de edição/adição
@@ -586,33 +579,38 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     };
 
     // TreeItem component atualizado para incluir drop zones
-    const TreeItem = ({ node, depth = 0, isLast = true, parentConnectorLines = [] }: { 
-        node: BOMItem; 
-        depth?: number; 
-        isLast?: boolean; 
-        parentConnectorLines: boolean[]
+    const TreeItem = ({
+        node,
+        depth = 0,
+        isLast = true,
+        parentConnectorLines = [],
+    }: {
+        node: BOMItem;
+        depth?: number;
+        isLast?: boolean;
+        parentConnectorLines: boolean[];
     }) => {
         const isExpanded = expanded[node.id];
         const hasChildren = node.children && node.children.length > 0;
-        
+
         // Create the connector lines for children of this node
         const childConnectorLines = [...parentConnectorLines];
         if (depth > 0) {
             // Add connector for this level: true if not last item, false otherwise
             childConnectorLines.push(!isLast);
         }
-        
+
         return (
             <div className="w-full">
                 {/* Drop zone para inserir antes deste item (exceto para o item raiz) */}
                 {node.id !== '1' && (
-                    <div 
-                        className="drop-zone h-1 mx-6 rounded hover:h-2 hover:bg-gray-200 transition-all"
+                    <div
+                        className="drop-zone mx-6 h-1 rounded transition-all hover:h-2 hover:bg-gray-200"
                         onDragOver={(e) => {
                             // Encontrar o ID do pai e o índice atual deste nó
                             const parentId = getParentId(items, node.id);
                             if (!parentId) return;
-                            
+
                             const currentIndex = getItemIndex(items, node.id);
                             handleDragOver(e, parentId, 'reorder', currentIndex);
                         }}
@@ -624,42 +622,42 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                         }}
                     ></div>
                 )}
-                
+
                 <div className="flex">
                     {/* Display connector lines from parent levels */}
                     {parentConnectorLines.map((showLine, i) => (
-                        <div key={`connector-${i}`} className="w-6 relative">
-                            {showLine && <div className="absolute h-full w-0 border-l-2 border-gray-300 left-3 top-0"></div>}
+                        <div key={`connector-${i}`} className="relative w-6">
+                            {showLine && <div className="absolute top-0 left-3 h-full w-0 border-l-2 border-gray-300"></div>}
                         </div>
                     ))}
-                    
+
                     {/* Current level connector */}
                     {depth > 0 && (
-                        <div className="w-6 relative">
+                        <div className="relative w-6">
                             {/* Vertical line */}
-                            <div className="absolute h-1/2 w-0 border-l-2 border-gray-300 left-3 top-0"></div>
-                            
+                            <div className="absolute top-0 left-3 h-1/2 w-0 border-l-2 border-gray-300"></div>
+
                             {/* Horizontal line to the node */}
-                            <div className="absolute w-3 border-t-2 border-gray-300 left-3 top-1/2"></div>
-                            
+                            <div className="absolute top-1/2 left-3 w-3 border-t-2 border-gray-300"></div>
+
                             {/* Continue vertical line for non-last items */}
-                            {!isLast && <div className="absolute h-1/2 w-0 border-l-2 border-gray-300 left-3 top-1/2"></div>}
+                            {!isLast && <div className="absolute top-1/2 left-3 h-1/2 w-0 border-l-2 border-gray-300"></div>}
                         </div>
                     )}
-                    
+
                     {/* Item content */}
-                    <div 
-                        className="droppable-area flex-grow p-2 border border-gray-200 rounded hover:bg-gray-50"
+                    <div
+                        className="droppable-area flex-grow rounded border border-gray-200 p-2 hover:bg-gray-50"
                         data-draggable="true"
                         data-id={node.id}
                         onDragOver={(e) => handleDragOver(e, node.id, 'as-child')}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, node.id)}
                     >
-                        <div className="flex items-center w-full">
+                        <div className="flex w-full items-center">
                             {/* Drag handle - agora com mousedown + dragstart */}
-                            <div 
-                                className="drag-handle mr-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 p-1"
+                            <div
+                                className="drag-handle mr-2 cursor-grab p-1 text-gray-400 hover:text-gray-600 active:cursor-grabbing"
                                 draggable="true"
                                 onMouseDown={(e) => handleItemMouseDown(e, node.id)}
                                 onDragStart={(e) => handleDragStart(e, node.id)}
@@ -668,39 +666,38 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                             >
                                 <GripVertical size={16} />
                             </div>
-                            
+
                             {hasChildren && (
-                                <button 
-                                    className="mr-2 focus:outline-none"
-                                    onClick={() => toggleExpand(node.id)}
-                                >
+                                <button className="mr-2 focus:outline-none" onClick={() => toggleExpand(node.id)}>
                                     {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                 </button>
                             )}
-                            {!hasChildren && <div className="w-6 mr-2"></div>}
-                            
-                            <div className="flex-grow grid grid-cols-12 gap-2">
+                            {!hasChildren && <div className="mr-2 w-6"></div>}
+
+                            <div className="grid flex-grow grid-cols-12 gap-2">
                                 <div className="col-span-3 font-medium">{node.name}</div>
                                 <div className="col-span-4 text-gray-600">{node.description}</div>
-                                <div className="col-span-2 text-center">{node.quantity} {node.unit}</div>
+                                <div className="col-span-2 text-center">
+                                    {node.quantity} {node.unit}
+                                </div>
                                 <div className="col-span-3 flex justify-end gap-2">
-                                    <button 
-                                        className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                                    <button
+                                        className="rounded p-1 text-blue-600 hover:bg-blue-100"
                                         onClick={() => handleEditItem(node)}
                                         title="Editar item"
                                     >
                                         <Edit size={16} />
                                     </button>
-                                    <button 
-                                        className="p-1 text-green-600 hover:bg-green-100 rounded"
+                                    <button
+                                        className="rounded p-1 text-green-600 hover:bg-green-100"
                                         onClick={() => handleAddItem(node.id)}
                                         title="Adicionar item filho"
                                     >
                                         <Plus size={16} />
                                     </button>
                                     {node.id !== '1' && (
-                                        <button 
-                                            className="p-1 text-red-600 hover:bg-red-100 rounded"
+                                        <button
+                                            className="rounded p-1 text-red-600 hover:bg-red-100"
                                             onClick={() => handleDeleteItem(node.id)}
                                             title="Remover item"
                                         >
@@ -712,31 +709,31 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                         </div>
                     </div>
                 </div>
-                
+
                 {/* Render children */}
                 {hasChildren && isExpanded && (
                     <div>
                         {node.children.map((child, index) => (
-                            <TreeItem 
-                                key={child.id} 
-                                node={child} 
-                                depth={depth + 1} 
+                            <TreeItem
+                                key={child.id}
+                                node={child}
+                                depth={depth + 1}
                                 isLast={index === node.children.length - 1}
                                 parentConnectorLines={childConnectorLines}
                             />
                         ))}
-                        
+
                         {/* Drop zone para adicionar ao final dos filhos */}
                         <div className="flex">
                             {/* Espaço para as linhas de conexão */}
                             {[...childConnectorLines, false].map((showLine, i) => (
-                                <div key={`last-connector-${i}`} className="w-6 relative">
-                                    {showLine && <div className="absolute h-full w-0 border-l-2 border-gray-300 left-3 top-0"></div>}
+                                <div key={`last-connector-${i}`} className="relative w-6">
+                                    {showLine && <div className="absolute top-0 left-3 h-full w-0 border-l-2 border-gray-300"></div>}
                                 </div>
                             ))}
-                            
-                            <div 
-                                className="drop-zone flex-grow h-2 mx-4 rounded hover:h-3 hover:bg-gray-200 transition-all"
+
+                            <div
+                                className="drop-zone mx-4 h-2 flex-grow rounded transition-all hover:h-3 hover:bg-gray-200"
                                 onDragOver={(e) => handleDragOver(e, node.id, 'reorder', node.children.length)}
                                 onDragLeave={handleDragLeave}
                                 onDrop={(e) => {
@@ -755,28 +752,23 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     return (
         <div className="w-full">
             <div className="overflow-auto">
-                <div className="w-full bg-gray-100 p-3 rounded-lg mb-4 grid grid-cols-12 gap-2 font-semibold">
+                <div className="mb-4 grid w-full grid-cols-12 gap-2 rounded-lg bg-gray-100 p-3 font-semibold">
                     <div className="col-span-3">Nome</div>
                     <div className="col-span-4">Descrição</div>
                     <div className="col-span-2 text-center">Quantidade</div>
                     <div className="col-span-3 text-right">Ações</div>
                 </div>
-                
+
                 <div>
                     {items.map((item, index) => (
-                        <TreeItem 
-                            key={item.id} 
-                            node={item} 
-                            isLast={index === items.length - 1}
-                            parentConnectorLines={[]}
-                        />
+                        <TreeItem key={item.id} node={item} isLast={index === items.length - 1} parentConnectorLines={[]} />
                     ))}
                 </div>
             </div>
-            
+
             {/* Utilizar o componente ItemModal ao invés do modal inline */}
             {editingItem && (
-                <ItemModal 
+                <ItemModal
                     editingItem={editingItem}
                     isNewItem={!!newItemParentId}
                     onCancel={handleCancelEdit}

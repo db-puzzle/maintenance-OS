@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { Camera, Upload } from 'lucide-react';
+import CameraCapture from '@/components/camera-capture';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import InputError from '@/components/input-error';
-import CameraCapture from '@/components/camera-capture';
+import { Camera, Upload } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface PhotoUploaderProps {
     label?: string;
@@ -70,75 +70,47 @@ export default function PhotoUploader({
     };
 
     return (
-        <div className="flex flex-col h-full">
-            {label && <Label htmlFor={id} className="mb-2">{label}</Label>}
-            <div className="flex-1 flex flex-col gap-2">
-                <div className={`flex-1 relative rounded-lg overflow-hidden bg-muted border ${minHeight} ${maxHeight}`}>
+        <div className="flex h-full flex-col">
+            {label && (
+                <Label htmlFor={id} className="mb-2">
+                    {label}
+                </Label>
+            )}
+            <div className="flex flex-1 flex-col gap-2">
+                <div className={`bg-muted relative flex-1 overflow-hidden rounded-lg border ${minHeight} ${maxHeight}`}>
                     {previewUrl ? (
-                        <div className="relative w-full h-full">
-                            <img
-                                src={previewUrl}
-                                alt="Preview"
-                                className="w-full h-auto object-contain"
-                            />
-                            <Button
-                                type="button"
-                                variant="warning"
-                                size="sm"
-                                className="absolute top-2 right-2"
-                                onClick={handleRemovePhoto}
-                            >
+                        <div className="relative h-full w-full">
+                            <img src={previewUrl} alt="Preview" className="h-auto w-full object-contain" />
+                            <Button type="button" variant="warning" size="sm" className="absolute top-2 right-2" onClick={handleRemovePhoto}>
                                 Remover
                             </Button>
                         </div>
                     ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                            <Camera className="w-12 h-12" />
+                        <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-2">
+                            <Camera className="h-12 w-12" />
                             <span className="text-sm">Nenhuma foto selecionada</span>
                         </div>
                     )}
                 </div>
                 <div className="flex gap-2">
                     <div className="relative flex-1">
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            className="hidden"
-                            id={id}
-                        />
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full"
-                            asChild
-                        >
-                            <label htmlFor={id} className="flex items-center justify-center gap-2 cursor-pointer">
-                                <Upload className="w-4 h-4" />
+                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" id={id} />
+                        <Button type="button" variant="outline" className="w-full" asChild>
+                            <label htmlFor={id} className="flex cursor-pointer items-center justify-center gap-2">
+                                <Upload className="h-4 w-4" />
                                 Selecionar Arquivo
                             </label>
                         </Button>
                     </div>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleOpenCamera}
-                        className="flex-1"
-                    >
-                        <Camera className="w-4 h-4 mr-2" />
+                    <Button type="button" variant="outline" onClick={handleOpenCamera} className="flex-1">
+                        <Camera className="mr-2 h-4 w-4" />
                         Usar Câmera
                     </Button>
                 </div>
                 {error && <InputError message={error} />}
             </div>
 
-            {showCamera && (
-                <CameraCapture
-                    onCapture={handlePhotoCapture}
-                    onClose={() => setShowCamera(false)}
-                />
-            )}
+            {showCamera && <CameraCapture onCapture={handlePhotoCapture} onClose={() => setShowCamera(false)} />}
         </div>
     );
-} 
+}

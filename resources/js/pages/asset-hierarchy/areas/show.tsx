@@ -1,15 +1,15 @@
 import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
-import { router, Head, Link } from '@inertiajs/react';
-import { Building2, MapPin, Cog, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Building2, Cog, MapPin } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
+import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -82,17 +82,17 @@ interface Props {
 export default function Show({ area, sectors, asset, totalAssetCount, activeTab, filters }: Props) {
     const handleSort = (section: 'sectors' | 'asset', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
-        
+
         router.get(
-            route('asset-hierarchy.areas.show', { 
+            route('asset-hierarchy.areas.show', {
                 area: area.id,
                 tab: activeTab,
                 [`${section}_sort`]: column,
                 [`${section}_direction`]: direction,
-                [`${section}_page`]: 1
+                [`${section}_page`]: 1,
             }),
             {},
-            { preserveState: true }
+            { preserveState: true },
         );
     };
 
@@ -100,22 +100,14 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
         if (filters[section].sort !== column) {
             return <ArrowUpDown className="h-4 w-4" />;
         }
-        return filters[section].direction === 'asc' ? 
-            <ArrowUp className="h-4 w-4" /> : 
-            <ArrowDown className="h-4 w-4" />;
+        return filters[section].direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
     };
 
     // Verificações de segurança para evitar erros de undefined
     if (!area || !area.plant) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
-                <ShowLayout
-                    title="Carregando..."
-                    breadcrumbs={breadcrumbs}
-                    editRoute="#"
-                    backRoute={route('asset-hierarchy.areas')}
-                    tabs={[]}
-                >
+                <ShowLayout title="Carregando..." breadcrumbs={breadcrumbs} editRoute="#" backRoute={route('asset-hierarchy.areas')} tabs={[]}>
                     <div>Carregando informações da área...</div>
                 </ShowLayout>
             </AppLayout>
@@ -123,7 +115,7 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
     }
 
     const subtitle = (
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="text-muted-foreground flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
                 <Building2 className="h-4 w-4" />
                 <span>{area.plant.name}</span>
@@ -155,16 +147,16 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                         <div className="grid w-full items-center gap-4">
                             <div className="flex flex-col space-y-1.5">
                                 <Label htmlFor="name">Nome</Label>
-                                <div className="text-sm text-muted-foreground">{area.name}</div>
+                                <div className="text-muted-foreground text-sm">{area.name}</div>
                             </div>
                             <div className="flex flex-col space-y-1.5">
                                 <Label htmlFor="plant">Planta</Label>
-                                <div className="text-sm text-muted-foreground">{area.plant.name}</div>
+                                <div className="text-muted-foreground text-sm">{area.plant.name}</div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-            )
+            ),
         },
         {
             id: 'setores',
@@ -181,17 +173,14 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead 
-                                                className="w-[30%] cursor-pointer h-12"
-                                                onClick={() => handleSort('sectors', 'name')}
-                                            >
+                                            <TableHead className="h-12 w-[30%] cursor-pointer" onClick={() => handleSort('sectors', 'name')}>
                                                 <div className="flex items-center gap-1">
                                                     Nome
                                                     {getSortIcon('sectors', 'name')}
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
-                                                className="w-[15%] text-center cursor-pointer h-12"
+                                            <TableHead
+                                                className="h-12 w-[15%] cursor-pointer text-center"
                                                 onClick={() => handleSort('sectors', 'asset_count')}
                                             >
                                                 <div className="flex items-center justify-center gap-1">
@@ -199,8 +188,8 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                                                     {getSortIcon('sectors', 'asset_count')}
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
-                                                className="w-[55%] pl-8 cursor-pointer h-12"
+                                            <TableHead
+                                                className="h-12 w-[55%] cursor-pointer pl-8"
                                                 onClick={() => handleSort('sectors', 'description')}
                                             >
                                                 <div className="flex items-center gap-1">
@@ -212,14 +201,11 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                                     </TableHeader>
                                     <TableBody>
                                         {sectors.data.map((sector) => (
-                                            <TableRow 
-                                                key={sector.id}
-                                                className="cursor-pointer hover:bg-muted/50 h-12"
-                                            >
+                                            <TableRow key={sector.id} className="hover:bg-muted/50 h-12 cursor-pointer">
                                                 <TableCell>
                                                     <Link
                                                         href={route('asset-hierarchy.setores.show', sector.id)}
-                                                        className="font-medium hover:text-primary"
+                                                        className="hover:text-primary font-medium"
                                                     >
                                                         {sector.name}
                                                     </Link>
@@ -227,44 +213,40 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                                                 <TableCell className="text-center">
                                                     <span>{sector.asset_count}</span>
                                                 </TableCell>
-                                                <TableCell className="text-sm text-muted-foreground pl-8">
-                                                    {sector.description ?? '-'}
-                                                </TableCell>
+                                                <TableCell className="text-muted-foreground pl-8 text-sm">{sector.description ?? '-'}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
                             </div>
                         ) : (
-                            <div className="text-sm text-muted-foreground py-6 text-center">
-                                Nenhum setor cadastrado nesta área.
-                            </div>
+                            <div className="text-muted-foreground py-6 text-center text-sm">Nenhum setor cadastrado nesta área.</div>
                         )}
-                        <div className="flex justify-center mt-4">
+                        <div className="mt-4 flex justify-center">
                             <Pagination>
                                 <PaginationContent>
                                     <PaginationItem>
-                                        <PaginationPrevious 
-                                            href={route('asset-hierarchy.areas.show', { 
+                                        <PaginationPrevious
+                                            href={route('asset-hierarchy.areas.show', {
                                                 area: area.id,
                                                 sectors_page: sectors.current_page - 1,
                                                 tab: 'setores',
                                                 sectors_sort: filters.sectors.sort,
-                                                sectors_direction: filters.sectors.direction
+                                                sectors_direction: filters.sectors.direction,
                                             })}
                                             className={sectors.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                         />
                                     </PaginationItem>
-                                    
+
                                     {Array.from({ length: sectors.last_page }, (_, i) => i + 1).map((page) => (
                                         <PaginationItem key={`sectors-pagination-${page}`}>
-                                            <PaginationLink 
-                                                href={route('asset-hierarchy.areas.show', { 
+                                            <PaginationLink
+                                                href={route('asset-hierarchy.areas.show', {
                                                     area: area.id,
                                                     sectors_page: page,
                                                     tab: 'setores',
                                                     sectors_sort: filters.sectors.sort,
-                                                    sectors_direction: filters.sectors.direction
+                                                    sectors_direction: filters.sectors.direction,
                                                 })}
                                                 isActive={page === sectors.current_page}
                                             >
@@ -274,13 +256,13 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                                     ))}
 
                                     <PaginationItem>
-                                        <PaginationNext 
-                                            href={route('asset-hierarchy.areas.show', { 
+                                        <PaginationNext
+                                            href={route('asset-hierarchy.areas.show', {
                                                 area: area.id,
                                                 sectors_page: sectors.current_page + 1,
                                                 tab: 'setores',
                                                 sectors_sort: filters.sectors.sort,
-                                                sectors_direction: filters.sectors.direction
+                                                sectors_direction: filters.sectors.direction,
                                             })}
                                             className={sectors.current_page === sectors.last_page ? 'pointer-events-none opacity-50' : ''}
                                         />
@@ -290,7 +272,7 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                         </div>
                     </CardContent>
                 </Card>
-            )
+            ),
         },
         {
             id: 'ativos',
@@ -307,37 +289,25 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead 
-                                                className="cursor-pointer h-12"
-                                                onClick={() => handleSort('asset', 'tag')}
-                                            >
+                                            <TableHead className="h-12 cursor-pointer" onClick={() => handleSort('asset', 'tag')}>
                                                 <div className="flex items-center gap-1">
                                                     TAG
                                                     {getSortIcon('asset', 'tag')}
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
-                                                className="cursor-pointer h-12"
-                                                onClick={() => handleSort('asset', 'type')}
-                                            >
+                                            <TableHead className="h-12 cursor-pointer" onClick={() => handleSort('asset', 'type')}>
                                                 <div className="flex items-center gap-1">
                                                     Tipo
                                                     {getSortIcon('asset', 'type')}
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
-                                                className="cursor-pointer h-12"
-                                                onClick={() => handleSort('asset', 'manufacturer')}
-                                            >
+                                            <TableHead className="h-12 cursor-pointer" onClick={() => handleSort('asset', 'manufacturer')}>
                                                 <div className="flex items-center gap-1">
                                                     Fabricante
                                                     {getSortIcon('asset', 'manufacturer')}
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
-                                                className="cursor-pointer h-12"
-                                                onClick={() => handleSort('asset', 'year')}
-                                            >
+                                            <TableHead className="h-12 cursor-pointer" onClick={() => handleSort('asset', 'year')}>
                                                 <div className="flex items-center gap-1">
                                                     Ano
                                                     {getSortIcon('asset', 'year')}
@@ -347,62 +317,51 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                                     </TableHeader>
                                     <TableBody>
                                         {asset.data.map((asset) => (
-                                            <TableRow 
-                                                key={asset.id}
-                                                className="cursor-pointer hover:bg-muted/50 h-12"
-                                            >
+                                            <TableRow key={asset.id} className="hover:bg-muted/50 h-12 cursor-pointer">
                                                 <TableCell>
                                                     <Link
                                                         href={route('asset-hierarchy.assets.show', asset.id)}
-                                                        className="font-medium hover:text-primary"
+                                                        className="hover:text-primary font-medium"
                                                     >
                                                         {asset.tag}
                                                     </Link>
                                                 </TableCell>
-                                                <TableCell className="text-sm text-muted-foreground">
-                                                    {asset.asset_type?.name ?? '-'}
-                                                </TableCell>
-                                                <TableCell className="text-sm text-muted-foreground">
-                                                    {asset.manufacturer ?? '-'}
-                                                </TableCell>
-                                                <TableCell className="text-sm text-muted-foreground">
-                                                    {asset.manufacturing_year ?? '-'}
-                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{asset.asset_type?.name ?? '-'}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturer ?? '-'}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturing_year ?? '-'}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
                             </div>
                         ) : (
-                            <div className="text-sm text-muted-foreground py-6 text-center">
-                                Nenhum ativo cadastrado nesta área.
-                            </div>
+                            <div className="text-muted-foreground py-6 text-center text-sm">Nenhum ativo cadastrado nesta área.</div>
                         )}
-                        <div className="flex justify-center mt-4">
+                        <div className="mt-4 flex justify-center">
                             <Pagination>
                                 <PaginationContent>
                                     <PaginationItem>
-                                        <PaginationPrevious 
-                                            href={route('asset-hierarchy.areas.show', { 
+                                        <PaginationPrevious
+                                            href={route('asset-hierarchy.areas.show', {
                                                 area: area.id,
                                                 asset_page: asset.current_page - 1,
                                                 tab: 'ativos',
                                                 asset_sort: filters.asset.sort,
-                                                asset_direction: filters.asset.direction
+                                                asset_direction: filters.asset.direction,
                                             })}
                                             className={asset.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
                                         />
                                     </PaginationItem>
-                                    
+
                                     {Array.from({ length: asset.last_page }, (_, i) => i + 1).map((page) => (
                                         <PaginationItem key={`asset-pagination-${page}`}>
-                                            <PaginationLink 
-                                                href={route('asset-hierarchy.areas.show', { 
+                                            <PaginationLink
+                                                href={route('asset-hierarchy.areas.show', {
                                                     area: area.id,
                                                     asset_page: page,
                                                     tab: 'ativos',
                                                     asset_sort: filters.asset.sort,
-                                                    asset_direction: filters.asset.direction
+                                                    asset_direction: filters.asset.direction,
                                                 })}
                                                 isActive={page === asset.current_page}
                                             >
@@ -412,13 +371,13 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                                     ))}
 
                                     <PaginationItem>
-                                        <PaginationNext 
-                                            href={route('asset-hierarchy.areas.show', { 
+                                        <PaginationNext
+                                            href={route('asset-hierarchy.areas.show', {
                                                 area: area.id,
                                                 asset_page: asset.current_page + 1,
                                                 tab: 'ativos',
                                                 asset_sort: filters.asset.sort,
-                                                asset_direction: filters.asset.direction
+                                                asset_direction: filters.asset.direction,
                                             })}
                                             className={asset.current_page === asset.last_page ? 'pointer-events-none opacity-50' : ''}
                                         />
@@ -428,8 +387,8 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
                         </div>
                     </CardContent>
                 </Card>
-            )
-        }
+            ),
+        },
     ];
 
     return (
@@ -445,4 +404,4 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
             />
         </AppLayout>
     );
-} 
+}

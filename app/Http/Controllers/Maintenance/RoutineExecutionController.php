@@ -14,10 +14,6 @@ class RoutineExecutionController extends Controller
     {
         $executions = RoutineExecution::with(['routine', 'formExecution', 'executor'])->get();
         
-        if (request()->wantsJson()) {
-            return response()->json($executions);
-        }
-        
         return Inertia::render('Maintenance/Executions/Index', [
             'executions' => $executions
         ]);
@@ -54,10 +50,6 @@ class RoutineExecutionController extends Controller
 
         $execution = RoutineExecution::create($validated);
 
-        if ($request->wantsJson()) {
-            return response()->json($execution, 201);
-        }
-        
         return redirect()->route('maintenance.executions.show', $execution)
             ->with('success', 'Execução de rotina criada com sucesso.');
     }
@@ -65,10 +57,6 @@ class RoutineExecutionController extends Controller
     public function show(RoutineExecution $routineExecution)
     {
         $routineExecution->load(['routine', 'formExecution', 'executor']);
-        
-        if (request()->wantsJson()) {
-            return response()->json($routineExecution);
-        }
         
         return Inertia::render('Maintenance/Executions/Show', [
             'execution' => $routineExecution
@@ -120,10 +108,6 @@ class RoutineExecutionController extends Controller
 
         $routineExecution->update($validated);
 
-        if ($request->wantsJson()) {
-            return response()->json($routineExecution);
-        }
-        
         return redirect()->back()
             ->with('success', 'Execução de rotina atualizada com sucesso.');
     }
@@ -132,21 +116,11 @@ class RoutineExecutionController extends Controller
     {
         // Verificar se a execução já foi concluída
         if ($routineExecution->isCompleted()) {
-            if (request()->wantsJson()) {
-                return response()->json([
-                    'message' => 'Não é possível excluir uma execução já concluída'
-                ], 422);
-            }
-            
             return redirect()->back()
                 ->with('error', 'Não é possível excluir uma execução já concluída.');
         }
 
         $routineExecution->delete();
-        
-        if (request()->wantsJson()) {
-            return response()->json(['message' => 'Execução de rotina excluída com sucesso']);
-        }
         
         return redirect()->route('maintenance.executions.index')
             ->with('success', 'Execução de rotina excluída com sucesso.');
@@ -155,21 +129,11 @@ class RoutineExecutionController extends Controller
     public function start(RoutineExecution $routineExecution)
     {
         if (!$routineExecution->isPending()) {
-            if (request()->wantsJson()) {
-                return response()->json([
-                    'message' => 'Apenas execuções pendentes podem ser iniciadas'
-                ], 422);
-            }
-            
             return redirect()->back()
                 ->with('error', 'Apenas execuções pendentes podem ser iniciadas.');
         }
 
         $routineExecution->start();
-        
-        if (request()->wantsJson()) {
-            return response()->json($routineExecution);
-        }
         
         return redirect()->route('maintenance.executions.fill', $routineExecution)
             ->with('success', 'Execução de rotina iniciada com sucesso.');
@@ -192,12 +156,6 @@ class RoutineExecutionController extends Controller
     public function complete(Request $request, RoutineExecution $routineExecution)
     {
         if (!$routineExecution->isInProgress()) {
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'message' => 'Apenas execuções em andamento podem ser concluídas'
-                ], 422);
-            }
-            
             return redirect()->back()
                 ->with('error', 'Apenas execuções em andamento podem ser concluídas.');
         }
@@ -213,34 +171,20 @@ class RoutineExecutionController extends Controller
 
         $routineExecution->complete();
         
-        if ($request->wantsJson()) {
-            return response()->json($routineExecution);
-        }
-        
         return redirect()->route('maintenance.executions.show', $routineExecution)
             ->with('success', 'Execução de rotina concluída com sucesso.');
     }
 
     public function cancel(RoutineExecution $routineExecution)
     {
-        if ($routineExecution->isCompleted()) {
-            if (request()->wantsJson()) {
-                return response()->json([
-                    'message' => 'Não é possível cancelar uma execução já concluída'
-                ], 422);
-            }
-            
+        if (!$routineExecution->isPending() && !$routineExecution->isInProgress()) {
             return redirect()->back()
-                ->with('error', 'Não é possível cancelar uma execução já concluída.');
+                ->with('error', 'Apenas execuções pendentes ou em andamento podem ser canceladas.');
         }
 
         $routineExecution->cancel();
         
-        if (request()->wantsJson()) {
-            return response()->json($routineExecution);
-        }
-        
-        return redirect()->route('maintenance.executions.index')
+        return redirect()->route('maintenance.executions.show', $routineExecution)
             ->with('success', 'Execução de rotina cancelada com sucesso.');
     }
 } 

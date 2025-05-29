@@ -1,21 +1,12 @@
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Download, CheckCircle2 } from 'lucide-react';
-import * as React from "react";
+import { Download } from 'lucide-react';
+import * as React from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from "@/components/ui/progress";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
 import HeadingSmall from '@/components/heading-small';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/asset-hierarchy/layout';
@@ -53,12 +44,12 @@ export default function ExportAsset() {
         setShowProgress(true);
         setProgressValue(0);
         setDownloadUrl(null);
-        
+
         post(route('asset-hierarchy.assets.export.data'), {
             onSuccess: (page) => {
                 setProgressValue(100);
                 const props = page.props as unknown as PageProps;
-                
+
                 if (props.success && props.download_url) {
                     setDownloadUrl(props.download_url);
                 } else {
@@ -94,7 +85,7 @@ export default function ExportAsset() {
     React.useEffect(() => {
         if (showProgress && progressValue < 100) {
             const timer = setInterval(() => {
-                setProgressValue(prev => Math.min(prev + 10, 90));
+                setProgressValue((prev) => Math.min(prev + 10, 90));
             }, 500);
 
             return () => clearInterval(timer);
@@ -106,22 +97,17 @@ export default function ExportAsset() {
             <Head title="Exportar Ativos" />
 
             <CadastroLayout>
-                <div className="space-y-6 max-w-2xl">
-                    <HeadingSmall 
-                        title="Exportar Ativos" 
-                        description="Exporte os ativos para um arquivo CSV" 
-                    />
+                <div className="max-w-2xl space-y-6">
+                    <HeadingSmall title="Exportar Ativos" description="Exporte os ativos para um arquivo CSV" />
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="flex items-center gap-4">
                             <Button type="submit" className="w-fit" disabled={processing}>
-                                <Download className="h-4 w-4 mr-2" />
+                                <Download className="mr-2 h-4 w-4" />
                                 {processing ? 'Exportando...' : 'Exportar CSV'}
                             </Button>
                             <Button variant="outline" asChild>
-                                <Link href={route('asset-hierarchy.assets')}>
-                                    Cancelar
-                                </Link>
+                                <Link href={route('asset-hierarchy.assets')}>Cancelar</Link>
                             </Button>
                         </div>
                     </form>
@@ -131,14 +117,12 @@ export default function ExportAsset() {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Exportação de Ativos</DialogTitle>
-                            <DialogDescription>
-                                Faça o download do arquivo CSV.
-                            </DialogDescription>
+                            <DialogDescription>Faça o download do arquivo CSV.</DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
-                                <div className="flex justify-between text-sm text-muted-foreground">
+                                <div className="text-muted-foreground flex justify-between text-sm">
                                     <span>{progressValue === 100 ? 'Exportação concluída!' : 'Gerando arquivo...'}</span>
                                     <span>{progressValue}%</span>
                                 </div>
@@ -146,15 +130,15 @@ export default function ExportAsset() {
                             </div>
                         </div>
 
-                        <DialogFooter className="justify-center sm:justify-center pt-2">
+                        <DialogFooter className="justify-center pt-2 sm:justify-center">
                             {progressValue === 100 ? (
                                 <Button onClick={handleDownload} className="w-fit">
-                                    <Download className="h-4 w-4 mr-2" />
+                                    <Download className="mr-2 h-4 w-4" />
                                     Baixar Arquivo
                                 </Button>
                             ) : (
                                 <Button disabled className="w-fit">
-                                    <Download className="h-4 w-4 mr-2" />
+                                    <Download className="mr-2 h-4 w-4" />
                                     Gerando...
                                 </Button>
                             )}
@@ -164,4 +148,4 @@ export default function ExportAsset() {
             </CadastroLayout>
         </AppLayout>
     );
-} 
+}

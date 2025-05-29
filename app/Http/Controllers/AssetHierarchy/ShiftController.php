@@ -352,10 +352,25 @@ class ShiftController extends Controller
 
     public function checkDependencies(Shift $shift)
     {
-        // Implementar lógica para verificar dependências
-        return response()->json([
-            'has_dependencies' => false,
-            'message' => 'Nenhuma dependência encontrada'
+        // Verificar se há ativos associados ao turno
+        $assetCount = $shift->assets()->count();
+        
+        // Se não há dependências, redirecionar para confirmação de exclusão
+        if ($assetCount === 0) {
+            return redirect()->route('asset-hierarchy.shifts')
+                ->with('info', "O turno {$shift->name} pode ser excluído com segurança.");
+        }
+
+        // Se há dependências, mostrar página com detalhes das dependências
+        return Inertia::render('asset-hierarchy/shifts/dependencies', [
+            'shift' => $shift,
+            'dependencies' => [
+                'assets' => [
+                    'total' => $assetCount,
+                    'message' => 'Este turno está associado a ativos'
+                ]
+            ],
+            'hasDependencies' => true
         ]);
     }
 

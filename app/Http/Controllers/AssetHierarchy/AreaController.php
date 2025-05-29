@@ -269,8 +269,17 @@ class AreaController extends Controller
         $sectors = $area->sectors()->take(5)->get(['id', 'name']);
         $totalSectors = $area->sectors()->count();
 
-        return response()->json([
-            'can_delete' => $totalAsset === 0 && $totalSectors === 0,
+        $canDelete = $totalAsset === 0 && $totalSectors === 0;
+
+        // Se a área pode ser excluída, redirecionar para confirmação de exclusão
+        if ($canDelete) {
+            return redirect()->route('asset-hierarchy.areas')
+                ->with('info', "A área {$area->name} pode ser excluída com segurança.");
+        }
+
+        // Se há dependências, mostrar página com detalhes das dependências
+        return Inertia::render('asset-hierarchy/areas/dependencies', [
+            'area' => $area,
             'dependencies' => [
                 'asset' => [
                     'total' => $totalAsset,
@@ -280,7 +289,8 @@ class AreaController extends Controller
                     'total' => $totalSectors,
                     'items' => $sectors
                 ]
-            ]
+            ],
+            'canDelete' => false
         ]);
     }
 }

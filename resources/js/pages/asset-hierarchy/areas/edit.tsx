@@ -1,10 +1,10 @@
-import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, router } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import EditLayout from '@/layouts/asset-hierarchy/edit-layout';
-import { toast } from "sonner";
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from '@/components/TextInput';
+import AppLayout from '@/layouts/app-layout';
+import EditLayout from '@/layouts/asset-hierarchy/edit-layout';
+import { type BreadcrumbItem } from '@/types';
+import { Head, useForm } from '@inertiajs/react';
+import { toast } from 'sonner';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -51,10 +51,10 @@ export default function EditArea({ area, plants }: Props) {
         put(route('asset-hierarchy.areas.update', area.id), {
             onSuccess: () => reset('name', 'plant_id'),
             onError: (errors) => {
-                toast.error("Erro ao atualizar área", {
-                    description: "Verifique os campos e tente novamente."
+                toast.error('Erro ao atualizar área', {
+                    description: 'Verifique os campos e tente novamente.',
                 });
-            }
+            },
         });
     };
 
@@ -70,14 +70,20 @@ export default function EditArea({ area, plants }: Props) {
                 onSave={handleSave}
                 isSaving={processing}
             >
-                <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6 max-w-2xl">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSave();
+                    }}
+                    className="max-w-2xl space-y-6"
+                >
                     <div className="grid gap-6">
                         <TextInput<AreaForm>
                             form={{
                                 data,
                                 setData,
                                 errors,
-                                clearErrors
+                                clearErrors,
                             }}
                             name="name"
                             label="Nome da Área"
@@ -101,4 +107,4 @@ export default function EditArea({ area, plants }: Props) {
             </EditLayout>
         </AppLayout>
     );
-} 
+}

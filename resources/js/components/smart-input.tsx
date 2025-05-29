@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 interface SmartInputProps<T extends Record<string, any>> {
     form: {
@@ -20,10 +20,10 @@ export default function SmartInput<T extends Record<string, any>>({
     form,
     name,
     placeholder,
-    type = "text",
+    type = 'text',
     className,
     onBlur,
-    validateInput
+    validateInput,
 }: SmartInputProps<T>) {
     const { data, setData, errors, clearErrors } = form;
 
@@ -34,12 +34,12 @@ export default function SmartInput<T extends Record<string, any>>({
             value={data[name]}
             onChange={(e) => {
                 const value = e.target.value;
-                
+
                 // Se há uma função de validação, verificar se o valor é válido
                 if (validateInput && !validateInput(value)) {
                     return;
                 }
-                
+
                 setData(name, value);
                 if (value) {
                     clearErrors(name);
@@ -47,11 +47,7 @@ export default function SmartInput<T extends Record<string, any>>({
             }}
             onBlur={onBlur}
             placeholder={placeholder}
-            className={cn(
-                "w-full",
-                errors[name] && "border-destructive",
-                className
-            )}
+            className={cn('w-full', errors[name] && 'border-destructive', className)}
         />
     );
-} 
+}

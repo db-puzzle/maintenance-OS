@@ -1,5 +1,5 @@
-import React from 'react';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface Break {
     start_time: string;
@@ -53,13 +53,13 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
         let hasAnyShifts = false;
 
         // Primeiro, verifica se há turnos noturnos e se existem turnos configurados
-        schedules.forEach(schedule => {
-            schedule.shifts.forEach(shift => {
+        schedules.forEach((schedule) => {
+            schedule.shifts.forEach((shift) => {
                 if (shift.active) {
                     hasAnyShifts = true;
                     const startHour = parseInt(shift.start_time.split(':')[0]);
                     const endHour = parseInt(shift.end_time.split(':')[0]);
-                    
+
                     if (endHour < startHour) {
                         hasOvernightShifts = true;
                     }
@@ -80,8 +80,8 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
         }
 
         // Caso contrário, calcula o período normalmente
-        schedules.forEach(schedule => {
-            schedule.shifts.forEach(shift => {
+        schedules.forEach((schedule) => {
+            schedule.shifts.forEach((shift) => {
                 if (shift.active) {
                     const startHour = parseInt(shift.start_time.split(':')[0]);
                     const endHour = parseInt(shift.end_time.split(':')[0]);
@@ -90,7 +90,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                     latestHour = Math.max(latestHour, endHour);
 
                     // Verifica também os intervalos
-                    shift.breaks.forEach(breakTime => {
+                    shift.breaks.forEach((breakTime) => {
                         const breakStartHour = parseInt(breakTime.start_time.split(':')[0]);
                         const breakEndHour = parseInt(breakTime.end_time.split(':')[0]);
 
@@ -114,16 +114,16 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
         const hour = earliestHour + i;
         return {
             hour: hour % 24,
-            isNextDay: hour >= 24
+            isNextDay: hour >= 24,
         };
     });
 
     // Função para verificar se um horário está dentro de algum turno ativo
     const isInActiveShift = (day: string, currentMinutes: number) => {
-        const schedule = schedules.find(s => s.weekday === day);
+        const schedule = schedules.find((s) => s.weekday === day);
         if (!schedule) return false;
 
-        return schedule.shifts.some(shift => {
+        return schedule.shifts.some((shift) => {
             if (!shift.active) return false;
 
             const startMinutes = timeToMinutes(shift.start_time);
@@ -140,13 +140,13 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
 
     // Função para verificar se um horário está dentro de algum intervalo
     const isInBreak = (day: string, currentMinutes: number) => {
-        const schedule = schedules.find(s => s.weekday === day);
+        const schedule = schedules.find((s) => s.weekday === day);
         if (!schedule) return false;
 
-        return schedule.shifts.some(shift => {
+        return schedule.shifts.some((shift) => {
             if (!shift.active) return false;
 
-            return shift.breaks.some(breakTime => {
+            return shift.breaks.some((breakTime) => {
                 const breakStartMinutes = timeToMinutes(breakTime.start_time);
                 const breakEndMinutes = timeToMinutes(breakTime.end_time);
 
@@ -180,25 +180,18 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
             <div className="flex flex-col">
                 {/* Cabeçalho com os dias da semana */}
                 <div className="flex">
-                    <div className="w-20 flex-shrink-0 h-10 flex items-center justify-center font-medium border-r">
-                    </div>
+                    <div className="flex h-10 w-20 flex-shrink-0 items-center justify-center border-r font-medium"></div>
                     {weekdays.map((day) => {
-                        const schedule = schedules.find(s => s.weekday === day.key);
+                        const schedule = schedules.find((s) => s.weekday === day.key);
                         if (!showAllDays && !schedule) return null;
 
-                        const hasActiveShifts = schedule?.shifts.some(shift => shift.active) ?? false;
+                        const hasActiveShifts = schedule?.shifts.some((shift) => shift.active) ?? false;
 
                         return (
-                            <div
-                                key={day.key}
-                                className="flex-1 h-10 flex flex-col items-center justify-center border-b border-r px-2"
-                            >
-                                <span className="font-medium text-sm">{day.label}</span>
-                                <span className={cn(
-                                    "text-xs",
-                                    hasActiveShifts ? "text-green-600" : "text-red-600"
-                                )}>
-                                    {hasActiveShifts ? "Ativo" : "Inativo"}
+                            <div key={day.key} className="flex h-10 flex-1 flex-col items-center justify-center border-r border-b px-2">
+                                <span className="text-sm font-medium">{day.label}</span>
+                                <span className={cn('text-xs', hasActiveShifts ? 'text-green-600' : 'text-red-600')}>
+                                    {hasActiveShifts ? 'Ativo' : 'Inativo'}
                                 </span>
                             </div>
                         );
@@ -210,24 +203,20 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                     {/* Coluna de horas */}
                     <div className="w-20 flex-shrink-0">
                         {timeMarkers.map(({ hour, isNextDay }, index) => (
-                            <div
-                                key={index}
-                                className="h-12 flex items-center justify-center border-r text-xs text-gray-500 relative"
-                            >
+                            <div key={index} className="relative flex h-12 items-center justify-center border-r text-xs text-gray-500">
                                 <span className="absolute -top-2.5">
-                                    {hour}h
-                                    {isNextDay && <span className="text-[10px] text-muted-foreground"> (dia seg.)</span>}
+                                    {hour}h{isNextDay && <span className="text-muted-foreground text-[10px]"> (dia seg.)</span>}
                                 </span>
                             </div>
                         ))}
                     </div>
 
                     {/* Grid de turnos */}
-                    <div className="flex-1 grid grid-cols-7">
+                    <div className="grid flex-1 grid-cols-7">
                         {weekdays.map((day, dayIndex) => {
                             const dayKey = day.key;
-                            const schedule = schedules.find(s => s.weekday === dayKey);
-                            
+                            const schedule = schedules.find((s) => s.weekday === dayKey);
+
                             if (!showAllDays && !schedule) return null;
 
                             const nextDayIndex = (dayIndex + 1) % 7;
@@ -237,34 +226,31 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                                 <div key={dayKey} className="relative">
                                     {/* Renderiza as linhas da grade */}
                                     {timeMarkers.map((_, index) => (
-                                        <div
-                                            key={index}
-                                            className="h-12 border-b border-r relative"
-                                        />
+                                        <div key={index} className="relative h-12 border-r border-b" />
                                     ))}
 
                                     {/* Renderiza os turnos do dia atual */}
                                     {schedule?.shifts.map((shift, index) => {
                                         if (!shift.active) return null;
-                                        
+
                                         const startMinutes = timeToMinutes(shift.start_time);
                                         const endMinutes = timeToMinutes(shift.end_time);
-                                        
+
                                         // Se o turno termina no dia seguinte
                                         const isOvernight = endMinutes < startMinutes;
                                         const currentDayEndMinutes = isOvernight ? 24 * 60 : endMinutes;
-                                        
+
                                         // Calcula a posição relativa ao início da grade
-                                        const relativeStartMinutes = startMinutes - (earliestHour * 60);
-                                        const relativeEndMinutes = currentDayEndMinutes - (earliestHour * 60);
-                                        
+                                        const relativeStartMinutes = startMinutes - earliestHour * 60;
+                                        const relativeEndMinutes = currentDayEndMinutes - earliestHour * 60;
+
                                         return (
                                             <div
                                                 key={`${index}-current`}
-                                                className="absolute left-0.5 right-0.5 bg-blue-500/50 rounded-sm"
+                                                className="absolute right-0.5 left-0.5 rounded-sm bg-blue-500/50"
                                                 style={{
-                                                    top: `${(relativeStartMinutes * 0.8) + 1}px`,
-                                                    height: `${(relativeEndMinutes - relativeStartMinutes) * 0.8 - 2}px`
+                                                    top: `${relativeStartMinutes * 0.8 + 1}px`,
+                                                    height: `${(relativeEndMinutes - relativeStartMinutes) * 0.8 - 2}px`,
                                                 }}
                                             >
                                                 {/* Renderiza os intervalos do dia atual */}
@@ -273,20 +259,20 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                                                     const breakEnd = timeToMinutes(breakTime.end_time);
                                                     const isBreakOvernight = breakEnd < breakStart;
                                                     const currentDayBreakEnd = isBreakOvernight ? 24 * 60 : breakEnd;
-                                                    
+
                                                     // Calcula a posição relativa ao início da grade
-                                                    const relativeBreakStart = breakStart - (earliestHour * 60);
-                                                    const relativeBreakEnd = currentDayBreakEnd - (earliestHour * 60);
-                                                    
+                                                    const relativeBreakStart = breakStart - earliestHour * 60;
+                                                    const relativeBreakEnd = currentDayBreakEnd - earliestHour * 60;
+
                                                     // Verifica se o intervalo está dentro do turno no dia atual
                                                     if (breakStart >= startMinutes && breakStart < currentDayEndMinutes) {
                                                         return (
                                                             <div
                                                                 key={breakIndex}
-                                                                className="absolute left-0 right-0 bg-red-500/50 rounded-sm"
+                                                                className="absolute right-0 left-0 rounded-sm bg-red-500/50"
                                                                 style={{
                                                                     top: `${(relativeBreakStart - relativeStartMinutes) * 0.8}px`,
-                                                                    height: `${(Math.min(relativeBreakEnd, relativeEndMinutes) - relativeBreakStart) * 0.8}px`
+                                                                    height: `${(Math.min(relativeBreakEnd, relativeEndMinutes) - relativeBreakStart) * 0.8}px`,
                                                                 }}
                                                             />
                                                         );
@@ -300,63 +286,63 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                                     {/* Renderiza turnos que continuam do dia anterior */}
                                     {schedules.map((schedule, scheduleIndex) => {
                                         if (schedule.weekday !== weekdays[(dayIndex + 6) % 7].key) return null;
-                                        
+
                                         return schedule.shifts.map((shift, shiftIndex) => {
                                             if (!shift.active) return null;
-                                            
+
                                             const startMinutes = timeToMinutes(shift.start_time);
                                             const endMinutes = timeToMinutes(shift.end_time);
-                                            
+
                                             // Verifica se é um turno noturno que continua no dia atual
                                             if (endMinutes < startMinutes) {
-                                                const relativeEndMinutes = endMinutes - (earliestHour * 60);
-                                                
+                                                const relativeEndMinutes = endMinutes - earliestHour * 60;
+
                                                 return (
                                                     <div
                                                         key={`prev-${scheduleIndex}-${shiftIndex}`}
-                                                        className="absolute left-0.5 right-0.5 bg-blue-500/50 rounded-sm"
+                                                        className="absolute right-0.5 left-0.5 rounded-sm bg-blue-500/50"
                                                         style={{
                                                             top: '0px',
-                                                            height: `${relativeEndMinutes * 0.8}px`
+                                                            height: `${relativeEndMinutes * 0.8}px`,
                                                         }}
                                                     >
                                                         {/* Renderiza intervalos que continuam do dia anterior */}
                                                         {shift.breaks.map((breakTime, breakIndex) => {
                                                             const breakStart = timeToMinutes(breakTime.start_time);
                                                             const breakEnd = timeToMinutes(breakTime.end_time);
-                                                            
+
                                                             // Calcula a posição relativa ao início da grade
-                                                            const relativeBreakStart = breakStart - (earliestHour * 60);
-                                                            const relativeBreakEnd = breakEnd - (earliestHour * 60);
-                                                            
+                                                            const relativeBreakStart = breakStart - earliestHour * 60;
+                                                            const relativeBreakEnd = breakEnd - earliestHour * 60;
+
                                                             // Verifica se é um intervalo que atravessa a meia-noite
                                                             if (breakEnd < breakStart) {
                                                                 return (
                                                                     <div
                                                                         key={`prev-break-${breakIndex}`}
-                                                                        className="absolute left-0 right-0 bg-red-500/50 rounded-sm"
+                                                                        className="absolute right-0 left-0 rounded-sm bg-red-500/50"
                                                                         style={{
                                                                             top: '0px',
-                                                                            height: `${Math.min(relativeBreakEnd, relativeEndMinutes) * 0.8}px`
+                                                                            height: `${Math.min(relativeBreakEnd, relativeEndMinutes) * 0.8}px`,
                                                                         }}
                                                                     />
                                                                 );
                                                             }
-                                                            
+
                                                             // Verifica se é um intervalo que começa após a meia-noite, mas dentro do turno
                                                             if (breakStart < endMinutes && breakEnd <= endMinutes) {
                                                                 return (
                                                                     <div
                                                                         key={`current-break-${breakIndex}`}
-                                                                        className="absolute left-0 right-0 bg-red-500/50 rounded-sm"
+                                                                        className="absolute right-0 left-0 rounded-sm bg-red-500/50"
                                                                         style={{
                                                                             top: `${relativeBreakStart * 0.8}px`,
-                                                                            height: `${(relativeBreakEnd - relativeBreakStart) * 0.8}px`
+                                                                            height: `${(relativeBreakEnd - relativeBreakStart) * 0.8}px`,
                                                                         }}
                                                                     />
                                                                 );
                                                             }
-                                                            
+
                                                             return null;
                                                         })}
                                                     </div>
@@ -375,4 +361,4 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
     );
 };
 
-export default ShiftCalendarView; 
+export default ShiftCalendarView;

@@ -1,6 +1,6 @@
-import { Task } from '@/types/task';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Task } from '@/types/task';
 import { useState } from 'react';
 import { TaskCardMode } from './TaskContent';
 
@@ -12,7 +12,7 @@ interface QuestionTaskContentProps {
 
 export default function QuestionTaskContent({ task, mode, onUpdate }: QuestionTaskContentProps) {
     const [response, setResponse] = useState<string>('');
-    
+
     return (
         <div>
             <div className="mb-2">
@@ -37,4 +37,4 @@ export default function QuestionTaskContent({ task, mode, onUpdate }: QuestionTa
             )}
         </div>
     );
-} 
+}

@@ -1,8 +1,8 @@
-import { Input } from "@/components/ui/input";
-import InputError from "@/components/input-error";
-import { Label } from "@/components/ui/label";
-import { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import InputError from '@/components/input-error';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { LucideIcon } from 'lucide-react';
 
 interface FormData {
     [key: string]: any;
@@ -30,16 +30,16 @@ export default function TaskDescriptionInput<T extends FormData>({
     name,
     value: propValue,
     placeholder,
-    required = false
+    required = false,
 }: TaskDescriptionInputProps<T>) {
-    const baseClasses = "flex items-center gap-2";
-    const textClasses = "text-lg font-semibold flex-1 leading-none";
+    const baseClasses = 'flex items-center gap-2';
+    const textClasses = 'text-lg font-semibold flex-1 leading-none';
 
     if (mode === 'view') {
         return (
             <div className={baseClasses}>
-                <Icon className="h-5 w-5 text-muted-foreground" />
-                <Label className={cn(textClasses, !propValue && "text-muted-foreground")}>
+                <Icon className="text-muted-foreground h-5 w-5" />
+                <Label className={cn(textClasses, !propValue && 'text-muted-foreground')}>
                     {propValue || 'Clique em Editar para configurar a tarefa'}
                 </Label>
             </div>
@@ -52,14 +52,16 @@ export default function TaskDescriptionInput<T extends FormData>({
     const value = data[name] ?? '';
 
     return (
-        <div className="flex-1 mr-4">
+        <div className="mr-4 flex-1">
             <div className={baseClasses}>
-                <Icon className="h-6 w-6 text-muted-foreground" />
-                <div className={cn(
-                    "flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs",
-                    "focus-within:ring-ring/50 focus-within:ring-[3px] focus-within:border-ring",
-                    errors[name] && "border-destructive"
-                )}>
+                <Icon className="text-muted-foreground h-6 w-6" />
+                <div
+                    className={cn(
+                        'border-input flex-1 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs',
+                        'focus-within:ring-ring/50 focus-within:border-ring focus-within:ring-[3px]',
+                        errors[name] && 'border-destructive',
+                    )}
+                >
                     <Input
                         id={name as string}
                         type="text"
@@ -71,11 +73,7 @@ export default function TaskDescriptionInput<T extends FormData>({
                             }
                         }}
                         placeholder={placeholder}
-                        className={cn(
-                            "border-none shadow-none px-0 py-0",
-                            "!text-lg !font-semibold !leading-none",
-                            "focus-visible:ring-0"
-                        )}
+                        className={cn('border-none px-0 py-0 shadow-none', '!text-lg !leading-none !font-semibold', 'focus-visible:ring-0')}
                         required={required}
                     />
                     <InputError message={errors[name]} className="absolute" />
@@ -83,4 +81,4 @@ export default function TaskDescriptionInput<T extends FormData>({
             </div>
         </div>
     );
-} 
+}

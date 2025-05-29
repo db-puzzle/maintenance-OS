@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Plus } from "lucide-react";
-import { Link } from "@inertiajs/react";
-import { ReactNode } from "react";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Link } from '@inertiajs/react';
+import { Plus, Search } from 'lucide-react';
+import { ReactNode } from 'react';
 
 interface ListTableHeaderProps {
     title: string;
@@ -18,23 +18,19 @@ interface ListTableHeaderProps {
 export function ListTableHeader({
     title,
     description,
-    searchPlaceholder = "Buscar...",
+    searchPlaceholder = 'Buscar...',
     searchValue,
     onSearchChange,
     createRoute,
     createButtonText,
-    actions
+    actions,
 }: ListTableHeaderProps) {
     return (
-        <div className="flex flex-col justify-between w-full gap-4">
+        <div className="flex w-full flex-col justify-between gap-4">
             {/* Title and description */}
             <div className="flex flex-col gap-1">
-                <h2 className="text-lg lg:text-xl font-semibold text-foreground leading-7">
-                    {title}
-                </h2>
-                <p className="text-sm text-muted-foreground leading-5">
-                    {description}
-                </p>
+                <h2 className="text-foreground text-lg leading-7 font-semibold lg:text-xl">{title}</h2>
+                <p className="text-muted-foreground text-sm leading-5">{description}</p>
             </div>
 
             {/* Search and buttons */}
@@ -43,7 +39,7 @@ export function ListTableHeader({
                 <div className="flex items-center justify-between lg:hidden">
                     <Button asChild>
                         <Link href={createRoute}>
-                            <Plus className="h-4 w-4 mr-2" />
+                            <Plus className="mr-2 h-4 w-4" />
                             {createButtonText}
                         </Link>
                     </Button>
@@ -51,12 +47,12 @@ export function ListTableHeader({
                 </div>
 
                 {/* Desktop layout */}
-                <div className="hidden lg:flex items-center justify-between">
+                <div className="hidden items-center justify-between lg:flex">
                     <div className="relative w-[380px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            className="pl-9 h-10" 
-                            type="search" 
+                        <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                        <Input
+                            className="h-10 pl-9"
+                            type="search"
                             placeholder={searchPlaceholder}
                             value={searchValue}
                             onChange={(e) => onSearchChange(e.target.value)}
@@ -66,7 +62,7 @@ export function ListTableHeader({
                         {actions}
                         <Button asChild>
                             <Link href={createRoute}>
-                                <Plus className="h-4 w-4 mr-2" />
+                                <Plus className="mr-2 h-4 w-4" />
                                 {createButtonText}
                             </Link>
                         </Button>
@@ -76,10 +72,10 @@ export function ListTableHeader({
                 {/* Mobile search */}
                 <div className="lg:hidden">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            className="pl-9 h-10" 
-                            type="search" 
+                        <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                        <Input
+                            className="h-10 pl-9"
+                            type="search"
                             placeholder={searchPlaceholder}
                             value={searchValue}
                             onChange={(e) => onSearchChange(e.target.value)}
@@ -89,4 +85,4 @@ export function ListTableHeader({
             </div>
         </div>
     );
-} 
+}

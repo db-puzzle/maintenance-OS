@@ -1,22 +1,8 @@
-import * as React from "react";
-import { MoreVertical, ArrowUpDown, ColumnsIcon, ChevronDownIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
-import { Link } from '@inertiajs/react';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ChevronDownIcon, ColumnsIcon } from 'lucide-react';
+import * as React from 'react';
 
 export interface Column<T> {
     id: string;
@@ -40,23 +26,20 @@ export function DataTable<T>({
     columnVisibility,
     onColumnVisibilityChange,
     onRowClick,
-    emptyMessage = "Nenhum registro encontrado."
+    emptyMessage = 'Nenhum registro encontrado.',
 }: DataTableProps<T>) {
     // Memoize the filtered columns to prevent unnecessary re-renders
     const visibleColumns = React.useMemo(() => {
-        return columns.filter(column => column.id === 'actions' || columnVisibility[column.id]);
+        return columns.filter((column) => column.id === 'actions' || columnVisibility[column.id]);
     }, [columns, columnVisibility]);
 
     return (
-        <div className="rounded-lg w-full overflow-hidden border shadow-none">
+        <div className="w-full overflow-hidden rounded-lg border shadow-none">
             <Table>
-                <TableHeader className="sticky top-0 z-10 bg-muted">
+                <TableHeader className="bg-muted sticky top-0 z-10">
                     <TableRow>
                         {visibleColumns.map((column, index) => (
-                            <TableHead 
-                                key={column.id} 
-                                className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''}`}
-                            >
+                            <TableHead key={column.id} className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''}`}>
                                 {column.header}
                             </TableHead>
                         ))}
@@ -65,14 +48,14 @@ export function DataTable<T>({
                 <TableBody>
                     {data.length ? (
                         data.map((row) => (
-                            <TableRow 
-                                key={(row as any).id} 
-                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                            <TableRow
+                                key={(row as any).id}
+                                className="hover:bg-muted/50 cursor-pointer transition-colors"
                                 onClick={() => onRowClick?.(row)}
                             >
                                 {visibleColumns.map((column, index) => (
-                                    <TableCell 
-                                        key={column.id} 
+                                    <TableCell
+                                        key={column.id}
                                         className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''}`}
                                         onClick={(e) => {
                                             if (column.id === 'actions') {
@@ -87,10 +70,7 @@ export function DataTable<T>({
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell
-                                colSpan={visibleColumns.length}
-                                className="h-24 text-center pl-4"
-                            >
+                            <TableCell colSpan={visibleColumns.length} className="h-24 pl-4 text-center">
                                 {emptyMessage}
                             </TableCell>
                         </TableRow>
@@ -107,11 +87,7 @@ interface ColumnVisibilityProps {
     onColumnVisibilityChange: (columnId: string, value: boolean) => void;
 }
 
-export function ColumnVisibility({
-    columns,
-    columnVisibility,
-    onColumnVisibilityChange
-}: ColumnVisibilityProps) {
+export function ColumnVisibility({ columns, columnVisibility, onColumnVisibilityChange }: ColumnVisibilityProps) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -124,7 +100,7 @@ export function ColumnVisibility({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
                 {columns
-                    .filter(column => column.id !== 'actions')
+                    .filter((column) => column.id !== 'actions')
                     .map((column) => (
                         <DropdownMenuCheckboxItem
                             key={column.id}
@@ -140,4 +116,4 @@ export function ColumnVisibility({
             </DropdownMenuContent>
         </DropdownMenu>
     );
-} 
+}

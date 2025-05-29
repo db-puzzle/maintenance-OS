@@ -1,11 +1,11 @@
-import { type BreadcrumbItem } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
-import { Card, CardContent } from '@/components/ui/card';
 import { TaskBaseCard, TaskContent } from '@/components/tasks';
-import { Task, TaskTypes, TaskType } from '@/types/task';
+import { Card, CardContent } from '@/components/ui/card';
+import AppLayout from '@/layouts/app-layout';
+import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
+import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
+import { type BreadcrumbItem } from '@/types';
+import { Task, TaskType, TaskTypes } from '@/types/task';
+import { Head, router, usePage } from '@inertiajs/react';
 import { ClipboardCheck, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -45,29 +45,21 @@ const EntityLabels = {
     routine: {
         singular: 'Rotina',
         plural: 'Rotinas',
-        form: 'Formulário da Rotina'
+        form: 'Formulário da Rotina',
     },
     inspection: {
         singular: 'Inspeção',
         plural: 'Inspeções',
-        form: 'Formulário de Inspeção'
+        form: 'Formulário de Inspeção',
     },
     report: {
         singular: 'Relatório',
         plural: 'Relatórios',
-        form: 'Formulário de Relatório'
-    }
+        form: 'Formulário de Relatório',
+    },
 };
 
-export default function FormViewer({
-    form,
-    entity,
-    entityType,
-    mode = 'view',
-    breadcrumbs,
-    backRoute,
-    submitRoute
-}: Props) {
+export default function FormViewer({ form, entity, entityType, mode = 'view', breadcrumbs, backRoute, submitRoute }: Props) {
     const { url } = usePage();
 
     // Extrai o parâmetro mode da URL se não foi passado como prop
@@ -102,22 +94,22 @@ export default function FormViewer({
 
     // Função para atualizar o ícone de uma tarefa específica
     const updateTaskIcon = (taskId: string, icon: React.ReactNode) => {
-        setTaskIcons(prev => {
+        setTaskIcons((prev) => {
             if (prev[taskId] === icon) return prev;
             return {
                 ...prev,
-                [taskId]: icon
+                [taskId]: icon,
             };
         });
     };
 
     const handleTaskUpdate = (taskId: string, updatedTask: Task) => {
-        setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
+        setTasks(tasks.map((t) => (t.id === taskId ? updatedTask : t)));
 
         // Armazenar a resposta baseada no tipo de tarefa e dados recebidos
         const response: FormResponse = { task_id: taskId };
 
-        setResponses(prev => ({ ...prev, [taskId]: response }));
+        setResponses((prev) => ({ ...prev, [taskId]: response }));
     };
 
     // Função separada para capturar respostas
@@ -147,7 +139,7 @@ export default function FormViewer({
                 break;
         }
 
-        setResponses(prev => ({ ...prev, [taskId]: response }));
+        setResponses((prev) => ({ ...prev, [taskId]: response }));
     };
 
     const validateResponses = (): boolean => {
@@ -184,7 +176,7 @@ export default function FormViewer({
             const responseData: any = {
                 task_id: response.task_id,
                 value: response.value,
-                measurement: response.measurement
+                measurement: response.measurement,
             };
 
             // Adicionar arquivos se existirem
@@ -200,42 +192,35 @@ export default function FormViewer({
         // Adicionar responses como JSON
         formData.append('responses', JSON.stringify(responsesArray));
 
-        router.post(
-            submitRoute,
-            formData,
-            {
-                forceFormData: true,
-                onSuccess: () => {
-                    toast.success('Formulário preenchido com sucesso!');
-                },
-                onError: (errors) => {
-                    toast.error('Erro ao preencher formulário', {
-                        description: 'Verifique os campos e tente novamente.'
-                    });
-                    console.error(errors);
-                },
-                onFinish: () => {
-                    setProcessing(false);
-                }
-            }
-        );
+        router.post(submitRoute, formData, {
+            forceFormData: true,
+            onSuccess: () => {
+                toast.success('Formulário preenchido com sucesso!');
+            },
+            onError: (errors) => {
+                toast.error('Erro ao preencher formulário', {
+                    description: 'Verifique os campos e tente novamente.',
+                });
+                console.error(errors);
+            },
+            onFinish: () => {
+                setProcessing(false);
+            },
+        });
     };
 
     const renderFormContent = () => (
         <div className="space-y-6">
             <Card>
                 <CardContent className="pt-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                        <h3 className="text-lg font-medium">
-                            {form.name || entityLabel.form}
-                        </h3>
+                    <div className="mb-4 flex items-center gap-2">
+                        <FileText className="text-muted-foreground h-5 w-5" />
+                        <h3 className="text-lg font-medium">{form.name || entityLabel.form}</h3>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         {currentMode === 'fill'
                             ? 'Preencha todas as tarefas obrigatórias do formulário.'
-                            : `Este formulário possui ${form.tasks.length} tarefa${form.tasks.length !== 1 ? 's' : ''}.`
-                        }
+                            : `Este formulário possui ${form.tasks.length} tarefa${form.tasks.length !== 1 ? 's' : ''}.`}
                     </p>
                 </CardContent>
             </Card>
@@ -243,21 +228,18 @@ export default function FormViewer({
             <div className="grid gap-4">
                 {tasks.length === 0 ? (
                     <Card className="bg-muted/30">
-                        <CardContent className="px-4 sm:px-6 py-8 flex flex-col items-center justify-center text-center">
-                            <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                                <ClipboardCheck className="size-6 text-foreground/60" />
+                        <CardContent className="flex flex-col items-center justify-center px-4 py-8 text-center sm:px-6">
+                            <div className="bg-muted/50 mb-4 flex size-12 items-center justify-center rounded-full">
+                                <ClipboardCheck className="text-foreground/60 size-6" />
                             </div>
-                            <h3 className="text-lg font-medium mb-2">Nenhuma tarefa no formulário</h3>
-                            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                                Este formulário ainda não possui tarefas configuradas.
-                            </p>
+                            <h3 className="mb-2 text-lg font-medium">Nenhuma tarefa no formulário</h3>
+                            <p className="text-muted-foreground mx-auto max-w-xs text-sm">Este formulário ainda não possui tarefas configuradas.</p>
                         </CardContent>
                     </Card>
                 ) : (
                     tasks.map((task, index) => {
-                        const taskType = TaskTypes.find(t => t.value === task.type);
-                        const icon = taskIcons[task.id] ||
-                            (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
+                        const taskType = TaskTypes.find((t) => t.value === task.type);
+                        const icon = taskIcons[task.id] || (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
 
                         return (
                             <TaskBaseCard
@@ -267,7 +249,7 @@ export default function FormViewer({
                                 icon={icon}
                                 title={task.description}
                                 isRequired={task.isRequired}
-                                onTaskUpdate={() => { }}
+                                onTaskUpdate={() => {}}
                             >
                                 <TaskContent
                                     task={task}
@@ -317,4 +299,4 @@ export default function FormViewer({
             )}
         </AppLayout>
     );
-} 
+}

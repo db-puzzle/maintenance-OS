@@ -1,9 +1,9 @@
-import { Task } from '@/types/task';
-import { useState, useEffect, useRef, memo } from 'react';
-import { TaskCardMode } from './TaskContent';
-import { Button } from '@/components/ui/button';
-import { ScanBarcode, Check, QrCode, Barcode } from 'lucide-react';
 import ItemSelect from '@/components/ItemSelect';
+import { Button } from '@/components/ui/button';
+import { Task } from '@/types/task';
+import { Barcode, Check, QrCode, ScanBarcode } from 'lucide-react';
+import { memo, useEffect, useRef, useState } from 'react';
+import { TaskCardMode } from './TaskContent';
 
 interface CodeReaderTaskContentProps {
     task: Task;
@@ -14,7 +14,7 @@ interface CodeReaderTaskContentProps {
 
 const CODE_TYPES = [
     { id: 1, name: 'QR Code', value: 'qr_code' },
-    { id: 2, name: 'Código de Barras', value: 'barcode' }
+    { id: 2, name: 'Código de Barras', value: 'barcode' },
 ] as const;
 
 function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange }: CodeReaderTaskContentProps) {
@@ -22,10 +22,10 @@ function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange }: CodeReade
     const [code, setCode] = useState('');
     const [codeReaderType, setCodeReaderType] = useState(task.codeReaderType || 'barcode');
     const hasSetIcon = useRef(false);
-    
+
     const codeType = codeReaderType === 'qr_code' ? 'QR Code' : 'Código de Barras';
     const instructions = task.codeReaderInstructions || `Leia o ${codeType} conforme as instruções.`;
-    
+
     // Atualiza o ícone do card pai quando o tipo de código muda
     useEffect(() => {
         if (onIconChange && !hasSetIcon.current) {
@@ -37,7 +37,7 @@ function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange }: CodeReade
             }
         }
     }, []);
-    
+
     // Atualiza o ícone apenas quando codeReaderType muda explicitamente
     useEffect(() => {
         if (onIconChange) {
@@ -48,24 +48,24 @@ function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange }: CodeReade
             }
         }
     }, [codeReaderType]);
-    
+
     // Função para atualizar o tipo de leitor quando alterado
     const handleCodeTypeChange = (selectedId: string) => {
-        const selectedType = CODE_TYPES.find(type => type.id.toString() === selectedId);
+        const selectedType = CODE_TYPES.find((type) => type.id.toString() === selectedId);
         if (selectedType) {
             setCodeReaderType(selectedType.value);
             if (onUpdate) {
                 onUpdate({
                     ...task,
-                    codeReaderType: selectedType.value
+                    codeReaderType: selectedType.value,
                 });
             }
         }
     };
-    
+
     // Encontrar o ID correspondente ao valor atual
-    const currentTypeId = CODE_TYPES.find(type => type.value === codeReaderType)?.id.toString() || '1';
-    
+    const currentTypeId = CODE_TYPES.find((type) => type.value === codeReaderType)?.id.toString() || '1';
+
     if (mode === 'edit') {
         return (
             <div className="space-y-4">
@@ -85,53 +85,41 @@ function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange }: CodeReade
             </div>
         );
     }
-    
+
     // Modo 'preview' ou 'respond'
     const isPreview = mode === 'preview';
-    
+
     return (
         <div className="space-y-4">
             <div className="p-4">
-                <p>
-                    {isPreview 
-                        ? `O usuário deverá ler um ${codeType} durante a execução desta tarefa.`
-                        : instructions}
-                </p>
+                <p>{isPreview ? `O usuário deverá ler um ${codeType} durante a execução desta tarefa.` : instructions}</p>
             </div>
-            
+
             {scanned ? (
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-full p-4 bg-green-50 border border-green-200 rounded-md flex items-center gap-2">
+                    <div className="flex w-full items-center gap-2 rounded-md border border-green-200 bg-green-50 p-4">
                         <Check className="h-5 w-5 text-green-500" />
                         <div>
                             <p className="font-medium text-green-700">{codeType} lido com sucesso</p>
                             <p className="text-sm text-green-600">{code}</p>
                         </div>
                     </div>
-                    
-                    <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={() => setScanned(false)}
-                        disabled={isPreview}
-                    >
-                        <ScanBarcode className="h-4 w-4 mr-2" />
+
+                    <Button variant="outline" className="w-full" onClick={() => setScanned(false)} disabled={isPreview}>
+                        <ScanBarcode className="mr-2 h-4 w-4" />
                         Ler novamente
                     </Button>
                 </div>
             ) : (
-                <Button 
-                    className="w-full" 
+                <Button
+                    className="w-full"
                     onClick={() => {
                         setScanned(true);
                         setCode(`EXEMPLO-${Math.floor(Math.random() * 10000)}`);
                     }}
                     disabled={isPreview}
                 >
-                    {codeReaderType === 'qr_code' ? 
-                        <QrCode className="h-4 w-4 mr-2" /> : 
-                        <Barcode className="h-4 w-4 mr-2" />
-                    }
+                    {codeReaderType === 'qr_code' ? <QrCode className="mr-2 h-4 w-4" /> : <Barcode className="mr-2 h-4 w-4" />}
                     Ler {codeType}
                 </Button>
             )}
@@ -139,4 +127,4 @@ function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange }: CodeReade
     );
 }
 
-export default memo(CodeReaderTaskContent); 
+export default memo(CodeReaderTaskContent);

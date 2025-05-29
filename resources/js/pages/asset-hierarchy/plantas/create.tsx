@@ -1,29 +1,18 @@
-import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/react';
+import HeadingSmall from '@/components/heading-small';
+import TextInput from '@/components/TextInput';
+import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { estados } from '@/data/estados';
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/asset-hierarchy/layout';
-import HeadingSmall from '@/components/heading-small';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import TextInput from "@/components/TextInput";
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import { estados } from '@/data/estados';
+import { cn } from '@/lib/utils';
+import { type BreadcrumbItem } from '@/types';
+import { Head, useForm } from '@inertiajs/react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from "sonner";
+import { toast } from 'sonner';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -78,15 +67,15 @@ export default function CreatePlant() {
         e.preventDefault();
         const formData = {
             ...data,
-            zip_code: data.zip_code.replace(/\D/g, '')
+            zip_code: data.zip_code.replace(/\D/g, ''),
         };
         post(route('asset-hierarchy.plantas.store'), {
             ...formData,
             onError: (errors) => {
-                toast.error("Erro ao criar planta", {
-                    description: "Verifique os campos e tente novamente."
+                toast.error('Erro ao criar planta', {
+                    description: 'Verifique os campos e tente novamente.',
                 });
-            }
+            },
         });
     };
 
@@ -95,11 +84,8 @@ export default function CreatePlant() {
             <Head title="Nova Planta" />
 
             <CadastroLayout>
-                <div className="space-y-6 max-w-2xl">
-                    <HeadingSmall 
-                        title="Nova Planta" 
-                        description="Adicione uma nova planta ao sistema" 
-                    />
+                <div className="max-w-2xl space-y-6">
+                    <HeadingSmall title="Nova Planta" description="Adicione uma nova planta ao sistema" />
 
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-6">
@@ -109,7 +95,7 @@ export default function CreatePlant() {
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors: () => {}
+                                    clearErrors: () => {},
                                 }}
                                 name="name"
                                 label="Nome da Planta"
@@ -127,7 +113,7 @@ export default function CreatePlant() {
                                                 data,
                                                 setData,
                                                 errors,
-                                                clearErrors: () => {}
+                                                clearErrors: () => {},
                                             }}
                                             name="street"
                                             label="Rua"
@@ -140,7 +126,7 @@ export default function CreatePlant() {
                                                 data,
                                                 setData,
                                                 errors,
-                                                clearErrors: () => {}
+                                                clearErrors: () => {},
                                             }}
                                             name="number"
                                             label="Número"
@@ -153,7 +139,7 @@ export default function CreatePlant() {
                                                 data,
                                                 setData: (name, value) => handleCEPChange({ target: { value } } as any),
                                                 errors,
-                                                clearErrors: () => {}
+                                                clearErrors: () => {},
                                             }}
                                             name="zip_code"
                                             label="CEP"
@@ -173,7 +159,7 @@ export default function CreatePlant() {
                                                 data,
                                                 setData,
                                                 errors,
-                                                clearErrors: () => {}
+                                                clearErrors: () => {},
                                             }}
                                             name="city"
                                             label="Cidade"
@@ -181,7 +167,9 @@ export default function CreatePlant() {
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="state" className="text-sm text-muted-foreground">Estado</Label>
+                                        <Label htmlFor="state" className="text-muted-foreground text-sm">
+                                            Estado
+                                        </Label>
                                         <Popover open={open} onOpenChange={setOpen}>
                                             <PopoverTrigger asChild>
                                                 <Button
@@ -193,7 +181,7 @@ export default function CreatePlant() {
                                                 >
                                                     {data.state
                                                         ? estados.find((estado) => estado.value === data.state)?.label
-                                                        : "Selecione um estado..."}
+                                                        : 'Selecione um estado...'}
                                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                 </Button>
                                             </PopoverTrigger>
@@ -208,14 +196,14 @@ export default function CreatePlant() {
                                                                     key={estado.value}
                                                                     value={estado.value}
                                                                     onSelect={(currentValue) => {
-                                                                        setData('state', currentValue === data.state ? "" : currentValue);
+                                                                        setData('state', currentValue === data.state ? '' : currentValue);
                                                                         setOpen(false);
                                                                     }}
                                                                 >
                                                                     <Check
                                                                         className={cn(
-                                                                            "mr-2 h-4 w-4",
-                                                                            data.state === estado.value ? "opacity-100" : "opacity-0"
+                                                                            'mr-2 h-4 w-4',
+                                                                            data.state === estado.value ? 'opacity-100' : 'opacity-0',
                                                                         )}
                                                                     />
                                                                     {estado.label}
@@ -236,7 +224,7 @@ export default function CreatePlant() {
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors: () => {}
+                                    clearErrors: () => {},
                                 }}
                                 name="gps_coordinates"
                                 label="Coordenadas GPS"
@@ -257,4 +245,4 @@ export default function CreatePlant() {
             </CadastroLayout>
         </AppLayout>
     );
-} 
+}

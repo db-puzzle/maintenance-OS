@@ -132,8 +132,17 @@ class PlantsController extends Controller
             ->whereNull('sector_id')
             ->count();
 
-        return response()->json([
-            'can_delete' => $totalAreas === 0 && $totalAsset === 0,
+        $canDelete = $totalAreas === 0 && $totalAsset === 0;
+
+        // Se a planta pode ser excluída, redirecionar para confirmação de exclusão
+        if ($canDelete) {
+            return redirect()->route('asset-hierarchy.plantas')
+                ->with('info', "A planta {$plant->name} pode ser excluída com segurança.");
+        }
+
+        // Se há dependências, mostrar página com detalhes das dependências
+        return Inertia::render('asset-hierarchy/plantas/dependencies', [
+            'plant' => $plant,
             'dependencies' => [
                 'areas' => [
                     'total' => $totalAreas,
@@ -143,7 +152,8 @@ class PlantsController extends Controller
                     'total' => $totalAsset,
                     'items' => $asset
                 ]
-            ]
+            ],
+            'canDelete' => false
         ]);
     }
 

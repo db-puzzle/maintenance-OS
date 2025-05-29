@@ -1,20 +1,15 @@
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
-import { toast } from "sonner";
-import { DataTable, ColumnVisibility, type Column } from '@/components/data-table';
-import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import { ColumnVisibility, DataTable, type Column } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, ArrowUpDown } from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import { type BreadcrumbItem } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { ArrowUpDown, MoreVertical } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
@@ -121,7 +116,7 @@ export default function SectorIndex({ sectors, filters }: Props) {
 
     useEffect(() => {
         if (flash?.success) {
-            toast.success("Operação realizada com sucesso!", {
+            toast.success('Operação realizada com sucesso!', {
                 description: flash.success,
             });
         }
@@ -131,13 +126,13 @@ export default function SectorIndex({ sectors, filters }: Props) {
         const searchTimeout = setTimeout(() => {
             router.get(
                 route('asset-hierarchy.setores'),
-                { 
+                {
                     search,
                     sort,
                     direction,
-                    per_page: perPage
+                    per_page: perPage,
                 },
-                { preserveState: true, preserveScroll: true }
+                { preserveState: true, preserveScroll: true },
             );
         }, 300);
 
@@ -164,9 +159,9 @@ export default function SectorIndex({ sectors, filters }: Props) {
 
     const columns: Column<Sector>[] = [
         {
-            id: "name",
+            id: 'name',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('name')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('name')}>
                     Nome
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
@@ -178,75 +173,67 @@ export default function SectorIndex({ sectors, filters }: Props) {
                     </div>
                 );
             },
-            width: "w-[300px]",
+            width: 'w-[300px]',
         },
         {
-            id: "plant",
+            id: 'plant',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('plant')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('plant')}>
                     Planta
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Sector }) => row.original.area?.plant?.name || '-',
-            width: "w-[200px]",
+            width: 'w-[200px]',
         },
         {
-            id: "area",
+            id: 'area',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('area')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('area')}>
                     Área
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Sector }) => row.original.area?.name || '-',
-            width: "w-[200px]",
+            width: 'w-[200px]',
         },
         {
-            id: "asset_count",
+            id: 'asset_count',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('asset_count')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('asset_count')}>
                     Ativos
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Sector }) => row.original.asset_count ?? 0,
-            width: "w-[100px]",
+            width: 'w-[100px]',
         },
         {
-            id: "actions",
-            header: "Ações",
+            id: 'actions',
+            header: 'Ações',
             cell: (row: { original: Sector }) => (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-                            size="icon"
-                        >
+                        <Button variant="ghost" className="text-muted-foreground data-[state=open]:bg-muted flex size-8" size="icon">
                             <MoreVertical />
                             <span className="sr-only">Abrir menu</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.setores.edit', row.original.id)}>
-                                Editar
-                            </Link>
+                            <Link href={route('asset-hierarchy.setores.edit', row.original.id)}>Editar</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>
-                            Excluir
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>Excluir</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
-            width: "w-[80px]",
+            width: 'w-[80px]',
         },
     ];
 
     const handleDelete = async (id: number) => {
         setIsDeleting(true);
-        
+
         router.delete(route('asset-hierarchy.setores.destroy', id), {
             onSuccess: (response) => {
                 setIsDeleting(false);
@@ -254,8 +241,8 @@ export default function SectorIndex({ sectors, filters }: Props) {
                 setConfirmationText('');
             },
             onError: (errors) => {
-                toast.error("Erro ao excluir setor", {
-                    description: errors.message || "Ocorreu um erro ao excluir o setor.",
+                toast.error('Erro ao excluir setor', {
+                    description: errors.message || 'Ocorreu um erro ao excluir o setor.',
                 });
                 setIsDeleting(false);
                 setShowDeleteDialog(false);
@@ -269,20 +256,20 @@ export default function SectorIndex({ sectors, filters }: Props) {
     const checkDependencies = async (sector: Sector) => {
         setIsCheckingDependencies(true);
         setSelectedSector(sector);
-        
+
         try {
             const response = await fetch(route('asset-hierarchy.setores.check-dependencies', sector.id));
             const data = await response.json();
             setDependencies(data);
-            
+
             if (data.can_delete) {
                 setShowDeleteDialog(true);
             } else {
                 setShowDependenciesDialog(true);
             }
         } catch (error) {
-            toast.error("Erro ao verificar dependências", {
-                description: "Não foi possível verificar as dependências do setor.",
+            toast.error('Erro ao verificar dependências', {
+                description: 'Não foi possível verificar as dependências do setor.',
             });
         } finally {
             setIsCheckingDependencies(false);
@@ -339,17 +326,16 @@ export default function SectorIndex({ sectors, filters }: Props) {
                     <DialogDescription asChild>
                         <div className="space-y-6">
                             <div className="text-sm">
-                                Este setor possui ativo(s) vinculado(s) e não pode ser excluído até que todos sejam removidos ou movidos para outro setor.
+                                Este setor possui ativo(s) vinculado(s) e não pode ser excluído até que todos sejam removidos ou movidos para outro
+                                setor.
                             </div>
-                            
+
                             <div className="space-y-6">
                                 {dependencies?.dependencies?.asset?.total && dependencies.dependencies.asset.total > 0 && (
                                     <div>
-                                        <div className="font-medium text-sm">
-                                            Total de Ativos Vinculados: {dependencies.dependencies.asset.total}
-                                        </div>
-                                        <ul className="list-disc list-inside space-y-2 text-sm">
-                                            {dependencies.dependencies.asset.items.map(asset => (
+                                        <div className="text-sm font-medium">Total de Ativos Vinculados: {dependencies.dependencies.asset.total}</div>
+                                        <ul className="list-inside list-disc space-y-2 text-sm">
+                                            {dependencies.dependencies.asset.items.map((asset) => (
                                                 <li key={asset.id}>
                                                     <Link
                                                         href={route('asset-hierarchy.assets.show', asset.id)}
@@ -366,10 +352,7 @@ export default function SectorIndex({ sectors, filters }: Props) {
                         </div>
                     </DialogDescription>
                     <DialogFooter>
-                        <Button 
-                            variant="secondary" 
-                            onClick={() => setShowDependenciesDialog(false)}
-                        >
+                        <Button variant="secondary" onClick={() => setShowDependenciesDialog(false)}>
                             Fechar
                         </Button>
                     </DialogFooter>
@@ -398,8 +381,8 @@ export default function SectorIndex({ sectors, filters }: Props) {
                         <DialogClose asChild>
                             <Button variant="secondary">Cancelar</Button>
                         </DialogClose>
-                        <Button 
-                            variant="destructive" 
+                        <Button
+                            variant="destructive"
                             onClick={() => selectedSector && handleDelete(selectedSector.id)}
                             disabled={!isConfirmationValid || isDeleting}
                         >
@@ -410,4 +393,4 @@ export default function SectorIndex({ sectors, filters }: Props) {
             </Dialog>
         </AppLayout>
     );
-} 
+}

@@ -2,13 +2,12 @@ import { type BreadcrumbItem } from '@/types';
 import { type Area, type SectorForm } from '@/types/asset-hierarchy';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
-import { toast } from "sonner";
+import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import TextInput from '@/components/TextInput';
 import ItemSelect from '@/components/ItemSelect';
+import TextInput from '@/components/TextInput';
 import HeadingSmall from '@/components/heading-small';
+import { Button } from '@/components/ui/button';
 
 import AppLayout from '@/layouts/app-layout';
 import CadastroLayout from '@/layouts/asset-hierarchy/layout';
@@ -44,9 +43,7 @@ export default function CreateSector({ plants }: Props) {
 
     const [selectedPlant, setSelectedPlant] = useState<number | null>(null);
 
-    const availableAreas = selectedPlant
-        ? plants.find(p => p.id === selectedPlant)?.areas || []
-        : [];
+    const availableAreas = selectedPlant ? plants.find((p) => p.id === selectedPlant)?.areas || [] : [];
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -55,10 +52,10 @@ export default function CreateSector({ plants }: Props) {
                 // Não precisa fazer nada aqui, a mensagem de flash será exibida
             },
             onError: (errors) => {
-                toast.error("Erro ao criar setor", {
-                    description: "Verifique os campos e tente novamente."
+                toast.error('Erro ao criar setor', {
+                    description: 'Verifique os campos e tente novamente.',
                 });
-            }
+            },
         });
     };
 
@@ -67,11 +64,8 @@ export default function CreateSector({ plants }: Props) {
             <Head title="Novo Setor" />
 
             <CadastroLayout>
-                <div className="space-y-6 max-w-2xl">
-                    <HeadingSmall 
-                        title="Novo Setor" 
-                        description="Adicione um novo setor ao sistema" 
-                    />
+                <div className="max-w-2xl space-y-6">
+                    <HeadingSmall title="Novo Setor" description="Adicione um novo setor ao sistema" />
 
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-6">
@@ -81,7 +75,7 @@ export default function CreateSector({ plants }: Props) {
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors: () => {}
+                                    clearErrors: () => {},
                                 }}
                                 name="name"
                                 label="Nome do Setor"
@@ -113,7 +107,7 @@ export default function CreateSector({ plants }: Props) {
                                     value={data.area_id || ''}
                                     onValueChange={(value) => setData('area_id', value)}
                                     createRoute={route('asset-hierarchy.areas.create')}
-                                    placeholder={!selectedPlant ? "Selecione uma planta primeiro" : "Selecione uma área"}
+                                    placeholder={!selectedPlant ? 'Selecione uma planta primeiro' : 'Selecione uma área'}
                                     error={errors.area_id}
                                     disabled={!selectedPlant}
                                 />
@@ -133,4 +127,4 @@ export default function CreateSector({ plants }: Props) {
             </CadastroLayout>
         </AppLayout>
     );
-} 
+}

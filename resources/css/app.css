@@ -43,6 +43,7 @@
     --color-input: var(--input);
     --color-ring: var(--ring);
     --color-input-focus: var(--input-focus);
+    --color-action: var(--action);
 
     --color-chart-1: var(--chart-1);
     --color-chart-2: var(--chart-2);
@@ -69,6 +70,7 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+
     *,
     ::after,
     ::before,
@@ -80,8 +82,10 @@
 
 :root {
     --background: oklch(1 0 0);
+    --background-muted: oklch(0.9913 0.0013 286.38);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
+    --card-muted: oklch(0.9827 0.0026 286.35);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
@@ -99,6 +103,7 @@
     --input: oklch(0.922 0 0);
     --ring: oklch(0.54 0.2575 262.47);
     --input-focus: oklch(0.98 0.0091 258.34);
+    --action: oklch(0.54 0.2575 262.47);
     --chart-1: oklch(0.646 0.222 41.116);
     --chart-2: oklch(0.6 0.118 184.704);
     --chart-3: oklch(0.398 0.07 227.392);
@@ -117,8 +122,10 @@
 
 .dark {
     --background: oklch(0.145 0 0);
+    --background-muted: oklch(0.1927 0 0);
     --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
+    --card: oklch(0.3118 0 0);
+    --card-muted: oklch(0.2466 0 0);
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.145 0 0);
     --popover-foreground: oklch(0.985 0 0);
@@ -136,6 +143,7 @@
     --input: oklch(0.269 0 0);
     --ring: oklch(0.439 0 0);
     --input-focus: oklch(0.28 0.02 260);
+    --action: oklch(0.6 0.18 255);
     --chart-1: oklch(0.488 0.243 264.376);
     --chart-2: oklch(0.696 0.17 162.48);
     --chart-3: oklch(0.769 0.188 70.08);

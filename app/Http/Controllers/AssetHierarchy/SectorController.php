@@ -205,14 +205,24 @@ class SectorController extends Controller
         $asset = $setor->asset()->take(5)->get(['id', 'tag', 'description']);
         $totalAsset = $setor->asset()->count();
 
-        return response()->json([
-            'can_delete' => $totalAsset === 0,
+        $canDelete = $totalAsset === 0;
+
+        // Se o setor pode ser excluído, redirecionar para confirmação de exclusão
+        if ($canDelete) {
+            return redirect()->route('asset-hierarchy.setores')
+                ->with('info', "O setor {$setor->name} pode ser excluído com segurança.");
+        }
+
+        // Se há dependências, mostrar página com detalhes das dependências
+        return Inertia::render('asset-hierarchy/setores/dependencies', [
+            'sector' => $setor,
             'dependencies' => [
                 'asset' => [
                     'total' => $totalAsset,
                     'items' => $asset
                 ]
-            ]
+            ],
+            'canDelete' => false
         ]);
     }
 } 

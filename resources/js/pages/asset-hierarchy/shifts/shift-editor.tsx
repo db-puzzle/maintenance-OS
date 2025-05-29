@@ -1,25 +1,23 @@
-import React, { useState } from 'react';
-import { Head, useForm, Link } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Copy, Save, Clock, Table, X, PlusCircle } from 'lucide-react';
+import ItemSelect from '@/components/ItemSelect';
+import ShiftCalendarView from '@/components/ShiftCalendarView';
 import ShiftTableView from '@/components/ShiftTableView';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import TextInput from '@/components/TextInput';
 import TimeSelect from '@/components/TimeSelect';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type ShiftForm } from '@/types/asset-hierarchy';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import ShiftCalendarView from '@/components/ShiftCalendarView';
-import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import ItemSelect from '@/components/ItemSelect';
-import TextInput from '@/components/TextInput';
+import { Head, useForm } from '@inertiajs/react';
+import { AlertCircle, Clock, Copy, Plus, Table, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 
 // Interface para representar um intervalo de descanso
 interface Break {
@@ -128,12 +126,12 @@ const minutesToTime = (minutes: number): string => {
 const calculateDuration = (start: string, end: string): number => {
     const startMinutes = timeToMinutes(start);
     const endMinutes = timeToMinutes(end);
-    
+
     // Se o horário final for menor que o inicial, significa que atravessou a meia-noite
     if (endMinutes < startMinutes) {
-        return (24 * 60 - startMinutes) + endMinutes;
+        return 24 * 60 - startMinutes + endMinutes;
     }
-    
+
     return endMinutes - startMinutes;
 };
 
@@ -144,18 +142,16 @@ const addMinutes = (time: string, minutes: number): string => {
 };
 
 // Função para encontrar o maior período sem intervalo
-const findLargestGap = (shift: Shift): { start: string, end: string } | null => {
+const findLargestGap = (shift: Shift): { start: string; end: string } | null => {
     if (shift.breaks.length === 0) {
         return {
             start: shift.start_time,
-            end: shift.end_time
+            end: shift.end_time,
         };
     }
 
     // Ordena os intervalos por horário de início
-    const sortedBreaks = [...shift.breaks].sort((a, b) => 
-        timeToMinutes(a.start_time) - timeToMinutes(b.start_time)
-    );
+    const sortedBreaks = [...shift.breaks].sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time));
 
     let largestGap = 0;
     let gapStart = shift.start_time;
@@ -214,7 +210,7 @@ const hasOverlappingShifts = (shift1: Shift, shift2: Shift): boolean => {
         if (shift1End < shift1Start && shift1Start < shift2End && shift1End > shift2Start) return true;
     } else {
         // Caso nenhum dos turnos atravesse a meia-noite
-        return (shift1Start < shift2End && shift2Start < shift1End);
+        return shift1Start < shift2End && shift2Start < shift1End;
     }
 
     return false;
@@ -258,7 +254,7 @@ const hasOverlappingBreaks = (break1: Break, break2: Break): boolean => {
         if (break1End < break1Start && break1Start < break2End && break1End > break2Start) return true;
     } else {
         // Caso nenhum dos intervalos atravesse a meia-noite
-        return (break1Start < break2End && break2Start < break1End);
+        return break1Start < break2End && break2Start < break1End;
     }
 
     return false;
@@ -266,9 +262,7 @@ const hasOverlappingBreaks = (break1: Break, break2: Break): boolean => {
 
 // Função para verificar se um intervalo está sobrepondo com outros intervalos do mesmo turno
 const isBreakOverlapping = (shift: Shift, currentBreak: Break, currentBreakIndex: number): boolean => {
-    return shift.breaks.some((breakTime, index) => 
-        index !== currentBreakIndex && hasOverlappingBreaks(currentBreak, breakTime)
-    );
+    return shift.breaks.some((breakTime, index) => index !== currentBreakIndex && hasOverlappingBreaks(currentBreak, breakTime));
 };
 
 interface ShiftFormProps extends CreateProps {
@@ -280,17 +274,22 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
     const { data, setData, post, put, processing, errors, clearErrors } = useForm<ShiftForm>({
         name: shift?.name || '',
         plant_id: shift?.plant?.id?.toString() || '',
-        schedules: shift?.schedules || weekdays.map(day => ({
-            weekday: day.key,
-            shifts: day.key === 'Saturday' || day.key === 'Sunday' ? [] : [{
-                start_time: '07:00',
-                end_time: '17:00',
-                active: true,
-                breaks: [
-                    { start_time: '12:00', end_time: '13:00' }
-                ]
-            }]
-        }))
+        schedules:
+            shift?.schedules ||
+            weekdays.map((day) => ({
+                weekday: day.key,
+                shifts:
+                    day.key === 'Saturday' || day.key === 'Sunday'
+                        ? []
+                        : [
+                              {
+                                  start_time: '07:00',
+                                  end_time: '17:00',
+                                  active: true,
+                                  breaks: [{ start_time: '12:00', end_time: '13:00' }],
+                              },
+                          ],
+            })),
     });
 
     const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
@@ -303,33 +302,31 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
     const addShift = (dayIndex: number) => {
         const newSchedules = [...data.schedules];
         const existingShifts = newSchedules[dayIndex].shifts;
-        
+
         // Se não houver turnos, usa o padrão
         if (existingShifts.length === 0) {
             newSchedules[dayIndex].shifts.push({
                 start_time: '07:00',
                 end_time: '17:00',
                 active: true,
-                breaks: [
-                    { start_time: '12:00', end_time: '13:00' }
-                ]
+                breaks: [{ start_time: '12:00', end_time: '13:00' }],
             });
         } else {
             // Pega o último turno
             const lastShift = existingShifts[existingShifts.length - 1];
             const lastEndTime = lastShift.end_time;
-            
+
             // Calcula o novo horário
             const [lastEndHour, lastEndMinute] = lastEndTime.split(':').map(Number);
             const newStartHour = lastEndHour;
             const newStartMinute = lastEndMinute;
-            
+
             // Calcula o horário de término (9 horas depois)
             let newEndHour = newStartHour + 9;
             if (newEndHour >= 24) {
                 newEndHour -= 24;
             }
-            
+
             // Calcula o horário do intervalo (4 horas depois do início)
             let breakStartHour = newStartHour + 4;
             if (breakStartHour >= 24) {
@@ -339,25 +336,25 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
             if (breakEndHour >= 24) {
                 breakEndHour -= 24;
             }
-            
+
             // Formata os horários
             const formatTime = (hour: number, minute: number) => {
                 return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
             };
-            
+
             newSchedules[dayIndex].shifts.push({
                 start_time: formatTime(newStartHour, newStartMinute),
                 end_time: formatTime(newEndHour, newStartMinute),
                 active: true,
                 breaks: [
-                    { 
+                    {
                         start_time: formatTime(breakStartHour, newStartMinute),
-                        end_time: formatTime(breakEndHour, newStartMinute)
-                    }
-                ]
+                        end_time: formatTime(breakEndHour, newStartMinute),
+                    },
+                ],
             });
         }
-        
+
         setData('schedules', newSchedules);
     };
 
@@ -367,7 +364,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
             if (idx === dayIndex) {
                 return {
                     ...day,
-                    shifts: day.shifts.filter((_, index) => index !== shiftIndex)
+                    shifts: day.shifts.filter((_, index) => index !== shiftIndex),
                 };
             }
             return day;
@@ -380,7 +377,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
     const addBreak = (dayIndex: number, shiftIndex: number) => {
         const newSchedules = [...data.schedules];
         const shift = newSchedules[dayIndex].shifts[shiftIndex];
-        
+
         if (shift.breaks.length === 0) {
             // Se não houver intervalos, adiciona um intervalo de 30 minutos no meio do turno
             const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
@@ -389,12 +386,12 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
 
             newSchedules[dayIndex].shifts[shiftIndex].breaks.push({
                 start_time: breakStart,
-                end_time: breakEnd
+                end_time: breakEnd,
             });
         } else {
             // Encontra o maior período sem intervalo
             const largestGap = findLargestGap(shift);
-            
+
             if (largestGap) {
                 const gapDuration = calculateDuration(largestGap.start, largestGap.end);
                 const breakStart = addMinutes(largestGap.start, Math.floor(gapDuration / 2) - 7);
@@ -402,7 +399,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
 
                 newSchedules[dayIndex].shifts[shiftIndex].breaks.push({
                     start_time: breakStart,
-                    end_time: breakEnd
+                    end_time: breakEnd,
                 });
             }
         }
@@ -419,11 +416,11 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                         if (sIdx === shiftIndex) {
                             return {
                                 ...shift,
-                                breaks: shift.breaks.filter((_, bIdx) => bIdx !== breakIndex)
+                                breaks: shift.breaks.filter((_, bIdx) => bIdx !== breakIndex),
                             };
                         }
                         return shift;
-                    })
+                    }),
                 };
             }
             return day;
@@ -445,19 +442,19 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
     };
 
     const applyToSelectedDays = () => {
-        const sourceDay = data.schedules.find(s => s.weekday === selectedDay);
+        const sourceDay = data.schedules.find((s) => s.weekday === selectedDay);
         if (!sourceDay) return;
 
-        const newSchedules = data.schedules.map(schedule => {
+        const newSchedules = data.schedules.map((schedule) => {
             if (selectedDays.includes(schedule.weekday)) {
                 // Cria uma cópia profunda do dia de origem
                 return {
                     ...sourceDay,
                     weekday: schedule.weekday,
-                    shifts: sourceDay.shifts.map(shift => ({
+                    shifts: sourceDay.shifts.map((shift) => ({
                         ...shift,
-                        breaks: shift.breaks.map(breakTime => ({ ...breakTime }))
-                    }))
+                        breaks: shift.breaks.map((breakTime) => ({ ...breakTime })),
+                    })),
                 };
             }
             return schedule;
@@ -471,18 +468,18 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
         // Remove os segundos de todos os horários antes de enviar
         const formattedData = {
             ...data,
-            schedules: data.schedules.map(schedule => ({
+            schedules: data.schedules.map((schedule) => ({
                 ...schedule,
-                shifts: schedule.shifts.map(shift => ({
+                shifts: schedule.shifts.map((shift) => ({
                     ...shift,
                     start_time: shift.start_time?.substring(0, 5) || shift.start_time,
                     end_time: shift.end_time?.substring(0, 5) || shift.end_time,
-                    breaks: shift.breaks.map(breakTime => ({
+                    breaks: shift.breaks.map((breakTime) => ({
                         start_time: breakTime.start_time?.substring(0, 5) || breakTime.start_time,
-                        end_time: breakTime.end_time?.substring(0, 5) || breakTime.end_time
-                    }))
-                }))
-            }))
+                        end_time: breakTime.end_time?.substring(0, 5) || breakTime.end_time,
+                    })),
+                })),
+            })),
         };
 
         // Atualiza os dados do formulário com os valores formatados
@@ -491,32 +488,32 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
         if (mode === 'create') {
             post(route('asset-hierarchy.shifts.store'), {
                 onSuccess: () => {
-                    toast.success("Turno criado com sucesso!");
+                    toast.success('Turno criado com sucesso!');
                 },
                 onError: () => {
-                    toast.error("Erro ao criar turno", {
-                        description: "Ocorreu um erro. Por favor, verifique os dados e tente novamente."
+                    toast.error('Erro ao criar turno', {
+                        description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
                     });
-                }
+                },
             });
         } else {
             put(route('asset-hierarchy.shifts.update', shift?.id), {
                 onSuccess: () => {
-                    toast.success("Turno atualizado com sucesso!");
+                    toast.success('Turno atualizado com sucesso!');
                 },
                 onError: () => {
-                    toast.error("Erro ao atualizar turno", {
-                        description: "Ocorreu um erro. Por favor, verifique os dados e tente novamente."
+                    toast.error('Erro ao atualizar turno', {
+                        description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
                     });
-                }
+                },
             });
         }
     };
 
     const isEditing = mode === 'edit';
-    const title = isEditing ? "Editar Turno" : "Cadastrar Turno";
-    const subtitle = isEditing ? "Edite as configurações do turno" : "Configure os turnos de trabalho";
-    const saveButtonText = isEditing ? "Salvar Alterações" : "Salvar";
+    const title = isEditing ? 'Editar Turno' : 'Cadastrar Turno';
+    const subtitle = isEditing ? 'Edite as configurações do turno' : 'Configure os turnos de trabalho';
+    const saveButtonText = isEditing ? 'Salvar Alterações' : 'Salvar';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -533,11 +530,17 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                 contentClassName="w-[950px]"
                 saveButtonText={saveButtonText}
             >
-                <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSave();
+                    }}
+                    className="space-y-6"
+                >
                     <div className="grid grid-cols-1 justify-items-start">
                         <div className="w-fit space-y-6">
                             {/* Campo de nome do turno */}
-                            <div className="space-y-2 w-full">
+                            <div className="w-full space-y-2">
                                 <div className="flex gap-4">
                                     <div className="w-1/2">
                                         <TextInput<ShiftForm>
@@ -545,7 +548,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                                 data,
                                                 setData,
                                                 errors,
-                                                clearErrors
+                                                clearErrors,
                                             }}
                                             name="name"
                                             label="Nome do Turno"
@@ -570,7 +573,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                             {/* Seletor de dias da semana */}
                             <Tabs value={selectedDay} onValueChange={setSelectedDay}>
                                 <TabsList className="grid grid-cols-7 gap-2">
-                                    {weekdays.map(day => (
+                                    {weekdays.map((day) => (
                                         <TabsTrigger key={day.key} value={day.key} className="px-4">
                                             {day.label}
                                         </TabsTrigger>
@@ -579,7 +582,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
 
                                 {/* Conteúdo de cada dia da semana */}
                                 {weekdays.map((day, dayIndex) => (
-                                    <TabsContent key={day.key} value={day.key} className="!pl-2 !pr-0">
+                                    <TabsContent key={day.key} value={day.key} className="!pr-0 !pl-2">
                                         <div className="flex flex-row items-center justify-between pt-6 pb-6">
                                             <h3 className="text-lg font-semibold">Turnos da {day.label}</h3>
                                             <div className="flex items-center gap-2">
@@ -592,17 +595,17 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                                             size="sm"
                                                             disabled={data.schedules[dayIndex].shifts.length === 0}
                                                         >
-                                                            <Copy className="h-4 w-4 mr-2" />
+                                                            <Copy className="mr-2 h-4 w-4" />
                                                             Copiar para Múltiplos Dias
                                                         </Button>
                                                     </PopoverTrigger>
                                                     <PopoverContent className="w-80 p-6" align="end" sideOffset={5}>
                                                         {/* Conteúdo do popover de cópia */}
                                                         <div className="space-y-5">
-                                                            <div className="grid grid-cols-2 gap-4 mt-1">
+                                                            <div className="mt-1 grid grid-cols-2 gap-4">
                                                                 {weekdays
-                                                                    .filter(d => d.key !== day.key)
-                                                                    .map(d => (
+                                                                    .filter((d) => d.key !== day.key)
+                                                                    .map((d) => (
                                                                         <div key={d.key} className="flex items-center space-x-1 py-1">
                                                                             <Checkbox
                                                                                 checked={selectedDays.includes(d.key)}
@@ -610,7 +613,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                                                                     if (checked) {
                                                                                         setSelectedDays([...selectedDays, d.key]);
                                                                                     } else {
-                                                                                        setSelectedDays(selectedDays.filter(day => day !== d.key));
+                                                                                        setSelectedDays(selectedDays.filter((day) => day !== d.key));
                                                                                     }
                                                                                 }}
                                                                                 id={`copy-day-${d.key}`}
@@ -637,13 +640,8 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                                     </PopoverContent>
                                                 </Popover>
                                                 {/* Botão para adicionar novo turno */}
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => addShift(dayIndex)}
-                                                >
-                                                    <Plus className="h-4 w-4 mr-2" />
+                                                <Button type="button" variant="outline" size="sm" onClick={() => addShift(dayIndex)}>
+                                                    <Plus className="mr-2 h-4 w-4" />
                                                     Adicionar Turno
                                                 </Button>
                                             </div>
@@ -651,25 +649,23 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
 
                                         {/* Lista de turnos do dia */}
                                         {data.schedules[dayIndex].shifts.length === 0 ? (
-                                            <div className="bg-muted/50 rounded-lg p-6 border transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
+                                            <div className="bg-muted/50 rounded-lg border p-6 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
                                                 <div className="flex flex-col items-center justify-center py-8 text-center">
-                                                    <div className="size-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                                                        <Clock className="size-6 text-muted-foreground" />
+                                                    <div className="bg-muted mb-3 flex size-12 items-center justify-center rounded-full">
+                                                        <Clock className="text-muted-foreground size-6" />
                                                     </div>
-                                                    <h3 className="text-lg font-medium mb-1">Nenhum turno adicionado</h3>
-                                                    <p className="text-sm text-muted-foreground mb-4">
-                                                        Adicione turnos para este dia da semana.
-                                                    </p>
+                                                    <h3 className="mb-1 text-lg font-medium">Nenhum turno adicionado</h3>
+                                                    <p className="text-muted-foreground mb-4 text-sm">Adicione turnos para este dia da semana.</p>
                                                 </div>
                                             </div>
                                         ) : (
                                             data.schedules[dayIndex].shifts.map((shift, shiftIndex) => {
                                                 const overlappingShifts = findOverlappingShifts(data.schedules[dayIndex].shifts, shiftIndex);
-                                                
+
                                                 return (
-                                                    <Card 
-                                                        key={`shift-${dayIndex}-${shiftIndex}-${shift.start_time}-${shift.end_time}`} 
-                                                        className="bg-muted/50 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] mb-4"
+                                                    <Card
+                                                        key={`shift-${dayIndex}-${shiftIndex}-${shift.start_time}-${shift.end_time}`}
+                                                        className="bg-muted/50 mb-4 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
                                                     >
                                                         <CardHeader className="flex flex-col space-y-2">
                                                             <div className="flex items-center">
@@ -704,25 +700,30 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                                                         onClick={() => removeShift(dayIndex, shiftIndex)}
                                                                         className="h-10 w-10"
                                                                     >
-                                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                                        <Trash2 className="text-destructive h-4 w-4" />
                                                                     </Button>
                                                                 </div>
                                                                 {overlappingShifts.length > 0 && (
-                                                                    <Alert variant="destructive" className="py-2 border-0 flex items-center gap-2 ml-2">
-                                                                        <AlertCircle className="h-4 w-4 mb-1" />
+                                                                    <Alert
+                                                                        variant="destructive"
+                                                                        className="ml-2 flex items-center gap-2 border-0 py-2"
+                                                                    >
+                                                                        <AlertCircle className="mb-1 h-4 w-4" />
                                                                         <AlertDescription className="text-sm">
-                                                                            Este turno está sobrepondo com {overlappingShifts.length === 1 ? 'o turno' : 'os turnos'} {overlappingShifts.map(i => i + 1).join(', ')}
+                                                                            Este turno está sobrepondo com{' '}
+                                                                            {overlappingShifts.length === 1 ? 'o turno' : 'os turnos'}{' '}
+                                                                            {overlappingShifts.map((i) => i + 1).join(', ')}
                                                                         </AlertDescription>
                                                                     </Alert>
                                                                 )}
                                                             </div>
                                                         </CardHeader>
-                                                        <CardContent className="space-y-2 -mt-2">
+                                                        <CardContent className="-mt-2 space-y-2">
                                                             <div className="grid grid-cols-1 gap-2">
                                                                 {/* Seção de intervalos */}
                                                                 <div className="space-y-0.5 pl-4">
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <Label className="text-base font-medium pt-2 ml-2">Intervalos</Label>
+                                                                    <div className="mb-2 flex items-center justify-between">
+                                                                        <Label className="ml-2 pt-2 text-base font-medium">Intervalos</Label>
                                                                         {/* Botão para adicionar intervalo */}
                                                                         <Button
                                                                             type="button"
@@ -730,19 +731,21 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                                                             size="sm"
                                                                             onClick={() => addBreak(dayIndex, shiftIndex)}
                                                                         >
-                                                                            <Plus className="h-4 w-4 mr-2" />
+                                                                            <Plus className="mr-2 h-4 w-4" />
                                                                             Adicionar Intervalo
                                                                         </Button>
                                                                     </div>
                                                                     {shift.breaks.length === 0 ? (
                                                                         <Card className="bg-background shadow-none">
-                                                                            <CardContent className="px-2 py-0 flex items-start space-x-2 ml-2 -mt-3 -mb-3">
-                                                                                <div className="size-8 rounded-full bg-muted flex items-center justify-center -mt-0.75">
-                                                                                    <Clock className="size-4 text-muted-foreground" />
+                                                                            <CardContent className="-mt-3 -mb-3 ml-2 flex items-start space-x-2 px-2 py-0">
+                                                                                <div className="bg-muted -mt-0.75 flex size-8 items-center justify-center rounded-full">
+                                                                                    <Clock className="text-muted-foreground size-4" />
                                                                                 </div>
                                                                                 <div className="flex flex-col py-0.5">
-                                                                                    <h3 className="text-base font-medium">Nenhum intervalo adicionado</h3>
-                                                                                    <p className="text-sm text-muted-foreground">
+                                                                                    <h3 className="text-base font-medium">
+                                                                                        Nenhum intervalo adicionado
+                                                                                    </h3>
+                                                                                    <p className="text-muted-foreground text-sm">
                                                                                         Adicione intervalos para este turno.
                                                                                     </p>
                                                                                 </div>
@@ -753,22 +756,43 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                                                             {/* Lista de intervalos */}
                                                                             {shift.breaks.map((breakTime, breakIndex) => {
                                                                                 const isValidInShift = isBreakValid(shift, breakTime);
-                                                                                const isOverlapping = isValidInShift && isBreakOverlapping(shift, breakTime, breakIndex);
-                                                                                
+                                                                                const isOverlapping =
+                                                                                    isValidInShift &&
+                                                                                    isBreakOverlapping(shift, breakTime, breakIndex);
+
                                                                                 return (
-                                                                                    <Card key={`break-${dayIndex}-${shiftIndex}-${breakIndex}-${breakTime.start_time}-${breakTime.end_time}`} className="bg-background shadow-none">
-                                                                                        <CardContent className="px-2 flex items-center space-x-2 -mt-3 -mb-3 ml-1">
+                                                                                    <Card
+                                                                                        key={`break-${dayIndex}-${shiftIndex}-${breakIndex}-${breakTime.start_time}-${breakTime.end_time}`}
+                                                                                        className="bg-background shadow-none"
+                                                                                    >
+                                                                                        <CardContent className="-mt-3 -mb-3 ml-1 flex items-center space-x-2 px-2">
                                                                                             <div className="flex items-center space-x-2">
                                                                                                 {/* Seletor de horário de início do intervalo */}
                                                                                                 <TimeSelect
                                                                                                     value={breakTime.start_time}
-                                                                                                    onChange={(value: string) => updateBreak(dayIndex, shiftIndex, breakIndex, 'start_time', value)}
+                                                                                                    onChange={(value: string) =>
+                                                                                                        updateBreak(
+                                                                                                            dayIndex,
+                                                                                                            shiftIndex,
+                                                                                                            breakIndex,
+                                                                                                            'start_time',
+                                                                                                            value,
+                                                                                                        )
+                                                                                                    }
                                                                                                 />
                                                                                                 <span className="text-muted-foreground">até</span>
                                                                                                 {/* Seletor de horário de término do intervalo */}
                                                                                                 <TimeSelect
                                                                                                     value={breakTime.end_time}
-                                                                                                    onChange={(value: string) => updateBreak(dayIndex, shiftIndex, breakIndex, 'end_time', value)}
+                                                                                                    onChange={(value: string) =>
+                                                                                                        updateBreak(
+                                                                                                            dayIndex,
+                                                                                                            shiftIndex,
+                                                                                                            breakIndex,
+                                                                                                            'end_time',
+                                                                                                            value,
+                                                                                                        )
+                                                                                                    }
                                                                                                 />
                                                                                                 {/* Botão para remover intervalo */}
                                                                                                 <Button
@@ -776,24 +800,34 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                                                                                     variant="ghost"
                                                                                                     size="icon"
                                                                                                     className="h-10 w-10"
-                                                                                                    onClick={() => removeBreak(dayIndex, shiftIndex, breakIndex)}
+                                                                                                    onClick={() =>
+                                                                                                        removeBreak(dayIndex, shiftIndex, breakIndex)
+                                                                                                    }
                                                                                                 >
-                                                                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                                                                    <Trash2 className="text-destructive h-4 w-4" />
                                                                                                 </Button>
                                                                                             </div>
                                                                                             {!isValidInShift && (
-                                                                                                <Alert variant="destructive" className="py-2 border-0 flex items-center gap-2 ml-2">
-                                                                                                    <AlertCircle className="h-4 w-4 mb-1" />
+                                                                                                <Alert
+                                                                                                    variant="destructive"
+                                                                                                    className="ml-2 flex items-center gap-2 border-0 py-2"
+                                                                                                >
+                                                                                                    <AlertCircle className="mb-1 h-4 w-4" />
                                                                                                     <AlertDescription className="text-sm">
-                                                                                                        O intervalo deve estar dentro do horário do turno
+                                                                                                        O intervalo deve estar dentro do horário do
+                                                                                                        turno
                                                                                                     </AlertDescription>
                                                                                                 </Alert>
                                                                                             )}
                                                                                             {isOverlapping && (
-                                                                                                <Alert variant="destructive" className="py-2 border-0 flex items-center gap-2 ml-2">
-                                                                                                    <AlertCircle className="h-4 w-4 mb-1" />
+                                                                                                <Alert
+                                                                                                    variant="destructive"
+                                                                                                    className="ml-2 flex items-center gap-2 border-0 py-2"
+                                                                                                >
+                                                                                                    <AlertCircle className="mb-1 h-4 w-4" />
                                                                                                     <AlertDescription className="text-sm">
-                                                                                                        Este intervalo está sobrepondo com outro intervalo do turno
+                                                                                                        Este intervalo está sobrepondo com outro
+                                                                                                        intervalo do turno
                                                                                                     </AlertDescription>
                                                                                                 </Alert>
                                                                                             )}
@@ -818,7 +852,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                             <div className="space-y-4">
                                 {/* Seletor de modo de visualização */}
                                 <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'timeline' | 'table')}>
-                                    <TabsList className="grid grid-cols-2 w-[200px]">
+                                    <TabsList className="grid w-[200px] grid-cols-2">
                                         <TabsTrigger value="timeline" className="flex items-center gap-2">
                                             <Clock className="h-4 w-4" />
                                             Timeline
@@ -833,7 +867,9 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                 {/* Visualização dos turnos */}
                                 <div className="relative">
                                     {/* Visualização em timeline */}
-                                    <div className={`transition-opacity duration-300 ${viewMode === 'timeline' ? 'opacity-100' : 'opacity-0 absolute inset-0 pointer-events-none'}`}>
+                                    <div
+                                        className={`transition-opacity duration-300 ${viewMode === 'timeline' ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
+                                    >
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle>Visualização dos Turnos</CardTitle>
@@ -844,7 +880,9 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                                         </Card>
                                     </div>
                                     {/* Visualização em tabela */}
-                                    <div className={`transition-opacity duration-300 ${viewMode === 'table' ? 'opacity-100' : 'opacity-0 absolute inset-0 pointer-events-none'}`}>
+                                    <div
+                                        className={`transition-opacity duration-300 ${viewMode === 'table' ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
+                                    >
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle>Visão Geral Semanal</CardTitle>
@@ -862,6 +900,6 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
             </CreateLayout>
         </AppLayout>
     );
-}
+};
 
-export default ShiftForm; 
+export default ShiftForm;

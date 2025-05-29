@@ -1,6 +1,6 @@
-import { type BreadcrumbItem } from '@/types';
 import FormEditor from '@/pages/forms/form-editor';
 import FormViewer from '@/pages/forms/form-viewer';
+import { type BreadcrumbItem } from '@/types';
 
 interface RoutineFormData {
     id: number;
@@ -87,8 +87,8 @@ export function RoutineFormViewer({ routine, asset, mode = 'view' }: RoutineForm
             backRoute={route('asset-hierarchy.assets.show', { asset: asset.id, tab: 'rotinas' })}
             submitRoute={route('maintenance.assets.routines.executions.store', {
                 asset: asset.id,
-                routine: routine.id
+                routine: routine.id,
             })}
         />
     );
-} 
+}

@@ -1,8 +1,8 @@
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub } from '@/components/ui/sidebar';
-import { type NavItem, type NavGroup } from '@/types';
+import { type NavGroup, type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronDown } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const STORAGE_KEY = 'nav_open_items';
 
@@ -41,10 +41,10 @@ export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
     };
 
     const toggleItem = (title: string) => {
-        setOpenItems(prev => {
+        setOpenItems((prev) => {
             const newState = {
                 ...prev,
-                [title]: !prev[title]
+                [title]: !prev[title],
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
             return newState;
@@ -66,10 +66,7 @@ export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
                         <SidebarMenuSub>
                             {item.items.map((subItem: NavItem) => (
                                 <SidebarMenuItem key={subItem.title}>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={isItemActive(subItem.href, subItem.activePattern)}
-                                    >
+                                    <SidebarMenuButton asChild isActive={isItemActive(subItem.href, subItem.activePattern)}>
                                         <Link href={subItem.href} prefetch>
                                             <span>{subItem.title}</span>
                                         </Link>
@@ -84,10 +81,7 @@ export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
 
         return (
             <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                    asChild
-                    isActive={isItemActive(item.href, item.activePattern)}
-                >
+                <SidebarMenuButton asChild isActive={isItemActive(item.href, item.activePattern)}>
                     <Link href={item.href} prefetch>
                         {item.icon && <item.icon />}
                         <span>{item.title}</span>
@@ -106,9 +100,7 @@ export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
                     return (
                         <SidebarGroup key={navGroup.title} className="px-2 py-0">
                             <SidebarGroupLabel>{navGroup.title}</SidebarGroupLabel>
-                            <SidebarMenu>
-                                {navGroup.items?.map((navItem: NavItem) => renderNavItem(navItem))}
-                            </SidebarMenu>
+                            <SidebarMenu>{navGroup.items?.map((navItem: NavItem) => renderNavItem(navItem))}</SidebarMenu>
                         </SidebarGroup>
                     );
                 }

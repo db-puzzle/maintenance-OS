@@ -1,13 +1,12 @@
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
-import { toast } from "sonner";
+import { toast } from 'sonner';
 
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import HeadingSmall from '@/components/heading-small';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface Props {
     assetId: number;
@@ -16,7 +15,15 @@ interface Props {
 
 export default function DeleteAsset({ assetId, assetTag }: Props) {
     const confirmationInput = useRef<HTMLInputElement>(null);
-    const { data, setData, delete: destroy, processing, reset, errors, clearErrors } = useForm<Required<{ confirmation: string }>>({ confirmation: '' });
+    const {
+        data,
+        setData,
+        delete: destroy,
+        processing,
+        reset,
+        errors,
+        clearErrors,
+    } = useForm<Required<{ confirmation: string }>>({ confirmation: '' });
 
     const deleteAsset: FormEventHandler = (e) => {
         e.preventDefault();
@@ -28,8 +35,8 @@ export default function DeleteAsset({ assetId, assetTag }: Props) {
                 toast.success(`O ativo ${assetTag} foi excluído com sucesso!`);
             },
             onError: (errors) => {
-                toast.error("Erro ao excluir ativo", {
-                    description: "Não foi possível excluir o ativo. Tente novamente."
+                toast.error('Erro ao excluir ativo', {
+                    description: 'Não foi possível excluir o ativo. Tente novamente.',
                 });
             },
             onFinish: () => reset(),
@@ -56,8 +63,8 @@ export default function DeleteAsset({ assetId, assetTag }: Props) {
                     <DialogContent>
                         <DialogTitle>Você tem certeza que deseja excluir este ativo?</DialogTitle>
                         <DialogDescription>
-                            Uma vez que o ativo seja excluído, todos os seus recursos e dados serão permanentemente excluídos. 
-                            Por favor, digite a TAG do ativo ({assetTag}) para confirmar que você deseja excluir permanentemente este ativo.
+                            Uma vez que o ativo seja excluído, todos os seus recursos e dados serão permanentemente excluídos. Por favor, digite a TAG
+                            do ativo ({assetTag}) para confirmar que você deseja excluir permanentemente este ativo.
                         </DialogDescription>
                         <form className="space-y-6" onSubmit={deleteAsset}>
                             <div className="grid gap-2">
@@ -95,4 +102,4 @@ export default function DeleteAsset({ assetId, assetTag }: Props) {
             </div>
         </div>
     );
-} 
+}

@@ -1,34 +1,15 @@
-import React, { useState } from 'react';
+import { cn } from '@/lib/utils';
 import { useForm } from '@inertiajs/react';
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { Check, ChevronsUpDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetDescription,
-    SheetFooter,
-    SheetTrigger
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import TextInput from '@/components/TextInput';
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
+import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { estados } from '@/data/estados';
 
 interface PlantForm {
@@ -47,7 +28,7 @@ interface CreatePlantSheetProps {
     onOpenChange?: (open: boolean) => void;
     onSuccess?: () => void;
     triggerText?: string;
-    triggerVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+    triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
@@ -56,10 +37,10 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
     isOpen,
     onOpenChange,
     onSuccess,
-    triggerText = "Nova Planta",
-    triggerVariant = "outline",
+    triggerText = 'Nova Planta',
+    triggerVariant = 'outline',
     showTrigger = false,
-    triggerRef
+    triggerRef,
 }) => {
     const { data, setData, post, processing, errors, reset } = useForm<PlantForm>({
         name: '',
@@ -97,22 +78,22 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
         const formData = {
             ...data,
             zip_code: data.zip_code.replace(/\D/g, ''),
-            stay: true // Indica que deve permanecer na mesma página
+            stay: true, // Indica que deve permanecer na mesma página
         };
-        
+
         post(route('asset-hierarchy.plantas.store'), {
             ...formData,
             onSuccess: () => {
-                toast.success("Planta criada com sucesso!");
+                toast.success('Planta criada com sucesso!');
                 reset();
                 setSheetOpen(false);
                 onSuccess?.();
             },
             onError: (errors: any) => {
-                toast.error("Erro ao criar planta", {
-                    description: "Verifique os campos e tente novamente."
+                toast.error('Erro ao criar planta', {
+                    description: 'Verifique os campos e tente novamente.',
                 });
-            }
+            },
         });
     };
 
@@ -125,18 +106,18 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             {showTrigger && (
                 <SheetTrigger asChild>
-                    <Button variant={triggerVariant} ref={triggerRef}>{triggerText}</Button>
+                    <Button variant={triggerVariant} ref={triggerRef}>
+                        {triggerText}
+                    </Button>
                 </SheetTrigger>
             )}
             <SheetContent className="sm:max-w-lg">
                 <SheetHeader className="">
                     <SheetTitle>Nova Planta</SheetTitle>
-                    <SheetDescription>
-                        Adicione uma nova planta ao sistema
-                    </SheetDescription>
+                    <SheetDescription>Adicione uma nova planta ao sistema</SheetDescription>
                 </SheetHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6 m-4">
+                <form onSubmit={handleSubmit} className="m-4 space-y-6">
                     <div className="grid gap-6">
                         {/* Nome da Planta - Campo Obrigatório */}
                         <TextInput<PlantForm>
@@ -144,7 +125,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {}
+                                clearErrors: () => {},
                             }}
                             name="name"
                             label="Nome da Planta"
@@ -161,7 +142,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                             data,
                                             setData,
                                             errors,
-                                            clearErrors: () => {}
+                                            clearErrors: () => {},
                                         }}
                                         name="street"
                                         label="Rua"
@@ -174,7 +155,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                             data,
                                             setData,
                                             errors,
-                                            clearErrors: () => {}
+                                            clearErrors: () => {},
                                         }}
                                         name="number"
                                         label="Número"
@@ -187,7 +168,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                             data,
                                             setData: (name, value) => handleCEPChange({ target: { value } } as any),
                                             errors,
-                                            clearErrors: () => {}
+                                            clearErrors: () => {},
                                         }}
                                         name="zip_code"
                                         label="CEP"
@@ -206,7 +187,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                             data,
                                             setData,
                                             errors,
-                                            clearErrors: () => {}
+                                            clearErrors: () => {},
                                         }}
                                         name="city"
                                         label="Cidade"
@@ -214,7 +195,9 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="state" className="text-sm text-muted-foreground">Estado</Label>
+                                    <Label htmlFor="state" className="text-muted-foreground text-sm">
+                                        Estado
+                                    </Label>
                                     <Popover open={open} onOpenChange={setOpen}>
                                         <PopoverTrigger asChild>
                                             <Button
@@ -224,9 +207,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                                 aria-expanded={open}
                                                 className="w-full justify-between"
                                             >
-                                                {data.state
-                                                    ? estados.find((estado) => estado.value === data.state)?.label
-                                                    : "Selecione um estado..."}
+                                                {data.state ? estados.find((estado) => estado.value === data.state)?.label : 'Selecione um estado...'}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
@@ -241,14 +222,14 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                                                 key={estado.value}
                                                                 value={estado.value}
                                                                 onSelect={(currentValue) => {
-                                                                    setData('state', currentValue === data.state ? "" : currentValue);
+                                                                    setData('state', currentValue === data.state ? '' : currentValue);
                                                                     setOpen(false);
                                                                 }}
                                                             >
                                                                 <Check
                                                                     className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        data.state === estado.value ? "opacity-100" : "opacity-0"
+                                                                        'mr-2 h-4 w-4',
+                                                                        data.state === estado.value ? 'opacity-100' : 'opacity-0',
                                                                     )}
                                                                 />
                                                                 {estado.label}
@@ -269,7 +250,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {}
+                                clearErrors: () => {},
                             }}
                             name="gps_coordinates"
                             label="Coordenadas GPS"
@@ -281,15 +262,9 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                         <Button type="submit" disabled={processing}>
                             {processing ? 'Salvando...' : 'Salvar'}
                         </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleCancel}
-                            disabled={processing}
-                        >
+                        <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
                             Cancelar
                         </Button>
-                        
                     </SheetFooter>
                 </form>
             </SheetContent>
@@ -297,4 +272,4 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
     );
 };
 
-export default CreatePlantSheet; 
+export default CreatePlantSheet;

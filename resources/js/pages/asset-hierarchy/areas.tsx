@@ -1,24 +1,17 @@
-import { type BreadcrumbItem } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import ListLayout from '@/layouts/asset-hierarchy/list-layout';
-import { useState, useEffect } from 'react';
-import { toast } from "sonner";
-import { DataTable, ColumnVisibility, type Column } from '@/components/data-table';
-import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import { ColumnVisibility, DataTable, type Column } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
-import { MoreVertical } from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link } from '@inertiajs/react';
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
+import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import AppLayout from '@/layouts/app-layout';
+import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { type BreadcrumbItem } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { ArrowUpDown, MoreVertical } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface PageProps {
     [key: string]: any;
@@ -68,7 +61,7 @@ interface Dependencies {
         };
         sectors: {
             total: number;
-            items: { id: number; name: string; }[];
+            items: { id: number; name: string }[];
         };
     };
 }
@@ -120,7 +113,7 @@ export default function Areas({ areas, filters }: Props) {
 
     useEffect(() => {
         if (flash?.success) {
-            toast.success("Sucesso!", {
+            toast.success('Sucesso!', {
                 description: flash.success,
             });
         }
@@ -130,13 +123,13 @@ export default function Areas({ areas, filters }: Props) {
         const searchTimeout = setTimeout(() => {
             router.get(
                 route('asset-hierarchy.areas'),
-                { 
+                {
                     search,
                     sort,
                     direction,
-                    per_page: perPage
+                    per_page: perPage,
                 },
-                { preserveState: true, preserveScroll: true }
+                { preserveState: true, preserveScroll: true },
             );
         }, 300);
 
@@ -163,9 +156,9 @@ export default function Areas({ areas, filters }: Props) {
 
     const columns: Column<Area>[] = [
         {
-            id: "name",
+            id: 'name',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('name')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('name')}>
                     Nome
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
@@ -174,77 +167,65 @@ export default function Areas({ areas, filters }: Props) {
                 return (
                     <div>
                         <div className="font-medium">{row.original.name}</div>
-                        {row.original.description && (
-                            <div className="text-sm text-muted-foreground">
-                                {row.original.description}
-                            </div>
-                        )}
+                        {row.original.description && <div className="text-muted-foreground text-sm">{row.original.description}</div>}
                     </div>
                 );
             },
-            width: "w-[300px]",
+            width: 'w-[300px]',
         },
         {
-            id: "plant",
+            id: 'plant',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('plant')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('plant')}>
                     Planta
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Area }) => row.original.plant?.name || '-',
-            width: "w-[200px]",
+            width: 'w-[200px]',
         },
         {
-            id: "sectors_count",
+            id: 'sectors_count',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('sectors_count')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('sectors_count')}>
                     Setores
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Area }) => row.original.sectors_count,
-            width: "w-[100px]",
+            width: 'w-[100px]',
         },
         {
-            id: "asset_count",
+            id: 'asset_count',
             header: (
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleSort('asset_count')}>
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('asset_count')}>
                     Ativos
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
             cell: (row: { original: Area }) => row.original.asset_count,
-            width: "w-[100px]",
+            width: 'w-[100px]',
         },
         {
-            id: "actions",
-            header: "Ações",
+            id: 'actions',
+            header: 'Ações',
             cell: (row: { original: Area }) => (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-                            size="icon"
-                        >
+                        <Button variant="ghost" className="text-muted-foreground data-[state=open]:bg-muted flex size-8" size="icon">
                             <MoreVertical />
                             <span className="sr-only">Abrir menu</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.areas.edit', row.original.id)}>
-                                Editar
-                            </Link>
+                            <Link href={route('asset-hierarchy.areas.edit', row.original.id)}>Editar</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>
-                            Excluir
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>Excluir</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
-            width: "w-[80px]",
+            width: 'w-[80px]',
         },
     ];
 
@@ -262,7 +243,7 @@ export default function Areas({ areas, filters }: Props) {
                 setSelectedArea(null);
                 setConfirmationText('');
                 setShowDeleteDialog(false);
-                toast.error("Erro ao excluir área", {
+                toast.error('Erro ao excluir área', {
                     description: errors.message || 'Não foi possível excluir a área.',
                 });
             },
@@ -272,20 +253,20 @@ export default function Areas({ areas, filters }: Props) {
     const checkDependencies = async (area: Area) => {
         setIsCheckingDependencies(true);
         setSelectedArea(area);
-        
+
         try {
             const response = await fetch(route('asset-hierarchy.areas.check-dependencies', area.id));
             const data = await response.json();
             setDependencies(data);
-            
+
             if (data.can_delete) {
                 setShowDeleteDialog(true);
             } else {
                 setShowDependenciesDialog(true);
             }
         } catch (error) {
-            toast.error("Erro ao verificar dependências", {
-                description: "Não foi possível verificar as dependências da área.",
+            toast.error('Erro ao verificar dependências', {
+                description: 'Não foi possível verificar as dependências da área.',
             });
         } finally {
             setIsCheckingDependencies(false);
@@ -344,17 +325,16 @@ export default function Areas({ areas, filters }: Props) {
                     <DialogDescription asChild>
                         <div className="space-y-6">
                             <div className="text-sm">
-                                Esta área possui ativo(s) e/ou setor(es) vinculado(s) e não pode ser excluída até que todos sejam removidos ou movidos para outra área.
+                                Esta área possui ativo(s) e/ou setor(es) vinculado(s) e não pode ser excluída até que todos sejam removidos ou movidos
+                                para outra área.
                             </div>
-                            
+
                             <div className="space-y-6">
                                 {dependencies?.dependencies?.asset?.total && dependencies.dependencies.asset.total > 0 && (
                                     <div>
-                                        <div className="font-medium text-sm">
-                                            Total de Ativos Vinculados: {dependencies.dependencies.asset.total}
-                                        </div>
-                                        <ul className="list-disc list-inside space-y-2 text-sm">
-                                            {dependencies.dependencies.asset.items.map(asset => (
+                                        <div className="text-sm font-medium">Total de Ativos Vinculados: {dependencies.dependencies.asset.total}</div>
+                                        <ul className="list-inside list-disc space-y-2 text-sm">
+                                            {dependencies.dependencies.asset.items.map((asset) => (
                                                 <li key={asset.id}>
                                                     <Link
                                                         href={route('asset-hierarchy.assets.show', asset.id)}
@@ -370,11 +350,11 @@ export default function Areas({ areas, filters }: Props) {
 
                                 {dependencies?.dependencies?.sectors?.total && dependencies.dependencies.sectors.total > 0 && (
                                     <div>
-                                        <div className="font-medium text-sm">
+                                        <div className="text-sm font-medium">
                                             Total de Setores Vinculados: {dependencies.dependencies.sectors.total}
                                         </div>
-                                        <ul className="list-disc list-inside space-y-2 text-sm">
-                                            {dependencies.dependencies.sectors.items.map(sector => (
+                                        <ul className="list-inside list-disc space-y-2 text-sm">
+                                            {dependencies.dependencies.sectors.items.map((sector) => (
                                                 <li key={sector.id}>
                                                     <Link
                                                         href={route('asset-hierarchy.setores.show', sector.id)}
@@ -391,10 +371,7 @@ export default function Areas({ areas, filters }: Props) {
                         </div>
                     </DialogDescription>
                     <DialogFooter>
-                        <Button 
-                            variant="secondary" 
-                            onClick={() => setShowDependenciesDialog(false)}
-                        >
+                        <Button variant="secondary" onClick={() => setShowDependenciesDialog(false)}>
                             Fechar
                         </Button>
                     </DialogFooter>
@@ -423,8 +400,8 @@ export default function Areas({ areas, filters }: Props) {
                         <DialogClose asChild>
                             <Button variant="secondary">Cancelar</Button>
                         </DialogClose>
-                        <Button 
-                            variant="destructive" 
+                        <Button
+                            variant="destructive"
                             onClick={() => selectedArea && handleDelete(selectedArea)}
                             disabled={!isConfirmationValid || isDeleting}
                         >
@@ -435,4 +412,4 @@ export default function Areas({ areas, filters }: Props) {
             </Dialog>
         </AppLayout>
     );
-} 
+}
