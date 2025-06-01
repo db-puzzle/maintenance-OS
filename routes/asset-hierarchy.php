@@ -9,6 +9,7 @@ use App\Http\Controllers\AssetHierarchy\AssetController;
 use App\Http\Controllers\AssetHierarchy\AssetTypeController;
 use App\Http\Controllers\AssetHierarchy\AssetImportExportController;
 use App\Http\Controllers\AssetHierarchy\ShiftController;
+use App\Http\Controllers\AssetHierarchy\PlantController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('assets')->name('assets.')->group(function () {
@@ -24,7 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::get('asset-hierarchy/assets', [AssetController::class, 'index'])->name('asset-hierarchy.assets');
-    Route::get('asset-hierarchy/assets/create', [AssetController::class, 'create'])->name('asset-hierarchy.assets.create');
+    Route::get('asset-hierarchy/assets/create', [AssetController::class, 'createNew'])->name('asset-hierarchy.assets.create');
     Route::post('asset-hierarchy/assets', [AssetController::class, 'store'])->name('asset-hierarchy.assets.store');
     Route::get('asset-hierarchy/assets/importar', [AssetImportExportController::class, 'import'])->name('asset-hierarchy.assets.import');
     Route::post('asset-hierarchy/assets/importar/analisar', [AssetImportExportController::class, 'analyzeCsv'])->name('asset-hierarchy.assets.import.analyze');
@@ -36,8 +37,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/assets/{asset}', [AssetController::class, 'show'])->name('asset-hierarchy.assets.show');
     Route::get('asset-hierarchy/assets/{asset}/edit', [AssetController::class, 'edit'])->name('asset-hierarchy.assets.edit');
     Route::put('asset-hierarchy/assets/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.assets.update');
+    Route::patch('asset-hierarchy/assets/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.assets.update');
     Route::delete('asset-hierarchy/assets/{asset}', [AssetController::class, 'destroy'])->name('asset-hierarchy.assets.destroy');
     Route::delete('asset-hierarchy/assets/{asset}/photo', [AssetController::class, 'removePhoto'])->name('asset-hierarchy.assets.remove-photo');
+    
+    // Runtime routes
+    Route::get('asset-hierarchy/assets/{asset}/runtime', [AssetController::class, 'getRuntimeData'])->name('asset-hierarchy.assets.runtime');
+    Route::post('asset-hierarchy/assets/{asset}/runtime', [AssetController::class, 'reportRuntime'])->name('asset-hierarchy.assets.runtime.report');
+    Route::get('asset-hierarchy/assets/{asset}/runtime/history', [AssetController::class, 'getRuntimeHistory'])->name('asset-hierarchy.assets.runtime.history');
+    Route::get('asset-hierarchy/assets/{asset}/runtime/calculation-details', [AssetController::class, 'getRuntimeCalculationDetails'])->name('asset-hierarchy.assets.runtime.calculation-details');
 
     Route::get('asset-hierarchy/setores', [SectorController::class, 'index'])->name('asset-hierarchy.setores');
     Route::get('asset-hierarchy/setores/create', [SectorController::class, 'create'])->name('asset-hierarchy.setores.create');

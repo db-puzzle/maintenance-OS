@@ -11,11 +11,13 @@ class Area extends Model
     protected $fillable = [
         'name',
         'description',
-        'plant_id'
+        'plant_id',
+        'shift_id'
     ];
 
     protected $casts = [
-        'plant_id' => 'integer'
+        'plant_id' => 'integer',
+        'shift_id' => 'integer'
     ];
 
     public function plant(): BelongsTo
@@ -31,6 +33,11 @@ class Area extends Model
     public function asset(): HasMany
     {
         return $this->hasMany(Asset::class);
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 
     protected static function boot()

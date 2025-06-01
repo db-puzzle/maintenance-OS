@@ -64,17 +64,17 @@ const TimeSelect: React.FC<TimeSelectProps> = ({ value, onChange, label }) => {
     };
 
     return (
-        <div className="flex">
+        <div className="flex flex-col space-y-2">
             {label && <Label>{label}</Label>}
             <div className="flex">
                 {/* Seletor de hora */}
-                <Popover open={hourOpen} onOpenChange={setHourOpen}>
+                <Popover open={hourOpen} onOpenChange={setHourOpen} modal={true}>
                     <PopoverTrigger asChild>
                         <Button variant="outline" className="w-[50px] justify-center rounded-r-none border-r-0 text-center font-normal">
                             {selectedHour || 'Hora'}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[80px] p-0" align="center" side="bottom">
+                    <PopoverContent className="w-[80px] p-0 z-[100]" align="center" side="bottom">
                         <Command>
                             <CommandInput placeholder="Hora" className="h-8" />
                             <CommandEmpty>Não encontrado</CommandEmpty>
@@ -101,16 +101,16 @@ const TimeSelect: React.FC<TimeSelectProps> = ({ value, onChange, label }) => {
                 </Popover>
 
                 {/* Separador */}
-                <span className="border-input bg-popover inline-flex items-center justify-center border-t border-b">:</span>
+                <span className="border-input bg-popover inline-flex items-center justify-center border-t border-b px-2">:</span>
 
                 {/* Seletor de minutos */}
-                <Popover open={minuteOpen} onOpenChange={setMinuteOpen}>
+                <Popover open={minuteOpen} onOpenChange={setMinuteOpen} modal={true}>
                     <PopoverTrigger asChild>
                         <Button variant="outline" className="w-[50px] justify-center rounded-none border-r-0 border-l-0 text-center font-normal">
                             {selectedMinute || 'Min'}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[80px] p-0" align="center" side="bottom">
+                    <PopoverContent className="w-[80px] p-0 z-[100]" align="center" side="bottom">
                         <Command>
                             <CommandInput placeholder="Min" className="h-8" />
                             <CommandEmpty>Não encontrado</CommandEmpty>
@@ -137,13 +137,13 @@ const TimeSelect: React.FC<TimeSelectProps> = ({ value, onChange, label }) => {
                 </Popover>
 
                 {/* Seletor AM/PM */}
-                <Popover open={periodOpen} onOpenChange={setPeriodOpen}>
+                <Popover open={periodOpen} onOpenChange={setPeriodOpen} modal={true}>
                     <PopoverTrigger asChild>
                         <Button variant="outline" className="w-[50px] justify-center rounded-l-none border-l-0 text-center font-normal">
                             {selectedPeriod}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[80px] p-0" align="center" side="bottom">
+                    <PopoverContent className="w-[80px] p-0 z-[100]" align="center" side="bottom">
                         <Command>
                             <CommandList className="max-h-20">
                                 <CommandGroup>

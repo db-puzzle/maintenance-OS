@@ -9,18 +9,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Shift extends Model
 {
     protected $fillable = [
-        'name',
-        'description',
-        'total_work_hours',
-        'total_work_minutes',
-        'total_break_hours',
-        'total_break_minutes',
-        'plant_id'
+        'name'
     ];
 
-    public function plant(): BelongsTo
+    protected $appends = ['asset_count'];
+
+    public function plants(): HasMany
     {
-        return $this->belongsTo(Plant::class);
+        return $this->hasMany(Plant::class);
+    }
+
+    public function areas(): HasMany
+    {
+        return $this->hasMany(Area::class);
+    }
+
+    public function sectors(): HasMany
+    {
+        return $this->hasMany(Sector::class);
     }
 
     public function schedules(): HasMany
@@ -43,15 +49,33 @@ class Shift extends Model
         $totalWorkMinutes = 0;
         $totalBreakMinutes = 0;
 
-        foreach ($this->shiftTimes as $shiftTime) {
-            $totalWorkMinutes += $shiftTime->work_hours * 60 + $shiftTime->work_minutes;
-            $totalBreakMinutes += $shiftTime->break_hours * 60 + $shiftTime->break_minutes;
+        foreach ($this->schedules as $schedule) {
+            foreach ($schedule->shiftTimes as $shiftTime) {
+                if ($shiftTime->active) {
+                    // Calculate work time
+                    $start = strtotime($shiftTime->start_time);
+                    $end = strtotime($shiftTime->end_time);
+                    $workMinutes = ($end - $start) / 60;
+                    
+                    // Subtract break time
+                    foreach ($shiftTime->breaks as $break) {
+                        $breakStart = strtotime($break->start_time);
+                        $breakEnd = strtotime($break->end_time);
+                        $breakMinutes = ($breakEnd - $breakStart) / 60;
+                        $totalBreakMinutes += $breakMinutes;
+                        $workMinutes -= $breakMinutes;
+                    }
+                    
+                    $totalWorkMinutes += $workMinutes;
+                }
+            }
         }
 
-        $this->total_work_hours = floor($totalWorkMinutes / 60);
-        $this->total_work_minutes = $totalWorkMinutes % 60;
-        $this->total_break_hours = floor($totalBreakMinutes / 60);
-        $this->total_break_minutes = $totalBreakMinutes % 60;
-        $this->save();
+        return [
+            'work_hours' => floor($totalWorkMinutes / 60),
+            'work_minutes' => $totalWorkMinutes % 60,
+            'break_hours' => floor($totalBreakMinutes / 60),
+            'break_minutes' => $totalBreakMinutes % 60,
+        ];
     }
 } 

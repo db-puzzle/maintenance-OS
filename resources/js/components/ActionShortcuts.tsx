@@ -6,6 +6,7 @@ export interface ActionItem {
     icon: any;
     isDefault?: boolean;
     comingSoon?: boolean;
+    newFeature?: boolean;
     description: string;
     href?: string;
 }
@@ -37,9 +38,8 @@ export default function ActionShortcuts({ title = 'Atalhos', paths, onActionClic
                     const headerContent = (
                         <div className="flex items-center space-x-3">
                             <div
-                                className={`bg-background rounded-lg p-2 transition-colors duration-200 ${
-                                    hasQuickAction ? 'group-hover:bg-ring/10 group-hover:ring-ring/10' : ''
-                                }`}
+                                className={`bg-background rounded-lg p-2 transition-colors duration-200 ${hasQuickAction ? 'group-hover:bg-ring/10 group-hover:ring-ring/10' : ''
+                                    }`}
                             >
                                 <IconComponent size={28} className={`text-foreground ${hasQuickAction ? 'group-hover:text-ring' : ''}`} />
                             </div>
@@ -57,13 +57,13 @@ export default function ActionShortcuts({ title = 'Atalhos', paths, onActionClic
                     const HeaderWrapper = hasQuickAction ? 'button' : 'div';
                     const headerProps = hasQuickAction
                         ? {
-                              onClick: () => router.visit(path.href!),
-                              className:
-                                  'w-full bg-muted p-6 hover:bg-input-focus hover:ring-ring/10 hover:ring-[1px] hover:border-ring transition-all duration-200 group text-left',
-                          }
+                            onClick: () => router.visit(path.href!),
+                            className:
+                                'w-full bg-muted p-6 hover:bg-input-focus hover:ring-ring/10 hover:ring-[1px] hover:border-ring transition-all duration-200 group text-left',
+                        }
                         : {
-                              className: 'bg-muted p-6',
-                          };
+                            className: 'bg-muted p-6',
+                        };
 
                     return (
                         <div key={key} className="bg-card border-border overflow-hidden rounded-xl border shadow-sm">
@@ -87,25 +87,22 @@ export default function ActionShortcuts({ title = 'Atalhos', paths, onActionClic
                                                         router.visit(action.href);
                                                     }
                                                 }}
-                                                className={`flex w-full items-start space-x-3 rounded-lg p-4 text-left ${
-                                                    hasActionLink
+                                                className={`flex w-full items-start space-x-3 rounded-lg p-4 text-left ${hasActionLink
                                                         ? 'hover:bg-input-focus hover:ring-ring/10 hover:border-ring group transition-colors hover:ring-[1px]'
                                                         : 'group'
-                                                }`}
+                                                    }`}
                                             >
                                                 <div
-                                                    className={`mt-0.5 ${
-                                                        hasActionLink ? 'text-muted-foreground group-hover:text-foreground' : 'text-muted-foreground'
-                                                    }`}
+                                                    className={`mt-0.5 ${hasActionLink ? 'text-muted-foreground group-hover:text-foreground' : 'text-muted-foreground'
+                                                        }`}
                                                 >
                                                     <ActionIcon size={20} />
                                                 </div>
                                                 <div className="flex-1">
                                                     <div className="flex items-center space-x-2">
                                                         <h4
-                                                            className={`font-medium ${
-                                                                hasActionLink ? 'text-foreground group-hover:text-foreground' : 'text-foreground'
-                                                            }`}
+                                                            className={`font-medium ${hasActionLink ? 'text-foreground group-hover:text-foreground' : 'text-foreground'
+                                                                }`}
                                                         >
                                                             {action.name}
                                                         </h4>
@@ -115,6 +112,11 @@ export default function ActionShortcuts({ title = 'Atalhos', paths, onActionClic
                                                         {action.comingSoon && (
                                                             <span className="bg-primary/10 text-primary rounded-full px-2 py-1 text-xs">
                                                                 Em Breve
+                                                            </span>
+                                                        )}
+                                                        {action.newFeature && (
+                                                            <span className="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 rounded-full px-2 py-1 text-xs">
+                                                                Novo
                                                             </span>
                                                         )}
                                                     </div>

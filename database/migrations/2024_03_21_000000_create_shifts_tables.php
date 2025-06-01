@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('shifts', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->foreignId('plant_id')->nullable()->constrained('plants')->nullOnDelete();
             $table->timestamps();
         });
 

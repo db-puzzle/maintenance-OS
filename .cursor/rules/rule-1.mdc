@@ -1,6 +1,6 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
-Avoid making changes to base components unless explicitly directed to do so.
+The project is using Inertia.

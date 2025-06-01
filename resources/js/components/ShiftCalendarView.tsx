@@ -24,11 +24,11 @@ interface ShiftTimelineProps {
 }
 
 const weekdays = [
-    { key: 'Monday', label: 'Segunda-feira' },
-    { key: 'Tuesday', label: 'Terça-feira' },
-    { key: 'Wednesday', label: 'Quarta-feira' },
-    { key: 'Thursday', label: 'Quinta-feira' },
-    { key: 'Friday', label: 'Sexta-feira' },
+    { key: 'Monday', label: 'Segunda' },
+    { key: 'Tuesday', label: 'Terça' },
+    { key: 'Wednesday', label: 'Quarta' },
+    { key: 'Thursday', label: 'Quinta' },
+    { key: 'Friday', label: 'Sexta' },
     { key: 'Saturday', label: 'Sábado' },
     { key: 'Sunday', label: 'Domingo' },
 ];

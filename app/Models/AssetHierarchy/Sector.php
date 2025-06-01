@@ -10,11 +10,13 @@ class Sector extends Model
 {
     protected $fillable = [
         'name',
-        'area_id'
+        'area_id',
+        'shift_id'
     ];
 
     protected $casts = [
-        'area_id' => 'integer'
+        'area_id' => 'integer',
+        'shift_id' => 'integer'
     ];
 
     public function area(): BelongsTo
@@ -25,6 +27,11 @@ class Sector extends Model
     public function asset(): HasMany
     {
         return $this->hasMany(Asset::class);
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 
     protected static function boot()

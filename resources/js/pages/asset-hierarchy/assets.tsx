@@ -251,7 +251,7 @@ export default function Assets({ asset, filters }: Props) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.assets.edit', row.original.id)}>Editar</Link>
+                            <Link href={route('asset-hierarchy.assets.show', { asset: row.original.id, tab: 'informacoes' })}>Editar</Link>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

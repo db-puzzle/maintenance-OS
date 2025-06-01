@@ -70,11 +70,13 @@ export default function Dashboard() {
                 {
                     name: 'Configurar BOM',
                     icon: List,
+                    comingSoon: true,
                     description: 'Lista de Materiais para produtos',
                 },
                 {
                     name: 'Configurar Rotas',
                     icon: Route,
+                    comingSoon: true,
                     description: 'Sequencia de produção por produto',
                 },
             ],
@@ -87,11 +89,13 @@ export default function Dashboard() {
                 {
                     name: 'Realizar Inspeção',
                     icon: ClipboardList,
+                    comingSoon: true,
                     description: 'Registro de resultados',
                 },
                 {
                     name: 'Configurar Inspeção',
                     icon: ClipboardCheck,
+                    comingSoon: true,
                     description: 'Criação de formulários e instruções',
                 },
                 {
@@ -114,6 +118,13 @@ export default function Dashboard() {
             description: 'Manutenção e gestão de ativos',
             actions: [
                 {
+                    name: 'Configurar Ativos',
+                    icon: Boxes,
+                    description: 'Cadastro de ativos e ativos',
+                    href: '/asset-hierarchy/assets',
+                    newFeature: true,
+                },
+                {
                     name: 'Programar Manutenção',
                     icon: Clock,
                     comingSoon: true,
@@ -130,17 +141,6 @@ export default function Dashboard() {
                     icon: MessageSquare,
                     comingSoon: true,
                     description: 'Solicitação sobre ativos e ativos',
-                },
-                {
-                    name: 'Configurar Rotinas de Manutenção',
-                    icon: RotateCcw,
-                    description: 'Instruções e formulários para execução',
-                },
-                {
-                    name: 'Configurar Ativos',
-                    icon: Boxes,
-                    description: 'Cadastro de ativos e ativos',
-                    href: '/asset-hierarchy/assets',
                 },
             ],
         },
@@ -162,9 +162,8 @@ export default function Dashboard() {
                                 <button
                                     key={key}
                                     onClick={() => (card.href ? router.visit(card.href) : console.log(`${key} não tem href`))}
-                                    className={`bg-card border-border group rounded-xl border p-6 text-left transition-all duration-200 ${
-                                        hasLink ? 'hover:bg-input-focus hover:ring-ring/10 hover:border-ring hover:ring-[1px]' : ''
-                                    }`}
+                                    className={`bg-card border-border group rounded-xl border p-6 text-left transition-all duration-200 ${hasLink ? 'hover:bg-input-focus hover:ring-ring/10 hover:border-ring hover:ring-[1px]' : ''
+                                        }`}
                                     disabled={!hasLink}
                                 >
                                     <div className="mb-4 flex items-center justify-between">

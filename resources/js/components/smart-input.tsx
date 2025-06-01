@@ -13,6 +13,7 @@ interface SmartInputProps<T extends Record<string, any>> {
     type?: string;
     className?: string;
     disabled?: boolean;
+    view?: boolean;
     onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
     validateInput?: (value: string) => boolean;
 }
@@ -24,6 +25,7 @@ export default function SmartInput<T extends Record<string, any>>({
     type = 'text',
     className,
     disabled = false,
+    view = false,
     onBlur,
     validateInput,
 }: SmartInputProps<T>) {
@@ -35,6 +37,9 @@ export default function SmartInput<T extends Record<string, any>>({
             type={type}
             value={data[name]}
             onChange={(e) => {
+                // Prevent changes in view mode
+                if (view) return;
+
                 const value = e.target.value;
 
                 // Se há uma função de validação, verificar se o valor é válido
@@ -50,7 +55,13 @@ export default function SmartInput<T extends Record<string, any>>({
             onBlur={onBlur}
             placeholder={placeholder}
             disabled={disabled}
-            className={cn('w-full', errors[name] && 'border-destructive', className)}
+            readOnly={view}
+            className={cn(
+                'w-full',
+                errors[name] && 'border-destructive',
+                view && 'cursor-default opacity-100 text-foreground',
+                className
+            )}
         />
     );
 }

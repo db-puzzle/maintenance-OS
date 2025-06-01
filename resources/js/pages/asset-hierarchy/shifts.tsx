@@ -37,10 +37,9 @@ interface Schedule {
 interface ShiftData {
     id: number;
     name: string;
-    plant?: {
-        id: number;
-        name: string;
-    };
+    plant_count?: number;
+    area_count?: number;
+    sector_count?: number;
     asset_count?: number;
     schedules: Schedule[];
     total_work_hours?: number;
@@ -58,14 +57,14 @@ interface PageProps {
 
 interface Props {
     shifts:
-        | ShiftData[]
-        | {
-              data: ShiftData[];
-              current_page: number;
-              last_page: number;
-              per_page: number;
-              total: number;
-          };
+    | ShiftData[]
+    | {
+        data: ShiftData[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
     filters?: {
         search: string;
         sort: string;
@@ -188,18 +187,18 @@ export default function Index({
                         end_time: breakTime.end_time,
                     })) || [],
             })) || [
-                {
-                    start_time: '07:00',
-                    end_time: '17:00',
-                    active: true,
-                    breaks: [
-                        {
-                            start_time: '12:00',
-                            end_time: '13:00',
-                        },
-                    ],
-                },
-            ], // Valor padrão se não houver turnos
+                    {
+                        start_time: '07:00',
+                        end_time: '17:00',
+                        active: true,
+                        breaks: [
+                            {
+                                start_time: '12:00',
+                                end_time: '13:00',
+                            },
+                        ],
+                    },
+                ], // Valor padrão se não houver turnos
         }));
     };
 
@@ -216,15 +215,22 @@ export default function Index({
             width: 'w-[200px]',
         },
         {
-            id: 'plant',
+            id: 'entities',
             header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('plant_id')}>
-                    Planta
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('plant_count')}>
+                    Associações
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
-            cell: (row: { original: ShiftData }) => row.original.plant?.name || '-',
-            width: 'w-[200px]',
+            cell: (row: { original: ShiftData }) => {
+                const counts = [];
+                if ((row.original.plant_count || 0) > 0) counts.push(`${row.original.plant_count} planta(s)`);
+                if ((row.original.area_count || 0) > 0) counts.push(`${row.original.area_count} área(s)`);
+                if ((row.original.sector_count || 0) > 0) counts.push(`${row.original.sector_count} setor(es)`);
+                if ((row.original.asset_count || 0) > 0) counts.push(`${row.original.asset_count} ativo(s)`);
+                return counts.length > 0 ? counts.join(', ') : 'Nenhuma associação';
+            },
+            width: 'w-[300px]',
         },
         {
             id: 'work_hours',
@@ -254,17 +260,6 @@ export default function Index({
                 const minutes = row.original.total_break_minutes || 0;
                 return `${hours}h ${minutes}m`;
             },
-            width: 'w-[150px]',
-        },
-        {
-            id: 'asset_count',
-            header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('asset_count')}>
-                    Ativos
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ),
-            cell: (row: { original: ShiftData }) => row.original.asset_count || 0,
             width: 'w-[150px]',
         },
         {

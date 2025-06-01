@@ -43,15 +43,10 @@ interface Schedule {
 interface FormData {
     [key: string]: any;
     name: string;
-    plant_id?: string;
     schedules: Schedule[];
 }
 
 interface CreateProps {
-    plants: {
-        id: number;
-        name: string;
-    }[];
 }
 
 interface ShiftData {
@@ -65,11 +60,11 @@ interface ShiftData {
 }
 
 const weekdays = [
-    { key: 'Monday', label: 'Segunda-feira' },
-    { key: 'Tuesday', label: 'Terça-feira' },
-    { key: 'Wednesday', label: 'Quarta-feira' },
-    { key: 'Thursday', label: 'Quinta-feira' },
-    { key: 'Friday', label: 'Sexta-feira' },
+    { key: 'Monday', label: 'Segunda' },
+    { key: 'Tuesday', label: 'Terça' },
+    { key: 'Wednesday', label: 'Quarta' },
+    { key: 'Thursday', label: 'Quinta' },
+    { key: 'Friday', label: 'Sexta' },
     { key: 'Saturday', label: 'Sábado' },
     { key: 'Sunday', label: 'Domingo' },
 ];
@@ -270,10 +265,9 @@ interface ShiftFormProps extends CreateProps {
     shift?: ShiftData;
 }
 
-const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift }) => {
+const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
     const { data, setData, post, put, processing, errors, clearErrors } = useForm<ShiftForm>({
         name: shift?.name || '',
-        plant_id: shift?.plant?.id?.toString() || '',
         schedules:
             shift?.schedules ||
             weekdays.map((day) => ({
@@ -282,13 +276,13 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                     day.key === 'Saturday' || day.key === 'Sunday'
                         ? []
                         : [
-                              {
-                                  start_time: '07:00',
-                                  end_time: '17:00',
-                                  active: true,
-                                  breaks: [{ start_time: '12:00', end_time: '13:00' }],
-                              },
-                          ],
+                            {
+                                start_time: '07:00',
+                                end_time: '17:00',
+                                active: true,
+                                breaks: [{ start_time: '12:00', end_time: '13:00' }],
+                            },
+                        ],
             })),
     });
 
@@ -541,33 +535,18 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ plants, mode = 'create', shift })
                         <div className="w-fit space-y-6">
                             {/* Campo de nome do turno */}
                             <div className="w-full space-y-2">
-                                <div className="flex gap-4">
-                                    <div className="w-1/2">
-                                        <TextInput<ShiftForm>
-                                            form={{
-                                                data,
-                                                setData,
-                                                errors,
-                                                clearErrors,
-                                            }}
-                                            name="name"
-                                            label="Nome do Turno"
-                                            placeholder="Digite o nome do turno"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="w-1/2">
-                                        <ItemSelect
-                                            label="Planta"
-                                            items={plants}
-                                            value={data.plant_id || ''}
-                                            onValueChange={(value) => setData('plant_id', value)}
-                                            createRoute={route('asset-hierarchy.plantas.create')}
-                                            placeholder="Selecione uma planta"
-                                            error={errors.plant_id}
-                                        />
-                                    </div>
-                                </div>
+                                <TextInput<ShiftForm>
+                                    form={{
+                                        data,
+                                        setData,
+                                        errors,
+                                        clearErrors,
+                                    }}
+                                    name="name"
+                                    label="Nome do Turno"
+                                    placeholder="Digite o nome do turno"
+                                    required
+                                />
                             </div>
 
                             {/* Seletor de dias da semana */}

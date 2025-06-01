@@ -4,6 +4,7 @@ import { Link } from '@inertiajs/react';
 import { type SelectProps } from '@radix-ui/react-select';
 import { LucideIcon, PlusCircle, Search } from 'lucide-react';
 import { forwardRef, useEffect, useMemo, useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export interface ItemSelectProps extends SelectProps {
     label: string;
@@ -22,6 +23,7 @@ export interface ItemSelectProps extends SelectProps {
     placeholder?: string;
     error?: string;
     disabled?: boolean;
+    view?: boolean;
     canCreate?: boolean;
     required?: boolean;
     searchable?: boolean;
@@ -40,6 +42,7 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
             placeholder = 'Selecione um item',
             error,
             disabled = false,
+            view = false,
             canCreate = true,
             required = false,
             searchable,
@@ -68,6 +71,9 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
 
         // Função wrapper para interceptar o valor de limpar seleção
         const handleValueChange = (newValue: string) => {
+            // Prevent changes in view mode
+            if (view) return;
+
             if (newValue === '__clear__') {
                 onValueChange('');
             } else {
@@ -118,13 +124,31 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                     <Select
                         value={value}
                         onValueChange={handleValueChange}
-                        disabled={disabled}
+                        disabled={disabled && !view}
                         open={isSelectOpen}
-                        onOpenChange={setIsSelectOpen}
+                        onOpenChange={(open) => {
+                            // Prevent opening in view mode
+                            if (!view) {
+                                setIsSelectOpen(open);
+                            }
+                        }}
                         {...props}
                     >
-                        <SelectTrigger ref={ref} error={!!error}>
-                            <SelectValue placeholder={placeholder}>
+                        <SelectTrigger
+                            ref={ref}
+                            error={!!error}
+                            className={cn(
+                                view && [
+                                    'cursor-default opacity-100 pointer-events-none',
+                                    'text-foreground [&>span]:text-foreground [&_*]:text-foreground',
+                                    '[&>svg]:hidden',
+                                    'data-[placeholder]:text-foreground',
+                                    '[&_[data-slot=select-value]]:text-foreground'
+                                ].join(' ')
+                            )}
+                            tabIndex={view ? -1 : 0}
+                        >
+                            <SelectValue placeholder={view ? "" : placeholder}>
                                 {selectedItem && (
                                     <div className="flex items-center gap-2">
                                         {selectedItem.icon && <selectedItem.icon className="h-4 w-4" />}

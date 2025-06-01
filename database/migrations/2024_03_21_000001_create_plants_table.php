@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('state')->nullable();
             $table->string('zip_code')->nullable();
             $table->string('gps_coordinates')->nullable();
+            $table->foreignId('shift_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });
     }

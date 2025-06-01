@@ -17,6 +17,31 @@ function Tabs({
   )
 }
 
+// Helper function to extract text content from TabsTrigger children
+const extractTextContent = (children: React.ReactNode): string => {
+  if (typeof children === 'string') {
+    return children;
+  }
+
+  if (Array.isArray(children)) {
+    return children
+      .map(child => extractTextContent(child))
+      .filter(text => text.trim() !== '')
+      .join(' ');
+  }
+
+  if (React.isValidElement(children)) {
+    // If it's a React element, try to extract text from its children
+    const element = children as React.ReactElement<any>;
+    if (element.props && element.props.children) {
+      return extractTextContent(element.props.children);
+    }
+    return '';
+  }
+
+  return '';
+};
+
 function TabsList({
   className,
   children,
@@ -64,9 +89,11 @@ function TabsList({
             if (React.isValidElement(child)) {
               const childProps = child.props as any
               if (childProps.value) {
+                // Extract only text content, excluding SVG icons and other React components
+                const textContent = extractTextContent(childProps.children);
                 return (
                   <option key={childProps.value} value={childProps.value}>
-                    {childProps.children}
+                    {textContent}
                   </option>
                 )
               }
@@ -86,7 +113,6 @@ function TabsList({
           <TabsPrimitive.List
             data-slot="tabs-list"
             className={cn(
-              "flex space-x-4",
               className
             )}
             {...props}

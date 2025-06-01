@@ -85,7 +85,7 @@ export default function ShowLayout({
                             {/* Desktop Tabs */}
                             <div className="hidden md:block pt-6">
                                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full ">
-                                    <TabsList className="justify-start px-4 lg:px-6">
+                                    <TabsList className="flex space-x-4 justify-start px-4 lg:px-6">
                                         {tabs.map((tab) => (
                                             <TabsTrigger key={tab.id} value={tab.id} className="px-4 py-2 font-medium data-[state=active]:font-extrabold">
                                                 {tab.label}

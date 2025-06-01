@@ -18,55 +18,70 @@ class ShiftController extends Controller
 {
     use ShiftTimeCalculator;
 
-    public function index()
+    public function index(Request $request)
     {
-        $shifts = Shift::with(['schedules.shiftTimes.breaks', 'plant', 'assets'])->get();
-        return Inertia::render('asset-hierarchy/shifts', [
-            'shifts' => $shifts->map(function ($shift) {
-                $schedules = $shift->schedules->map(function ($schedule) {
-                    return [
-                        'weekday' => $schedule->weekday,
-                        'shifts' => $schedule->shiftTimes->map(function ($shiftTime) {
-                            return [
-                                'start_time' => $shiftTime->start_time,
-                                'end_time' => $shiftTime->end_time,
-                                'active' => $shiftTime->active,
-                                'breaks' => $shiftTime->breaks->map(function ($break) {
-                                    return [
-                                        'start_time' => $break->start_time,
-                                        'end_time' => $break->end_time,
-                                    ];
-                                })->toArray(),
-                            ];
-                        })->toArray(),
-                    ];
-                })->toArray();
-
-                $totals = $this->calculateShiftTotals($schedules);
-
+        $query = Shift::with(['schedules.shiftTimes.breaks', 'assets']);
+        
+        // For now, since there's no direct plant-shift relationship in the database,
+        // we'll return all shifts. In the future, you might want to add a pivot table
+        // or modify the database schema to support plant-specific shifts.
+        $plantId = $request->input('plant_id');
+        if ($plantId) {
+            // If you want to filter by plant in the future, you can add logic here
+            // For now, we'll return all available shifts
+        }
+        
+        $shifts = $query->get();
+        
+        $formattedShifts = $shifts->map(function ($shift) {
+            $schedules = $shift->schedules->map(function ($schedule) {
                 return [
-                    'id' => $shift->id,
-                    'name' => $shift->name,
-                    'plant' => $shift->plant ? [
-                        'id' => $shift->plant->id,
-                        'name' => $shift->plant->name,
-                    ] : null,
-                    'asset_count' => $shift->asset_count,
-                    'total_work_hours' => $totals['work_hours'],
-                    'total_work_minutes' => $totals['work_minutes'],
-                    'total_break_hours' => $totals['break_hours'],
-                    'total_break_minutes' => $totals['break_minutes'],
-                    'schedules' => $schedules,
+                    'weekday' => $schedule->weekday,
+                    'shifts' => $schedule->shiftTimes->map(function ($shiftTime) {
+                        return [
+                            'start_time' => $shiftTime->start_time,
+                            'end_time' => $shiftTime->end_time,
+                            'active' => $shiftTime->active,
+                            'breaks' => $shiftTime->breaks->map(function ($break) {
+                                return [
+                                    'start_time' => $break->start_time,
+                                    'end_time' => $break->end_time,
+                                ];
+                            })->toArray(),
+                        ];
+                    })->toArray(),
                 ];
-            })->toArray(),
+            })->toArray();
+
+            $totals = $this->calculateShiftTotals($schedules);
+
+            return [
+                'id' => $shift->id,
+                'name' => $shift->name,
+                'asset_count' => $shift->assets->count(),
+                'total_work_hours' => $totals['work_hours'],
+                'total_work_minutes' => $totals['work_minutes'],
+                'total_break_hours' => $totals['break_hours'],
+                'total_break_minutes' => $totals['break_minutes'],
+                'schedules' => $schedules,
+            ];
+        })->toArray();
+        
+        // Return JSON for AJAX requests
+        if ($request->wantsJson() || $request->input('format') === 'json') {
+            return response()->json([
+                'shifts' => $formattedShifts
+            ]);
+        }
+        
+        return Inertia::render('asset-hierarchy/shifts', [
+            'shifts' => $formattedShifts,
         ]);
     }
 
     public function create()
     {
-        return Inertia::render('asset-hierarchy/shifts/shift-editor', [
-            'plants' => Plant::all()
-        ]);
+        return Inertia::render('asset-hierarchy/shifts/shift-editor');
     }
 
     private function validateShiftData(Request $request)
@@ -101,7 +116,6 @@ class ShiftController extends Controller
         $request->replace($data);
 
         $validated = $request->validate([
-            'plant_id' => 'nullable|exists:plants,id',
             'name' => 'required|string|max:255',
             'schedules' => 'required|array',
             'schedules.*.weekday' => ['required', Rule::in(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])],
@@ -189,15 +203,11 @@ class ShiftController extends Controller
         try {
             $validated = $this->validateShiftData($request);
 
-            return DB::transaction(function () use ($validated) {
+            return DB::transaction(function () use ($validated, $request) {
                 $shiftData = [
                     'name' => $validated['name']
                 ];
 
-                if (isset($validated['plant_id'])) {
-                    $shiftData['plant_id'] = $validated['plant_id'];
-                }
-                
                 $shift = Shift::create($shiftData);
 
                 foreach ($validated['schedules'] as $scheduleData) {
@@ -229,8 +239,47 @@ class ShiftController extends Controller
                     }
                 }
 
+                // Load relationships for the response
+                $shift->load(['schedules.shiftTimes.breaks', 'assets']);
+
+                // Format the shift data for the response
+                $formattedShift = [
+                    'id' => $shift->id,
+                    'name' => $shift->name,
+                    'asset_count' => $shift->assets->count(),
+                    'schedules' => $shift->schedules->map(function ($schedule) {
+                        return [
+                            'weekday' => $schedule->weekday,
+                            'shifts' => $schedule->shiftTimes->map(function ($shiftTime) {
+                                return [
+                                    'start_time' => $shiftTime->start_time,
+                                    'end_time' => $shiftTime->end_time,
+                                    'active' => $shiftTime->active,
+                                    'breaks' => $shiftTime->breaks->map(function ($break) {
+                                        return [
+                                            'start_time' => $break->start_time,
+                                            'end_time' => $break->end_time,
+                                        ];
+                                    })->toArray(),
+                                ];
+                            })->toArray(),
+                        ];
+                    })->toArray(),
+                ];
+
+                // Check if this is an AJAX request
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => true,
+                        'shift' => $formattedShift,
+                        'message' => 'Turno criado com sucesso!'
+                    ]);
+                }
+
+                // For Inertia requests, include the shift in the redirect
                 return redirect()->route('asset-hierarchy.shifts')
-                    ->with('success', 'Turno criado com sucesso!');
+                    ->with('success', 'Turno criado com sucesso!')
+                    ->with('shift', $formattedShift);
             });
         } catch (ValidationException $e) {
             throw $e;
@@ -239,25 +288,54 @@ class ShiftController extends Controller
         }
     }
 
-    public function show(Shift $shift)
+    public function show(Request $request, Shift $shift)
     {
-        $shift->load(['schedules.breaks', 'plant']);
+        $shift->load(['schedules.shiftTimes.breaks', 'assets']);
+        
+        $formattedShift = [
+            'id' => $shift->id,
+            'name' => $shift->name,
+            'asset_count' => $shift->assets->count(),
+            'schedules' => $shift->schedules->map(function ($schedule) {
+                return [
+                    'weekday' => $schedule->weekday,
+                    'shifts' => $schedule->shiftTimes->map(function ($shiftTime) {
+                        return [
+                            'start_time' => $shiftTime->start_time,
+                            'end_time' => $shiftTime->end_time,
+                            'active' => $shiftTime->active,
+                            'breaks' => $shiftTime->breaks->map(function ($break) {
+                                return [
+                                    'start_time' => $break->start_time,
+                                    'end_time' => $break->end_time,
+                                ];
+                            })->toArray(),
+                        ];
+                    })->toArray(),
+                ];
+            })->toArray(),
+        ];
+        
+        // Return JSON for AJAX requests
+        if ($request->wantsJson() || $request->input('format') === 'json') {
+            return response()->json([
+                'shift' => $formattedShift
+            ]);
+        }
+        
         return Inertia::render('Cadastro/Shifts/Show', [
-            'shift' => $shift
+            'shift' => $formattedShift
         ]);
     }
 
     public function edit(Shift $shift)
     {
-        $shift->load(['schedules.shiftTimes.breaks', 'plant']);
+        $shift->load(['schedules.shiftTimes.breaks', 'assets']);
 
         $formattedShift = [
             'id' => $shift->id,
             'name' => $shift->name,
-            'plant' => $shift->plant ? [
-                'id' => $shift->plant->id,
-                'name' => $shift->plant->name,
-            ] : null,
+            'asset_count' => $shift->assets->count(),
             'schedules' => $shift->schedules->map(function ($schedule) {
                 return [
                     'weekday' => $schedule->weekday,
@@ -279,7 +357,6 @@ class ShiftController extends Controller
         ];
 
         return Inertia::render('asset-hierarchy/shifts/shift-editor', [
-            'plants' => Plant::all(),
             'mode' => 'edit',
             'shift' => $formattedShift
         ]);
@@ -290,14 +367,10 @@ class ShiftController extends Controller
         try {
             $validated = $this->validateShiftData($request);
 
-            return DB::transaction(function () use ($shift, $validated) {
+            return DB::transaction(function () use ($shift, $validated, $request) {
                 $shiftData = [
                     'name' => $validated['name']
                 ];
-
-                if (isset($validated['plant_id'])) {
-                    $shiftData['plant_id'] = $validated['plant_id'];
-                }
                 
                 $shift->update($shiftData);
 
@@ -333,8 +406,54 @@ class ShiftController extends Controller
                     }
                 }
 
+                // Load relationships for the response
+                $shift->load(['schedules.shiftTimes.breaks', 'assets']);
+
+                // Format the shift data for the response
+                $formattedShift = [
+                    'id' => $shift->id,
+                    'name' => $shift->name,
+                    'asset_count' => $shift->assets->count(),
+                    'schedules' => $shift->schedules->map(function ($schedule) {
+                        return [
+                            'weekday' => $schedule->weekday,
+                            'shifts' => $schedule->shiftTimes->map(function ($shiftTime) {
+                                return [
+                                    'start_time' => $shiftTime->start_time,
+                                    'end_time' => $shiftTime->end_time,
+                                    'active' => $shiftTime->active,
+                                    'breaks' => $shiftTime->breaks->map(function ($break) {
+                                        return [
+                                            'start_time' => $break->start_time,
+                                            'end_time' => $break->end_time,
+                                        ];
+                                    })->toArray(),
+                                ];
+                            })->toArray(),
+                        ];
+                    })->toArray(),
+                ];
+
+                $totals = $this->calculateShiftTotals($formattedShift['schedules']);
+                $formattedShift = array_merge($formattedShift, [
+                    'total_work_hours' => $totals['work_hours'],
+                    'total_work_minutes' => $totals['work_minutes'],
+                    'total_break_hours' => $totals['break_hours'],
+                    'total_break_minutes' => $totals['break_minutes'],
+                ]);
+
+                // Check if this is an AJAX request
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => true,
+                        'shift' => $formattedShift,
+                        'message' => 'Turno atualizado com sucesso!'
+                    ]);
+                }
+
                 return redirect()->route('asset-hierarchy.shifts')
-                    ->with('success', 'Turno atualizado com sucesso!');
+                    ->with('success', 'Turno atualizado com sucesso!')
+                    ->with('shift', $formattedShift);
             });
         } catch (ValidationException $e) {
             throw $e;
@@ -352,7 +471,7 @@ class ShiftController extends Controller
 
     public function checkDependencies(Shift $shift)
     {
-        // Verificar se há ativos associados ao turno
+        // Verificar se há entidades associadas ao turno
         $assetCount = $shift->assets()->count();
         
         // Se não há dependências, redirecionar para confirmação de exclusão
@@ -362,14 +481,18 @@ class ShiftController extends Controller
         }
 
         // Se há dependências, mostrar página com detalhes das dependências
+        $dependencies = [];
+        
+        if ($assetCount > 0) {
+            $dependencies['assets'] = [
+                'total' => $assetCount,
+                'message' => 'Este turno está associado a ativos'
+            ];
+        }
+        
         return Inertia::render('asset-hierarchy/shifts/dependencies', [
             'shift' => $shift,
-            'dependencies' => [
-                'assets' => [
-                    'total' => $assetCount,
-                    'message' => 'Este turno está associado a ativos'
-                ]
-            ],
+            'dependencies' => $dependencies,
             'hasDependencies' => true
         ]);
     }
@@ -393,5 +516,64 @@ class ShiftController extends Controller
         }
 
         return !($end1Minutes <= $start2Minutes || $end2Minutes <= $start1Minutes);
+    }
+
+    /**
+     * Convert time string to minutes
+     */
+    protected function timeToMinutes(string $time): int
+    {
+        $parts = explode(':', $time);
+        return ((int) $parts[0] * 60) + (int) $parts[1];
+    }
+
+    /**
+     * Calculate shift totals from schedules array
+     */
+    protected function calculateShiftTotals(array $schedules): array
+    {
+        $totalWorkMinutes = 0;
+        $totalBreakMinutes = 0;
+
+        foreach ($schedules as $schedule) {
+            foreach ($schedule['shifts'] as $shift) {
+                if ($shift['active']) {
+                    // Calculate work time
+                    $start = $this->timeToMinutes($shift['start_time']);
+                    $end = $this->timeToMinutes($shift['end_time']);
+                    
+                    // Handle overnight shifts
+                    if ($end < $start) {
+                        $workMinutes = (24 * 60 - $start) + $end;
+                    } else {
+                        $workMinutes = $end - $start;
+                    }
+                    
+                    // Subtract break time
+                    foreach ($shift['breaks'] as $break) {
+                        $breakStart = $this->timeToMinutes($break['start_time']);
+                        $breakEnd = $this->timeToMinutes($break['end_time']);
+                        
+                        if ($breakEnd < $breakStart) {
+                            $breakMinutes = (24 * 60 - $breakStart) + $breakEnd;
+                        } else {
+                            $breakMinutes = $breakEnd - $breakStart;
+                        }
+                        
+                        $totalBreakMinutes += $breakMinutes;
+                        $workMinutes -= $breakMinutes;
+                    }
+                    
+                    $totalWorkMinutes += $workMinutes;
+                }
+            }
+        }
+
+        return [
+            'work_hours' => floor($totalWorkMinutes / 60),
+            'work_minutes' => $totalWorkMinutes % 60,
+            'break_hours' => floor($totalBreakMinutes / 60),
+            'break_minutes' => $totalBreakMinutes % 60,
+        ];
     }
 } 

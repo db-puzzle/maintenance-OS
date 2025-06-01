@@ -95,7 +95,6 @@ export interface Factory {
 
 export interface ShiftForm {
     name: string;
-    plant_id: string;
     schedules: {
         weekday: string;
         shifts: {

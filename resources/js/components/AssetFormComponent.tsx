@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { type Area, type Asset, type AssetForm, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
 import { Link, router, useForm } from '@inertiajs/react';
 import { Camera, Pencil } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface AssetFormComponentProps {
@@ -79,22 +79,27 @@ function AssetFormFields({
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Coluna 1: Foto */}
                 {isViewMode ? (
-                    <div className="flex h-full flex-col justify-center">
-                        <div
-                            className={`relative flex-1 overflow-hidden rounded-lg ${!data.photo_path ? 'bg-muted' : ''} max-h-[238px] min-h-[238px]`}
-                        >
-                            {data.photo_path ? (
-                                <img
-                                    src={`/storage/${data.photo_path}`}
-                                    alt={`Foto do ativo ${data.tag}`}
-                                    className="h-full w-full scale-120 object-contain"
-                                />
-                            ) : (
-                                <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-2">
-                                    <Camera className="h-12 w-12" />
-                                    <span className="text-sm">Sem foto</span>
-                                </div>
-                            )}
+                    <div className="flex h-full flex-col">
+                        <Label className="mb-2">
+                            Foto do Ativo
+                        </Label>
+                        <div className="flex flex-1 flex-col gap-2">
+                            <div
+                                className={`bg-muted relative flex-1 overflow-hidden rounded-lg border ${!data.photo_path ? 'bg-muted' : ''} max-h-[238px] min-h-[238px]`}
+                            >
+                                {data.photo_path ? (
+                                    <img
+                                        src={`/storage/${data.photo_path}`}
+                                        alt={`Foto do ativo ${data.tag}`}
+                                        className="h-auto w-full object-contain"
+                                    />
+                                ) : (
+                                    <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-2">
+                                        <Camera className="h-12 w-12" />
+                                        <span className="text-sm">Sem foto</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ) : (
@@ -121,7 +126,7 @@ function AssetFormFields({
                         label="TAG"
                         placeholder="Digite a TAG do ativo"
                         required
-                        disabled={isViewMode}
+                        view={isViewMode}
                     />
 
                     {/* Tipo de Ativo */}
@@ -140,7 +145,7 @@ function AssetFormFields({
                             error={errors.asset_type_id}
                             required
                             canClear={!isViewMode}
-                            disabled={isViewMode}
+                            view={isViewMode}
                         />
                     </div>
 
@@ -155,7 +160,7 @@ function AssetFormFields({
                         name="serial_number"
                         label="Número Serial"
                         placeholder="Número serial do ativo"
-                        disabled={isViewMode}
+                        view={isViewMode}
                     />
 
                     {/* Ano de Fabricação */}
@@ -169,7 +174,7 @@ function AssetFormFields({
                         name="manufacturing_year"
                         label="Ano de Fabricação"
                         placeholder="Ano de fabricação"
-                        disabled={isViewMode}
+                        view={isViewMode}
                     />
                 </div>
 
@@ -200,7 +205,7 @@ function AssetFormFields({
                             error={errors.plant_id}
                             required
                             canClear={!isViewMode}
-                            disabled={isViewMode}
+                            view={isViewMode}
                         />
                     </div>
 
@@ -225,7 +230,8 @@ function AssetFormFields({
                             onCreateClick={handleCreateAreaClick}
                             placeholder={data.plant_id ? 'Selecione uma área (opcional)' : 'Selecione uma planta primeiro'}
                             error={errors.area_id}
-                            disabled={!data.plant_id || isViewMode}
+                            disabled={!data.plant_id}
+                            view={isViewMode}
                             canClear={!isViewMode}
                         />
                     </div>
@@ -244,7 +250,8 @@ function AssetFormFields({
                             onCreateClick={handleCreateSectorClick}
                             placeholder={data.area_id ? 'Selecione um setor (opcional)' : 'Selecione uma área primeiro'}
                             error={errors.sector_id}
-                            disabled={!data.area_id || isViewMode}
+                            disabled={!data.area_id}
+                            view={isViewMode}
                             canClear={!isViewMode}
                         />
                     </div>
@@ -260,7 +267,7 @@ function AssetFormFields({
                         name="manufacturer"
                         label="Fabricante"
                         placeholder="Fabricante do ativo"
-                        disabled={isViewMode}
+                        view={isViewMode}
                     />
                 </div>
             </div>
@@ -274,7 +281,7 @@ function AssetFormFields({
                     onChange={(e) => setData('description', e.target.value)}
                     placeholder="Descrição da máquina"
                     className="min-h-[100px]"
-                    disabled={isViewMode}
+                    view={isViewMode}
                 />
                 <InputError message={errors.description} />
             </div>
@@ -293,6 +300,11 @@ export default function AssetFormComponent({
     const isEditing = !!asset;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
+
+    // Ensure mode updates when initialMode changes (e.g., after asset creation)
+    useEffect(() => {
+        setMode(initialMode);
+    }, [initialMode]);
 
     const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm<AssetForm>({
         tag: asset?.tag || '',
@@ -355,9 +367,8 @@ export default function AssetFormComponent({
             post(route('asset-hierarchy.assets.store'), {
                 onSuccess: () => {
                     toast.success('Ativo criado com sucesso!');
-                    if (onSuccess) {
-                        onSuccess();
-                    }
+                    // The backend will handle the redirect to the asset show page
+                    // No need to call onSuccess as the page will be redirected
                 },
                 onError: (errors) => {
                     toast.error('Erro ao criar ativo', {
@@ -516,67 +527,74 @@ export default function AssetFormComponent({
 
                 {/* Action buttons */}
                 {isEditing && (
-                    <div className="flex justify-start gap-2 pt-4">
-                        {isViewMode ? (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={handleEdit}
-                            >
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar
-                            </Button>
-                        ) : (
-                            <>
+                    <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-between sm:items-center">
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            {isViewMode ? (
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={handleCancel}
+                                    className="w-full sm:w-auto"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleEdit();
+                                    }}
                                 >
-                                    Cancelar
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
                                 </Button>
-                                <Button
-                                    type="submit"
-                                    size="sm"
-                                    disabled={processing}
-                                >
-                                    {processing ? 'Salvando...' : 'Salvar Alterações'}
-                                </Button>
-                            </>
+                            ) : (
+                                <>
+                                    <Button
+                                        type="submit"
+                                        size="sm"
+                                        className="w-full sm:w-auto"
+                                        disabled={processing}
+                                    >
+                                        {processing ? 'Salvando...' : 'Salvar'}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full sm:w-auto"
+                                        onClick={handleCancel}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                        {!isViewMode && (
+                            <div className="w-full sm:w-auto">
+                                <DeleteAsset assetId={asset.id} assetTag={asset.tag} />
+                            </div>
                         )}
                     </div>
                 )}
 
                 {/* Action buttons for create mode */}
                 {!isEditing && (
-                    <div className="flex justify-start gap-2 pt-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleCancel}
-                        >
-                            Cancelar
-                        </Button>
+                    <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-start">
                         <Button
                             type="submit"
+                            className="w-full sm:w-auto"
                             disabled={processing}
                         >
                             {processing ? 'Criando...' : 'Criar Ativo'}
                         </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full sm:w-auto"
+                            onClick={handleCancel}
+                        >
+                            Cancelar
+                        </Button>
                     </div>
                 )}
             </form>
-
-            {/* DeleteAsset Component apenas para modo de edição */}
-            {isEditing && !isViewMode && (
-                <div className="mt-8 grid grid-cols-1 lg:grid-cols-3">
-                    <div className="lg:col-span-1">
-                        <DeleteAsset assetId={asset.id} assetTag={asset.tag} />
-                    </div>
-                </div>
-            )}
 
             {/* Hidden Sheets for creating new entities */}
             <div style={{ display: 'none' }}>

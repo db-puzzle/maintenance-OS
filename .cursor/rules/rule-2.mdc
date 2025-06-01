@@ -1,6 +1,6 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
-When making changes to the database, always edit existing migrations.
+Do not start the Laravel server as I always have it running as we develop the system.

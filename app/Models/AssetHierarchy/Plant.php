@@ -5,6 +5,7 @@ namespace App\Models\AssetHierarchy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Plant extends Model
 {
@@ -15,7 +16,8 @@ class Plant extends Model
         'city',
         'state',
         'zip_code',
-        'gps_coordinates'
+        'gps_coordinates',
+        'shift_id'
     ];
 
     protected static function boot()
@@ -45,5 +47,10 @@ class Plant extends Model
     public function asset(): HasMany
     {
         return $this->hasMany(Asset::class);
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 } 
