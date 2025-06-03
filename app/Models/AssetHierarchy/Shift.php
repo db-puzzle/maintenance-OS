@@ -5,11 +5,13 @@ namespace App\Models\AssetHierarchy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Carbon\Carbon;
 
 class Shift extends Model
 {
     protected $fillable = [
-        'name'
+        'name',
+        'timezone'
     ];
 
     protected $appends = ['asset_count'];
@@ -42,6 +44,83 @@ class Shift extends Model
     public function getAssetCountAttribute(): int
     {
         return $this->assets()->count();
+    }
+
+    /**
+     * Convert a local time to UTC for a specific date
+     * 
+     * @param string $time The time in HH:MM format
+     * @param string $date The date in Y-m-d format
+     * @return Carbon
+     */
+    public function localTimeToUTC(string $time, string $date): Carbon
+    {
+        return Carbon::parse($date . ' ' . $time, $this->timezone)->utc();
+    }
+
+    /**
+     * Convert a UTC time to local time
+     * 
+     * @param Carbon $utcTime
+     * @return Carbon
+     */
+    public function utcToLocalTime(Carbon $utcTime): Carbon
+    {
+        return $utcTime->copy()->setTimezone($this->timezone);
+    }
+
+    /**
+     * Get shift times for a specific date in UTC
+     * 
+     * @param string $date The date in Y-m-d format
+     * @param string $weekday The weekday name
+     * @return array
+     */
+    public function getShiftTimesForDateInUTC(string $date, string $weekday): array
+    {
+        $schedule = $this->schedules()->where('weekday', $weekday)->first();
+        if (!$schedule) {
+            return [];
+        }
+
+        $shiftTimes = [];
+        foreach ($schedule->shiftTimes as $shiftTime) {
+            if (!$shiftTime->active) {
+                continue;
+            }
+
+            $startUTC = $this->localTimeToUTC($shiftTime->start_time, $date);
+            $endUTC = $this->localTimeToUTC($shiftTime->end_time, $date);
+
+            // Handle overnight shifts
+            if ($endUTC->lt($startUTC)) {
+                $endUTC->addDay();
+            }
+
+            $breaks = [];
+            foreach ($shiftTime->breaks as $break) {
+                $breakStartUTC = $this->localTimeToUTC($break->start_time, $date);
+                $breakEndUTC = $this->localTimeToUTC($break->end_time, $date);
+
+                // Handle overnight breaks
+                if ($breakEndUTC->lt($breakStartUTC)) {
+                    $breakEndUTC->addDay();
+                }
+
+                $breaks[] = [
+                    'start' => $breakStartUTC,
+                    'end' => $breakEndUTC
+                ];
+            }
+
+            $shiftTimes[] = [
+                'start' => $startUTC,
+                'end' => $endUTC,
+                'breaks' => $breaks
+            ];
+        }
+
+        return $shiftTimes;
     }
 
     public function calculateTotals()

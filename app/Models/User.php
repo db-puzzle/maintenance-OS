@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Carbon\Carbon;
 
 class User extends Authenticatable
 {
@@ -21,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'timezone',
     ];
 
     /**
@@ -44,5 +46,21 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+    
+    /**
+     * Convert a datetime from user's timezone to UTC
+     */
+    public function convertToUTC($datetime): Carbon
+    {
+        return Carbon::parse($datetime, $this->timezone ?? 'UTC')->setTimezone('UTC');
+    }
+    
+    /**
+     * Convert a datetime from UTC to user's timezone
+     */
+    public function convertFromUTC($datetime): Carbon
+    {
+        return Carbon::parse($datetime, 'UTC')->setTimezone($this->timezone ?? 'UTC');
     }
 }

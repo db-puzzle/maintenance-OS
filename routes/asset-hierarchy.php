@@ -46,6 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('asset-hierarchy/assets/{asset}/runtime', [AssetController::class, 'reportRuntime'])->name('asset-hierarchy.assets.runtime.report');
     Route::get('asset-hierarchy/assets/{asset}/runtime/history', [AssetController::class, 'getRuntimeHistory'])->name('asset-hierarchy.assets.runtime.history');
     Route::get('asset-hierarchy/assets/{asset}/runtime/calculation-details', [AssetController::class, 'getRuntimeCalculationDetails'])->name('asset-hierarchy.assets.runtime.calculation-details');
+    Route::get('asset-hierarchy/assets/{asset}/runtime/breakdown', [AssetController::class, 'getRuntimeBreakdown'])->name('asset-hierarchy.assets.runtime.breakdown');
 
     Route::get('asset-hierarchy/setores', [SectorController::class, 'index'])->name('asset-hierarchy.setores');
     Route::get('asset-hierarchy/setores/create', [SectorController::class, 'create'])->name('asset-hierarchy.setores.create');

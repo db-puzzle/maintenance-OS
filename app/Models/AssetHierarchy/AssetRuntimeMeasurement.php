@@ -48,8 +48,8 @@ class AssetRuntimeMeasurement extends Model
     public function getPreviousHoursAttribute(): float
     {
         $previousMeasurement = $this->asset->runtimeMeasurements()
-            ->where('measurement_datetime', '<', $this->measurement_datetime)
-            ->orderBy('measurement_datetime', 'desc')
+            ->where('created_at', '<', $this->created_at)
+            ->orderBy('created_at', 'desc')
             ->first();
             
         return $previousMeasurement ? $previousMeasurement->reported_hours : 0.0;

@@ -9,6 +9,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
@@ -22,7 +23,45 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface ProfileForm {
     name: string;
     email: string;
+    timezone: string;
 }
+
+// Common timezones grouped by region
+const timezones = {
+    'Americas': [
+        { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
+        { value: 'America/Chicago', label: 'Central Time (US & Canada)' },
+        { value: 'America/Denver', label: 'Mountain Time (US & Canada)' },
+        { value: 'America/Los_Angeles', label: 'Pacific Time (US & Canada)' },
+        { value: 'America/Sao_Paulo', label: 'Brasília Time' },
+        { value: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires' },
+        { value: 'America/Mexico_City', label: 'Mexico City' },
+    ],
+    'Europe': [
+        { value: 'Europe/London', label: 'London' },
+        { value: 'Europe/Paris', label: 'Paris' },
+        { value: 'Europe/Berlin', label: 'Berlin' },
+        { value: 'Europe/Madrid', label: 'Madrid' },
+        { value: 'Europe/Rome', label: 'Rome' },
+        { value: 'Europe/Moscow', label: 'Moscow' },
+    ],
+    'Asia': [
+        { value: 'Asia/Tokyo', label: 'Tokyo' },
+        { value: 'Asia/Shanghai', label: 'Beijing, Shanghai' },
+        { value: 'Asia/Hong_Kong', label: 'Hong Kong' },
+        { value: 'Asia/Singapore', label: 'Singapore' },
+        { value: 'Asia/Kolkata', label: 'India Standard Time' },
+        { value: 'Asia/Dubai', label: 'Dubai' },
+    ],
+    'Pacific': [
+        { value: 'Australia/Sydney', label: 'Sydney' },
+        { value: 'Australia/Melbourne', label: 'Melbourne' },
+        { value: 'Pacific/Auckland', label: 'Auckland' },
+    ],
+    'Other': [
+        { value: 'UTC', label: 'UTC' },
+    ]
+};
 
 export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: boolean; status?: string }) {
     const { auth } = usePage<SharedData>().props;
@@ -30,6 +69,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
     const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<Required<ProfileForm>>({
         name: auth.user.name,
         email: auth.user.email,
+        timezone: (auth.user.timezone as string) || 'UTC',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -80,6 +120,32 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             />
 
                             <InputError className="mt-2" message={errors.email} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="timezone">Timezone</Label>
+
+                            <Select value={data.timezone} onValueChange={(value) => setData('timezone', value)}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select your timezone" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.entries(timezones).map(([region, zones]) => (
+                                        <div key={region}>
+                                            <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                                                {region}
+                                            </div>
+                                            {zones.map((zone) => (
+                                                <SelectItem key={zone.value} value={zone.value}>
+                                                    {zone.label}
+                                                </SelectItem>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <InputError className="mt-2" message={errors.timezone} />
                         </div>
 
                         {mustVerifyEmail && auth.user.email_verified_at === null && (

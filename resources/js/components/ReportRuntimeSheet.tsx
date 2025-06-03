@@ -58,18 +58,26 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                 return;
             }
 
+            // Combine date and time into a single datetime
+            const [timeHours, timeMinutes] = measurementTime.split(':').map(Number);
+            const measurementDateTime = new Date(measurementDate);
+            measurementDateTime.setHours(timeHours, timeMinutes, 0, 0);
+
+            // Check if the measurement datetime is in the future
+            if (measurementDateTime > new Date()) {
+                setError('A data e hora da medição não pode ser no futuro');
+                return;
+            }
+
             setIsSubmitting(true);
             setError(null);
 
             try {
-                // Combine date and time into a single datetime
-                const [timeHours, timeMinutes] = measurementTime.split(':').map(Number);
-                const measurementDateTime = new Date(measurementDate);
-                measurementDateTime.setHours(timeHours, timeMinutes, 0, 0);
-
                 const response = await axios.post(`/asset-hierarchy/assets/${assetId}/runtime`, {
                     reported_hours: reportedHoursValue,
                     notes: notes || null,
+                    // toISOString() always returns UTC time (with 'Z' suffix)
+                    // The user selects in their local time, but we send UTC to the backend
                     measurement_datetime: measurementDateTime.toISOString()
                 });
 
@@ -85,7 +93,11 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                     router.reload();
                 }
             } catch (err: any) {
-                setError(err.response?.data?.message || 'Erro ao reportar horímetro');
+                if (err.response?.data?.errors?.measurement_datetime) {
+                    setError(err.response.data.errors.measurement_datetime[0]);
+                } else {
+                    setError(err.response?.data?.message || 'Erro ao reportar horímetro');
+                }
             } finally {
                 setIsSubmitting(false);
             }
@@ -108,7 +120,7 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                             Insira o valor atual do horímetro do ativo
                         </SheetDescription>
                     </SheetHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+                    <form onSubmit={handleSubmit} className="space-y-4 mr-4 ml-4">
                         <div className="space-y-2">
                             <Label htmlFor="current-hours">Horímetro Atual</Label>
                             <div className="text-sm text-muted-foreground">
@@ -155,6 +167,7 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                                                 setCalendarOpen(false);
                                             }
                                         }}
+                                        disabled={(date) => date > new Date()}
                                         initialFocus
                                     />
                                 </PopoverContent>
@@ -168,6 +181,13 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                                 value={measurementTime}
                                 onChange={setMeasurementTime}
                             />
+                            {/* Show warning if date is today */}
+                            {measurementDate &&
+                                measurementDate.toDateString() === new Date().toDateString() && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Nota: A hora selecionada não pode ser no futuro
+                                    </p>
+                                )}
                         </div>
 
                         <div className="space-y-2">

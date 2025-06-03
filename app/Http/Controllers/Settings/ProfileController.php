@@ -39,6 +39,26 @@ class ProfileController extends Controller
 
         return to_route('profile.edit');
     }
+    
+    /**
+     * Update only the user's timezone.
+     */
+    public function updateTimezone(Request $request)
+    {
+        $validated = $request->validate([
+            'timezone' => ['required', 'string', 'timezone'],
+        ]);
+        
+        $request->user()->update([
+            'timezone' => $validated['timezone']
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Timezone updated successfully',
+            'timezone' => $validated['timezone']
+        ]);
+    }
 
     /**
      * Delete the user's account.

@@ -2,6 +2,8 @@
 
 namespace App\Traits;
 
+use Illuminate\Support\Facades\Log;
+
 trait ShiftTimeCalculator
 {
     /**
@@ -10,7 +12,16 @@ trait ShiftTimeCalculator
     protected function timeToMinutes(string $time): int
     {
         list($hours, $minutes) = explode(':', $time);
-        return ($hours * 60) + $minutes;
+        $totalMinutes = ($hours * 60) + $minutes;
+        
+        Log::debug('Time converted to minutes', [
+            'time' => $time,
+            'hours' => $hours,
+            'minutes' => $minutes,
+            'total_minutes' => $totalMinutes
+        ]);
+        
+        return $totalMinutes;
     }
 
     /**
@@ -22,10 +33,27 @@ trait ShiftTimeCalculator
         $endMinutes = $this->timeToMinutes($end);
         
         if ($endMinutes < $startMinutes) {
-            return (24 * 60 - $startMinutes) + $endMinutes;
+            $duration = (24 * 60 - $startMinutes) + $endMinutes;
+            Log::debug('Duration calculation crosses midnight', [
+                'start' => $start,
+                'end' => $end,
+                'start_minutes' => $startMinutes,
+                'end_minutes' => $endMinutes,
+                'duration' => $duration
+            ]);
+            return $duration;
         }
         
-        return $endMinutes - $startMinutes;
+        $duration = $endMinutes - $startMinutes;
+        Log::debug('Duration calculation', [
+            'start' => $start,
+            'end' => $end,
+            'start_minutes' => $startMinutes,
+            'end_minutes' => $endMinutes,
+            'duration' => $duration
+        ]);
+        
+        return $duration;
     }
 
     /**
@@ -33,12 +61,21 @@ trait ShiftTimeCalculator
      */
     protected function calculateShiftTotals(array $schedules): array
     {
+        Log::debug('Calculating shift totals', [
+            'schedules_count' => count($schedules)
+        ]);
+        
         $totalWorkMinutes = 0;
         $totalBreakMinutes = 0;
 
         foreach ($schedules as $schedule) {
             foreach ($schedule['shifts'] as $shift) {
-                if (!$shift['active']) continue;
+                if (!$shift['active']) {
+                    Log::debug('Skipping inactive shift', [
+                        'shift' => $shift
+                    ]);
+                    continue;
+                }
 
                 // Calcula duração total do turno
                 $shiftDuration = $this->calculateDuration($shift['start_time'], $shift['end_time']);
@@ -51,16 +88,32 @@ trait ShiftTimeCalculator
                 }
 
                 // Horas de trabalho = duração do turno - duração dos intervalos
-                $totalWorkMinutes += ($shiftDuration - $shiftBreakMinutes);
+                $workMinutes = $shiftDuration - $shiftBreakMinutes;
+                $totalWorkMinutes += $workMinutes;
                 $totalBreakMinutes += $shiftBreakMinutes;
+                
+                Log::debug('Shift calculation', [
+                    'shift_time' => $shift['start_time'] . ' - ' . $shift['end_time'],
+                    'shift_duration' => $shiftDuration,
+                    'break_minutes' => $shiftBreakMinutes,
+                    'work_minutes' => $workMinutes
+                ]);
             }
         }
 
-        return [
+        $result = [
             'work_hours' => floor($totalWorkMinutes / 60),
             'work_minutes' => $totalWorkMinutes % 60,
             'break_hours' => floor($totalBreakMinutes / 60),
             'break_minutes' => $totalBreakMinutes % 60
         ];
+        
+        Log::debug('Shift totals calculated', [
+            'total_work_minutes' => $totalWorkMinutes,
+            'total_break_minutes' => $totalBreakMinutes,
+            'result' => $result
+        ]);
+        
+        return $result;
     }
 } 

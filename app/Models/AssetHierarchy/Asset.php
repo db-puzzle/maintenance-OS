@@ -96,7 +96,7 @@ class Asset extends Model
      */
     public function runtimeMeasurements(): HasMany
     {
-        return $this->hasMany(AssetRuntimeMeasurement::class)->orderBy('measurement_datetime', 'desc');
+        return $this->hasMany(AssetRuntimeMeasurement::class)->orderBy('created_at', 'desc');
     }
 
     /**
@@ -104,7 +104,7 @@ class Asset extends Model
      */
     public function latestRuntimeMeasurement()
     {
-        return $this->hasOne(AssetRuntimeMeasurement::class)->latestOfMany('measurement_datetime');
+        return $this->hasOne(AssetRuntimeMeasurement::class)->latestOfMany('created_at');
     }
 
     /**

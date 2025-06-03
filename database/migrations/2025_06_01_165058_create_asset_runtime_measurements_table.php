@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('asset_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('restrict');
             $table->float('reported_hours')->comment('The runtime hours reported by the user');
-            $table->enum('source', ['manual', 'shift', 'iot', 'api'])->default('manual');
+            $table->enum('source', ['manual', 'shift_change', 'shift_update', 'iot', 'api'])->default('manual');
             $table->text('notes')->nullable();
             $table->timestamp('measurement_datetime')->comment('When the measurement was taken');
             $table->timestamps();

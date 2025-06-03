@@ -45,6 +45,7 @@ interface CreateShiftSheetProps {
     initialShift?: {
         id: number;
         name: string;
+        timezone?: string;
         schedules: Schedule[];
     };
 }
@@ -241,17 +242,22 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
     // Expose button click to parent component
     useImperativeHandle(ref, () => buttonRef.current!, []);
 
+    // Get user's timezone
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     // Initialize form data based on whether we're editing or creating
-    const getInitialFormData = (): ShiftForm => {
+    const getInitialFormData = (): ShiftForm & { timezone: string } => {
         if (initialShift) {
             return {
                 name: initialShift.name,
+                timezone: initialShift.timezone || userTimezone,
                 schedules: initialShift.schedules,
             };
         }
 
         return {
             name: '',
+            timezone: userTimezone,
             schedules: weekdays.map((day) => ({
                 weekday: day.key,
                 shifts:
@@ -269,7 +275,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
         };
     };
 
-    const { data, setData, post, processing, errors, clearErrors } = useForm<ShiftForm>(getInitialFormData());
+    const { data, setData, post, processing, errors, clearErrors } = useForm<ShiftForm & { timezone: string }>(getInitialFormData());
 
     const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
     const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -447,6 +453,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
         // Remove os segundos de todos os horários antes de enviar
         const formattedData = {
             ...data,
+            timezone: data.timezone, // Include timezone in submission
             schedules: data.schedules.map((schedule) => ({
                 ...schedule,
                 shifts: schedule.shifts.map((shift) => ({
@@ -546,12 +553,22 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
                         <SheetTitle>{initialShift ? 'Editar Turno' : 'Cadastrar Turno'}</SheetTitle>
                     </SheetHeader>
 
-                    <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-4 mr-4 ml-4">
                         <div className="grid grid-cols-1 justify-items-start">
                             <div className="w-full space-y-6">
+                                {/* Alert about automatic runtime recording for shift updates */}
+                                {initialShift && (
+                                    <Alert>
+                                        <AlertCircle className="h-4 w-4" />
+                                        <AlertDescription>
+                                            Ao atualizar este turno, o horímetro atual será registrado automaticamente para todos os ativos que utilizam este turno, preservando o histórico de operação.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+
                                 {/* Campo de nome do turno */}
                                 <div className="w-full space-y-2">
-                                    <TextInput<ShiftForm>
+                                    <TextInput<ShiftForm & { timezone: string }>
                                         form={{
                                             data,
                                             setData,
@@ -563,6 +580,16 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
                                         placeholder="Digite o nome do turno"
                                         required
                                     />
+                                </div>
+
+                                {/* Timezone display */}
+                                <div className="w-full space-y-2">
+                                    <Label className="text-sm text-muted-foreground">
+                                        Fuso Horário: {data.timezone}
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Os horários do turno serão configurados neste fuso horário
+                                    </p>
                                 </div>
 
                                 {/* Seletor de dias da semana */}

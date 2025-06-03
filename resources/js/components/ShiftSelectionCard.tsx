@@ -1,9 +1,10 @@
 import { Button } from '@/components/ui/button';
 import ItemSelect from '@/components/ItemSelect';
-import { Calendar, Clock, Coffee, Activity, Edit2 } from 'lucide-react';
+import { Calendar, Clock, Coffee, Activity, Edit2, AlertCircle } from 'lucide-react';
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import CreateShiftSheet from '@/components/CreateShiftSheet';
 import axios from 'axios';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Break {
     start_time: string;
@@ -29,7 +30,7 @@ interface Shift {
         id: number;
         name: string;
     };
-    schedules?: Schedule[];
+    schedules: Schedule[];
     total_work_hours?: number;
     total_work_minutes?: number;
     total_break_hours?: number;
@@ -53,6 +54,7 @@ interface ShiftSelectionCardProps {
     onSaveShift: () => void;
     onShiftChange: (shiftId: string) => void;
     onCreateClick: () => void;
+    onShiftUpdated?: (updatedShift: Shift) => void;
 }
 
 // Type for the shift data used in CreateShiftSheet
@@ -105,6 +107,7 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
     onSaveShift,
     onShiftChange,
     onCreateClick,
+    onShiftUpdated,
 }, ref) => {
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
     const [selectedShiftData, setSelectedShiftData] = useState<EditableShift | null>(null);
@@ -147,11 +150,16 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
     };
 
     // Handle successful shift update
-    const handleShiftUpdateSuccess = (updatedShift: EditableShift) => {
+    const handleShiftUpdateSuccess = (updatedShift: any) => {
         setIsEditSheetOpen(false);
         setSelectedShiftData(null);
-        // Reload the page to refresh shifts data
-        window.location.reload();
+        // Don't reload the page - let the parent component handle the update
+        // This ensures we stay on the same tab, just like when creating a new shift
+        if (onShiftUpdated) {
+            // The updatedShift from CreateShiftSheet already has the correct format
+            // matching what the parent expects
+            onShiftUpdated(updatedShift);
+        }
     };
 
     // Calculate totals for the selected shift
@@ -192,8 +200,8 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
     const hasSelectedShift = (isEditingShift ? tempSelectedShiftId : selectedShiftId) && currentShift;
 
     return (
-        <div className="space-y-4">
-            <div className="rounded-lg border border-gray-200 p-6">
+        <div className="space-y-4 h-full">
+            <div className="rounded-lg border border-gray-200 p-6 h-full flex flex-col">
                 {/* Header with title and action buttons */}
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">Configuração de Turno</h3>
@@ -214,9 +222,60 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                     )}
                 </div>
 
+                {/* Shift Selection */}
+                <div className="mb-4">
+                    {/* Header - always visible */}
+                    <div className="flex items-center gap-2 mb-1">
+                        <Clock className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium text-gray-700">Turno de Operação</span>
+                    </div>
+
+                    {!isEditingShift ? (
+                        // View mode - Display shift name like runtime hours
+                        <div>
+                            <p className="text-2xl font-bold text-gray-900">
+                                {currentShift?.name || 'Nenhum turno selecionado'}
+                            </p>
+                        </div>
+                    ) : (
+                        // Edit mode - Show ItemSelect
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1">
+                                <ItemSelect
+                                    ref={itemSelectRef}
+                                    items={shifts.map(shift => ({
+                                        id: shift.id,
+                                        name: shift.name,
+                                        value: shift.id.toString(),
+                                    }))}
+                                    value={isEditingShift ? tempSelectedShiftId : selectedShiftId}
+                                    onValueChange={onShiftChange}
+                                    placeholder={loadingShifts ? "Carregando turnos..." : "Selecione um turno"}
+                                    canCreate={isEditingShift}
+                                    onCreateClick={onCreateClick}
+                                    disabled={loadingShifts || !isEditingShift}
+                                    canClear={isEditingShift}
+                                />
+                            </div>
+                            {isEditingShift && tempSelectedShiftId && (
+                                <Button
+                                    onClick={handleEditExistingShiftClick}
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={loadingShiftData}
+                                    className=""
+                                >
+                                    <Edit2 className="mr-2 h-4 w-4" />
+                                    {loadingShiftData ? 'Carregando...' : 'Editar'}
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+
                 {/* Shift Summary - More compact design matching AssetRuntimeInput */}
                 {currentShift ? (
-                    <div className="space-y-3 mb-4">
+                    <div className="space-y-3">
                         {/* Weekly Hours Summary */}
                         <div>
                             <div className="grid grid-cols-3 gap-2">
@@ -255,46 +314,15 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                     </div>
                 )}
 
-                {/* Shift Selection */}
-                <div className="mb-4">
-                    <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                            <ItemSelect
-                                ref={itemSelectRef}
-                                label="Turno de Operação"
-                                items={shifts.map(shift => ({
-                                    id: shift.id,
-                                    name: shift.name,
-                                    value: shift.id.toString(),
-                                }))}
-                                value={isEditingShift ? tempSelectedShiftId : selectedShiftId}
-                                onValueChange={onShiftChange}
-                                placeholder={loadingShifts ? "Carregando turnos..." : "Selecione um turno"}
-                                canCreate={isEditingShift}
-                                onCreateClick={onCreateClick}
-                                disabled={loadingShifts || !isEditingShift}
-                                canClear={isEditingShift}
-                            />
-                        </div>
-                        {isEditingShift && tempSelectedShiftId && (
-                            <Button
-                                onClick={handleEditExistingShiftClick}
-                                variant="outline"
-                                size="sm"
-                                disabled={loadingShiftData}
-                                className="mt-6"
-                            >
-                                <Edit2 className="mr-2 h-4 w-4" />
-                                {loadingShiftData ? 'Carregando...' : 'Editar'}
-                            </Button>
-                        )}
-                    </div>
-                    {!loadingShifts && shifts.length === 0 && (
-                        <p className="mt-2 text-sm text-gray-500">
-                            Nenhum turno cadastrado para a planta {plantToShow.name}.
-                        </p>
-                    )}
-                </div>
+                {/* Alert about automatic runtime recording */}
+                {isEditingShift && tempSelectedShiftId && tempSelectedShiftId !== selectedShiftId && (
+                    <Alert className="mt-3">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                            Ao salvar a mudança de turno, o horímetro atual será registrado automaticamente para preservar o histórico de operação.
+                        </AlertDescription>
+                    </Alert>
+                )}
             </div>
 
             {/* CreateShiftSheet for editing */}

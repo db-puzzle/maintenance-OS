@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useEffect } from 'react';
 
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
@@ -14,6 +14,7 @@ type RegisterForm = {
     email: string;
     password: string;
     password_confirmation: string;
+    timezone: string;
 };
 
 export default function Register() {
@@ -22,7 +23,16 @@ export default function Register() {
         email: '',
         password: '',
         password_confirmation: '',
+        timezone: 'UTC',
     });
+
+    useEffect(() => {
+        // Detect browser timezone on component mount
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (browserTimezone) {
+            setData('timezone', browserTimezone);
+        }
+    }, []);
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -100,6 +110,9 @@ export default function Register() {
                         />
                         <InputError message={errors.password_confirmation} />
                     </div>
+
+                    {/* Hidden timezone field */}
+                    <input type="hidden" name="timezone" value={data.timezone} />
 
                     <Button type="submit" className="mt-2 w-full" tabIndex={5} disabled={processing}>
                         {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}

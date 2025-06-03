@@ -9,7 +9,9 @@ interface RuntimeData {
         hours: number;
         datetime: string;
         user_name?: string;
+        source?: string;
     };
+    user_timezone?: string;
 }
 
 interface AssetRuntimeInputProps {
@@ -21,16 +23,16 @@ interface AssetRuntimeInputProps {
 export default function AssetRuntimeInput({ assetId, runtimeData, onRuntimeUpdated }: AssetRuntimeInputProps) {
     const reportSheetRef = useRef<HTMLButtonElement>(null);
 
-    const formatLastMeasurement = (datetime: string) => {
+    const formatLastMeasurement = (datetime: string, userTimezone?: string) => {
         try {
             const date = new Date(datetime);
-            // Simple formatting without date-fns
             const options: Intl.DateTimeFormatOptions = {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
+                timeZone: userTimezone || 'UTC'
             };
             return date.toLocaleDateString('pt-BR', options);
         } catch {
@@ -44,10 +46,11 @@ export default function AssetRuntimeInput({ assetId, runtimeData, onRuntimeUpdat
 
     const currentHours = runtimeData?.current_hours || 0;
     const lastMeasurement = runtimeData?.last_measurement;
+    const userTimezone = runtimeData?.user_timezone;
 
     return (
-        <div className="space-y-4">
-            <div className="rounded-lg border border-gray-200 p-6">
+        <div className="space-y-4 h-full">
+            <div className="rounded-lg border border-gray-200 p-6 h-full flex flex-col">
                 {/* Header with title and report button */}
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">Runtime do Ativo</h3>
@@ -70,15 +73,25 @@ export default function AssetRuntimeInput({ assetId, runtimeData, onRuntimeUpdat
 
                 {/* Last Measurement - More compact */}
                 {lastMeasurement ? (
-                    <div className="mt-6">
+                    <div className="">
                         <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm leading-none font-medium ">Última Medição</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-1 text-sm mt-2">
                             <span>{lastMeasurement.hours.toFixed(1)}h</span>
-                            <span>em {formatLastMeasurement(lastMeasurement.datetime)}</span>
+                            <span>em {formatLastMeasurement(lastMeasurement.datetime, userTimezone)}</span>
                             <span>{lastMeasurement.user_name ? `por ${lastMeasurement.user_name}` : ''}</span>
                         </div>
+                        {lastMeasurement.source === 'shift_change' && (
+                            <p className="text-xs text-gray-500 mt-1">
+                                Registrado automaticamente devido à mudança de turno
+                            </p>
+                        )}
+                        {lastMeasurement.source === 'shift_update' && (
+                            <p className="text-xs text-gray-500 mt-1">
+                                Registrado automaticamente devido à atualização do turno
+                            </p>
+                        )}
                     </div>
                 ) : (
                     <div className="p-3 bg-gray-50 rounded-md">

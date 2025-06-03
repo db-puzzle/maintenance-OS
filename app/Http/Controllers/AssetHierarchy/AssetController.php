@@ -14,6 +14,8 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class AssetController extends Controller
 {
@@ -179,14 +181,20 @@ class AssetController extends Controller
         // Add runtime data with calculation details
         $calculationDetails = $loadedAsset->getRuntimeCalculationDetails();
         
+        // Get the authenticated user for timezone conversion
+        $user = Auth::user();
+        
         $assetData['runtime_data'] = [
             'current_hours' => $calculationDetails['current_runtime_hours'],
             'last_measurement' => $loadedAsset->latestRuntimeMeasurement ? [
                 'hours' => $loadedAsset->latestRuntimeMeasurement->reported_hours,
-                'datetime' => $loadedAsset->latestRuntimeMeasurement->measurement_datetime->toIso8601String(),
+                'datetime' => $user->convertFromUTC($loadedAsset->latestRuntimeMeasurement->measurement_datetime)->toIso8601String(),
+                'created_at' => $user->convertFromUTC($loadedAsset->latestRuntimeMeasurement->created_at)->toIso8601String(),
                 'user_name' => $loadedAsset->latestRuntimeMeasurement->user->name ?? null,
+                'source' => $loadedAsset->latestRuntimeMeasurement->source ?? 'manual',
             ] : null,
-            'calculation_details' => $calculationDetails
+            'calculation_details' => $calculationDetails,
+            'user_timezone' => $user->timezone ?? 'UTC'
         ];
         
         return Inertia::render('asset-hierarchy/assets/show', [
@@ -212,6 +220,28 @@ class AssetController extends Controller
                 $validated = $request->validate([
                     'shift_id' => 'nullable|exists:shifts,id'
                 ]);
+                
+                // Get the old shift_id before updating
+                $oldShiftId = $asset->shift_id;
+                $newShiftId = $validated['shift_id'] ? (int)$validated['shift_id'] : null;
+                
+                // Only create a runtime measurement if the shift is actually changing
+                if ($oldShiftId !== $newShiftId) {
+                    // Calculate current runtime before the shift change
+                    $currentRuntime = $asset->current_runtime_hours;
+                    
+                    // Create a runtime measurement to record the current state
+                    $user = Auth::user();
+                    $asset->runtimeMeasurements()->create([
+                        'user_id' => $user->id,
+                        'reported_hours' => $currentRuntime,
+                        'source' => 'shift_change',
+                        'notes' => $oldShiftId 
+                            ? "Horímetro registrado automaticamente devido à mudança de turno (ID: {$oldShiftId} → " . ($newShiftId ?: 'Nenhum') . ")"
+                            : "Horímetro registrado automaticamente devido à atribuição de turno (Nenhum → ID: {$newShiftId})",
+                        'measurement_datetime' => now()
+                    ]);
+                }
                 
                 $asset->update($validated);
                 
@@ -255,6 +285,30 @@ class AssetController extends Controller
                 'shift_id' => 'nullable|exists:shifts,id',
                 'photo' => 'nullable|image|max:2048'
             ]);
+
+            // Check if shift is changing in the full update
+            if (array_key_exists('shift_id', $validated)) {
+                $oldShiftId = $asset->shift_id;
+                $newShiftId = $validated['shift_id'] ? (int)$validated['shift_id'] : null;
+                
+                // Only create a runtime measurement if the shift is actually changing
+                if ($oldShiftId !== $newShiftId) {
+                    // Calculate current runtime before the shift change
+                    $currentRuntime = $asset->current_runtime_hours;
+                    
+                    // Create a runtime measurement to record the current state
+                    $user = Auth::user();
+                    $asset->runtimeMeasurements()->create([
+                        'user_id' => $user->id,
+                        'reported_hours' => $currentRuntime,
+                        'source' => 'shift_change',
+                        'notes' => $oldShiftId 
+                            ? "Horímetro registrado automaticamente devido à mudança de turno (ID: {$oldShiftId} → " . ($newShiftId ?: 'Nenhum') . ")"
+                            : "Horímetro registrado automaticamente devido à atribuição de turno (Nenhum → ID: {$newShiftId})",
+                        'measurement_datetime' => now()
+                    ]);
+                }
+            }
 
             // Valida se a área pertence à planta quando fornecida
             if (!empty($validated['area_id'])) {
@@ -335,15 +389,23 @@ class AssetController extends Controller
     {
         $asset->load('latestRuntimeMeasurement.user', 'shift');
         
-        return response()->json([
+        // Get the authenticated user for timezone conversion
+        $user = Auth::user();
+        
+        $response = [
             'current_hours' => $asset->current_runtime_hours,
             'last_measurement' => $asset->latestRuntimeMeasurement ? [
                 'hours' => $asset->latestRuntimeMeasurement->reported_hours,
-                'datetime' => $asset->latestRuntimeMeasurement->measurement_datetime->toIso8601String(),
+                'datetime' => $user->convertFromUTC($asset->latestRuntimeMeasurement->measurement_datetime)->toIso8601String(),
+                'created_at' => $user->convertFromUTC($asset->latestRuntimeMeasurement->created_at)->toIso8601String(),
                 'user_name' => $asset->latestRuntimeMeasurement->user->name ?? null,
+                'source' => $asset->latestRuntimeMeasurement->source ?? 'manual',
             ] : null,
-            'calculation_details' => $asset->getRuntimeCalculationDetails()
-        ]);
+            'calculation_details' => $asset->getRuntimeCalculationDetails(),
+            'user_timezone' => $user->timezone ?? 'UTC'
+        ];
+        
+        return response()->json($response);
     }
 
     /**
@@ -354,15 +416,37 @@ class AssetController extends Controller
         $validated = $request->validate([
             'reported_hours' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:500',
-            'measurement_datetime' => 'nullable|date'
+            'measurement_datetime' => 'nullable|date|before_or_equal:now'
+        ], [
+            'measurement_datetime.before_or_equal' => 'A data e hora da medição não pode ser no futuro.',
+            'reported_hours.required' => 'O campo de horas é obrigatório.',
+            'reported_hours.numeric' => 'O campo de horas deve ser um número.',
+            'reported_hours.min' => 'O valor de horas não pode ser negativo.'
         ]);
 
-        // Use provided datetime or current time
-        $measurementDatetime = $validated['measurement_datetime'] ?? now();
+        // Get the authenticated user
+        $user = Auth::user();
+        
+        // Convert measurement datetime from user's timezone to UTC
+        if (isset($validated['measurement_datetime'])) {
+            $userDateTime = $validated['measurement_datetime'];
+            
+            // Check if the datetime is already in UTC (ends with 'Z' or contains '+00:00')
+            if (str_ends_with($userDateTime, 'Z') || str_contains($userDateTime, '+00:00')) {
+                // Already in UTC, just parse it
+                $measurementDatetime = Carbon::parse($userDateTime);
+            } else {
+                // Not in UTC, convert from user's timezone
+                $measurementDatetime = $user->convertToUTC($userDateTime);
+            }
+        } else {
+            // If no datetime provided, use current time in UTC
+            $measurementDatetime = now();
+        }
         
         // Create the runtime measurement record
         $measurement = $asset->runtimeMeasurements()->create([
-            'user_id' => Auth::id(),
+            'user_id' => $user->id,
             'reported_hours' => $validated['reported_hours'],
             'source' => 'manual',
             'notes' => $validated['notes'] ?? null,
@@ -380,9 +464,12 @@ class AssetController extends Controller
                 'current_hours' => $asset->current_runtime_hours,
                 'last_measurement' => [
                     'hours' => $measurement->reported_hours,
-                    'datetime' => $measurement->measurement_datetime->toIso8601String(),
+                    'datetime' => $user->convertFromUTC($measurement->measurement_datetime)->toIso8601String(),
+                    'created_at' => $user->convertFromUTC($measurement->created_at)->toIso8601String(),
                     'user_name' => $measurement->user->name ?? null,
-                ]
+                    'source' => $measurement->source ?? 'manual',
+                ],
+                'user_timezone' => $user->timezone ?? 'UTC'
             ]
         ]);
     }
@@ -415,6 +502,19 @@ class AssetController extends Controller
                 'name' => $asset->shift->name,
                 'schedules_count' => $asset->shift->schedules()->count()
             ] : null
+        ]);
+    }
+    
+    /**
+     * Get detailed runtime breakdown for debugging
+     */
+    public function getRuntimeBreakdown(Asset $asset)
+    {
+        $asset->load('shift.schedules.shiftTimes.breaks', 'latestRuntimeMeasurement');
+        
+        return response()->json([
+            'asset_tag' => $asset->tag,
+            'breakdown' => $asset->getDetailedRuntimeBreakdown()
         ]);
     }
 } 

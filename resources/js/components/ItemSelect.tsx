@@ -7,7 +7,7 @@ import { forwardRef, useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface ItemSelectProps extends SelectProps {
-    label: string;
+    label?: string;
     items: ReadonlyArray<{
         readonly id: number;
         readonly name: string;
@@ -93,7 +93,7 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                         className="text-primary flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:underline"
                     >
                         <PlusCircle className="h-4 w-4" />
-                        Criar novo(a) {label.toLowerCase()}
+                        Criar novo(a) {label?.toLowerCase() || 'item'}
                     </button>
                 );
             }
@@ -106,7 +106,7 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                         onClick={() => setIsSelectOpen(false)}
                     >
                         <PlusCircle className="h-4 w-4" />
-                        Criar novo(a) {label.toLowerCase()}
+                        Criar novo(a) {label?.toLowerCase() || 'item'}
                     </Link>
                 );
             }
@@ -116,10 +116,12 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
 
         return (
             <div className="grid gap-2">
-                <label className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    {label}
-                    {required && <span className="text-destructive ml-1">*</span>}
-                </label>
+                {label && (
+                    <label className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {label}
+                        {required && <span className="text-destructive ml-1">*</span>}
+                    </label>
+                )}
                 <div className="bg-background rounded-md">
                     <Select
                         value={value}
@@ -177,8 +179,8 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                                 <div className="flex flex-col">
                                     <div className="text-muted-foreground px-2 py-2 text-center text-sm">
                                         {hasCreateOption
-                                            ? `Nenhum(a) ${label.toLowerCase()} cadastrado(a)`
-                                            : `Nenhum(a) ${label.toLowerCase()} disponível`}
+                                            ? `Nenhum(a) ${label?.toLowerCase() || 'item'} cadastrado(a)`
+                                            : `Nenhum(a) ${label?.toLowerCase() || 'item'} disponível`}
                                     </div>
                                     {hasCreateOption && (
                                         <div className="border-t">

@@ -117,6 +117,7 @@ class ShiftController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'timezone' => 'nullable|string|timezone',
             'schedules' => 'required|array',
             'schedules.*.weekday' => ['required', Rule::in(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])],
             'schedules.*.shifts' => 'array',
@@ -204,8 +205,12 @@ class ShiftController extends Controller
             $validated = $this->validateShiftData($request);
 
             return DB::transaction(function () use ($validated, $request) {
+                // Get user's timezone or use default
+                $userTimezone = auth()->user()->timezone ?? config('app.timezone', 'UTC');
+                
                 $shiftData = [
-                    'name' => $validated['name']
+                    'name' => $validated['name'],
+                    'timezone' => $validated['timezone'] ?? $userTimezone
                 ];
 
                 $shift = Shift::create($shiftData);
@@ -368,9 +373,31 @@ class ShiftController extends Controller
             $validated = $this->validateShiftData($request);
 
             return DB::transaction(function () use ($shift, $validated, $request) {
+                // Get user's timezone or use existing shift timezone
+                $userTimezone = auth()->user()->timezone ?? $shift->timezone;
+                
                 $shiftData = [
-                    'name' => $validated['name']
+                    'name' => $validated['name'],
+                    'timezone' => $validated['timezone'] ?? $userTimezone
                 ];
+                
+                // Before updating the shift, create runtime measurements for all assets using this shift
+                $affectedAssets = $shift->assets()->get();
+                $user = auth()->user();
+                
+                foreach ($affectedAssets as $asset) {
+                    // Calculate current runtime before the shift change
+                    $currentRuntime = $asset->current_runtime_hours;
+                    
+                    // Create a runtime measurement to record the current state
+                    $asset->runtimeMeasurements()->create([
+                        'user_id' => $user->id,
+                        'reported_hours' => $currentRuntime,
+                        'source' => 'shift_update',
+                        'notes' => "Horímetro registrado automaticamente devido à atualização do turno '{$shift->name}'",
+                        'measurement_datetime' => now()
+                    ]);
+                }
                 
                 $shift->update($shiftData);
 

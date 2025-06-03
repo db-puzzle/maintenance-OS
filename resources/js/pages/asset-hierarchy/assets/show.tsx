@@ -6,7 +6,7 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type Area, type Asset, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, usePage, router } from '@inertiajs/react';
 import { CalendarClock, FileText, MessageSquare, Clock, Calendar } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -57,6 +57,7 @@ interface Props {
                 datetime: string;
                 user_name?: string;
             };
+            user_timezone?: string;
         };
     };
     plants: Plant[];
@@ -235,6 +236,9 @@ export default function Show({ asset, plants, assetTypes, isCreating = false }: 
                 });
                 setSelectedShiftId(tempSelectedShiftId);
                 toast.success('Turno associado ao ativo');
+
+                // Reload the page to refresh runtime data
+                router.reload();
             } catch (error) {
                 console.error('Error updating asset shift:', error);
                 toast.error('Erro ao associar turno');
@@ -274,6 +278,31 @@ export default function Show({ asset, plants, assetTypes, isCreating = false }: 
                     toast.error('Erro ao associar turno ao ativo');
                 }
             }
+        }
+    };
+
+    const handleShiftUpdated = (updatedShift: Shift) => {
+        // Update the shift in the list
+        setShifts(shifts.map(shift =>
+            shift.id === updatedShift.id ? updatedShift : shift
+        ));
+
+        // Update the selected shift details if it's the currently selected one
+        if (selectedShift && selectedShift.id === updatedShift.id) {
+            setSelectedShift(updatedShift);
+        }
+
+        // If we're in edit mode and this is the temp selected shift, update it
+        if (isEditingShift && tempSelectedShiftId === updatedShift.id.toString()) {
+            // Exit edit mode
+            setIsEditingShift(false);
+            setTempSelectedShiftId('');
+
+            // Show success message
+            toast.success('Turno atualizado com sucesso');
+
+            // Reload the page to refresh runtime data (automatic runtime report)
+            router.reload();
         }
     };
 
@@ -328,32 +357,37 @@ export default function Show({ asset, plants, assetTypes, isCreating = false }: 
                             </div>
                         ) : (
                             <>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
                                     {/* First Column - Placeholder */}
-                                    <AssetRuntimeInput
-                                        assetId={asset?.id}
-                                        runtimeData={asset?.runtime_data}
-                                        onRuntimeUpdated={(data) => {
-                                            // Handle runtime update if needed
-                                            console.log('Runtime updated:', data);
-                                        }}
-                                    />
+                                    <div className="h-full">
+                                        <AssetRuntimeInput
+                                            assetId={asset?.id}
+                                            runtimeData={asset?.runtime_data}
+                                            onRuntimeUpdated={(data) => {
+                                                // Handle runtime update if needed
+                                                console.log('Runtime updated:', data);
+                                            }}
+                                        />
+                                    </div>
 
                                     {/* Second Column - Shift Configuration */}
-                                    <ShiftSelectionCard
-                                        ref={shiftSelectionRef}
-                                        shifts={shifts}
-                                        selectedShiftId={selectedShiftId}
-                                        tempSelectedShiftId={tempSelectedShiftId}
-                                        isEditingShift={isEditingShift}
-                                        loadingShifts={loadingShifts}
-                                        plantToShow={plantToShow}
-                                        onEditShift={handleEditShift}
-                                        onCancelShiftEdit={handleCancelShiftEdit}
-                                        onSaveShift={handleSaveShift}
-                                        onShiftChange={handleShiftChange}
-                                        onCreateClick={handleCreateShiftClick}
-                                    />
+                                    <div className="h-full">
+                                        <ShiftSelectionCard
+                                            ref={shiftSelectionRef}
+                                            shifts={shifts}
+                                            selectedShiftId={selectedShiftId}
+                                            tempSelectedShiftId={tempSelectedShiftId}
+                                            isEditingShift={isEditingShift}
+                                            loadingShifts={loadingShifts}
+                                            plantToShow={plantToShow}
+                                            onEditShift={handleEditShift}
+                                            onCancelShiftEdit={handleCancelShiftEdit}
+                                            onSaveShift={handleSaveShift}
+                                            onShiftChange={handleShiftChange}
+                                            onCreateClick={handleCreateShiftClick}
+                                            onShiftUpdated={handleShiftUpdated}
+                                        />
+                                    </div>
                                 </div>
 
                                 {selectedShift ? (
