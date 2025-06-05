@@ -1,7 +1,11 @@
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import React, { FormEventHandler, useState } from 'react';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
+import { TIMEZONE_GROUPS } from '@/constants/timezones';
+import { Check, ChevronsUpDown } from 'lucide-react';
 
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
@@ -9,9 +13,17 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -26,51 +38,24 @@ interface ProfileForm {
     timezone: string;
 }
 
-// Common timezones grouped by region
-const timezones = {
-    'Americas': [
-        { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
-        { value: 'America/Chicago', label: 'Central Time (US & Canada)' },
-        { value: 'America/Denver', label: 'Mountain Time (US & Canada)' },
-        { value: 'America/Los_Angeles', label: 'Pacific Time (US & Canada)' },
-        { value: 'America/Sao_Paulo', label: 'Brasília Time' },
-        { value: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires' },
-        { value: 'America/Mexico_City', label: 'Mexico City' },
-    ],
-    'Europe': [
-        { value: 'Europe/London', label: 'London' },
-        { value: 'Europe/Paris', label: 'Paris' },
-        { value: 'Europe/Berlin', label: 'Berlin' },
-        { value: 'Europe/Madrid', label: 'Madrid' },
-        { value: 'Europe/Rome', label: 'Rome' },
-        { value: 'Europe/Moscow', label: 'Moscow' },
-    ],
-    'Asia': [
-        { value: 'Asia/Tokyo', label: 'Tokyo' },
-        { value: 'Asia/Shanghai', label: 'Beijing, Shanghai' },
-        { value: 'Asia/Hong_Kong', label: 'Hong Kong' },
-        { value: 'Asia/Singapore', label: 'Singapore' },
-        { value: 'Asia/Kolkata', label: 'India Standard Time' },
-        { value: 'Asia/Dubai', label: 'Dubai' },
-    ],
-    'Pacific': [
-        { value: 'Australia/Sydney', label: 'Sydney' },
-        { value: 'Australia/Melbourne', label: 'Melbourne' },
-        { value: 'Pacific/Auckland', label: 'Auckland' },
-    ],
-    'Other': [
-        { value: 'UTC', label: 'UTC' },
-    ]
-};
-
 export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: boolean; status?: string }) {
     const { auth } = usePage<SharedData>().props;
+    const [open, setOpen] = useState(false);
 
     const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<Required<ProfileForm>>({
         name: auth.user.name,
         email: auth.user.email,
         timezone: (auth.user.timezone as string) || 'UTC',
     });
+
+    // Get the label for the selected timezone
+    const getTimezoneLabel = (value: string) => {
+        for (const zones of Object.values(TIMEZONE_GROUPS)) {
+            const zone = zones.find(z => z.value === value);
+            if (zone) return zone.label;
+        }
+        return value;
+    };
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -125,25 +110,52 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                         <div className="grid gap-2">
                             <Label htmlFor="timezone">Timezone</Label>
 
-                            <Select value={data.timezone} onValueChange={(value) => setData('timezone', value)}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select your timezone" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {Object.entries(timezones).map(([region, zones]) => (
-                                        <div key={region}>
-                                            <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                                                {region}
-                                            </div>
-                                            {zones.map((zone) => (
-                                                <SelectItem key={zone.value} value={zone.value}>
-                                                    {zone.label}
-                                                </SelectItem>
+                            <Popover open={open} onOpenChange={setOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={open}
+                                        className="w-full justify-between"
+                                    >
+                                        {data.timezone ? getTimezoneLabel(data.timezone) : "Select timezone..."}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                                    <Command>
+                                        <CommandInput placeholder="Search timezones..." />
+                                        <CommandList>
+                                            <CommandEmpty>No timezone found.</CommandEmpty>
+                                            {Object.entries(TIMEZONE_GROUPS).map(([region, zones], index) => (
+                                                <React.Fragment key={region}>
+                                                    {index > 0 && <CommandSeparator />}
+                                                    <CommandGroup heading={region}>
+                                                        {zones.map((zone) => (
+                                                            <CommandItem
+                                                                key={zone.value}
+                                                                value={`${zone.value} ${zone.label}`}
+                                                                onSelect={() => {
+                                                                    setData('timezone', zone.value);
+                                                                    setOpen(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        data.timezone === zone.value ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {zone.label}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </React.Fragment>
                                             ))}
-                                        </div>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
 
                             <InputError className="mt-2" message={errors.timezone} />
                         </div>

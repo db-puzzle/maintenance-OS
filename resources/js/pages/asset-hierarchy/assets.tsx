@@ -67,6 +67,8 @@ export default function Assets({ asset, filters }: Props) {
             manufacturer: true,
             manufacturing_year: true,
             serial_number: true,
+            part_number: true,
+            shift: true,
         };
     });
 
@@ -183,6 +185,17 @@ export default function Assets({ asset, filters }: Props) {
             width: 'w-[200px]',
         },
         {
+            id: 'part_number',
+            header: (
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('part_number')}>
+                    Part Number
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Asset }) => row.original.part_number ?? '-',
+            width: 'w-[200px]',
+        },
+        {
             id: 'plant',
             header: (
                 <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('plant')}>
@@ -217,6 +230,17 @@ export default function Assets({ asset, filters }: Props) {
             width: 'w-[200px]',
         },
         {
+            id: 'shift',
+            header: (
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('shift')}>
+                    Turno
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ),
+            cell: (row: { original: Asset }) => row.original.shift?.name ?? '-',
+            width: 'w-[150px]',
+        },
+        {
             id: 'manufacturer',
             header: (
                 <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('manufacturer')}>
@@ -224,7 +248,13 @@ export default function Assets({ asset, filters }: Props) {
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
-            cell: (row: { original: Asset }) => row.original.manufacturer ?? '-',
+            cell: (row: { original: Asset }) => {
+                const manufacturer = row.original.manufacturer;
+                if (typeof manufacturer === 'object' && manufacturer !== null) {
+                    return manufacturer.name;
+                }
+                return manufacturer ?? '-';
+            },
             width: 'w-[200px]',
         },
         {

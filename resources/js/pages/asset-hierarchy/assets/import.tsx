@@ -19,6 +19,7 @@ import CadastroLayout from '@/layouts/asset-hierarchy/layout';
 const importFields = [
     { value: 'tag', label: 'Tag' },
     { value: 'serial_number', label: 'Número de Série' },
+    { value: 'part_number', label: 'Part Number' },
     { value: 'asset_type_id', label: 'Tipo de Ativo' },
     { value: 'description', label: 'Descrição' },
     { value: 'manufacturer', label: 'Fabricante' },
@@ -97,7 +98,7 @@ export default function ImportAsset() {
         if (!csvData?.headers || !fieldMapping) return false;
 
         // Campos obrigatórios que devem estar mapeados
-        const requiredFields = ['tag', 'plant_id', 'asset_type_id'];
+        const requiredFields = ['tag'];
 
         // Verifica se todos os campos obrigatórios estão mapeados
         const hasAllRequiredFields = requiredFields.every((field) => Object.values(fieldMapping).includes(field));
@@ -455,6 +456,7 @@ export default function ImportAsset() {
                                             <div className="mt-4 grid grid-cols-3 gap-x-12 gap-y-1 font-mono text-sm">
                                                 <div>Tag</div>
                                                 <div>Número de Série</div>
+                                                <div>Part Number</div>
                                                 <div>Tipo de Ativo</div>
                                                 <div>Descrição</div>
                                                 <div>Fabricante</div>
@@ -565,7 +567,7 @@ export default function ImportAsset() {
                                                                         {importFields.map((field) => (
                                                                             <SelectItem key={field.value} value={field.value}>
                                                                                 {field.label}
-                                                                                {['tag', 'plant_id', 'asset_type_id'].includes(field.value) && (
+                                                                                {['tag'].includes(field.value) && (
                                                                                     <span className="ml-1 text-xs text-red-500">*</span>
                                                                                 )}
                                                                             </SelectItem>
@@ -598,8 +600,6 @@ export default function ImportAsset() {
                                                 <p className="font-medium">Campos obrigatórios não mapeados:</p>
                                                 <ul className="mt-1 list-inside list-disc">
                                                     {!Object.values(fieldMapping).includes('tag') && <li>Tag</li>}
-                                                    {!Object.values(fieldMapping).includes('plant_id') && <li>Planta</li>}
-                                                    {!Object.values(fieldMapping).includes('asset_type_id') && <li>Tipo de Ativo</li>}
                                                 </ul>
                                             </div>
                                         )}

@@ -42,9 +42,20 @@ interface Shift {
     }>;
 }
 
+interface Manufacturer {
+    id: number;
+    name: string;
+    website?: string;
+    email?: string;
+    phone?: string;
+    country?: string;
+    notes?: string;
+}
+
 interface Props {
     asset?: Asset & {
         asset_type: AssetType;
+        manufacturer?: Manufacturer;
         plant: Plant;
         area?: Area & { plant: Plant };
         sector?: Sector;
@@ -62,6 +73,7 @@ interface Props {
     };
     plants: Plant[];
     assetTypes: AssetType[];
+    manufacturers: Manufacturer[];
     isCreating?: boolean;
 }
 
@@ -76,7 +88,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Show({ asset, plants, assetTypes, isCreating = false }: Props) {
+export default function Show({ asset, plants, assetTypes, manufacturers, isCreating = false }: Props) {
     const { url } = usePage();
 
     // Extrai o parâmetro tab da URL
@@ -298,9 +310,6 @@ export default function Show({ asset, plants, assetTypes, isCreating = false }: 
             setIsEditingShift(false);
             setTempSelectedShiftId('');
 
-            // Show success message
-            toast.success('Turno atualizado com sucesso');
-
             // Reload the page to refresh runtime data (automatic runtime report)
             router.reload();
         }
@@ -325,6 +334,7 @@ export default function Show({ asset, plants, assetTypes, isCreating = false }: 
                         asset={asset}
                         plants={plants}
                         assetTypes={assetTypes}
+                        manufacturers={manufacturers}
                         initialMode={isCreating ? "edit" : "view"}
                         onSuccess={isCreating ? handleAssetCreated : undefined}
                     />
@@ -582,7 +592,7 @@ export default function Show({ asset, plants, assetTypes, isCreating = false }: 
                             {asset.asset_type.name}
                         </Link>
                     ) : (
-                        'Tipo não definido'
+                        'Sem tipo definido'
                     )
                 }
                 breadcrumbs={breadcrumbs}

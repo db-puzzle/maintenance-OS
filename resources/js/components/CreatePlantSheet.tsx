@@ -57,7 +57,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
 
     // Determina se deve usar controle interno ou externo
     const sheetOpen = showTrigger ? internalSheetOpen : (isOpen ?? false);
-    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => {}));
+    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => { }));
 
     const formatCEP = (value: string) => {
         // Remove todos os caracteres não numéricos
@@ -125,7 +125,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {},
+                                clearErrors: () => { },
                             }}
                             name="name"
                             label="Nome da Planta"
@@ -142,7 +142,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                             data,
                                             setData,
                                             errors,
-                                            clearErrors: () => {},
+                                            clearErrors: () => { },
                                         }}
                                         name="street"
                                         label="Rua"
@@ -155,7 +155,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                             data,
                                             setData,
                                             errors,
-                                            clearErrors: () => {},
+                                            clearErrors: () => { },
                                         }}
                                         name="number"
                                         label="Número"
@@ -168,7 +168,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                             data,
                                             setData: (name, value) => handleCEPChange({ target: { value } } as any),
                                             errors,
-                                            clearErrors: () => {},
+                                            clearErrors: () => { },
                                         }}
                                         name="zip_code"
                                         label="CEP"
@@ -187,7 +187,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                             data,
                                             setData,
                                             errors,
-                                            clearErrors: () => {},
+                                            clearErrors: () => { },
                                         }}
                                         name="city"
                                         label="Cidade"
@@ -250,7 +250,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {},
+                                clearErrors: () => { },
                             }}
                             name="gps_coordinates"
                             label="Coordenadas GPS"

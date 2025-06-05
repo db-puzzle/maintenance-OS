@@ -10,6 +10,7 @@ use App\Http\Controllers\AssetHierarchy\AssetTypeController;
 use App\Http\Controllers\AssetHierarchy\AssetImportExportController;
 use App\Http\Controllers\AssetHierarchy\ShiftController;
 use App\Http\Controllers\AssetHierarchy\PlantController;
+use App\Http\Controllers\AssetHierarchy\ManufacturerController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('assets')->name('assets.')->group(function () {
@@ -92,4 +93,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('asset-hierarchy/shifts/{shift}', [ShiftController::class, 'update'])->name('asset-hierarchy.shifts.update');
     Route::delete('asset-hierarchy/shifts/{shift}', [ShiftController::class, 'destroy'])->name('asset-hierarchy.shifts.destroy');
     Route::get('asset-hierarchy/shifts/{shift}/check-dependencies', [ShiftController::class, 'checkDependencies'])->name('asset-hierarchy.shifts.check-dependencies');
+    Route::get('asset-hierarchy/shifts/{shift}/assets', [ShiftController::class, 'getAssets'])->name('asset-hierarchy.shifts.assets');
+    Route::post('asset-hierarchy/shifts/{shift}/copy-and-update', [ShiftController::class, 'copyAndUpdate'])->name('asset-hierarchy.shifts.copy-and-update');
+
+    Route::get('asset-hierarchy/manufacturers', [ManufacturerController::class, 'index'])->name('asset-hierarchy.manufacturers');
+    Route::get('asset-hierarchy/manufacturers/all', [ManufacturerController::class, 'all'])->name('asset-hierarchy.manufacturers.all');
+    Route::post('asset-hierarchy/manufacturers', [ManufacturerController::class, 'store'])->name('asset-hierarchy.manufacturers.store');
+    Route::get('asset-hierarchy/manufacturers/{manufacturer}', [ManufacturerController::class, 'show'])->name('asset-hierarchy.manufacturers.show');
+    Route::get('asset-hierarchy/manufacturers/{manufacturer}/edit', [ManufacturerController::class, 'edit'])->name('asset-hierarchy.manufacturers.edit');
+    Route::put('asset-hierarchy/manufacturers/{manufacturer}', [ManufacturerController::class, 'update'])->name('asset-hierarchy.manufacturers.update');
+    Route::delete('asset-hierarchy/manufacturers/{manufacturer}', [ManufacturerController::class, 'destroy'])->name('asset-hierarchy.manufacturers.destroy');
+    Route::get('asset-hierarchy/manufacturers/{manufacturer}/assets', [ManufacturerController::class, 'assets'])->name('asset-hierarchy.manufacturers.assets');
 }); 

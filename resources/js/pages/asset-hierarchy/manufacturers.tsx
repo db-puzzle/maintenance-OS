@@ -1,5 +1,3 @@
-import ShiftCalendarView from '@/components/ShiftCalendarView';
-import ShiftTableView from '@/components/ShiftTableView';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
@@ -9,56 +7,37 @@ import { Label } from '@/components/ui/label';
 import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowUpDown, Calendar, ChevronDownIcon, ChevronUpIcon, Clock, List, MoreVertical, Plus, Settings, AlertTriangle } from 'lucide-react';
+import { ArrowUpDown, Building2, MoreVertical, Plus, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import axios from 'axios';
-
-interface Break {
-    start_time: string;
-    end_time: string;
-}
-
-interface Shift {
-    start_time: string;
-    end_time: string;
-    active: boolean;
-    breaks: Break[];
-}
-
-interface Schedule {
-    weekday: string;
-    shifts: Shift[];
-}
-
-interface ShiftData {
-    id: number;
-    name: string;
-    plant_count?: number;
-    area_count?: number;
-    sector_count?: number;
-    asset_count?: number;
-    schedules: Schedule[];
-    total_work_hours?: number;
-    total_work_minutes?: number;
-    total_break_hours?: number;
-    total_break_minutes?: number;
-}
+import CreateManufacturerSheet from '@/components/CreateManufacturerSheet';
 
 interface AssetData {
     id: number;
     tag: string;
     description: string;
+    serial_number: string | null;
+    part_number: string | null;
     asset_type: string | null;
     plant: string | null;
     area: string | null;
     sector: string | null;
-    current_runtime_hours: number;
+}
+
+interface ManufacturerData {
+    id: number;
+    name: string;
+    website?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    country?: string | null;
+    notes?: string | null;
+    assets_count?: number;
 }
 
 interface PageProps {
@@ -69,10 +48,10 @@ interface PageProps {
 }
 
 interface Props {
-    shifts:
-    | ShiftData[]
+    manufacturers:
+    | ManufacturerData[]
     | {
-        data: ShiftData[];
+        data: ManufacturerData[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -96,89 +75,13 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy',
     },
     {
-        title: 'Turnos',
-        href: '/asset-hierarchy/shifts',
+        title: 'Fabricantes',
+        href: '/asset-hierarchy/manufacturers',
     },
 ];
 
-// Component to display assets list in the expanded view
-const AssetsList = ({ shiftId, assetCount }: { shiftId: number; assetCount: number }) => {
-    const [assets, setAssets] = useState<AssetData[]>([]);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        if (assetCount > 0) {
-            loadAssets();
-        }
-    }, [shiftId]);
-
-    const loadAssets = async () => {
-        setLoading(true);
-        try {
-            const response = await axios.get(route('asset-hierarchy.shifts.assets', shiftId));
-            setAssets(response.data.assets || []);
-        } catch (error) {
-            console.error('Error loading assets:', error);
-            toast.error('Erro ao carregar ativos');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="p-4">
-            <h4 className="mb-4 font-medium">Ativos Associados</h4>
-            {loading ? (
-                <div className="flex items-center justify-center py-8">
-                    <div className="text-muted-foreground">Carregando ativos...</div>
-                </div>
-            ) : assetCount === 0 ? (
-                <p className="text-muted-foreground">Nenhum ativo associado a este turno.</p>
-            ) : (
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Tag</TableHead>
-                                <TableHead>Descrição</TableHead>
-                                <TableHead>Tipo</TableHead>
-                                <TableHead>Localização</TableHead>
-                                <TableHead className="text-right">Horímetro</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {assets.map((asset) => (
-                                <TableRow key={asset.id}>
-                                    <TableCell className="font-medium">
-                                        <Link
-                                            href={route('asset-hierarchy.assets.show', asset.id)}
-                                            className="text-primary hover:underline"
-                                        >
-                                            {asset.tag}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell>{asset.description || '-'}</TableCell>
-                                    <TableCell>{asset.asset_type || '-'}</TableCell>
-                                    <TableCell>
-                                        {[asset.plant, asset.area, asset.sector]
-                                            .filter(Boolean)
-                                            .join(' > ') || '-'}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {asset.current_runtime_hours.toFixed(1)}h
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            )}
-        </div>
-    );
-};
-
 export default function Index({
-    shifts,
+    manufacturers,
     filters = {
         search: '',
         sort: 'name',
@@ -190,9 +93,8 @@ export default function Index({
     const [perPage, setPerPage] = useState(filters?.per_page || 8);
     const [sort, setSort] = useState(filters?.sort || 'name');
     const [direction, setDirection] = useState<'asc' | 'desc'>(filters?.direction || 'asc');
-    const [expanded, setExpanded] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [selectedShift, setSelectedShift] = useState<ShiftData | null>(null);
+    const [selectedManufacturer, setSelectedManufacturer] = useState<ManufacturerData | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
@@ -216,7 +118,7 @@ export default function Index({
     useEffect(() => {
         const searchTimeout = setTimeout(() => {
             router.get(
-                route('asset-hierarchy.shifts'),
+                route('asset-hierarchy.manufacturers'),
                 {
                     search,
                     sort,
@@ -240,19 +142,19 @@ export default function Index({
     };
 
     const handleDelete = async (id: number) => {
-        const data = Array.isArray(shifts) ? shifts : shifts.data;
-        const shift = data.find((shift: ShiftData) => shift.id === id);
-        if (!shift) return;
+        const data = Array.isArray(manufacturers) ? manufacturers : manufacturers.data;
+        const manufacturer = data.find((m: ManufacturerData) => m.id === id);
+        if (!manufacturer) return;
 
-        setSelectedShift(shift);
+        setSelectedManufacturer(manufacturer);
         setOpenDropdownId(null); // Close dropdown before opening dialog
 
-        // Check if shift has associated assets
-        if (shift.asset_count && shift.asset_count > 0) {
+        // Check if manufacturer has associated assets
+        if (manufacturer.assets_count && manufacturer.assets_count > 0) {
             // Fetch the list of associated assets
             setLoadingAssets(true);
             try {
-                const response = await axios.get(route('asset-hierarchy.shifts.assets', shift.id));
+                const response = await axios.get(route('asset-hierarchy.manufacturers.assets', manufacturer.id));
                 setAssociatedAssets(response.data.assets || []);
                 setShowAssetsDialog(true);
             } catch (error) {
@@ -268,18 +170,18 @@ export default function Index({
     };
 
     const confirmDelete = () => {
-        if (!selectedShift) return;
+        if (!selectedManufacturer) return;
 
         setIsDeleting(true);
-        router.delete(route('asset-hierarchy.shifts.destroy', selectedShift.id), {
+        router.delete(route('asset-hierarchy.manufacturers.destroy', selectedManufacturer.id), {
             onSuccess: () => {
-                toast.success('Turno excluído com sucesso!');
+                toast.success('Fabricante excluído com sucesso!');
                 setShowDeleteDialog(false);
-                setSelectedShift(null);
+                setSelectedManufacturer(null);
                 setConfirmationText('');
             },
             onError: () => {
-                toast.error('Erro ao excluir turno');
+                toast.error('Erro ao excluir fabricante');
             },
             onFinish: () => {
                 setIsDeleting(false);
@@ -289,36 +191,7 @@ export default function Index({
 
     const isConfirmationValid = confirmationText === 'EXCLUIR';
 
-    const data = Array.isArray(shifts) ? shifts : shifts.data;
-
-    // Função para transformar os dados do backend para o formato esperado pelos componentes
-    const transformSchedules = (schedules: any[]): Schedule[] => {
-        return schedules.map((schedule) => ({
-            weekday: schedule.weekday,
-            shifts: schedule.shifts?.map((shift: any) => ({
-                start_time: shift.start_time,
-                end_time: shift.end_time,
-                active: shift.active ?? true, // Mantém o valor existente ou usa true como padrão
-                breaks:
-                    shift.breaks?.map((breakTime: any) => ({
-                        start_time: breakTime.start_time,
-                        end_time: breakTime.end_time,
-                    })) || [],
-            })) || [
-                    {
-                        start_time: '07:00',
-                        end_time: '17:00',
-                        active: true,
-                        breaks: [
-                            {
-                                start_time: '12:00',
-                                end_time: '13:00',
-                            },
-                        ],
-                    },
-                ], // Valor padrão se não houver turnos
-        }));
-    };
+    const data = Array.isArray(manufacturers) ? manufacturers : manufacturers.data;
 
     const columns = [
         {
@@ -329,61 +202,49 @@ export default function Index({
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
-            cell: (row: { original: ShiftData }) => row.original.name,
+            cell: (row: { original: ManufacturerData }) => row.original.name,
             width: 'w-[200px]',
         },
         {
-            id: 'entities',
+            id: 'country',
             header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('plant_count')}>
-                    Associações
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('country')}>
+                    País
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
-            cell: (row: { original: ShiftData }) => {
-                const counts = [];
-                if ((row.original.plant_count || 0) > 0) counts.push(`${row.original.plant_count} planta(s)`);
-                if ((row.original.area_count || 0) > 0) counts.push(`${row.original.area_count} área(s)`);
-                if ((row.original.sector_count || 0) > 0) counts.push(`${row.original.sector_count} setor(es)`);
-                if ((row.original.asset_count || 0) > 0) counts.push(`${row.original.asset_count} ativo(s)`);
-                return counts.length > 0 ? counts.join(', ') : 'Nenhuma associação';
+            cell: (row: { original: ManufacturerData }) => row.original.country || '-',
+            width: 'w-[150px]',
+        },
+        {
+            id: 'contact',
+            header: 'Contato',
+            cell: (row: { original: ManufacturerData }) => {
+                const contacts = [];
+                if (row.original.email) contacts.push(row.original.email);
+                if (row.original.phone) contacts.push(row.original.phone);
+                return contacts.length > 0 ? contacts.join(' | ') : '-';
             },
             width: 'w-[300px]',
         },
         {
-            id: 'work_hours',
+            id: 'assets_count',
             header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('total_work_hours')}>
-                    Horas de Trabalho
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('assets_count')}>
+                    Ativos
                     <ArrowUpDown className="h-4 w-4" />
                 </div>
             ),
-            cell: (row: { original: ShiftData }) => {
-                const hours = row.original.total_work_hours || 0;
-                const minutes = row.original.total_work_minutes || 0;
-                return `${hours}h ${minutes}m`;
-            },
-            width: 'w-[150px]',
-        },
-        {
-            id: 'break_hours',
-            header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('total_break_hours')}>
-                    Horas de Intervalo
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ),
-            cell: (row: { original: ShiftData }) => {
-                const hours = row.original.total_break_hours || 0;
-                const minutes = row.original.total_break_minutes || 0;
-                return `${hours}h ${minutes}m`;
+            cell: (row: { original: ManufacturerData }) => {
+                const count = row.original.assets_count || 0;
+                return count > 0 ? `${count} ativo(s)` : 'Nenhum ativo';
             },
             width: 'w-[150px]',
         },
         {
             id: 'actions',
             header: 'Ações',
-            cell: (row: { original: ShiftData }) => (
+            cell: (row: { original: ManufacturerData }) => (
                 <DropdownMenu
                     open={openDropdownId === row.original.id}
                     onOpenChange={(open) => setOpenDropdownId(open ? row.original.id : null)}
@@ -395,17 +256,13 @@ export default function Index({
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="ignore-row-click w-32">
-                        <DropdownMenuItem
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setExpanded(expanded === row.original.id ? null : row.original.id);
-                                setOpenDropdownId(null);
-                            }}
-                        >
-                            Visualizar
+                        <DropdownMenuItem asChild>
+                            <Link href={route('asset-hierarchy.manufacturers.show', row.original.id)} onClick={(e) => e.stopPropagation()}>
+                                Visualizar
+                            </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.shifts.edit', row.original.id)} onClick={(e) => e.stopPropagation()}>
+                            <Link href={route('asset-hierarchy.manufacturers.edit', row.original.id)} onClick={(e) => e.stopPropagation()}>
                                 Editar
                             </Link>
                         </DropdownMenuItem>
@@ -426,34 +283,40 @@ export default function Index({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Turnos" />
+            <Head title="Fabricantes" />
 
             <ListLayout
-                title="Turnos"
-                description="Gerencie os turnos de trabalho"
-                searchPlaceholder="Buscar por nome..."
+                title="Fabricantes"
+                description="Gerencie os fabricantes de ativos"
+                searchPlaceholder="Buscar por nome, email ou país..."
                 searchValue={search}
                 onSearchChange={(value) => setSearch(value)}
-                createRoute={route('asset-hierarchy.shifts.shift-editor')}
-                createButtonText="Adicionar"
+                createRoute=""
+                createButtonText=""
+                customCreateButton={
+                    <CreateManufacturerSheet
+                        showTrigger
+                        triggerText="Adicionar"
+                        triggerVariant="default"
+                    />
+                }
             >
                 <div className="space-y-4">
                     {data.length === 0 ? (
                         <Card className="bg-muted/50 rounded-lg border p-6 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
                             <CardContent className="flex flex-col items-center justify-center py-8 text-center">
                                 <div className="bg-muted mb-3 flex size-12 items-center justify-center rounded-full">
-                                    <Clock className="text-muted-foreground size-6" />
+                                    <Building2 className="text-muted-foreground size-6" />
                                 </div>
-                                <h3 className="mb-1 text-lg font-medium">Nenhum turno cadastrado</h3>
+                                <h3 className="mb-1 text-lg font-medium">Nenhum fabricante cadastrado</h3>
                                 <p className="text-muted-foreground mb-4 text-sm">
-                                    Adicione turnos para começar a gerenciar os horários de trabalho.
+                                    Adicione fabricantes para associar aos ativos.
                                 </p>
-                                <Link href={route('asset-hierarchy.shifts.shift-editor')}>
-                                    <Button>
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Adicionar Turno
-                                    </Button>
-                                </Link>
+                                <CreateManufacturerSheet
+                                    showTrigger
+                                    triggerText="Adicionar Fabricante"
+                                    triggerVariant="default"
+                                />
                             </CardContent>
                         </Card>
                     ) : (
@@ -461,7 +324,6 @@ export default function Index({
                             <Table>
                                 <TableHeader className="bg-muted sticky top-0 z-10">
                                     <TableRow>
-                                        <TableHead className="w-[40px] text-center" />
                                         {columns.map((column, index) => (
                                             <TableHead key={column.id} className={`${index === 0 ? 'pl-4' : ''} ${column.width || ''}`}>
                                                 {column.header}
@@ -470,77 +332,37 @@ export default function Index({
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {data.map((shift) => [
+                                    {data.map((manufacturer) => (
                                         <TableRow
-                                            key={shift.id}
-                                            className={`${expanded === shift.id ? 'bg-muted/50 hover:bg-background' : 'hover:bg-muted/30'} cursor-pointer transition-colors`}
+                                            key={manufacturer.id}
+                                            className="hover:bg-muted/30 cursor-pointer transition-colors"
                                             onClick={(e) => {
                                                 // Evita conflito com ações (dropdown e links)
                                                 if ((e.target as HTMLElement).closest('.ignore-row-click, a, button')) return;
-                                                setExpanded(expanded === shift.id ? null : shift.id);
+                                                router.visit(route('asset-hierarchy.manufacturers.show', manufacturer.id));
                                             }}
                                         >
-                                            <TableCell className="w-[40px] text-center align-middle">
-                                                {expanded === shift.id ? (
-                                                    <ChevronUpIcon className="mx-auto h-4 w-4" />
-                                                ) : (
-                                                    <ChevronDownIcon className="mx-auto h-4 w-4" />
-                                                )}
-                                            </TableCell>
                                             {columns.map((column) => (
                                                 <TableCell
                                                     key={column.id}
                                                     className={column.width + (column.id === 'actions' ? ' ignore-row-click' : '')}
                                                 >
-                                                    {column.cell({ original: shift })}
+                                                    {column.cell({ original: manufacturer })}
                                                 </TableCell>
                                             ))}
-                                        </TableRow>,
-                                        expanded === shift.id && (
-                                            <TableRow key={`expanded-${shift.id}`} className="hover:bg-transparent">
-                                                <TableCell colSpan={columns.length + 1} className="bg-muted/50 border-border/40 border-t p-0">
-                                                    <Tabs defaultValue="calendar" className="w-full p-4">
-                                                        <div className="mb-4 flex items-center justify-between">
-                                                            <TabsList className="grid w-[400px] grid-cols-3">
-                                                                <TabsTrigger value="calendar" className="flex items-center gap-2">
-                                                                    <Calendar className="h-4 w-4" />
-                                                                    Calendário
-                                                                </TabsTrigger>
-                                                                <TabsTrigger value="table" className="flex items-center gap-2">
-                                                                    <List className="h-4 w-4" />
-                                                                    Tabela
-                                                                </TabsTrigger>
-                                                                <TabsTrigger value="asset" className="flex items-center gap-2">
-                                                                    <Settings className="h-4 w-4" />
-                                                                    Ativos
-                                                                </TabsTrigger>
-                                                            </TabsList>
-                                                        </div>
-                                                        <TabsContent value="calendar">
-                                                            <ShiftCalendarView schedules={transformSchedules(shift.schedules)} showAllDays={true} />
-                                                        </TabsContent>
-                                                        <TabsContent value="table">
-                                                            <ShiftTableView schedules={transformSchedules(shift.schedules)} />
-                                                        </TabsContent>
-                                                        <TabsContent value="asset">
-                                                            <AssetsList shiftId={shift.id} assetCount={shift.asset_count || 0} />
-                                                        </TabsContent>
-                                                    </Tabs>
-                                                </TableCell>
-                                            </TableRow>
-                                        ),
-                                    ])}
+                                        </TableRow>
+                                    ))}
                                 </TableBody>
                             </Table>
                         </div>
                     )}
 
-                    {!Array.isArray(shifts) && (
+                    {!Array.isArray(manufacturers) && (
                         <PaginationWrapper
-                            currentPage={shifts.current_page}
-                            lastPage={shifts.last_page}
-                            total={shifts.total}
-                            routeName="asset-hierarchy.shifts"
+                            currentPage={manufacturers.current_page}
+                            lastPage={manufacturers.last_page}
+                            total={manufacturers.total}
+                            routeName="asset-hierarchy.manufacturers"
                             search={search}
                             sort={sort}
                             direction={direction}
@@ -557,14 +379,14 @@ export default function Index({
                     setShowDeleteDialog(open);
                     if (!open) {
                         setConfirmationText('');
-                        setSelectedShift(null);
+                        setSelectedManufacturer(null);
                     }
                 }}
             >
                 <DialogContent>
                     <DialogTitle>Confirmar exclusão</DialogTitle>
                     <DialogDescription>
-                        Tem certeza que deseja excluir o turno {selectedShift?.name}? Esta ação não pode ser desfeita.
+                        Tem certeza que deseja excluir o fabricante {selectedManufacturer?.name}? Esta ação não pode ser desfeita.
                     </DialogDescription>
                     <div className="space-y-4">
                         <div className="space-y-2">
@@ -594,7 +416,7 @@ export default function Index({
                 onOpenChange={(open) => {
                     setShowAssetsDialog(open);
                     if (!open) {
-                        setSelectedShift(null);
+                        setSelectedManufacturer(null);
                         setAssociatedAssets([]);
                     }
                 }}
@@ -602,10 +424,10 @@ export default function Index({
                 <DialogContent className="max-w-2xl">
                     <DialogTitle className="flex items-center gap-2">
                         <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                        Turno com ativos associados
+                        Fabricante com ativos associados
                     </DialogTitle>
                     <DialogDescription>
-                        O turno <strong>{selectedShift?.name}</strong> não pode ser excluído porque está associado aos seguintes ativos:
+                        O fabricante <strong>{selectedManufacturer?.name}</strong> não pode ser excluído porque está associado aos seguintes ativos:
                     </DialogDescription>
 
                     {loadingAssets ? (
@@ -619,9 +441,9 @@ export default function Index({
                                     <TableRow>
                                         <TableHead>Tag</TableHead>
                                         <TableHead>Descrição</TableHead>
-                                        <TableHead>Tipo</TableHead>
+                                        <TableHead>Número Serial</TableHead>
+                                        <TableHead>Part Number</TableHead>
                                         <TableHead>Localização</TableHead>
-                                        <TableHead className="text-right">Horímetro</TableHead>
                                     </TableRow>
                                 </TableHeader>
                             </Table>
@@ -639,14 +461,12 @@ export default function Index({
                                                     </Link>
                                                 </TableCell>
                                                 <TableCell>{asset.description || '-'}</TableCell>
-                                                <TableCell>{asset.asset_type || '-'}</TableCell>
+                                                <TableCell>{asset.serial_number || '-'}</TableCell>
+                                                <TableCell>{asset.part_number || '-'}</TableCell>
                                                 <TableCell>
                                                     {[asset.plant, asset.area, asset.sector]
                                                         .filter(Boolean)
                                                         .join(' > ') || '-'}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    {asset.current_runtime_hours.toFixed(1)}h
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -661,9 +481,9 @@ export default function Index({
                                     <TableRow>
                                         <TableHead>Tag</TableHead>
                                         <TableHead>Descrição</TableHead>
-                                        <TableHead>Tipo</TableHead>
+                                        <TableHead>Número Serial</TableHead>
+                                        <TableHead>Part Number</TableHead>
                                         <TableHead>Localização</TableHead>
-                                        <TableHead className="text-right">Horímetro</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -678,14 +498,12 @@ export default function Index({
                                                 </Link>
                                             </TableCell>
                                             <TableCell>{asset.description || '-'}</TableCell>
-                                            <TableCell>{asset.asset_type || '-'}</TableCell>
+                                            <TableCell>{asset.serial_number || '-'}</TableCell>
+                                            <TableCell>{asset.part_number || '-'}</TableCell>
                                             <TableCell>
                                                 {[asset.plant, asset.area, asset.sector]
                                                     .filter(Boolean)
                                                     .join(' > ') || '-'}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {asset.current_runtime_hours.toFixed(1)}h
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -696,7 +514,7 @@ export default function Index({
 
                     <div className="rounded-md bg-yellow-50 p-4">
                         <p className="text-sm text-yellow-800">
-                            Para excluir este turno, primeiro você deve desassociar ou reatribuir os ativos listados acima para outro turno.
+                            Para excluir este fabricante, primeiro você deve desassociar ou reatribuir os ativos listados acima para outro fabricante.
                         </p>
                     </div>
 
@@ -705,8 +523,8 @@ export default function Index({
                             <Button variant="outline">Fechar</Button>
                         </DialogClose>
                         <Button asChild>
-                            <Link href={route('asset-hierarchy.shifts.edit', selectedShift?.id || 0)}>
-                                Editar Turno
+                            <Link href={route('asset-hierarchy.manufacturers.edit', selectedManufacturer?.id || 0)}>
+                                Editar Fabricante
                             </Link>
                         </Button>
                     </DialogFooter>
@@ -714,4 +532,4 @@ export default function Index({
             </Dialog>
         </AppLayout>
     );
-}
+} 

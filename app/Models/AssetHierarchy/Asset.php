@@ -18,9 +18,11 @@ class Asset extends Model
     protected $fillable = [
         'tag',
         'serial_number',
+        'part_number',
         'asset_type_id',
         'description',
         'manufacturer',
+        'manufacturer_id',
         'manufacturing_year',
         'plant_id',
         'area_id',
@@ -32,6 +34,7 @@ class Asset extends Model
     protected $casts = [
         'manufacturing_year' => 'integer',
         'asset_type_id' => 'integer',
+        'manufacturer_id' => 'integer',
         'plant_id' => 'integer',
         'area_id' => 'integer',
         'sector_id' => 'integer',
@@ -43,17 +46,17 @@ class Asset extends Model
         parent::boot();
 
         static::saving(function ($asset) {
-            // Valida se a área pertence à planta
-            if ($asset->area_id && $asset->area->plant_id !== $asset->plant_id) {
+            // Valida se a área pertence à planta quando ambas são fornecidas
+            if ($asset->area_id && $asset->plant_id && $asset->area->plant_id !== $asset->plant_id) {
                 throw new \Exception("A área selecionada não pertence à planta {$asset->plant->name}");
             }
 
-            // Valida se o setor pertence à área e à planta
+            // Valida se o setor pertence à área e à planta quando fornecidos
             if ($asset->sector_id) {
-                if ($asset->sector->area_id !== $asset->area_id) {
+                if ($asset->area_id && $asset->sector->area_id !== $asset->area_id) {
                     throw new \Exception("O setor selecionado não pertence à área {$asset->area->name}");
                 }
-                if ($asset->sector->area->plant_id !== $asset->plant_id) {
+                if ($asset->plant_id && $asset->sector->area->plant_id !== $asset->plant_id) {
                     throw new \Exception("O setor selecionado não pertence à planta {$asset->plant->name}");
                 }
             }
@@ -83,6 +86,11 @@ class Asset extends Model
     public function shift(): BelongsTo
     {
         return $this->belongsTo(Shift::class);
+    }
+
+    public function manufacturer(): BelongsTo
+    {
+        return $this->belongsTo(Manufacturer::class);
     }
     
     public function routines(): BelongsToMany

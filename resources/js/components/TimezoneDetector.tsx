@@ -12,6 +12,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Globe } from 'lucide-react';
+import { getTimezoneDisplayName, getCurrentTimeInTimezone } from '@/constants/timezones';
 
 // Set up axios defaults for CSRF protection
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -27,33 +28,6 @@ interface TimezoneDetectorProps {
     userId: number;
     forceShow?: boolean;
 }
-
-// Map of common timezone identifiers to their display names
-const timezoneDisplayNames: Record<string, string> = {
-    'America/New_York': 'Eastern Time (US & Canada)',
-    'America/Chicago': 'Central Time (US & Canada)',
-    'America/Denver': 'Mountain Time (US & Canada)',
-    'America/Los_Angeles': 'Pacific Time (US & Canada)',
-    'America/Sao_Paulo': 'Brasília Time',
-    'America/Argentina/Buenos_Aires': 'Buenos Aires',
-    'America/Mexico_City': 'Mexico City',
-    'Europe/London': 'London',
-    'Europe/Paris': 'Paris',
-    'Europe/Berlin': 'Berlin',
-    'Europe/Madrid': 'Madrid',
-    'Europe/Rome': 'Rome',
-    'Europe/Moscow': 'Moscow',
-    'Asia/Tokyo': 'Tokyo',
-    'Asia/Shanghai': 'Beijing, Shanghai',
-    'Asia/Hong_Kong': 'Hong Kong',
-    'Asia/Singapore': 'Singapore',
-    'Asia/Kolkata': 'India Standard Time',
-    'Asia/Dubai': 'Dubai',
-    'Australia/Sydney': 'Sydney',
-    'Australia/Melbourne': 'Melbourne',
-    'Pacific/Auckland': 'Auckland',
-    'UTC': 'UTC',
-};
 
 export default function TimezoneDetector({ currentTimezone, userId, forceShow = false }: TimezoneDetectorProps) {
     const [showModal, setShowModal] = useState(false);
@@ -106,27 +80,6 @@ export default function TimezoneDetector({ currentTimezone, userId, forceShow = 
         setShowModal(false);
     };
 
-    const getTimezoneName = (tz: string) => {
-        return timezoneDisplayNames[tz] || tz;
-    };
-
-    // Get current time in both timezones for comparison
-    const getCurrentTimeInTimezone = (tz: string) => {
-        if (!tz) return '';
-
-        try {
-            return new Date().toLocaleTimeString('en-US', {
-                timeZone: tz,
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            });
-        } catch (error) {
-            console.error(`Invalid timezone: ${tz}`, error);
-            return '';
-        }
-    };
-
     return (
         <AlertDialog open={showModal} onOpenChange={setShowModal}>
             <AlertDialogContent>
@@ -143,7 +96,7 @@ export default function TimezoneDetector({ currentTimezone, userId, forceShow = 
                             <div className="flex justify-between py-2 border-b">
                                 <span className="text-muted-foreground">Current timezone:</span>
                                 <div className="text-right">
-                                    <div className="font-medium">{getTimezoneName(currentTimezone)}</div>
+                                    <div className="font-medium">{getTimezoneDisplayName(currentTimezone)}</div>
                                     {currentTimezone && (
                                         <div className="text-xs text-muted-foreground">{getCurrentTimeInTimezone(currentTimezone)}</div>
                                     )}
@@ -152,7 +105,7 @@ export default function TimezoneDetector({ currentTimezone, userId, forceShow = 
                             <div className="flex justify-between py-2">
                                 <span className="text-muted-foreground">Detected timezone:</span>
                                 <div className="text-right">
-                                    <div className="font-medium text-blue-600">{getTimezoneName(detectedTimezone)}</div>
+                                    <div className="font-medium text-blue-600">{getTimezoneDisplayName(detectedTimezone)}</div>
                                     {detectedTimezone && (
                                         <div className="text-xs text-muted-foreground">{getCurrentTimeInTimezone(detectedTimezone)}</div>
                                     )}

@@ -39,6 +39,7 @@ class AssetImportExportController extends Controller
             return [
                 'Tag' => $item->tag,
                 'Número de Série' => $item->serial_number,
+                'Part Number' => $item->part_number,
                 'Tipo de Ativo' => $item->assetType?->name,
                 'Descrição' => $item->description,
                 'Fabricante' => $item->manufacturer,
@@ -358,11 +359,6 @@ class AssetImportExportController extends Controller
 
         // Validação inicial dos dados
         foreach ($mappedData as $index => $row) {
-            // Validação da Planta
-            if (empty($row['plant_id'])) {
-                $validationErrors[] = "Linha {$index}: TAG '{$row['tag']}' não possui Planta associada. Todos os ativos devem ter uma Planta.";
-            }
-            
             // Validação de Área quando há Setor
             if (!empty($row['sector_id']) && empty($row['area_id'])) {
                 $validationErrors[] = "Linha {$index}: TAG '{$row['tag']}' possui Setor mas não possui Área. Ativos com Setor devem ter uma Área.";
@@ -397,6 +393,10 @@ class AssetImportExportController extends Controller
                 }
 
                 try {
+                    $plant = null;
+                    $area = null;
+                    $sector = null;
+
                     // Cria planta se não existir
                     if (!empty($row['plant_id'])) {
                         $plant = Plant::firstOrCreate(
@@ -404,8 +404,12 @@ class AssetImportExportController extends Controller
                         );
                     }
 
-                    // Cria área se não existir
+                    // Cria área se não existir (requer planta)
                     if (!empty($row['area_id'])) {
+                        if (!$plant) {
+                            throw new \Exception("Área '{$row['area_id']}' requer uma planta associada");
+                        }
+                        
                         // Busca a área pelo nome E pela planta
                         $area = Area::where('name', $row['area_id'])
                             ->where('plant_id', $plant->id)
@@ -419,8 +423,12 @@ class AssetImportExportController extends Controller
                         }
                     }
 
-                    // Cria setor se não existir
+                    // Cria setor se não existir (requer área)
                     if (!empty($row['sector_id'])) {
+                        if (!$area) {
+                            throw new \Exception("Setor '{$row['sector_id']}' requer uma área associada");
+                        }
+                        
                         // Busca o setor pelo nome E pela área
                         $sector = Sector::where('name', $row['sector_id'])
                             ->where('area_id', $area->id)
@@ -455,38 +463,71 @@ class AssetImportExportController extends Controller
 
                 try {
                     // Busca os IDs reais das estruturas
-                    $plant = Plant::where('name', $row['plant_id'])->first();
-                    if (!$plant) {
-                        throw new \Exception("Planta '{$row['plant_id']}' não encontrada");
+                    $plant = null;
+                    if (!empty($row['plant_id'])) {
+                        $plant = Plant::where('name', $row['plant_id'])->first();
+                        if (!$plant) {
+                            throw new \Exception("Planta '{$row['plant_id']}' não encontrada");
+                        }
                     }
 
-                    $area = !empty($row['area_id']) ? Area::where('name', $row['area_id'])
-                        ->where('plant_id', $plant->id)
-                        ->first() : null;
-
-                    if (!empty($row['area_id']) && !$area) {
-                        throw new \Exception("Área '{$row['area_id']}' não encontrada na planta '{$row['plant_id']}'");
+                    $area = null;
+                    if (!empty($row['area_id'])) {
+                        if (!$plant) {
+                            throw new \Exception("Área '{$row['area_id']}' requer uma planta associada");
+                        }
+                        $area = Area::where('name', $row['area_id'])
+                            ->where('plant_id', $plant->id)
+                            ->first();
+                        if (!$area) {
+                            throw new \Exception("Área '{$row['area_id']}' não encontrada na planta '{$row['plant_id']}'");
+                        }
                     }
 
-                    $sector = !empty($row['sector_id']) ? Sector::where('name', $row['sector_id'])
-                        ->where('area_id', $area->id)
-                        ->first() : null;
-
-                    if (!empty($row['sector_id']) && !$sector) {
-                        throw new \Exception("Setor '{$row['sector_id']}' não encontrado na área '{$row['area_id']}'");
+                    $sector = null;
+                    if (!empty($row['sector_id'])) {
+                        if (!$area) {
+                            throw new \Exception("Setor '{$row['sector_id']}' requer uma área associada");
+                        }
+                        $sector = Sector::where('name', $row['sector_id'])
+                            ->where('area_id', $area->id)
+                            ->first();
+                        if (!$sector) {
+                            throw new \Exception("Setor '{$row['sector_id']}' não encontrado na área '{$row['area_id']}'");
+                        }
                     }
 
-                    // Busca o ID do tipo de ativo
-                    $assetType = AssetType::firstOrCreate(
-                        ['name' => $row['asset_type_id']]
-                    );
+                    // Busca o ID do tipo de ativo (opcional)
+                    $assetTypeId = null;
+                    if (!empty($row['asset_type_id'])) {
+                        $assetType = AssetType::firstOrCreate(
+                            ['name' => $row['asset_type_id']]
+                        );
+                        $assetTypeId = $assetType->id;
+                    }
 
                     // Verifica se já existe um ativo com a mesma TAG na mesma localização
-                    $existingAsset = Asset::where('tag', $row['tag'])
-                        ->where('plant_id', $plant->id)
-                        ->where('area_id', $area?->id)
-                        ->where('sector_id', $sector?->id)
-                        ->first();
+                    $existingAssetQuery = Asset::where('tag', $row['tag']);
+                    
+                    if ($plant) {
+                        $existingAssetQuery->where('plant_id', $plant->id);
+                    } else {
+                        $existingAssetQuery->whereNull('plant_id');
+                    }
+                    
+                    if ($area) {
+                        $existingAssetQuery->where('area_id', $area->id);
+                    } else {
+                        $existingAssetQuery->whereNull('area_id');
+                    }
+                    
+                    if ($sector) {
+                        $existingAssetQuery->where('sector_id', $sector->id);
+                    } else {
+                        $existingAssetQuery->whereNull('sector_id');
+                    }
+                    
+                    $existingAsset = $existingAssetQuery->first();
 
                     if ($existingAsset) {
                         $skipped++;
@@ -495,11 +536,12 @@ class AssetImportExportController extends Controller
                         Asset::create([
                             'tag' => $row['tag'],
                             'serial_number' => $row['serial_number'] ?? null,
-                            'asset_type_id' => $assetType->id,
+                            'part_number' => $row['part_number'] ?? null,
+                            'asset_type_id' => $assetTypeId,
                             'description' => $row['description'] ?? null,
                             'manufacturer' => $row['manufacturer'] ?? null,
                             'manufacturing_year' => $row['manufacturing_year'] ?? null,
-                            'plant_id' => $plant->id,
+                            'plant_id' => $plant?->id,
                             'area_id' => $area?->id,
                             'sector_id' => $sector?->id,
                         ]);

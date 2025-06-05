@@ -1,19 +1,33 @@
+export interface Manufacturer {
+    id: number;
+    name: string;
+    website?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    country?: string | null;
+    notes?: string | null;
+}
+
 export interface Asset {
     id: number;
     tag: string;
     serial_number: string | null;
-    asset_type_id: number;
+    part_number: string | null;
+    asset_type_id: number | null;
     description: string | null;
-    manufacturer: string | null;
+    manufacturer: Manufacturer | string | null; // Can be either the relationship object or legacy string
+    manufacturer_id: number | null;
     manufacturing_year: number | null;
-    area_id: number;
+    area_id: number | null;
     photo_path: string | null;
     asset_type: AssetType | null;
     area: Area | null;
     sector?: Sector | null;
     plant?: Plant | null;
-    sector_id?: number;
-    plant_id?: number;
+    sector_id?: number | null;
+    plant_id?: number | null;
+    shift?: Shift | null;
+    shift_id?: number | null;
     created_at: string;
     updated_at: string;
 }
@@ -21,9 +35,11 @@ export interface Asset {
 export interface AssetForm {
     tag: string;
     serial_number: string;
+    part_number: string;
     asset_type_id: number | string;
     description: string;
     manufacturer: string;
+    manufacturer_id: number | string;
     manufacturing_year: string;
     area_id: number | string;
     plant_id?: number | string;
@@ -81,6 +97,14 @@ export interface Plant {
     name: string;
     description?: string | null;
     areas?: Area[];
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface Shift {
+    id: number;
+    name: string;
+    timezone?: string;
     created_at?: string;
     updated_at?: string;
 }

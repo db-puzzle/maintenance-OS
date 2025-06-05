@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Illuminate\Validation\ValidationException;
+use App\Models\AssetHierarchy\Asset;
 
 class ShiftController extends Controller
 {
@@ -602,5 +603,158 @@ class ShiftController extends Controller
             'break_hours' => floor($totalBreakMinutes / 60),
             'break_minutes' => $totalBreakMinutes % 60,
         ];
+    }
+
+    /**
+     * Get assets associated with a shift
+     */
+    public function getAssets(Request $request, Shift $shift)
+    {
+        $assets = $shift->assets()
+            ->with(['assetType', 'plant', 'area', 'sector'])
+            ->get()
+            ->map(function ($asset) {
+                return [
+                    'id' => $asset->id,
+                    'tag' => $asset->tag,
+                    'description' => $asset->description,
+                    'asset_type' => $asset->assetType ? $asset->assetType->name : null,
+                    'plant' => $asset->plant ? $asset->plant->name : null,
+                    'area' => $asset->area ? $asset->area->name : null,
+                    'sector' => $asset->sector ? $asset->sector->name : null,
+                    'current_runtime_hours' => $asset->current_runtime_hours,
+                ];
+            });
+
+        return response()->json([
+            'assets' => $assets,
+            'total' => $assets->count()
+        ]);
+    }
+
+    /**
+     * Copy a shift with new data and update specific assets
+     */
+    public function copyAndUpdate(Request $request, Shift $shift)
+    {
+        try {
+            $validated = $this->validateShiftData($request);
+            
+            // Get the assets to update
+            $assetIds = $request->input('asset_ids', []);
+            if (empty($assetIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nenhum ativo foi selecionado para atualização.'
+                ], 422);
+            }
+
+            return DB::transaction(function () use ($shift, $validated, $request, $assetIds) {
+                $user = auth()->user();
+                
+                // Create a new shift with the updated data
+                $newShiftName = $validated['name'] . ' (Cópia)';
+                $counter = 1;
+                
+                // Ensure unique name
+                while (Shift::where('name', $newShiftName)->exists()) {
+                    $counter++;
+                    $newShiftName = $validated['name'] . ' (Cópia ' . $counter . ')';
+                }
+                
+                $newShift = Shift::create([
+                    'name' => $newShiftName,
+                    'timezone' => $validated['timezone'] ?? $shift->timezone
+                ]);
+
+                // Copy schedules to the new shift
+                foreach ($validated['schedules'] as $scheduleData) {
+                    $schedule = $newShift->schedules()->create([
+                        'weekday' => $scheduleData['weekday']
+                    ]);
+
+                    foreach ($scheduleData['shifts'] as $shiftData) {
+                        if (!$shiftData['active']) continue;
+
+                        $shiftTime = $schedule->shiftTimes()->create([
+                            'start_time' => $shiftData['start_time'],
+                            'end_time' => $shiftData['end_time'],
+                            'active' => $shiftData['active']
+                        ]);
+
+                        if (isset($shiftData['breaks'])) {
+                            foreach ($shiftData['breaks'] as $breakData) {
+                                $shiftTime->breaks()->create([
+                                    'start_time' => $breakData['start_time'],
+                                    'end_time' => $breakData['end_time']
+                                ]);
+                            }
+                        }
+                    }
+                }
+
+                // Update only the specified assets to use the new shift
+                $affectedAssets = Asset::whereIn('id', $assetIds)->get();
+                
+                foreach ($affectedAssets as $asset) {
+                    // Record current runtime before changing shift
+                    $currentRuntime = $asset->current_runtime_hours;
+                    
+                    $asset->runtimeMeasurements()->create([
+                        'user_id' => $user->id,
+                        'reported_hours' => $currentRuntime,
+                        'source' => 'shift_update',
+                        'notes' => "Horímetro registrado automaticamente devido à mudança do turno '{$shift->name}' para '{$newShift->name}'",
+                        'measurement_datetime' => now()
+                    ]);
+                    
+                    // Update asset to use the new shift
+                    $asset->update(['shift_id' => $newShift->id]);
+                }
+
+                // Load relationships for the response
+                $newShift->load(['schedules.shiftTimes.breaks', 'assets']);
+
+                // Format the shift data for the response
+                $formattedShift = [
+                    'id' => $newShift->id,
+                    'name' => $newShift->name,
+                    'asset_count' => $newShift->assets->count(),
+                    'schedules' => $newShift->schedules->map(function ($schedule) {
+                        return [
+                            'weekday' => $schedule->weekday,
+                            'shifts' => $schedule->shiftTimes->map(function ($shiftTime) {
+                                return [
+                                    'start_time' => $shiftTime->start_time,
+                                    'end_time' => $shiftTime->end_time,
+                                    'active' => $shiftTime->active,
+                                    'breaks' => $shiftTime->breaks->map(function ($break) {
+                                        return [
+                                            'start_time' => $break->start_time,
+                                            'end_time' => $break->end_time,
+                                        ];
+                                    })->toArray(),
+                                ];
+                            })->toArray(),
+                        ];
+                    })->toArray(),
+                ];
+
+                return response()->json([
+                    'success' => true,
+                    'shift' => $formattedShift,
+                    'original_shift' => [
+                        'id' => $shift->id,
+                        'name' => $shift->name,
+                        'asset_count' => $shift->assets()->count()
+                    ],
+                    'message' => "Novo turno '{$newShift->name}' criado e associado a " . count($assetIds) . " ativo(s)."
+                ]);
+            });
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 } 

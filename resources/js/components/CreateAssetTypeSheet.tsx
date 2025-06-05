@@ -42,7 +42,7 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
 
     // Determina se deve usar controle interno ou externo
     const sheetOpen = showTrigger ? internalSheetOpen : (isOpen ?? false);
-    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => {}));
+    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => { }));
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -96,7 +96,7 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {},
+                                clearErrors: () => { },
                             }}
                             name="name"
                             label="Nome"
@@ -110,7 +110,7 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {},
+                                clearErrors: () => { },
                             }}
                             name="description"
                             label="Descrição"

@@ -34,18 +34,6 @@ export default function Dashboard() {
 
     // Cards para a seção Quick Start (parte superior)
     const quickStartCards = {
-        production: {
-            title: 'Produção',
-            icon: Package,
-            description: 'Gerenciar cronogramas de produção e BOMs',
-            href: undefined, // Sem link direto
-        },
-        quality: {
-            title: 'Qualidade',
-            icon: Shield,
-            description: 'Controle de qualidade e gestão de inspeções',
-            href: undefined, // Sem link direto
-        },
         maintenance: {
             title: 'Manutenção',
             icon: Wrench,
@@ -56,62 +44,6 @@ export default function Dashboard() {
 
     // Paths para os Action Shortcuts (parte inferior)
     const paths: Record<string, PathItem> = {
-        production: {
-            title: 'Produção',
-            icon: Package,
-            description: 'Gerenciar cronogramas de produção e BOMs',
-            actions: [
-                {
-                    name: 'Programar Produção',
-                    icon: CalendarDays,
-                    comingSoon: true,
-                    description: 'Scheduler de produção e alocação de recursos',
-                },
-                {
-                    name: 'Configurar BOM',
-                    icon: List,
-                    comingSoon: true,
-                    description: 'Lista de Materiais para produtos',
-                },
-                {
-                    name: 'Configurar Rotas',
-                    icon: Route,
-                    comingSoon: true,
-                    description: 'Sequencia de produção por produto',
-                },
-            ],
-        },
-        quality: {
-            title: 'Qualidade',
-            icon: Shield,
-            description: 'Controle de qualidade e gestão de inspeções',
-            actions: [
-                {
-                    name: 'Realizar Inspeção',
-                    icon: ClipboardList,
-                    comingSoon: true,
-                    description: 'Registro de resultados',
-                },
-                {
-                    name: 'Configurar Inspeção',
-                    icon: ClipboardCheck,
-                    comingSoon: true,
-                    description: 'Criação de formulários e instruções',
-                },
-                {
-                    name: 'Criar RNC',
-                    icon: AlertTriangle,
-                    comingSoon: true,
-                    description: 'Relatórios de Não-Conformidade',
-                },
-                {
-                    name: 'Criar Desvio',
-                    icon: AlertCircle,
-                    comingSoon: true,
-                    description: 'Registro de desvios de qualidade',
-                },
-            ],
-        },
         maintenance: {
             title: 'Manutenção',
             icon: Wrench,

@@ -21,60 +21,6 @@ const gerenciamentoNavItems: NavGroup = {
             icon: LayoutGrid,
         },
         {
-            title: 'Produção',
-            href: '#',
-            icon: Cog,
-            items: [
-                {
-                    title: 'Dashboard',
-                    href: '#',
-                },
-                {
-                    title: 'Programação',
-                    href: '#',
-                },
-                {
-                    title: 'BOMs',
-                    href: '/items/bom-config',
-                },
-                {
-                    title: 'Rotas',
-                    href: '/scheduler/route-editor',
-                },
-            ],
-        },
-        {
-            title: 'Qualidade',
-            href: '#',
-            icon: Wrench,
-            items: [
-                {
-                    title: 'Dashboard',
-                    href: '#',
-                },
-                {
-                    title: 'Realizar Inspeção',
-                    href: '#',
-                },
-                {
-                    title: 'Inspeções',
-                    href: '/routines/routine-editor',
-                },
-                {
-                    title: 'RNCs',
-                    href: '#',
-                },
-                {
-                    title: 'Desvios',
-                    href: '#',
-                },
-                {
-                    title: 'Metrologia',
-                    href: '#',
-                },
-            ],
-        },
-        {
             title: 'Manutenção',
             href: '#',
             icon: ChartGantt,
@@ -82,22 +28,6 @@ const gerenciamentoNavItems: NavGroup = {
                 {
                     title: 'Dashboard',
                     href: '/maintenance/dashboard',
-                },
-                {
-                    title: 'Programação',
-                    href: '#',
-                },
-                {
-                    title: 'Execução de OS',
-                    href: '#',
-                },
-                {
-                    title: 'Solicitações',
-                    href: '#',
-                },
-                {
-                    title: 'Rotinas',
-                    href: '#',
                 },
                 {
                     title: 'Ativos',
@@ -139,6 +69,10 @@ const sistemaNavItems: NavGroup = {
                 {
                     title: 'Tipos de Ativo',
                     href: '/asset-hierarchy/tipos-ativo',
+                },
+                {
+                    title: 'Fabricantes',
+                    href: '/asset-hierarchy/manufacturers',
                 },
                 {
                     title: 'Exportar Ativos',

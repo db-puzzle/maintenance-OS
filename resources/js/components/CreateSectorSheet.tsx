@@ -52,7 +52,7 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
 
     // Determina se deve usar controle interno ou externo
     const sheetOpen = showTrigger ? internalSheetOpen : (isOpen ?? false);
-    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => {}));
+    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => { }));
 
     // Atualiza os valores quando as props mudam
     React.useEffect(() => {
@@ -123,7 +123,7 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {},
+                                clearErrors: () => { },
                             }}
                             name="name"
                             label="Nome do Setor"

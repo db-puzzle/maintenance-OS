@@ -7,6 +7,7 @@ use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\AssetRuntimeMeasurement;
 use App\Models\AssetHierarchy\AssetType;
+use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use Illuminate\Http\Request;
@@ -27,56 +28,77 @@ class AssetController extends Controller
         $direction = $request->input('direction', 'asc');
 
         $query = Asset::query()
-            ->with(['assetType:id,name', 'plant:id,name', 'area.plant:id,name', 'sector:id,name']);
+            ->with([
+                'assetType:id,name', 
+                'manufacturer:id,name', 
+                'plant:id,name', 
+                'area.plant:id,name', 
+                'sector:id,name', 
+                'shift:id,name'
+            ]);
 
         if ($search) {
             $search = strtolower($search);
             $query->where(function ($query) use ($search) {
-                $query->whereRaw('LOWER(asset.tag) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(asset.manufacturer) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(asset.description) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(asset.serial_number) LIKE ?', ["%{$search}%"])
+                $query->whereRaw('LOWER(assets.tag) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(assets.manufacturer) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(assets.description) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(assets.serial_number) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(assets.part_number) LIKE ?', ["%{$search}%"])
                     ->orWhereExists(function ($query) use ($search) {
                         $query->from('plants')
-                            ->whereColumn('plants.id', 'asset.plant_id')
+                            ->whereColumn('plants.id', 'assets.plant_id')
                             ->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"]);
                     })
                     ->orWhereExists(function ($query) use ($search) {
                         $query->from('areas')
-                            ->whereColumn('areas.id', 'asset.area_id')
+                            ->whereColumn('areas.id', 'assets.area_id')
                             ->whereRaw('LOWER(areas.name) LIKE ?', ["%{$search}%"]);
                     })
                     ->orWhereExists(function ($query) use ($search) {
                         $query->from('sectors')
-                            ->whereColumn('sectors.id', 'asset.sector_id')
+                            ->whereColumn('sectors.id', 'assets.sector_id')
                             ->whereRaw('LOWER(sectors.name) LIKE ?', ["%{$search}%"]);
+                    })
+                    ->orWhereExists(function ($query) use ($search) {
+                        $query->from('manufacturers')
+                            ->whereColumn('manufacturers.id', 'assets.manufacturer_id')
+                            ->whereRaw('LOWER(manufacturers.name) LIKE ?', ["%{$search}%"]);
                     });
             });
         }
 
         switch ($sort) {
             case 'asset_type':
-                $query->join('asset_types', 'asset.asset_type_id', '=', 'asset_types.id')
+                $query->leftJoin('asset_types', 'assets.asset_type_id', '=', 'asset_types.id')
                     ->orderBy('asset_types.name', $direction)
-                    ->select('asset.*');
+                    ->select('assets.*');
                 break;
             case 'serial_number':
-                $query->orderBy('asset.serial_number', $direction);
+                $query->orderBy('assets.serial_number', $direction);
+                break;
+            case 'part_number':
+                $query->orderBy('assets.part_number', $direction);
                 break;
             case 'sector':
-                $query->leftJoin('sectors', 'asset.sector_id', '=', 'sectors.id')
+                $query->leftJoin('sectors', 'assets.sector_id', '=', 'sectors.id')
                     ->orderBy('sectors.name', $direction)
-                    ->select('asset.*');
+                    ->select('assets.*');
                 break;
             case 'area':
-                $query->leftJoin('areas', 'asset.area_id', '=', 'areas.id')
+                $query->leftJoin('areas', 'assets.area_id', '=', 'areas.id')
                     ->orderBy('areas.name', $direction)
-                    ->select('asset.*');
+                    ->select('assets.*');
                 break;
             case 'plant':
-                $query->join('plants', 'asset.plant_id', '=', 'plants.id')
+                $query->leftJoin('plants', 'assets.plant_id', '=', 'plants.id')
                     ->orderBy('plants.name', $direction)
-                    ->select('asset.*');
+                    ->select('assets.*');
+                break;
+            case 'shift':
+                $query->leftJoin('shifts', 'assets.shift_id', '=', 'shifts.id')
+                    ->orderBy('shifts.name', $direction)
+                    ->select('assets.*');
                 break;
             default:
                 $query->orderBy($sort, $direction);
@@ -106,19 +128,21 @@ class AssetController extends Controller
         $validated = $request->validate([
             'tag' => 'required|string|max:255',
             'serial_number' => 'nullable|string|max:255',
-            'asset_type_id' => 'required|exists:asset_types,id',
+            'part_number' => 'nullable|string|max:255',
+            'asset_type_id' => 'nullable|exists:asset_types,id',
             'description' => 'nullable|string',
             'manufacturer' => 'nullable|string|max:255',
+            'manufacturer_id' => 'nullable|exists:manufacturers,id',
             'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
-            'plant_id' => 'required|exists:plants,id',
+            'plant_id' => 'nullable|exists:plants,id',
             'area_id' => 'nullable|exists:areas,id|required_with:sector_id',
             'sector_id' => 'nullable|exists:sectors,id',
             'shift_id' => 'nullable|exists:shifts,id',
             'photo' => 'nullable|image|max:2048'
         ]);
 
-        // Valida se a área pertence à planta quando fornecida
-        if (!empty($validated['area_id'])) {
+        // Valida se a área pertence à planta quando ambas são fornecidas
+        if (!empty($validated['area_id']) && !empty($validated['plant_id'])) {
             $area = Area::findOrFail($validated['area_id']);
             $plantId = (int)$validated['plant_id'];
             
@@ -127,19 +151,16 @@ class AssetController extends Controller
                     'area_id' => ["A área selecionada não pertence à planta escolhida."]
                 ]);
             }
+        }
 
-            // Valida se o setor pertence à área quando fornecido
-            if (!empty($validated['sector_id'])) {
-                $sector = Sector::findOrFail($validated['sector_id']);
-                if ((int)$sector->area_id !== (int)$validated['area_id']) {
-                    throw ValidationException::withMessages([
-                        'sector_id' => ["O setor selecionado não pertence à área escolhida."]
-                    ]);
-                }
+        // Valida se o setor pertence à área quando fornecido
+        if (!empty($validated['sector_id']) && !empty($validated['area_id'])) {
+            $sector = Sector::findOrFail($validated['sector_id']);
+            if ((int)$sector->area_id !== (int)$validated['area_id']) {
+                throw ValidationException::withMessages([
+                    'sector_id' => ["O setor selecionado não pertence à área escolhida."]
+                ]);
             }
-        } else {
-            // Se não há área selecionada, não pode haver setor
-            $validated['sector_id'] = null;
         }
 
         if ($request->hasFile('photo')) {
@@ -166,13 +187,14 @@ class AssetController extends Controller
             return Inertia::render('asset-hierarchy/assets/show', [
                 'asset' => null,
                 'assetTypes' => AssetType::all(),
+                'manufacturers' => Manufacturer::orderBy('name')->get(),
                 'plants' => Plant::with('areas.sectors')->get(),
                 'isCreating' => true,
             ]);
         }
 
         // Otherwise, it's an existing asset
-        $loadedAsset = Asset::findOrFail($asset)->load(['assetType', 'plant', 'area.plant', 'sector', 'routines.form', 'latestRuntimeMeasurement.user', 'shift']);
+        $loadedAsset = Asset::findOrFail($asset)->load(['assetType', 'manufacturer', 'plant', 'area.plant', 'sector', 'routines.form', 'latestRuntimeMeasurement.user', 'shift']);
         
         // Include shift_id and runtime data in the response
         $assetData = $loadedAsset->toArray();
@@ -200,6 +222,7 @@ class AssetController extends Controller
         return Inertia::render('asset-hierarchy/assets/show', [
             'asset' => $assetData,
             'assetTypes' => AssetType::all(),
+            'manufacturers' => Manufacturer::orderBy('name')->get(),
             'plants' => Plant::with('areas.sectors')->get(),
             'isCreating' => false,
         ]);
@@ -275,11 +298,13 @@ class AssetController extends Controller
             $validated = $request->validate([
                 'tag' => 'required|string|max:255',
                 'serial_number' => 'nullable|string|max:255',
-                'asset_type_id' => 'required|exists:asset_types,id',
+                'part_number' => 'nullable|string|max:255',
+                'asset_type_id' => 'nullable|exists:asset_types,id',
                 'description' => 'nullable|string',
                 'manufacturer' => 'nullable|string|max:255',
+                'manufacturer_id' => 'nullable|exists:manufacturers,id',
                 'manufacturing_year' => 'nullable|integer|min:1900|max:' . date('Y'),
-                'plant_id' => 'required|exists:plants,id',
+                'plant_id' => 'nullable|exists:plants,id',
                 'area_id' => 'nullable|exists:areas,id|required_with:sector_id',
                 'sector_id' => 'nullable|exists:sectors,id',
                 'shift_id' => 'nullable|exists:shifts,id',
@@ -310,8 +335,8 @@ class AssetController extends Controller
                 }
             }
 
-            // Valida se a área pertence à planta quando fornecida
-            if (!empty($validated['area_id'])) {
+            // Valida se a área pertence à planta quando ambas são fornecidas
+            if (!empty($validated['area_id']) && !empty($validated['plant_id'])) {
                 $area = Area::findOrFail($validated['area_id']);
                 $plantId = (int)$validated['plant_id'];
                 
@@ -320,19 +345,16 @@ class AssetController extends Controller
                         'area_id' => ["A área selecionada não pertence à planta escolhida."]
                     ]);
                 }
+            }
 
-                // Valida se o setor pertence à área quando fornecido
-                if (!empty($validated['sector_id'])) {
-                    $sector = Sector::findOrFail($validated['sector_id']);
-                    if ((int)$sector->area_id !== (int)$validated['area_id']) {
-                        throw ValidationException::withMessages([
-                            'sector_id' => ["O setor selecionado não pertence à área escolhida."]
-                        ]);
-                    }
+            // Valida se o setor pertence à área quando fornecido
+            if (!empty($validated['sector_id']) && !empty($validated['area_id'])) {
+                $sector = Sector::findOrFail($validated['sector_id']);
+                if ((int)$sector->area_id !== (int)$validated['area_id']) {
+                    throw ValidationException::withMessages([
+                        'sector_id' => ["O setor selecionado não pertence à área escolhida."]
+                    ]);
                 }
-            } else {
-                // Se não há área selecionada, não pode haver setor
-                $validated['sector_id'] = null;
             }
 
             if ($request->hasFile('photo')) {

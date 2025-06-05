@@ -5,6 +5,7 @@ import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import CreateShiftSheet from '@/components/CreateShiftSheet';
 import axios from 'axios';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { router } from '@inertiajs/react';
 
 interface Break {
     start_time: string;
@@ -153,12 +154,38 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
     const handleShiftUpdateSuccess = (updatedShift: any) => {
         setIsEditSheetOpen(false);
         setSelectedShiftData(null);
-        // Don't reload the page - let the parent component handle the update
-        // This ensures we stay on the same tab, just like when creating a new shift
-        if (onShiftUpdated) {
-            // The updatedShift from CreateShiftSheet already has the correct format
-            // matching what the parent expects
-            onShiftUpdated(updatedShift);
+
+        // Check if this is a new shift (created from copy operation)
+        // We can detect this by checking if the shift ID is different from the one we were editing
+        const isNewShiftFromCopy = selectedShiftData && updatedShift.id !== selectedShiftData.id;
+
+        if (isNewShiftFromCopy) {
+            // For copy operation, exit edit mode first
+            if (isEditingShift) {
+                onCancelShiftEdit();
+            }
+
+            // Then reload the page, preserving the current tab
+            // The asset is already associated with the new shift by the backend
+            // Reloading will refresh the shifts list, runtime data, and select the new shift
+            setTimeout(() => {
+                // Get current URL and ensure we stay on the shifts-runtime tab
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('tab', 'shifts-runtime');
+                router.visit(currentUrl.toString(), {
+                    preserveScroll: true,
+                    preserveState: false
+                });
+            }, 100); // Small delay to ensure state updates are processed
+        } else {
+            // For regular updates, use the existing strategy
+            // Don't reload the page - let the parent component handle the update
+            // This ensures we stay on the same tab, just like when creating a new shift
+            if (onShiftUpdated) {
+                // The updatedShift from CreateShiftSheet already has the correct format
+                // matching what the parent expects
+                onShiftUpdated(updatedShift);
+            }
         }
     };
 
@@ -205,12 +232,12 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                 {/* Header with title and action buttons */}
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">Configuração de Turno</h3>
-                    {!isEditingShift ? (
-                        <Button onClick={handleEditShiftClick} variant={hasSelectedShift ? "outline" : "default"} size="sm">
+                    {!isEditingShift && hasSelectedShift ? (
+                        <Button onClick={handleEditShiftClick} variant="outline" size="sm">
                             <Calendar className="mr-2 h-4 w-4" />
-                            {hasSelectedShift ? 'Modificar' : 'Adicionar Turno'}
+                            Modificar
                         </Button>
-                    ) : (
+                    ) : isEditingShift ? (
                         <div className="flex gap-2">
                             <Button onClick={onCancelShiftEdit} variant="outline" size="sm">
                                 Cancelar
@@ -219,7 +246,7 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                                 Salvar
                             </Button>
                         </div>
-                    )}
+                    ) : null}
                 </div>
 
                 {/* Shift Selection */}

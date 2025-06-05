@@ -1,5 +1,6 @@
 import CreateAreaSheet from '@/components/CreateAreaSheet';
 import CreateAssetTypeSheet from '@/components/CreateAssetTypeSheet';
+import CreateManufacturerSheet from '@/components/CreateManufacturerSheet';
 import CreatePlantSheet from '@/components/CreatePlantSheet';
 import CreateSectorSheet from '@/components/CreateSectorSheet';
 import DeleteAsset from '@/components/delete-asset';
@@ -16,11 +17,18 @@ import { Camera, Pencil } from 'lucide-react';
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
+interface Manufacturer {
+    id: number;
+    name: string;
+}
+
 interface AssetFormComponentProps {
     plants: Plant[];
     assetTypes: AssetType[];
+    manufacturers: Manufacturer[];
     asset?: Asset & {
         asset_type: AssetType;
+        manufacturer?: Manufacturer;
         plant: Plant;
         area?: Area & { plant: Plant };
         sector?: Sector;
@@ -37,6 +45,7 @@ interface AssetFormFieldsProps {
     clearErrors: (...fields: (keyof AssetForm)[]) => void;
     plants: Plant[];
     assetTypes: AssetType[];
+    manufacturers: Manufacturer[];
     availableAreas: Area[];
     availableSectors: Sector[];
     isEditing: boolean;
@@ -46,11 +55,13 @@ interface AssetFormFieldsProps {
     plantSelectRef: React.RefObject<HTMLButtonElement | null>;
     areaSelectRef: React.RefObject<HTMLButtonElement | null>;
     sectorSelectRef: React.RefObject<HTMLButtonElement | null>;
+    manufacturerSelectRef: React.RefObject<HTMLButtonElement | null>;
     // Handlers
     handleCreateAssetTypeClick: () => void;
     handleCreatePlantClick: () => void;
     handleCreateAreaClick: () => void;
     handleCreateSectorClick: () => void;
+    handleCreateManufacturerClick: () => void;
 }
 
 function AssetFormFields({
@@ -60,6 +71,7 @@ function AssetFormFields({
     clearErrors,
     plants,
     assetTypes,
+    manufacturers,
     availableAreas,
     availableSectors,
     isEditing,
@@ -68,49 +80,57 @@ function AssetFormFields({
     plantSelectRef,
     areaSelectRef,
     sectorSelectRef,
+    manufacturerSelectRef,
     handleCreateAssetTypeClick,
     handleCreatePlantClick,
     handleCreateAreaClick,
     handleCreateSectorClick,
+    handleCreateManufacturerClick,
 }: AssetFormFieldsProps) {
     return (
         <>
             {/* Foto e Campos Principais */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {/* Coluna 1: Foto */}
-                {isViewMode ? (
-                    <div className="flex h-full flex-col">
-                        <Label className="mb-2">
-                            Foto do Ativo
-                        </Label>
-                        <div className="flex flex-1 flex-col gap-2">
-                            <div
-                                className={`bg-muted relative flex-1 overflow-hidden rounded-lg border ${!data.photo_path ? 'bg-muted' : ''} max-h-[238px] min-h-[238px]`}
-                            >
-                                {data.photo_path ? (
-                                    <img
-                                        src={`/storage/${data.photo_path}`}
-                                        alt={`Foto do ativo ${data.tag}`}
-                                        className="h-auto w-full object-contain"
-                                    />
-                                ) : (
-                                    <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-2">
-                                        <Camera className="h-12 w-12" />
-                                        <span className="text-sm">Sem foto</span>
-                                    </div>
-                                )}
+                {/* Coluna 1: Foto - Spans 2 rows */}
+                <div className="lg:row-span-2 flex">
+                    {isViewMode ? (
+                        <div className="flex h-full w-full flex-col">
+                            <Label className="mb-2">
+                                Foto do Ativo
+                            </Label>
+                            <div className="flex flex-1 flex-col gap-2">
+                                <div
+                                    className={`bg-muted relative flex-1 overflow-hidden rounded-lg border ${!data.photo_path ? 'bg-muted' : ''}`}
+                                >
+                                    {data.photo_path ? (
+                                        <img
+                                            src={`/storage/${data.photo_path}`}
+                                            alt={`Foto do ativo ${data.tag}`}
+                                            className="h-full w-full object-contain"
+                                        />
+                                    ) : (
+                                        <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center gap-2">
+                                            <Camera className="h-12 w-12" />
+                                            <span className="text-sm">Sem foto</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ) : (
-                    <PhotoUploader
-                        label="Foto do Ativo"
-                        value={data.photo}
-                        onChange={(file) => setData('photo', file)}
-                        error={errors.photo}
-                        initialPreview={isEditing && data.photo_path ? `/storage/${data.photo_path}` : null}
-                    />
-                )}
+                    ) : (
+                        <div className="w-full">
+                            <PhotoUploader
+                                label="Foto do Ativo"
+                                value={data.photo}
+                                onChange={(file) => setData('photo', file)}
+                                error={errors.photo}
+                                initialPreview={isEditing && data.photo_path ? `/storage/${data.photo_path}` : null}
+                                minHeight="min-h-[calc(100%-120px)]"
+                                maxHeight="max-h-[calc(100%-120px)]"
+                            />
+                        </div>
+                    )}
+                </div>
 
                 {/* Coluna 2: Informações Básicas */}
                 <div className="space-y-6">
@@ -129,6 +149,42 @@ function AssetFormFields({
                         view={isViewMode}
                     />
 
+                    {/* Part Number */}
+                    <TextInput<AssetForm>
+                        form={{
+                            data,
+                            setData,
+                            errors,
+                            clearErrors,
+                        }}
+                        name="part_number"
+                        label="Part Number"
+                        placeholder="Part number do ativo"
+                        view={isViewMode}
+                    />
+
+                    {/* Fabricante */}
+                    <div className="grid gap-2">
+                        <ItemSelect
+                            ref={manufacturerSelectRef}
+                            label="Fabricante"
+                            items={manufacturers}
+                            value={data.manufacturer_id?.toString() || ''}
+                            onValueChange={(value) => {
+                                setData('manufacturer_id', value);
+                                clearErrors('manufacturer_id');
+                            }}
+                            onCreateClick={handleCreateManufacturerClick}
+                            placeholder="Selecione um fabricante (opcional)"
+                            error={errors.manufacturer_id}
+                            canClear={!isViewMode}
+                            view={isViewMode}
+                        />
+                    </div>
+                </div>
+
+                {/* Coluna 3: Informações Adicionais */}
+                <div className="space-y-6">
                     {/* Tipo de Ativo */}
                     <div className="grid gap-2">
                         <ItemSelect
@@ -141,9 +197,8 @@ function AssetFormFields({
                                 clearErrors('asset_type_id');
                             }}
                             onCreateClick={handleCreateAssetTypeClick}
-                            placeholder="Selecione um tipo de ativo"
+                            placeholder="Selecione um tipo de ativo (opcional)"
                             error={errors.asset_type_id}
-                            required
                             canClear={!isViewMode}
                             view={isViewMode}
                         />
@@ -176,114 +231,103 @@ function AssetFormFields({
                         placeholder="Ano de fabricação"
                         view={isViewMode}
                     />
+
                 </div>
 
-                {/* Coluna 3: Localização e Informações Adicionais */}
-                <div className="space-y-6">
-                    {/* Planta */}
+                {/* Descrição - Ocupa colunas 2 e 3 */}
+                <div className="lg:col-span-2 lg:col-start-2">
                     <div className="grid gap-2">
-                        <ItemSelect
-                            ref={plantSelectRef}
-                            label="Planta"
-                            items={plants}
-                            value={data.plant_id?.toString() || ''}
-                            onValueChange={(value) => {
-                                setData('plant_id', value);
-                                if (!value) {
-                                    // Se limpar a planta, limpar também área e setor
-                                    setData('area_id', '');
-                                    setData('sector_id', '');
-                                } else {
-                                    // Se mudar a planta, limpar área e setor
-                                    setData('area_id', '');
-                                    setData('sector_id', '');
-                                }
-                                clearErrors('plant_id');
-                            }}
-                            onCreateClick={handleCreatePlantClick}
-                            placeholder="Selecione uma planta"
-                            error={errors.plant_id}
-                            required
-                            canClear={!isViewMode}
+                        <Label htmlFor="description">Descrição</Label>
+                        <Textarea
+                            id="description"
+                            value={data.description}
+                            onChange={(e) => setData('description', e.target.value)}
+                            placeholder="Descrição da máquina"
+                            className="min-h-[100px]"
                             view={isViewMode}
                         />
+                        <InputError message={errors.description} />
                     </div>
+                </div>
 
-                    {/* Área */}
-                    <div className="grid gap-2">
-                        <ItemSelect
-                            ref={areaSelectRef}
-                            label="Área"
-                            items={availableAreas}
-                            value={data.area_id?.toString() || ''}
-                            onValueChange={(value) => {
-                                setData('area_id', value);
-                                if (!value) {
-                                    // Se limpar a área, limpar também o setor
-                                    setData('sector_id', '');
-                                } else {
-                                    // Se mudar a área, limpar o setor
-                                    setData('sector_id', '');
-                                }
-                                clearErrors('area_id');
-                            }}
-                            onCreateClick={handleCreateAreaClick}
-                            placeholder={data.plant_id ? 'Selecione uma área (opcional)' : 'Selecione uma planta primeiro'}
-                            error={errors.area_id}
-                            disabled={!data.plant_id}
-                            view={isViewMode}
-                            canClear={!isViewMode}
-                        />
-                    </div>
+            </div>
 
-                    {/* Setor */}
-                    <div className="grid gap-2">
-                        <ItemSelect
-                            ref={sectorSelectRef}
-                            label="Setor"
-                            items={availableSectors}
-                            value={data.sector_id?.toString() || ''}
-                            onValueChange={(value) => {
-                                setData('sector_id', value);
-                                clearErrors('sector_id');
-                            }}
-                            onCreateClick={handleCreateSectorClick}
-                            placeholder={data.area_id ? 'Selecione um setor (opcional)' : 'Selecione uma área primeiro'}
-                            error={errors.sector_id}
-                            disabled={!data.area_id}
-                            view={isViewMode}
-                            canClear={!isViewMode}
-                        />
-                    </div>
-
-                    {/* Fabricante */}
-                    <TextInput<AssetForm>
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors,
+            {/* Localização - Grid com 3 colunas em toda largura */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                {/* Planta */}
+                <div className="grid gap-2">
+                    <ItemSelect
+                        ref={plantSelectRef}
+                        label="Planta"
+                        items={plants}
+                        value={data.plant_id?.toString() || ''}
+                        onValueChange={(value) => {
+                            setData('plant_id', value);
+                            if (!value) {
+                                // Se limpar a planta, limpar também área e setor
+                                setData('area_id', '');
+                                setData('sector_id', '');
+                            } else {
+                                // Se mudar a planta, limpar área e setor
+                                setData('area_id', '');
+                                setData('sector_id', '');
+                            }
+                            clearErrors('plant_id');
                         }}
-                        name="manufacturer"
-                        label="Fabricante"
-                        placeholder="Fabricante do ativo"
+                        onCreateClick={handleCreatePlantClick}
+                        placeholder="Selecione uma planta (opcional)"
+                        error={errors.plant_id}
+                        canClear={!isViewMode}
                         view={isViewMode}
                     />
                 </div>
-            </div>
 
-            {/* Descrição (Ocupa toda a largura) */}
-            <div className="grid gap-2">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                    id="description"
-                    value={data.description}
-                    onChange={(e) => setData('description', e.target.value)}
-                    placeholder="Descrição da máquina"
-                    className="min-h-[100px]"
-                    view={isViewMode}
-                />
-                <InputError message={errors.description} />
+                {/* Área */}
+                <div className="grid gap-2">
+                    <ItemSelect
+                        ref={areaSelectRef}
+                        label="Área"
+                        items={availableAreas}
+                        value={data.area_id?.toString() || ''}
+                        onValueChange={(value) => {
+                            setData('area_id', value);
+                            if (!value) {
+                                // Se limpar a área, limpar também o setor
+                                setData('sector_id', '');
+                            } else {
+                                // Se mudar a área, limpar o setor
+                                setData('sector_id', '');
+                            }
+                            clearErrors('area_id');
+                        }}
+                        onCreateClick={handleCreateAreaClick}
+                        placeholder={data.plant_id ? 'Selecione uma área (opcional)' : 'Selecione uma planta primeiro'}
+                        error={errors.area_id}
+                        disabled={!data.plant_id}
+                        view={isViewMode}
+                        canClear={!isViewMode}
+                    />
+                </div>
+
+                {/* Setor */}
+                <div className="grid gap-2">
+                    <ItemSelect
+                        ref={sectorSelectRef}
+                        label="Setor"
+                        items={availableSectors}
+                        value={data.sector_id?.toString() || ''}
+                        onValueChange={(value) => {
+                            setData('sector_id', value);
+                            clearErrors('sector_id');
+                        }}
+                        onCreateClick={handleCreateSectorClick}
+                        placeholder={data.area_id ? 'Selecione um setor (opcional)' : 'Selecione uma área primeiro'}
+                        error={errors.sector_id}
+                        disabled={!data.area_id}
+                        view={isViewMode}
+                        canClear={!isViewMode}
+                    />
+                </div>
             </div>
         </>
     );
@@ -292,6 +336,7 @@ function AssetFormFields({
 export default function AssetFormComponent({
     assetTypes,
     plants,
+    manufacturers,
     asset,
     initialMode = 'view',
     onCancel,
@@ -309,9 +354,11 @@ export default function AssetFormComponent({
     const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm<AssetForm>({
         tag: asset?.tag || '',
         serial_number: asset?.serial_number || '',
+        part_number: asset?.part_number || '',
         asset_type_id: asset?.asset_type_id?.toString() || '',
         description: asset?.description || '',
-        manufacturer: asset?.manufacturer || '',
+        manufacturer: typeof asset?.manufacturer === 'string' ? asset.manufacturer : '',
+        manufacturer_id: asset?.manufacturer_id?.toString() || (typeof asset?.manufacturer === 'object' && asset?.manufacturer?.id?.toString()) || '',
         manufacturing_year: asset?.manufacturing_year?.toString() || '',
         plant_id: asset?.plant?.id?.toString() || '',
         area_id: asset?.area_id?.toString() || '',
@@ -473,11 +520,13 @@ export default function AssetFormComponent({
     const areaSheetTriggerRef = useRef<HTMLButtonElement>(null);
     const sectorSheetTriggerRef = useRef<HTMLButtonElement>(null);
     const assetTypeSheetTriggerRef = useRef<HTMLButtonElement>(null);
+    const manufacturerSheetTriggerRef = useRef<HTMLButtonElement>(null);
 
     const plantSelectRef = useRef<HTMLButtonElement>(null);
     const assetTypeSelectRef = useRef<HTMLButtonElement>(null);
     const areaSelectRef = useRef<HTMLButtonElement>(null);
     const sectorSelectRef = useRef<HTMLButtonElement>(null);
+    const manufacturerSelectRef = useRef<HTMLButtonElement>(null);
 
     const handleCreatePlantClick = () => {
         plantSheetTriggerRef.current?.click();
@@ -493,6 +542,40 @@ export default function AssetFormComponent({
 
     const handleCreateAssetTypeClick = () => {
         assetTypeSheetTriggerRef.current?.click();
+    };
+
+    const handleCreateManufacturerClick = () => {
+        manufacturerSheetTriggerRef.current?.click();
+    };
+
+    const handleManufacturerCreated = () => {
+        router.reload({
+            only: ['manufacturers'],
+            onSuccess: (page) => {
+                const updatedManufacturers = page.props.manufacturers as Manufacturer[];
+                if (updatedManufacturers && updatedManufacturers.length > 0) {
+                    const newestManufacturer = updatedManufacturers[updatedManufacturers.length - 1];
+                    setData('manufacturer_id', newestManufacturer.id.toString());
+
+                    // Focus and highlight the manufacturer select field
+                    setTimeout(() => {
+                        const selectButton = manufacturerSelectRef.current;
+                        if (selectButton) {
+                            selectButton.focus();
+                            // Add a temporary highlight effect with smooth transition
+                            selectButton.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all', 'duration-300');
+                            setTimeout(() => {
+                                selectButton.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+                                // Remove transition classes after animation completes
+                                setTimeout(() => {
+                                    selectButton.classList.remove('transition-all', 'duration-300');
+                                }, 300);
+                            }, 2000);
+                        }
+                    }, 100);
+                }
+            },
+        });
     };
 
     return (
@@ -511,6 +594,7 @@ export default function AssetFormComponent({
                     clearErrors={clearErrors}
                     plants={plants}
                     assetTypes={assetTypes}
+                    manufacturers={manufacturers}
                     availableAreas={availableAreas}
                     availableSectors={availableSectors}
                     isEditing={isEditing}
@@ -519,10 +603,12 @@ export default function AssetFormComponent({
                     plantSelectRef={plantSelectRef}
                     areaSelectRef={areaSelectRef}
                     sectorSelectRef={sectorSelectRef}
+                    manufacturerSelectRef={manufacturerSelectRef}
                     handleCreateAssetTypeClick={handleCreateAssetTypeClick}
                     handleCreatePlantClick={handleCreatePlantClick}
                     handleCreateAreaClick={handleCreateAreaClick}
                     handleCreateSectorClick={handleCreateSectorClick}
+                    handleCreateManufacturerClick={handleCreateManufacturerClick}
                 />
 
                 {/* Action buttons */}
@@ -641,6 +727,16 @@ export default function AssetFormComponent({
                     triggerVariant="outline"
                     triggerRef={assetTypeSheetTriggerRef}
                     onSuccess={handleAssetTypeCreated}
+                />
+            </div>
+
+            <div style={{ display: 'none' }}>
+                <CreateManufacturerSheet
+                    showTrigger={true}
+                    triggerText="Trigger Oculto"
+                    triggerVariant="outline"
+                    triggerRef={manufacturerSheetTriggerRef}
+                    onSuccess={handleManufacturerCreated}
                 />
             </div>
         </>
