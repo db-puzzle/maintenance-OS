@@ -125,8 +125,8 @@ function AssetFormFields({
                                 onChange={(file) => setData('photo', file)}
                                 error={errors.photo}
                                 initialPreview={isEditing && data.photo_path ? `/storage/${data.photo_path}` : null}
-                                minHeight="min-h-[calc(100%-120px)]"
-                                maxHeight="max-h-[calc(100%-120px)]"
+                                minHeight="h-auto"
+                                maxHeight="h-auto"
                             />
                         </div>
                     )}
@@ -243,7 +243,7 @@ function AssetFormFields({
                             value={data.description}
                             onChange={(e) => setData('description', e.target.value)}
                             placeholder="Descrição da máquina"
-                            className="min-h-[100px]"
+                            className="min-h-[60px]"
                             view={isViewMode}
                         />
                         <InputError message={errors.description} />

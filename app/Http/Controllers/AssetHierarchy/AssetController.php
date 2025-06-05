@@ -187,7 +187,7 @@ class AssetController extends Controller
             return Inertia::render('asset-hierarchy/assets/show', [
                 'asset' => null,
                 'assetTypes' => AssetType::all(),
-                'manufacturers' => Manufacturer::orderBy('name')->get(),
+                'manufacturers' => Manufacturer::orderBy('id')->get(),
                 'plants' => Plant::with('areas.sectors')->get(),
                 'isCreating' => true,
             ]);
@@ -222,7 +222,7 @@ class AssetController extends Controller
         return Inertia::render('asset-hierarchy/assets/show', [
             'asset' => $assetData,
             'assetTypes' => AssetType::all(),
-            'manufacturers' => Manufacturer::orderBy('name')->get(),
+            'manufacturers' => Manufacturer::orderBy('id')->get(),
             'plants' => Plant::with('areas.sectors')->get(),
             'isCreating' => false,
         ]);
