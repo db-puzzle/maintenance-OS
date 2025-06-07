@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Task } from '@/types/task';
 import { Link, router } from '@inertiajs/react';
-import { ClipboardCheck, Clock, Edit2, Eye, FileText, MoreVertical, Plus, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Clock, Edit2, Eye, FileText, MoreVertical, Plus, Trash2, AlertCircle, CalendarRange } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export interface Routine {
     id?: number;
@@ -26,6 +27,25 @@ export interface Routine {
     };
 }
 
+interface ShiftSchedule {
+    weekday: string;
+    shifts: Array<{
+        start_time: string;
+        end_time: string;
+        active: boolean;
+        breaks: Array<{
+            start_time: string;
+            end_time: string;
+        }>;
+    }>;
+}
+
+interface Shift {
+    id: number;
+    name: string;
+    schedules: ShiftSchedule[];
+}
+
 interface RoutineListProps {
     routine?: Routine;
     onSave?: (routine: Routine) => void;
@@ -33,6 +53,9 @@ interface RoutineListProps {
     onCancel?: () => void;
     isNew?: boolean;
     assetId?: number;
+    onEditForm?: () => void;
+    isCompressed?: boolean;
+    shift?: Shift | null;
 }
 
 const routineTypes = [
@@ -41,7 +64,51 @@ const routineTypes = [
     { value: '3', label: 'Relatório de Manutenção' },
 ];
 
-export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew = false, assetId }: RoutineListProps) {
+// Helper function to calculate shift work hours per week
+const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => {
+    if (!shift?.schedules) return 0;
+
+    let totalMinutes = 0;
+
+    shift.schedules.forEach(schedule => {
+        schedule.shifts.forEach(shiftTime => {
+            if (shiftTime.active) {
+                const [startHours, startMinutes] = shiftTime.start_time.split(':').map(Number);
+                const [endHours, endMinutes] = shiftTime.end_time.split(':').map(Number);
+
+                let startTotalMinutes = startHours * 60 + startMinutes;
+                let endTotalMinutes = endHours * 60 + endMinutes;
+
+                // Handle shifts that cross midnight
+                if (endTotalMinutes < startTotalMinutes) {
+                    endTotalMinutes += 24 * 60;
+                }
+
+                const shiftDuration = endTotalMinutes - startTotalMinutes;
+                totalMinutes += shiftDuration;
+
+                // Subtract break time
+                shiftTime.breaks.forEach(breakTime => {
+                    const [breakStartHours, breakStartMinutes] = breakTime.start_time.split(':').map(Number);
+                    const [breakEndHours, breakEndMinutes] = breakTime.end_time.split(':').map(Number);
+
+                    let breakStartTotalMinutes = breakStartHours * 60 + breakStartMinutes;
+                    let breakEndTotalMinutes = breakEndHours * 60 + breakEndMinutes;
+
+                    if (breakEndTotalMinutes < breakStartTotalMinutes) {
+                        breakEndTotalMinutes += 24 * 60;
+                    }
+
+                    totalMinutes -= (breakEndTotalMinutes - breakStartTotalMinutes);
+                });
+            }
+        });
+    });
+
+    return totalMinutes / 60; // Return hours
+};
+
+export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew = false, assetId, onEditForm, isCompressed = false, shift }: RoutineListProps) {
     // Referência para o trigger do sheet
     const editSheetTriggerRef = useRef<HTMLButtonElement>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -65,16 +132,26 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
     };
 
     const formatTriggerHours = (hours: number) => {
-        if (hours < 24) {
-            return `${hours} hora${hours !== 1 ? 's' : ''}`;
-        } else if (hours % 24 === 0) {
-            const days = hours / 24;
-            return `${days} dia${days !== 1 ? 's' : ''}`;
-        } else {
-            const days = Math.floor(hours / 24);
-            const remainingHours = hours % 24;
-            return `${days} dia${days !== 1 ? 's' : ''} e ${remainingHours} hora${remainingHours !== 1 ? 's' : ''}`;
+        const shiftHoursPerWeek = calculateShiftHoursPerWeek(shift);
+
+        // Base hours format - always show in hours as stored in database
+        const hoursText = `${hours} hora${hours !== 1 ? 's' : ''}`;
+
+        // Work days estimate
+        let workDaysText = null;
+        if (shift && shiftHoursPerWeek > 0) {
+            const shiftHoursPerDay = shiftHoursPerWeek / 7;
+            const workDays = hours / shiftHoursPerDay;
+
+            if (workDays < 1) {
+                workDaysText = 'menos de 1 dia de trabalho';
+            } else {
+                const days = Math.round(workDays);
+                workDaysText = `${days} dia${days !== 1 ? 's' : ''} de trabalho`;
+            }
         }
+
+        return { hoursText, workDaysText };
     };
 
     const handleEditClick = () => {
@@ -165,10 +242,16 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
 
     return (
         <>
-            <li className="flex items-center justify-between gap-x-6 py-5">
+            <li className={cn(
+                "flex items-center justify-between gap-x-6 transition-all duration-200 ease-in-out",
+                isCompressed ? "py-3" : "py-5"
+            )}>
                 <div className="min-w-0">
                     <div className="flex items-start gap-x-3">
-                        <p className="text-sm font-semibold text-gray-900">{routineData.name}</p>
+                        <p className={cn(
+                            "font-semibold text-gray-900 transition-all duration-200 ease-in-out",
+                            isCompressed ? "text-sm" : "text-sm"
+                        )}>{routineData.name}</p>
                         <p
                             className={`mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${routineData.status === 'Active'
                                 ? 'bg-green-50 text-green-700 ring-green-600/20'
@@ -181,24 +264,37 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                     <div className="mt-1 flex items-center gap-x-2 text-xs text-gray-500">
                         <p className="flex items-center gap-1 whitespace-nowrap">
                             <Clock className="h-3 w-3" />
-                            Intervalo: {formatTriggerHours(routineData.trigger_hours)}
+                            {formatTriggerHours(routineData.trigger_hours).hoursText}
                         </p>
-                        <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
-                            <circle r={1} cx={1} cy={1} />
-                        </svg>
-                        <p className="truncate">{routineTypes.find((t) => t.value === routineData.type.toString())?.label}</p>
+                        {formatTriggerHours(routineData.trigger_hours).workDaysText && (
+                            <>
+                                <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                                    <circle r={1} cx={1} cy={1} />
+                                </svg>
+                                <p className="flex items-center gap-1 whitespace-nowrap">
+                                    <CalendarRange className="h-3 w-3" />
+                                    {formatTriggerHours(routineData.trigger_hours).workDaysText}
+                                </p>
+                            </>
+                        )}
                         {routineData.form && (
                             <>
                                 <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
                                     <circle r={1} cx={1} cy={1} />
                                 </svg>
-                                <p className="flex items-center gap-1 truncate">
+                                <p className="flex items-center gap-1 whitespace-nowrap">
                                     <FileText className="h-3 w-3" />
                                     {routineData.form.tasks?.length || 0} tarefas
                                 </p>
                             </>
                         )}
                     </div>
+                    {!shift && (
+                        <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                            <AlertCircle className="h-3 w-3" />
+                            <span>Estimativa de tempo disponível após configurar turno</span>
+                        </div>
+                    )}
                 </div>
                 <div className="flex flex-none items-center gap-x-4">
                     {routineData.form ? (
@@ -212,15 +308,22 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                             </Button>
                         </Link>
                     ) : (
-                        <Link
-                            href={route('maintenance.assets.routines.form-editor', { asset: assetId, routine: routineData.id })}
-                            className="hidden sm:block"
-                        >
-                            <Button size="sm" variant="secondary">
+                        onEditForm ? (
+                            <Button size="sm" variant="secondary" onClick={onEditForm}>
                                 <FileText className="mr-1 h-4 w-4" />
                                 Criar Tarefas
                             </Button>
-                        </Link>
+                        ) : (
+                            <Link
+                                href={route('maintenance.assets.routines.form-editor', { asset: assetId, routine: routineData.id })}
+                                className="hidden sm:block"
+                            >
+                                <Button size="sm" variant="secondary">
+                                    <FileText className="mr-1 h-4 w-4" />
+                                    Criar Tarefas
+                                </Button>
+                            </Link>
+                        )
                     )}
                     {!isSheetOpen && (
                         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
@@ -250,14 +353,25 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                     </>
                                 ) : (
                                     <>
-                                        <DropdownMenuItem asChild className="sm:hidden">
-                                            <Link
-                                                href={route('maintenance.assets.routines.form-editor', { asset: assetId, routine: routineData.id })}
-                                                className="flex items-center"
-                                            >
-                                                <FileText className="mr-2 h-4 w-4" />
-                                                Criar Tarefas
-                                            </Link>
+                                        <DropdownMenuItem
+                                            asChild={!onEditForm}
+                                            className={onEditForm ? "sm:hidden" : "sm:hidden flex items-center"}
+                                            onClick={onEditForm ? onEditForm : undefined}
+                                        >
+                                            {onEditForm ? (
+                                                <>
+                                                    <FileText className="mr-2 h-4 w-4" />
+                                                    Criar Tarefas
+                                                </>
+                                            ) : (
+                                                <Link
+                                                    href={route('maintenance.assets.routines.form-editor', { asset: assetId, routine: routineData.id })}
+                                                    className="flex items-center"
+                                                >
+                                                    <FileText className="mr-2 h-4 w-4" />
+                                                    Criar Tarefas
+                                                </Link>
+                                            )}
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator className="sm:hidden" />
                                     </>

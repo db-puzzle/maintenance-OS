@@ -20,6 +20,10 @@ import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import AssetRuntimeInput from '@/components/AssetRuntimeInput';
 import ShiftSelectionCard, { ShiftSelectionCardRef } from '@/components/ShiftSelectionCard';
+import FormEditor from '@/pages/forms/form-editor';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 interface Shift {
     id: number;
@@ -101,6 +105,15 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     // Estado para gerenciar as rotinas
     const [routines, setRoutines] = useState<Array<any>>(asset?.routines || []);
 
+    // Estado para controlar qual rotina está sendo editada
+    const [editingRoutineFormId, setEditingRoutineFormId] = useState<number | null>(null);
+
+    // Estado para controlar o modo comprimido
+    const [isCompressed, setIsCompressed] = useState(false);
+
+    // Estado para busca de rotinas
+    const [searchTerm, setSearchTerm] = useState('');
+
     // Estados para turnos
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [selectedShiftId, setSelectedShiftId] = useState<string>(asset?.shift_id?.toString() || '');
@@ -116,6 +129,12 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     // Referência para o CreateRoutineButton
     const createRoutineButtonRef = useRef<HTMLButtonElement>(null);
     const shiftSelectionRef = useRef<ShiftSelectionCardRef>(null);
+
+    // Filtrar rotinas baseado no termo de busca
+    const filteredRoutines = routines.filter(routine =>
+        routine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        routine.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     // Handlers para rotinas
     const handleSaveRoutine = (routine: any) => {
@@ -324,12 +343,36 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         shiftSelectionRef.current?.triggerEditWithFocus();
     };
 
+    const handleEditRoutineForm = (routineId: number) => {
+        setEditingRoutineFormId(routineId);
+        // Ativar modo comprimido ao editar formulário
+        setIsCompressed(true);
+    };
+
+    const handleCloseFormEditor = () => {
+        setEditingRoutineFormId(null);
+        // Desativar modo comprimido ao fechar editor
+        setIsCompressed(false);
+    };
+
+    const handleFormSaved = (formData: any) => {
+        // Atualizar a rotina com o novo formulário
+        setRoutines(routines.map(r => {
+            if (r.id === editingRoutineFormId) {
+                return { ...r, form: formData };
+            }
+            return r;
+        }));
+        setEditingRoutineFormId(null);
+        toast.success('Formulário da rotina atualizado com sucesso!');
+    };
+
     const tabs = [
         {
             id: 'informacoes',
             label: 'Informações Gerais',
             content: (
-                <div className="pt-8 p-4">
+                <div className="py-8">
                     <AssetFormComponent
                         asset={asset}
                         plants={plants}
@@ -346,7 +389,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 id: 'shifts-runtime',
                 label: 'Turnos & Horas',
                 content: (
-                    <div className="p-4 space-y-6">
+                    <div className="py-6 space-y-6">
                         {!plantToShow ? (
                             <div className="rounded-md bg-yellow-50 p-4">
                                 <div className="flex">
@@ -449,46 +492,134 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 id: 'rotinas',
                 label: 'Rotinas',
                 content: (
-                    <div className="space-y-4">
-                        {routines.length === 0 ? (
-                            <div className="p-4">
-                                <EmptyCard
-                                    icon={CalendarClock}
-                                    title="Nenhuma rotina"
-                                    description="Crie rotinas de manutenção e inspeção para este ativo"
-                                    primaryButtonText="Nova rotina"
-                                    primaryButtonAction={handleNewRoutineClick}
-                                    secondaryButtonText="Ver cronograma"
-                                    secondaryButtonAction={() => {
-                                        // Navegar para cronograma ou implementar funcionalidade futura
-                                    }}
-                                />
+                    <div className="space-y-4 min-h-full">
+                        {editingRoutineFormId ? (
+                            // Mostrar o editor de formulário inline
+                            (() => {
+                                const routine = routines.find(r => r.id === editingRoutineFormId);
+                                if (!routine) return null;
+
+                                return (
+                                    <div className={cn(
+                                        "transition-all duration-300 ease-in-out",
+                                        isCompressed ? "" : "p-4"
+                                    )}>
+                                        <div className={cn(
+                                            "flex items-center justify-between",
+                                            isCompressed ? "mt-2 mb-2 px-4" : "mb-4"
+                                        )}>
+                                            <div className="">
+                                                <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
+                                                    <p className="ml-2 mt-1 truncate text-sm text-gray-500">Rotina</p>
+                                                    <h3 className="ml-2 mt-2 text-base font-semibold text-gray-900">{routine.name}</h3>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleCloseFormEditor}
+                                            >
+                                                Lista de Rotinas
+                                            </Button>
+                                        </div>
+                                        <div className={cn(
+                                            isCompressed ? "mt-4" : "mt-6 px-0"
+                                        )}>
+                                            <FormEditor
+                                                form={routine.form}
+                                                entity={{ id: routine.id, name: routine.name }}
+                                                entityType="routine"
+                                                saveRoute={route('maintenance.assets.routines.forms.store', {
+                                                    asset: asset?.id,
+                                                    routine: routine.id
+                                                })}
+                                                title=""
+                                                subtitle=""
+                                                inline={true}
+                                                onSuccess={handleFormSaved}
+                                                onCancel={handleCloseFormEditor}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })()
+                        ) : routines.length === 0 ? (
+                            <div className="py-4 min-h-[400px] flex items-center justify-center">
+                                <div className="w-full">
+                                    <EmptyCard
+                                        icon={CalendarClock}
+                                        title="Nenhuma rotina"
+                                        description="Crie rotinas de manutenção e inspeção para este ativo"
+                                        primaryButtonText="Nova rotina"
+                                        primaryButtonAction={handleNewRoutineClick}
+                                        secondaryButtonText="Ver cronograma"
+                                        secondaryButtonAction={() => {
+                                            // Navegar para cronograma ou implementar funcionalidade futura
+                                        }}
+                                    />
+                                </div>
                             </div>
                         ) : (
                             <>
                                 {/* Lista de rotinas existentes */}
 
-                                <div className="p-4 bg-background-muted">
-                                    <h3 className="text-base/7 font-semibold text-gray-900">Rotinas Disponíveis</h3>
-                                    <p className="mt-1 max-w-2xl text-sm/6 text-gray-500">
-                                        Execute, crie ou edite rotinas de manutenção para este ativo.
-                                    </p>
-                                    <div className="p-4">
+                                <div className="bg-background-muted">
+                                    <div className={cn(
+                                        "transition-all duration-200 ease-in-out",
+                                        isCompressed ? "mt-4 mb-4 px-4" : "mt-4 mb-4 px-6"
+                                    )}>
+                                        <div className="relative">
+                                            <Search className={cn(
+                                                "absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground",
+                                                isCompressed ? "h-4 w-4" : "h-5 w-5"
+                                            )} />
+                                            <Input
+                                                type="text"
+                                                placeholder="Buscar rotinas..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className={cn(
+                                                    "max-w-sm bg-background",
+                                                    isCompressed ? "pl-9 h-8" : "pl-10"
+                                                )}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className={cn(
+                                        "transition-all duration-200 ease-in-out",
+                                        isCompressed ? "px-2" : "px-4"
+                                    )}>
                                         <ul role="list" className="divide-y divide-gray-100 border-t border-b border-gray-100">
-                                            {routines.map((routine) => (
+                                            {filteredRoutines.map((routine) => (
                                                 <RoutineList
                                                     key={routine.id}
                                                     routine={routine}
                                                     onSave={handleSaveRoutine}
                                                     onDelete={handleDeleteRoutine}
                                                     assetId={asset?.id}
+                                                    onEditForm={() => handleEditRoutineForm(routine.id)}
+                                                    isCompressed={isCompressed}
+                                                    shift={selectedShift}
                                                 />
                                             ))}
                                         </ul>
+
+                                        {filteredRoutines.length === 0 && searchTerm && (
+                                            <div className={cn(
+                                                "text-center text-muted-foreground",
+                                                isCompressed ? "py-4 text-sm" : "py-8"
+                                            )}>
+                                                Nenhuma rotina encontrada para "{searchTerm}"
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Botão para adicionar nova rotina quando já existem rotinas */}
-                                    <div className="flex justify-center py-4">
+                                    <div className={cn(
+                                        "flex justify-center transition-all duration-200 ease-in-out",
+                                        isCompressed ? "py-2" : "py-4"
+                                    )}>
                                         <CreateRoutineButton
                                             onSuccess={handleCreateSuccess}
                                             text="Adicionar Nova Rotina"
@@ -511,16 +642,18 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 id: 'chamados',
                 label: 'Chamados de Usuário',
                 content: (
-                    <div className="p-4">
-                        <EmptyCard
-                            icon={MessageSquare}
-                            title="Nenhum chamado registrado"
-                            description="Registre chamados para este ativo"
-                            primaryButtonText="Novo chamado"
-                            primaryButtonAction={() => { }}
-                            secondaryButtonText="Ver histórico"
-                            secondaryButtonAction={() => { }}
-                        />
+                    <div className="py-4 min-h-[400px] flex items-center justify-center">
+                        <div className="w-full">
+                            <EmptyCard
+                                icon={MessageSquare}
+                                title="Nenhum chamado registrado"
+                                description="Registre chamados para este ativo"
+                                primaryButtonText="Novo chamado"
+                                primaryButtonAction={() => { }}
+                                secondaryButtonText="Ver histórico"
+                                secondaryButtonAction={() => { }}
+                            />
+                        </div>
                     </div>
                 ),
             },
@@ -528,16 +661,18 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 id: 'ordem-serviço',
                 label: 'Ordens de Manutenção',
                 content: (
-                    <div className="p-4">
-                        <EmptyCard
-                            icon={FileText}
-                            title="Nenhuma ordem de serviço"
-                            description="Registre ordens de serviço para este ativo"
-                            primaryButtonText="Nova ordem de serviço"
-                            primaryButtonAction={() => { }}
-                            secondaryButtonText="Ver histórico"
-                            secondaryButtonAction={() => { }}
-                        />
+                    <div className="py-4 min-h-[400px] flex items-center justify-center">
+                        <div className="w-full">
+                            <EmptyCard
+                                icon={FileText}
+                                title="Nenhuma ordem de serviço"
+                                description="Registre ordens de serviço para este ativo"
+                                primaryButtonText="Nova ordem de serviço"
+                                primaryButtonAction={() => { }}
+                                secondaryButtonText="Ver histórico"
+                                secondaryButtonAction={() => { }}
+                            />
+                        </div>
                     </div>
                 ),
             },
@@ -545,16 +680,18 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 id: 'arquivos',
                 label: 'Arquivos',
                 content: (
-                    <div className="p-4">
-                        <EmptyCard
-                            icon={FileText}
-                            title="Nenhum arquivo"
-                            description="Registre arquivos para este ativo"
-                            primaryButtonText="Novo arquivo"
-                            primaryButtonAction={() => { }}
-                            secondaryButtonText="Ver histórico"
-                            secondaryButtonAction={() => { }}
-                        />
+                    <div className="py-4 min-h-[400px] flex items-center justify-center">
+                        <div className="w-full">
+                            <EmptyCard
+                                icon={FileText}
+                                title="Nenhum arquivo"
+                                description="Registre arquivos para este ativo"
+                                primaryButtonText="Novo arquivo"
+                                primaryButtonAction={() => { }}
+                                secondaryButtonText="Ver histórico"
+                                secondaryButtonAction={() => { }}
+                            />
+                        </div>
                     </div>
                 ),
             },
@@ -562,16 +699,18 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 id: 'historico',
                 label: 'Histórico',
                 content: (
-                    <div className="p-4">
-                        <EmptyCard
-                            icon={MessageSquare}
-                            title="Nenhum histórico registrado"
-                            description="Quando houver algum histórico para este ativo, ele será exibido aqui."
-                            primaryButtonText="Ver detalhes"
-                            primaryButtonAction={() => {
-                                // Implementar ação para ver detalhes do histórico ou navegar
-                            }}
-                        />
+                    <div className="py-4 min-h-[400px] flex items-center justify-center">
+                        <div className="w-full">
+                            <EmptyCard
+                                icon={MessageSquare}
+                                title="Nenhum histórico registrado"
+                                description="Quando houver algum histórico para este ativo, ele será exibido aqui."
+                                primaryButtonText="Ver detalhes"
+                                primaryButtonAction={() => {
+                                    // Implementar ação para ver detalhes do histórico ou navegar
+                                }}
+                            />
+                        </div>
                     </div>
                 ),
             },
@@ -587,12 +726,29 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 subtitle={
                     isCreating ? (
                         'Criação de novo ativo'
-                    ) : asset?.asset_type ? (
-                        <Link href={route('asset-hierarchy.tipos-ativo.show', asset.asset_type.id)} className="hover:underline">
-                            {asset.asset_type.name}
-                        </Link>
                     ) : (
-                        'Sem tipo definido'
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            {asset?.asset_type && (
+                                <Link href={route('asset-hierarchy.tipos-ativo.show', asset.asset_type.id)} className="hover:underline">
+                                    {asset.asset_type.name}
+                                </Link>
+                            )}
+                            {asset?.serial_number && (
+                                <>
+                                    {asset?.asset_type && <span className="text-muted-foreground">•</span>}
+                                    <span className="text-muted-foreground">S/N: {asset.serial_number}</span>
+                                </>
+                            )}
+                            {asset?.part_number && (
+                                <>
+                                    {(asset?.asset_type || asset?.serial_number) && <span className="text-muted-foreground">•</span>}
+                                    <span className="text-muted-foreground">P/N: {asset.part_number}</span>
+                                </>
+                            )}
+                            {!asset?.asset_type && !asset?.serial_number && !asset?.part_number && (
+                                <span className="text-muted-foreground">Sem informações adicionais</span>
+                            )}
+                        </div>
                     )
                 }
                 breadcrumbs={breadcrumbs}
@@ -600,6 +756,8 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 backRoute={route('asset-hierarchy.assets')}
                 tabs={tabs}
                 defaultActiveTab={tabFromUrl || undefined}
+                defaultCompressed={isCompressed}
+                onCompressedChange={setIsCompressed}
             />
         </AppLayout>
     );

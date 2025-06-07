@@ -23,6 +23,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { ClipboardCheck } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface FormData {
     id?: number;
@@ -45,6 +46,9 @@ interface Props {
     saveRoute?: string;
     title?: string;
     subtitle?: string;
+    inline?: boolean;
+    onSuccess?: (formData: any) => void;
+    onCancel?: () => void;
 }
 
 interface FormSubmitData {
@@ -69,7 +73,7 @@ const EntityLabels = {
     },
 };
 
-export default function FormEditor({ form, entity, entityType, breadcrumbs, backRoute, saveRoute, title, subtitle }: Props) {
+export default function FormEditor({ form, entity, entityType, breadcrumbs, backRoute, saveRoute, title, subtitle, inline = false, onSuccess, onCancel }: Props) {
     const entityLabel = EntityLabels[entityType];
     const entityDisplayName = entity.name || entity.tag || `${entityLabel.singular} ${entity.id}`;
 
@@ -233,14 +237,14 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
             ...task,
             measurement: task.measurement
                 ? {
-                      ...task.measurement,
-                      name: task.measurement.name,
-                      min: task.measurement.min,
-                      target: task.measurement.target,
-                      max: task.measurement.max,
-                      unit: task.measurement.unit,
-                      category: task.measurement.category,
-                  }
+                    ...task.measurement,
+                    name: task.measurement.name,
+                    min: task.measurement.min,
+                    target: task.measurement.target,
+                    max: task.measurement.max,
+                    unit: task.measurement.unit,
+                    category: task.measurement.category,
+                }
                 : undefined,
             options: task.options?.map((option) => option) || [],
             instructionImages: task.instructionImages || [],
@@ -252,8 +256,13 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
                 tasks: JSON.stringify(tasksToSave),
             },
             {
-                onSuccess: () => {
+                onSuccess: (response) => {
                     toast.success('Formulário salvo com sucesso!');
+                    if (onSuccess) {
+                        // Extract form data from response if available
+                        const formData = response.props?.form || { tasks: tasksToSave };
+                        onSuccess(formData);
+                    }
                 },
                 onError: () => {
                     toast.error('Erro ao salvar formulário', {
@@ -267,6 +276,204 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
     const pageTitle = title || entityLabel.form;
     const pageSubtitle = subtitle || entityDisplayName;
 
+    const formContent = (
+        <form
+            onSubmit={(e) => {
+                e.preventDefault();
+                handleSave();
+            }}
+            className="space-y-6"
+        >
+            <div className="grid gap-6 mt-4">
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDragCancel={handleDragCancel}
+                    modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
+                    measuring={{
+                        droppable: {
+                            strategy: MeasuringStrategy.Always,
+                        },
+                    }}
+                >
+                    <div className="grid gap-4">
+                        <SortableContext items={tasks.map((task) => `task-${task.id}`)} strategy={verticalListSortingStrategy}>
+                            {tasks.length === 0 ? (
+                                <Card className="bg-muted/30">
+                                    <CardContent className="flex flex-col items-center justify-center px-4 py-8 text-center sm:px-6">
+                                        <div className="bg-muted/50 mb-4 flex size-12 items-center justify-center rounded-full">
+                                            <ClipboardCheck className="text-foreground/60 size-6" />
+                                        </div>
+                                        <h3 className="mb-2 text-lg font-medium">Nenhuma tarefa adicionada</h3>
+                                        <p className="text-muted-foreground mx-auto mb-6 max-w-xs text-sm">
+                                            Adicione tarefas para compor o formulário.
+                                        </p>
+                                        <div className="w-full sm:w-auto">
+                                            <AddTaskButton
+                                                label="Nova Tarefa"
+                                                taskTypes={TaskTypes}
+                                                tasks={tasks}
+                                                currentIndex={-1}
+                                                onTaskAdded={(newTask) => {
+                                                    const updatedTasks = [...tasks, newTask];
+                                                    setTasks(updatedTasks);
+                                                }}
+                                            />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                tasks.map((task, index) => {
+                                    const taskType = TaskTypes.find((t) => t.value === task.type);
+                                    const icon =
+                                        taskIcons[task.id] ||
+                                        (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
+
+                                    return (
+                                        <TaskBaseCard
+                                            key={`task-${task.id}`}
+                                            id={task.id}
+                                            mode={
+                                                TaskOperations.isEditing(task)
+                                                    ? 'edit'
+                                                    : TaskOperations.isPreviewing(task)
+                                                        ? 'preview'
+                                                        : TaskOperations.isResponding(task)
+                                                            ? 'respond'
+                                                            : 'preview'
+                                            }
+                                            icon={icon}
+                                            title={task.description}
+                                            onTitleChange={(newTitle) => {
+                                                taskMethods.update(index, (t) => ({
+                                                    ...t,
+                                                    description: newTitle,
+                                                }));
+                                            }}
+                                            onRemove={() => {
+                                                if (TaskOperations.isEditing(task) && !task.description) {
+                                                    taskMethods.remove(index);
+                                                } else {
+                                                    taskMethods.setState(index, TaskState.Viewing);
+                                                }
+                                            }}
+                                            onNewTask={(newTask) => taskMethods.createAt(index, undefined, newTask)}
+                                            onPreview={() => {
+                                                if (TaskOperations.isEditing(task)) {
+                                                    taskMethods.setState(index, TaskState.Viewing);
+                                                } else {
+                                                    taskMethods.setState(index, TaskState.Previewing);
+                                                }
+                                            }}
+                                            onEdit={() => taskMethods.setState(index, TaskState.Editing)}
+                                            onNext={() => taskMethods.setState(index, TaskState.Viewing)}
+                                            taskTypes={TaskTypes}
+                                            tasks={tasks}
+                                            currentIndex={index}
+                                            isRequired={task.isRequired}
+                                            onRequiredChange={(required) =>
+                                                taskMethods.update(index, (t) => TaskOperations.updateRequired(t, required))
+                                            }
+                                            onTaskUpdate={(updatedTask) => {
+                                                taskMethods.update(index, () => updatedTask);
+                                            }}
+                                        >
+                                            <TaskContent
+                                                task={task}
+                                                mode={
+                                                    TaskOperations.isEditing(task)
+                                                        ? 'edit'
+                                                        : TaskOperations.isPreviewing(task)
+                                                            ? 'preview'
+                                                            : TaskOperations.isResponding(task)
+                                                                ? 'respond'
+                                                                : 'preview'
+                                                }
+                                                onUpdate={(updatedTask) => {
+                                                    if (updatedTask.type === 'measurement' && updatedTask.measurement) {
+                                                        setLastMeasurementCategory(updatedTask.measurement.category);
+                                                        setLastMeasurementUnit(updatedTask.measurement.unit);
+                                                    }
+                                                    taskMethods.update(index, () => updatedTask);
+                                                }}
+                                                onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
+                                            />
+                                        </TaskBaseCard>
+                                    );
+                                })
+                            )}
+                        </SortableContext>
+                    </div>
+
+                    <DragOverlay
+                        dropAnimation={{
+                            sideEffects: defaultDropAnimationSideEffects({
+                                styles: {
+                                    active: {
+                                        opacity: '0.5',
+                                    },
+                                },
+                            }),
+                        }}
+                    >
+                        {activeId
+                            ? (() => {
+                                const task = taskMethods.getById(activeId);
+                                if (!task) return null;
+
+                                const taskType = TaskTypes.find((t) => t.value === task.type);
+                                const icon =
+                                    taskIcons[task.id] ||
+                                    (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
+
+                                return (
+                                    <TaskBaseCard
+                                        key={`overlay-${task.id}`}
+                                        id={task.id}
+                                        mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
+                                        icon={icon}
+                                        title={task.description}
+                                        isRequired={task.isRequired}
+                                        onTaskUpdate={() => { }}
+                                    >
+                                        <TaskContent
+                                            task={task}
+                                            mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
+                                            onUpdate={() => { }}
+                                            onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
+                                        />
+                                    </TaskBaseCard>
+                                );
+                            })()
+                            : null}
+                    </DragOverlay>
+                </DndContext>
+            </div>
+        </form>
+    );
+
+    // If inline mode, return just the form content with action buttons
+    if (inline) {
+        return (
+            <div className="space-y-6">
+                {formContent}
+                <div className="flex justify-end gap-2">
+                    {onCancel && (
+                        <Button type="button" variant="outline" onClick={onCancel}>
+                            Cancelar
+                        </Button>
+                    )}
+                    <Button type="button" onClick={handleSave} disabled={processing}>
+                        {processing ? 'Salvando...' : 'Salvar Formulário'}
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    // Otherwise, return with full layout
     return (
         <AppLayout breadcrumbs={breadcrumbs || defaultBreadcrumbs}>
             <Head title={`${pageTitle} - ${pageSubtitle}`} />
@@ -281,185 +488,7 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
                 contentWidth="custom"
                 contentClassName=""
             >
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        handleSave();
-                    }}
-                    className="space-y-6"
-                >
-                    <div className="grid gap-6">
-                        <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-                            <h3 className="text-lg font-medium">Tarefas do Formulário</h3>
-                        </div>
-
-                        <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragStart={handleDragStart}
-                            onDragEnd={handleDragEnd}
-                            onDragCancel={handleDragCancel}
-                            modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
-                            measuring={{
-                                droppable: {
-                                    strategy: MeasuringStrategy.Always,
-                                },
-                            }}
-                        >
-                            <div className="grid gap-4">
-                                <SortableContext items={tasks.map((task) => `task-${task.id}`)} strategy={verticalListSortingStrategy}>
-                                    {tasks.length === 0 ? (
-                                        <Card className="bg-muted/30">
-                                            <CardContent className="flex flex-col items-center justify-center px-4 py-8 text-center sm:px-6">
-                                                <div className="bg-muted/50 mb-4 flex size-12 items-center justify-center rounded-full">
-                                                    <ClipboardCheck className="text-foreground/60 size-6" />
-                                                </div>
-                                                <h3 className="mb-2 text-lg font-medium">Nenhuma tarefa adicionada</h3>
-                                                <p className="text-muted-foreground mx-auto mb-6 max-w-xs text-sm">
-                                                    Adicione tarefas para compor o formulário.
-                                                </p>
-                                                <div className="w-full sm:w-auto">
-                                                    <AddTaskButton
-                                                        label="Nova Tarefa"
-                                                        taskTypes={TaskTypes}
-                                                        tasks={tasks}
-                                                        currentIndex={-1}
-                                                        onTaskAdded={(newTask) => {
-                                                            const updatedTasks = [...tasks, newTask];
-                                                            setTasks(updatedTasks);
-                                                        }}
-                                                    />
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ) : (
-                                        tasks.map((task, index) => {
-                                            const taskType = TaskTypes.find((t) => t.value === task.type);
-                                            const icon =
-                                                taskIcons[task.id] ||
-                                                (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
-
-                                            return (
-                                                <TaskBaseCard
-                                                    key={`task-${task.id}`}
-                                                    id={task.id}
-                                                    mode={
-                                                        TaskOperations.isEditing(task)
-                                                            ? 'edit'
-                                                            : TaskOperations.isPreviewing(task)
-                                                              ? 'preview'
-                                                              : TaskOperations.isResponding(task)
-                                                                ? 'respond'
-                                                                : 'preview'
-                                                    }
-                                                    icon={icon}
-                                                    title={task.description}
-                                                    onTitleChange={(newTitle) => {
-                                                        taskMethods.update(index, (t) => ({
-                                                            ...t,
-                                                            description: newTitle,
-                                                        }));
-                                                    }}
-                                                    onRemove={() => {
-                                                        if (TaskOperations.isEditing(task) && !task.description) {
-                                                            taskMethods.remove(index);
-                                                        } else {
-                                                            taskMethods.setState(index, TaskState.Viewing);
-                                                        }
-                                                    }}
-                                                    onNewTask={(newTask) => taskMethods.createAt(index, undefined, newTask)}
-                                                    onPreview={() => {
-                                                        if (TaskOperations.isEditing(task)) {
-                                                            taskMethods.setState(index, TaskState.Viewing);
-                                                        } else {
-                                                            taskMethods.setState(index, TaskState.Previewing);
-                                                        }
-                                                    }}
-                                                    onEdit={() => taskMethods.setState(index, TaskState.Editing)}
-                                                    onNext={() => taskMethods.setState(index, TaskState.Viewing)}
-                                                    taskTypes={TaskTypes}
-                                                    tasks={tasks}
-                                                    currentIndex={index}
-                                                    isRequired={task.isRequired}
-                                                    onRequiredChange={(required) =>
-                                                        taskMethods.update(index, (t) => TaskOperations.updateRequired(t, required))
-                                                    }
-                                                    onTaskUpdate={(updatedTask) => {
-                                                        taskMethods.update(index, () => updatedTask);
-                                                    }}
-                                                >
-                                                    <TaskContent
-                                                        task={task}
-                                                        mode={
-                                                            TaskOperations.isEditing(task)
-                                                                ? 'edit'
-                                                                : TaskOperations.isPreviewing(task)
-                                                                  ? 'preview'
-                                                                  : TaskOperations.isResponding(task)
-                                                                    ? 'respond'
-                                                                    : 'preview'
-                                                        }
-                                                        onUpdate={(updatedTask) => {
-                                                            if (updatedTask.type === 'measurement' && updatedTask.measurement) {
-                                                                setLastMeasurementCategory(updatedTask.measurement.category);
-                                                                setLastMeasurementUnit(updatedTask.measurement.unit);
-                                                            }
-                                                            taskMethods.update(index, () => updatedTask);
-                                                        }}
-                                                        onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
-                                                    />
-                                                </TaskBaseCard>
-                                            );
-                                        })
-                                    )}
-                                </SortableContext>
-                            </div>
-
-                            <DragOverlay
-                                dropAnimation={{
-                                    sideEffects: defaultDropAnimationSideEffects({
-                                        styles: {
-                                            active: {
-                                                opacity: '0.5',
-                                            },
-                                        },
-                                    }),
-                                }}
-                            >
-                                {activeId
-                                    ? (() => {
-                                          const task = taskMethods.getById(activeId);
-                                          if (!task) return null;
-
-                                          const taskType = TaskTypes.find((t) => t.value === task.type);
-                                          const icon =
-                                              taskIcons[task.id] ||
-                                              (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
-
-                                          return (
-                                              <TaskBaseCard
-                                                  key={`overlay-${task.id}`}
-                                                  id={task.id}
-                                                  mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
-                                                  icon={icon}
-                                                  title={task.description}
-                                                  isRequired={task.isRequired}
-                                                  onTaskUpdate={() => {}}
-                                              >
-                                                  <TaskContent
-                                                      task={task}
-                                                      mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
-                                                      onUpdate={() => {}}
-                                                      onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
-                                                  />
-                                              </TaskBaseCard>
-                                          );
-                                      })()
-                                    : null}
-                            </DragOverlay>
-                        </DndContext>
-                    </div>
-                </form>
+                {formContent}
             </CreateLayout>
         </AppLayout>
     );
