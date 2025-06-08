@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MainSelectionTab, MainSelectionTabList, MainSelectionTabTrigger } from '@/components/ui/main-selection-tab';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebar } from '@/components/ui/sidebar';
 import { type BreadcrumbItem } from '@/types';
@@ -85,134 +85,138 @@ export default function ShowLayout({
     };
 
     return (
-        <div className={cn(
-            "bg-background transition-all duration-200 ease-in-out min-h-screen flex flex-col",
-            isCompressed && "compressed"
-        )}>
-            <div className={cn(
-                "flex flex-col gap-6 px-6 lg:px-8 transition-all duration-200 ease-in-out",
-                isCompressed ? "pt-2" : "pt-5"
-            )}>
-                {/* Main content */}
+        <div className="relative flex flex-col h-[calc(100vh-3rem)]">
+            {/* Fixed Header Section */}
+            <div className="flex-shrink-0 bg-background">
+                {/* Title and Actions */}
                 <div className={cn(
-                    "flex flex-col justify-between gap-6 md:flex-row md:items-center transition-all duration-200 ease-in-out",
-                    isCompressed && "gap-3"
+                    "px-6 lg:px-8 transition-all duration-200 ease-in-out",
+                    isCompressed ? "py-2" : "py-4"
                 )}>
                     <div className={cn(
-                        "space-y-1 transition-all duration-200 ease-in-out",
-                        isCompressed && "space-y-0"
+                        "flex items-start justify-between gap-2 transition-all duration-200 ease-in-out",
+                        isCompressed && "gap-2"
                     )}>
-                        <h1 className={cn(
-                            "text-foreground font-semibold transition-all duration-200 ease-in-out",
-                            isCompressed ? "text-base lg:text-lg leading-6" : "text-xl lg:text-2xl leading-7"
-                        )}>{title}</h1>
-                        {subtitle && (
-                            <p className={cn(
-                                "text-muted-foreground text-sm leading-5 transition-all duration-200 ease-in-out",
-                                isCompressed && "opacity-0 h-0 overflow-hidden"
-                            )}>{subtitle}</p>
-                        )}
+                        <div className={cn(
+                            "flex-1 space-y-1 transition-all duration-200 ease-in-out",
+                            isCompressed && "space-y-0"
+                        )}>
+                            <h1 className={cn(
+                                "text-foreground font-semibold transition-all duration-200 ease-in-out",
+                                isCompressed ? "mt-1 text-base lg:text-lg leading-6" : "text-xl lg:text-2xl leading-7"
+                            )}>{title}</h1>
+                            {subtitle && (
+                                <p className={cn(
+                                    "text-muted-foreground text-sm leading-5 transition-all duration-200 ease-in-out",
+                                    isCompressed && "opacity-0 h-0 overflow-hidden"
+                                )}>{subtitle}</p>
+                            )}
+                        </div>
+                        {/* Buttons */}
+                        <div className="flex items-start gap-2">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={handleToggleCompressed}
+                                            className={cn(
+                                                "h-8 w-8 transition-all duration-200 flex-shrink-0"
+                                            )}
+                                        >
+                                            {isCompressed ? (
+                                                <Minimize2 className="h-4 w-4" />
+                                            ) : (
+                                                <Maximize2 className="h-4 w-4" />
+                                            )}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{isCompressed ? "Expandir visualização" : "Comprimir visualização"}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            {showEditButton && (
+                                <Button asChild className="hidden sm:inline-flex">
+                                    <Link href={editRoute}>Editar</Link>
+                                </Button>
+                            )}
+                        </div>
                     </div>
-                    {/* Buttons */}
-                    <div className="flex flex-row-reverse justify-end gap-2 md:flex-row">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={handleToggleCompressed}
-                                        className={cn(
-                                            "h-8 w-8 transition-all duration-200",
-                                            isCompressed && "bg-primary/10 hover:bg-primary/20"
-                                        )}
-                                    >
-                                        {isCompressed ? (
-                                            <Minimize2 className="h-4 w-4" />
-                                        ) : (
-                                            <Maximize2 className="h-4 w-4" />
-                                        )}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{isCompressed ? "Comprimir visualização" : "Expandir visualização"}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                        {showEditButton && (
-                            <Button asChild>
+                    {/* Show edit button below on mobile when needed */}
+                    {showEditButton && (
+                        <div className="mt-3 sm:hidden">
+                            <Button asChild className="w-full">
                                 <Link href={editRoute}>Editar</Link>
                             </Button>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
+
+                {/* Tabs Navigation */}
+                {tabs && tabs.length > 0 && (
+                    <>
+                        {/* Mobile Select */}
+                        <div className={cn(
+                            "md:hidden px-4 pb-4 transition-all duration-200 ease-in-out border-b border-gray-200 dark:border-gray-800",
+                            isCompressed && "pb-4"
+                        )}>
+                            <Select value={activeTab} onValueChange={setActiveTab}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue>{tabs.find((tab) => tab.id === activeTab)?.label}</SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {tabs.map((tab) => (
+                                        <SelectItem key={tab.id} value={tab.id} className="flex items-center gap-2">
+                                            <div className="w-4">{activeTab === tab.id && <Check className="h-4 w-4" />}</div>
+                                            {tab.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Desktop Tabs */}
+                        <div className="hidden md:block">
+                            <MainSelectionTab value={activeTab} onValueChange={setActiveTab} className="w-full">
+                                <MainSelectionTabList className="px-6 lg:px-8">
+                                    {tabs.map((tab) => (
+                                        <MainSelectionTabTrigger
+                                            key={tab.id}
+                                            value={tab.id}
+                                            className={cn(
+                                                isCompressed ? "py-1.5 text-sm" : "py-2"
+                                            )}
+                                        >
+                                            {tab.label}
+                                        </MainSelectionTabTrigger>
+                                    ))}
+                                </MainSelectionTabList>
+                            </MainSelectionTab>
+                        </div>
+                    </>
+                )}
             </div>
-            {/* Nav */}
-            <div className="flex-1 flex flex-col">
-                <div className="flex-1 flex flex-col">
+
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto bg-sidebar-accent/30">
+                <div className="px-6 lg:px-8">
                     {tabs && tabs.length > 0 ? (
-                        <div className="flex-1 flex flex-col">
-                            {/* Mobile Select */}
-                            <div className={cn(
-                                "md:hidden py-4 px-4 transition-all duration-200 ease-in-out",
-                                isCompressed && "py-2"
-                            )}>
-                                <Select value={activeTab} onValueChange={setActiveTab}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue>{tabs.find((tab) => tab.id === activeTab)?.label}</SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {tabs.map((tab) => (
-                                            <SelectItem key={tab.id} value={tab.id} className="flex items-center gap-2">
-                                                <div className="w-4">{activeTab === tab.id && <Check className="h-4 w-4" />}</div>
-                                                {tab.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                        tabs.map((tab) => (
+                            <div
+                                key={tab.id}
+                                className={cn(
+                                    activeTab === tab.id ? 'block' : 'hidden',
+                                    // Add smooth vertical animation when tab becomes active
+                                    activeTab === tab.id && tabAnimationClass
+                                )}
+                            >
+                                {tab.content}
                             </div>
-                            {/* Desktop Tabs */}
-                            <div className={cn(
-                                "hidden md:block transition-all duration-200 ease-in-out",
-                                isCompressed ? "pt-2" : "pt-6"
-                            )}>
-                                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                    <TabsList className="flex space-x-4 justify-start px-6 lg:px-8">
-                                        {tabs.map((tab) => (
-                                            <TabsTrigger
-                                                key={tab.id}
-                                                value={tab.id}
-                                                className={cn(
-                                                    "px-4 font-medium data-[state=active]:font-extrabold transition-all duration-200 ease-in-out",
-                                                    isCompressed ? "py-1.5 text-sm" : "py-2"
-                                                )}
-                                            >
-                                                {tab.label}
-                                            </TabsTrigger>
-                                        ))}
-                                    </TabsList>
-                                </Tabs>
-                            </div>
-                            {/* Tab Content - Shown for both mobile and desktop */}
-                            <div className="flex-1 px-6 lg:px-8 bg-sidebar-accent/30">
-                                {tabs.map((tab) => (
-                                    <div
-                                        key={tab.id}
-                                        className={cn(
-                                            activeTab === tab.id ? 'block h-full' : 'hidden',
-                                            // Add smooth vertical animation when tab becomes active
-                                            activeTab === tab.id && tabAnimationClass
-                                        )}
-                                    >
-                                        {tab.content}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        ))
                     ) : (
-                        <div className="flex-1 bg-sidebar-accent/30">
-                            {children}
-                        </div>
+                        children
                     )}
                 </div>
             </div>
