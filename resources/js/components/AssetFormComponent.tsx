@@ -100,7 +100,7 @@ function AssetFormFields({
                             </Label>
                             <div className="flex flex-1 flex-col gap-2">
                                 <div
-                                    className={`bg-muted relative flex-1 overflow-hidden rounded-lg border ${!data.photo_path ? 'bg-muted' : ''}`}
+                                    className={`bg-muted relative flex-1 min-h-[200px] overflow-hidden rounded-lg border ${!data.photo_path ? 'bg-muted' : ''}`}
                                 >
                                     {data.photo_path ? (
                                         <img
@@ -125,8 +125,8 @@ function AssetFormFields({
                                 onChange={(file) => setData('photo', file)}
                                 error={errors.photo}
                                 initialPreview={isEditing && data.photo_path ? `/storage/${data.photo_path}` : null}
-                                minHeight="h-auto"
-                                maxHeight="h-auto"
+                                minHeight="min-h-[200px]"
+                                maxHeight="max-h-auto"
                             />
                         </div>
                     )}
@@ -145,7 +145,7 @@ function AssetFormFields({
                         name="tag"
                         label="TAG"
                         placeholder="Digite a TAG do ativo"
-                        required
+                        required={!isViewMode}
                         view={isViewMode}
                     />
 
@@ -159,7 +159,7 @@ function AssetFormFields({
                         }}
                         name="part_number"
                         label="Part Number"
-                        placeholder="Part number do ativo"
+                        placeholder={isViewMode ? "Part number não informado" : "Informe o part number do ativo"}
                         view={isViewMode}
                     />
 
@@ -175,7 +175,7 @@ function AssetFormFields({
                                 clearErrors('manufacturer_id');
                             }}
                             onCreateClick={handleCreateManufacturerClick}
-                            placeholder="Selecione um fabricante (opcional)"
+                            placeholder={isViewMode && !data.manufacturer_id ? "Fabricante não selecionado" : "Selecione um fabricante (opcional)"}
                             error={errors.manufacturer_id}
                             canClear={!isViewMode}
                             view={isViewMode}
@@ -197,7 +197,7 @@ function AssetFormFields({
                                 clearErrors('asset_type_id');
                             }}
                             onCreateClick={handleCreateAssetTypeClick}
-                            placeholder="Selecione um tipo de ativo (opcional)"
+                            placeholder={isViewMode && !data.asset_type_id ? "Tipo de ativo não selecionado" : "Selecione um tipo de ativo (opcional)"}
                             error={errors.asset_type_id}
                             canClear={!isViewMode}
                             view={isViewMode}
@@ -214,7 +214,7 @@ function AssetFormFields({
                         }}
                         name="serial_number"
                         label="Número Serial"
-                        placeholder="Número serial do ativo"
+                        placeholder={isViewMode ? "Número serial não informado" : "Informe o número serial do ativo"}
                         view={isViewMode}
                     />
 
@@ -228,7 +228,7 @@ function AssetFormFields({
                         }}
                         name="manufacturing_year"
                         label="Ano de Fabricação"
-                        placeholder="Ano de fabricação"
+                        placeholder={isViewMode ? "Ano de fabricação não informado" : "Informe o ano de fabricação do ativo"}
                         view={isViewMode}
                     />
 
@@ -238,14 +238,20 @@ function AssetFormFields({
                 <div className="lg:col-span-2 lg:col-start-2">
                     <div className="grid gap-2">
                         <Label htmlFor="description">Descrição</Label>
-                        <Textarea
-                            id="description"
-                            value={data.description}
-                            onChange={(e) => setData('description', e.target.value)}
-                            placeholder="Descrição da máquina"
-                            className="min-h-[60px]"
-                            view={isViewMode}
-                        />
+                        {isViewMode && !data.description ? (
+                            <div className="flex min-h-[60px] w-full rounded-md border border-input bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                                Sem descrição
+                            </div>
+                        ) : (
+                            <Textarea
+                                id="description"
+                                value={data.description}
+                                onChange={(e) => setData('description', e.target.value)}
+                                placeholder="Descrição da máquina"
+                                className="min-h-[60px]"
+                                view={isViewMode}
+                            />
+                        )}
                         <InputError message={errors.description} />
                     </div>
                 </div>
@@ -275,7 +281,7 @@ function AssetFormFields({
                             clearErrors('plant_id');
                         }}
                         onCreateClick={handleCreatePlantClick}
-                        placeholder="Selecione uma planta (opcional)"
+                        placeholder={isViewMode && !data.plant_id ? "Planta não selecionada" : "Selecione uma planta (opcional)"}
                         error={errors.plant_id}
                         canClear={!isViewMode}
                         view={isViewMode}
@@ -301,7 +307,11 @@ function AssetFormFields({
                             clearErrors('area_id');
                         }}
                         onCreateClick={handleCreateAreaClick}
-                        placeholder={data.plant_id ? 'Selecione uma área (opcional)' : 'Selecione uma planta primeiro'}
+                        placeholder={
+                            isViewMode && !data.area_id
+                                ? "Área não selecionada"
+                                : (data.plant_id ? 'Selecione uma área (opcional)' : 'Selecione uma planta primeiro')
+                        }
                         error={errors.area_id}
                         disabled={!data.plant_id}
                         view={isViewMode}
@@ -321,7 +331,11 @@ function AssetFormFields({
                             clearErrors('sector_id');
                         }}
                         onCreateClick={handleCreateSectorClick}
-                        placeholder={data.area_id ? 'Selecione um setor (opcional)' : 'Selecione uma área primeiro'}
+                        placeholder={
+                            isViewMode && !data.sector_id
+                                ? "Setor não selecionado"
+                                : (data.area_id ? 'Selecione um setor (opcional)' : 'Selecione uma área primeiro')
+                        }
                         error={errors.sector_id}
                         disabled={!data.area_id}
                         view={isViewMode}

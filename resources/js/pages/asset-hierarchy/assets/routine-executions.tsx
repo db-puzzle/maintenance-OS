@@ -31,7 +31,6 @@ interface RoutineExecution {
 interface Routine {
     id: number;
     name: string;
-    type: number;
     trigger_hours: number;
     form?: {
         id: number;
@@ -65,11 +64,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const routineTypes = [
-    { value: 1, label: 'Inspeção' },
-    { value: 2, label: 'Rotina de Manutenção' },
-    { value: 3, label: 'Relatório de Manutenção' },
-];
+
 
 export default function RoutineExecutions({ asset, routine, executions }: Props) {
     const formatDate = (dateString: string) => {
@@ -103,7 +98,7 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
         }
     };
 
-    const routineType = routineTypes.find((t) => t.value === routine.type)?.label || 'Desconhecido';
+
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -123,7 +118,7 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                         </div>
                         <h1 className="text-2xl font-bold">Execuções da Rotina</h1>
                         <p className="text-muted-foreground">
-                            {routine.name} • {asset.tag} • {routineType}
+                            {routine.name} • {asset.tag}
                         </p>
                     </div>
                 </div>
@@ -225,9 +220,8 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                                         routine: routine.id,
                                         page,
                                     })}
-                                    className={`rounded px-3 py-1 ${
-                                        page === executions.current_page ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
-                                    }`}
+                                    className={`rounded px-3 py-1 ${page === executions.current_page ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+                                        }`}
                                 >
                                     {page}
                                 </Link>

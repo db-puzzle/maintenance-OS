@@ -142,15 +142,17 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                             className={cn(
                                 view && [
                                     'cursor-default opacity-100 pointer-events-none',
-                                    'text-foreground [&>span]:text-foreground [&_*]:text-foreground',
+                                    'text-foreground [&>span]:text-foreground',
                                     '[&>svg]:hidden',
-                                    'data-[placeholder]:text-foreground',
-                                    '[&_[data-slot=select-value]]:text-foreground'
-                                ].join(' ')
+                                    // Don't override placeholder text color
+                                    '[&_[data-slot=select-value]:not(:has(*))]:text-inherit',
+                                    // Add muted background when empty
+                                    !selectedItem && 'bg-muted/20'
+                                ].filter(Boolean).join(' ')
                             )}
                             tabIndex={view ? -1 : 0}
                         >
-                            <SelectValue placeholder={view ? "" : placeholder}>
+                            <SelectValue placeholder={placeholder}>
                                 {selectedItem && (
                                     <div className="flex items-center gap-2">
                                         {selectedItem.icon && <selectedItem.icon className="h-4 w-4" />}

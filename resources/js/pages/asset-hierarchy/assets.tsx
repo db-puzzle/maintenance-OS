@@ -318,7 +318,7 @@ export default function Assets({ asset, filters }: Props) {
                     columnVisibility={columnVisibility}
                     onColumnVisibilityChange={handleColumnVisibilityChange}
                     onRowClick={(row) => router.get(route('asset-hierarchy.assets.show', row.id))}
-                    emptyMessage="Nenhuma máquina encontrada."
+                    emptyMessage="Nenhum ativo encontrado."
                 />
 
                 <PaginationWrapper

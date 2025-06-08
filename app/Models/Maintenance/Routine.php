@@ -11,16 +11,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Routine extends Model
 {
-    protected $fillable = ['form_id', 'name', 'trigger_hours', 'type', 'status', 'description'];
+    protected $fillable = ['form_id', 'name', 'trigger_hours', 'status', 'description'];
 
     protected $casts = [
-        'trigger_hours' => 'integer',
-        'type' => 'integer'
+        'trigger_hours' => 'integer'
     ];
-    
-    const TYPE_INSPECTION = 1;
-    const TYPE_MAINTENANCE_ROUTINE = 2;
-    const TYPE_MAINTENANCE_REPORT = 3;
 
     public function assets(): BelongsToMany
     {
@@ -36,18 +31,5 @@ class Routine extends Model
     public function routineExecutions(): HasMany
     {
         return $this->hasMany(RoutineExecution::class);
-    }
-    
-    /**
-     * Get form type as string
-     */
-    public function getTypeTextAttribute(): string
-    {
-        return match($this->type) {
-            self::TYPE_INSPECTION => 'Inspeção',
-            self::TYPE_MAINTENANCE_ROUTINE => 'Rotina de Manutenção',
-            self::TYPE_MAINTENANCE_REPORT => 'Relatório de Manutenção',
-            default => 'Desconhecido'
-        };
     }
 } 

@@ -33,12 +33,7 @@ class RoutineController extends Controller
         
         return Inertia::render('Maintenance/Routines/Create', [
             'assets' => $assets,
-            'availableForms' => $availableForms,
-            'routineTypes' => [
-                ['id' => Routine::TYPE_INSPECTION, 'name' => 'Inspeção'],
-                ['id' => Routine::TYPE_MAINTENANCE_ROUTINE, 'name' => 'Rotina de Manutenção'],
-                ['id' => Routine::TYPE_MAINTENANCE_REPORT, 'name' => 'Relatório de Manutenção']
-            ]
+            'availableForms' => $availableForms
         ]);
     }
 
@@ -48,11 +43,6 @@ class RoutineController extends Controller
             'form_id' => 'nullable|exists:forms,id|unique:routines,form_id',
             'name' => 'required|string|max:255',
             'trigger_hours' => 'required|integer|min:0',
-            'type' => 'required|integer|in:' . implode(',', [
-                Routine::TYPE_INSPECTION,
-                Routine::TYPE_MAINTENANCE_ROUTINE,
-                Routine::TYPE_MAINTENANCE_REPORT
-            ]),
             'status' => 'required|in:Active,Inactive',
             'description' => 'nullable|string',
             'asset_ids' => 'required|array|min:1',
@@ -91,12 +81,7 @@ class RoutineController extends Controller
         return Inertia::render('Maintenance/Routines/Edit', [
             'routine' => $routine,
             'assets' => $assets,
-            'availableForms' => $availableForms,
-            'routineTypes' => [
-                ['id' => Routine::TYPE_INSPECTION, 'name' => 'Inspeção'],
-                ['id' => Routine::TYPE_MAINTENANCE_ROUTINE, 'name' => 'Rotina de Manutenção'],
-                ['id' => Routine::TYPE_MAINTENANCE_REPORT, 'name' => 'Relatório de Manutenção']
-            ]
+            'availableForms' => $availableForms
         ]);
     }
 
@@ -106,11 +91,6 @@ class RoutineController extends Controller
             'form_id' => 'nullable|exists:forms,id|unique:routines,form_id,' . $routine->id,
             'name' => 'required|string|max:255',
             'trigger_hours' => 'required|integer|min:0',
-            'type' => 'required|integer|in:' . implode(',', [
-                Routine::TYPE_INSPECTION,
-                Routine::TYPE_MAINTENANCE_ROUTINE,
-                Routine::TYPE_MAINTENANCE_REPORT
-            ]),
             'status' => 'required|in:Active,Inactive',
             'description' => 'nullable|string',
             'asset_ids' => 'required|array|min:1',
@@ -332,11 +312,6 @@ class RoutineController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'trigger_hours' => 'required|integer|min:1',
-            'type' => 'required|integer|in:' . implode(',', [
-                Routine::TYPE_INSPECTION,
-                Routine::TYPE_MAINTENANCE_ROUTINE,
-                Routine::TYPE_MAINTENANCE_REPORT
-            ]),
             'status' => 'required|in:Active,Inactive',
             'description' => 'nullable|string'
         ]);
@@ -361,11 +336,6 @@ class RoutineController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'trigger_hours' => 'required|integer|min:1',
-            'type' => 'required|integer|in:' . implode(',', [
-                Routine::TYPE_INSPECTION,
-                Routine::TYPE_MAINTENANCE_ROUTINE,
-                Routine::TYPE_MAINTENANCE_REPORT
-            ]),
             'status' => 'required|in:Active,Inactive',
             'description' => 'nullable|string'
         ]);

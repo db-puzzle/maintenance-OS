@@ -15,7 +15,6 @@ interface RoutineForm {
     [key: string]: any;
     name: string;
     trigger_hours: number;
-    type: 1 | 2 | 3;
     status: 'Active' | 'Inactive';
     description: string;
 }
@@ -34,12 +33,6 @@ interface EditRoutineSheetProps {
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
     triggerIcon?: React.ReactNode;
 }
-
-const routineTypes = [
-    { value: '1', label: 'Inspeção' },
-    { value: '2', label: 'Rotina de Manutenção' },
-    { value: '3', label: 'Relatório de Manutenção' },
-];
 
 const routineStatuses = [
     { value: 'Active', label: 'Ativo' },
@@ -62,7 +55,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
     const [data, setData] = React.useState<RoutineForm>({
         name: routine?.name || '',
         trigger_hours: routine?.trigger_hours || 0,
-        type: routine?.type || 2,
         status: routine?.status || 'Active',
         description: routine?.description || '',
     });
@@ -82,7 +74,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             setData({
                 name: routine.name || '',
                 trigger_hours: routine.trigger_hours || 0,
-                type: routine.type || 2,
                 status: routine.status || 'Active',
                 description: routine.description || '',
             });
@@ -187,7 +178,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             setData({
                 name: routine.name || '',
                 trigger_hours: routine.trigger_hours || 0,
-                type: routine.type || 2,
                 status: routine.status || 'Active',
                 description: routine.description || '',
             });
@@ -195,7 +185,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             setData({
                 name: '',
                 trigger_hours: 0,
-                type: 2,
                 status: 'Active',
                 description: '',
             });
@@ -258,28 +247,10 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                 placeholder="Ex: 720 (30 dias)"
                                 className={errors.trigger_hours ? 'border-red-500' : ''}
                             />
-                            {data.trigger_hours > 0 && (
-                                <p className="text-muted-foreground text-sm">Equivale a: {formatTriggerHours(data.trigger_hours)}</p>
-                            )}
                             {errors.trigger_hours && <p className="text-sm text-red-500">{errors.trigger_hours}</p>}
                         </div>
 
-                        {/* Tipo de Rotina */}
-                        <div className="space-y-2">
-                            <Label htmlFor="type">Tipo de Rotina</Label>
-                            <Select value={data.type.toString()} onValueChange={(value) => updateData('type', parseInt(value) as 1 | 2 | 3)}>
-                                <SelectTrigger id="type">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {routineTypes.map((type) => (
-                                        <SelectItem key={type.value} value={type.value}>
-                                            {type.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+
 
                         {/* Status */}
                         <div className="space-y-2">

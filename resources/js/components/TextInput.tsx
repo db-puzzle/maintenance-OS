@@ -36,6 +36,9 @@ export default function TextInput<T extends FormData>({
     onBlur,
     validateInput,
 }: TextInputProps<T>) {
+    const value = form.data[name];
+    const hasValue = value !== null && value !== undefined && value !== '';
+
     return (
         <div className="grid gap-2">
             <Label htmlFor={String(name)}>
@@ -43,15 +46,21 @@ export default function TextInput<T extends FormData>({
                 {required && <span className="text-destructive"> *</span>}
             </Label>
             <div className="bg-background">
-                <SmartInput<T>
-                    form={form}
-                    name={name}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    view={view}
-                    onBlur={onBlur}
-                    validateInput={validateInput || form.validateInput}
-                />
+                {view && !hasValue ? (
+                    <div className="flex h-9 w-full rounded-md border border-input bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                        {placeholder}
+                    </div>
+                ) : (
+                    <SmartInput<T>
+                        form={form}
+                        name={name}
+                        placeholder={placeholder}
+                        disabled={disabled}
+                        view={view}
+                        onBlur={onBlur}
+                        validateInput={validateInput || form.validateInput}
+                    />
+                )}
             </div>
             <InputError message={form.errors[name]} />
         </div>

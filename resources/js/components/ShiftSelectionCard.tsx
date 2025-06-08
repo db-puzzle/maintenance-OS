@@ -49,7 +49,7 @@ interface ShiftSelectionCardProps {
     tempSelectedShiftId: string;
     isEditingShift: boolean;
     loadingShifts: boolean;
-    plantToShow: Plant;
+    plantToShow?: Plant;
     onEditShift: () => void;
     onCancelShiftEdit: () => void;
     onSaveShift: () => void;

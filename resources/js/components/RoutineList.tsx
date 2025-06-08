@@ -16,7 +16,6 @@ export interface Routine {
     id?: number;
     name: string;
     trigger_hours: number;
-    type: 1 | 2 | 3; // 1: Inspection, 2: Maintenance Routine, 3: Maintenance Report
     status: 'Active' | 'Inactive';
     description?: string;
     form_id?: number;
@@ -58,11 +57,7 @@ interface RoutineListProps {
     shift?: Shift | null;
 }
 
-const routineTypes = [
-    { value: '1', label: 'Inspeção' },
-    { value: '2', label: 'Rotina de Manutenção' },
-    { value: '3', label: 'Relatório de Manutenção' },
-];
+
 
 // Helper function to calculate shift work hours per week
 const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => {
@@ -125,7 +120,6 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
     const routineData = routine || {
         name: '',
         trigger_hours: 0,
-        type: 2 as const,
         status: 'Active' as const,
         description: '',
         form: undefined,
@@ -350,6 +344,26 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                             </Link>
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator className="sm:hidden" />
+                                        <DropdownMenuItem
+                                            asChild={!onEditForm}
+                                            className={onEditForm ? "flex items-center" : "flex items-center"}
+                                            onClick={onEditForm ? onEditForm : undefined}
+                                        >
+                                            {onEditForm ? (
+                                                <>
+                                                    <FileText className="mr-2 h-4 w-4" />
+                                                    Editar Tarefas
+                                                </>
+                                            ) : (
+                                                <Link
+                                                    href={route('maintenance.assets.routines.form-editor', { asset: assetId, routine: routineData.id })}
+                                                    className="flex items-center"
+                                                >
+                                                    <FileText className="mr-2 h-4 w-4" />
+                                                    Editar Tarefas
+                                                </Link>
+                                            )}
+                                        </DropdownMenuItem>
                                     </>
                                 ) : (
                                     <>
@@ -373,7 +387,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                                 </Link>
                                             )}
                                         </DropdownMenuItem>
-                                        <DropdownMenuSeparator className="sm:hidden" />
+                                        <DropdownMenuSeparator />
                                     </>
                                 )}
                                 <DropdownMenuItem asChild>
@@ -387,7 +401,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={handleEditClick}>
                                     <Edit2 className="mr-2 h-4 w-4" />
-                                    Editar
+                                    Editar Rotina
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleDelete} className="text-destructive">
