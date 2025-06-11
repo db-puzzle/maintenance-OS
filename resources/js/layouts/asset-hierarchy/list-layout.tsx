@@ -8,7 +8,8 @@ interface ListLayoutProps {
     searchPlaceholder?: string;
     searchValue: string;
     onSearchChange: (value: string) => void;
-    createRoute: string;
+    createRoute?: string;
+    onCreateClick?: () => void;
     createButtonText: string;
     actions?: ReactNode;
 }
@@ -21,6 +22,7 @@ export default function ListLayout({
     searchValue,
     onSearchChange,
     createRoute,
+    onCreateClick,
     createButtonText,
     actions,
 }: ListLayoutProps) {
@@ -33,6 +35,7 @@ export default function ListLayout({
                 searchValue={searchValue}
                 onSearchChange={onSearchChange}
                 createRoute={createRoute}
+                onCreateClick={onCreateClick}
                 createButtonText={createButtonText}
                 actions={actions}
             />

@@ -293,7 +293,7 @@ export default function Index({
                 onSearchChange={(value) => setSearch(value)}
                 createRoute=""
                 createButtonText=""
-                customCreateButton={
+                actions={
                     <CreateManufacturerSheet
                         showTrigger
                         triggerText="Adicionar"

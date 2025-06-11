@@ -68,10 +68,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/areas/{area}/check-dependencies', [AreaController::class, 'checkDependencies'])->name('asset-hierarchy.areas.check-dependencies');
 
     Route::get('asset-hierarchy/plantas', [PlantsController::class, 'index'])->name('asset-hierarchy.plantas');
-    Route::get('asset-hierarchy/plantas/create', [PlantsController::class, 'create'])->name('asset-hierarchy.plantas.create');
     Route::post('asset-hierarchy/plantas', [PlantsController::class, 'store'])->name('asset-hierarchy.plantas.store');
     Route::get('asset-hierarchy/plantas/{plant}', [PlantsController::class, 'show'])->name('asset-hierarchy.plantas.show');
-    Route::get('asset-hierarchy/plantas/{plant}/edit', [PlantsController::class, 'edit'])->name('asset-hierarchy.plantas.edit');
     Route::put('asset-hierarchy/plantas/{plant}', [PlantsController::class, 'update'])->name('asset-hierarchy.plantas.update');
     Route::delete('asset-hierarchy/plantas/{plant}', [PlantsController::class, 'destroy'])->name('asset-hierarchy.plantas.destroy');
     Route::get('asset-hierarchy/plantas/{plant}/check-dependencies', [PlantsController::class, 'checkDependencies'])->name('asset-hierarchy.plantas.check-dependencies');

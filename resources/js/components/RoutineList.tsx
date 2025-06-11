@@ -284,14 +284,17 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                         )}
                     </div>
                     {!shift && (
-                        <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                        <Link
+                            href={route('asset-hierarchy.assets.show', { asset: assetId, tab: 'shifts-runtime' })}
+                            className="mt-1 flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 hover:underline"
+                        >
                             <AlertCircle className="h-3 w-3" />
                             <span>Estimativa de tempo disponível após configurar turno</span>
-                        </div>
+                        </Link>
                     )}
                 </div>
                 <div className="flex flex-none items-center gap-x-4">
-                    {routineData.form ? (
+                    {routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
                         <Link
                             href={route('maintenance.assets.routines.form', { asset: assetId, routine: routineData.id, mode: 'fill' })}
                             className="hidden sm:block"
@@ -305,7 +308,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                         onEditForm ? (
                             <Button size="sm" variant="secondary" onClick={onEditForm}>
                                 <FileText className="mr-1 h-4 w-4" />
-                                Criar Tarefas
+                                Adicionar Tarefas
                             </Button>
                         ) : (
                             <Link
@@ -314,7 +317,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                             >
                                 <Button size="sm" variant="secondary">
                                     <FileText className="mr-1 h-4 w-4" />
-                                    Criar Tarefas
+                                    Adicionar Tarefas
                                 </Button>
                             </Link>
                         )
@@ -328,7 +331,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                                {routineData.form ? (
+                                {routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
                                     <>
                                         <DropdownMenuItem asChild className="sm:hidden">
                                             <Link
@@ -375,7 +378,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                             {onEditForm ? (
                                                 <>
                                                     <FileText className="mr-2 h-4 w-4" />
-                                                    Criar Tarefas
+                                                    Adicionar Tarefas
                                                 </>
                                             ) : (
                                                 <Link
@@ -383,7 +386,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                                     className="flex items-center"
                                                 >
                                                     <FileText className="mr-2 h-4 w-4" />
-                                                    Criar Tarefas
+                                                    Adicionar Tarefas
                                                 </Link>
                                             )}
                                         </DropdownMenuItem>

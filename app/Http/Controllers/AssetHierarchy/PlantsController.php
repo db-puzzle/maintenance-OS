@@ -37,6 +37,12 @@ class PlantsController extends Controller
                 'id' => $plant->id,
                 'name' => $plant->name,
                 'description' => $plant->description,
+                'street' => $plant->street,
+                'number' => $plant->number,
+                'city' => $plant->city,
+                'state' => $plant->state,
+                'zip_code' => $plant->zip_code,
+                'gps_coordinates' => $plant->gps_coordinates,
                 'areas_count' => $plant->areas_count,
                 'sectors_count' => $totalSectors,
                 'asset_count' => $totalAsset,
@@ -78,11 +84,6 @@ class PlantsController extends Controller
                 'per_page' => $perPage,
             ],
         ]);
-    }
-
-    public function create()
-    {
-        return Inertia::render('asset-hierarchy/plantas/create');
     }
 
     public function store(Request $request)
@@ -134,15 +135,8 @@ class PlantsController extends Controller
 
         $canDelete = $totalAreas === 0 && $totalAsset === 0;
 
-        // Se a planta pode ser excluída, redirecionar para confirmação de exclusão
-        if ($canDelete) {
-            return redirect()->route('asset-hierarchy.plantas')
-                ->with('info', "A planta {$plant->name} pode ser excluída com segurança.");
-        }
-
-        // Se há dependências, mostrar página com detalhes das dependências
-        return Inertia::render('asset-hierarchy/plantas/dependencies', [
-            'plant' => $plant,
+        return response()->json([
+            'can_delete' => $canDelete,
             'dependencies' => [
                 'areas' => [
                     'total' => $totalAreas,
@@ -152,38 +146,31 @@ class PlantsController extends Controller
                     'total' => $totalAsset,
                     'items' => $asset
                 ]
-            ],
-            'canDelete' => false
+            ]
         ]);
-    }
-
-    public function edit(Plant $plant)
-    {
-        return Inertia::render('asset-hierarchy/plantas/edit', [
-            'plant' => $plant
-        ]);
-    }
-
-    public function update(Request $request, Plant $plant)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'street' => 'nullable|string|max:255',
-            'number' => 'nullable|string|max:50',
-            'city' => 'nullable|string|max:255',
-            'state' => 'nullable|string|max:2',
-            'zip_code' => 'nullable|string|max:9|regex:/^\d{5}-\d{3}$/',
-            'gps_coordinates' => 'nullable|string|max:255',
-        ]);
-
-        $plant->update($validated);
-
-        return redirect()->route('asset-hierarchy.plantas')
-            ->with('success', "A planta {$plant->name} foi atualizada com sucesso.");
     }
 
     public function show(Plant $plant)
     {
+        // Check if JSON response is requested
+        if (request()->input('format') === 'json' || request()->wantsJson()) {
+            return response()->json([
+                'plant' => [
+                    'id' => $plant->id,
+                    'name' => $plant->name,
+                    'description' => $plant->description,
+                    'street' => $plant->street,
+                    'number' => $plant->number,
+                    'city' => $plant->city,
+                    'state' => $plant->state,
+                    'zip_code' => $plant->zip_code,
+                    'gps_coordinates' => $plant->gps_coordinates,
+                    'created_at' => $plant->created_at,
+                    'updated_at' => $plant->updated_at,
+                ]
+            ]);
+        }
+
         // Busca a página atual e parâmetros de ordenação para cada seção
         $areasPage = request()->get('areas_page', 1);
         $sectorsPage = request()->get('sectors_page', 1);
@@ -369,5 +356,29 @@ class PlantsController extends Controller
                 ],
             ],
         ]);
+    }
+
+    public function update(Request $request, Plant $plant)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'street' => 'nullable|string|max:255',
+            'number' => 'nullable|string|max:50',
+            'city' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:2',
+            'zip_code' => 'nullable|string|max:9|regex:/^\d{5}-\d{3}$/',
+            'gps_coordinates' => 'nullable|string|max:255',
+        ]);
+
+        $plant->update($validated);
+
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Planta {$plant->name} atualizada com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
+        return redirect()->route('asset-hierarchy.plantas')
+            ->with('success', "A planta {$plant->name} foi atualizada com sucesso.");
     }
 } 

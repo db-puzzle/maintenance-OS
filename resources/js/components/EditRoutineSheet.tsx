@@ -124,12 +124,11 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             }
 
             router.post(route('maintenance.assets.routines.store', assetId), data, {
-                onSuccess: () => {
+                onSuccess: (page: any) => {
                     toast.success('Rotina criada com sucesso!');
                     setProcessing(false);
                     setSheetOpen(false);
-                    // Recarregar a página para mostrar a nova rotina com o ID correto
-                    window.location.reload();
+                    // Backend will redirect to routines tab with newRoutineId
                 },
                 onError: (errors: any) => {
                     console.error('Erro ao criar rotina:', errors);

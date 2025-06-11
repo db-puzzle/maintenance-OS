@@ -110,7 +110,9 @@ export default function Show({ assetType, asset, activeTab }: Props) {
                                                     <div className="font-medium">{asset.tag}</div>
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{asset.area?.name ?? '-'}</TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturer ?? '-'}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">
+                                                    {asset.manufacturer?.name ?? '-'}
+                                                </TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{asset.manufacturing_year ?? '-'}</TableCell>
                                             </TableRow>
                                         ))}

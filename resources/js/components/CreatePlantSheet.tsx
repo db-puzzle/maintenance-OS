@@ -23,6 +23,17 @@ interface PlantForm {
     gps_coordinates: string;
 }
 
+interface Plant {
+    id: number;
+    name: string;
+    street: string | null;
+    number: string | null;
+    city: string | null;
+    state: string | null;
+    zip_code: string | null;
+    gps_coordinates: string | null;
+}
+
 interface CreatePlantSheetProps {
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -31,6 +42,7 @@ interface CreatePlantSheetProps {
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
+    plant?: Plant; // For edit mode
 }
 
 const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
@@ -41,15 +53,18 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
     triggerVariant = 'outline',
     showTrigger = false,
     triggerRef,
+    plant,
 }) => {
-    const { data, setData, post, processing, errors, reset } = useForm<PlantForm>({
-        name: '',
-        street: '',
-        number: '',
-        city: '',
-        state: '',
-        zip_code: '',
-        gps_coordinates: '',
+    const isEditMode = !!plant;
+
+    const { data, setData, post, put, processing, errors, reset } = useForm<PlantForm>({
+        name: plant?.name || '',
+        street: plant?.street || '',
+        number: plant?.number || '',
+        city: plant?.city || '',
+        state: plant?.state || '',
+        zip_code: plant?.zip_code || '',
+        gps_coordinates: plant?.gps_coordinates || '',
     });
 
     const [open, setOpen] = useState(false);
@@ -81,20 +96,37 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
             stay: true, // Indica que deve permanecer na mesma página
         };
 
-        post(route('asset-hierarchy.plantas.store'), {
-            ...formData,
-            onSuccess: () => {
-                toast.success('Planta criada com sucesso!');
-                reset();
-                setSheetOpen(false);
-                onSuccess?.();
-            },
-            onError: (errors: any) => {
-                toast.error('Erro ao criar planta', {
-                    description: 'Verifique os campos e tente novamente.',
-                });
-            },
-        });
+        if (isEditMode) {
+            put(route('asset-hierarchy.plantas.update', plant?.id), {
+                ...formData,
+                onSuccess: () => {
+                    toast.success('Planta atualizada com sucesso!');
+                    reset();
+                    setSheetOpen(false);
+                    onSuccess?.();
+                },
+                onError: (errors: any) => {
+                    toast.error('Erro ao atualizar planta', {
+                        description: 'Verifique os campos e tente novamente.',
+                    });
+                },
+            });
+        } else {
+            post(route('asset-hierarchy.plantas.store'), {
+                ...formData,
+                onSuccess: () => {
+                    toast.success('Planta criada com sucesso!');
+                    reset();
+                    setSheetOpen(false);
+                    onSuccess?.();
+                },
+                onError: (errors: any) => {
+                    toast.error('Erro ao criar planta', {
+                        description: 'Verifique os campos e tente novamente.',
+                    });
+                },
+            });
+        }
     };
 
     const handleCancel = () => {
@@ -113,8 +145,10 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
             )}
             <SheetContent className="sm:max-w-lg">
                 <SheetHeader className="">
-                    <SheetTitle>Nova Planta</SheetTitle>
-                    <SheetDescription>Adicione uma nova planta ao sistema</SheetDescription>
+                    <SheetTitle>{isEditMode ? 'Editar Planta' : 'Nova Planta'}</SheetTitle>
+                    <SheetDescription>
+                        {isEditMode ? 'Edite os dados da planta' : 'Adicione uma nova planta ao sistema'}
+                    </SheetDescription>
                 </SheetHeader>
 
                 <form onSubmit={handleSubmit} className="m-4 space-y-6">

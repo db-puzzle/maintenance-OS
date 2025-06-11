@@ -1,6 +1,7 @@
 import { type BreadcrumbItem } from '@/types';
-import { router } from '@inertiajs/react';
+import { router, Head } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Building2, Cog, Map } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
 
 import MapComponent from '@/components/map';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
+import CreatePlantSheet from '@/components/CreatePlantSheet';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -104,6 +106,19 @@ interface Props {
 }
 
 export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, totalAsset, activeTab, filters }: Props) {
+    const [isEditMode, setIsEditMode] = useState(false);
+    const createPlantSheetRef = useRef<HTMLButtonElement>(null);
+
+    const handleEditClick = () => {
+        setIsEditMode(true);
+    };
+
+    const handleEditSuccess = () => {
+        setIsEditMode(false);
+        // Reload the page to refresh the data
+        router.reload();
+    };
+
     const handleSort = (section: 'areas' | 'sectors' | 'asset', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
 
@@ -546,15 +561,54 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
         },
     ];
 
+    // Override the edit button behavior
+    useEffect(() => {
+        const overrideEditButton = () => {
+            const editButton = document.querySelector('a[href="#"]');
+            if (editButton) {
+                editButton.removeEventListener('click', handleEditButtonClick);
+                editButton.addEventListener('click', handleEditButtonClick);
+            }
+        };
+
+        const handleEditButtonClick = (e: Event) => {
+            e.preventDefault();
+            handleEditClick();
+        };
+
+        // Try to override immediately and after a delay
+        overrideEditButton();
+        const timeout = setTimeout(overrideEditButton, 100);
+
+        return () => {
+            clearTimeout(timeout);
+            const editButton = document.querySelector('a[href="#"]');
+            if (editButton) {
+                editButton.removeEventListener('click', handleEditButtonClick);
+            }
+        };
+    }, []);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`Planta ${plant.name}`} />
+
             <ShowLayout
                 title={plant.name}
                 subtitle={subtitle}
                 breadcrumbs={breadcrumbs}
-                editRoute={route('asset-hierarchy.plantas.edit', plant.id)}
+                editRoute="#"
+                showEditButton={true}
                 backRoute={route('asset-hierarchy.plantas')}
                 tabs={tabs}
+            />
+
+            {/* CreatePlantSheet for editing */}
+            <CreatePlantSheet
+                isOpen={isEditMode}
+                onOpenChange={setIsEditMode}
+                onSuccess={handleEditSuccess}
+                plant={plant}
             />
         </AppLayout>
     );

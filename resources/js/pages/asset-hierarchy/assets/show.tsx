@@ -7,7 +7,7 @@ import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type Area, type Asset, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
 import { Head, Link, usePage, router } from '@inertiajs/react';
-import { CalendarClock, FileText, MessageSquare, Clock, Calendar } from 'lucide-react';
+import { CalendarClock, FileText, MessageSquare, Clock, Calendar, Eye } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import ItemSelect from '@/components/ItemSelect';
@@ -79,6 +79,7 @@ interface Props {
     assetTypes: AssetType[];
     manufacturers: Manufacturer[];
     isCreating?: boolean;
+    newRoutineId?: number;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -92,18 +93,28 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Show({ asset, plants, assetTypes, manufacturers, isCreating = false }: Props) {
-    const { url } = usePage();
+export default function Show({ asset, plants, assetTypes, manufacturers, isCreating = false, newRoutineId }: Props) {
+    const { url, props } = usePage<any>();
 
     // Extrai o parâmetro tab da URL
     const urlParams = new URLSearchParams(url.split('?')[1] || '');
     const tabFromUrl = urlParams.get('tab');
+
+    // Check for flash data
+    const flash = props.flash || {};
 
     // Determina qual planta mostrar
     const plantToShow = asset?.plant || asset?.area?.plant;
 
     // Estado para gerenciar as rotinas
     const [routines, setRoutines] = useState<Array<any>>(asset?.routines || []);
+
+    // Update routines when asset prop changes
+    useEffect(() => {
+        if (asset?.routines) {
+            setRoutines(asset.routines);
+        }
+    }, [asset?.routines]);
 
     // Estado para controlar qual rotina está sendo editada
     const [editingRoutineFormId, setEditingRoutineFormId] = useState<number | null>(null);
@@ -113,6 +124,9 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
 
     // Estado para busca de rotinas
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Estado para controlar o salvamento do formulário
+    const [isSavingForm, setIsSavingForm] = useState(false);
 
     // Estados para turnos
     const [shifts, setShifts] = useState<Shift[]>([]);
@@ -150,9 +164,12 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     };
 
     const handleCreateSuccess = (routine: any) => {
-        // Só adicionar ao estado, sem fazer nova chamada HTTP
-        setRoutines([...routines, routine]);
-        toast.success('Rotina criada com sucesso!');
+        // Add the new routine to the state
+        if (routine && routine.id) {
+            setRoutines([...routines, routine]);
+        }
+        // The backend will redirect to the routines tab with the new routine ID
+        // The redirect will trigger the useEffect to open the form editor
     };
 
     const handleDeleteRoutine = (routine: any) => {
@@ -168,6 +185,18 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         // This will be called after successful asset creation
         // The AssetFormComponent will handle the redirect
     };
+
+    // Check for new routine from flash data
+    useEffect(() => {
+        if (newRoutineId && tabFromUrl === 'rotinas') {
+            // Small delay to ensure the UI is ready
+            setTimeout(() => {
+                handleEditRoutineForm(newRoutineId);
+            }, 100);
+        }
+    }, [newRoutineId, tabFromUrl]);
+
+
 
     // Carregar turnos disponíveis
     useEffect(() => {
@@ -342,6 +371,8 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         setEditingRoutineFormId(null);
         // Desativar modo comprimido ao fechar editor
         setIsCompressed(false);
+        // Reset saving state
+        setIsSavingForm(false);
     };
 
     const handleFormSaved = (formData: any) => {
@@ -353,7 +384,10 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             return r;
         }));
         setEditingRoutineFormId(null);
+        setIsSavingForm(false);
         toast.success('Formulário da rotina atualizado com sucesso!');
+        // Desativar modo comprimido ao fechar editor
+        setIsCompressed(false);
     };
 
     const tabs = [
@@ -477,13 +511,45 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                                 <p className="ml-2 mt-1 truncate text-sm text-gray-500">Tarefas de</p>
                                                 <h3 className="ml-2 mt-2 text-base font-semibold text-gray-900">{routine.name}</h3>
                                             </div>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={handleCloseFormEditor}
-                                            >
-                                                Lista de Rotinas
-                                            </Button>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleCloseFormEditor}
+                                                >
+                                                    Cancelar
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        // Trigger view all on the FormEditor
+                                                        const event = new CustomEvent('viewAllTasks');
+                                                        window.dispatchEvent(event);
+                                                    }}
+                                                    className="flex items-center gap-2"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                    Visualizar Todas
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    disabled={isSavingForm}
+                                                    onClick={() => {
+                                                        // Trigger save on the FormEditor
+                                                        setIsSavingForm(true);
+                                                        const saveButton = document.querySelector('[data-form-save-button]') as HTMLButtonElement;
+                                                        if (saveButton) {
+                                                            saveButton.click();
+                                                        }
+                                                    }}
+                                                >
+                                                    {isSavingForm ? 'Salvando...' : 'Salvar Tarefas'}
+                                                </Button>
+                                            </div>
                                         </div>
                                         <div className={cn(
                                             isCompressed ? "mt-4" : "mt-6 px-0"
@@ -529,7 +595,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                 <div className="bg-background-muted">
                                     <div className={cn(
                                         "transition-all duration-200 ease-in-out",
-                                        isCompressed ? "mt-4 mb-4 px-4" : "mt-4 mb-4 px-6"
+                                        isCompressed ? "mt-4 mb-4 px-4" : "mt-4 mb-4 px-4"
                                     )}>
                                         <div className="relative">
                                             <Search className={cn(
@@ -690,7 +756,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                     isCreating ? (
                         'Criação de novo ativo'
                     ) : (
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                             {asset?.asset_type && (
                                 <Link href={route('asset-hierarchy.tipos-ativo.show', asset.asset_type.id)} className="hover:underline">
                                     {asset.asset_type.name}
@@ -711,7 +777,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                             {!asset?.asset_type && !asset?.serial_number && !asset?.part_number && (
                                 <span className="text-muted-foreground">Sem informações adicionais</span>
                             )}
-                        </div>
+                        </span>
                     )
                 }
                 breadcrumbs={breadcrumbs}

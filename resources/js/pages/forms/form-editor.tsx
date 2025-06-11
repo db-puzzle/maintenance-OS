@@ -21,7 +21,7 @@ import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifier
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Head, router, useForm } from '@inertiajs/react';
 import { ClipboardCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -114,6 +114,27 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
             };
         });
     };
+
+    // Função para definir todas as tarefas para o modo de visualização
+    const setAllTasksToViewing = () => {
+        setTasks(tasks.map(task => ({
+            ...task,
+            state: TaskState.Viewing
+        })));
+    };
+
+    // Adicionar event listener para o evento customizado
+    useEffect(() => {
+        const handleViewAllTasks = () => {
+            setAllTasksToViewing();
+        };
+
+        window.addEventListener('viewAllTasks', handleViewAllTasks);
+
+        return () => {
+            window.removeEventListener('viewAllTasks', handleViewAllTasks);
+        };
+    }, [tasks]); // Dependência em tasks para ter sempre a versão mais atualizada
 
     // Funções utilitárias para gerenciamento de tarefas
     const taskMethods = {
@@ -268,6 +289,9 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
                     toast.error('Erro ao salvar formulário', {
                         description: 'Verifique os campos e tente novamente.',
                     });
+                    if (onCancel) {
+                        onCancel();
+                    }
                 },
             },
         );
@@ -353,11 +377,7 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
                                                 }));
                                             }}
                                             onRemove={() => {
-                                                if (TaskOperations.isEditing(task) && !task.description) {
-                                                    taskMethods.remove(index);
-                                                } else {
-                                                    taskMethods.setState(index, TaskState.Viewing);
-                                                }
+                                                taskMethods.remove(index);
                                             }}
                                             onNewTask={(newTask) => taskMethods.createAt(index, undefined, newTask)}
                                             onPreview={() => {
@@ -454,21 +474,22 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
         </form>
     );
 
-    // If inline mode, return just the form content with action buttons
+    // If inline mode, return just the form content without action buttons
     if (inline) {
         return (
             <div className="space-y-6">
                 {formContent}
-                <div className="flex justify-end gap-2">
-                    {onCancel && (
-                        <Button type="button" variant="outline" onClick={onCancel}>
-                            Cancelar
-                        </Button>
-                    )}
-                    <Button type="button" onClick={handleSave} disabled={processing}>
-                        {processing ? 'Salvando...' : 'Salvar Formulário'}
-                    </Button>
-                </div>
+                {/* Hidden button that can be triggered from parent */}
+                <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={processing}
+                    data-form-save-button
+                    style={{ display: 'none' }}
+                    aria-hidden="true"
+                >
+                    {processing ? 'Salvando...' : 'Salvar Tarefas'}
+                </button>
             </div>
         );
     }

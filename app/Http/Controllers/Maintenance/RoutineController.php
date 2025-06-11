@@ -40,7 +40,6 @@ class RoutineController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'form_id' => 'nullable|exists:forms,id|unique:routines,form_id',
             'name' => 'required|string|max:255',
             'trigger_hours' => 'required|integer|min:0',
             'status' => 'required|in:Active,Inactive',
@@ -88,7 +87,6 @@ class RoutineController extends Controller
     public function update(Request $request, Routine $routine)
     {
         $validated = $request->validate([
-            'form_id' => 'nullable|exists:forms,id|unique:routines,form_id,' . $routine->id,
             'name' => 'required|string|max:255',
             'trigger_hours' => 'required|integer|min:0',
             'status' => 'required|in:Active,Inactive',
@@ -162,17 +160,6 @@ class RoutineController extends Controller
                 ->with('error', 'Não foi possível encontrar um ativo associado a esta rotina.');
         }
 
-        // Se a rotina não tem formulário, criar um novo
-        if (!$routine->form) {
-            $form = Form::create([
-                'is_active' => true,
-                'created_by' => auth()->id()
-            ]);
-            
-            $routine->update(['form_id' => $form->id]);
-            $routine->load('form.tasks');
-        }
-
         // Converter FormTasks para o formato usado no frontend
         $tasks = $routine->form->tasks->map(function ($task) {
             return [
@@ -212,20 +199,8 @@ class RoutineController extends Controller
 
         $tasksData = json_decode($validated['tasks'], true);
 
-        // Se a rotina já tem um formulário, atualizar
-        if ($routine->form) {
-            // Remover tarefas existentes
-            $routine->form->tasks()->delete();
-        } else {
-            // Criar novo formulário
-            $form = Form::create([
-                'is_active' => true,
-                'created_by' => auth()->id()
-            ]);
-            
-            $routine->update(['form_id' => $form->id]);
-            $routine->refresh();
-        }
+        // Remover tarefas existentes
+        $routine->form->tasks()->delete();
 
         // Criar novas tarefas
         foreach ($tasksData as $index => $taskData) {
@@ -318,11 +293,27 @@ class RoutineController extends Controller
 
         $routine = Routine::create($validated);
         $routine->assets()->attach($asset->id);
-        $routine->load('assets', 'form');
+        
+        // Create the form for the routine
+        $form = Form::create([
+            'name' => $routine->name . ' - Formulário',
+            'description' => 'Formulário para a rotina ' . $routine->name,
+            'is_active' => true,
+            'created_by' => auth()->id()
+        ]);
+        
+        $routine->form_id = $form->id;
+        $routine->save();
+        
+        // Load the relationships including the newly created form
+        $routine->load(['assets', 'form.tasks.instructions']);
 
-        return redirect()->back()
-            ->with('success', 'Rotina criada com sucesso.')
-            ->with('newRoutine', $routine->toArray());
+        // Return to the same page with the new routine data
+        return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset->id, 'tab' => 'rotinas'])
+            ->with([
+                'success' => 'Rotina criada com sucesso.',
+                'newRoutineId' => $routine->id
+            ]);
     }
 
     public function updateAssetRoutine(Request $request, Asset $asset, Routine $routine)
@@ -361,13 +352,7 @@ class RoutineController extends Controller
             // Excluir execuções da rotina
             $routine->routineExecutions()->delete();
             
-            // Excluir formulário se existir
-            if ($routine->form) {
-                $routine->form->tasks()->delete();
-                $routine->form->delete();
-            }
-            
-            // Excluir a rotina
+            // Excluir a rotina (o formulário será excluído automaticamente pelo model event)
             $routine->delete();
         } else {
             // Apenas desassociar do ativo
@@ -387,17 +372,6 @@ class RoutineController extends Controller
         }
 
         $routine->load(['form.tasks']);
-
-        // Se a rotina não tem formulário, criar um novo
-        if (!$routine->form) {
-            $form = Form::create([
-                'is_active' => true,
-                'created_by' => auth()->id()
-            ]);
-            
-            $routine->update(['form_id' => $form->id]);
-            $routine->load('form.tasks');
-        }
 
         // Converter FormTasks para o formato usado no frontend
         $tasks = $routine->form->tasks->map(function ($task) {
@@ -444,20 +418,8 @@ class RoutineController extends Controller
 
         $tasksData = json_decode($validated['tasks'], true);
 
-        // Se a rotina já tem um formulário, atualizar
-        if ($routine->form) {
-            // Remover tarefas existentes
-            $routine->form->tasks()->delete();
-        } else {
-            // Criar novo formulário
-            $form = Form::create([
-                'is_active' => true,
-                'created_by' => auth()->id()
-            ]);
-            
-            $routine->update(['form_id' => $form->id]);
-            $routine->refresh();
-        }
+        // Remover tarefas existentes
+        $routine->form->tasks()->delete();
 
         // Criar novas tarefas
         foreach ($tasksData as $index => $taskData) {
@@ -477,11 +439,6 @@ class RoutineController extends Controller
         }
 
         $routine->load(['form.tasks.instructions']);
-
-        if (!$routine->form) {
-            return redirect()->back()
-                ->with('error', 'Esta rotina não possui um formulário associado.');
-        }
 
         // Determinar o modo (view ou fill)
         $mode = $request->get('mode', 'view');

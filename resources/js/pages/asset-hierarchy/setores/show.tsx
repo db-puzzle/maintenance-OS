@@ -175,7 +175,9 @@ export default function Show({ sector, asset, activeTab, filters }: Props) {
                                                     <div className="font-medium">{asset.tag}</div>
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{asset.asset_type?.name ?? '-'}</TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturer ?? '-'}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">
+                                                    {asset.manufacturer?.name ?? '-'}
+                                                </TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{asset.manufacturing_year ?? '-'}</TableCell>
                                             </TableRow>
                                         ))}

@@ -10,7 +10,8 @@ interface ListTableHeaderProps {
     searchPlaceholder?: string;
     searchValue: string;
     onSearchChange: (value: string) => void;
-    createRoute: string;
+    createRoute?: string;
+    onCreateClick?: () => void;
     createButtonText: string;
     actions?: ReactNode;
 }
@@ -22,6 +23,7 @@ export function ListTableHeader({
     searchValue,
     onSearchChange,
     createRoute,
+    onCreateClick,
     createButtonText,
     actions,
 }: ListTableHeaderProps) {
@@ -37,12 +39,19 @@ export function ListTableHeader({
             <div className="flex flex-col gap-3">
                 {/* Mobile buttons */}
                 <div className="flex items-center justify-between lg:hidden">
-                    <Button asChild>
-                        <Link href={createRoute}>
+                    {onCreateClick ? (
+                        <Button onClick={onCreateClick}>
                             <Plus className="mr-2 h-4 w-4" />
                             {createButtonText}
-                        </Link>
-                    </Button>
+                        </Button>
+                    ) : createRoute ? (
+                        <Button asChild>
+                            <Link href={createRoute}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                {createButtonText}
+                            </Link>
+                        </Button>
+                    ) : null}
                     {actions}
                 </div>
 
@@ -60,12 +69,19 @@ export function ListTableHeader({
                     </div>
                     <div className="flex items-center gap-3">
                         {actions}
-                        <Button asChild>
-                            <Link href={createRoute}>
+                        {onCreateClick ? (
+                            <Button onClick={onCreateClick}>
                                 <Plus className="mr-2 h-4 w-4" />
                                 {createButtonText}
-                            </Link>
-                        </Button>
+                            </Button>
+                        ) : createRoute ? (
+                            <Button asChild>
+                                <Link href={createRoute}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    {createButtonText}
+                                </Link>
+                            </Button>
+                        ) : null}
                     </div>
                 </div>
 

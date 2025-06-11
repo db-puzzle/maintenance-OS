@@ -10,8 +10,10 @@ import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowUpDown, MoreVertical } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
+import CreatePlantSheet from '@/components/CreatePlantSheet';
+import axios from 'axios';
 
 interface PageProps {
     [key: string]: any;
@@ -40,6 +42,12 @@ interface Plant {
     asset_count: number;
     created_at: string;
     updated_at: string;
+    street?: string | null;
+    number?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zip_code?: string | null;
+    gps_coordinates?: string | null;
 }
 
 interface Props {
@@ -63,6 +71,11 @@ export default function Plantas({ plants, filters }: Props) {
     const [perPage, setPerPage] = useState(filters.per_page || 8);
     const [sort, setSort] = useState(filters.sort || 'name');
     const [direction, setDirection] = useState<'asc' | 'desc'>(filters.direction || 'asc');
+    const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+    const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+    const [plantToEdit, setPlantToEdit] = useState<Plant | null>(null);
+    const [loadingPlantData, setLoadingPlantData] = useState(false);
+    const createPlantSheetRef = useRef<HTMLButtonElement>(null);
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('plantsColumnsVisibility');
@@ -207,8 +220,11 @@ export default function Plantas({ plants, filters }: Props) {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
-                        <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.plantas.edit', row.original.id)}>Editar</Link>
+                        <DropdownMenuItem
+                            onClick={() => handleEditClick(row.original)}
+                            disabled={loadingPlantData}
+                        >
+                            {loadingPlantData ? 'Carregando...' : 'Editar'}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => checkDependencies(row.original)}>Excluir</DropdownMenuItem>
                     </DropdownMenuContent>
@@ -264,6 +280,37 @@ export default function Plantas({ plants, filters }: Props) {
 
     const isConfirmationValid = confirmationText === 'EXCLUIR';
 
+    const handleEditClick = async (plant: Plant) => {
+        setLoadingPlantData(true);
+        try {
+            // Fetch fresh plant data from the server
+            const response = await axios.get(route('asset-hierarchy.plantas.show', plant.id), {
+                params: { format: 'json' },
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            // Set the fresh data
+            const plantData = response.data.plant;
+            if (plantData) {
+                setPlantToEdit(plantData);
+                setIsEditSheetOpen(true);
+            } else {
+                throw new Error('No plant data received');
+            }
+        } catch (error) {
+            console.error('Error loading plant data:', error);
+            toast.error('Erro ao carregar dados da planta', {
+                description: 'Por favor, tente novamente.'
+            });
+        } finally {
+            setLoadingPlantData(false);
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Plantas" />
@@ -274,7 +321,7 @@ export default function Plantas({ plants, filters }: Props) {
                 searchPlaceholder="Buscar por nome..."
                 searchValue={search}
                 onSearchChange={(value) => setSearch(value)}
-                createRoute={route('asset-hierarchy.plantas.create')}
+                onCreateClick={() => setIsCreateSheetOpen(true)}
                 createButtonText="Adicionar"
                 actions={
                     <div className="flex items-center gap-2">
@@ -405,6 +452,44 @@ export default function Plantas({ plants, filters }: Props) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* CreatePlantSheet for creating new plants */}
+            <CreatePlantSheet
+                isOpen={isCreateSheetOpen}
+                onOpenChange={setIsCreateSheetOpen}
+                onSuccess={() => {
+                    setIsCreateSheetOpen(false);
+                    router.reload();
+                }}
+            />
+
+            {/* CreatePlantSheet for editing plants */}
+            {plantToEdit && (
+                <CreatePlantSheet
+                    isOpen={isEditSheetOpen}
+                    onOpenChange={(open) => {
+                        setIsEditSheetOpen(open);
+                        if (!open) {
+                            setPlantToEdit(null);
+                        }
+                    }}
+                    plant={{
+                        id: plantToEdit.id,
+                        name: plantToEdit.name,
+                        street: plantToEdit.street || null,
+                        number: plantToEdit.number || null,
+                        city: plantToEdit.city || null,
+                        state: plantToEdit.state || null,
+                        zip_code: plantToEdit.zip_code || null,
+                        gps_coordinates: plantToEdit.gps_coordinates || null,
+                    }}
+                    onSuccess={() => {
+                        setIsEditSheetOpen(false);
+                        setPlantToEdit(null);
+                        router.reload();
+                    }}
+                />
+            )}
         </AppLayout>
     );
 }

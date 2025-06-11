@@ -13,18 +13,18 @@ export interface Asset {
     tag: string;
     serial_number: string | null;
     part_number: string | null;
-    asset_type_id: number | null;
     description: string | null;
-    manufacturer: Manufacturer | string | null; // Can be either the relationship object or legacy string
-    manufacturer_id: number | null;
     manufacturing_year: number | null;
-    area_id: number | null;
     photo_path: string | null;
+    manufacturer: Manufacturer | null;
+    manufacturer_id: number | null;
     asset_type: AssetType | null;
+    asset_type_id: number | null;
     area: Area | null;
+    area_id: number | null;
     sector?: Sector | null;
+    sector_id?: number | null
     plant?: Plant | null;
-    sector_id?: number | null;
     plant_id?: number | null;
     shift?: Shift | null;
     shift_id?: number | null;

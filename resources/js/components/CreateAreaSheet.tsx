@@ -51,7 +51,7 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
 
     // Determina se deve usar controle interno ou externo
     const sheetOpen = showTrigger ? internalSheetOpen : (isOpen ?? false);
-    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => {}));
+    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => { }));
 
     // Atualiza o plant_id quando selectedPlantId muda
     React.useEffect(() => {
@@ -112,7 +112,7 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {},
+                                clearErrors: () => { },
                             }}
                             name="name"
                             label="Nome da Área"
