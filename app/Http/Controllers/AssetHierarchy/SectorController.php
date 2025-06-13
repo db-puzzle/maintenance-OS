@@ -56,8 +56,12 @@ class SectorController extends Controller
 
         $sectors = $query->paginate($perPage)->withQueryString();
 
+        // Get plants with areas for the create/edit functionality
+        $plants = Plant::with('areas')->get();
+
         return Inertia::render('asset-hierarchy/setores', [
             'sectors' => $sectors,
+            'plants' => $plants,
             'filters' => [
                 'search' => $search,
                 'sort' => $sort,
@@ -106,6 +110,25 @@ class SectorController extends Controller
     public function show(Sector $setor)
     {
         $setor->load(['area.plant']);
+        
+        // If this is a JSON request (for edit functionality), return just the sector data
+        if (request()->expectsJson() || request()->get('format') === 'json') {
+            return response()->json([
+                'sector' => [
+                    'id' => $setor->id,
+                    'name' => $setor->name,
+                    'area_id' => $setor->area_id,
+                    'area' => [
+                        'id' => $setor->area->id,
+                        'name' => $setor->area->name,
+                        'plant' => [
+                            'id' => $setor->area->plant->id,
+                            'name' => $setor->area->plant->name,
+                        ]
+                    ]
+                ]
+            ]);
+        }
         
         // Busca a página atual e parâmetros de ordenação para ativos
         $assetPage = request()->get('asset_page', 1);
@@ -184,6 +207,12 @@ class SectorController extends Controller
 
         $setor->update($validated);
 
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Setor {$setor->name} atualizado com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
         return redirect()->route('asset-hierarchy.setores')
             ->with('success', "O setor {$setor->name} foi atualizado com sucesso.");
     }
@@ -206,6 +235,19 @@ class SectorController extends Controller
         $totalAsset = $setor->asset()->count();
 
         $canDelete = $totalAsset === 0;
+
+        // If this is an AJAX request (from the delete functionality), return JSON
+        if (request()->expectsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'can_delete' => $canDelete,
+                'dependencies' => [
+                    'asset' => [
+                        'total' => $totalAsset,
+                        'items' => $asset
+                    ]
+                ]
+            ]);
+        }
 
         // Se o setor pode ser excluído, redirecionar para confirmação de exclusão
         if ($canDelete) {

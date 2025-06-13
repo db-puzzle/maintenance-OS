@@ -12,6 +12,12 @@ interface AssetTypeForm {
     description: string;
 }
 
+interface AssetType {
+    id: number;
+    name: string;
+    description: string | null;
+}
+
 interface CreateAssetTypeSheetProps {
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -21,6 +27,7 @@ interface CreateAssetTypeSheetProps {
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
+    assetType?: AssetType; // For edit mode
 }
 
 const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
@@ -32,10 +39,13 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
     triggerVariant = 'outline',
     showTrigger = false,
     triggerRef,
+    assetType,
 }) => {
-    const { data, setData, post, processing, errors, reset } = useForm<AssetTypeForm>({
-        name: '',
-        description: '',
+    const isEditMode = !!assetType;
+
+    const { data, setData, post, put, processing, errors, reset } = useForm<AssetTypeForm>({
+        name: assetType?.name || '',
+        description: assetType?.description || '',
     });
 
     const [internalSheetOpen, setInternalSheetOpen] = React.useState(false);
@@ -52,20 +62,37 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
             stay: true, // Indica que deve permanecer na mesma página
         };
 
-        post(route('asset-hierarchy.tipos-ativo.store'), {
-            ...formData,
-            onSuccess: () => {
-                toast.success('Tipo de ativo criado com sucesso!');
-                reset();
-                setSheetOpen(false);
-                onSuccess?.();
-            },
-            onError: (errors: any) => {
-                toast.error('Erro ao criar tipo de ativo', {
-                    description: 'Verifique os campos e tente novamente.',
-                });
-            },
-        });
+        if (isEditMode) {
+            put(route('asset-hierarchy.tipos-ativo.update', assetType?.id), {
+                ...formData,
+                onSuccess: () => {
+                    toast.success('Tipo de ativo atualizado com sucesso!');
+                    reset();
+                    setSheetOpen(false);
+                    onSuccess?.();
+                },
+                onError: (errors: any) => {
+                    toast.error('Erro ao atualizar tipo de ativo', {
+                        description: 'Verifique os campos e tente novamente.',
+                    });
+                },
+            });
+        } else {
+            post(route('asset-hierarchy.tipos-ativo.store'), {
+                ...formData,
+                onSuccess: () => {
+                    toast.success('Tipo de ativo criado com sucesso!');
+                    reset();
+                    setSheetOpen(false);
+                    onSuccess?.();
+                },
+                onError: (errors: any) => {
+                    toast.error('Erro ao criar tipo de ativo', {
+                        description: 'Verifique os campos e tente novamente.',
+                    });
+                },
+            });
+        }
     };
 
     const handleCancel = () => {
@@ -84,8 +111,10 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
             )}
             <SheetContent className="sm:max-w-lg">
                 <SheetHeader className="">
-                    <SheetTitle>Novo Tipo de Ativo</SheetTitle>
-                    <SheetDescription>Adicione um novo tipo de ativo ao sistema</SheetDescription>
+                    <SheetTitle>{isEditMode ? 'Editar Tipo de Ativo' : 'Novo Tipo de Ativo'}</SheetTitle>
+                    <SheetDescription>
+                        {isEditMode ? 'Edite os dados do tipo de ativo' : 'Adicione um novo tipo de ativo ao sistema'}
+                    </SheetDescription>
                 </SheetHeader>
 
                 <form onSubmit={handleSubmit} className="m-4 space-y-6">

@@ -12,6 +12,8 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowUpDown, ExternalLink, MoreVertical } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import CreateAssetTypeSheet from '@/components/CreateAssetTypeSheet';
+import axios from 'axios';
 
 interface PageProps {
     [key: string]: any;
@@ -73,6 +75,10 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
     const [perPage, setPerPage] = useState(filters.per_page || 8);
     const [sort, setSort] = useState(filters.sort || 'name');
     const [direction, setDirection] = useState<'asc' | 'desc'>(filters.direction || 'asc');
+    const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+    const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+    const [assetTypeToEdit, setAssetTypeToEdit] = useState<AssetType | null>(null);
+    const [loadingAssetTypeData, setLoadingAssetTypeData] = useState(false);
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('assetTypesColumnsVisibility');
@@ -139,6 +145,37 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
         }
     };
 
+    const handleEditClick = async (assetType: AssetType) => {
+        setLoadingAssetTypeData(true);
+        try {
+            // Fetch fresh asset type data from the server
+            const response = await axios.get(route('asset-hierarchy.tipos-ativo.show', assetType.id), {
+                params: { format: 'json' },
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            // Set the fresh data
+            const assetTypeData = response.data.assetType;
+            if (assetTypeData) {
+                setAssetTypeToEdit(assetTypeData);
+                setIsEditSheetOpen(true);
+            } else {
+                throw new Error('No asset type data received');
+            }
+        } catch (error) {
+            console.error('Error loading asset type data:', error);
+            toast.error('Erro ao carregar dados do tipo de ativo', {
+                description: 'Por favor, tente novamente.'
+            });
+        } finally {
+            setLoadingAssetTypeData(false);
+        }
+    };
+
     const columns: Column<AssetType>[] = [
         {
             id: 'name',
@@ -192,8 +229,11 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
-                        <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.tipos-ativo.edit', row.original.id)}>Editar</Link>
+                        <DropdownMenuItem
+                            onClick={() => handleEditClick(row.original)}
+                            disabled={loadingAssetTypeData}
+                        >
+                            {loadingAssetTypeData ? 'Carregando...' : 'Editar'}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => checkDependencies(row.original)}>Excluir</DropdownMenuItem>
                     </DropdownMenuContent>
@@ -259,7 +299,7 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
                 searchPlaceholder="Buscar tipos de ativo..."
                 searchValue={search}
                 onSearchChange={(value) => setSearch(value)}
-                createRoute={route('asset-hierarchy.tipos-ativo.create')}
+                onCreateClick={() => setIsCreateSheetOpen(true)}
                 createButtonText="Adicionar"
                 actions={
                     <div className="flex items-center gap-2">
@@ -369,6 +409,39 @@ export default function TiposAtivo({ assetTypes, filters }: Props) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* CreateAssetTypeSheet for creating new asset types */}
+            <CreateAssetTypeSheet
+                isOpen={isCreateSheetOpen}
+                onOpenChange={setIsCreateSheetOpen}
+                onSuccess={() => {
+                    setIsCreateSheetOpen(false);
+                    router.reload();
+                }}
+            />
+
+            {/* CreateAssetTypeSheet for editing asset types */}
+            {assetTypeToEdit && (
+                <CreateAssetTypeSheet
+                    isOpen={isEditSheetOpen}
+                    onOpenChange={(open) => {
+                        setIsEditSheetOpen(open);
+                        if (!open) {
+                            setAssetTypeToEdit(null);
+                        }
+                    }}
+                    assetType={{
+                        id: assetTypeToEdit.id,
+                        name: assetTypeToEdit.name,
+                        description: assetTypeToEdit.description,
+                    }}
+                    onSuccess={() => {
+                        setIsEditSheetOpen(false);
+                        setAssetTypeToEdit(null);
+                        router.reload();
+                    }}
+                />
+            )}
         </AppLayout>
     );
 }

@@ -62,6 +62,17 @@ class AssetTypeController extends Controller
             abort(404);
         }
 
+        // If this is a JSON request (for edit functionality), return just the asset type data
+        if (request()->expectsJson() || request()->get('format') === 'json') {
+            return response()->json([
+                'assetType' => [
+                    'id' => $assetType->id,
+                    'name' => $assetType->name,
+                    'description' => $assetType->description,
+                ]
+            ]);
+        }
+
         // Busca a página atual para ativos
         $assetPage = request()->get('asset_page', 1);
         $perPage = 10;
@@ -131,6 +142,12 @@ class AssetTypeController extends Controller
 
         $assetType->update($validated);
 
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Tipo de ativo {$assetType->name} atualizado com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
         return redirect()->route('asset-hierarchy.tipos-ativo')
             ->with('success', "O tipo de ativo {$assetType->name} foi atualizado com sucesso.");
     }
@@ -149,6 +166,15 @@ class AssetTypeController extends Controller
         $totalAsset = $assetType->asset()->count();
 
         $hasDependencies = $totalAsset > 0;
+
+        // If this is an AJAX request (from the delete functionality), return JSON
+        if (request()->expectsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'hasDependencies' => $hasDependencies,
+                'asset' => $asset,
+                'totalAsset' => $totalAsset,
+            ]);
+        }
 
         // Se não há dependências, redirecionar para confirmação de exclusão
         if (!$hasDependencies) {

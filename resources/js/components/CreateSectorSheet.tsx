@@ -14,6 +14,12 @@ interface SectorForm {
     area_id: string;
 }
 
+interface Sector {
+    id: number;
+    name: string;
+    area_id: number;
+}
+
 interface CreateSectorSheetProps {
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -27,6 +33,7 @@ interface CreateSectorSheetProps {
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
+    sector?: Sector; // For edit mode
 }
 
 const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
@@ -41,10 +48,13 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
     triggerVariant = 'outline',
     showTrigger = false,
     triggerRef,
+    sector,
 }) => {
-    const { data, setData, post, processing, errors, reset } = useForm<SectorForm>({
-        name: '',
-        area_id: selectedAreaId || '',
+    const isEditMode = !!sector;
+
+    const { data, setData, post, put, processing, errors, reset } = useForm<SectorForm>({
+        name: sector?.name || '',
+        area_id: sector?.area_id?.toString() || selectedAreaId || '',
     });
 
     const [localSelectedPlant, setLocalSelectedPlant] = useState<string>(selectedPlantId || '');
@@ -64,6 +74,18 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
         }
     }, [selectedAreaId, selectedPlantId]);
 
+    // Find the plant that contains the selected area for edit mode
+    React.useEffect(() => {
+        if (isEditMode && sector && !selectedPlantId) {
+            const plantWithArea = plants.find(plant => 
+                plant.areas?.some(area => area.id === sector.area_id)
+            );
+            if (plantWithArea) {
+                setLocalSelectedPlant(plantWithArea.id.toString());
+            }
+        }
+    }, [isEditMode, sector, plants, selectedPlantId]);
+
     const availableAreas = useMemo(() => {
         if (!localSelectedPlant) return [];
         const selectedPlant = plants.find((p) => p.id.toString() === localSelectedPlant);
@@ -78,20 +100,37 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
             stay: true, // Indica que deve permanecer na mesma página
         };
 
-        post(route('asset-hierarchy.setores.store'), {
-            ...formData,
-            onSuccess: () => {
-                toast.success('Setor criado com sucesso!');
-                reset();
-                setSheetOpen(false);
-                onSuccess?.();
-            },
-            onError: (errors: any) => {
-                toast.error('Erro ao criar setor', {
-                    description: 'Verifique os campos e tente novamente.',
-                });
-            },
-        });
+        if (isEditMode) {
+            put(route('asset-hierarchy.setores.update', sector?.id), {
+                ...formData,
+                onSuccess: () => {
+                    toast.success('Setor atualizado com sucesso!');
+                    reset();
+                    setSheetOpen(false);
+                    onSuccess?.();
+                },
+                onError: (errors: any) => {
+                    toast.error('Erro ao atualizar setor', {
+                        description: 'Verifique os campos e tente novamente.',
+                    });
+                },
+            });
+        } else {
+            post(route('asset-hierarchy.setores.store'), {
+                ...formData,
+                onSuccess: () => {
+                    toast.success('Setor criado com sucesso!');
+                    reset();
+                    setSheetOpen(false);
+                    onSuccess?.();
+                },
+                onError: (errors: any) => {
+                    toast.error('Erro ao criar setor', {
+                        description: 'Verifique os campos e tente novamente.',
+                    });
+                },
+            });
+        }
     };
 
     const handleCancel = () => {
@@ -111,8 +150,10 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
             )}
             <SheetContent className="sm:max-w-lg">
                 <SheetHeader className="">
-                    <SheetTitle>Novo Setor</SheetTitle>
-                    <SheetDescription>Adicione um novo setor ao sistema</SheetDescription>
+                    <SheetTitle>{isEditMode ? 'Editar Setor' : 'Novo Setor'}</SheetTitle>
+                    <SheetDescription>
+                        {isEditMode ? 'Edite os dados do setor' : 'Adicione um novo setor ao sistema'}
+                    </SheetDescription>
                 </SheetHeader>
 
                 <form onSubmit={handleSubmit} className="m-4 space-y-6">
@@ -143,10 +184,12 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                                 }}
                                 placeholder="Selecione uma planta"
                                 required={!disableParentFields}
-                                disabled={disableParentFields}
+                                disabled={disableParentFields || isEditMode}
                             />
-                            {disableParentFields && (
-                                <p className="text-muted-foreground text-sm">A planta foi pré-selecionada e não pode ser alterada.</p>
+                            {(disableParentFields || isEditMode) && (
+                                <p className="text-muted-foreground text-sm">
+                                    A planta foi pré-selecionada e não pode ser alterada.
+                                </p>
                             )}
                         </div>
 
@@ -159,11 +202,13 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                                 onValueChange={(value) => setData('area_id', value)}
                                 placeholder={!localSelectedPlant ? 'Selecione uma planta primeiro' : 'Selecione uma área'}
                                 error={errors.area_id}
-                                disabled={disableParentFields || !localSelectedPlant}
+                                disabled={disableParentFields || !localSelectedPlant || isEditMode}
                                 required={!disableParentFields}
                             />
-                            {disableParentFields && (
-                                <p className="text-muted-foreground text-sm">A área foi pré-selecionada e não pode ser alterada.</p>
+                            {(disableParentFields || isEditMode) && (
+                                <p className="text-muted-foreground text-sm">
+                                    A área foi pré-selecionada e não pode ser alterada.
+                                </p>
                             )}
                         </div>
                     </div>

@@ -101,6 +101,10 @@ export default function Index({
     const [associatedAssets, setAssociatedAssets] = useState<AssetData[]>([]);
     const [loadingAssets, setLoadingAssets] = useState(false);
     const [showAssetsDialog, setShowAssetsDialog] = useState(false);
+    const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+    const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+    const [manufacturerToEdit, setManufacturerToEdit] = useState<ManufacturerData | null>(null);
+    const [loadingManufacturerData, setLoadingManufacturerData] = useState(false);
 
     const page = usePage<PageProps>();
     const flash = page.props.flash;
@@ -255,31 +259,51 @@ export default function Index({
                             <span className="sr-only">Abrir menu</span>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="ignore-row-click w-32">
-                        <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.manufacturers.show', row.original.id)} onClick={(e) => e.stopPropagation()}>
-                                Visualizar
-                            </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.manufacturers.edit', row.original.id)} onClick={(e) => e.stopPropagation()}>
-                                Editar
-                            </Link>
-                        </DropdownMenuItem>
+                    <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuItem
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(row.original.id);
-                            }}
+                            onClick={() => handleEditClick(row.original)}
+                            disabled={loadingManufacturerData}
                         >
-                            Excluir
+                            {loadingManufacturerData ? 'Carregando...' : 'Editar'}
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(row.original.id)}>Excluir</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
-            width: 'w-[80px]',
+            width: 'w-[100px]',
         },
     ];
+
+    const handleEditClick = async (manufacturer: ManufacturerData) => {
+        setLoadingManufacturerData(true);
+        try {
+            // Fetch fresh manufacturer data from the server
+            const response = await axios.get(route('asset-hierarchy.manufacturers.show', manufacturer.id), {
+                params: { format: 'json' },
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            // Set the fresh data
+            const manufacturerData = response.data.manufacturer;
+            if (manufacturerData) {
+                setManufacturerToEdit(manufacturerData);
+                setIsEditSheetOpen(true);
+            } else {
+                throw new Error('No manufacturer data received');
+            }
+        } catch (error) {
+            console.error('Error loading manufacturer data:', error);
+            toast.error('Erro ao carregar dados do fabricante', {
+                description: 'Por favor, tente novamente.'
+            });
+        } finally {
+            setLoadingManufacturerData(false);
+        }
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -298,6 +322,9 @@ export default function Index({
                         showTrigger
                         triggerText="Adicionar"
                         triggerVariant="default"
+                        onSuccess={() => {
+                            router.reload();
+                        }}
                     />
                 }
             >
@@ -530,6 +557,43 @@ export default function Index({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* CreateManufacturerSheet for creating new manufacturers */}
+            <CreateManufacturerSheet
+                isOpen={isCreateSheetOpen}
+                onOpenChange={setIsCreateSheetOpen}
+                onSuccess={() => {
+                    setIsCreateSheetOpen(false);
+                    router.reload();
+                }}
+            />
+
+            {/* CreateManufacturerSheet for editing manufacturers */}
+            {manufacturerToEdit && (
+                <CreateManufacturerSheet
+                    isOpen={isEditSheetOpen}
+                    onOpenChange={(open) => {
+                        setIsEditSheetOpen(open);
+                        if (!open) {
+                            setManufacturerToEdit(null);
+                        }
+                    }}
+                    manufacturer={{
+                        id: manufacturerToEdit.id,
+                        name: manufacturerToEdit.name,
+                        website: manufacturerToEdit.website,
+                        email: manufacturerToEdit.email,
+                        phone: manufacturerToEdit.phone,
+                        country: manufacturerToEdit.country,
+                        notes: manufacturerToEdit.notes,
+                    }}
+                    onSuccess={() => {
+                        setIsEditSheetOpen(false);
+                        setManufacturerToEdit(null);
+                        router.reload();
+                    }}
+                />
+            )}
         </AppLayout>
     );
 } 

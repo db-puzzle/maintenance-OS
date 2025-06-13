@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import CreateSectorSheet from '@/components/CreateSectorSheet';
+import axios from 'axios';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -43,6 +45,7 @@ interface Props {
         direction: 'asc' | 'desc';
         per_page: number;
     };
+    plants: Plant[];
 }
 
 interface PageProps {
@@ -50,6 +53,17 @@ interface PageProps {
     flash?: {
         success?: string;
     };
+}
+
+interface Plant {
+    id: number;
+    name: string;
+    areas?: Area[];
+}
+
+interface Area {
+    id: number;
+    name: string;
 }
 
 interface Sector {
@@ -84,11 +98,15 @@ interface Dependencies {
     };
 }
 
-export default function SectorIndex({ sectors, filters }: Props) {
+export default function SectorIndex({ sectors, filters, plants }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [perPage, setPerPage] = useState(filters.per_page || 8);
     const [sort, setSort] = useState(filters.sort || 'name');
     const [direction, setDirection] = useState<'asc' | 'desc'>(filters.direction || 'asc');
+    const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+    const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+    const [sectorToEdit, setSectorToEdit] = useState<Sector | null>(null);
+    const [loadingSectorData, setLoadingSectorData] = useState(false);
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('sectorsColumnsVisibility');
@@ -157,6 +175,37 @@ export default function SectorIndex({ sectors, filters }: Props) {
         }
     };
 
+    const handleEditClick = async (sector: Sector) => {
+        setLoadingSectorData(true);
+        try {
+            // Fetch fresh sector data from the server
+            const response = await axios.get(route('asset-hierarchy.setores.show', sector.id), {
+                params: { format: 'json' },
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            // Set the fresh data
+            const sectorData = response.data.sector;
+            if (sectorData) {
+                setSectorToEdit(sectorData);
+                setIsEditSheetOpen(true);
+            } else {
+                throw new Error('No sector data received');
+            }
+        } catch (error) {
+            console.error('Error loading sector data:', error);
+            toast.error('Erro ao carregar dados do setor', {
+                description: 'Por favor, tente novamente.'
+            });
+        } finally {
+            setLoadingSectorData(false);
+        }
+    };
+
     const columns: Column<Sector>[] = [
         {
             id: 'name',
@@ -220,8 +269,11 @@ export default function SectorIndex({ sectors, filters }: Props) {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
-                        <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.setores.edit', row.original.id)}>Editar</Link>
+                        <DropdownMenuItem
+                            onClick={() => handleEditClick(row.original)}
+                            disabled={loadingSectorData}
+                        >
+                            {loadingSectorData ? 'Carregando...' : 'Editar'}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => checkDependencies(row.original)}>Excluir</DropdownMenuItem>
                     </DropdownMenuContent>
@@ -286,7 +338,7 @@ export default function SectorIndex({ sectors, filters }: Props) {
                 searchPlaceholder="Buscar por nome, descrição ou planta..."
                 searchValue={search}
                 onSearchChange={(value) => setSearch(value)}
-                createRoute={route('asset-hierarchy.setores.create')}
+                onCreateClick={() => setIsCreateSheetOpen(true)}
                 createButtonText="Adicionar"
                 actions={
                     <div className="flex items-center gap-2">
@@ -391,6 +443,41 @@ export default function SectorIndex({ sectors, filters }: Props) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* CreateSectorSheet for creating new sectors */}
+            <CreateSectorSheet
+                isOpen={isCreateSheetOpen}
+                onOpenChange={setIsCreateSheetOpen}
+                plants={plants}
+                onSuccess={() => {
+                    setIsCreateSheetOpen(false);
+                    router.reload();
+                }}
+            />
+
+            {/* CreateSectorSheet for editing sectors */}
+            {sectorToEdit && (
+                <CreateSectorSheet
+                    isOpen={isEditSheetOpen}
+                    onOpenChange={(open) => {
+                        setIsEditSheetOpen(open);
+                        if (!open) {
+                            setSectorToEdit(null);
+                        }
+                    }}
+                    plants={plants}
+                    sector={{
+                        id: sectorToEdit.id,
+                        name: sectorToEdit.name,
+                        area_id: sectorToEdit.area.id,
+                    }}
+                    onSuccess={() => {
+                        setIsEditSheetOpen(false);
+                        setSectorToEdit(null);
+                        router.reload();
+                    }}
+                />
+            )}
         </AppLayout>
     );
 }

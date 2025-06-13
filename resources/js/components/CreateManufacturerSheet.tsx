@@ -19,6 +19,16 @@ interface ManufacturerForm {
     notes: string;
 }
 
+interface Manufacturer {
+    id: number;
+    name: string;
+    website: string | null;
+    email: string | null;
+    phone: string | null;
+    country: string | null;
+    notes: string | null;
+}
+
 interface CreateManufacturerSheetProps {
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -27,6 +37,7 @@ interface CreateManufacturerSheetProps {
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
+    manufacturer?: Manufacturer; // For edit mode
 }
 
 const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
@@ -37,14 +48,17 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
     triggerVariant = 'outline',
     showTrigger = false,
     triggerRef,
+    manufacturer,
 }) => {
-    const { data, setData, post, processing, errors, reset, transform } = useForm<ManufacturerForm>({
-        name: '',
-        website: '',
-        email: '',
-        phone: '',
-        country: '',
-        notes: '',
+    const isEditMode = !!manufacturer;
+
+    const { data, setData, post, put, processing, errors, reset, transform } = useForm<ManufacturerForm>({
+        name: manufacturer?.name || '',
+        website: manufacturer?.website || '',
+        email: manufacturer?.email || '',
+        phone: manufacturer?.phone || '',
+        country: manufacturer?.country || '',
+        notes: manufacturer?.notes || '',
     });
 
     const [internalSheetOpen, setInternalSheetOpen] = useState(false);
@@ -56,29 +70,53 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Transform the data to include stay parameter
-        transform((data) => {
-            return {
-                ...data,
-                stay: true,
-            };
-        });
+        const formData = {
+            ...data,
+            stay: true, // Indica que deve permanecer na mesma página
+        };
 
-        post(route('asset-hierarchy.manufacturers.store'), {
-            onSuccess: () => {
-                toast.success('Fabricante criado com sucesso!');
-                reset();
-                setSheetOpen(false);
-                onSuccess?.();
-            },
-            onError: (errors: any) => {
-                toast.error('Erro ao criar fabricante', {
-                    description: 'Verifique os campos e tente novamente.',
-                });
-            },
-            preserveScroll: true,
-            preserveState: true,
-        });
+        if (isEditMode) {
+            put(route('asset-hierarchy.manufacturers.update', manufacturer?.id), {
+                ...formData,
+                onSuccess: () => {
+                    toast.success('Fabricante atualizado com sucesso!');
+                    reset();
+                    setSheetOpen(false);
+                    onSuccess?.();
+                },
+                onError: (errors: any) => {
+                    toast.error('Erro ao atualizar fabricante', {
+                        description: 'Verifique os campos e tente novamente.',
+                    });
+                },
+                preserveScroll: true,
+                preserveState: true,
+            });
+        } else {
+            // Transform the data to include stay parameter
+            transform((data) => {
+                return {
+                    ...data,
+                    stay: true,
+                };
+            });
+
+            post(route('asset-hierarchy.manufacturers.store'), {
+                onSuccess: () => {
+                    toast.success('Fabricante criado com sucesso!');
+                    reset();
+                    setSheetOpen(false);
+                    onSuccess?.();
+                },
+                onError: (errors: any) => {
+                    toast.error('Erro ao criar fabricante', {
+                        description: 'Verifique os campos e tente novamente.',
+                    });
+                },
+                preserveScroll: true,
+                preserveState: true,
+            });
+        }
     };
 
     const handleCancel = () => {
@@ -97,8 +135,10 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
             )}
             <SheetContent className="sm:max-w-lg">
                 <SheetHeader className="">
-                    <SheetTitle>Novo Fabricante</SheetTitle>
-                    <SheetDescription>Adicione um novo fabricante ao sistema</SheetDescription>
+                    <SheetTitle>{isEditMode ? 'Editar Fabricante' : 'Novo Fabricante'}</SheetTitle>
+                    <SheetDescription>
+                        {isEditMode ? 'Edite os dados do fabricante' : 'Adicione um novo fabricante ao sistema'}
+                    </SheetDescription>
                 </SheetHeader>
 
                 <form onSubmit={handleSubmit} className="m-4 space-y-6">
