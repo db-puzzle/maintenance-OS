@@ -198,40 +198,20 @@ class AssetController extends Controller
         }
 
         // Otherwise, it's an existing asset
-        $loadedAsset = Asset::findOrFail($asset)->load(['assetType', 'manufacturer', 'plant', 'area.plant', 'sector', 'routines.form.tasks.instructions', 'latestRuntimeMeasurement.user', 'shift']);
+        $loadedAsset = Asset::findOrFail($asset)->load([
+            'assetType', 
+            'manufacturer', 
+            'plant', 
+            'area.plant', 
+            'sector', 
+            'routines.form',
+            'latestRuntimeMeasurement.user', 
+            'shift'
+        ]);
         
         // Include shift_id and runtime data in the response
         $assetData = $loadedAsset->toArray();
         $assetData['shift_id'] = $loadedAsset->shift_id;
-        
-        // Transform routine tasks to frontend format
-        if (isset($assetData['routines'])) {
-            foreach ($assetData['routines'] as &$routine) {
-                if (isset($routine['form']) && isset($routine['form']['tasks'])) {
-                    $routine['form']['tasks'] = collect($routine['form']['tasks'])->map(function ($task) {
-                        return [
-                            'id' => (string)$task['id'],
-                            'type' => $this->mapTaskType($task['type']),
-                            'description' => $task['description'],
-                            'isRequired' => $task['is_required'],
-                            'state' => 'viewing',
-                            'measurement' => $task['type'] === 'measurement' && isset($task['configuration']['measurement']) 
-                                ? $task['configuration']['measurement'] 
-                                : null,
-                            'options' => in_array($task['type'], ['multiple_choice', 'multiple_select']) && isset($task['configuration']['options'])
-                                ? $task['configuration']['options']
-                                : [],
-                            'codeReaderType' => $task['type'] === 'code_reader' && isset($task['configuration']['codeReaderType'])
-                                ? $task['configuration']['codeReaderType']
-                                : null,
-                            'instructionImages' => isset($task['instructions']) 
-                                ? collect($task['instructions'])->where('type', 'image')->pluck('media_url')->toArray()
-                                : []
-                        ];
-                    })->toArray();
-                }
-            }
-        }
         
         // Add runtime data with calculation details
         $calculationDetails = $loadedAsset->getRuntimeCalculationDetails();
@@ -598,21 +578,5 @@ class AssetController extends Controller
         ]);
     }
     
-    /**
-     * Map database task type to frontend task type
-     */
-    private function mapTaskType(string $dbType): string
-    {
-        $mapping = [
-            'question' => 'question',
-            'multiple_choice' => 'multiple_choice',
-            'multiple_select' => 'multiple_select', 
-            'measurement' => 'measurement',
-            'photo' => 'photo',
-            'code_reader' => 'code_reader',
-            'file_upload' => 'file_upload'
-        ];
 
-        return $mapping[$dbType] ?? 'question';
-    }
 } 

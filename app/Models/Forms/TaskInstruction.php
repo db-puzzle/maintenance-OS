@@ -34,21 +34,6 @@ class TaskInstruction extends Model
     }
 
     /**
-     * Create a snapshot of this instruction
-     */
-    public function toSnapshot(): array
-    {
-        return [
-            'id' => $this->id,
-            'type' => $this->type,
-            'content' => $this->content,
-            'media_url' => $this->media_url,
-            'caption' => $this->caption,
-            'position' => $this->position
-        ];
-    }
-
-    /**
      * Get the full URL for media
      */
     public function getMediaUrlFullAttribute(): ?string

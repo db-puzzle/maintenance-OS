@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Forms;
 use App\Http\Controllers\Controller;
 use App\Models\Forms\FormExecution;
 use App\Models\Forms\TaskResponse;
+use App\Models\Forms\FormTask;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class TaskResponseController extends Controller
 {
@@ -16,10 +18,12 @@ class TaskResponseController extends Controller
      */
     public function index(FormExecution $formExecution)
     {
-        $responses = $formExecution->taskResponses()->with('attachments')->get();
+        $responses = $formExecution->taskResponses()
+            ->with(['attachments', 'formTask'])
+            ->get();
         
         return Inertia::render('Forms/Responses/Index', [
-            'execution' => $formExecution,
+            'execution' => $formExecution->load('formVersion.form'),
             'responses' => $responses
         ]);
     }
@@ -29,52 +33,69 @@ class TaskResponseController extends Controller
      */
     public function store(Request $request, FormExecution $formExecution)
     {
+        if (!$formExecution->isInProgress()) {
+            return redirect()->back()
+                ->with('error', 'Este formulário não está em andamento.');
+        }
+
         $validated = $request->validate([
-            'task_id' => 'required|integer',
+            'task_id' => 'required|integer|exists:form_tasks,id',
             'response' => 'required|array',
         ]);
         
-        // Find the task in the form snapshot
-        $taskSnapshot = null;
-        foreach ($formExecution->form_snapshot['tasks'] as $task) {
-            if ($task['id'] == $validated['task_id']) {
-                $taskSnapshot = $task;
-                break;
-            }
-        }
-        
-        if (!$taskSnapshot) {
-            return redirect()->back()->with('error', 'Tarefa não encontrada no formulário.');
-        }
-        
-        // Check if a response already exists for this task
-        $existingResponse = $formExecution->taskResponses()
-            ->where('task_snapshot->id', $validated['task_id'])
+        // Verify the task belongs to this form version
+        $task = FormTask::where('id', $validated['task_id'])
+            ->where('form_version_id', $formExecution->form_version_id)
             ->first();
             
-        if ($existingResponse) {
-            $existingResponse->complete($validated['response']);
+        if (!$task) {
+            return redirect()->back()
+                ->with('error', 'Tarefa não encontrada neste formulário.');
+        }
+        
+        DB::beginTransaction();
+        try {
+            // Check if a response already exists for this task
+            $existingResponse = $formExecution->taskResponses()
+                ->where('form_task_id', $validated['task_id'])
+                ->first();
+                
+            if ($existingResponse) {
+                $existingResponse->complete($validated['response']);
+                
+                DB::commit();
+                return redirect()->back()
+                    ->with('success', 'Resposta atualizada com sucesso.');
+            }
             
-            return redirect()->back()->with('success', 'Resposta atualizada com sucesso.');
+            // Create a new response
+            $taskResponse = $formExecution->taskResponses()->create([
+                'form_task_id' => $task->id,
+                'response' => $validated['response'],
+                'is_completed' => true,
+                'responded_at' => now(),
+            ]);
+            
+            // Check if this was the last task to be completed
+            if ($formExecution->hasAllRequiredTasksCompleted()) {
+                $totalTasks = $formExecution->formVersion->tasks()->count();
+                $completedTasks = $formExecution->taskResponses()
+                    ->where('is_completed', true)
+                    ->count();
+                
+                if ($completedTasks == $totalTasks && $formExecution->isInProgress()) {
+                    $formExecution->complete();
+                }
+            }
+            
+            DB::commit();
+            return redirect()->back()
+                ->with('success', 'Resposta salva com sucesso.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('error', 'Erro ao salvar resposta: ' . $e->getMessage());
         }
-        
-        // Create a new response
-        $taskResponse = $formExecution->taskResponses()->create([
-            'task_snapshot' => $taskSnapshot,
-            'response' => $validated['response'],
-            'is_completed' => true,
-            'responded_at' => now(),
-        ]);
-        
-        // If this was the last task to be completed, check if we should complete the execution
-        $totalTasks = count($formExecution->form_snapshot['tasks']);
-        $completedTasks = $formExecution->taskResponses()->where('is_completed', true)->count();
-        
-        if ($completedTasks == $totalTasks && $formExecution->isInProgress()) {
-            $formExecution->complete();
-        }
-        
-        return redirect()->back()->with('success', 'Resposta salva com sucesso.');
     }
 
     /**
@@ -87,10 +108,10 @@ class TaskResponseController extends Controller
                 ->with('error', 'Esta resposta não pertence a esta execução.');
         }
         
-        $taskResponse->load('attachments');
+        $taskResponse->load(['attachments', 'formTask.instructions']);
         
         return Inertia::render('Forms/Responses/Show', [
-            'execution' => $formExecution,
+            'execution' => $formExecution->load('formVersion.form'),
             'response' => $taskResponse
         ]);
     }
@@ -101,11 +122,13 @@ class TaskResponseController extends Controller
     public function update(Request $request, FormExecution $formExecution, TaskResponse $taskResponse)
     {
         if ($taskResponse->form_execution_id !== $formExecution->id) {
-            return redirect()->back()->with('error', 'Esta resposta não pertence a esta execução.');
+            return redirect()->back()
+                ->with('error', 'Esta resposta não pertence a esta execução.');
         }
         
         if (!$formExecution->isInProgress()) {
-            return redirect()->back()->with('error', 'Não é possível atualizar respostas - formulário não está em andamento.');
+            return redirect()->back()
+                ->with('error', 'Não é possível atualizar respostas - formulário não está em andamento.');
         }
         
         $validated = $request->validate([
@@ -114,7 +137,8 @@ class TaskResponseController extends Controller
         
         $taskResponse->complete($validated['response']);
         
-        return redirect()->back()->with('success', 'Resposta atualizada com sucesso.');
+        return redirect()->back()
+            ->with('success', 'Resposta atualizada com sucesso.');
     }
 
     /**
@@ -124,17 +148,16 @@ class TaskResponseController extends Controller
     {
         $missingRequiredTasks = [];
         
-        foreach ($formExecution->form_snapshot['tasks'] as $task) {
-            if ($task['is_required']) {
-                $response = $formExecution->taskResponses()
-                    ->where('task_snapshot->id', $task['id'])
-                    ->where('is_completed', true)
-                    ->first();
-                    
-                if (!$response) {
-                    $missingRequiredTasks[] = $task;
-                }
-            }
+        if (!$formExecution->hasAllRequiredTasksCompleted()) {
+            $missingRequiredTasks = $formExecution->getMissingRequiredTasks()
+                ->map(function ($task) {
+                    return [
+                        'id' => $task->id,
+                        'description' => $task->description,
+                        'type' => $task->type
+                    ];
+                })
+                ->toArray();
         }
         
         return response()->json([

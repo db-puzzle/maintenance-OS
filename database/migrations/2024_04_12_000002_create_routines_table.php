@@ -6,21 +6,30 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('routines', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('form_id')->unique()->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->unsignedInteger('trigger_hours');
-            $table->enum('status', ['Active', 'Inactive'])->default('Active');
+            $table->integer('trigger_hours')->comment('Hours between executions');
+            $table->string('status')->default('Active')->comment('Active, Inactive');
             $table->text('description')->nullable();
+            $table->foreignId('form_id')->constrained();
+            $table->foreignId('active_form_version_id')->nullable()->constrained('form_versions')->nullOnDelete();
             $table->timestamps();
             
-            $table->index('status');
+            $table->index(['status', 'trigger_hours']);
+            $table->index('form_id');
+            $table->index('active_form_version_id');
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('routines');

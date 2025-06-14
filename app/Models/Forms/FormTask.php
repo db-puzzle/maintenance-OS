@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FormTask extends Model
 {
     protected $fillable = [
+        'form_version_id',
         'form_id',
         'position',
         'type',
@@ -32,7 +33,33 @@ class FormTask extends Model
     const TYPE_FILE_UPLOAD = 'file_upload';
 
     /**
-     * Get the form that owns this task
+     * Prevent modifications to tasks in published versions
+     */
+    protected static function booted()
+    {
+        static::updating(function ($task) {
+            if ($task->form_version_id !== null && !$task->isDirty('form_version_id')) {
+                throw new \Exception('Tasks in published form versions are immutable and cannot be modified.');
+            }
+        });
+
+        static::deleting(function ($task) {
+            if ($task->form_version_id !== null) {
+                throw new \Exception('Tasks in published form versions cannot be deleted.');
+            }
+        });
+    }
+
+    /**
+     * Get the form version that owns this task
+     */
+    public function formVersion(): BelongsTo
+    {
+        return $this->belongsTo(FormVersion::class);
+    }
+
+    /**
+     * Get the form that owns this draft task
      */
     public function form(): BelongsTo
     {
@@ -48,19 +75,19 @@ class FormTask extends Model
     }
 
     /**
-     * Create a snapshot of this task
+     * Get the responses for this task
      */
-    public function toSnapshot(): array
+    public function responses(): HasMany
     {
-        return [
-            'id' => $this->id,
-            'position' => $this->position,
-            'type' => $this->type,
-            'description' => $this->description,
-            'is_required' => $this->is_required,
-            'configuration' => $this->configuration,
-            'instructions' => $this->instructions->map(fn($instruction) => $instruction->toSnapshot())->toArray()
-        ];
+        return $this->hasMany(TaskResponse::class);
+    }
+
+    /**
+     * Check if this task is in a draft (unpublished) state
+     */
+    public function isDraft(): bool
+    {
+        return $this->form_version_id === null;
     }
 
     /**

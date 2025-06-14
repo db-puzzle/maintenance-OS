@@ -7,6 +7,7 @@ use App\Models\Forms\Form;
 use App\Models\Forms\FormExecution;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class FormExecutionController extends Controller
 {
@@ -15,10 +16,12 @@ class FormExecutionController extends Controller
      */
     public function index(Request $request)
     {
-        $query = FormExecution::with('user', 'form');
+        $query = FormExecution::with(['user', 'formVersion.form']);
         
         if ($request->has('form_id')) {
-            $query->where('form_id', $request->form_id);
+            $query->whereHas('formVersion', function($q) use ($request) {
+                $q->where('form_id', $request->form_id);
+            });
         }
         
         if ($request->has('status')) {
@@ -38,7 +41,10 @@ class FormExecutionController extends Controller
      */
     public function create(Request $request)
     {
-        $forms = Form::where('is_active', true)->get();
+        $forms = Form::where('is_active', true)
+            ->whereHas('currentVersion')
+            ->with('currentVersion')
+            ->get();
         
         return Inertia::render('Forms/Executions/Create', [
             'forms' => $forms,
@@ -55,17 +61,30 @@ class FormExecutionController extends Controller
             'form_id' => 'required|exists:forms,id',
         ]);
         
-        $form = Form::with('tasks.instructions')->findOrFail($validated['form_id']);
+        $form = Form::with('currentVersion.tasks.instructions')->findOrFail($validated['form_id']);
         
-        $execution = FormExecution::create([
-            'form_id' => $form->id,
-            'user_id' => auth()->id(),
-            'form_snapshot' => $form->toSnapshot(),
-            'status' => FormExecution::STATUS_PENDING,
-        ]);
+        if (!$form->currentVersion) {
+            return redirect()->back()
+                ->with('error', 'Este formulário não possui uma versão publicada.');
+        }
         
-        return redirect()->route('forms.executions.show', $execution)
-            ->with('success', 'Execução do formulário iniciada.');
+        DB::beginTransaction();
+        try {
+            $execution = FormExecution::create([
+                'form_version_id' => $form->currentVersion->id,
+                'user_id' => auth()->id(),
+                'status' => FormExecution::STATUS_PENDING,
+            ]);
+            
+            DB::commit();
+            
+            return redirect()->route('forms.executions.show', $execution)
+                ->with('success', 'Execução do formulário iniciada.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('error', 'Erro ao iniciar execução: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -73,7 +92,7 @@ class FormExecutionController extends Controller
      */
     public function show(FormExecution $formExecution)
     {
-        $formExecution->load(['user', 'form', 'taskResponses.attachments']);
+        $formExecution->load(['user', 'formVersion.form', 'formVersion.tasks.instructions', 'taskResponses.attachments']);
         
         return Inertia::render('Forms/Executions/Show', [
             'execution' => $formExecution,
@@ -107,7 +126,7 @@ class FormExecutionController extends Controller
                 ->with('error', 'Este formulário não está em andamento.');
         }
         
-        $formExecution->load(['taskResponses.attachments']);
+        $formExecution->load(['formVersion.tasks.instructions', 'taskResponses.attachments']);
         
         return Inertia::render('Forms/Executions/Fill', [
             'execution' => $formExecution,
@@ -123,6 +142,14 @@ class FormExecutionController extends Controller
         if (!$formExecution->isInProgress()) {
             return redirect()->back()
                 ->with('error', 'Este formulário não está em andamento.');
+        }
+        
+        // Check if all required tasks are completed
+        if (!$formExecution->hasAllRequiredTasksCompleted()) {
+            $missingTasks = $formExecution->getMissingRequiredTasks();
+            return redirect()->back()
+                ->with('error', 'Existem tarefas obrigatórias não preenchidas: ' . 
+                    $missingTasks->pluck('description')->join(', '));
         }
         
         $formExecution->complete();

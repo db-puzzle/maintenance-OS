@@ -133,6 +133,9 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     // Estado para controlar o preenchimento da rotina
     const [fillingRoutineId, setFillingRoutineId] = useState<number | null>(null);
 
+    // Estado para controlar o carregamento do formulário
+    const [loadingFormEditor, setLoadingFormEditor] = useState(false);
+
     // Estados para turnos
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [selectedShiftId, setSelectedShiftId] = useState<string>(asset?.shift_id?.toString() || '');
@@ -366,10 +369,28 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         shiftSelectionRef.current?.triggerEditWithFocus();
     };
 
-    const handleEditRoutineForm = (routineId: number) => {
-        setEditingRoutineFormId(routineId);
-        // Ativar modo comprimido ao editar formulário
-        setIsCompressed(true);
+    const handleEditRoutineForm = async (routineId: number) => {
+        // First, fetch the complete routine data with form
+        setLoadingFormEditor(true);
+        try {
+            const response = await axios.get(route('maintenance.routines.form-data', routineId));
+            const routineWithForm = response.data.routine;
+
+            // Update the routine in the state with the fetched data
+            setRoutines(routines.map(r =>
+                r.id === routineId ? { ...r, ...routineWithForm } : r
+            ));
+
+            // Then set the editing state
+            setEditingRoutineFormId(routineId);
+            // Ativar modo comprimido ao editar formulário
+            setIsCompressed(true);
+        } catch (error) {
+            console.error('Error fetching routine form data:', error);
+            toast.error('Erro ao carregar dados do formulário');
+        } finally {
+            setLoadingFormEditor(false);
+        }
     };
 
     const handleFillRoutineForm = (routineId: number) => {
@@ -508,7 +529,15 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 label: 'Rotinas',
                 content: (
                     <div className="space-y-4 min-h-full">
-                        {editingRoutineFormId ? (
+                        {loadingFormEditor ? (
+                            // Show loading state while fetching form data
+                            <div className="flex items-center justify-center min-h-[400px]">
+                                <div className="text-center">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                                    <p className="text-muted-foreground">Carregando formulário...</p>
+                                </div>
+                            </div>
+                        ) : editingRoutineFormId ? (
                             // Mostrar o editor de formulário inline
                             (() => {
                                 const routine = routines.find(r => r.id === editingRoutineFormId);

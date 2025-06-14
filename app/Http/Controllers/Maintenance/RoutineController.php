@@ -12,6 +12,7 @@ use Inertia\Inertia;
 use App\Models\Maintenance\RoutineExecution;
 use App\Models\Forms\FormExecution;
 use App\Models\Forms\FormResponse;
+use Illuminate\Support\Facades\DB;
 
 class RoutineController extends Controller
 {
@@ -143,7 +144,7 @@ class RoutineController extends Controller
 
     public function formEditor(Routine $routine, Request $request)
     {
-        $routine->load(['form.tasks', 'assets']);
+        $routine->load(['form.draftTasks.instructions', 'form.currentVersion.tasks.instructions', 'assets']);
         
         // Se não há asset especificado, pegar o primeiro asset da rotina
         $assetId = $request->get('asset');
@@ -160,8 +161,16 @@ class RoutineController extends Controller
                 ->with('error', 'Não foi possível encontrar um ativo associado a esta rotina.');
         }
 
+        // Get tasks - draft tasks if available, otherwise current version tasks
+        $tasks = [];
+        if ($routine->form->draftTasks->count() > 0) {
+            $tasks = $routine->form->draftTasks;
+        } elseif ($routine->form->currentVersion) {
+            $tasks = $routine->form->currentVersion->tasks;
+        }
+
         // Converter FormTasks para o formato usado no frontend
-        $tasks = $routine->form->tasks->map(function ($task) {
+        $formattedTasks = $tasks->map(function ($task) {
             return [
                 'id' => (string)$task->id,
                 'type' => $this->mapTaskType($task->type),
@@ -181,7 +190,9 @@ class RoutineController extends Controller
                 'name' => $routine->name,
                 'form' => [
                     'id' => $routine->form->id,
-                    'tasks' => $tasks
+                    'tasks' => $formattedTasks,
+                    'isDraft' => $routine->form->isDraft(),
+                    'currentVersionId' => $routine->form->current_version_id
                 ]
             ],
             'asset' => [
@@ -199,16 +210,53 @@ class RoutineController extends Controller
 
         $tasksData = json_decode($validated['tasks'], true);
 
-        // Remover tarefas existentes
-        $routine->form->tasks()->delete();
+        DB::beginTransaction();
+        try {
+            // Remove existing draft tasks
+            $routine->form->draftTasks()->delete();
 
-        // Criar novas tarefas
-        foreach ($tasksData as $index => $taskData) {
-            $this->createFormTask($routine->form, $taskData, $index);
+            // Create new draft tasks
+            foreach ($tasksData as $index => $taskData) {
+                $this->createFormTask($routine->form, $taskData, $index);
+            }
+
+            DB::commit();
+
+            return redirect()->back()
+                ->with('success', 'Rascunho do formulário salvo com sucesso. Publique para torná-lo disponível.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('error', 'Erro ao salvar formulário: ' . $e->getMessage());
+        }
+    }
+
+    public function publishForm(Request $request, Routine $routine)
+    {
+        // Check if there are draft tasks to publish
+        if (!$routine->form->draftTasks()->exists()) {
+            return redirect()->back()
+                ->with('error', 'Não há alterações para publicar.');
         }
 
-        return redirect()->back()
-            ->with('success', 'Formulário salvo com sucesso.');
+        DB::beginTransaction();
+        try {
+            // Publish the form
+            $version = $routine->form->publish(auth()->id());
+
+            // Update routine's active version
+            $routine->active_form_version_id = $version->id;
+            $routine->save();
+
+            DB::commit();
+
+            return redirect()->back()
+                ->with('success', 'Formulário publicado com sucesso! Versão ' . $version->getVersionLabel() . ' está agora ativa.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('error', 'Erro ao publicar formulário: ' . $e->getMessage());
+        }
     }
 
     private function mapTaskType(string $dbType): string
@@ -250,7 +298,10 @@ class RoutineController extends Controller
                 break;
         }
 
-        $task = $form->tasks()->create([
+        // Create draft task with form_id
+        $task = FormTask::create([
+            'form_id' => $form->id, // Draft task belongs to form
+            'form_version_id' => null, // Not yet published
             'position' => $position,
             'type' => $taskData['type'],
             'description' => $taskData['description'] ?? '',
@@ -305,8 +356,8 @@ class RoutineController extends Controller
         $routine->form_id = $form->id;
         $routine->save();
         
-        // Load the relationships including the newly created form
-        $routine->load(['assets', 'form.tasks.instructions']);
+        // Load the relationships - form is newly created so it won't have tasks yet
+        $routine->load(['assets', 'form']);
 
         // Return to the same page with the new routine data
         return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset->id, 'tab' => 'rotinas'])
@@ -377,16 +428,64 @@ class RoutineController extends Controller
 
         $tasksData = json_decode($validated['tasks'], true);
 
-        // Remover tarefas existentes
-        $routine->form->tasks()->delete();
+        DB::beginTransaction();
+        try {
+            // Check if form exists
+            if (!$routine->form) {
+                throw new \Exception('Routine has no associated form');
+            }
 
-        // Criar novas tarefas
-        foreach ($tasksData as $index => $taskData) {
-            $this->createFormTask($routine->form, $taskData, $index);
+            // Remove existing draft tasks
+            $routine->form->draftTasks()->delete();
+
+            // Create new draft tasks
+            foreach ($tasksData as $index => $taskData) {
+                $this->createFormTask($routine->form, $taskData, $index + 1); // Position starts at 1, not 0
+            }
+
+            DB::commit();
+
+            return redirect()->back()
+                ->with('success', 'Rascunho do formulário salvo com sucesso. Publique para torná-lo disponível.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('error', 'Erro ao salvar formulário: ' . $e->getMessage());
+        }
+    }
+
+    public function publishAssetRoutineForm(Request $request, Asset $asset, Routine $routine)
+    {
+        // Verificar se a rotina está associada ao ativo
+        if (!$asset->routines()->where('routines.id', $routine->id)->exists()) {
+            return redirect()->back()
+                ->with('error', 'Esta rotina não está associada a este ativo.');
         }
 
-        return redirect()->back()
-            ->with('success', 'Formulário salvo com sucesso.');
+        // Check if there are draft tasks to publish
+        if (!$routine->form->draftTasks()->exists()) {
+            return redirect()->back()
+                ->with('error', 'Não há alterações para publicar.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Publish the form
+            $version = $routine->form->publish(auth()->id());
+
+            // Update routine's active version
+            $routine->active_form_version_id = $version->id;
+            $routine->save();
+
+            DB::commit();
+
+            return redirect()->back()
+                ->with('success', 'Formulário publicado com sucesso! Versão ' . $version->getVersionLabel() . ' está agora ativa.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('error', 'Erro ao publicar formulário: ' . $e->getMessage());
+        }
     }
 
     public function assetRoutineExecutions(Asset $asset, Routine $routine)
@@ -498,5 +597,53 @@ class RoutineController extends Controller
 
         return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset->id, 'tab' => 'rotinas'])
             ->with('success', 'Formulário preenchido com sucesso.');
+    }
+
+    /**
+     * Get routine details with form data for API/AJAX requests
+     */
+    public function getRoutineWithFormData(Routine $routine)
+    {
+        $routine->load(['form.draftTasks.instructions', 'form.currentVersion.tasks.instructions']);
+        
+        // Get tasks - draft tasks if available, otherwise current version tasks
+        $tasks = [];
+        if ($routine->form->draftTasks->count() > 0) {
+            $tasks = $routine->form->draftTasks;
+        } elseif ($routine->form->currentVersion) {
+            $tasks = $routine->form->currentVersion->tasks;
+        }
+
+        // Transform tasks to frontend format
+        $formattedTasks = $tasks->map(function ($task) {
+            return [
+                'id' => (string)$task->id,
+                'type' => $this->mapTaskType($task->type),
+                'description' => $task->description,
+                'isRequired' => $task->is_required,
+                'state' => 'viewing',
+                'measurement' => $task->getMeasurementConfig(),
+                'options' => $task->getOptions(),
+                'codeReaderType' => $task->getCodeReaderType(),
+                'instructionImages' => $task->instructions->where('type', 'image')->pluck('media_url')->toArray()
+            ];
+        });
+
+        return response()->json([
+            'routine' => [
+                'id' => $routine->id,
+                'name' => $routine->name,
+                'description' => $routine->description,
+                'trigger_hours' => $routine->trigger_hours,
+                'status' => $routine->status,
+                'form' => [
+                    'id' => $routine->form->id,
+                    'tasks' => $formattedTasks,
+                    'is_draft' => $routine->form->isDraft(),
+                    'current_version_id' => $routine->form->current_version_id,
+                    'has_draft_changes' => $routine->form->draftTasks()->exists()
+                ]
+            ]
+        ]);
     }
 } 

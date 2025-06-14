@@ -10,19 +10,21 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // Rotinas
-    Route::get('/routines', [RoutineController::class, 'index'])->name('routines.index');
-    Route::get('/routines/create', [RoutineController::class, 'create'])->name('routines.create');
-    Route::post('/routines', [RoutineController::class, 'store'])->name('routines.store');
-    Route::get('/routines/{routine}', [RoutineController::class, 'show'])->name('routines.show');
-    Route::get('/routines/{routine}/edit', [RoutineController::class, 'edit'])->name('routines.edit');
-    Route::put('/routines/{routine}', [RoutineController::class, 'update'])->name('routines.update');
-    Route::delete('/routines/{routine}', [RoutineController::class, 'destroy'])->name('routines.destroy');
-    Route::post('/routines/{routine}/executions', [RoutineController::class, 'createExecution'])->name('routines.create-execution');
-    Route::get('/routines/{routine}/executions', [RoutineController::class, 'executions'])->name('routines.executions');
-    
-    // Formulários de Rotinas
-    Route::get('/routines/{routine}/form-editor', [RoutineController::class, 'formEditor'])->name('routines.form-editor');
-    Route::post('/routines/{routine}/forms', [RoutineController::class, 'storeForm'])->name('routines.forms.store');
+    Route::prefix('routines')->name('routines.')->group(function () {
+        Route::get('/', [RoutineController::class, 'index'])->name('index');
+        Route::get('/create', [RoutineController::class, 'create'])->name('create');
+        Route::post('/', [RoutineController::class, 'store'])->name('store');
+        Route::get('/{routine}', [RoutineController::class, 'show'])->name('show');
+        Route::get('/{routine}/edit', [RoutineController::class, 'edit'])->name('edit');
+        Route::put('/{routine}', [RoutineController::class, 'update'])->name('update');
+        Route::delete('/{routine}', [RoutineController::class, 'destroy'])->name('destroy');
+        Route::get('/{routine}/executions', [RoutineController::class, 'executions'])->name('executions');
+        Route::post('/{routine}/executions', [RoutineController::class, 'createExecution'])->name('executions.create');
+        Route::get('/{routine}/form-editor', [RoutineController::class, 'formEditor'])->name('form-editor');
+        Route::post('/{routine}/forms', [RoutineController::class, 'storeForm'])->name('forms.store');
+        Route::post('/{routine}/forms/publish', [RoutineController::class, 'publishForm'])->name('forms.publish');
+        Route::get('/{routine}/form-data', [RoutineController::class, 'getRoutineWithFormData'])->name('form-data');
+    });
     
     // Rotinas no contexto de ativos específicos
     Route::prefix('assets/{asset}')->name('assets.')->group(function () {
@@ -33,6 +35,7 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
         
         // Formulários de rotinas no contexto de ativos
         Route::post('/routines/{routine}/forms', [RoutineController::class, 'storeAssetRoutineForm'])->name('routines.forms.store');
+        Route::post('/routines/{routine}/forms/publish', [RoutineController::class, 'publishAssetRoutineForm'])->name('routines.forms.publish');
         
         // Execuções de rotinas no contexto de ativos
         Route::get('/routines/{routine}/executions', [RoutineController::class, 'assetRoutineExecutions'])->name('routines.executions');

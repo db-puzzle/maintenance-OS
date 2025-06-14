@@ -10,14 +10,13 @@ class TaskResponse extends Model
 {
     protected $fillable = [
         'form_execution_id',
-        'task_snapshot',
+        'form_task_id',
         'response',
         'is_completed',
         'responded_at'
     ];
 
     protected $casts = [
-        'task_snapshot' => 'array',
         'response' => 'array',
         'is_completed' => 'boolean',
         'responded_at' => 'datetime'
@@ -29,6 +28,14 @@ class TaskResponse extends Model
     public function formExecution(): BelongsTo
     {
         return $this->belongsTo(FormExecution::class);
+    }
+
+    /**
+     * Get the form task this response is for
+     */
+    public function formTask(): BelongsTo
+    {
+        return $this->belongsTo(FormTask::class);
     }
 
     /**
@@ -52,35 +59,27 @@ class TaskResponse extends Model
     }
 
     /**
-     * Get the task type from the snapshot
+     * Get the task type from the related task
      */
     public function getTaskType(): string
     {
-        return $this->task_snapshot['type'] ?? '';
+        return $this->formTask->type ?? '';
     }
 
     /**
-     * Get the task description from the snapshot
+     * Get the task description from the related task
      */
     public function getTaskDescription(): string
     {
-        return $this->task_snapshot['description'] ?? '';
+        return $this->formTask->description ?? '';
     }
 
     /**
-     * Get the task configuration from the snapshot
+     * Get the task configuration from the related task
      */
     public function getTaskConfiguration(): array
     {
-        return $this->task_snapshot['configuration'] ?? [];
-    }
-
-    /**
-     * Get the task instructions from the snapshot
-     */
-    public function getTaskInstructions(): array
-    {
-        return $this->task_snapshot['instructions'] ?? [];
+        return $this->formTask->configuration ?? [];
     }
 
     /**
@@ -88,7 +87,7 @@ class TaskResponse extends Model
      */
     public function isRequired(): bool
     {
-        return $this->task_snapshot['is_required'] ?? false;
+        return $this->formTask->is_required ?? false;
     }
 
     /**

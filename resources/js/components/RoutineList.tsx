@@ -8,9 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Task } from '@/types/task';
 import { Link, router } from '@inertiajs/react';
 import { ClipboardCheck, Clock, Edit2, Eye, FileText, MoreVertical, Plus, Trash2, AlertCircle, CalendarRange } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import axios from 'axios';
 
 export interface Routine {
     id?: number;
@@ -23,6 +24,9 @@ export interface Routine {
         id: number;
         name: string;
         tasks: Task[];
+        has_draft_changes?: boolean;
+        is_draft?: boolean;
+        current_version_id?: number | null;
     };
 }
 
@@ -117,13 +121,38 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
     // Estado para controlar o dropdown
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
+    // Estado para armazenar dados completos da rotina com formulário
+    const [routineWithForm, setRoutineWithForm] = useState<Routine | null>(null);
+    const [loadingForm, setLoadingForm] = useState(false);
+
     // Dados da rotina ou dados vazios para nova rotina
-    const routineData = routine || {
+    const routineData = routineWithForm || routine || {
         name: '',
         trigger_hours: 0,
         status: 'Active' as const,
         description: '',
         form: undefined,
+    };
+
+    // Fetch form data when component mounts if routine has a form
+    useEffect(() => {
+        if (routine?.id && routine?.form_id && !isNew) {
+            fetchRoutineFormData();
+        }
+    }, [routine?.id, routine?.form_id]);
+
+    const fetchRoutineFormData = async () => {
+        if (!routine?.id) return;
+
+        setLoadingForm(true);
+        try {
+            const response = await axios.get(route('maintenance.routines.form-data', routine.id));
+            setRoutineWithForm(response.data.routine);
+        } catch (error) {
+            console.error('Error fetching routine form data:', error);
+        } finally {
+            setLoadingForm(false);
+        }
     };
 
     const formatTriggerHours = (hours: number) => {
@@ -158,6 +187,10 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
         setIsSheetOpen(false);
         if (onSave) {
             onSave(updatedRoutine);
+        }
+        // Refresh form data after routine update
+        if (updatedRoutine.id) {
+            fetchRoutineFormData();
         }
     };
 
@@ -247,14 +280,24 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                             "font-semibold text-gray-900 transition-all duration-200 ease-in-out",
                             isCompressed ? "text-sm" : "text-sm"
                         )}>{routineData.name}</p>
-                        <p
-                            className={`mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${routineData.status === 'Active'
-                                ? 'bg-green-50 text-green-700 ring-green-600/20'
-                                : 'bg-gray-50 text-gray-600 ring-gray-500/10'
-                                }`}
-                        >
-                            {routineData.status === 'Active' ? 'Ativo' : 'Inativo'}
-                        </p>
+                        {routineData.form && !routineData.form.current_version_id ? (
+                            <p className="mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset bg-amber-50 text-amber-700 ring-amber-600/20">
+                                Rascunho
+                            </p>
+                        ) : routineData.form && routineData.form.has_draft_changes ? (
+                            <p className="mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset bg-amber-50 text-amber-700 ring-amber-600/20">
+                                Alterações pendentes
+                            </p>
+                        ) : (
+                            <p
+                                className={`mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${routineData.status === 'Active'
+                                    ? 'bg-green-50 text-green-700 ring-green-600/20'
+                                    : 'bg-gray-50 text-gray-600 ring-gray-500/10'
+                                    }`}
+                            >
+                                {routineData.status === 'Active' ? 'Ativo' : 'Inativo'}
+                            </p>
+                        )}
                     </div>
                     <div className="mt-1 flex items-center gap-x-2 text-xs text-gray-500">
                         <p className="flex items-center gap-1 whitespace-nowrap">
@@ -279,7 +322,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                 </svg>
                                 <p className="flex items-center gap-1 whitespace-nowrap">
                                     <FileText className="h-3 w-3" />
-                                    {routineData.form.tasks?.length || 0} tarefas
+                                    {loadingForm ? '...' : (routineData.form.tasks?.length || 0)} tarefas
                                 </p>
                             </>
                         )}
@@ -295,10 +338,24 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                     )}
                 </div>
                 <div className="flex flex-none items-center gap-x-4">
-                    {routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
+                    {loadingForm ? (
+                        <Button size="sm" variant="outline" disabled>
+                            <FileText className="mr-1 h-4 w-4 animate-pulse" />
+                            Carregando...
+                        </Button>
+                    ) : routineData.form && routineData.form.current_version_id && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
                         <Button size="sm" variant="action" onClick={onFillForm}>
                             <ClipboardCheck className="mr-1 h-4 w-4" />
                             Preencher
+                        </Button>
+                    ) : routineData.form && routineData.form.has_draft_changes ? (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={onEditForm}
+                        >
+                            <FileText className="mr-1 h-4 w-4" />
+                            Editar Tarefas
                         </Button>
                     ) : (
                         <Button
@@ -319,7 +376,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                                {routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
+                                {!loadingForm && routineData.form && routineData.form.current_version_id && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
                                     <>
                                         <DropdownMenuItem
                                             asChild={!onFillForm}
@@ -356,6 +413,20 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                                 Editar Tarefas
                                             </>
                                         </DropdownMenuItem>
+                                    </>
+                                ) : routineData.form && routineData.form.has_draft_changes ? (
+                                    <>
+                                        <DropdownMenuItem
+                                            asChild={!onEditForm}
+                                            className={onEditForm ? "flex items-center" : "flex items-center"}
+                                            onClick={onEditForm ? onEditForm : undefined}
+                                        >
+                                            <>
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                Editar Tarefas
+                                            </>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
                                     </>
                                 ) : (
                                     <>

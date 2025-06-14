@@ -13,12 +13,17 @@ return new class extends Migration
     {
         Schema::create('forms', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->unsignedBigInteger('current_version_id')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->foreignId('created_by')->constrained('users');
+            $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();
             $table->softDeletes();
             
-            $table->index(['is_active', 'created_at']);
+            $table->index('is_active');
+            $table->index('created_by');
+            $table->index('current_version_id');
         });
     }
 

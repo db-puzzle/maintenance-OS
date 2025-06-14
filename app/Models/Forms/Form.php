@@ -15,6 +15,9 @@ class Form extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'name',
+        'description',
+        'current_version_id',
         'is_active',
         'created_by'
     ];
@@ -40,29 +43,84 @@ class Form extends Model
     }
 
     /**
-     * Get the tasks associated with this form
+     * Get all versions of this form
      */
-    public function tasks(): HasMany
+    public function versions(): HasMany
     {
-        return $this->hasMany(FormTask::class)->orderBy('position');
+        return $this->hasMany(FormVersion::class)->orderBy('version_number', 'desc');
     }
 
     /**
-     * Get the executions of this form
+     * Get the current published version
      */
-    public function executions(): HasMany
+    public function currentVersion(): BelongsTo
     {
-        return $this->hasMany(FormExecution::class);
+        return $this->belongsTo(FormVersion::class, 'current_version_id');
     }
 
     /**
-     * Create a snapshot of the form and all its tasks
+     * Get draft tasks (tasks not yet published)
      */
-    public function toSnapshot(): array
+    public function draftTasks(): HasMany
     {
-        return [
-            'id' => $this->id,
-            'tasks' => $this->tasks->map(fn($task) => $task->toSnapshot())->toArray()
-        ];
+        // Draft tasks are temporarily stored with form_id in a separate relationship
+        return $this->hasMany(FormTask::class, 'form_id')->orderBy('position');
+    }
+
+    /**
+     * Check if form is in draft mode (no published version or has unpublished changes)
+     */
+    public function isDraft(): bool
+    {
+        return $this->current_version_id === null || $this->draftTasks()->exists();
+    }
+
+    /**
+     * Get the next version number
+     */
+    public function getNextVersionNumber(): int
+    {
+        $maxVersion = $this->versions()->max('version_number');
+        return $maxVersion ? $maxVersion + 1 : 1;
+    }
+
+    /**
+     * Publish the current draft as a new version
+     */
+    public function publish(int $userId): FormVersion
+    {
+        $version = FormVersion::create([
+            'form_id' => $this->id,
+            'version_number' => $this->getNextVersionNumber(),
+            'published_at' => now(),
+            'published_by' => $userId,
+            'is_active' => true
+        ]);
+
+        // Copy draft tasks to the new version
+        $draftTasks = $this->draftTasks;
+        foreach ($draftTasks as $task) {
+            // Create new task for the version
+            $newTask = $task->replicate();
+            $newTask->form_version_id = $version->id;
+            $newTask->form_id = null; // Remove temporary form_id reference
+            $newTask->save();
+            
+            // Copy task instructions
+            foreach ($task->instructions as $instruction) {
+                $newInstruction = $instruction->replicate();
+                $newInstruction->form_task_id = $newTask->id;
+                $newInstruction->save();
+            }
+        }
+
+        // Delete draft tasks after publishing
+        $this->draftTasks()->delete();
+
+        // Update current version
+        $this->current_version_id = $version->id;
+        $this->save();
+
+        return $version;
     }
 } 

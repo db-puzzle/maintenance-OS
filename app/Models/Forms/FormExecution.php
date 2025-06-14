@@ -12,16 +12,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FormExecution extends Model
 {
     protected $fillable = [
-        'form_id',
+        'form_version_id',
         'user_id',
-        'form_snapshot',
         'status',
         'started_at',
         'completed_at'
     ];
 
     protected $casts = [
-        'form_snapshot' => 'array',
         'started_at' => 'datetime',
         'completed_at' => 'datetime'
     ];
@@ -32,11 +30,11 @@ class FormExecution extends Model
     const STATUS_CANCELLED = 'cancelled';
 
     /**
-     * Get the form that this execution is for
+     * Get the form version that this execution is for
      */
-    public function form(): BelongsTo
+    public function formVersion(): BelongsTo
     {
-        return $this->belongsTo(Form::class);
+        return $this->belongsTo(FormVersion::class);
     }
 
     /**
@@ -129,7 +127,7 @@ class FormExecution extends Model
      */
     public function getProgressPercentage(): int
     {
-        $totalTasks = count($this->form_snapshot['tasks'] ?? []);
+        $totalTasks = $this->formVersion->tasks()->count();
         
         if ($totalTasks === 0) {
             return 0;
@@ -138,5 +136,40 @@ class FormExecution extends Model
         $completedTasks = $this->taskResponses()->where('is_completed', true)->count();
         
         return (int) round(($completedTasks / $totalTasks) * 100);
+    }
+
+    /**
+     * Check if all required tasks are completed
+     */
+    public function hasAllRequiredTasksCompleted(): bool
+    {
+        $requiredTaskIds = $this->formVersion->tasks()
+            ->where('is_required', true)
+            ->pluck('id');
+
+        $completedRequiredTaskIds = $this->taskResponses()
+            ->whereIn('form_task_id', $requiredTaskIds)
+            ->where('is_completed', true)
+            ->pluck('form_task_id');
+
+        return $requiredTaskIds->count() === $completedRequiredTaskIds->count();
+    }
+
+    /**
+     * Get missing required tasks
+     */
+    public function getMissingRequiredTasks()
+    {
+        $requiredTaskIds = $this->formVersion->tasks()
+            ->where('is_required', true)
+            ->pluck('id');
+
+        $completedTaskIds = $this->taskResponses()
+            ->where('is_completed', true)
+            ->pluck('form_task_id');
+
+        return $this->formVersion->tasks()
+            ->whereIn('id', $requiredTaskIds->diff($completedTaskIds))
+            ->get();
     }
 } 

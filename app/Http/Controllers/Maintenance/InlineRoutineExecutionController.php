@@ -24,11 +24,17 @@ class InlineRoutineExecutionController extends Controller
             return response()->json(['error' => 'Esta rotina não está associada a este ativo.'], 403);
         }
 
+        // Check if routine has a published form version
+        $formVersion = $routine->getFormVersionForExecution();
+        if (!$formVersion) {
+            return response()->json(['error' => 'Esta rotina não possui um formulário publicado.'], 422);
+        }
+
         // Check for existing in-progress execution
         $existingExecution = RoutineExecution::where('routine_id', $routine->id)
             ->where('executed_by', auth()->id())
             ->where('status', RoutineExecution::STATUS_IN_PROGRESS)
-            ->with(['formExecution.taskResponses'])
+            ->with(['formExecution.taskResponses.formTask'])
             ->first();
 
         if ($existingExecution) {
@@ -50,12 +56,10 @@ class InlineRoutineExecutionController extends Controller
                 'started_at' => now()
             ]);
 
-            // Create form execution with snapshot
-            $formSnapshot = $routine->form->toSnapshot();
+            // Create form execution with version reference
             $formExecution = FormExecution::create([
-                'form_id' => $routine->form_id,
+                'form_version_id' => $formVersion->id,
                 'user_id' => auth()->id(),
-                'form_snapshot' => $formSnapshot,
                 'status' => FormExecution::STATUS_IN_PROGRESS,
                 'started_at' => now()
             ]);
@@ -63,6 +67,9 @@ class InlineRoutineExecutionController extends Controller
             // Update routine execution with form execution ID
             $routineExecution->form_execution_id = $formExecution->id;
             $routineExecution->save();
+
+            // Load the form version with tasks
+            $formExecution->load('formVersion.tasks.instructions');
 
             DB::commit();
 
@@ -87,7 +94,7 @@ class InlineRoutineExecutionController extends Controller
             ->where('routine_id', $routine->id)
             ->where('executed_by', auth()->id())
             ->where('status', RoutineExecution::STATUS_IN_PROGRESS)
-            ->with('formExecution')
+            ->with('formExecution.formVersion')
             ->first();
 
         if (!$routineExecution) {
@@ -103,22 +110,18 @@ class InlineRoutineExecutionController extends Controller
 
         DB::beginTransaction();
         try {
-            // Find task in form snapshot
-            $taskSnapshot = null;
-            foreach ($routineExecution->formExecution->form_snapshot['tasks'] as $task) {
-                if ($task['id'] == $validated['task_id']) {
-                    $taskSnapshot = $task;
-                    break;
-                }
-            }
+            // Validate task belongs to the form version
+            $formTask = FormTask::where('id', $validated['task_id'])
+                ->where('form_version_id', $routineExecution->formExecution->form_version_id)
+                ->first();
 
-            if (!$taskSnapshot) {
+            if (!$formTask) {
                 throw new \Exception('Tarefa não encontrada no formulário.');
             }
 
             // Check if response already exists
             $existingResponse = TaskResponse::where('form_execution_id', $routineExecution->formExecution->id)
-                ->whereJsonContains('task_snapshot->id', $validated['task_id'])
+                ->where('form_task_id', $validated['task_id'])
                 ->first();
 
             if ($existingResponse) {
@@ -133,7 +136,7 @@ class InlineRoutineExecutionController extends Controller
                 // Create new response
                 $taskResponse = TaskResponse::create([
                     'form_execution_id' => $routineExecution->formExecution->id,
-                    'task_snapshot' => $taskSnapshot,
+                    'form_task_id' => $formTask->id,
                     'response' => $validated['response'] ?? [],
                     'is_completed' => true,
                     'responded_at' => now()
@@ -146,7 +149,7 @@ class InlineRoutineExecutionController extends Controller
                     $path = $file->store('task-responses/' . $routineExecution->formExecution->id, 'public');
                     
                     $taskResponse->attachments()->create([
-                        'type' => in_array($taskSnapshot['type'], ['photo']) ? 'photo' : 'file',
+                        'type' => in_array($formTask->type, ['photo']) ? 'photo' : 'file',
                         'file_path' => $path,
                         'file_name' => $file->getClientOriginalName(),
                         'mime_type' => $file->getMimeType(),
@@ -155,19 +158,27 @@ class InlineRoutineExecutionController extends Controller
                 }
             }
 
-            // Check if all tasks are completed
-            $totalTasks = count($routineExecution->formExecution->form_snapshot['tasks']);
+            // Calculate progress
+            $totalTasks = $routineExecution->formExecution->formVersion->tasks()->count();
             $completedTasks = TaskResponse::where('form_execution_id', $routineExecution->formExecution->id)
                 ->where('is_completed', true)
                 ->count();
 
             $allTasksCompleted = $totalTasks === $completedTasks;
 
+            // Load the task data for response
+            $taskResponse->load('formTask');
+
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'task_response' => $taskResponse,
+                'task_response' => [
+                    'id' => $taskResponse->id,
+                    'form_task_id' => $taskResponse->form_task_id,
+                    'response' => $taskResponse->response,
+                    'is_completed' => $taskResponse->is_completed
+                ],
                 'progress' => [
                     'total' => $totalTasks,
                     'completed' => $completedTasks,
@@ -197,25 +208,12 @@ class InlineRoutineExecutionController extends Controller
             return response()->json(['error' => 'Execução não encontrada ou não autorizada.'], 404);
         }
 
-        // Validate all required tasks are completed
-        $missingRequiredTasks = [];
-        foreach ($routineExecution->formExecution->form_snapshot['tasks'] as $task) {
-            if ($task['isRequired'] ?? false) {
-                $response = TaskResponse::where('form_execution_id', $routineExecution->formExecution->id)
-                    ->whereJsonContains('task_snapshot->id', $task['id'])
-                    ->where('is_completed', true)
-                    ->first();
-                    
-                if (!$response) {
-                    $missingRequiredTasks[] = $task['description'];
-                }
-            }
-        }
-
-        if (!empty($missingRequiredTasks)) {
+        // Check if all required tasks are completed
+        if (!$routineExecution->formExecution->hasAllRequiredTasksCompleted()) {
+            $missingTasks = $routineExecution->formExecution->getMissingRequiredTasks();
             return response()->json([
                 'error' => 'Existem tarefas obrigatórias não preenchidas.',
-                'missing_tasks' => $missingRequiredTasks
+                'missing_tasks' => $missingTasks->pluck('description')->toArray()
             ], 422);
         }
 
@@ -282,14 +280,14 @@ class InlineRoutineExecutionController extends Controller
     {
         $routineExecution = RoutineExecution::where('id', $executionId)
             ->where('routine_id', $routine->id)
-            ->with(['formExecution.taskResponses'])
+            ->with(['formExecution.taskResponses.formTask', 'formExecution.formVersion'])
             ->first();
 
         if (!$routineExecution) {
             return response()->json(['error' => 'Execução não encontrada.'], 404);
         }
 
-        $totalTasks = count($routineExecution->formExecution->form_snapshot['tasks']);
+        $totalTasks = $routineExecution->formExecution->formVersion->tasks()->count();
         $completedTasks = $routineExecution->formExecution->taskResponses()
             ->where('is_completed', true)
             ->count();

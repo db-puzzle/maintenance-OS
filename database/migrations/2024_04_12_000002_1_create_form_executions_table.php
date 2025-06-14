@@ -13,15 +13,14 @@ return new class extends Migration
     {
         Schema::create('form_executions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('form_id')->constrained();
+            $table->foreignId('form_version_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained();
-            $table->json('form_snapshot')->comment('Complete form data at execution time');
             $table->string('status')->default('pending')->comment('pending, in_progress, completed, cancelled');
-            $table->timestamp('started_at');
+            $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
             
-            $table->index(['form_id', 'user_id']);
+            $table->index(['form_version_id', 'user_id']);
             $table->index(['status', 'created_at']);
         });
     }

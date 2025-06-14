@@ -24,16 +24,16 @@ interface ExecutionData {
     status: string;
     form_execution?: {
         id: number;
-        form_snapshot?: {
+        form_version?: {
+            id: number;
             tasks: Task[];
         };
     };
 }
 
 interface TaskResponseData {
-    task_snapshot: {
-        id: string;
-    };
+    id: number;
+    form_task_id: string;
     response: any;
     is_completed: boolean;
 }
@@ -78,8 +78,8 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
 
             setExecution(executionData);
 
-            // Use form snapshot tasks if available, otherwise use routine form tasks
-            const tasksToUse = formExecution?.form_snapshot?.tasks || routine.form?.tasks || [];
+            // Use form version tasks if available, otherwise use routine form tasks
+            const tasksToUse = formExecution?.form_version?.tasks || routine.form?.tasks || [];
             setTasks(tasksToUse.map((task: Task) => ({
                 ...task,
                 state: TaskState.Viewing
@@ -88,7 +88,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             // Process existing responses
             const responsesMap: Record<string, TaskResponseData> = {};
             existingResponses.forEach((response: TaskResponseData) => {
-                responsesMap[response.task_snapshot.id] = response;
+                responsesMap[response.form_task_id] = response;
             });
             setTaskResponses(responsesMap);
 
@@ -193,7 +193,12 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             const taskResponse = response.data.task_response;
             setTaskResponses(prev => ({
                 ...prev,
-                [taskId]: taskResponse
+                [taskId]: {
+                    id: taskResponse.id,
+                    form_task_id: taskId,
+                    response: taskResponse.response,
+                    is_completed: taskResponse.is_completed
+                }
             }));
 
             // Update progress
