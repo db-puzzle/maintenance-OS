@@ -363,47 +363,6 @@ class RoutineController extends Controller
             ->with('success', "Rotina '{$routineName}' removida do ativo com sucesso.");
     }
 
-    public function assetRoutineFormEditor(Asset $asset, Routine $routine, Request $request)
-    {
-        // Verificar se a rotina está associada ao ativo
-        if (!$asset->routines()->where('routines.id', $routine->id)->exists()) {
-            return redirect()->back()
-                ->with('error', 'Esta rotina não está associada a este ativo.');
-        }
-
-        $routine->load(['form.tasks']);
-
-        // Converter FormTasks para o formato usado no frontend
-        $tasks = $routine->form->tasks->map(function ($task) {
-            return [
-                'id' => (string)$task->id,
-                'type' => $this->mapTaskType($task->type),
-                'description' => $task->description,
-                'isRequired' => $task->is_required,
-                'state' => 'viewing',
-                'measurement' => $task->getMeasurementConfig(),
-                'options' => $task->getOptions(),
-                'codeReaderType' => $task->getCodeReaderType(),
-                'instructionImages' => $task->instructions->where('type', 'image')->pluck('media_url')->toArray()
-            ];
-        });
-
-        return Inertia::render('routines/routine-form-editor', [
-            'routine' => [
-                'id' => $routine->id,
-                'name' => $routine->name,
-                'form' => [
-                    'id' => $routine->form->id,
-                    'tasks' => $tasks
-                ]
-            ],
-            'asset' => [
-                'id' => $asset->id,
-                'tag' => $asset->tag
-            ]
-        ]);
-    }
-
     public function storeAssetRoutineForm(Request $request, Asset $asset, Routine $routine)
     {
         // Verificar se a rotina está associada ao ativo
@@ -428,64 +387,6 @@ class RoutineController extends Controller
 
         return redirect()->back()
             ->with('success', 'Formulário salvo com sucesso.');
-    }
-
-    public function assetRoutineForm(Asset $asset, Routine $routine, Request $request)
-    {
-        // Verificar se a rotina está associada ao ativo
-        if (!$asset->routines()->where('routines.id', $routine->id)->exists()) {
-            return redirect()->back()
-                ->with('error', 'Esta rotina não está associada a este ativo.');
-        }
-
-        $routine->load(['form.tasks.instructions']);
-
-        // Determinar o modo (view ou fill)
-        $mode = $request->get('mode', 'view');
-        if (!in_array($mode, ['view', 'fill'])) {
-            $mode = 'view';
-        }
-
-        // Converter FormTasks para o formato usado no frontend
-        $tasks = $routine->form->tasks->map(function ($task) use ($mode) {
-            return [
-                'id' => (string)$task->id,
-                'type' => $this->mapTaskType($task->type),
-                'description' => $task->description,
-                'isRequired' => $task->is_required,
-                'state' => $mode === 'fill' ? 'responding' : 'viewing',
-                'measurement' => $task->getMeasurementConfig(),
-                'options' => $task->getOptions(),
-                'codeReaderType' => $task->getCodeReaderType(),
-                'instructionImages' => $task->instructions->where('type', 'image')->pluck('media_url')->toArray()
-            ];
-        });
-
-        return Inertia::render('routines/routine-form', [
-            'routine' => [
-                'id' => $routine->id,
-                'name' => $routine->name,
-                'form' => [
-                    'id' => $routine->form->id,
-                    'tasks' => $tasks
-                ]
-            ],
-            'asset' => [
-                'id' => $asset->id,
-                'tag' => $asset->tag
-            ],
-            'mode' => $mode
-        ]);
-    }
-
-    public function assetRoutineFormView(Asset $asset, Routine $routine)
-    {
-        return $this->assetRoutineForm($asset, $routine, request()->merge(['mode' => 'view']));
-    }
-
-    public function assetRoutineFormFill(Asset $asset, Routine $routine)
-    {
-        return $this->assetRoutineForm($asset, $routine, request()->merge(['mode' => 'fill']));
     }
 
     public function assetRoutineExecutions(Asset $asset, Routine $routine)

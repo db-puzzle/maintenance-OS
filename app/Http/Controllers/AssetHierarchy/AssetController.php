@@ -35,7 +35,8 @@ class AssetController extends Controller
                 'area.plant:id,name', 
                 'sector:id,name', 
                 'shift:id,name'
-            ]);
+            ])
+            ->withCount('routines');
 
         if ($search) {
             $search = strtolower($search);
@@ -99,6 +100,9 @@ class AssetController extends Controller
                 $query->leftJoin('shifts', 'assets.shift_id', '=', 'shifts.id')
                     ->orderBy('shifts.name', $direction)
                     ->select('assets.*');
+                break;
+            case 'routines_count':
+                $query->orderBy('routines_count', $direction);
                 break;
             default:
                 $query->orderBy($sort, $direction);
@@ -570,6 +574,27 @@ class AssetController extends Controller
         return response()->json([
             'asset_tag' => $asset->tag,
             'breakdown' => $asset->getDetailedRuntimeBreakdown()
+        ]);
+    }
+    
+    /**
+     * Check dependencies before deletion
+     */
+    public function checkDependencies(Asset $asset)
+    {
+        // For now, assets don't have dependencies that prevent deletion
+        // In the future, you might want to check for:
+        // - Maintenance records
+        // - Work orders
+        // - Runtime measurements
+        // - etc.
+        
+        $canDelete = true;
+        $dependencies = [];
+
+        return response()->json([
+            'can_delete' => $canDelete,
+            'dependencies' => $dependencies
         ]);
     }
     

@@ -1,26 +1,22 @@
-import { ColumnVisibility, DataTable, type Column } from '@/components/data-table';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
+import { useState, useEffect } from 'react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowUpDown, MoreVertical } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
-import { toast } from 'sonner';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
+import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
+import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
+import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import CreatePlantSheet from '@/components/CreatePlantSheet';
-import axios from 'axios';
+import { Plant } from '@/types/entities/plant';
+import { ColumnConfig } from '@/types/shared';
+import { ColumnVisibility } from '@/components/data-table';
+import { useEntityOperations } from '@/hooks/useEntityOperations';
+import { useSorting } from '@/hooks/useSorting';
 
-interface PageProps {
-    [key: string]: any;
-    flash?: {
-        success?: string;
-    };
-}
+// Declare the global route function from Ziggy
+declare const route: (name: string, params?: any) => string;
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -33,23 +29,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface Plant {
-    id: number;
-    name: string;
-    description: string | null;
-    areas_count: number;
-    sectors_count: number;
-    asset_count: number;
-    created_at: string;
-    updated_at: string;
-    street?: string | null;
-    number?: string | null;
-    city?: string | null;
-    state?: string | null;
-    zip_code?: string | null;
-    gps_coordinates?: string | null;
-}
-
 interface Props {
     plants: {
         data: Plant[];
@@ -57,6 +36,8 @@ interface Props {
         last_page: number;
         per_page: number;
         total: number;
+        from: number | null;
+        to: number | null;
     };
     filters: {
         search: string;
@@ -66,16 +47,31 @@ interface Props {
     };
 }
 
-export default function Plantas({ plants, filters }: Props) {
+export default function Plantas({ plants: initialPlants, filters }: Props) {
+    const entityOps = useEntityOperations<Plant>({
+        entityName: 'plant',
+        entityLabel: 'Planta',
+        routes: {
+            index: 'asset-hierarchy.plantas',
+            show: 'asset-hierarchy.plantas.show',
+            destroy: 'asset-hierarchy.plantas.destroy',
+            checkDependencies: 'asset-hierarchy.plantas.check-dependencies',
+        },
+    });
+
     const [search, setSearch] = useState(filters.search || '');
-    const [perPage, setPerPage] = useState(filters.per_page || 8);
-    const [sort, setSort] = useState(filters.sort || 'name');
-    const [direction, setDirection] = useState<'asc' | 'desc'>(filters.direction || 'asc');
-    const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
-    const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-    const [plantToEdit, setPlantToEdit] = useState<Plant | null>(null);
-    const [loadingPlantData, setLoadingPlantData] = useState(false);
-    const createPlantSheetRef = useRef<HTMLButtonElement>(null);
+
+    // Use centralized sorting hook
+    const { sort, direction, handleSort } = useSorting({
+        routeName: 'asset-hierarchy.plantas',
+        initialSort: filters.sort || 'name',
+        initialDirection: filters.direction || 'asc',
+        additionalParams: {
+            search,
+            per_page: filters.per_page
+        }
+    });
+
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('plantsColumnsVisibility');
@@ -91,52 +87,54 @@ export default function Plantas({ plants, filters }: Props) {
         };
     });
 
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
-    const [confirmationText, setConfirmationText] = useState('');
-    const [dependencies, setDependencies] = useState<{
-        can_delete: boolean;
-        dependencies: {
-            areas: {
-                total: number;
-                items: { id: number; name: string }[];
-            };
-            asset: {
-                total: number;
-                items: { id: number; tag: string }[];
-            };
-        };
-    } | null>(null);
-    const [isCheckingDependencies, setIsCheckingDependencies] = useState(false);
-    const [showDependenciesDialog, setShowDependenciesDialog] = useState(false);
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const page = usePage<PageProps>();
-    const flash = page.props.flash;
+    // Use data from server
+    const data = initialPlants.data;
+    const pagination = {
+        current_page: initialPlants.current_page,
+        last_page: initialPlants.last_page,
+        per_page: initialPlants.per_page,
+        total: initialPlants.total,
+        from: initialPlants.from,
+        to: initialPlants.to,
+    };
 
-    useEffect(() => {
-        if (flash?.success) {
-            toast.success('Operação realizada com sucesso!', {
-                description: flash.success,
-            });
-        }
-    }, [flash]);
-
-    useEffect(() => {
-        const searchTimeout = setTimeout(() => {
-            router.get(
-                route('asset-hierarchy.plantas'),
-                {
-                    search,
-                    sort,
-                    direction,
-                    per_page: perPage,
-                },
-                { preserveState: true, preserveScroll: true },
-            );
-        }, 300);
-
-        return () => clearTimeout(searchTimeout);
-    }, [search, sort, direction, perPage]);
+    const columns: ColumnConfig[] = [
+        {
+            key: 'name',
+            label: 'Nome',
+            sortable: true,
+            width: 'w-[300px]',
+            render: (value, row) => (
+                <div>
+                    <div className="font-medium">{row.name}</div>
+                    {row.description && (
+                        <div className="text-muted-foreground text-sm">{row.description}</div>
+                    )}
+                </div>
+            ),
+        },
+        {
+            key: 'areas_count',
+            label: 'Áreas',
+            sortable: true,
+            width: 'w-[100px]',
+            render: (value) => value || 0,
+        },
+        {
+            key: 'sectors_count',
+            label: 'Setores',
+            sortable: true,
+            width: 'w-[100px]',
+            render: (value) => value || 0,
+        },
+        {
+            key: 'asset_count',
+            label: 'Ativos',
+            sortable: true,
+            width: 'w-[100px]',
+            render: (value) => value || 0,
+        },
+    ];
 
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
@@ -147,168 +145,26 @@ export default function Plantas({ plants, filters }: Props) {
         localStorage.setItem('plantsColumnsVisibility', JSON.stringify(newVisibility));
     };
 
-    const handleSort = (columnId: string) => {
-        if (sort === columnId) {
-            setDirection(direction === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSort(columnId);
-            setDirection('asc');
-        }
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        router.get(route('asset-hierarchy.plantas'),
+            { search: value, sort, direction, per_page: filters.per_page },
+            { preserveState: true, preserveScroll: true }
+        );
     };
 
-    const columns: Column<Plant>[] = [
-        {
-            id: 'name',
-            header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('name')}>
-                    Nome
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ),
-            cell: (row: { original: Plant }) => {
-                return (
-                    <div>
-                        <div className="font-medium">{row.original.name}</div>
-                        {row.original.description && <div className="text-muted-foreground text-sm">{row.original.description}</div>}
-                    </div>
-                );
-            },
-            width: 'w-[300px]',
-        },
-        {
-            id: 'areas_count',
-            header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('areas_count')}>
-                    Áreas
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ),
-            cell: (row: { original: Plant }) => row.original.areas_count,
-            width: 'w-[100px]',
-        },
-        {
-            id: 'sectors_count',
-            header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('sectors_count')}>
-                    Setores
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ),
-            cell: (row: { original: Plant }) => row.original.sectors_count,
-            width: 'w-[100px]',
-        },
-        {
-            id: 'asset_count',
-            header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('asset_count')}>
-                    Ativos
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ),
-            cell: (row: { original: Plant }) => row.original.asset_count,
-            width: 'w-[100px]',
-        },
-        {
-            id: 'actions',
-            header: 'Ações',
-            cell: (row: { original: Plant }) => (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="text-muted-foreground data-[state=open]:bg-muted flex size-8" size="icon">
-                            <MoreVertical />
-                            <span className="sr-only">Abrir menu</span>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-32">
-                        <DropdownMenuItem
-                            onClick={() => handleEditClick(row.original)}
-                            disabled={loadingPlantData}
-                        >
-                            {loadingPlantData ? 'Carregando...' : 'Editar'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>Excluir</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            ),
-            width: 'w-[80px]',
-        },
-    ];
-
-    const handleDelete = (plant: Plant) => {
-        setIsDeleting(true);
-        router.delete(route('asset-hierarchy.plantas.destroy', plant.id), {
-            onFinish: () => {
-                setIsDeleting(false);
-                setSelectedPlant(null);
-                setConfirmationText('');
-                setShowDeleteDialog(false);
-            },
-            onError: (errors) => {
-                setIsDeleting(false);
-                setSelectedPlant(null);
-                setConfirmationText('');
-                setShowDeleteDialog(false);
-                toast.error('Erro ao excluir planta', {
-                    description: errors.message || 'Não foi possível excluir a planta.',
-                });
-            },
-        });
+    const handlePageChange = (page: number) => {
+        router.get(route('asset-hierarchy.plantas'),
+            { ...filters, search, sort, direction, page },
+            { preserveState: true, preserveScroll: true }
+        );
     };
 
-    const checkDependencies = async (plant: Plant) => {
-        setIsCheckingDependencies(true);
-        setSelectedPlant(plant);
-
-        try {
-            const response = await fetch(route('asset-hierarchy.plantas.check-dependencies', plant.id));
-            const data = await response.json();
-            setDependencies(data);
-
-            if (data.can_delete) {
-                setShowDeleteDialog(true);
-            } else {
-                setShowDependenciesDialog(true);
-            }
-        } catch (error) {
-            toast.error('Erro ao verificar dependências', {
-                description: 'Não foi possível verificar as dependências da planta.',
-            });
-        } finally {
-            setIsCheckingDependencies(false);
-        }
-    };
-
-    const isConfirmationValid = confirmationText === 'EXCLUIR';
-
-    const handleEditClick = async (plant: Plant) => {
-        setLoadingPlantData(true);
-        try {
-            // Fetch fresh plant data from the server
-            const response = await axios.get(route('asset-hierarchy.plantas.show', plant.id), {
-                params: { format: 'json' },
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-
-            // Set the fresh data
-            const plantData = response.data.plant;
-            if (plantData) {
-                setPlantToEdit(plantData);
-                setIsEditSheetOpen(true);
-            } else {
-                throw new Error('No plant data received');
-            }
-        } catch (error) {
-            console.error('Error loading plant data:', error);
-            toast.error('Erro ao carregar dados da planta', {
-                description: 'Por favor, tente novamente.'
-            });
-        } finally {
-            setLoadingPlantData(false);
-        }
+    const handlePerPageChange = (perPage: number) => {
+        router.get(route('asset-hierarchy.plantas'),
+            { ...filters, search, sort, direction, per_page: perPage, page: 1 },
+            { preserveState: true, preserveScroll: true }
+        );
     };
 
     return (
@@ -318,178 +174,72 @@ export default function Plantas({ plants, filters }: Props) {
             <ListLayout
                 title="Plantas"
                 description="Gerencie as plantas do sistema"
-                searchPlaceholder="Buscar por nome..."
                 searchValue={search}
-                onSearchChange={(value) => setSearch(value)}
-                onCreateClick={() => setIsCreateSheetOpen(true)}
+                onSearchChange={handleSearch}
+                onCreateClick={() => entityOps.setEditSheetOpen(true)}
                 createButtonText="Adicionar"
                 actions={
                     <div className="flex items-center gap-2">
                         <ColumnVisibility
-                            columns={columns}
+                            columns={columns.map(col => ({
+                                id: col.key,
+                                header: col.label,
+                                cell: () => null,
+                                width: 'w-auto'
+                            }))}
                             columnVisibility={columnVisibility}
                             onColumnVisibilityChange={handleColumnVisibilityChange}
                         />
                     </div>
                 }
             >
-                <DataTable
-                    data={plants.data}
-                    columns={columns}
-                    columnVisibility={columnVisibility}
-                    onColumnVisibilityChange={handleColumnVisibilityChange}
-                    onRowClick={(row) => router.get(route('asset-hierarchy.plantas.show', row.id))}
-                    emptyMessage="Nenhuma planta encontrada."
-                />
+                <div className="space-y-4">
+                    <EntityDataTable
+                        data={data}
+                        columns={columns}
+                        loading={false}
+                        onRowClick={(plant) => router.visit(route('asset-hierarchy.plantas.show', { id: plant.id }))}
+                        columnVisibility={columnVisibility}
+                        onSort={handleSort}
+                        sortColumn={sort}
+                        sortDirection={direction}
+                        actions={(plant) => (
+                            <EntityActionDropdown
+                                onEdit={() => entityOps.handleEdit(plant)}
+                                onDelete={() => entityOps.handleDelete(plant)}
+                            />
+                        )}
+                    />
 
-                <PaginationWrapper
-                    currentPage={plants.current_page}
-                    lastPage={plants.last_page}
-                    total={plants.total}
-                    routeName="asset-hierarchy.plantas"
-                    search={search}
-                    sort={sort}
-                    direction={direction}
-                    perPage={perPage}
-                />
+                    <EntityPagination
+                        pagination={pagination}
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
+                </div>
             </ListLayout>
 
-            {/* Diálogo de Dependências */}
-            <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
-                <DialogContent className="sm:max-w-[600px]">
-                    <DialogTitle>Não é possível excluir esta planta</DialogTitle>
-                    <DialogDescription asChild>
-                        <div className="space-y-6">
-                            <div className="text-sm">
-                                Esta planta possui área(s) e/ou ativo(s) vinculado(s) e não pode ser excluída até que todas as áreas e ativos sejam
-                                removidos ou movidos para outra planta.
-                            </div>
-
-                            <div className="space-y-6">
-                                {/* Ativos Vinculados */}
-                                <div className="space-y-3">
-                                    <div className="text-sm font-medium">
-                                        Total de Ativos Vinculados: {dependencies?.dependencies?.asset?.total || 0}
-                                    </div>
-
-                                    {dependencies?.dependencies?.asset?.items && dependencies.dependencies.asset.items.length > 0 && (
-                                        <ul className="list-inside list-disc space-y-2 text-sm">
-                                            {dependencies.dependencies.asset.items.map((asset) => (
-                                                <li key={asset.id}>
-                                                    <Link
-                                                        href={route('asset-hierarchy.assets.show', asset.id)}
-                                                        className="text-primary hover:underline"
-                                                    >
-                                                        {asset.tag}
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-
-                                {/* Áreas Vinculadas */}
-                                <div className="space-y-3">
-                                    <div className="text-sm font-medium">
-                                        Total de Áreas Vinculadas: {dependencies?.dependencies?.areas?.total || 0}
-                                    </div>
-
-                                    {dependencies?.dependencies?.areas?.items && dependencies.dependencies.areas.items.length > 0 && (
-                                        <ul className="list-inside list-disc space-y-2 text-sm">
-                                            {dependencies.dependencies.areas.items.map((area) => (
-                                                <li key={area.id}>
-                                                    <Link
-                                                        href={route('asset-hierarchy.areas.show', area.id)}
-                                                        className="text-primary hover:underline"
-                                                    >
-                                                        {area.name}
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </DialogDescription>
-                    <DialogFooter>
-                        <Button variant="secondary" onClick={() => setShowDependenciesDialog(false)}>
-                            Fechar
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Diálogo de Confirmação de Exclusão */}
-            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                <DialogContent>
-                    <DialogTitle>Confirmar exclusão</DialogTitle>
-                    <DialogDescription>
-                        Tem certeza que deseja excluir a planta {selectedPlant?.name}? Esta ação não pode ser desfeita.
-                    </DialogDescription>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="confirmation">Digite EXCLUIR para confirmar</Label>
-                            <Input
-                                id="confirmation"
-                                variant="destructive"
-                                value={confirmationText}
-                                onChange={(e) => setConfirmationText(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="secondary">Cancelar</Button>
-                        </DialogClose>
-                        <Button
-                            variant="destructive"
-                            onClick={() => selectedPlant && handleDelete(selectedPlant)}
-                            disabled={!isConfirmationValid || isDeleting}
-                        >
-                            {isDeleting ? 'Excluindo...' : 'Excluir'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* CreatePlantSheet for creating new plants */}
             <CreatePlantSheet
-                isOpen={isCreateSheetOpen}
-                onOpenChange={setIsCreateSheetOpen}
-                onSuccess={() => {
-                    setIsCreateSheetOpen(false);
-                    router.reload();
-                }}
+                plant={entityOps.editingItem || undefined}
+                open={entityOps.isEditSheetOpen}
+                onOpenChange={entityOps.setEditSheetOpen}
+                mode="edit"
             />
 
-            {/* CreatePlantSheet for editing plants */}
-            {plantToEdit && (
-                <CreatePlantSheet
-                    isOpen={isEditSheetOpen}
-                    onOpenChange={(open) => {
-                        setIsEditSheetOpen(open);
-                        if (!open) {
-                            setPlantToEdit(null);
-                        }
-                    }}
-                    plant={{
-                        id: plantToEdit.id,
-                        name: plantToEdit.name,
-                        street: plantToEdit.street || null,
-                        number: plantToEdit.number || null,
-                        city: plantToEdit.city || null,
-                        state: plantToEdit.state || null,
-                        zip_code: plantToEdit.zip_code || null,
-                        gps_coordinates: plantToEdit.gps_coordinates || null,
-                    }}
-                    onSuccess={() => {
-                        setIsEditSheetOpen(false);
-                        setPlantToEdit(null);
-                        router.reload();
-                    }}
-                />
-            )}
+            <EntityDeleteDialog
+                open={entityOps.isDeleteDialogOpen}
+                onOpenChange={entityOps.setDeleteDialogOpen}
+                entityName="planta"
+                entityLabel={entityOps.deletingItem?.name || ''}
+                onConfirm={entityOps.confirmDelete}
+            />
+
+            <EntityDependenciesDialog
+                open={entityOps.isDependenciesDialogOpen}
+                onOpenChange={entityOps.setDependenciesDialogOpen}
+                entityName="planta"
+                dependencies={entityOps.dependencies}
+            />
         </AppLayout>
     );
 }

@@ -26,12 +26,12 @@ const gerenciamentoNavItems: NavGroup = {
             icon: ChartGantt,
             items: [
                 {
-                    title: 'Dashboard',
-                    href: '/maintenance/dashboard',
-                },
-                {
                     title: 'Ativos',
                     href: '/asset-hierarchy/assets',
+                },
+                {
+                    title: 'Hierarchia de Ativos',
+                    href: '/asset-hierarchy',
                 },
             ],
         },
@@ -46,10 +46,6 @@ const sistemaNavItems: NavGroup = {
             href: '#',
             icon: ClipboardList,
             items: [
-                {
-                    title: 'Ativos',
-                    href: '/asset-hierarchy/assets',
-                },
                 {
                     title: 'Setores',
                     href: '/asset-hierarchy/setores',

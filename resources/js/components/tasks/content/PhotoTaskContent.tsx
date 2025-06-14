@@ -1,18 +1,14 @@
 import PhotoUploader from '@/components/PhotoUploader';
 import { Task } from '@/types/task';
 import { Image } from 'lucide-react';
-import { useState } from 'react';
-import { TaskCardMode } from './TaskContent';
+import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 
-interface PhotoTaskContentProps {
-    task: Task;
-    mode: TaskCardMode;
-    onUpdate?: (updatedTask: Task) => void;
-}
+interface PhotoTaskContentProps extends WithSaveFunctionalityProps { }
 
-export default function PhotoTaskContent({ task, mode, onUpdate }: PhotoTaskContentProps) {
-    const [photo, setPhoto] = useState<File | null>(null);
-    const isPreview = mode === 'preview';
+function PhotoTaskContent({ task, mode, response, setResponse, disabled }: PhotoTaskContentProps) {
+    const handlePhotoChange = (file: File | null) => {
+        setResponse({ files: file ? [file] : [] });
+    };
 
     if (mode === 'edit') {
         return (
@@ -24,23 +20,7 @@ export default function PhotoTaskContent({ task, mode, onUpdate }: PhotoTaskCont
         );
     }
 
-    // Handler para quando uma foto é selecionada ou capturada
-    const handlePhotoChange = (file: File | null) => {
-        setPhoto(file);
-
-        // Se tiver a função onUpdate, atualiza a tarefa
-        if (onUpdate && file) {
-            // Aqui você pode adicionar a lógica para atualizar a tarefa com a foto
-            const updatedTask = {
-                ...task,
-                // Propriedades para armazenar a foto, se necessário
-                // photo: file,
-                // Ou talvez apenas marcar como feita
-                completed: true,
-            };
-            onUpdate(updatedTask);
-        }
-    };
+    const isPreview = mode === 'preview';
 
     return (
         <div className="space-y-4">
@@ -51,7 +31,6 @@ export default function PhotoTaskContent({ task, mode, onUpdate }: PhotoTaskCont
             </div>
 
             {isPreview ? (
-                // No modo preview, mostramos apenas um placeholder simples
                 <div className="flex flex-col items-center gap-4">
                     <div className="bg-muted/50 flex h-64 w-full items-center justify-center rounded-md">
                         <div className="flex flex-col items-center justify-center">
@@ -61,16 +40,18 @@ export default function PhotoTaskContent({ task, mode, onUpdate }: PhotoTaskCont
                     </div>
                 </div>
             ) : (
-                // No modo respond, usamos o PhotoUploader
                 <PhotoUploader
                     label=""
-                    value={photo}
+                    value={response?.files?.[0] || null}
                     onChange={handlePhotoChange}
                     minHeight="min-h-[200px]"
                     maxHeight="max-h-[200px]"
                     id={`photo-task-${task.id}`}
+                    disabled={disabled}
                 />
             )}
         </div>
     );
 }
+
+export default withSaveFunctionality(PhotoTaskContent);

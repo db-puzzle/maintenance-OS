@@ -1,26 +1,27 @@
-import { ColumnVisibility, DataTable, type Column } from '@/components/data-table';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { PaginationWrapper } from '@/components/ui/pagination-wrapper';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowUpDown, MoreVertical } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-
+import { useState, useEffect } from 'react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { type BreadcrumbItem } from '@/types';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
+import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
+import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
+import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
+import CreateSectorSheet from '@/components/CreateSectorSheet';
+import { Sector } from '@/types/entities/sector';
+import { ColumnConfig } from '@/types/shared';
+import { ColumnVisibility } from '@/components/data-table';
+import { useEntityOperations } from '@/hooks/useEntityOperations';
+import { useSorting } from '@/hooks/useSorting';
+import { type Plant } from '@/types/asset-hierarchy';
+
+// Declare the global route function from Ziggy
+declare const route: (name: string, params?: any) => string;
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Manutenção',
-        href: '/maintenance-dashboard',
-    },
-    {
-        title: 'Hierarquia de Ativos',
+        title: 'Cadastro',
         href: '/asset-hierarchy',
     },
     {
@@ -36,6 +37,8 @@ interface Props {
         last_page: number;
         per_page: number;
         total: number;
+        from: number | null;
+        to: number | null;
     };
     filters: {
         search: string;
@@ -43,52 +46,34 @@ interface Props {
         direction: 'asc' | 'desc';
         per_page: number;
     };
+    plants: Plant[];
 }
 
-interface PageProps {
-    [key: string]: any;
-    flash?: {
-        success?: string;
-    };
-}
+export default function SectorIndex({ sectors: initialSectors, filters, plants }: Props) {
+    const entityOps = useEntityOperations<Sector>({
+        entityName: 'sector',
+        entityLabel: 'Setor',
+        routes: {
+            index: 'asset-hierarchy.setores',
+            show: 'asset-hierarchy.setores.show',
+            destroy: 'asset-hierarchy.setores.destroy',
+            checkDependencies: 'asset-hierarchy.setores.check-dependencies',
+        },
+    });
 
-interface Sector {
-    id: number;
-    name: string;
-    area: {
-        id: number;
-        name: string;
-        plant: {
-            id: number;
-            name: string;
-        };
-    };
-    asset_count: number;
-    created_at: string;
-    updated_at: string;
-}
-
-interface Asset {
-    id: number;
-    tag: string;
-    description: string | null;
-}
-
-interface Dependencies {
-    can_delete: boolean;
-    dependencies: {
-        asset: {
-            total: number;
-            items: Asset[];
-        };
-    };
-}
-
-export default function SectorIndex({ sectors, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
-    const [perPage, setPerPage] = useState(filters.per_page || 8);
-    const [sort, setSort] = useState(filters.sort || 'name');
-    const [direction, setDirection] = useState<'asc' | 'desc'>(filters.direction || 'asc');
+
+    // Use centralized sorting hook
+    const { sort, direction, handleSort } = useSorting({
+        routeName: 'asset-hierarchy.setores',
+        initialSort: filters.sort || 'name',
+        initialDirection: filters.direction || 'asc',
+        additionalParams: {
+            search,
+            per_page: filters.per_page
+        }
+    });
+
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('sectorsColumnsVisibility');
@@ -104,40 +89,54 @@ export default function SectorIndex({ sectors, filters }: Props) {
         };
     });
 
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
-    const [confirmationText, setConfirmationText] = useState('');
-    const [dependencies, setDependencies] = useState<Dependencies | null>(null);
-    const [isCheckingDependencies, setIsCheckingDependencies] = useState(false);
-    const [showDependenciesDialog, setShowDependenciesDialog] = useState(false);
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const page = usePage<PageProps>();
-    const flash = page.props.flash;
+    // Use data from server
+    const data = initialSectors.data;
+    const pagination = {
+        current_page: initialSectors.current_page,
+        last_page: initialSectors.last_page,
+        per_page: initialSectors.per_page,
+        total: initialSectors.total,
+        from: initialSectors.from,
+        to: initialSectors.to,
+    };
 
-    useEffect(() => {
-        if (flash?.success) {
-            toast.success('Operação realizada com sucesso!', {
-                description: flash.success,
-            });
-        }
-    }, [flash]);
-
-    useEffect(() => {
-        const searchTimeout = setTimeout(() => {
-            router.get(
-                route('asset-hierarchy.setores'),
-                {
-                    search,
-                    sort,
-                    direction,
-                    per_page: perPage,
-                },
-                { preserveState: true, preserveScroll: true },
-            );
-        }, 300);
-
-        return () => clearTimeout(searchTimeout);
-    }, [search, sort, direction, perPage]);
+    const columns: ColumnConfig[] = [
+        {
+            key: 'name',
+            label: 'Nome',
+            sortable: true,
+            width: 'w-[300px]',
+            render: (value, row) => (
+                <div>
+                    <div className="font-medium">{row.name}</div>
+                    {row.description && (
+                        <div className="text-muted-foreground text-sm">{row.description}</div>
+                    )}
+                </div>
+            ),
+        },
+        {
+            key: 'plant',
+            label: 'Planta',
+            sortable: true,
+            width: 'w-[200px]',
+            render: (value, row) => row.area?.plant?.name || '-',
+        },
+        {
+            key: 'area',
+            label: 'Área',
+            sortable: true,
+            width: 'w-[200px]',
+            render: (value, row) => row.area?.name || '-',
+        },
+        {
+            key: 'asset_count',
+            label: 'Ativos',
+            sortable: true,
+            width: 'w-[100px]',
+            render: (value) => value || 0,
+        },
+    ];
 
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
@@ -148,132 +147,26 @@ export default function SectorIndex({ sectors, filters }: Props) {
         localStorage.setItem('sectorsColumnsVisibility', JSON.stringify(newVisibility));
     };
 
-    const handleSort = (columnId: string) => {
-        if (sort === columnId) {
-            setDirection(direction === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSort(columnId);
-            setDirection('asc');
-        }
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        router.get(route('asset-hierarchy.setores'),
+            { search: value, sort, direction, per_page: filters.per_page },
+            { preserveState: true, preserveScroll: true }
+        );
     };
 
-    const columns: Column<Sector>[] = [
-        {
-            id: 'name',
-            header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('name')}>
-                    Nome
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ),
-            cell: (row: { original: Sector }) => {
-                return (
-                    <div>
-                        <div className="font-medium">{row.original.name}</div>
-                    </div>
-                );
-            },
-            width: 'w-[300px]',
-        },
-        {
-            id: 'plant',
-            header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('plant')}>
-                    Planta
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ),
-            cell: (row: { original: Sector }) => row.original.area?.plant?.name || '-',
-            width: 'w-[200px]',
-        },
-        {
-            id: 'area',
-            header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('area')}>
-                    Área
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ),
-            cell: (row: { original: Sector }) => row.original.area?.name || '-',
-            width: 'w-[200px]',
-        },
-        {
-            id: 'asset_count',
-            header: (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => handleSort('asset_count')}>
-                    Ativos
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ),
-            cell: (row: { original: Sector }) => row.original.asset_count ?? 0,
-            width: 'w-[100px]',
-        },
-        {
-            id: 'actions',
-            header: 'Ações',
-            cell: (row: { original: Sector }) => (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="text-muted-foreground data-[state=open]:bg-muted flex size-8" size="icon">
-                            <MoreVertical />
-                            <span className="sr-only">Abrir menu</span>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-32">
-                        <DropdownMenuItem asChild>
-                            <Link href={route('asset-hierarchy.setores.edit', row.original.id)}>Editar</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => checkDependencies(row.original)}>Excluir</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            ),
-            width: 'w-[80px]',
-        },
-    ];
-
-    const handleDelete = async (id: number) => {
-        setIsDeleting(true);
-
-        router.delete(route('asset-hierarchy.setores.destroy', id), {
-            onSuccess: (response) => {
-                setIsDeleting(false);
-                setShowDeleteDialog(false);
-                setConfirmationText('');
-            },
-            onError: (errors) => {
-                toast.error('Erro ao excluir setor', {
-                    description: errors.message || 'Ocorreu um erro ao excluir o setor.',
-                });
-                setIsDeleting(false);
-                setShowDeleteDialog(false);
-                setConfirmationText('');
-            },
-        });
+    const handlePageChange = (page: number) => {
+        router.get(route('asset-hierarchy.setores'),
+            { ...filters, search, sort, direction, page },
+            { preserveState: true, preserveScroll: true }
+        );
     };
 
-    const isConfirmationValid = confirmationText === 'EXCLUIR';
-
-    const checkDependencies = async (sector: Sector) => {
-        setIsCheckingDependencies(true);
-        setSelectedSector(sector);
-
-        try {
-            const response = await fetch(route('asset-hierarchy.setores.check-dependencies', sector.id));
-            const data = await response.json();
-            setDependencies(data);
-
-            if (data.can_delete) {
-                setShowDeleteDialog(true);
-            } else {
-                setShowDependenciesDialog(true);
-            }
-        } catch (error) {
-            toast.error('Erro ao verificar dependências', {
-                description: 'Não foi possível verificar as dependências do setor.',
-            });
-        } finally {
-            setIsCheckingDependencies(false);
-        }
+    const handlePerPageChange = (perPage: number) => {
+        router.get(route('asset-hierarchy.setores'),
+            { ...filters, search, sort, direction, per_page: perPage, page: 1 },
+            { preserveState: true, preserveScroll: true }
+        );
     };
 
     return (
@@ -283,114 +176,73 @@ export default function SectorIndex({ sectors, filters }: Props) {
             <ListLayout
                 title="Setores"
                 description="Gerencie os setores do sistema"
-                searchPlaceholder="Buscar por nome, descrição ou planta..."
                 searchValue={search}
-                onSearchChange={(value) => setSearch(value)}
-                createRoute={route('asset-hierarchy.setores.create')}
+                onSearchChange={handleSearch}
+                onCreateClick={() => entityOps.setEditSheetOpen(true)}
                 createButtonText="Adicionar"
                 actions={
                     <div className="flex items-center gap-2">
                         <ColumnVisibility
-                            columns={columns}
+                            columns={columns.map(col => ({
+                                id: col.key,
+                                header: col.label,
+                                cell: () => null,
+                                width: 'w-auto'
+                            }))}
                             columnVisibility={columnVisibility}
                             onColumnVisibilityChange={handleColumnVisibilityChange}
                         />
                     </div>
                 }
             >
-                <DataTable
-                    data={sectors.data}
-                    columns={columns}
-                    columnVisibility={columnVisibility}
-                    onColumnVisibilityChange={handleColumnVisibilityChange}
-                    onRowClick={(row) => router.get(route('asset-hierarchy.setores.show', row.id))}
-                    emptyMessage="Nenhum setor encontrado."
-                />
+                <div className="space-y-4">
+                    <EntityDataTable
+                        data={data}
+                        columns={columns}
+                        loading={false}
+                        onRowClick={(sector) => router.visit(route('asset-hierarchy.setores.show', { id: sector.id }))}
+                        columnVisibility={columnVisibility}
+                        onSort={handleSort}
+                        sortColumn={sort}
+                        sortDirection={direction}
+                        actions={(sector) => (
+                            <EntityActionDropdown
+                                onEdit={() => entityOps.handleEdit(sector)}
+                                onDelete={() => entityOps.handleDelete(sector)}
+                            />
+                        )}
+                    />
 
-                <PaginationWrapper
-                    currentPage={sectors.current_page}
-                    lastPage={sectors.last_page}
-                    total={sectors.total}
-                    routeName="asset-hierarchy.setores"
-                    search={search}
-                    sort={sort}
-                    direction={direction}
-                    perPage={perPage}
-                />
+                    <EntityPagination
+                        pagination={pagination}
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
+                </div>
             </ListLayout>
 
-            {/* Diálogo de Dependências */}
-            <Dialog open={showDependenciesDialog} onOpenChange={setShowDependenciesDialog}>
-                <DialogContent className="sm:max-w-[600px]">
-                    <DialogTitle>Não é possível excluir este setor</DialogTitle>
-                    <DialogDescription asChild>
-                        <div className="space-y-6">
-                            <div className="text-sm">
-                                Este setor possui ativo(s) vinculado(s) e não pode ser excluído até que todos sejam removidos ou movidos para outro
-                                setor.
-                            </div>
+            <CreateSectorSheet
+                sector={entityOps.editingItem || undefined}
+                open={entityOps.isEditSheetOpen}
+                onOpenChange={entityOps.setEditSheetOpen}
+                mode={entityOps.editingItem ? 'edit' : 'create'}
+                plants={plants}
+            />
 
-                            <div className="space-y-6">
-                                {dependencies?.dependencies?.asset?.total && dependencies.dependencies.asset.total > 0 && (
-                                    <div>
-                                        <div className="text-sm font-medium">Total de Ativos Vinculados: {dependencies.dependencies.asset.total}</div>
-                                        <ul className="list-inside list-disc space-y-2 text-sm">
-                                            {dependencies.dependencies.asset.items.map((asset) => (
-                                                <li key={asset.id}>
-                                                    <Link
-                                                        href={route('asset-hierarchy.assets.show', asset.id)}
-                                                        className="text-primary hover:underline"
-                                                    >
-                                                        {asset.tag}
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </DialogDescription>
-                    <DialogFooter>
-                        <Button variant="secondary" onClick={() => setShowDependenciesDialog(false)}>
-                            Fechar
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <EntityDeleteDialog
+                open={entityOps.isDeleteDialogOpen}
+                onOpenChange={entityOps.setDeleteDialogOpen}
+                entityName="setor"
+                entityLabel={entityOps.deletingItem?.name || ''}
+                onConfirm={entityOps.confirmDelete}
+            />
 
-            {/* Diálogo de Confirmação de Exclusão */}
-            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                <DialogContent>
-                    <DialogTitle>Confirmar exclusão</DialogTitle>
-                    <DialogDescription>
-                        Tem certeza que deseja excluir o setor {selectedSector?.name}? Esta ação não pode ser desfeita.
-                    </DialogDescription>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="confirmation">Digite EXCLUIR para confirmar</Label>
-                            <Input
-                                id="confirmation"
-                                variant="destructive"
-                                value={confirmationText}
-                                onChange={(e) => setConfirmationText(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="secondary">Cancelar</Button>
-                        </DialogClose>
-                        <Button
-                            variant="destructive"
-                            onClick={() => selectedSector && handleDelete(selectedSector.id)}
-                            disabled={!isConfirmationValid || isDeleting}
-                        >
-                            {isDeleting ? 'Excluindo...' : 'Excluir'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <EntityDependenciesDialog
+                open={entityOps.isDependenciesDialogOpen}
+                onOpenChange={entityOps.setDependenciesDialogOpen}
+                entityName="setor"
+                dependencies={entityOps.dependencies}
+            />
         </AppLayout>
     );
 }

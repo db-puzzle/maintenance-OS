@@ -62,6 +62,17 @@ class AssetTypeController extends Controller
             abort(404);
         }
 
+        // If this is a JSON request (for edit functionality), return just the asset type data
+        if (request()->expectsJson() || request()->get('format') === 'json') {
+            return response()->json([
+                'assetType' => [
+                    'id' => $assetType->id,
+                    'name' => $assetType->name,
+                    'description' => $assetType->description,
+                ]
+            ]);
+        }
+
         // Busca a página atual para ativos
         $assetPage = request()->get('asset_page', 1);
         $perPage = 10;
@@ -131,6 +142,12 @@ class AssetTypeController extends Controller
 
         $assetType->update($validated);
 
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Tipo de ativo {$assetType->name} atualizado com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
         return redirect()->route('asset-hierarchy.tipos-ativo')
             ->with('success', "O tipo de ativo {$assetType->name} foi atualizado com sucesso.");
     }
@@ -148,24 +165,16 @@ class AssetTypeController extends Controller
         $asset = $assetType->asset()->take(5)->get(['id', 'tag', 'description']);
         $totalAsset = $assetType->asset()->count();
 
-        $hasDependencies = $totalAsset > 0;
+        $canDelete = $totalAsset === 0;
 
-        // Se não há dependências, redirecionar para confirmação de exclusão
-        if (!$hasDependencies) {
-            return redirect()->route('asset-hierarchy.tipos-ativo')
-                ->with('info', "O tipo de ativo {$assetType->name} pode ser excluído com segurança.");
-        }
-
-        // Se há dependências, mostrar página com detalhes das dependências
-        return Inertia::render('asset-hierarchy/tipos-ativo/dependencies', [
-            'assetType' => $assetType,
+        return response()->json([
+            'can_delete' => $canDelete,
             'dependencies' => [
                 'asset' => [
                     'total' => $totalAsset,
                     'items' => $asset
                 ]
-            ],
-            'hasDependencies' => true
+            ]
         ]);
     }
 } 

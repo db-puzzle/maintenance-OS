@@ -18,29 +18,41 @@ interface TaskContentProps {
     onUpdate?: (updatedTask: Task) => void;
     /** Callback para alterar o ícone do card */
     onIconChange?: (icon: React.ReactNode) => void;
+    /** Callback para salvar a resposta da tarefa */
+    onSave?: (responseData: any) => void;
+    /** Se deve mostrar o botão de salvar */
+    showSaveButton?: boolean;
+    /** Se o componente está desabilitado */
+    disabled?: boolean;
+    /** Se é a última tarefa */
+    isLastTask?: boolean;
+    /** Callback para navegar para próxima tarefa */
+    onNext?: () => void;
 }
 
-function TaskContent({ task, mode, onUpdate, onIconChange }: TaskContentProps) {
+function TaskContent({ task, mode, onUpdate, onIconChange, onSave, showSaveButton, disabled, isLastTask, onNext }: TaskContentProps) {
     // Verifica se a tarefa existe
     if (!task) {
         return <div className="text-muted-foreground p-4">Tarefa não encontrada</div>;
     }
 
+    const props = { task, mode, onUpdate, onSave, showSaveButton, disabled, isLastTask, onNext };
+
     // Seleciona o componente com base no tipo de tarefa
     switch (task.type) {
         case 'question':
-            return <QuestionTaskContent task={task} mode={mode} onUpdate={onUpdate} />;
+            return <QuestionTaskContent {...props} />;
         case 'multiple_choice':
         case 'multiple_select':
-            return <MultipleChoiceTaskContent task={task} mode={mode} onUpdate={onUpdate} />;
+            return <MultipleChoiceTaskContent {...props} />;
         case 'measurement':
-            return <MeasurementTaskContent task={task} mode={mode} onUpdate={onUpdate} />;
+            return <MeasurementTaskContent {...props} />;
         case 'photo':
-            return <PhotoTaskContent task={task} mode={mode} onUpdate={onUpdate} />;
+            return <PhotoTaskContent {...props} />;
         case 'code_reader':
-            return <CodeReaderTaskContent task={task} mode={mode} onUpdate={onUpdate} onIconChange={onIconChange} />;
+            return <CodeReaderTaskContent {...props} onIconChange={onIconChange} />;
         case 'file_upload':
-            return <FileUploadTaskContent task={task} mode={mode} onUpdate={onUpdate} />;
+            return <FileUploadTaskContent {...props} />;
         default:
             return (
                 <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4">

@@ -93,7 +93,7 @@ export default function Dashboard() {
                             return (
                                 <button
                                     key={key}
-                                    onClick={() => (card.href ? router.visit(card.href) : console.log(`${key} não tem href`))}
+                                    onClick={() => card.href && router.visit(card.href)}
                                     className={`bg-card border-border group rounded-xl border p-6 text-left transition-all duration-200 ${hasLink ? 'hover:bg-input-focus hover:ring-ring/10 hover:border-ring hover:ring-[1px]' : ''
                                         }`}
                                     disabled={!hasLink}

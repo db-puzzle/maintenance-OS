@@ -53,6 +53,7 @@ interface RoutineListProps {
     isNew?: boolean;
     assetId?: number;
     onEditForm?: () => void;
+    onFillForm?: () => void;
     isCompressed?: boolean;
     shift?: Shift | null;
 }
@@ -103,7 +104,7 @@ const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => 
     return totalMinutes / 60; // Return hours
 };
 
-export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew = false, assetId, onEditForm, isCompressed = false, shift }: RoutineListProps) {
+export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew = false, assetId, onEditForm, onFillForm, isCompressed = false, shift }: RoutineListProps) {
     // Referência para o trigger do sheet
     const editSheetTriggerRef = useRef<HTMLButtonElement>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -295,32 +296,19 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                 </div>
                 <div className="flex flex-none items-center gap-x-4">
                     {routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
-                        <Link
-                            href={route('maintenance.assets.routines.form', { asset: assetId, routine: routineData.id, mode: 'fill' })}
-                            className="hidden sm:block"
-                        >
-                            <Button size="sm" variant="action">
-                                <ClipboardCheck className="mr-1 h-4 w-4" />
-                                Executar
-                            </Button>
-                        </Link>
+                        <Button size="sm" variant="action" onClick={onFillForm}>
+                            <ClipboardCheck className="mr-1 h-4 w-4" />
+                            Preencher
+                        </Button>
                     ) : (
-                        onEditForm ? (
-                            <Button size="sm" variant="secondary" onClick={onEditForm}>
-                                <FileText className="mr-1 h-4 w-4" />
-                                Adicionar Tarefas
-                            </Button>
-                        ) : (
-                            <Link
-                                href={route('maintenance.assets.routines.form-editor', { asset: assetId, routine: routineData.id })}
-                                className="hidden sm:block"
-                            >
-                                <Button size="sm" variant="secondary">
-                                    <FileText className="mr-1 h-4 w-4" />
-                                    Adicionar Tarefas
-                                </Button>
-                            </Link>
-                        )
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={onEditForm}
+                        >
+                            <FileText className="mr-1 h-4 w-4" />
+                            Adicionar Tarefas
+                        </Button>
                     )}
                     {!isSheetOpen && (
                         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
@@ -333,39 +321,40 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                             <DropdownMenuContent align="end" className="w-48">
                                 {routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
                                     <>
-                                        <DropdownMenuItem asChild className="sm:hidden">
-                                            <Link
-                                                href={route('maintenance.assets.routines.form', {
-                                                    asset: assetId,
-                                                    routine: routineData.id,
-                                                    mode: 'fill',
-                                                })}
-                                                className="flex items-center"
-                                            >
-                                                <ClipboardCheck className="mr-2 h-4 w-4" />
-                                                Executar
-                                            </Link>
+                                        <DropdownMenuItem
+                                            asChild={!onFillForm}
+                                            className={onFillForm ? "flex items-center" : "flex items-center"}
+                                            onClick={onFillForm ? onFillForm : undefined}
+                                        >
+                                            {onFillForm ? (
+                                                <>
+                                                    <ClipboardCheck className="mr-2 h-4 w-4" />
+                                                    Preencher
+                                                </>
+                                            ) : (
+                                                <Link
+                                                    href={route('maintenance.assets.routines.form', {
+                                                        asset: assetId,
+                                                        routine: routineData.id,
+                                                        mode: 'fill',
+                                                    })}
+                                                    className="flex items-center"
+                                                >
+                                                    <ClipboardCheck className="mr-2 h-4 w-4" />
+                                                    Preencher
+                                                </Link>
+                                            )}
                                         </DropdownMenuItem>
-                                        <DropdownMenuSeparator className="sm:hidden" />
+                                        <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             asChild={!onEditForm}
                                             className={onEditForm ? "flex items-center" : "flex items-center"}
                                             onClick={onEditForm ? onEditForm : undefined}
                                         >
-                                            {onEditForm ? (
-                                                <>
-                                                    <FileText className="mr-2 h-4 w-4" />
-                                                    Editar Tarefas
-                                                </>
-                                            ) : (
-                                                <Link
-                                                    href={route('maintenance.assets.routines.form-editor', { asset: assetId, routine: routineData.id })}
-                                                    className="flex items-center"
-                                                >
-                                                    <FileText className="mr-2 h-4 w-4" />
-                                                    Editar Tarefas
-                                                </Link>
-                                            )}
+                                            <>
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                Editar Tarefas
+                                            </>
                                         </DropdownMenuItem>
                                     </>
                                 ) : (
@@ -375,20 +364,10 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                             className={onEditForm ? "sm:hidden" : "sm:hidden flex items-center"}
                                             onClick={onEditForm ? onEditForm : undefined}
                                         >
-                                            {onEditForm ? (
-                                                <>
-                                                    <FileText className="mr-2 h-4 w-4" />
-                                                    Adicionar Tarefas
-                                                </>
-                                            ) : (
-                                                <Link
-                                                    href={route('maintenance.assets.routines.form-editor', { asset: assetId, routine: routineData.id })}
-                                                    className="flex items-center"
-                                                >
-                                                    <FileText className="mr-2 h-4 w-4" />
-                                                    Adicionar Tarefas
-                                                </Link>
-                                            )}
+                                            <>
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                Adicionar Tarefas
+                                            </>
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                     </>

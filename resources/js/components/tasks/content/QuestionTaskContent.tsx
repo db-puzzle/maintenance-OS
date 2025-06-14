@@ -1,40 +1,35 @@
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Task } from '@/types/task';
-import { useState } from 'react';
-import { TaskCardMode } from './TaskContent';
+import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 
-interface QuestionTaskContentProps {
-    task: Task;
-    mode: TaskCardMode;
-    onUpdate?: (updatedTask: Task) => void;
-}
+interface QuestionTaskContentProps extends WithSaveFunctionalityProps { }
 
-export default function QuestionTaskContent({ task, mode, onUpdate }: QuestionTaskContentProps) {
-    const [response, setResponse] = useState<string>('');
-
+function QuestionTaskContent({ task, mode, response, setResponse, disabled }: QuestionTaskContentProps) {
     return (
         <div>
             <div className="mb-2">
-                <Label htmlFor="response">Resposta</Label>
+                <Label htmlFor={`response-${task.id}`}>Resposta</Label>
             </div>
             {mode === 'respond' ? (
                 <Textarea
-                    id="response"
-                    value={response}
-                    onChange={(e) => setResponse(e.target.value)}
+                    id={`response-${task.id}`}
+                    value={response?.value || ''}
+                    onChange={(e) => setResponse({ value: e.target.value })}
                     placeholder="Digite sua resposta aqui..."
                     className="min-h-[100px]"
+                    disabled={disabled}
                 />
             ) : (
                 <Textarea
-                    id="response"
-                    value=""
-                    disabled
+                    id={`response-${task.id}`}
+                    value={response?.value || ''}
+                    readOnly
                     placeholder="O campo de resposta estará disponível quando o formulário for liberado para preenchimento..."
-                    className="min-h-[100px] cursor-not-allowed"
+                    className="min-h-[100px] cursor-not-allowed bg-muted/50"
                 />
             )}
         </div>
     );
 }
+
+export default withSaveFunctionality(QuestionTaskContent);

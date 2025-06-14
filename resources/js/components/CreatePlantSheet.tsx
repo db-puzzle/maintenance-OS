@@ -1,16 +1,15 @@
 import { cn } from '@/lib/utils';
-import { useForm } from '@inertiajs/react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import React, { useState } from 'react';
-import { toast } from 'sonner';
 
+import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import TextInput from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { estados } from '@/data/estados';
+import { Plant as ImportedPlant } from '@/types/entities/plant';
 
 interface PlantForm {
     [key: string]: any;
@@ -23,30 +22,20 @@ interface PlantForm {
     gps_coordinates: string;
 }
 
-interface Plant {
-    id: number;
-    name: string;
-    street: string | null;
-    number: string | null;
-    city: string | null;
-    state: string | null;
-    zip_code: string | null;
-    gps_coordinates: string | null;
-}
-
 interface CreatePlantSheetProps {
-    isOpen?: boolean;
+    open?: boolean;
     onOpenChange?: (open: boolean) => void;
     onSuccess?: () => void;
     triggerText?: string;
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
-    plant?: Plant; // For edit mode
+    plant?: ImportedPlant;
+    mode?: 'create' | 'edit';
 }
 
 const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
-    isOpen,
+    open: controlledOpen,
     onOpenChange,
     onSuccess,
     triggerText = 'Nova Planta',
@@ -54,25 +43,9 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
     showTrigger = false,
     triggerRef,
     plant,
+    mode = 'create',
 }) => {
-    const isEditMode = !!plant;
-
-    const { data, setData, post, put, processing, errors, reset } = useForm<PlantForm>({
-        name: plant?.name || '',
-        street: plant?.street || '',
-        number: plant?.number || '',
-        city: plant?.city || '',
-        state: plant?.state || '',
-        zip_code: plant?.zip_code || '',
-        gps_coordinates: plant?.gps_coordinates || '',
-    });
-
     const [open, setOpen] = useState(false);
-    const [internalSheetOpen, setInternalSheetOpen] = useState(false);
-
-    // Determina se deve usar controle interno ou externo
-    const sheetOpen = showTrigger ? internalSheetOpen : (isOpen ?? false);
-    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => { }));
 
     const formatCEP = (value: string) => {
         // Remove todos os caracteres não numéricos
@@ -83,226 +56,182 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
         return cep.replace(/(\d{5})(\d{3})/, '$1-$2');
     };
 
-    const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const formattedValue = formatCEP(e.target.value);
-        setData('zip_code', formattedValue);
-    };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const formData = {
-            ...data,
-            zip_code: data.zip_code.replace(/\D/g, ''),
-            stay: true, // Indica que deve permanecer na mesma página
-        };
-
-        if (isEditMode) {
-            put(route('asset-hierarchy.plantas.update', plant?.id), {
-                ...formData,
-                onSuccess: () => {
-                    toast.success('Planta atualizada com sucesso!');
-                    reset();
-                    setSheetOpen(false);
-                    onSuccess?.();
-                },
-                onError: (errors: any) => {
-                    toast.error('Erro ao atualizar planta', {
-                        description: 'Verifique os campos e tente novamente.',
-                    });
-                },
-            });
-        } else {
-            post(route('asset-hierarchy.plantas.store'), {
-                ...formData,
-                onSuccess: () => {
-                    toast.success('Planta criada com sucesso!');
-                    reset();
-                    setSheetOpen(false);
-                    onSuccess?.();
-                },
-                onError: (errors: any) => {
-                    toast.error('Erro ao criar planta', {
-                        description: 'Verifique os campos e tente novamente.',
-                    });
-                },
-            });
-        }
-    };
-
-    const handleCancel = () => {
-        reset();
-        setSheetOpen(false);
-    };
 
     return (
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            {showTrigger && (
-                <SheetTrigger asChild>
-                    <Button variant={triggerVariant} ref={triggerRef}>
-                        {triggerText}
-                    </Button>
-                </SheetTrigger>
-            )}
-            <SheetContent className="sm:max-w-lg">
-                <SheetHeader className="">
-                    <SheetTitle>{isEditMode ? 'Editar Planta' : 'Nova Planta'}</SheetTitle>
-                    <SheetDescription>
-                        {isEditMode ? 'Edite os dados da planta' : 'Adicione uma nova planta ao sistema'}
-                    </SheetDescription>
-                </SheetHeader>
+        <BaseEntitySheet<PlantForm>
+            entity={plant}
+            open={controlledOpen}
+            onOpenChange={onOpenChange}
+            mode={mode}
+            onSuccess={onSuccess}
+            triggerText={triggerText}
+            triggerVariant={triggerVariant}
+            showTrigger={showTrigger}
+            triggerRef={triggerRef}
+            formConfig={{
+                initialData: {
+                    name: '',
+                    street: '',
+                    number: '',
+                    city: '',
+                    state: '',
+                    zip_code: '',
+                    gps_coordinates: '',
+                },
+                createRoute: 'asset-hierarchy.plantas.store',
+                updateRoute: 'asset-hierarchy.plantas.update',
+                entityName: 'Planta',
+            }}
+        >
+            {({ data, setData, errors }) => (
+                <>
+                    {/* Nome da Planta - Campo Obrigatório */}
+                    <TextInput<PlantForm>
+                        form={{
+                            data,
+                            setData,
+                            errors,
+                            clearErrors: () => { },
+                        }}
+                        name="name"
+                        label="Nome da Planta"
+                        placeholder="Nome da planta"
+                        required
+                    />
 
-                <form onSubmit={handleSubmit} className="m-4 space-y-6">
-                    <div className="grid gap-6">
-                        {/* Nome da Planta - Campo Obrigatório */}
-                        <TextInput<PlantForm>
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: () => { },
-                            }}
-                            name="name"
-                            label="Nome da Planta"
-                            placeholder="Nome da planta"
-                            required
-                        />
-
-                        {/* Endereço - Grid com 2 colunas */}
-                        <div className="grid gap-2">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2">
-                                    <TextInput<PlantForm>
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="street"
-                                        label="Rua"
-                                        placeholder="Nome da rua"
-                                    />
-                                </div>
-                                <div>
-                                    <TextInput<PlantForm>
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="number"
-                                        label="Número"
-                                        placeholder="Número"
-                                    />
-                                </div>
-                                <div>
-                                    <TextInput<PlantForm>
-                                        form={{
-                                            data,
-                                            setData: (name, value) => handleCEPChange({ target: { value } } as any),
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="zip_code"
-                                        label="CEP"
-                                        placeholder="00000-000"
-                                    />
-                                </div>
+                    {/* Endereço - Grid com 2 colunas */}
+                    <div className="grid gap-2">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                                <TextInput<PlantForm>
+                                    form={{
+                                        data,
+                                        setData,
+                                        errors,
+                                        clearErrors: () => { },
+                                    }}
+                                    name="street"
+                                    label="Rua"
+                                    placeholder="Nome da rua"
+                                />
+                            </div>
+                            <div>
+                                <TextInput<PlantForm>
+                                    form={{
+                                        data,
+                                        setData,
+                                        errors,
+                                        clearErrors: () => { },
+                                    }}
+                                    name="number"
+                                    label="Número"
+                                    placeholder="Número"
+                                />
+                            </div>
+                            <div>
+                                <TextInput<PlantForm>
+                                    form={{
+                                        data,
+                                        setData: (name, value) => {
+                                            if (name === 'zip_code') {
+                                                setData(name, formatCEP(value));
+                                            } else {
+                                                setData(name, value);
+                                            }
+                                        },
+                                        errors,
+                                        clearErrors: () => { },
+                                    }}
+                                    name="zip_code"
+                                    label="CEP"
+                                    placeholder="00000-000"
+                                />
                             </div>
                         </div>
-
-                        {/* Cidade e Estado - Grid com 2 colunas */}
-                        <div className="grid gap-2">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <TextInput<PlantForm>
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="city"
-                                        label="Cidade"
-                                        placeholder="Cidade"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="state" className="text-muted-foreground text-sm">
-                                        Estado
-                                    </Label>
-                                    <Popover open={open} onOpenChange={setOpen}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                id="state"
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={open}
-                                                className="w-full justify-between"
-                                            >
-                                                {data.state ? estados.find((estado) => estado.value === data.state)?.label : 'Selecione um estado...'}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Buscar estado..." />
-                                                <CommandList>
-                                                    <CommandEmpty>Nenhum estado encontrado.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {estados.map((estado) => (
-                                                            <CommandItem
-                                                                key={estado.value}
-                                                                value={estado.value}
-                                                                onSelect={(currentValue) => {
-                                                                    setData('state', currentValue === data.state ? '' : currentValue);
-                                                                    setOpen(false);
-                                                                }}
-                                                            >
-                                                                <Check
-                                                                    className={cn(
-                                                                        'mr-2 h-4 w-4',
-                                                                        data.state === estado.value ? 'opacity-100' : 'opacity-0',
-                                                                    )}
-                                                                />
-                                                                {estado.label}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Coordenadas GPS */}
-                        <TextInput<PlantForm>
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: () => { },
-                            }}
-                            name="gps_coordinates"
-                            label="Coordenadas GPS"
-                            placeholder="Ex: -23.550520, -46.633308"
-                        />
                     </div>
 
-                    <SheetFooter className="flex justify-end gap-2">
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Salvando...' : 'Salvar'}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
-                            Cancelar
-                        </Button>
-                    </SheetFooter>
-                </form>
-            </SheetContent>
-        </Sheet>
+                    {/* Cidade e Estado - Grid com 2 colunas */}
+                    <div className="grid gap-2">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <TextInput<PlantForm>
+                                    form={{
+                                        data,
+                                        setData,
+                                        errors,
+                                        clearErrors: () => { },
+                                    }}
+                                    name="city"
+                                    label="Cidade"
+                                    placeholder="Cidade"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="state" className="text-muted-foreground text-sm">
+                                    Estado
+                                </Label>
+                                <Popover open={open} onOpenChange={setOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            id="state"
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={open}
+                                            className="w-full justify-between"
+                                        >
+                                            {data.state ? estados.find((estado) => estado.value === data.state)?.label : 'Selecione um estado...'}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar estado..." />
+                                            <CommandList>
+                                                <CommandEmpty>Nenhum estado encontrado.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {estados.map((estado) => (
+                                                        <CommandItem
+                                                            key={estado.value}
+                                                            value={estado.value}
+                                                            onSelect={(currentValue) => {
+                                                                setData('state', currentValue === data.state ? '' : currentValue);
+                                                                setOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    'mr-2 h-4 w-4',
+                                                                    data.state === estado.value ? 'opacity-100' : 'opacity-0',
+                                                                )}
+                                                            />
+                                                            {estado.label}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Coordenadas GPS */}
+                    <TextInput<PlantForm>
+                        form={{
+                            data,
+                            setData,
+                            errors,
+                            clearErrors: () => { },
+                        }}
+                        name="gps_coordinates"
+                        label="Coordenadas GPS"
+                        placeholder="Ex: -23.550520, -46.633308"
+                    />
+                </>
+            )}
+        </BaseEntitySheet>
     );
 };
 

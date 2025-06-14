@@ -14,6 +14,7 @@ interface PhotoUploaderProps {
     maxHeight?: string;
     id?: string;
     initialPreview?: string | null;
+    disabled?: boolean;
 }
 
 export default function PhotoUploader({
@@ -25,6 +26,7 @@ export default function PhotoUploader({
     maxHeight = 'max-h-[238px]',
     id = 'photo',
     initialPreview = null,
+    disabled = false,
 }: PhotoUploaderProps) {
     const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreview);
     const [showCamera, setShowCamera] = useState(false);
@@ -81,7 +83,7 @@ export default function PhotoUploader({
                     {previewUrl ? (
                         <div className="relative h-full w-full">
                             <img src={previewUrl} alt="Preview" className="h-auto w-full object-contain" />
-                            <Button type="button" variant="warning" size="sm" className="absolute top-2 right-2" onClick={handleRemovePhoto}>
+                            <Button type="button" variant="warning" size="sm" className="absolute top-2 right-2" onClick={handleRemovePhoto} disabled={disabled}>
                                 Remover
                             </Button>
                         </div>
@@ -94,15 +96,15 @@ export default function PhotoUploader({
                 </div>
                 <div className="flex gap-2">
                     <div className="relative flex-1">
-                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" id={id} />
-                        <Button type="button" variant="outline" className="w-full" asChild>
+                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" id={id} disabled={disabled} />
+                        <Button type="button" variant="outline" className="w-full" asChild disabled={disabled}>
                             <label htmlFor={id} className="flex cursor-pointer items-center justify-center gap-2">
                                 <Upload className="h-4 w-4" />
                                 Selecionar Arquivo
                             </label>
                         </Button>
                     </div>
-                    <Button type="button" variant="outline" onClick={handleOpenCamera} className="flex-1">
+                    <Button type="button" variant="outline" onClick={handleOpenCamera} className="flex-1" disabled={disabled}>
                         <Camera className="mr-2 h-4 w-4" />
                         Usar Câmera
                     </Button>

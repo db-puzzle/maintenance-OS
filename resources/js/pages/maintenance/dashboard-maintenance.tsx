@@ -32,7 +32,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function DashboardMaintenance() {
-    const [selectedPath, setSelectedPath] = useState(null);
+    const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
     const paths: Record<string, PathItem> = {
         maintenance_plans: {
@@ -130,8 +130,6 @@ export default function DashboardMaintenance() {
 
         if (action && action.href) {
             router.visit(action.href);
-        } else {
-            console.log(`Navegando para: ${pathKey} - ${actionName}`);
         }
     };
 

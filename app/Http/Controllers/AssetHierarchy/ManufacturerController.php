@@ -78,6 +78,21 @@ class ManufacturerController extends Controller
     {
         $manufacturer->loadCount('assets');
         
+        // If this is a JSON request (for edit functionality), return just the manufacturer data
+        if (request()->expectsJson() || request()->get('format') === 'json') {
+            return response()->json([
+                'manufacturer' => [
+                    'id' => $manufacturer->id,
+                    'name' => $manufacturer->name,
+                    'website' => $manufacturer->website,
+                    'email' => $manufacturer->email,
+                    'phone' => $manufacturer->phone,
+                    'country' => $manufacturer->country,
+                    'notes' => $manufacturer->notes,
+                ]
+            ]);
+        }
+        
         // Load assets if needed for the assets tab
         $manufacturer->load(['assets' => function ($query) {
             $query->with(['assetType:id,name', 'plant:id,name', 'area:id,name', 'sector:id,name'])
@@ -122,6 +137,12 @@ class ManufacturerController extends Controller
 
         $manufacturer->update($validated);
 
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Fabricante {$manufacturer->name} atualizado com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
         return redirect()->route('asset-hierarchy.manufacturers.show', $manufacturer)
             ->with('success', "Fabricante {$manufacturer->name} atualizado com sucesso.");
     }
@@ -139,6 +160,27 @@ class ManufacturerController extends Controller
 
         return redirect()->route('asset-hierarchy.manufacturers')
             ->with('success', "Fabricante {$manufacturerName} excluído com sucesso.");
+    }
+
+    /**
+     * Check dependencies before deletion
+     */
+    public function checkDependencies(Manufacturer $manufacturer)
+    {
+        $assets = $manufacturer->assets()->take(5)->get(['id', 'tag', 'description']);
+        $totalAssets = $manufacturer->assets()->count();
+
+        $canDelete = $totalAssets === 0;
+
+        return response()->json([
+            'can_delete' => $canDelete,
+            'dependencies' => [
+                'assets' => [
+                    'total' => $totalAssets,
+                    'items' => $assets
+                ]
+            ]
+        ]);
     }
 
     /**

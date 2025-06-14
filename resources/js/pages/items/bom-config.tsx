@@ -85,8 +85,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     const [newItemParentId, setNewItemParentId] = useState<string | null>(null);
     const draggingRef = useRef<string | null>(null);
     const dragItemRef = useRef<HTMLElement | null>(null);
-    const dropTypeRef = useRef<'as-child' | 'reorder' | null>(null);
-    const reorderInfoRef = useRef<{ parentId: string; index: number } | null>(null);
+    const dropTypeRef = useRef<{ parentId: string; index: number } | null>(null);
 
     // Helper function to find and update an item in the tree
     const findItemById = (items: BOMItem[], id: string): BOMItem | null => {
@@ -181,33 +180,8 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     };
 
     // Function to handle drag start - simplificado e mais direto
-    const handleDragStart = (e: React.DragEvent, id: string) => {
-        e.stopPropagation();
-
-        // Configurar dataTransfer diretamente
-        if (e.dataTransfer && e.dataTransfer.setData) {
-            try {
-                e.dataTransfer.setData('text/plain', id);
-                e.dataTransfer.effectAllowed = 'move';
-            } catch (error) {
-                console.error('Error setting data transfer:', error);
-            }
-        }
-
-        // Rastrear o item arrastado na referência
+    const handleDragStart = (id: string) => {
         draggingRef.current = id;
-
-        // Adicionar classe visualmente no elemento
-        const container = document.querySelector(`[data-id="${id}"]`) as HTMLElement;
-        if (container) {
-            container.classList.add('opacity-50');
-        }
-
-        // Desabilitar animações durante o arrasto
-        document.body.classList.add('dragging-active');
-
-        // Log para debug
-        console.log('Drag started:', id);
     };
 
     // Função atualizada para adicionar um item em uma posição específica dentro de um pai
@@ -299,19 +273,15 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
         });
 
         // Armazenar o tipo de operação atual
-        dropTypeRef.current = dropType;
+        dropTypeRef.current = dropType === 'reorder' && position !== undefined
+            ? { parentId: targetId, index: position }
+            : null;
 
         if (dropType === 'reorder' && position !== undefined) {
             // Para reordenação, precisamos destacar a drop zone
             const container = e.currentTarget as HTMLElement;
             if (container) {
                 container.classList.add('border-blue-500', 'border-2', 'h-2', 'bg-blue-500', 'highlight-reorder-area');
-
-                // Armazenar informações sobre onde estamos reordenando
-                reorderInfoRef.current = {
-                    parentId: targetId,
-                    index: position,
-                };
             }
         } else {
             // Para adição como filho, destacar o container do item
@@ -380,12 +350,6 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
             }
             draggingRef.current = null;
         }
-
-        // Reabilitar animações
-        document.body.classList.remove('dragging-active');
-
-        // Log para debug
-        console.log('Drag ended');
     };
 
     // Function to handle drop - atualizada para suportar reordenação
@@ -419,13 +383,13 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
         if (!finalDraggedId) return;
 
         // Não permitir drop no próprio item
-        if (finalDraggedId === targetId && dropTypeRef.current === 'as-child') {
+        if (finalDraggedId === targetId && dropTypeRef.current) {
             resetDragState();
             return;
         }
 
         // Verificar referência circular para adição como filho
-        if (dropTypeRef.current === 'as-child' && checkIfChildOfDragged(finalDraggedId, targetId)) {
+        if (dropTypeRef.current && checkIfChildOfDragged(finalDraggedId, targetId)) {
             // Mostrar feedback de erro
             const targetElement = document.querySelector(`[data-id="${targetId}"]`);
             if (targetElement) {
@@ -450,9 +414,8 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
         let updatedItems: BOMItem[];
 
         // Processar de acordo com o tipo de operação
-        if (dropTypeRef.current === 'reorder' && reorderInfoRef.current) {
-            // Reordenação: inserir o item na posição específica dentro do pai
-            const { parentId, index } = reorderInfoRef.current;
+        if (dropTypeRef.current) {
+            const { parentId, index } = dropTypeRef.current;
             updatedItems = insertItemAtPosition(newItems, parentId, draggedItem, index);
 
             // Garantir que o nó pai esteja expandido
@@ -482,7 +445,6 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     const resetDragState = () => {
         draggingRef.current = null;
         dropTypeRef.current = null;
-        reorderInfoRef.current = null;
         document.body.classList.remove('dragging-active');
     };
 
@@ -616,8 +578,8 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                         }}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => {
-                            if (reorderInfoRef.current) {
-                                handleDrop(e, reorderInfoRef.current.parentId);
+                            if (dropTypeRef.current) {
+                                handleDrop(e, dropTypeRef.current.parentId);
                             }
                         }}
                     ></div>
@@ -660,7 +622,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                                 className="drag-handle mr-2 cursor-grab p-1 text-gray-400 hover:text-gray-600 active:cursor-grabbing"
                                 draggable="true"
                                 onMouseDown={(e) => handleItemMouseDown(e, node.id)}
-                                onDragStart={(e) => handleDragStart(e, node.id)}
+                                onDragStart={(e) => handleDragStart(node.id)}
                                 onDragEnd={handleDragEnd}
                                 title="Arraste para reposicionar"
                             >
@@ -737,8 +699,8 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                                 onDragOver={(e) => handleDragOver(e, node.id, 'reorder', node.children.length)}
                                 onDragLeave={handleDragLeave}
                                 onDrop={(e) => {
-                                    if (reorderInfoRef.current) {
-                                        handleDrop(e, reorderInfoRef.current.parentId);
+                                    if (dropTypeRef.current) {
+                                        handleDrop(e, dropTypeRef.current.parentId);
                                     }
                                 }}
                             ></div>

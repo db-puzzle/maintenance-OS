@@ -28,6 +28,7 @@ export interface Asset {
     plant_id?: number | null;
     shift?: Shift | null;
     shift_id?: number | null;
+    routines_count?: number;
     created_at: string;
     updated_at: string;
 }

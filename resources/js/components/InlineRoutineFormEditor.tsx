@@ -1,10 +1,8 @@
 import { TaskBaseCard, TaskContent } from '@/components/tasks';
 import AddTaskButton from '@/components/tasks/AddTaskButton';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import AppLayout from '@/layouts/app-layout';
-import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
-import { type BreadcrumbItem } from '@/types';
-import { DefaultMeasurement, Task, TaskOperations, TaskState, TaskType, TaskTypes } from '@/types/task';
+import { Task, TaskOperations, TaskState, TaskType, TaskTypes, DefaultMeasurement } from '@/types/task';
 import { UnitCategory } from '@/types/units';
 import {
     closestCenter,
@@ -19,100 +17,44 @@ import {
 } from '@dnd-kit/core';
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Head, router, useForm } from '@inertiajs/react';
-import { ClipboardCheck } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { ClipboardCheck, Eye, Save } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-interface FormData {
-    id?: number;
-    name?: string;
-    tasks?: Task[];
-}
-
-interface EntityData {
+interface RoutineData {
     id: number;
-    name?: string;
-    tag?: string;
+    name: string;
+    form?: {
+        id: number;
+        tasks: Task[];
+    };
 }
 
 interface Props {
-    form?: FormData;
-    entity: EntityData;
-    entityType: 'routine' | 'inspection' | 'report';
-    breadcrumbs?: BreadcrumbItem[];
-    backRoute?: string;
-    saveRoute?: string;
-    title?: string;
-    subtitle?: string;
-    inline?: boolean;
+    routine: RoutineData;
+    assetId: number;
+    onClose?: () => void;
     onSuccess?: (formData: any) => void;
-    onCancel?: () => void;
 }
 
-interface FormSubmitData {
-    [key: string]: string | number | undefined;
-}
-
-const EntityLabels = {
-    routine: {
-        singular: 'Rotina',
-        plural: 'Rotinas',
-        form: 'Formulário da Rotina',
-    },
-    inspection: {
-        singular: 'Inspeção',
-        plural: 'Inspeções',
-        form: 'Formulário de Inspeção',
-    },
-    report: {
-        singular: 'Relatório',
-        plural: 'Relatórios',
-        form: 'Formulário de Relatório',
-    },
-};
-
-export default function FormEditor({ form, entity, entityType, breadcrumbs, backRoute, saveRoute, title, subtitle, inline = false, onSuccess, onCancel }: Props) {
-    const entityLabel = EntityLabels[entityType];
-    const entityDisplayName = entity.name || entity.tag || `${entityLabel.singular} ${entity.id}`;
-
-    const defaultBreadcrumbs: BreadcrumbItem[] = [
-        {
-            title: 'Ativos',
-            href: '/asset-hierarchy/assets',
-        },
-        {
-            title: entityDisplayName,
-            href: '#',
-        },
-        {
-            title: entityLabel.form,
-            href: '#',
-        },
-    ];
-
-    const { data, setData, processing, errors, clearErrors } = useForm<FormSubmitData>({});
-
-    const [tasks, setTasks] = useState<Task[]>(form?.tasks || []);
+export default function InlineRoutineFormEditor({ routine, assetId, onClose, onSuccess }: Props) {
+    const [tasks, setTasks] = useState<Task[]>(routine.form?.tasks || []);
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [taskIcons, setTaskIcons] = useState<Record<string, React.ReactNode>>({});
 
     // Estados para última categoria e unidade selecionada
     const [lastMeasurementCategory, setLastMeasurementCategory] = useState<UnitCategory>('Comprimento');
     const [lastMeasurementUnit, setLastMeasurementUnit] = useState<string>('m');
 
-    // Estado para armazenar os ícones personalizados por ID de tarefa
-    const [taskIcons, setTaskIcons] = useState<Record<string, React.ReactNode>>({});
-
     // Função para atualizar o ícone de uma tarefa específica
     const updateTaskIcon = (taskId: string, icon: React.ReactNode) => {
-        setTaskIcons((prev) => {
-            if (prev[taskId] === icon) return prev;
-            return {
-                ...prev,
-                [taskId]: icon,
-            };
-        });
+        setTaskIcons((prev) => ({
+            ...prev,
+            [taskId]: icon,
+        }));
     };
 
     // Função para definir todas as tarefas para o modo de visualização
@@ -134,7 +76,7 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
         return () => {
             window.removeEventListener('viewAllTasks', handleViewAllTasks);
         };
-    }, [tasks]); // Dependência em tasks para ter sempre a versão mais atualizada
+    }, [tasks]);
 
     // Funções utilitárias para gerenciamento de tarefas
     const taskMethods = {
@@ -248,11 +190,8 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
         setActiveId(null);
     };
 
-    const handleSave = () => {
-        if (!saveRoute) {
-            toast.error('Rota de salvamento não configurada');
-            return;
-        }
+    const handleSave = async () => {
+        setSaving(true);
 
         const tasksToSave = tasks.map((task) => ({
             ...task,
@@ -272,7 +211,10 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
         }));
 
         router.post(
-            saveRoute,
+            route('maintenance.assets.routines.forms.store', {
+                asset: assetId,
+                routine: routine.id
+            }),
             {
                 tasks: JSON.stringify(tasksToSave),
             },
@@ -280,34 +222,71 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
                 onSuccess: (response) => {
                     toast.success('Formulário salvo com sucesso!');
                     if (onSuccess) {
-                        // Extract form data from response if available
-                        const formData = response.props?.form || { tasks: tasksToSave };
+                        const formData = { tasks: tasksToSave };
                         onSuccess(formData);
                     }
+                    setSaving(false);
                 },
                 onError: () => {
                     toast.error('Erro ao salvar formulário', {
                         description: 'Verifique os campos e tente novamente.',
                     });
-                    if (onCancel) {
-                        onCancel();
-                    }
+                    setSaving(false);
                 },
             },
         );
     };
 
-    const pageTitle = title || entityLabel.form;
-    const pageSubtitle = subtitle || entityDisplayName;
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between px-4 py-5 -mb-2 sticky top-0 z-10 bg-white/75 backdrop-blur-sm">
+                <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
+                    <p className="ml-2 mt-1 truncate text-sm text-gray-500">Tarefas de</p>
+                    <h3 className="ml-2 mt-2 text-base font-semibold text-gray-900">{routine.name}</h3>
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onClose}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            const event = new CustomEvent('viewAllTasks');
+                            window.dispatchEvent(event);
+                        }}
+                        className="flex items-center gap-2"
+                    >
+                        <Eye className="h-4 w-4" />
+                        Visualizar Todas
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        disabled={saving}
+                        onClick={handleSave}
+                    >
+                        {saving ? (
+                            <>
+                                <Save className="mr-2 h-4 w-4 animate-pulse" />
+                                Salvando...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="mr-2 h-4 w-4" />
+                                Salvar Tarefas
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </div>
 
-    const formContent = (
-        <form
-            onSubmit={(e) => {
-                e.preventDefault();
-                handleSave();
-            }}
-            className="space-y-6"
-        >
             <div className="grid gap-6 mt-4">
                 <DndContext
                     sensors={sensors}
@@ -471,46 +450,6 @@ export default function FormEditor({ form, entity, entityType, breadcrumbs, back
                     </DragOverlay>
                 </DndContext>
             </div>
-        </form>
+        </div>
     );
-
-    // If inline mode, return just the form content without action buttons
-    if (inline) {
-        return (
-            <div className="space-y-6">
-                {formContent}
-                {/* Hidden button that can be triggered from parent */}
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={processing}
-                    data-form-save-button
-                    style={{ display: 'none' }}
-                    aria-hidden="true"
-                >
-                    {processing ? 'Salvando...' : 'Salvar Tarefas'}
-                </button>
-            </div>
-        );
-    }
-
-    // Otherwise, return with full layout
-    return (
-        <AppLayout breadcrumbs={breadcrumbs || defaultBreadcrumbs}>
-            <Head title={`${pageTitle} - ${pageSubtitle}`} />
-
-            <CreateLayout
-                title={pageTitle}
-                subtitle={pageSubtitle}
-                breadcrumbs={breadcrumbs || defaultBreadcrumbs}
-                backRoute={backRoute || '#'}
-                onSave={handleSave}
-                isSaving={processing}
-                contentWidth="custom"
-                contentClassName=""
-            >
-                {formContent}
-            </CreateLayout>
-        </AppLayout>
-    );
-}
+} 

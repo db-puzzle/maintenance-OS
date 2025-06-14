@@ -11,8 +11,12 @@ use App\Http\Controllers\AssetHierarchy\AssetImportExportController;
 use App\Http\Controllers\AssetHierarchy\ShiftController;
 use App\Http\Controllers\AssetHierarchy\PlantController;
 use App\Http\Controllers\AssetHierarchy\ManufacturerController;
+use App\Http\Controllers\AssetHierarchy\AssetHierarchyController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    // Asset Hierarchy Index
+    Route::get('asset-hierarchy', [AssetHierarchyController::class, 'index'])->name('asset-hierarchy.index');
+    
     Route::prefix('assets')->name('assets.')->group(function () {
         Route::get('/', [AssetController::class, 'index'])->name('index');
         Route::get('/criar', [AssetController::class, 'create'])->name('create');
@@ -40,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('asset-hierarchy/assets/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.assets.update');
     Route::patch('asset-hierarchy/assets/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.assets.update');
     Route::delete('asset-hierarchy/assets/{asset}', [AssetController::class, 'destroy'])->name('asset-hierarchy.assets.destroy');
+    Route::get('asset-hierarchy/assets/{asset}/check-dependencies', [AssetController::class, 'checkDependencies'])->name('asset-hierarchy.assets.check-dependencies');
     Route::delete('asset-hierarchy/assets/{asset}/photo', [AssetController::class, 'removePhoto'])->name('asset-hierarchy.assets.remove-photo');
     
     // Runtime routes
@@ -101,5 +106,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/manufacturers/{manufacturer}/edit', [ManufacturerController::class, 'edit'])->name('asset-hierarchy.manufacturers.edit');
     Route::put('asset-hierarchy/manufacturers/{manufacturer}', [ManufacturerController::class, 'update'])->name('asset-hierarchy.manufacturers.update');
     Route::delete('asset-hierarchy/manufacturers/{manufacturer}', [ManufacturerController::class, 'destroy'])->name('asset-hierarchy.manufacturers.destroy');
+    Route::get('asset-hierarchy/manufacturers/{manufacturer}/check-dependencies', [ManufacturerController::class, 'checkDependencies'])->name('asset-hierarchy.manufacturers.check-dependencies');
     Route::get('asset-hierarchy/manufacturers/{manufacturer}/assets', [ManufacturerController::class, 'assets'])->name('asset-hierarchy.manufacturers.assets');
 }); 

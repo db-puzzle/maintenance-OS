@@ -56,6 +56,8 @@ class SectorController extends Controller
 
         $sectors = $query->paginate($perPage)->withQueryString();
 
+        $plants = Plant::with('areas')->get();
+
         return Inertia::render('asset-hierarchy/setores', [
             'sectors' => $sectors,
             'filters' => [
@@ -64,6 +66,7 @@ class SectorController extends Controller
                 'direction' => $direction,
                 'per_page' => $perPage,
             ],
+            'plants' => $plants
         ]);
     }
 
@@ -105,6 +108,20 @@ class SectorController extends Controller
 
     public function show(Sector $setor)
     {
+        // Check if JSON response is requested
+        if (request()->input('format') === 'json' || request()->wantsJson()) {
+            return response()->json([
+                'sector' => [
+                    'id' => $setor->id,
+                    'name' => $setor->name,
+                    'description' => $setor->description,
+                    'area_id' => $setor->area_id,
+                    'created_at' => $setor->created_at,
+                    'updated_at' => $setor->updated_at,
+                ]
+            ]);
+        }
+
         $setor->load(['area.plant']);
         
         // Busca a página atual e parâmetros de ordenação para ativos
@@ -184,6 +201,12 @@ class SectorController extends Controller
 
         $setor->update($validated);
 
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Setor {$setor->name} atualizado com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
         return redirect()->route('asset-hierarchy.setores')
             ->with('success', "O setor {$setor->name} foi atualizado com sucesso.");
     }
@@ -207,22 +230,14 @@ class SectorController extends Controller
 
         $canDelete = $totalAsset === 0;
 
-        // Se o setor pode ser excluído, redirecionar para confirmação de exclusão
-        if ($canDelete) {
-            return redirect()->route('asset-hierarchy.setores')
-                ->with('info', "O setor {$setor->name} pode ser excluído com segurança.");
-        }
-
-        // Se há dependências, mostrar página com detalhes das dependências
-        return Inertia::render('asset-hierarchy/setores/dependencies', [
-            'sector' => $setor,
+        return response()->json([
+            'can_delete' => $canDelete,
             'dependencies' => [
                 'asset' => [
                     'total' => $totalAsset,
                     'items' => $asset
                 ]
-            ],
-            'canDelete' => false
+            ]
         ]);
     }
 } 

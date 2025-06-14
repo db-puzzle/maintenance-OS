@@ -20,10 +20,11 @@ import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import AssetRuntimeInput from '@/components/AssetRuntimeInput';
 import ShiftSelectionCard, { ShiftSelectionCardRef } from '@/components/ShiftSelectionCard';
-import FormEditor from '@/pages/forms/form-editor';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import InlineRoutineForm from '@/components/InlineRoutineForm';
+import InlineRoutineFormEditor from '@/components/InlineRoutineFormEditor';
 
 interface Shift {
     id: number;
@@ -82,23 +83,24 @@ interface Props {
     newRoutineId?: number;
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Ativos',
-        href: '/asset-hierarchy/assets',
-    },
-    {
-        title: 'Detalhes do Ativo',
-        href: '#',
-    },
-];
-
 export default function Show({ asset, plants, assetTypes, manufacturers, isCreating = false, newRoutineId }: Props) {
     const { url, props } = usePage<any>();
 
     // Extrai o parâmetro tab da URL
     const urlParams = new URLSearchParams(url.split('?')[1] || '');
     const tabFromUrl = urlParams.get('tab');
+
+    // Define breadcrumbs with dynamic asset tag
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Ativos',
+            href: '/asset-hierarchy/assets',
+        },
+        {
+            title: asset?.tag || 'Novo Ativo',
+            href: '#',
+        },
+    ];
 
     // Check for flash data
     const flash = props.flash || {};
@@ -127,6 +129,9 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
 
     // Estado para controlar o salvamento do formulário
     const [isSavingForm, setIsSavingForm] = useState(false);
+
+    // Estado para controlar o preenchimento da rotina
+    const [fillingRoutineId, setFillingRoutineId] = useState<number | null>(null);
 
     // Estados para turnos
     const [shifts, setShifts] = useState<Shift[]>([]);
@@ -367,12 +372,22 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         setIsCompressed(true);
     };
 
+    const handleFillRoutineForm = (routineId: number) => {
+        setFillingRoutineId(routineId);
+        setIsCompressed(true);
+    };
+
     const handleCloseFormEditor = () => {
         setEditingRoutineFormId(null);
         // Desativar modo comprimido ao fechar editor
         setIsCompressed(false);
         // Reset saving state
         setIsSavingForm(false);
+    };
+
+    const handleCloseFormFiller = () => {
+        setFillingRoutineId(null);
+        setIsCompressed(false);
     };
 
     const handleFormSaved = (formData: any) => {
@@ -421,7 +436,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                     runtimeData={asset?.runtime_data}
                                     onRuntimeUpdated={(data) => {
                                         // Handle runtime update if needed
-                                        console.log('Runtime updated:', data);
                                     }}
                                 />
                             </div>
@@ -501,75 +515,27 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                 if (!routine) return null;
 
                                 return (
-                                    <div className={cn(
-                                        "transition-all duration-300 ease-in-out relative",
-                                        isCompressed ? "" : ""
-                                    )}>
-                                        <div className={cn(
-                                            "flex items-center justify-between px-4 py-5 -mb-2 sticky top-0 z-10 bg-white/75 backdrop-blur-sm")}>
-                                            <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                                                <p className="ml-2 mt-1 truncate text-sm text-gray-500">Tarefas de</p>
-                                                <h3 className="ml-2 mt-2 text-base font-semibold text-gray-900">{routine.name}</h3>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={handleCloseFormEditor}
-                                                >
-                                                    Cancelar
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        // Trigger view all on the FormEditor
-                                                        const event = new CustomEvent('viewAllTasks');
-                                                        window.dispatchEvent(event);
-                                                    }}
-                                                    className="flex items-center gap-2"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                    Visualizar Todas
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    disabled={isSavingForm}
-                                                    onClick={() => {
-                                                        // Trigger save on the FormEditor
-                                                        setIsSavingForm(true);
-                                                        const saveButton = document.querySelector('[data-form-save-button]') as HTMLButtonElement;
-                                                        if (saveButton) {
-                                                            saveButton.click();
-                                                        }
-                                                    }}
-                                                >
-                                                    {isSavingForm ? 'Salvando...' : 'Salvar Tarefas'}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <div className={cn(
-                                            isCompressed ? "mt-4" : "mt-6 px-0"
-                                        )}>
-                                            <FormEditor
-                                                form={routine.form}
-                                                entity={{ id: routine.id, name: routine.name }}
-                                                entityType="routine"
-                                                saveRoute={route('maintenance.assets.routines.forms.store', {
-                                                    asset: asset?.id,
-                                                    routine: routine.id
-                                                })}
-                                                title=""
-                                                subtitle=""
-                                                inline={true}
-                                                onSuccess={handleFormSaved}
-                                                onCancel={handleCloseFormEditor}
-                                            />
-                                        </div>
-                                    </div>
+                                    <InlineRoutineFormEditor
+                                        routine={routine}
+                                        assetId={asset!.id}
+                                        onClose={handleCloseFormEditor}
+                                        onSuccess={handleFormSaved}
+                                    />
+                                );
+                            })()
+                        ) : fillingRoutineId ? (
+                            // Mostrar o preenchedor de formulário inline
+                            (() => {
+                                const routine = routines.find(r => r.id === fillingRoutineId);
+                                if (!routine) return null;
+
+                                return (
+                                    <InlineRoutineForm
+                                        routine={routine}
+                                        assetId={asset!.id}
+                                        onClose={handleCloseFormFiller}
+                                        onComplete={handleCloseFormFiller}
+                                    />
                                 );
                             })()
                         ) : routines.length === 0 ? (
@@ -628,6 +594,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                                     onDelete={handleDeleteRoutine}
                                                     assetId={asset?.id}
                                                     onEditForm={() => handleEditRoutineForm(routine.id)}
+                                                    onFillForm={() => handleFillRoutineForm(routine.id)}
                                                     isCompressed={isCompressed}
                                                     shift={selectedShift}
                                                 />

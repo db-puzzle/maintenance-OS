@@ -211,7 +211,6 @@ export default function ImportAsset() {
         const progressInterval = setInterval(async () => {
             try {
                 const progressResponse = await axios.get(route('asset-hierarchy.assets.import.progress'));
-                console.log('Verificando progresso:', progressResponse.data);
 
                 if (progressResponse.data.progress !== undefined) {
                     setImportProgress(progressResponse.data.progress);
@@ -349,13 +348,6 @@ export default function ImportAsset() {
 
     // Adiciona um efeito para monitorar o estado de importação
     React.useEffect(() => {
-        console.log('Efeito de monitoramento de importação:', {
-            importing,
-            showImportProgress,
-            importSuccess,
-            importProgress,
-        });
-
         if (importing) {
             setShowImportProgress(true);
         }
@@ -363,12 +355,7 @@ export default function ImportAsset() {
 
     // Adiciona um efeito para monitorar mudanças no showImportProgress
     React.useEffect(() => {
-        console.log('Estado do diálogo de progresso mudou:', {
-            showImportProgress,
-            importing,
-            importSuccess,
-            importProgress,
-        });
+        // Monitor progress dialog state changes
     }, [showImportProgress, importProgress]);
 
     React.useEffect(() => {
@@ -383,7 +370,7 @@ export default function ImportAsset() {
 
     // Adiciona um efeito para monitorar mudanças no importProgress
     React.useEffect(() => {
-        console.log('Progresso atualizado:', importProgress);
+        // Monitor import progress updates
     }, [importProgress]);
 
     return (
@@ -690,12 +677,6 @@ export default function ImportAsset() {
                 <Dialog
                     open={showImportProgress}
                     onOpenChange={(open) => {
-                        console.log('Tentativa de mudar estado do diálogo:', {
-                            open,
-                            importing,
-                            importSuccess,
-                        });
-
                         if (!open && importing && !importSuccess) {
                             handleCancelImport();
                         } else if (!open && importSuccess) {

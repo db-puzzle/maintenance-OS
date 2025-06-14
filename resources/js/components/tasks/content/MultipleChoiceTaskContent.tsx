@@ -6,21 +6,31 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { Task } from '@/types/task';
 import { PlusCircle, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 import { TaskCardMode } from './TaskContent';
 
-interface MultipleChoiceTaskContentProps {
+interface MultipleChoiceTaskContentProps extends WithSaveFunctionalityProps {
     task: Task;
     mode: TaskCardMode;
     onUpdate?: (updatedTask: Task) => void;
 }
 
-export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: MultipleChoiceTaskContentProps) {
-    const [selectedOption, setSelectedOption] = useState<string>('');
-    const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse, disabled }: MultipleChoiceTaskContentProps) {
     const [options, setOptions] = useState<string[]>(task.options || []);
-
     const isMultipleSelect = task.type === 'multiple_select';
+
+    useEffect(() => {
+        if (isMultipleSelect) {
+            if (!response || !Array.isArray(response.value)) {
+                setResponse({ value: [] });
+            }
+        } else {
+            if (!response || typeof response.value !== 'string') {
+                setResponse({ value: '' });
+            }
+        }
+    }, [isMultipleSelect, response, setResponse]);
 
     const handleAddOption = () => {
         const newOptions = [...options, ''];
@@ -41,7 +51,6 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
         onUpdate?.({ ...task, options: newOptions });
     };
 
-    // Filtra opções vazias para os modos preview e respond
     const validOptions = mode === 'edit' ? options : options.filter((option) => option.trim() !== '');
 
     if (mode === 'edit') {
@@ -89,7 +98,7 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
     }
 
     if (mode === 'preview' || mode === 'respond') {
-        const isPreview = mode === 'preview';
+        const isResponding = mode === 'respond';
 
         if (validOptions.length === 0) {
             return (
@@ -106,20 +115,20 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
                         {validOptions.map((option, index) => (
                             <div key={index} className="flex items-center space-x-2">
                                 <Checkbox
-                                    id={`option-${index}`}
-                                    checked={selectedOptions.includes(option)}
+                                    id={`option-${task.id}-${index}`}
+                                    checked={response?.value?.includes(option)}
                                     onCheckedChange={(checked) => {
-                                        if (!isPreview) {
-                                            if (checked) {
-                                                setSelectedOptions((prev) => [...prev, option]);
-                                            } else {
-                                                setSelectedOptions((prev) => prev.filter((item) => item !== option));
-                                            }
+                                        if (isResponding) {
+                                            const currentValue = response?.value || [];
+                                            const newValue = checked
+                                                ? [...currentValue, option]
+                                                : currentValue.filter((item: string) => item !== option);
+                                            setResponse({ value: newValue });
                                         }
                                     }}
-                                    disabled={isPreview}
+                                    disabled={!isResponding || disabled}
                                 />
-                                <Label htmlFor={`option-${index}`} className={cn('text-base', isPreview && 'text-muted-foreground')}>
+                                <Label htmlFor={`option-${task.id}-${index}`} className={cn('text-base', !isResponding && 'text-muted-foreground')}>
                                     {option}
                                 </Label>
                             </div>
@@ -131,11 +140,15 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
 
         return (
             <div className="space-y-4">
-                <RadioGroup value={selectedOption} onValueChange={(value) => !isPreview && setSelectedOption(value)} disabled={isPreview}>
+                <RadioGroup
+                    value={response?.value}
+                    onValueChange={(value) => isResponding && setResponse({ value })}
+                    disabled={!isResponding || disabled}
+                >
                     {validOptions.map((option, index) => (
                         <div key={index} className="flex items-center space-x-2">
-                            <RadioGroupItem id={`option-${index}`} value={option} disabled={isPreview} />
-                            <Label htmlFor={`option-${index}`} className={cn('text-base', isPreview && 'text-muted-foreground')}>
+                            <RadioGroupItem id={`option-${task.id}-${index}`} value={option} />
+                            <Label htmlFor={`option-${task.id}-${index}`} className={cn('text-base', !isResponding && 'text-muted-foreground')}>
                                 {option}
                             </Label>
                         </div>
@@ -147,3 +160,5 @@ export default function MultipleChoiceTaskContent({ task, mode, onUpdate }: Mult
 
     return null;
 }
+
+export default withSaveFunctionality(MultipleChoiceTaskContent);

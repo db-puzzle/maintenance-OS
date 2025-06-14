@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Maintenance\DashboardController;
 use App\Http\Controllers\Maintenance\RoutineController;
+use App\Http\Controllers\Maintenance\InlineRoutineExecutionController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenance.')->group(function () {
@@ -31,14 +32,19 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
         Route::delete('/routines/{routine}', [RoutineController::class, 'destroyAssetRoutine'])->name('routines.destroy');
         
         // Formulários de rotinas no contexto de ativos
-        Route::get('/routines/{routine}/form-editor', [RoutineController::class, 'assetRoutineFormEditor'])->name('routines.form-editor');
         Route::post('/routines/{routine}/forms', [RoutineController::class, 'storeAssetRoutineForm'])->name('routines.forms.store');
-        Route::get('/routines/{routine}/form', [RoutineController::class, 'assetRoutineForm'])->name('routines.form');
-        Route::get('/routines/{routine}/form-view', [RoutineController::class, 'assetRoutineFormView'])->name('routines.form-view');
-        Route::get('/routines/{routine}/form-fill', [RoutineController::class, 'assetRoutineFormFill'])->name('routines.form-fill');
         
         // Execuções de rotinas no contexto de ativos
         Route::get('/routines/{routine}/executions', [RoutineController::class, 'assetRoutineExecutions'])->name('routines.executions');
         Route::post('/routines/{routine}/executions', [RoutineController::class, 'storeAssetRoutineExecution'])->name('routines.executions.store');
+        
+        // Inline routine execution routes
+        Route::prefix('/routines/{routine}/inline-execution')->name('routines.inline-execution.')->group(function () {
+            Route::post('/start', [InlineRoutineExecutionController::class, 'startOrGetExecution'])->name('start');
+            Route::post('/{execution}/task', [InlineRoutineExecutionController::class, 'saveTaskResponse'])->name('save-task');
+            Route::post('/{execution}/complete', [InlineRoutineExecutionController::class, 'completeExecution'])->name('complete');
+            Route::post('/{execution}/cancel', [InlineRoutineExecutionController::class, 'cancelExecution'])->name('cancel');
+            Route::get('/{execution}/status', [InlineRoutineExecutionController::class, 'getExecutionStatus'])->name('status');
+        });
     });
 }); 

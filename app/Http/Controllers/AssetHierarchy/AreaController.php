@@ -53,6 +53,8 @@ class AreaController extends Controller
 
         $areas = $query->paginate($perPage)->withQueryString();
 
+        $plants = Plant::all();
+
         return Inertia::render('asset-hierarchy/areas', [
             'areas' => $areas,
             'filters' => [
@@ -61,6 +63,12 @@ class AreaController extends Controller
                 'direction' => $direction,
                 'per_page' => $perPage,
             ],
+            'plants' => $plants->map(function ($plant) {
+                return [
+                    'id' => $plant->id,
+                    'name' => $plant->name,
+                ];
+            })->values()->all()
         ]);
     }
 
@@ -108,6 +116,20 @@ class AreaController extends Controller
      */
     public function show(Area $area)
     {
+        // Check if JSON response is requested
+        if (request()->input('format') === 'json' || request()->wantsJson()) {
+            return response()->json([
+                'area' => [
+                    'id' => $area->id,
+                    'name' => $area->name,
+                    'description' => $area->description,
+                    'plant_id' => $area->plant_id,
+                    'created_at' => $area->created_at,
+                    'updated_at' => $area->updated_at,
+                ]
+            ]);
+        }
+
         // Carrega explicitamente o relacionamento com a planta
         $area->load('plant');
 
@@ -246,6 +268,12 @@ class AreaController extends Controller
 
         $area->update($validated);
 
+        // Se a requisição contém o parâmetro 'stay' (indica que é via Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', "Área {$area->name} atualizada com sucesso.");
+        }
+
+        // Comportamento padrão para requisições normais (formulário completo)
         return redirect()->route('asset-hierarchy.areas')
             ->with('success', "A área {$area->name} foi atualizada com sucesso.");
     }
@@ -271,15 +299,8 @@ class AreaController extends Controller
 
         $canDelete = $totalAsset === 0 && $totalSectors === 0;
 
-        // Se a área pode ser excluída, redirecionar para confirmação de exclusão
-        if ($canDelete) {
-            return redirect()->route('asset-hierarchy.areas')
-                ->with('info', "A área {$area->name} pode ser excluída com segurança.");
-        }
-
-        // Se há dependências, mostrar página com detalhes das dependências
-        return Inertia::render('asset-hierarchy/areas/dependencies', [
-            'area' => $area,
+        return response()->json([
+            'can_delete' => $canDelete,
             'dependencies' => [
                 'asset' => [
                     'total' => $totalAsset,
@@ -289,8 +310,7 @@ class AreaController extends Controller
                     'total' => $totalSectors,
                     'items' => $sectors
                 ]
-            ],
-            'canDelete' => false
+            ]
         ]);
     }
 }

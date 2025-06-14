@@ -1,12 +1,10 @@
-import { useForm } from '@inertiajs/react';
-import React, { useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import React, { useEffect, useMemo, useState } from 'react';
 
+import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from '@/components/TextInput';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { type Plant } from '@/types/asset-hierarchy';
+import { Sector } from '@/types/entities/sector';
 
 interface SectorForm {
     [key: string]: any;
@@ -15,54 +13,34 @@ interface SectorForm {
 }
 
 interface CreateSectorSheetProps {
-    isOpen?: boolean;
-    onOpenChange?: (open: boolean) => void;
-    onSuccess?: () => void;
+    sector?: Sector;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    mode: 'create' | 'edit';
     plants: Plant[];
-    selectedPlantId?: string;
-    selectedAreaId?: string;
-    disableParentFields?: boolean;
-    // Props para SheetTrigger
-    triggerText?: string;
-    triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
-    showTrigger?: boolean;
-    triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
-    isOpen,
+    sector,
+    open,
     onOpenChange,
-    onSuccess,
-    plants,
-    selectedPlantId,
-    selectedAreaId,
-    disableParentFields = false,
-    triggerText = 'Novo Setor',
-    triggerVariant = 'outline',
-    showTrigger = false,
-    triggerRef,
+    mode,
+    plants = [],
 }) => {
-    const { data, setData, post, processing, errors, reset } = useForm<SectorForm>({
-        name: '',
-        area_id: selectedAreaId || '',
-    });
+    const isEditMode = mode === 'edit';
+    const [localSelectedPlant, setLocalSelectedPlant] = useState<string>('');
 
-    const [localSelectedPlant, setLocalSelectedPlant] = useState<string>(selectedPlantId || '');
-    const [internalSheetOpen, setInternalSheetOpen] = useState(false);
-
-    // Determina se deve usar controle interno ou externo
-    const sheetOpen = showTrigger ? internalSheetOpen : (isOpen ?? false);
-    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => { }));
-
-    // Atualiza os valores quando as props mudam
-    React.useEffect(() => {
-        if (selectedAreaId) {
-            setData('area_id', selectedAreaId);
+    // Update selected plant when sector changes (for edit mode)
+    useEffect(() => {
+        if (isEditMode && sector) {
+            // Set the plant based on the sector's area
+            if (sector.area?.plant?.id) {
+                setLocalSelectedPlant(sector.area.plant.id.toString());
+            }
+        } else if (!isEditMode) {
+            setLocalSelectedPlant('');
         }
-        if (selectedPlantId) {
-            setLocalSelectedPlant(selectedPlantId);
-        }
-    }, [selectedAreaId, selectedPlantId]);
+    }, [sector, isEditMode]);
 
     const availableAreas = useMemo(() => {
         if (!localSelectedPlant) return [];
@@ -70,115 +48,82 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
         return selectedPlant?.areas || [];
     }, [localSelectedPlant, plants]);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        const formData = {
-            ...data,
-            stay: true, // Indica que deve permanecer na mesma página
-        };
-
-        post(route('asset-hierarchy.setores.store'), {
-            ...formData,
-            onSuccess: () => {
-                toast.success('Setor criado com sucesso!');
-                reset();
-                setSheetOpen(false);
-                onSuccess?.();
-            },
-            onError: (errors: any) => {
-                toast.error('Erro ao criar setor', {
-                    description: 'Verifique os campos e tente novamente.',
-                });
-            },
-        });
-    };
-
-    const handleCancel = () => {
-        reset();
-        setLocalSelectedPlant(selectedPlantId || '');
-        setSheetOpen(false);
-    };
-
     return (
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            {showTrigger && (
-                <SheetTrigger asChild>
-                    <Button variant={triggerVariant} ref={triggerRef}>
-                        {triggerText}
-                    </Button>
-                </SheetTrigger>
-            )}
-            <SheetContent className="sm:max-w-lg">
-                <SheetHeader className="">
-                    <SheetTitle>Novo Setor</SheetTitle>
-                    <SheetDescription>Adicione um novo setor ao sistema</SheetDescription>
-                </SheetHeader>
+        <BaseEntitySheet<SectorForm>
+            entity={sector}
+            open={open}
+            onOpenChange={onOpenChange}
+            mode={mode}
+            formConfig={{
+                initialData: {
+                    name: '',
+                    area_id: '',
+                },
+                createRoute: 'asset-hierarchy.setores.store',
+                updateRoute: 'asset-hierarchy.setores.update',
+                entityName: 'Setor',
+            }}
+        >
+            {({ data, setData, errors }) => (
+                <>
+                    {/* Nome do Setor - Campo Obrigatório */}
+                    <TextInput<SectorForm>
+                        form={{
+                            data,
+                            setData,
+                            errors,
+                            clearErrors: () => { },
+                        }}
+                        name="name"
+                        label="Nome do Setor"
+                        placeholder="Nome do setor"
+                        required
+                    />
 
-                <form onSubmit={handleSubmit} className="m-4 space-y-6">
-                    <div className="grid gap-6">
-                        {/* Nome do Setor - Campo Obrigatório */}
-                        <TextInput<SectorForm>
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: () => { },
-                            }}
-                            name="name"
-                            label="Nome do Setor"
-                            placeholder="Nome do setor"
-                            required
-                        />
-
-                        {/* Planta */}
-                        <div className="grid gap-2">
-                            <ItemSelect
-                                label="Planta"
-                                items={plants}
-                                value={localSelectedPlant}
-                                onValueChange={(value) => {
-                                    setLocalSelectedPlant(value);
+                    {/* Planta */}
+                    <div className="grid gap-2">
+                        <ItemSelect
+                            label="Planta"
+                            items={plants}
+                            value={localSelectedPlant}
+                            onValueChange={(value) => {
+                                setLocalSelectedPlant(value);
+                                if (!isEditMode) {
                                     setData('area_id', ''); // Limpa a área quando mudar a planta
-                                }}
-                                placeholder="Selecione uma planta"
-                                required={!disableParentFields}
-                                disabled={disableParentFields}
-                            />
-                            {disableParentFields && (
-                                <p className="text-muted-foreground text-sm">A planta foi pré-selecionada e não pode ser alterada.</p>
-                            )}
-                        </div>
-
-                        {/* Área */}
-                        <div className="grid gap-2">
-                            <ItemSelect
-                                label="Área"
-                                items={availableAreas}
-                                value={data.area_id?.toString() || ''}
-                                onValueChange={(value) => setData('area_id', value)}
-                                placeholder={!localSelectedPlant ? 'Selecione uma planta primeiro' : 'Selecione uma área'}
-                                error={errors.area_id}
-                                disabled={disableParentFields || !localSelectedPlant}
-                                required={!disableParentFields}
-                            />
-                            {disableParentFields && (
-                                <p className="text-muted-foreground text-sm">A área foi pré-selecionada e não pode ser alterada.</p>
-                            )}
-                        </div>
+                                }
+                            }}
+                            placeholder="Selecione uma planta"
+                            required
+                            disabled={isEditMode}
+                        />
+                        {isEditMode && (
+                            <p className="text-muted-foreground text-sm">
+                                A planta não pode ser alterada ao editar um setor.
+                            </p>
+                        )}
                     </div>
 
-                    <SheetFooter className="flex justify-end gap-2">
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Salvando...' : 'Salvar'}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
-                            Cancelar
-                        </Button>
-                    </SheetFooter>
-                </form>
-            </SheetContent>
-        </Sheet>
+                    {/* Área */}
+                    <div className="grid gap-2">
+                        <ItemSelect
+                            label="Área"
+                            items={availableAreas}
+                            value={data.area_id?.toString() || ''}
+                            onValueChange={(value) => setData('area_id', value)}
+                            placeholder={!localSelectedPlant ? 'Selecione uma planta primeiro' : 'Selecione uma área'}
+                            error={errors.area_id}
+                            disabled={!localSelectedPlant || isEditMode}
+                            required
+                        />
+                        {isEditMode && (
+                            <p className="text-muted-foreground text-sm">
+                                A área não pode ser alterada ao editar um setor.
+                            </p>
+                        )}
+                    </div>
+                </>
+            )}
+        </BaseEntitySheet>
     );
 };
 
