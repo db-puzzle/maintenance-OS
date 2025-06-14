@@ -303,7 +303,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                     ) : (
                         <Button
                             size="sm"
-                            variant="secondary"
+                            variant="outline"
                             onClick={onEditForm}
                         >
                             <FileText className="mr-1 h-4 w-4" />

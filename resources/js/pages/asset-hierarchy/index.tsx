@@ -96,7 +96,7 @@ export default function AssetHierarchyIndex() {
                     <h2 className="text-foreground mb-6 text-xl font-semibold">Hierarquia de Ativos</h2>
 
                     {/* Main Navigation Cards */}
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-8">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
                         {navigationCards.map((card) => {
                             const IconComponent = card.icon;
 
@@ -119,59 +119,6 @@ export default function AssetHierarchyIndex() {
                         })}
                     </div>
 
-                    {/* Data Management Section */}
-                    <div>
-                        <h3 className="text-foreground mb-4 text-lg font-semibold">Gerenciamento de Dados</h3>
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                            {dataManagementCards.map((card) => {
-                                const IconComponent = card.icon;
-
-                                return (
-                                    <button
-                                        key={card.href}
-                                        onClick={() => router.visit(card.href)}
-                                        className="bg-card border-border group rounded-xl border p-6 text-left transition-all duration-200 hover:bg-input-focus hover:ring-ring/10 hover:border-ring hover:ring-[1px]"
-                                    >
-                                        <div className="mb-4 flex items-center justify-between">
-                                            <div className="bg-muted text-muted-foreground rounded-lg p-3">
-                                                <IconComponent size={24} />
-                                            </div>
-                                            <ChevronRight className="text-muted-foreground group-hover:text-foreground transition-colors" size={20} />
-                                        </div>
-                                        <h3 className="text-foreground mb-2 font-semibold">{card.title}</h3>
-                                        <p className="text-muted-foreground mb-3 text-sm">{card.description}</p>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Info Section */}
-                <div className="bg-card border-border rounded-xl border p-6 mt-auto">
-                    <h3 className="text-foreground mb-3 font-semibold">Sobre a Hierarquia de Ativos</h3>
-                    <p className="text-muted-foreground text-sm mb-4">
-                        A hierarquia de ativos permite organizar e estruturar todos os equipamentos e recursos
-                        da empresa de forma lógica e eficiente. Esta estrutura facilita:
-                    </p>
-                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
-                        <li>Localização rápida de ativos específicos</li>
-                        <li>Planejamento de manutenção por área ou setor</li>
-                        <li>Controle de inventário por localização</li>
-                        <li>Gestão de turnos e horários de operação</li>
-                        <li>Rastreamento de fabricantes e tipos de equipamento</li>
-                    </ul>
-                    <div className="mt-4 pt-4 border-t border-border">
-                        <p className="text-sm text-muted-foreground">
-                            <strong className="text-foreground">Dica:</strong> Configure primeiro as plantas, depois as áreas e setores
-                            antes de cadastrar os ativos. Isso garantirá uma estrutura organizacional sólida.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Footer Info */}
-                <div className="text-muted-foreground mt-12 text-center text-sm">
-                    <p>Precisa de ajuda? Entre em contato com o administrador do sistema ou consulte a documentação.</p>
                 </div>
             </div>
         </AppLayout>

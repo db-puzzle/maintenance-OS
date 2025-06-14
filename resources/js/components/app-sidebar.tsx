@@ -42,34 +42,10 @@ const sistemaNavItems: NavGroup = {
     title: 'Configurações',
     items: [
         {
-            title: 'Hierarquia de Ativos',
+            title: 'Utilidades',
             href: '#',
             icon: ClipboardList,
             items: [
-                {
-                    title: 'Setores',
-                    href: '/asset-hierarchy/setores',
-                },
-                {
-                    title: 'Áreas',
-                    href: '/asset-hierarchy/areas',
-                },
-                {
-                    title: 'Plantas',
-                    href: '/asset-hierarchy/plantas',
-                },
-                {
-                    title: 'Turnos',
-                    href: '/asset-hierarchy/shifts',
-                },
-                {
-                    title: 'Tipos de Ativo',
-                    href: '/asset-hierarchy/tipos-ativo',
-                },
-                {
-                    title: 'Fabricantes',
-                    href: '/asset-hierarchy/manufacturers',
-                },
                 {
                     title: 'Exportar Ativos',
                     href: '/asset-hierarchy/assets/exportar',
