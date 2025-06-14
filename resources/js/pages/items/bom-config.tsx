@@ -370,7 +370,6 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                 if (dataId) {
                     draggingRef.current = dataId;
                 } else {
-                    console.log('No drag ID in dataTransfer');
                     return;
                 }
             } catch (error) {

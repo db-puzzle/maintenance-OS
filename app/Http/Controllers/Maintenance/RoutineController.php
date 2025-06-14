@@ -162,7 +162,7 @@ class RoutineController extends Controller
         }
 
         // Get tasks - draft tasks if available, otherwise current version tasks
-        $tasks = [];
+        $tasks = collect([]);
         if ($routine->form->draftTasks->count() > 0) {
             $tasks = $routine->form->draftTasks;
         } elseif ($routine->form->currentVersion) {
@@ -345,16 +345,20 @@ class RoutineController extends Controller
         $routine = Routine::create($validated);
         $routine->assets()->attach($asset->id);
         
-        // Create the form for the routine
-        $form = Form::create([
-            'name' => $routine->name . ' - Formulário',
-            'description' => 'Formulário para a rotina ' . $routine->name,
-            'is_active' => true,
-            'created_by' => auth()->id()
-        ]);
-        
-        $routine->form_id = $form->id;
-        $routine->save();
+        // The Routine model should automatically create a form in the creating event
+        // But let's ensure it has one
+        if (!$routine->form_id) {
+            // Create the form for the routine
+            $form = Form::create([
+                'name' => $routine->name . ' - Formulário',
+                'description' => 'Formulário para a rotina ' . $routine->name,
+                'is_active' => true,
+                'created_by' => auth()->id()
+            ]);
+            
+            $routine->form_id = $form->id;
+            $routine->save();
+        }
         
         // Load the relationships - form is newly created so it won't have tasks yet
         $routine->load(['assets', 'form']);
@@ -604,10 +608,15 @@ class RoutineController extends Controller
      */
     public function getRoutineWithFormData(Routine $routine)
     {
+        // Check if routine has a form
+        if (!$routine->form) {
+            return response()->json(['error' => 'Routine has no associated form'], 404);
+        }
+        
         $routine->load(['form.draftTasks.instructions', 'form.currentVersion.tasks.instructions']);
         
         // Get tasks - draft tasks if available, otherwise current version tasks
-        $tasks = [];
+        $tasks = collect([]);
         if ($routine->form->draftTasks->count() > 0) {
             $tasks = $routine->form->draftTasks;
         } elseif ($routine->form->currentVersion) {

@@ -197,12 +197,26 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     // Check for new routine from flash data
     useEffect(() => {
         if (newRoutineId && tabFromUrl === 'rotinas') {
+            // Check if the routine exists in the current state
+            const routineExists = routines.some(r => r.id === newRoutineId);
+
+            if (!routineExists) {
+                // If the routine doesn't exist in state, it means we need to find it
+                // It should be in the asset's routines that were loaded from the backend
+                const newRoutine = asset?.routines?.find(r => r.id === newRoutineId);
+
+                if (newRoutine) {
+                    // Add it to the state
+                    setRoutines([...routines, newRoutine]);
+                }
+            }
+
             // Small delay to ensure the UI is ready
             setTimeout(() => {
                 handleEditRoutineForm(newRoutineId);
             }, 100);
         }
-    }, [newRoutineId, tabFromUrl]);
+    }, [newRoutineId, tabFromUrl, asset?.routines]);
 
 
 
@@ -247,7 +261,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 toast.info('Nenhum turno cadastrado.');
             }
         } catch (error: any) {
-            console.error('Error loading shifts:', error);
             toast.error('Erro ao carregar turnos');
         } finally {
             setLoadingShifts(false);
@@ -261,7 +274,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             });
             setSelectedShift(response.data.shift);
         } catch (error: any) {
-            console.error('Error loading shift details:', error);
+            // Error loading shift details
         }
     };
 
@@ -297,7 +310,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 // Reload the page to refresh runtime data
                 router.reload();
             } catch (error) {
-                console.error('Error updating asset shift:', error);
                 toast.error('Erro ao associar turno');
                 return;
             }
@@ -331,7 +343,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                     });
                     toast.success('Turno criado e associado ao ativo');
                 } catch (error) {
-                    console.error('Error associating shift with asset:', error);
                     toast.error('Erro ao associar turno ao ativo');
                 }
             }
@@ -373,7 +384,9 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         // First, fetch the complete routine data with form
         setLoadingFormEditor(true);
         try {
-            const response = await axios.get(route('maintenance.routines.form-data', routineId));
+            const url = route('maintenance.routines.form-data', routineId);
+
+            const response = await axios.get(url);
             const routineWithForm = response.data.routine;
 
             // Update the routine in the state with the fetched data
@@ -385,9 +398,15 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             setEditingRoutineFormId(routineId);
             // Ativar modo comprimido ao editar formulário
             setIsCompressed(true);
-        } catch (error) {
-            console.error('Error fetching routine form data:', error);
-            toast.error('Erro ao carregar dados do formulário');
+        } catch (error: any) {
+            // More specific error message
+            if (error.response?.status === 404) {
+                toast.error('Rotina não encontrada');
+            } else if (error.response?.status === 500) {
+                toast.error('Erro no servidor ao carregar formulário');
+            } else {
+                toast.error('Erro ao carregar dados do formulário');
+            }
         } finally {
             setLoadingFormEditor(false);
         }

@@ -31,6 +31,7 @@ import { ClipboardCheck, Save, Upload, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { FormStatusBadge } from '@/components/form-lifecycle';
 
 interface RoutineData {
     id: number;
@@ -41,6 +42,11 @@ interface RoutineData {
         isDraft?: boolean;
         currentVersionId?: number | null;
         has_draft_changes?: boolean;
+        current_version?: {
+            id?: number;
+            version_number: string;
+            published_at?: string;
+        };
     };
 }
 
@@ -329,9 +335,21 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between px-4 py-5 -mb-2 sticky top-0 z-10 bg-white/75 backdrop-blur-sm">
-                <div className="-ml-2 -mt-2 flex flex-wrap items-baseline">
-                    <p className="ml-2 mt-1 truncate text-sm text-gray-500">Tarefas de</p>
-                    <h3 className="ml-2 mt-2 text-base font-semibold text-gray-900">{routine.name}</h3>
+                <div className="-ml-2 -mt-2 flex flex-wrap items-baseline gap-3">
+                    <div className="flex flex-wrap items-baseline">
+                        <p className="ml-2 mt-1 truncate text-sm text-gray-500">Tarefas de</p>
+                        <h3 className="ml-2 mt-2 text-base font-semibold text-gray-900">{routine.name}</h3>
+                    </div>
+                    {routine.form && (
+                        <FormStatusBadge
+                            form={{
+                                ...routine.form,
+                                current_version_id: routine.form.currentVersionId ?? null,
+                                has_draft_changes: routine.form.has_draft_changes ?? routine.form.isDraft
+                            }}
+                            size="sm"
+                        />
+                    )}
                 </div>
                 <div className="flex gap-2">
                     <Button

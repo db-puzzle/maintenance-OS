@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Task } from '@/types/task';
 import { Link, router } from '@inertiajs/react';
-import { ClipboardCheck, Clock, Edit2, Eye, FileText, MoreVertical, Plus, Trash2, AlertCircle, CalendarRange } from 'lucide-react';
+import { ClipboardCheck, Clock, Edit2, Eye, FileText, MoreVertical, Plus, Trash2, AlertCircle, CalendarRange, History } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import axios from 'axios';
+import { FormStatusBadge, FormExecutionGuard, FormVersionHistory, getFormState } from '@/components/form-lifecycle';
 
 export interface Routine {
     id?: number;
@@ -27,6 +28,11 @@ export interface Routine {
         has_draft_changes?: boolean;
         is_draft?: boolean;
         current_version_id?: number | null;
+        current_version?: {
+            id?: number;
+            version_number: string;
+            published_at?: string;
+        };
     };
 }
 
@@ -124,6 +130,9 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
     // Estado para armazenar dados completos da rotina com formulário
     const [routineWithForm, setRoutineWithForm] = useState<Routine | null>(null);
     const [loadingForm, setLoadingForm] = useState(false);
+
+    // Estado para controlar o modal de histórico de versões
+    const [showVersionHistory, setShowVersionHistory] = useState(false);
 
     // Dados da rotina ou dados vazios para nova rotina
     const routineData = routineWithForm || routine || {
@@ -278,16 +287,16 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                     <div className="flex items-start gap-x-3">
                         <p className={cn(
                             "font-semibold text-gray-900 transition-all duration-200 ease-in-out",
-                            isCompressed ? "text-sm" : "text-sm"
+                            isCompressed ? "text-lg" : "text-lg"
                         )}>{routineData.name}</p>
-                        {routineData.form && !routineData.form.current_version_id ? (
-                            <p className="mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset bg-amber-50 text-amber-700 ring-amber-600/20">
-                                Rascunho
-                            </p>
-                        ) : routineData.form && routineData.form.has_draft_changes ? (
-                            <p className="mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset bg-amber-50 text-amber-700 ring-amber-600/20">
-                                Alterações pendentes
-                            </p>
+                        {routineData.form ? (
+                            <FormStatusBadge
+                                form={{
+                                    ...routineData.form,
+                                    current_version_id: routineData.form.current_version_id ?? null
+                                }}
+                                size="sm"
+                            />
                         ) : (
                             <p
                                 className={`mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${routineData.status === 'Active'
@@ -324,6 +333,16 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                     <FileText className="h-3 w-3" />
                                     {loadingForm ? '...' : (routineData.form.tasks?.length || 0)} tarefas
                                 </p>
+                                {routineData.form.current_version && (
+                                    <>
+                                        <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                                            <circle r={1} cx={1} cy={1} />
+                                        </svg>
+                                        <p className="whitespace-nowrap">
+                                            v{routineData.form.current_version.version_number}
+                                        </p>
+                                    </>
+                                )}
                             </>
                         )}
                     </div>
@@ -343,11 +362,38 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                             <FileText className="mr-1 h-4 w-4 animate-pulse" />
                             Carregando...
                         </Button>
-                    ) : routineData.form && routineData.form.current_version_id && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
-                        <Button size="sm" variant="action" onClick={onFillForm}>
-                            <ClipboardCheck className="mr-1 h-4 w-4" />
-                            Preencher
-                        </Button>
+                    ) : routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
+                        <FormExecutionGuard
+                            form={{
+                                ...routineData.form,
+                                current_version_id: routineData.form.current_version_id ?? null
+                            }}
+                            onExecute={(versionId) => {
+                                if (onFillForm) onFillForm();
+                            }}
+                            onPublishAndExecute={async () => {
+                                // Publish the form first
+                                try {
+                                    await axios.post(route('maintenance.assets.routines.forms.publish', {
+                                        asset: assetId,
+                                        routine: routine?.id
+                                    }));
+                                    toast.success('Formulário publicado com sucesso!');
+                                    // Refresh form data
+                                    await fetchRoutineFormData();
+                                    // Then execute
+                                    if (onFillForm) onFillForm();
+                                } catch (error) {
+                                    toast.error('Erro ao publicar formulário');
+                                }
+                            }}
+                            onEditForm={onEditForm}
+                        >
+                            <Button size="sm" variant="action">
+                                <ClipboardCheck className="mr-1 h-4 w-4" />
+                                Preencher
+                            </Button>
+                        </FormExecutionGuard>
                     ) : routineData.form && routineData.form.has_draft_changes ? (
                         <Button
                             size="sm"
@@ -376,7 +422,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                                {!loadingForm && routineData.form && routineData.form.current_version_id && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
+                                {!loadingForm && routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
                                     <>
                                         <DropdownMenuItem
                                             asChild={!onFillForm}
@@ -456,6 +502,18 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                     <Edit2 className="mr-2 h-4 w-4" />
                                     Editar Rotina
                                 </DropdownMenuItem>
+                                {routineData.form && routineData.form.current_version_id && (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onClick={() => setShowVersionHistory(true)}
+                                            className="flex items-center"
+                                        >
+                                            <History className="mr-2 h-4 w-4" />
+                                            Ver Histórico de Versões
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleDelete} className="text-destructive">
                                     <Trash2 className="mr-2 h-4 w-4" />
@@ -513,6 +571,16 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                     onOpenChange={handleSheetOpenChange}
                 />
             </div>
+
+            {/* Modal de Histórico de Versões */}
+            {routineData.form && (
+                <FormVersionHistory
+                    formId={routineData.form.id}
+                    currentVersionId={routineData.form.current_version_id}
+                    isOpen={showVersionHistory}
+                    onClose={() => setShowVersionHistory(false)}
+                />
+            )}
         </>
     );
 }
