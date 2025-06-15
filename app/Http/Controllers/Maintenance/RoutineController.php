@@ -4,14 +4,15 @@ namespace App\Http\Controllers\Maintenance;
 
 use App\Http\Controllers\Controller;
 use App\Models\Maintenance\Routine;
+use App\Models\Maintenance\RoutineExecution;
 use App\Models\Forms\Form;
+use App\Models\Forms\FormVersion;
 use App\Models\Forms\FormTask;
+use App\Models\Forms\FormExecution;
+use App\Models\Forms\FormResponse;
 use App\Models\AssetHierarchy\Asset;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\Maintenance\RoutineExecution;
-use App\Models\Forms\FormExecution;
-use App\Models\Forms\FormResponse;
 use Illuminate\Support\Facades\DB;
 
 class RoutineController extends Controller
@@ -169,7 +170,7 @@ class RoutineController extends Controller
             $tasks = $routine->form->currentVersion->tasks;
         }
 
-        // Converter FormTasks para o formato usado no frontend
+        // Transform tasks to frontend format
         $formattedTasks = $tasks->map(function ($task) {
             return [
                 'id' => (string)$task->id,
@@ -325,7 +326,7 @@ class RoutineController extends Controller
 
     public function assetRoutines(Asset $asset)
     {
-        $routines = $asset->routines()->with(['form', 'routineExecutions'])->get();
+        $routines = $asset->routines()->with(['form.currentVersion', 'routineExecutions'])->get();
         
         return Inertia::render('asset-hierarchy/assets/routines', [
             'asset' => $asset,
@@ -650,7 +651,108 @@ class RoutineController extends Controller
                     'tasks' => $formattedTasks,
                     'is_draft' => $routine->form->isDraft(),
                     'current_version_id' => $routine->form->current_version_id,
-                    'has_draft_changes' => $routine->form->draftTasks()->exists()
+                    'has_draft_changes' => $routine->form->draftTasks()->exists(),
+                    'current_version' => $routine->form->currentVersion ? [
+                        'id' => $routine->form->currentVersion->id,
+                        'version_number' => $routine->form->currentVersion->version_number,
+                        'published_at' => $routine->form->currentVersion->published_at
+                    ] : null
+                ]
+            ]
+        ]);
+    }
+
+    public function getFormData(Routine $routine)
+    {
+        // Check if routine has a form
+        if (!$routine->form) {
+            return response()->json(['error' => 'Routine has no associated form'], 404);
+        }
+        
+        $routine->load([
+            'form.draftTasks.instructions', 
+            'form.currentVersion.tasks.instructions',
+            'form.currentVersion.publisher',
+            'routineExecutions' => function($query) {
+                $query->where('status', RoutineExecution::STATUS_COMPLETED)
+                      ->orderBy('completed_at', 'desc')
+                      ->limit(1)
+                      ->with('executor:id,name');
+            }
+        ]);
+        
+        // If form is published and has no draft tasks, create draft from current version
+        if ($routine->form->current_version_id && !$routine->form->draftTasks()->exists()) {
+            $routine->form->createDraftFromCurrentVersion();
+            // Reload draft tasks after creation
+            $routine->form->load('draftTasks.instructions');
+        }
+        
+        // Get tasks - draft tasks if available, otherwise current version tasks
+        $tasks = collect([]);
+        $draftUpdatedAt = null;
+        $draftUpdatedBy = null;
+        
+        if ($routine->form->draftTasks->count() > 0) {
+            $tasks = $routine->form->draftTasks;
+            // Get the most recent draft task update
+            $latestDraftTask = $routine->form->draftTasks()
+                ->orderBy('updated_at', 'desc')
+                ->first();
+            if ($latestDraftTask) {
+                $draftUpdatedAt = $latestDraftTask->updated_at;
+                // For now, we'll use the current user as the editor
+                // In a real implementation, you might want to track who last edited each task
+                $draftUpdatedBy = auth()->user();
+            }
+        } elseif ($routine->form->currentVersion) {
+            $tasks = $routine->form->currentVersion->tasks;
+        }
+
+        // Transform tasks to frontend format
+        $formattedTasks = $tasks->map(function ($task) {
+            return [
+                'id' => (string)$task->id,
+                'type' => $this->mapTaskType($task->type),
+                'description' => $task->description,
+                'isRequired' => $task->is_required,
+                'state' => 'viewing',
+                'measurement' => $task->getMeasurementConfig(),
+                'options' => $task->getOptions(),
+                'codeReaderType' => $task->getCodeReaderType(),
+                'instructionImages' => $task->instructions->where('type', 'image')->pluck('media_url')->toArray(),
+                'form_version_id' => $task->form_version_id
+            ];
+        });
+
+        // Get last execution data
+        $lastExecution = $routine->routineExecutions->first();
+
+        return response()->json([
+            'routine' => [
+                'id' => $routine->id,
+                'name' => $routine->name,
+                'description' => $routine->description,
+                'trigger_hours' => $routine->trigger_hours,
+                'status' => $routine->status,
+                'form' => [
+                    'id' => $routine->form->id,
+                    'tasks' => $formattedTasks,
+                    'is_draft' => $routine->form->isDraft(),
+                    'current_version_id' => $routine->form->current_version_id,
+                    'has_draft_changes' => $routine->form->draftTasks()->exists(),
+                    'draft_updated_at' => $draftUpdatedAt,
+                    'draft_updated_by' => $draftUpdatedBy,
+                    'current_version' => $routine->form->currentVersion ? [
+                        'id' => $routine->form->currentVersion->id,
+                        'version_number' => $routine->form->currentVersion->version_number,
+                        'published_at' => $routine->form->currentVersion->published_at,
+                        'published_by' => $routine->form->currentVersion->publisher ? [
+                            'id' => $routine->form->currentVersion->publisher->id,
+                            'name' => $routine->form->currentVersion->publisher->name
+                        ] : null
+                    ] : null,
+                    'last_execution' => $lastExecution
                 ]
             ]
         ]);

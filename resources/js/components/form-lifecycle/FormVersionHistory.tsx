@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { History, FileText, User, Calendar } from 'lucide-react';
+import { History, FileText } from 'lucide-react';
 
 interface FormVersionHistoryProps {
     formId: number;
@@ -11,8 +11,8 @@ interface FormVersionHistoryProps {
 }
 
 export default function FormVersionHistory({
-    formId,
-    currentVersionId,
+    formId: _formId,
+    currentVersionId: _currentVersionId,
     isOpen,
     onClose
 }: FormVersionHistoryProps) {

@@ -40,7 +40,7 @@ export default function Map({ coordinates, className = '' }: MapProps) {
                 restriction: undefined,
             });
 
-            const marker = new google.maps.marker.AdvancedMarkerElement({
+            new google.maps.marker.AdvancedMarkerElement({
                 map,
                 position: { lat, lng },
                 title: 'Localização da Planta',
@@ -51,9 +51,8 @@ export default function Map({ coordinates, className = '' }: MapProps) {
     return (
         <div
             ref={mapRef}
-            className={`h-[300px] w-full rounded-lg md:h-[400px] lg:h-[500px] ${className} ${
-                !coordinates ? 'bg-muted flex items-center justify-center' : ''
-            }`}
+            className={`h-[300px] w-full rounded-lg md:h-[400px] lg:h-[500px] ${className} ${!coordinates ? 'bg-muted flex items-center justify-center' : ''
+                }`}
         >
             {!coordinates && <p className="text-muted-foreground">Coordenadas GPS não disponíveis</p>}
         </div>

@@ -123,4 +123,42 @@ class Form extends Model
 
         return $version;
     }
+
+    /**
+     * Create draft tasks from the current published version
+     * This is used when starting to edit a published form
+     */
+    public function createDraftFromCurrentVersion(): bool
+    {
+        // If there are already draft tasks, don't create new ones
+        if ($this->draftTasks()->exists()) {
+            return false;
+        }
+
+        // If there's no current version, nothing to copy
+        if (!$this->currentVersion) {
+            return false;
+        }
+
+        // Load current version tasks with instructions
+        $this->currentVersion->load('tasks.instructions');
+
+        // Copy each task from the current version as a draft
+        foreach ($this->currentVersion->tasks as $versionTask) {
+            // Create draft task
+            $draftTask = $versionTask->replicate();
+            $draftTask->form_version_id = null; // Remove version reference
+            $draftTask->form_id = $this->id; // Set form reference for draft
+            $draftTask->save();
+
+            // Copy task instructions
+            foreach ($versionTask->instructions as $instruction) {
+                $newInstruction = $instruction->replicate();
+                $newInstruction->form_task_id = $draftTask->id;
+                $newInstruction->save();
+            }
+        }
+
+        return true;
+    }
 } 

@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { Task } from '@/types/task';
 import { FileText, Upload, X } from 'lucide-react';
 import { useRef } from 'react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';

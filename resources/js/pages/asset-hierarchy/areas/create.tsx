@@ -39,7 +39,7 @@ export default function CreateArea({ plants }: Props) {
     const handleSave = () => {
         post(route('asset-hierarchy.areas.store'), {
             onSuccess: () => reset('name', 'plant_id'),
-            onError: (errors) => {
+            onError: () => {
                 toast.error('Erro ao criar área', {
                     description: 'Verifique os campos e tente novamente.',
                 });
@@ -54,7 +54,6 @@ export default function CreateArea({ plants }: Props) {
             <CreateLayout
                 title="Nova Área"
                 subtitle="Adicione uma nova área ao sistema"
-                breadcrumbs={breadcrumbs}
                 backRoute={route('asset-hierarchy.areas')}
                 onSave={handleSave}
                 isSaving={processing}

@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,13 +23,13 @@ interface PaginationWrapperProps {
     perPage?: number;
 }
 
-export function PaginationWrapper({ 
-    currentPage, 
-    lastPage, 
+export function PaginationWrapper({
+    currentPage,
+    lastPage,
     total,
-    routeName, 
-    search = '', 
-    sort = '', 
+    routeName,
+    search = '',
+    sort = '',
     direction = 'asc',
     perPage = 8
 }: PaginationWrapperProps) {
@@ -43,7 +43,7 @@ export function PaginationWrapper({
         setLocalPerPage(Number(value));
         router.get(
             route(routeName),
-            { 
+            {
                 search,
                 sort,
                 direction,
@@ -57,7 +57,7 @@ export function PaginationWrapper({
     const handlePageChange = (newPage: number) => {
         router.get(
             route(routeName),
-            { 
+            {
                 search,
                 sort,
                 direction,

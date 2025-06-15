@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { type Area, type Asset, type AssetForm, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
-import { Link, router, useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { Camera, Pencil } from 'lucide-react';
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -40,9 +40,9 @@ interface AssetFormComponentProps {
 
 interface AssetFormFieldsProps {
     data: AssetForm;
-    setData: (key: keyof AssetForm, value: any) => void;
-    errors: Partial<Record<keyof AssetForm, string>>;
-    clearErrors: (...fields: (keyof AssetForm)[]) => void;
+    setData: (key: string, value: any) => void;
+    errors: Partial<Record<string, string>>;
+    clearErrors: (...fields: string[]) => void;
     plants: Plant[];
     assetTypes: AssetType[];
     manufacturers: Manufacturer[];
@@ -51,6 +51,7 @@ interface AssetFormFieldsProps {
     isEditing: boolean;
     isViewMode: boolean;
     // Refs
+    tagInputRef?: React.RefObject<HTMLInputElement | null>;
     assetTypeSelectRef: React.RefObject<HTMLButtonElement | null>;
     plantSelectRef: React.RefObject<HTMLButtonElement | null>;
     areaSelectRef: React.RefObject<HTMLButtonElement | null>;
@@ -76,6 +77,7 @@ function AssetFormFields({
     availableSectors,
     isEditing,
     isViewMode,
+    tagInputRef,
     assetTypeSelectRef,
     plantSelectRef,
     areaSelectRef,
@@ -135,7 +137,7 @@ function AssetFormFields({
                 {/* Coluna 2: Informações Básicas */}
                 <div className="space-y-6">
                     {/* TAG */}
-                    <TextInput<AssetForm>
+                    <TextInput
                         form={{
                             data,
                             setData,
@@ -147,10 +149,11 @@ function AssetFormFields({
                         placeholder="Digite a TAG do ativo"
                         required={!isViewMode}
                         view={isViewMode}
+                        ref={tagInputRef}
                     />
 
                     {/* Part Number */}
-                    <TextInput<AssetForm>
+                    <TextInput
                         form={{
                             data,
                             setData,
@@ -205,7 +208,7 @@ function AssetFormFields({
                     </div>
 
                     {/* Número Serial */}
-                    <TextInput<AssetForm>
+                    <TextInput
                         form={{
                             data,
                             setData,
@@ -219,7 +222,7 @@ function AssetFormFields({
                     />
 
                     {/* Ano de Fabricação */}
-                    <TextInput<AssetForm>
+                    <TextInput
                         form={{
                             data,
                             setData,
@@ -417,7 +420,7 @@ export default function AssetFormComponent({
                         router.reload();
                     }
                 },
-                onError: (errors) => {
+                onError: () => {
                     toast.error('Erro ao atualizar ativo', {
                         description: 'Verifique os campos e tente novamente.',
                     });
@@ -431,7 +434,7 @@ export default function AssetFormComponent({
                     // The backend will handle the redirect to the asset show page
                     // No need to call onSuccess as the page will be redirected
                 },
-                onError: (errors) => {
+                onError: () => {
                     toast.error('Erro ao criar ativo', {
                         description: 'Verifique os campos e tente novamente.',
                     });
@@ -456,6 +459,7 @@ export default function AssetFormComponent({
 
     // Handler functions for creating new entities
     const handlePlantCreated = () => {
+        setPlantSheetOpen(false);
         router.reload({
             only: ['plants'],
             onSuccess: (page) => {
@@ -474,6 +478,7 @@ export default function AssetFormComponent({
     };
 
     const handleAreaCreated = () => {
+        setAreaSheetOpen(false);
         router.reload({
             only: ['plants'],
             onSuccess: (page) => {
@@ -494,6 +499,7 @@ export default function AssetFormComponent({
     };
 
     const handleSectorCreated = () => {
+        setSectorSheetOpen(false);
         router.reload({
             only: ['plants'],
             onSuccess: (page) => {
@@ -514,6 +520,7 @@ export default function AssetFormComponent({
     };
 
     const handleAssetTypeCreated = () => {
+        setAssetTypeSheetOpen(false);
         router.reload({
             only: ['assetTypes'],
             onSuccess: (page) => {
@@ -530,39 +537,53 @@ export default function AssetFormComponent({
     };
 
     // Refs
-    const plantSheetTriggerRef = useRef<HTMLButtonElement>(null);
-    const areaSheetTriggerRef = useRef<HTMLButtonElement>(null);
-    const sectorSheetTriggerRef = useRef<HTMLButtonElement>(null);
-    const assetTypeSheetTriggerRef = useRef<HTMLButtonElement>(null);
-    const manufacturerSheetTriggerRef = useRef<HTMLButtonElement>(null);
-
     const plantSelectRef = useRef<HTMLButtonElement>(null);
     const assetTypeSelectRef = useRef<HTMLButtonElement>(null);
     const areaSelectRef = useRef<HTMLButtonElement>(null);
     const sectorSelectRef = useRef<HTMLButtonElement>(null);
     const manufacturerSelectRef = useRef<HTMLButtonElement>(null);
+    const tagInputRef = useRef<HTMLInputElement>(null);
+
+    // State for sheet visibility
+    const [plantSheetOpen, setPlantSheetOpen] = useState(false);
+    const [areaSheetOpen, setAreaSheetOpen] = useState(false);
+    const [sectorSheetOpen, setSectorSheetOpen] = useState(false);
+    const [assetTypeSheetOpen, setAssetTypeSheetOpen] = useState(false);
+    const [manufacturerSheetOpen, setManufacturerSheetOpen] = useState(false);
+
+    // Focus TAG input when creating a new asset
+    useEffect(() => {
+        if (!isEditing && tagInputRef.current) {
+            tagInputRef.current.focus();
+        }
+    }, [isEditing]);
 
     const handleCreatePlantClick = () => {
-        plantSheetTriggerRef.current?.click();
+        // Blur the current active element to release focus
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+        setPlantSheetOpen(true);
     };
 
     const handleCreateAreaClick = () => {
-        areaSheetTriggerRef.current?.click();
+        setAreaSheetOpen(true);
     };
 
     const handleCreateSectorClick = () => {
-        sectorSheetTriggerRef.current?.click();
+        setSectorSheetOpen(true);
     };
 
     const handleCreateAssetTypeClick = () => {
-        assetTypeSheetTriggerRef.current?.click();
+        setAssetTypeSheetOpen(true);
     };
 
     const handleCreateManufacturerClick = () => {
-        manufacturerSheetTriggerRef.current?.click();
+        setManufacturerSheetOpen(true);
     };
 
     const handleManufacturerCreated = () => {
+        setManufacturerSheetOpen(false);
         router.reload({
             only: ['manufacturers'],
             onSuccess: (page) => {
@@ -603,9 +624,9 @@ export default function AssetFormComponent({
             >
                 <AssetFormFields
                     data={data}
-                    setData={setData}
-                    errors={errors}
-                    clearErrors={clearErrors}
+                    setData={setData as (key: string, value: any) => void}
+                    errors={errors as Partial<Record<string, string>>}
+                    clearErrors={clearErrors as (...fields: string[]) => void}
                     plants={plants}
                     assetTypes={assetTypes}
                     manufacturers={manufacturers}
@@ -613,6 +634,7 @@ export default function AssetFormComponent({
                     availableSectors={availableSectors}
                     isEditing={isEditing}
                     isViewMode={isViewMode}
+                    tagInputRef={tagInputRef}
                     assetTypeSelectRef={assetTypeSelectRef}
                     plantSelectRef={plantSelectRef}
                     areaSelectRef={areaSelectRef}
@@ -628,7 +650,15 @@ export default function AssetFormComponent({
                 {/* Action buttons */}
                 {isEditing && (
                     <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-between sm:items-center">
-                        <div className="flex flex-col gap-2 sm:flex-row">
+                        {/* Delete button on the left when in edit mode */}
+                        {!isViewMode && (
+                            <div className="w-full sm:w-auto">
+                                <DeleteAsset assetId={asset.id} assetTag={asset.tag} />
+                            </div>
+                        )}
+
+                        {/* Edit/Save/Cancel buttons on the right */}
+                        <div className="flex flex-col gap-2 sm:flex-row sm:ml-auto">
                             {isViewMode ? (
                                 <Button
                                     type="button"
@@ -647,14 +677,6 @@ export default function AssetFormComponent({
                             ) : (
                                 <>
                                     <Button
-                                        type="submit"
-                                        size="sm"
-                                        className="w-full sm:w-auto"
-                                        disabled={processing}
-                                    >
-                                        {processing ? 'Salvando...' : 'Salvar'}
-                                    </Button>
-                                    <Button
                                         type="button"
                                         variant="outline"
                                         size="sm"
@@ -663,14 +685,17 @@ export default function AssetFormComponent({
                                     >
                                         Cancelar
                                     </Button>
+                                    <Button
+                                        type="submit"
+                                        size="sm"
+                                        className="w-full sm:w-auto"
+                                        disabled={processing}
+                                    >
+                                        {processing ? 'Salvando...' : 'Salvar'}
+                                    </Button>
                                 </>
                             )}
                         </div>
-                        {!isViewMode && (
-                            <div className="w-full sm:w-auto">
-                                <DeleteAsset assetId={asset.id} assetTag={asset.tag} />
-                            </div>
-                        )}
                     </div>
                 )}
 
@@ -697,62 +722,45 @@ export default function AssetFormComponent({
             </form>
 
             {/* Hidden Sheets for creating new entities */}
-            <div style={{ display: 'none' }}>
-                <CreatePlantSheet
-                    showTrigger={true}
-                    triggerText="Trigger Oculto"
-                    triggerVariant="outline"
-                    triggerRef={plantSheetTriggerRef}
-                    onSuccess={handlePlantCreated}
-                />
-            </div>
+            <CreatePlantSheet
+                open={plantSheetOpen}
+                onOpenChange={setPlantSheetOpen}
+                onSuccess={handlePlantCreated}
+            />
 
-            <div style={{ display: 'none' }}>
-                <CreateAreaSheet
-                    showTrigger={true}
-                    triggerText="Trigger Oculto"
-                    triggerVariant="outline"
-                    triggerRef={areaSheetTriggerRef}
-                    plants={plants}
-                    selectedPlantId={data.plant_id?.toString()}
-                    disableParentFields={true}
-                    onSuccess={handleAreaCreated}
-                />
-            </div>
+            <CreateAreaSheet
+                open={areaSheetOpen}
+                onOpenChange={setAreaSheetOpen}
+                plants={plants}
+                selectedPlantId={data.plant_id?.toString()}
+                disableParentFields={true}
+                onSuccess={handleAreaCreated}
+            />
 
-            <div style={{ display: 'none' }}>
-                <CreateSectorSheet
-                    showTrigger={true}
-                    triggerText="Trigger Oculto"
-                    triggerVariant="outline"
-                    triggerRef={sectorSheetTriggerRef}
-                    plants={plants}
-                    selectedPlantId={data.plant_id?.toString()}
-                    selectedAreaId={data.area_id?.toString()}
-                    disableParentFields={true}
-                    onSuccess={handleSectorCreated}
-                />
-            </div>
+            <CreateSectorSheet
+                open={sectorSheetOpen}
+                onOpenChange={setSectorSheetOpen}
+                mode="create"
+                plants={plants}
+                selectedPlantId={data.plant_id?.toString()}
+                selectedAreaId={data.area_id?.toString()}
+                disableParentFields={true}
+                onSuccess={handleSectorCreated}
+            />
 
-            <div style={{ display: 'none' }}>
-                <CreateAssetTypeSheet
-                    showTrigger={true}
-                    triggerText="Trigger Oculto"
-                    triggerVariant="outline"
-                    triggerRef={assetTypeSheetTriggerRef}
-                    onSuccess={handleAssetTypeCreated}
-                />
-            </div>
+            <CreateAssetTypeSheet
+                open={assetTypeSheetOpen}
+                onOpenChange={setAssetTypeSheetOpen}
+                mode="create"
+                onSuccess={handleAssetTypeCreated}
+            />
 
-            <div style={{ display: 'none' }}>
-                <CreateManufacturerSheet
-                    showTrigger={true}
-                    triggerText="Trigger Oculto"
-                    triggerVariant="outline"
-                    triggerRef={manufacturerSheetTriggerRef}
-                    onSuccess={handleManufacturerCreated}
-                />
-            </div>
+            <CreateManufacturerSheet
+                open={manufacturerSheetOpen}
+                onOpenChange={setManufacturerSheetOpen}
+                mode="create"
+                onSuccess={handleManufacturerCreated}
+            />
         </>
     );
 } 

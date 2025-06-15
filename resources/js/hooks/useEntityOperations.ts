@@ -97,7 +97,7 @@ export function useEntityOperations<T extends BaseEntity>({
                 // If no dependency check route is configured, open delete dialog directly
                 setDeleteDialogOpen(true);
             }
-        } catch (error) {
+        } catch {
             toast.error('Erro ao verificar dependências', {
                 description: 'Não foi possível verificar as dependências.',
             });

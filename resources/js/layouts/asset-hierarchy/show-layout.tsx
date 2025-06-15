@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MainSelectionTab, MainSelectionTabList, MainSelectionTabTrigger } from '@/components/ui/main-selection-tab';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebar } from '@/components/ui/sidebar';
-import { type BreadcrumbItem } from '@/types';
+
 import { Link } from '@inertiajs/react';
 import { Check, Maximize2, Minimize2 } from 'lucide-react';
 import { useState, type ReactNode, useEffect } from 'react';
@@ -20,9 +20,7 @@ interface Tab {
 interface ShowLayoutProps {
     title: string;
     subtitle?: string | ReactNode;
-    breadcrumbs: BreadcrumbItem[];
     editRoute: string;
-    backRoute: string;
     tabs: Tab[];
     children?: ReactNode;
     showEditButton?: boolean;
@@ -34,9 +32,7 @@ interface ShowLayoutProps {
 export default function ShowLayout({
     title,
     subtitle,
-    breadcrumbs,
     editRoute,
-    backRoute,
     tabs,
     children,
     showEditButton = false,
@@ -51,7 +47,7 @@ export default function ShowLayout({
     let sidebarControls: ReturnType<typeof useSidebar> | null = null;
     try {
         sidebarControls = useSidebar();
-    } catch (e) {
+    } catch {
         // ShowLayout is not within a SidebarProvider
     }
 

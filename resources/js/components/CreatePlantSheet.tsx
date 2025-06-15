@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import TextInput from '@/components/TextInput';
@@ -46,6 +46,46 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
     mode = 'create',
 }) => {
     const [open, setOpen] = useState(false);
+    const nameInputRef = useRef<HTMLInputElement>(null);
+
+    // Auto-focus the name input when sheet opens for creation
+    useEffect(() => {
+        if (controlledOpen && mode === 'create') {
+            // Use requestAnimationFrame to ensure the DOM is ready
+            const focusInput = () => {
+                requestAnimationFrame(() => {
+                    if (nameInputRef.current) {
+                        nameInputRef.current.focus();
+                        // Force focus in case it's being prevented
+                        nameInputRef.current.select();
+                    }
+                });
+            };
+
+            // Try multiple times with increasing delays to handle animation and focus traps
+            const timeouts = [100, 300, 500];
+            const timers = timeouts.map(delay => setTimeout(focusInput, delay));
+
+            // Cleanup timeouts
+            return () => {
+                timers.forEach(timer => clearTimeout(timer));
+            };
+        }
+    }, [controlledOpen, mode]);
+
+    // Handle onOpenChange to focus when sheet opens
+    const handleOpenChange = (open: boolean) => {
+        if (onOpenChange) {
+            onOpenChange(open);
+        }
+
+        // Focus the input when opening in create mode
+        if (open && mode === 'create') {
+            setTimeout(() => {
+                nameInputRef.current?.focus();
+            }, 100);
+        }
+    };
 
     const formatCEP = (value: string) => {
         // Remove todos os caracteres não numéricos
@@ -62,7 +102,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
         <BaseEntitySheet<PlantForm>
             entity={plant}
             open={controlledOpen}
-            onOpenChange={onOpenChange}
+            onOpenChange={handleOpenChange}
             mode={mode}
             onSuccess={onSuccess}
             triggerText={triggerText}
@@ -87,7 +127,8 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
             {({ data, setData, errors }) => (
                 <>
                     {/* Nome da Planta - Campo Obrigatório */}
-                    <TextInput<PlantForm>
+                    <TextInput
+                        ref={nameInputRef}
                         form={{
                             data,
                             setData,
@@ -104,7 +145,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                     <div className="grid gap-2">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2">
-                                <TextInput<PlantForm>
+                                <TextInput
                                     form={{
                                         data,
                                         setData,
@@ -117,7 +158,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                 />
                             </div>
                             <div>
-                                <TextInput<PlantForm>
+                                <TextInput
                                     form={{
                                         data,
                                         setData,
@@ -130,7 +171,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                 />
                             </div>
                             <div>
-                                <TextInput<PlantForm>
+                                <TextInput
                                     form={{
                                         data,
                                         setData: (name, value) => {
@@ -155,7 +196,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                     <div className="grid gap-2">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <TextInput<PlantForm>
+                                <TextInput
                                     form={{
                                         data,
                                         setData,
@@ -218,7 +259,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                     </div>
 
                     {/* Coordenadas GPS */}
-                    <TextInput<PlantForm>
+                    <TextInput
                         form={{
                             data,
                             setData,

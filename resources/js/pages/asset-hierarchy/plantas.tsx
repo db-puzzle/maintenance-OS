@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
@@ -20,7 +20,11 @@ declare const route: (name: string, params?: any) => string;
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Cadastro',
+        title: 'Home',
+        href: '/home',
+    },
+    {
+        title: 'Hierarquia de Ativos',
         href: '/asset-hierarchy',
     },
     {
@@ -201,8 +205,6 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
                         onRowClick={(plant) => router.visit(route('asset-hierarchy.plantas.show', { id: plant.id }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
-                        sortColumn={sort}
-                        sortDirection={direction}
                         actions={(plant) => (
                             <EntityActionDropdown
                                 onEdit={() => entityOps.handleEdit(plant)}
@@ -229,7 +231,6 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
-                entityName="planta"
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />

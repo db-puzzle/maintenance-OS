@@ -1,18 +1,19 @@
 import EditRoutineSheet from '@/components/EditRoutineSheet';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Task } from '@/types/task';
 import { Link, router } from '@inertiajs/react';
-import { ClipboardCheck, Clock, Edit2, Eye, FileText, MoreVertical, Plus, Trash2, AlertCircle, CalendarRange, History } from 'lucide-react';
-import { useRef, useState, useEffect } from 'react';
+import { ClipboardCheck, Clock, Edit2, Eye, FileText, MoreVertical, Plus, Trash2, AlertCircle, CalendarRange, History, Upload, Info } from 'lucide-react';
+import { useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import axios from 'axios';
-import { FormStatusBadge, FormExecutionGuard, FormVersionHistory, getFormState } from '@/components/form-lifecycle';
+import { FormStatusBadge, FormExecutionGuard, FormVersionHistory } from '@/components/form-lifecycle';
+import { getFormState } from '@/components/form-lifecycle/FormStatusBadge';
 
 export interface Routine {
     id?: number;
@@ -68,8 +69,6 @@ interface RoutineListProps {
     shift?: Shift | null;
 }
 
-
-
 // Helper function to calculate shift work hours per week
 const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => {
     if (!shift?.schedules) return 0;
@@ -82,7 +81,7 @@ const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => 
                 const [startHours, startMinutes] = shiftTime.start_time.split(':').map(Number);
                 const [endHours, endMinutes] = shiftTime.end_time.split(':').map(Number);
 
-                let startTotalMinutes = startHours * 60 + startMinutes;
+                const startTotalMinutes = startHours * 60 + startMinutes;
                 let endTotalMinutes = endHours * 60 + endMinutes;
 
                 // Handle shifts that cross midnight
@@ -98,7 +97,7 @@ const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => 
                     const [breakStartHours, breakStartMinutes] = breakTime.start_time.split(':').map(Number);
                     const [breakEndHours, breakEndMinutes] = breakTime.end_time.split(':').map(Number);
 
-                    let breakStartTotalMinutes = breakStartHours * 60 + breakStartMinutes;
+                    const breakStartTotalMinutes = breakStartHours * 60 + breakStartMinutes;
                     let breakEndTotalMinutes = breakEndHours * 60 + breakEndMinutes;
 
                     if (breakEndTotalMinutes < breakStartTotalMinutes) {
@@ -114,10 +113,13 @@ const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => 
     return totalMinutes / 60; // Return hours
 };
 
-export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew = false, assetId, onEditForm, onFillForm, isCompressed = false, shift }: RoutineListProps) {
+const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListProps>(({ routine, onSave, onDelete, isNew = false, assetId, onEditForm, onFillForm, isCompressed = false, shift }, ref) => {
     // Referência para o trigger do sheet
     const editSheetTriggerRef = useRef<HTMLButtonElement>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+    // Referência para o botão "Adicionar Tarefas"
+    const addTasksButtonRef = useRef<HTMLButtonElement>(null);
 
     // Estados para controle do modal de exclusão
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -134,6 +136,9 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
     // Estado para controlar o modal de histórico de versões
     const [showVersionHistory, setShowVersionHistory] = useState(false);
 
+    // Estado para controlar o modal de aviso de nova versão
+    const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);
+
     // Dados da rotina ou dados vazios para nova rotina
     const routineData = routineWithForm || routine || {
         name: '',
@@ -142,6 +147,12 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
         description: '',
         form: undefined,
     };
+
+    // Get form state for conditional rendering
+    const formState = routineData.form ? getFormState({
+        ...routineData.form,
+        current_version_id: routineData.form.current_version_id ?? null
+    }) : null;
 
     // Fetch form data when component mounts if routine has a form
     useEffect(() => {
@@ -242,6 +253,56 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
 
     const isConfirmationValid = confirmationText === 'EXCLUIR';
 
+    const handlePublishForm = async () => {
+        try {
+            await axios.post(route('maintenance.assets.routines.forms.publish', {
+                asset: assetId,
+                routine: routine?.id
+            }));
+            toast.success('Formulário publicado com sucesso!');
+            // Refresh form data
+            await fetchRoutineFormData();
+        } catch {
+            toast.error('Erro ao publicar formulário');
+        }
+    };
+
+    const handleEditFormClick = () => {
+        // Close the dropdown menu first to avoid aria-hidden focus issues
+        setDropdownOpen(false);
+
+        // Small delay to ensure dropdown is closed before opening dialog
+        setTimeout(() => {
+            // Check if form is published (not unpublished and not already in draft)
+            if (formState === 'published') {
+                // Show warning dialog for published forms
+                setShowNewVersionDialog(true);
+            } else {
+                // For unpublished or draft forms, edit directly
+                if (onEditForm) onEditForm();
+            }
+        }, 100);
+    };
+
+    const confirmEditForm = () => {
+        setShowNewVersionDialog(false);
+        if (onEditForm) onEditForm();
+    };
+
+    // Expose method to focus the add tasks button
+    useImperativeHandle(ref, () => ({
+        focusAddTasksButton: () => {
+            if (addTasksButtonRef.current) {
+                addTasksButtonRef.current.focus();
+                // Add a visual indicator that the button should be clicked
+                addTasksButtonRef.current.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+                setTimeout(() => {
+                    addTasksButtonRef.current?.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+                }, 3000);
+            }
+        }
+    }));
+
     // Se for nova rotina, renderizar um card especial
     if (isNew) {
         return (
@@ -279,7 +340,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
 
     return (
         <>
-            <li className={cn(
+            <div className={cn(
                 "flex items-center justify-between gap-x-6 transition-all duration-200 ease-in-out",
                 isCompressed ? "py-3" : "py-5"
             )}>
@@ -363,42 +424,55 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                             Carregando...
                         </Button>
                     ) : routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
-                        <FormExecutionGuard
-                            form={{
-                                ...routineData.form,
-                                current_version_id: routineData.form.current_version_id ?? null
-                            }}
-                            onExecute={(versionId) => {
-                                if (onFillForm) onFillForm();
-                            }}
-                            onPublishAndExecute={async () => {
-                                // Publish the form first
-                                try {
-                                    await axios.post(route('maintenance.assets.routines.forms.publish', {
-                                        asset: assetId,
-                                        routine: routine?.id
-                                    }));
-                                    toast.success('Formulário publicado com sucesso!');
-                                    // Refresh form data
-                                    await fetchRoutineFormData();
-                                    // Then execute
-                                    if (onFillForm) onFillForm();
-                                } catch (error) {
-                                    toast.error('Erro ao publicar formulário');
-                                }
-                            }}
-                            onEditForm={onEditForm}
-                        >
-                            <Button size="sm" variant="action">
-                                <ClipboardCheck className="mr-1 h-4 w-4" />
-                                Preencher
+                        formState === 'unpublished' ? (
+                            // Show Publish button for unpublished forms
+                            <Button
+                                size="sm"
+                                variant="action"
+                                onClick={handlePublishForm}
+                            >
+                                <Upload className="mr-1 h-4 w-4" />
+                                Publicar
                             </Button>
-                        </FormExecutionGuard>
+                        ) : (
+                            // Show FormExecutionGuard for published/draft forms
+                            <FormExecutionGuard
+                                form={{
+                                    ...routineData.form,
+                                    current_version_id: routineData.form.current_version_id ?? null
+                                }}
+                                onExecute={() => {
+                                    if (onFillForm) onFillForm();
+                                }}
+                                onPublishAndExecute={async () => {
+                                    // Publish the form first
+                                    try {
+                                        await axios.post(route('maintenance.assets.routines.forms.publish', {
+                                            asset: assetId,
+                                            routine: routine?.id
+                                        }));
+                                        toast.success('Formulário publicado com sucesso!');
+                                        // Refresh form data
+                                        await fetchRoutineFormData();
+                                        // Then execute
+                                        if (onFillForm) onFillForm();
+                                    } catch {
+                                        toast.error('Erro ao publicar formulário');
+                                    }
+                                }}
+                                onEditForm={onEditForm}
+                            >
+                                <Button size="sm" variant="action">
+                                    <ClipboardCheck className="mr-1 h-4 w-4" />
+                                    Preencher
+                                </Button>
+                            </FormExecutionGuard>
+                        )
                     ) : routineData.form && routineData.form.has_draft_changes ? (
                         <Button
                             size="sm"
                             variant="outline"
-                            onClick={onEditForm}
+                            onClick={handleEditFormClick}
                         >
                             <FileText className="mr-1 h-4 w-4" />
                             Editar Tarefas
@@ -407,7 +481,8 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                         <Button
                             size="sm"
                             variant="outline"
-                            onClick={onEditForm}
+                            onClick={handleEditFormClick}
+                            ref={addTasksButtonRef}
                         >
                             <FileText className="mr-1 h-4 w-4" />
                             Adicionar Tarefas
@@ -423,49 +498,74 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                                 {!loadingForm && routineData.form && routineData.form.tasks && routineData.form.tasks.length > 0 ? (
-                                    <>
-                                        <DropdownMenuItem
-                                            asChild={!onFillForm}
-                                            className={onFillForm ? "flex items-center" : "flex items-center"}
-                                            onClick={onFillForm ? onFillForm : undefined}
-                                        >
-                                            {onFillForm ? (
+                                    formState === 'unpublished' ? (
+                                        // Show Publish option for unpublished forms
+                                        <>
+                                            <DropdownMenuItem
+                                                onClick={handlePublishForm}
+                                                className="flex items-center"
+                                            >
+                                                <Upload className="mr-2 h-4 w-4" />
+                                                Publicar
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                asChild={!onEditForm}
+                                                className={onEditForm ? "flex items-center" : "flex items-center"}
+                                                onClick={onEditForm ? handleEditFormClick : undefined}
+                                            >
                                                 <>
-                                                    <ClipboardCheck className="mr-2 h-4 w-4" />
-                                                    Preencher
+                                                    <FileText className="mr-2 h-4 w-4" />
+                                                    Editar Tarefas
                                                 </>
-                                            ) : (
-                                                <Link
-                                                    href={route('maintenance.assets.routines.form', {
-                                                        asset: assetId,
-                                                        routine: routineData.id,
-                                                        mode: 'fill',
-                                                    })}
-                                                    className="flex items-center"
-                                                >
-                                                    <ClipboardCheck className="mr-2 h-4 w-4" />
-                                                    Preencher
-                                                </Link>
-                                            )}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            asChild={!onEditForm}
-                                            className={onEditForm ? "flex items-center" : "flex items-center"}
-                                            onClick={onEditForm ? onEditForm : undefined}
-                                        >
-                                            <>
-                                                <FileText className="mr-2 h-4 w-4" />
-                                                Editar Tarefas
-                                            </>
-                                        </DropdownMenuItem>
-                                    </>
+                                            </DropdownMenuItem>
+                                        </>
+                                    ) : (
+                                        // Show Fill option for published/draft forms
+                                        <>
+                                            <DropdownMenuItem
+                                                asChild={!onFillForm}
+                                                className={onFillForm ? "flex items-center" : "flex items-center"}
+                                                onClick={onFillForm ? onFillForm : undefined}
+                                            >
+                                                {onFillForm ? (
+                                                    <>
+                                                        <ClipboardCheck className="mr-2 h-4 w-4" />
+                                                        Preencher
+                                                    </>
+                                                ) : (
+                                                    <Link
+                                                        href={route('maintenance.assets.routines.form', {
+                                                            asset: assetId,
+                                                            routine: routineData.id,
+                                                            mode: 'fill',
+                                                        })}
+                                                        className="flex items-center"
+                                                    >
+                                                        <ClipboardCheck className="mr-2 h-4 w-4" />
+                                                        Preencher
+                                                    </Link>
+                                                )}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                asChild={!onEditForm}
+                                                className={onEditForm ? "flex items-center" : "flex items-center"}
+                                                onClick={onEditForm ? handleEditFormClick : undefined}
+                                            >
+                                                <>
+                                                    <FileText className="mr-2 h-4 w-4" />
+                                                    Editar Tarefas
+                                                </>
+                                            </DropdownMenuItem>
+                                        </>
+                                    )
                                 ) : routineData.form && routineData.form.has_draft_changes ? (
                                     <>
                                         <DropdownMenuItem
                                             asChild={!onEditForm}
                                             className={onEditForm ? "flex items-center" : "flex items-center"}
-                                            onClick={onEditForm ? onEditForm : undefined}
+                                            onClick={onEditForm ? handleEditFormClick : undefined}
                                         >
                                             <>
                                                 <FileText className="mr-2 h-4 w-4" />
@@ -479,7 +579,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                                         <DropdownMenuItem
                                             asChild={!onEditForm}
                                             className={onEditForm ? "sm:hidden" : "sm:hidden flex items-center"}
-                                            onClick={onEditForm ? onEditForm : undefined}
+                                            onClick={onEditForm ? handleEditFormClick : undefined}
                                         >
                                             <>
                                                 <FileText className="mr-2 h-4 w-4" />
@@ -523,7 +623,7 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                         </DropdownMenu>
                     )}
                 </div>
-            </li>
+            </div>
 
             {/* Modal de Confirmação de Exclusão */}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -581,6 +681,37 @@ export default function RoutineList({ routine, onSave, onDelete, onCancel, isNew
                     onClose={() => setShowVersionHistory(false)}
                 />
             )}
+
+            {/* Modal de Aviso de Nova Versão */}
+            <Dialog open={showNewVersionDialog} onOpenChange={setShowNewVersionDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Info className="h-5 w-5 text-blue-500" />
+                            Nova versão será criada
+                        </DialogTitle>
+                        <DialogDescription>
+                            Este formulário está publicado na versão <strong>v{routineData.form?.current_version?.version_number || '1.0'}</strong>.
+                            Ao editar as tarefas, uma cópia de rascunho será criada. As alterações não afetarão a versão atual até que você publique uma nova versão.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
+                        <p className="text-sm text-blue-800">
+                            <strong>Nota:</strong> A versão atual continuará sendo executada até que você publique as alterações como uma nova versão.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="secondary" onClick={() => setShowNewVersionDialog(false)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={confirmEditForm}>
+                            Continuar Editando
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
-}
+});
+
+export default RoutineList;

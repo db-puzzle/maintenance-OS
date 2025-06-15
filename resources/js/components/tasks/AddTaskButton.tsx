@@ -7,18 +7,17 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Task, TaskOperations, TaskType, TaskTypeGroups, TaskTypes } from '@/types/task';
+import { Task, TaskOperations, TaskType, TaskTypeGroups } from '@/types/task';
 import { PlusCircle } from 'lucide-react';
 
 interface AddTaskButtonProps {
     label: string;
-    taskTypes: typeof TaskTypes;
     tasks?: Task[];
     currentIndex?: number;
     onTaskAdded?: (newTask: Task) => void;
 }
 
-export default function AddTaskButton({ label, taskTypes, tasks, currentIndex = -1, onTaskAdded = () => {} }: AddTaskButtonProps) {
+export default function AddTaskButton({ label, tasks, currentIndex = -1, onTaskAdded = () => { } }: AddTaskButtonProps) {
     const handleAddTask = (type: TaskType) => {
         const newTask = TaskOperations.createAtIndex(tasks, currentIndex + 1, type);
         if (onTaskAdded) {

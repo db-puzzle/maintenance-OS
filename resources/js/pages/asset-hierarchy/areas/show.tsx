@@ -22,18 +22,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface Area {
-    id: number;
-    name: string;
-    plant: {
-        id: number;
-        name: string;
-    };
-    asset: Asset[];
-    sectors: Sector[];
-    created_at: string;
-    updated_at: string;
-}
+
 
 interface Sector {
     id: number;
@@ -107,7 +96,7 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
     if (!area || !area.plant) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
-                <ShowLayout title="Carregando..." breadcrumbs={breadcrumbs} editRoute="#" backRoute={route('asset-hierarchy.areas')} tabs={[]}>
+                <ShowLayout title="Carregando..." editRoute="#" tabs={[]}>
                     <div>Carregando informações da área...</div>
                 </ShowLayout>
             </AppLayout>
@@ -399,9 +388,7 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
             <ShowLayout
                 title={area.name}
                 subtitle={subtitle}
-                breadcrumbs={breadcrumbs}
                 editRoute={route('asset-hierarchy.areas.edit', area.id)}
-                backRoute={route('asset-hierarchy.areas')}
                 tabs={tabs}
             />
         </AppLayout>

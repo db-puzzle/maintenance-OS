@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import TextInput from '@/components/TextInput';
@@ -21,6 +21,7 @@ interface CreateManufacturerSheetProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     mode: 'create' | 'edit';
+    onSuccess?: () => void;
 }
 
 const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
@@ -28,13 +29,55 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
     open,
     onOpenChange,
     mode,
+    onSuccess,
 }) => {
+    const nameInputRef = useRef<HTMLInputElement>(null);
+
+    // Auto-focus the name input when sheet opens for creation
+    useEffect(() => {
+        if (open && mode === 'create') {
+            // Use requestAnimationFrame to ensure the DOM is ready
+            const focusInput = () => {
+                requestAnimationFrame(() => {
+                    if (nameInputRef.current) {
+                        nameInputRef.current.focus();
+                        nameInputRef.current.select();
+                    }
+                });
+            };
+
+            // Try multiple times with increasing delays to handle animation and focus traps
+            const timeouts = [100, 300, 500];
+            const timers = timeouts.map(delay => setTimeout(focusInput, delay));
+
+            // Cleanup timeouts
+            return () => {
+                timers.forEach(timer => clearTimeout(timer));
+            };
+        }
+    }, [open, mode]);
+
+    // Handle onOpenChange to focus when sheet opens
+    const handleOpenChange = (open: boolean) => {
+        if (onOpenChange) {
+            onOpenChange(open);
+        }
+
+        // Focus the input when opening in create mode
+        if (open && mode === 'create') {
+            setTimeout(() => {
+                nameInputRef.current?.focus();
+            }, 100);
+        }
+    };
+
     return (
         <BaseEntitySheet<ManufacturerForm>
             entity={manufacturer}
             open={open}
-            onOpenChange={onOpenChange}
+            onOpenChange={handleOpenChange}
             mode={mode}
+            onSuccess={onSuccess}
             formConfig={{
                 initialData: {
                     name: '',
@@ -52,7 +95,8 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
             {({ data, setData, errors }) => (
                 <>
                     {/* Nome do Fabricante - Campo Obrigatório */}
-                    <TextInput<ManufacturerForm>
+                    <TextInput
+                        ref={nameInputRef}
                         form={{
                             data,
                             setData,
@@ -66,7 +110,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
                     />
 
                     {/* Website */}
-                    <TextInput<ManufacturerForm>
+                    <TextInput
                         form={{
                             data,
                             setData,
@@ -80,7 +124,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
 
                     {/* Email e Telefone - Grid com 2 colunas */}
                     <div className="grid grid-cols-2 gap-4">
-                        <TextInput<ManufacturerForm>
+                        <TextInput
                             form={{
                                 data,
                                 setData,
@@ -91,7 +135,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
                             label="E-mail"
                             placeholder="contato@exemplo.com"
                         />
-                        <TextInput<ManufacturerForm>
+                        <TextInput
                             form={{
                                 data,
                                 setData,
@@ -105,7 +149,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
                     </div>
 
                     {/* País */}
-                    <TextInput<ManufacturerForm>
+                    <TextInput
                         form={{
                             data,
                             setData,

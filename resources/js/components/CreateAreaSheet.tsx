@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import ItemSelect from '@/components/ItemSelect';
@@ -44,31 +44,51 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
     showTrigger = false,
     triggerRef,
 }) => {
-    const [formData, setFormData] = React.useState<AreaForm>({
-        name: '',
-        plant_id: selectedPlantId || '',
-    });
+    const nameInputRef = useRef<HTMLInputElement>(null);
 
-    // Update form data when area or selectedPlantId changes
+    // Auto-focus the name input when sheet opens for creation
     useEffect(() => {
-        if (mode === 'edit' && area) {
-            setFormData({
-                name: area.name || '',
-                plant_id: area.plant_id?.toString() || '',
-            });
-        } else if (mode === 'create') {
-            setFormData({
-                name: '',
-                plant_id: selectedPlantId || '',
-            });
+        if (open && mode === 'create') {
+            // Use requestAnimationFrame to ensure the DOM is ready
+            const focusInput = () => {
+                requestAnimationFrame(() => {
+                    if (nameInputRef.current) {
+                        nameInputRef.current.focus();
+                        nameInputRef.current.select();
+                    }
+                });
+            };
+
+            // Try multiple times with increasing delays to handle animation and focus traps
+            const timeouts = [100, 300, 500];
+            const timers = timeouts.map(delay => setTimeout(focusInput, delay));
+
+            // Cleanup timeouts
+            return () => {
+                timers.forEach(timer => clearTimeout(timer));
+            };
         }
-    }, [area, mode, selectedPlantId]);
+    }, [open, mode]);
+
+    // Handle onOpenChange to focus when sheet opens
+    const handleOpenChange = (open: boolean) => {
+        if (onOpenChange) {
+            onOpenChange(open);
+        }
+
+        // Focus the input when opening in create mode
+        if (open && mode === 'create') {
+            setTimeout(() => {
+                nameInputRef.current?.focus();
+            }, 100);
+        }
+    };
 
     return (
         <BaseEntitySheet<AreaForm>
             entity={area}
             open={open}
-            onOpenChange={onOpenChange}
+            onOpenChange={handleOpenChange}
             mode={mode}
             onSuccess={onSuccess}
             triggerText={triggerText}
@@ -76,16 +96,20 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
             showTrigger={showTrigger}
             triggerRef={triggerRef}
             formConfig={{
-                initialData: formData,
+                initialData: {
+                    name: '',
+                    plant_id: selectedPlantId || '',
+                },
                 createRoute: 'asset-hierarchy.areas.store',
                 updateRoute: 'asset-hierarchy.areas.update',
                 entityName: 'Área',
             }}
         >
-            {({ data, setData, errors, processing }) => (
+            {({ data, setData, errors }) => (
                 <>
                     {/* Nome da Área - Campo Obrigatório */}
-                    <TextInput<AreaForm>
+                    <TextInput
+                        ref={nameInputRef}
                         form={{
                             data,
                             setData,

@@ -17,11 +17,11 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { type ShiftForm } from '@/types/asset-hierarchy';
-import { useForm, router } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { AlertCircle, Clock, Copy, Plus, Table, Trash2, AlertTriangle } from 'lucide-react';
-import React, { useState, forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import ItemSelect from './ItemSelect';
+
 import ShiftCalendarView from '@/components/ShiftCalendarView';
 import ShiftTableView from '@/components/ShiftTableView';
 import axios from 'axios';
@@ -257,6 +257,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
 }, ref) => {
     const [open, setOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const nameInputRef = useRef<HTMLInputElement>(null);
 
     // Expose button click to parent component
     useImperativeHandle(ref, () => buttonRef.current!, []);
@@ -294,7 +295,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
         };
     };
 
-    const { data, setData, post, processing, errors, clearErrors } = useForm<ShiftForm & { timezone: string }>(getInitialFormData());
+    const { data, setData, processing, errors, clearErrors } = useForm<ShiftForm & { timezone: string }>(getInitialFormData());
 
     const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
     const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -302,13 +303,41 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
     const [copyPopoverOpen, setCopyPopoverOpen] = useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [affectedAssets, setAffectedAssets] = useState<AffectedAsset[]>([]);
-    const [loadingAssets, setLoadingAssets] = useState(false);
+
     const [pendingSubmitData, setPendingSubmitData] = useState<any>(null);
     const [updateMode, setUpdateMode] = useState<'all' | 'selected'>('all');
     const [selectedAssetIds, setSelectedAssetIds] = useState<number[]>([]);
 
     const effectiveOpen = isOpen !== undefined ? isOpen : open;
     const effectiveSetOpen = onOpenChange || setOpen;
+
+    // Auto-focus name input when sheet opens
+    useEffect(() => {
+        if (effectiveOpen && nameInputRef.current) {
+            // Use requestAnimationFrame to ensure the sheet animation has started
+            requestAnimationFrame(() => {
+                // Add a small delay to ensure the sheet is fully rendered
+                setTimeout(() => {
+                    nameInputRef.current?.focus();
+                }, 100);
+            });
+        }
+    }, [effectiveOpen]);
+
+    // Additional focus attempt when the component mounts and sheet is open
+    useEffect(() => {
+        if (effectiveOpen) {
+            // Try multiple times to ensure focus works
+            const attempts = [100, 200, 300, 500];
+            attempts.forEach(delay => {
+                setTimeout(() => {
+                    if (nameInputRef.current && document.activeElement !== nameInputRef.current) {
+                        nameInputRef.current.focus();
+                    }
+                }, delay);
+            });
+        }
+    }, [effectiveOpen]);
 
     const addShift = (dayIndex: number) => {
         const newSchedules = [...data.schedules];
@@ -444,11 +473,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
         setData('schedules', newSchedules);
     };
 
-    const toggleShiftActive = (dayIndex: number, shiftIndex: number) => {
-        const newSchedules = [...data.schedules];
-        newSchedules[dayIndex].shifts[shiftIndex].active = !newSchedules[dayIndex].shifts[shiftIndex].active;
-        setData('schedules', newSchedules);
-    };
+
 
     const applyToSelectedDays = () => {
         const sourceDay = data.schedules.find((s) => s.weekday === selectedDay);
@@ -499,10 +524,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
 
         // If editing, check for affected assets first
         if (isEditing) {
-            setLoadingAssets(true);
             axios.get(route('asset-hierarchy.shifts.assets', { shift: initialShift.id }))
                 .then(response => {
-                    setLoadingAssets(false);
                     if (response.data.total > 0) {
                         setAffectedAssets(response.data.assets);
                         setPendingSubmitData(formattedData);
@@ -513,7 +536,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
                     }
                 })
                 .catch(error => {
-                    setLoadingAssets(false);
                     toast.error('Erro ao verificar ativos afetados');
                     console.error(error);
                 });
@@ -663,7 +685,14 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
             )}
 
             <Sheet open={effectiveOpen} onOpenChange={effectiveSetOpen}>
-                <SheetContent className="w-full sm:max-w-[950px] overflow-y-auto">
+                <SheetContent
+                    className="w-full sm:max-w-[950px] overflow-y-auto"
+                    onOpenAutoFocus={(e) => {
+                        // Prevent default auto-focus behavior
+                        e.preventDefault();
+                        // Our custom focus logic will handle it
+                    }}
+                >
                     <SheetHeader>
                         <SheetTitle>{initialShift ? 'Editar Turno' : 'Cadastrar Turno'}</SheetTitle>
                     </SheetHeader>
@@ -684,7 +713,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
 
                                 {/* Campo de nome do turno */}
                                 <div className="w-full space-y-2">
-                                    <TextInput<ShiftForm & { timezone: string }>
+                                    <TextInput
                                         form={{
                                             data,
                                             setData,
@@ -695,6 +724,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
                                         label="Nome do Turno"
                                         placeholder="Digite o nome do turno"
                                         required
+                                        ref={nameInputRef}
                                     />
                                 </div>
 

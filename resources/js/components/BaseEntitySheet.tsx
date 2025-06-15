@@ -88,6 +88,22 @@ export function BaseEntitySheet<TFormData extends Record<string, any>>({
         }
     }, [entity, isEditMode, mode]);
 
+    // Update form data when initialData changes in create mode
+    useEffect(() => {
+        if (!isEditMode && sheetOpen) {
+            // Update form data with new initialData values
+            Object.keys(formConfig.initialData).forEach((key) => {
+                const currentValue = data[key as keyof TFormData];
+                const newValue = formConfig.initialData[key as keyof TFormData];
+
+                // Only update if the value has changed and is not empty
+                if (newValue && newValue !== currentValue) {
+                    setData(key as keyof TFormData, newValue);
+                }
+            });
+        }
+    }, [formConfig.initialData, sheetOpen, isEditMode]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -161,7 +177,13 @@ export function BaseEntitySheet<TFormData extends Record<string, any>>({
                     </Button>
                 </SheetTrigger>
             )}
-            <SheetContent className="sm:max-w-lg">
+            <SheetContent
+                className="sm:max-w-lg"
+                onOpenAutoFocus={(e) => {
+                    // Prevent default focus behavior to allow custom focus management
+                    e.preventDefault();
+                }}
+            >
                 <SheetHeader className="">
                     <SheetTitle>{sheetTitle}</SheetTitle>
                     <SheetDescription>{sheetDescription}</SheetDescription>

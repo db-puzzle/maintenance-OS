@@ -12,8 +12,6 @@ interface EntityDataTableProps<T> {
     emptyMessage?: string;
     columnVisibility?: Record<string, boolean>;
     onSort?: (columnKey: string) => void;
-    sortColumn?: string;
-    sortDirection?: 'asc' | 'desc';
 }
 
 export function EntityDataTable<T extends Record<string, any>>({
@@ -25,8 +23,6 @@ export function EntityDataTable<T extends Record<string, any>>({
     emptyMessage = 'Nenhum registro encontrado.',
     columnVisibility = {},
     onSort,
-    sortColumn,
-    sortDirection,
 }: EntityDataTableProps<T>) {
     // Convert ColumnConfig to DataTable Column format
     const dataTableColumns: Column<T>[] = columns.map((col) => ({
@@ -85,7 +81,6 @@ export function EntityDataTable<T extends Record<string, any>>({
                 data={skeletonData}
                 columns={dataTableColumns}
                 columnVisibility={effectiveColumnVisibility}
-                onColumnVisibilityChange={() => { }}
                 emptyMessage={emptyMessage}
             />
         );
@@ -96,7 +91,6 @@ export function EntityDataTable<T extends Record<string, any>>({
             data={data}
             columns={dataTableColumns}
             columnVisibility={effectiveColumnVisibility}
-            onColumnVisibilityChange={() => { }}
             onRowClick={onRowClick}
             emptyMessage={emptyMessage}
         />

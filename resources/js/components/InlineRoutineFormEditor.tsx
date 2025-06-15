@@ -30,7 +30,7 @@ import { router } from '@inertiajs/react';
 import { ClipboardCheck, Save, Upload, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+
 import { FormStatusBadge } from '@/components/form-lifecycle';
 
 interface RoutineData {
@@ -58,8 +58,18 @@ interface Props {
 }
 
 export default function InlineRoutineFormEditor({ routine, assetId, onClose, onSuccess }: Props) {
-    const [tasks, setTasks] = useState<Task[]>(routine.form?.tasks || []);
-    const [originalTasks] = useState<Task[]>(routine.form?.tasks || []);
+    const [tasks, setTasks] = useState<Task[]>(
+        (routine.form?.tasks || []).map(task => ({
+            ...task,
+            state: TaskState.Previewing  // Set all tasks to Previewing state for the editor
+        }))
+    );
+    const [originalTasks] = useState<Task[]>(
+        (routine.form?.tasks || []).map(task => ({
+            ...task,
+            state: TaskState.Previewing  // Set all tasks to Previewing state for the editor
+        }))
+    );
     const [activeId, setActiveId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [publishing, setPublishing] = useState(false);
@@ -230,7 +240,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                 tasks: JSON.stringify(tasksToSave),
             },
             {
-                onSuccess: (response) => {
+                onSuccess: () => {
                     toast.success('Rascunho salvo com sucesso!');
                     setHasDraftChanges(true);
                     setSaving(false);
@@ -258,7 +268,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             }),
             {},
             {
-                onSuccess: (response) => {
+                onSuccess: () => {
                     toast.success('Formulário publicado com sucesso!');
                     setHasDraftChanges(false);
                     if (onSuccess) {
@@ -317,7 +327,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                 tasks: JSON.stringify(tasksToSave),
             },
             {
-                onSuccess: (response) => {
+                onSuccess: () => {
                     toast.success('Rascunho salvo com sucesso!');
                     setShowExitDialog(false);
                     onClose?.();

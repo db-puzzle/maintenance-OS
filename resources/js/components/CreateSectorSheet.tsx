@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import ItemSelect from '@/components/ItemSelect';
@@ -18,6 +18,10 @@ interface CreateSectorSheetProps {
     onOpenChange: (open: boolean) => void;
     mode: 'create' | 'edit';
     plants: Plant[];
+    onSuccess?: () => void;
+    selectedPlantId?: string;
+    selectedAreaId?: string;
+    disableParentFields?: boolean;
 }
 
 const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
@@ -26,21 +30,64 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
     onOpenChange,
     mode,
     plants = [],
+    onSuccess,
+    selectedPlantId,
+    selectedAreaId,
+    disableParentFields = false,
 }) => {
     const isEditMode = mode === 'edit';
-    const [localSelectedPlant, setLocalSelectedPlant] = useState<string>('');
+    const [localSelectedPlant, setLocalSelectedPlant] = useState<string>(selectedPlantId || '');
+    const nameInputRef = useRef<HTMLInputElement>(null);
 
-    // Update selected plant when sector changes (for edit mode)
+    // Update selected plant when sector changes (for edit mode) or when selectedPlantId changes
     useEffect(() => {
         if (isEditMode && sector) {
             // Set the plant based on the sector's area
             if (sector.area?.plant?.id) {
                 setLocalSelectedPlant(sector.area.plant.id.toString());
             }
-        } else if (!isEditMode) {
-            setLocalSelectedPlant('');
+        } else if (!isEditMode && selectedPlantId) {
+            setLocalSelectedPlant(selectedPlantId);
         }
-    }, [sector, isEditMode]);
+    }, [sector, isEditMode, selectedPlantId]);
+
+    // Auto-focus the name input when sheet opens for creation
+    useEffect(() => {
+        if (open && mode === 'create') {
+            // Use requestAnimationFrame to ensure the DOM is ready
+            const focusInput = () => {
+                requestAnimationFrame(() => {
+                    if (nameInputRef.current) {
+                        nameInputRef.current.focus();
+                        nameInputRef.current.select();
+                    }
+                });
+            };
+
+            // Try multiple times with increasing delays to handle animation and focus traps
+            const timeouts = [100, 300, 500];
+            const timers = timeouts.map(delay => setTimeout(focusInput, delay));
+
+            // Cleanup timeouts
+            return () => {
+                timers.forEach(timer => clearTimeout(timer));
+            };
+        }
+    }, [open, mode]);
+
+    // Handle onOpenChange to focus when sheet opens
+    const handleOpenChange = (open: boolean) => {
+        if (onOpenChange) {
+            onOpenChange(open);
+        }
+
+        // Focus the input when opening in create mode
+        if (open && mode === 'create') {
+            setTimeout(() => {
+                nameInputRef.current?.focus();
+            }, 100);
+        }
+    };
 
     const availableAreas = useMemo(() => {
         if (!localSelectedPlant) return [];
@@ -52,12 +99,13 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
         <BaseEntitySheet<SectorForm>
             entity={sector}
             open={open}
-            onOpenChange={onOpenChange}
+            onOpenChange={handleOpenChange}
             mode={mode}
+            onSuccess={onSuccess}
             formConfig={{
                 initialData: {
                     name: '',
-                    area_id: '',
+                    area_id: selectedAreaId || '',
                 },
                 createRoute: 'asset-hierarchy.setores.store',
                 updateRoute: 'asset-hierarchy.setores.update',
@@ -67,7 +115,8 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
             {({ data, setData, errors }) => (
                 <>
                     {/* Nome do Setor - Campo Obrigatório */}
-                    <TextInput<SectorForm>
+                    <TextInput
+                        ref={nameInputRef}
                         form={{
                             data,
                             setData,
@@ -88,17 +137,17 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                             value={localSelectedPlant}
                             onValueChange={(value) => {
                                 setLocalSelectedPlant(value);
-                                if (!isEditMode) {
+                                if (!isEditMode && !disableParentFields) {
                                     setData('area_id', ''); // Limpa a área quando mudar a planta
                                 }
                             }}
                             placeholder="Selecione uma planta"
                             required
-                            disabled={isEditMode}
+                            disabled={isEditMode || disableParentFields}
                         />
-                        {isEditMode && (
+                        {(isEditMode || disableParentFields) && (
                             <p className="text-muted-foreground text-sm">
-                                A planta não pode ser alterada ao editar um setor.
+                                {isEditMode ? 'A planta não pode ser alterada ao editar um setor.' : 'A planta foi pré-selecionada e não pode ser alterada.'}
                             </p>
                         )}
                     </div>
@@ -112,12 +161,12 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                             onValueChange={(value) => setData('area_id', value)}
                             placeholder={!localSelectedPlant ? 'Selecione uma planta primeiro' : 'Selecione uma área'}
                             error={errors.area_id}
-                            disabled={!localSelectedPlant || isEditMode}
+                            disabled={!localSelectedPlant || isEditMode || disableParentFields}
                             required
                         />
-                        {isEditMode && (
+                        {(isEditMode || disableParentFields) && (
                             <p className="text-muted-foreground text-sm">
-                                A área não pode ser alterada ao editar um setor.
+                                {isEditMode ? 'A área não pode ser alterada ao editar um setor.' : 'A área foi pré-selecionada e não pode ser alterada.'}
                             </p>
                         )}
                     </div>

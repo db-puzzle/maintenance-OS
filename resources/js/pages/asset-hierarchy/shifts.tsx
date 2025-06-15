@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowUpDown, Calendar, ChevronDownIcon, ChevronUpIcon, Clock, List, MoreVertical, Plus, Settings, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -88,8 +88,8 @@ interface Props {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Manutenção',
-        href: '/maintenance-dashboard',
+        title: 'Home',
+        href: '/home',
     },
     {
         title: 'Hierarquia de Ativos',
@@ -187,7 +187,7 @@ export default function Index({
     },
 }: Props) {
     const [search, setSearch] = useState(filters?.search || '');
-    const [perPage, setPerPage] = useState(filters?.per_page || 8);
+    const [perPage] = useState(filters?.per_page || 8);
     const [sort, setSort] = useState(filters?.sort || 'name');
     const [direction, setDirection] = useState<'asc' | 'desc'>(filters?.direction || 'asc');
     const [expanded, setExpanded] = useState<number | null>(null);
@@ -202,8 +202,6 @@ export default function Index({
 
     const page = usePage<PageProps>();
     const flash = page.props.flash;
-
-    const { post, processing, errors } = useForm();
 
     useEffect(() => {
         if (flash?.success) {

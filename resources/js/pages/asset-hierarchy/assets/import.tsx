@@ -31,14 +31,6 @@ const importFields = [
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Cadastro',
-        href: '/asset-hierarchy/assets',
-    },
-    {
-        title: 'Ativos',
-        href: '/asset-hierarchy/assets',
-    },
-    {
         title: 'Importar Ativos',
         href: '/asset-hierarchy/assets/importar',
     },

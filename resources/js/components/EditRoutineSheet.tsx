@@ -80,18 +80,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
         }
     }, [routine]);
 
-    const formatTriggerHours = (hours: number) => {
-        if (hours < 24) {
-            return `${hours} hora${hours !== 1 ? 's' : ''}`;
-        } else if (hours % 24 === 0) {
-            const days = hours / 24;
-            return `${days} dia${days !== 1 ? 's' : ''}`;
-        } else {
-            const days = Math.floor(hours / 24);
-            const remainingHours = hours % 24;
-            return `${days} dia${days !== 1 ? 's' : ''} e ${remainingHours} hora${remainingHours !== 1 ? 's' : ''}`;
-        }
-    };
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -124,7 +113,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             }
 
             router.post(route('maintenance.assets.routines.store', assetId), data, {
-                onSuccess: (page: any) => {
+                onSuccess: () => {
                     toast.success('Rotina criada com sucesso!');
                     setProcessing(false);
                     setSheetOpen(false);

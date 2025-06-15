@@ -7,17 +7,15 @@ import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type Area, type Asset, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
 import { Head, Link, usePage, router } from '@inertiajs/react';
-import { CalendarClock, FileText, MessageSquare, Clock, Calendar, Eye } from 'lucide-react';
+import { CalendarClock, FileText, MessageSquare, Clock, Calendar } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import ItemSelect from '@/components/ItemSelect';
 import CreateShiftSheet from '@/components/CreateShiftSheet';
 import ShiftCalendarView from '@/components/ShiftCalendarView';
 import ShiftTableView from '@/components/ShiftTableView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table } from 'lucide-react';
 import axios from 'axios';
-import { Button } from '@/components/ui/button';
 import AssetRuntimeInput from '@/components/AssetRuntimeInput';
 import ShiftSelectionCard, { ShiftSelectionCardRef } from '@/components/ShiftSelectionCard';
 import { cn } from '@/lib/utils';
@@ -84,7 +82,7 @@ interface Props {
 }
 
 export default function Show({ asset, plants, assetTypes, manufacturers, isCreating = false, newRoutineId }: Props) {
-    const { url, props } = usePage<any>();
+    const { url } = usePage<any>();
 
     // Extrai o parâmetro tab da URL
     const urlParams = new URLSearchParams(url.split('?')[1] || '');
@@ -101,12 +99,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             href: '#',
         },
     ];
-
-    // Check for flash data
-    const flash = props.flash || {};
-
-    // Determina qual planta mostrar
-    const plantToShow = asset?.plant || asset?.area?.plant;
 
     // Estado para gerenciar as rotinas
     const [routines, setRoutines] = useState<Array<any>>(asset?.routines || []);
@@ -127,8 +119,8 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     // Estado para busca de rotinas
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Estado para controlar o salvamento do formulário
-    const [isSavingForm, setIsSavingForm] = useState(false);
+    // Estado para rastrear a rotina recém-criada (apenas para ordenação)
+    const [newlyCreatedRoutineId, setNewlyCreatedRoutineId] = useState<number | null>(null);
 
     // Estado para controlar o preenchimento da rotina
     const [fillingRoutineId, setFillingRoutineId] = useState<number | null>(null);
@@ -136,13 +128,16 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     // Estado para controlar o carregamento do formulário
     const [loadingFormEditor, setLoadingFormEditor] = useState(false);
 
+    // Refs para os componentes RoutineList
+    const routineListRefs = useRef<{ [key: number]: { focusAddTasksButton: () => void } | null }>({});
+
     // Estados para turnos
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [selectedShiftId, setSelectedShiftId] = useState<string>(asset?.shift_id?.toString() || '');
     const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
     const [loadingShifts, setLoadingShifts] = useState(false);
-    const createShiftSheetRef = useRef<HTMLButtonElement>(null);
     const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
+    const [createShiftSheetOpen, setCreateShiftSheetOpen] = useState(false);
 
     // Estado para modo de edição dos turnos
     const [isEditingShift, setIsEditingShift] = useState(false);
@@ -157,6 +152,15 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         routine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         routine.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Ordenar rotinas para colocar a recém-criada no topo
+    const sortedRoutines = [...filteredRoutines].sort((a, b) => {
+        // Se uma das rotinas é a recém-criada, ela vai para o topo
+        if (a.id === newlyCreatedRoutineId) return -1;
+        if (b.id === newlyCreatedRoutineId) return 1;
+        // Caso contrário, manter a ordem original
+        return 0;
+    });
 
     // Handlers para rotinas
     const handleSaveRoutine = (routine: any) => {
@@ -206,19 +210,24 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 const newRoutine = asset?.routines?.find(r => r.id === newRoutineId);
 
                 if (newRoutine) {
-                    // Add it to the state
-                    setRoutines([...routines, newRoutine]);
+                    // Add it to the state at the beginning of the array
+                    setRoutines([newRoutine, ...routines]);
                 }
             }
 
-            // Small delay to ensure the UI is ready
+            // Set the newly created routine ID for sorting
+            setNewlyCreatedRoutineId(newRoutineId);
+
+            // Small delay to ensure the UI is ready and the RoutineList component is mounted
             setTimeout(() => {
-                handleEditRoutineForm(newRoutineId);
-            }, 100);
+                // Focus the "Adicionar Tarefas" button for the new routine
+                const routineListRef = routineListRefs.current[newRoutineId];
+                if (routineListRef) {
+                    routineListRef.focusAddTasksButton();
+                }
+            }, 500);
         }
     }, [newRoutineId, tabFromUrl, asset?.routines]);
-
-
 
     // Carregar turnos disponíveis
     useEffect(() => {
@@ -260,7 +269,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             if (shiftsData.length === 0) {
                 toast.info('Nenhum turno cadastrado.');
             }
-        } catch (error: any) {
+        } catch {
             toast.error('Erro ao carregar turnos');
         } finally {
             setLoadingShifts(false);
@@ -273,7 +282,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 params: { format: 'json' }
             });
             setSelectedShift(response.data.shift);
-        } catch (error: any) {
+        } catch {
             // Error loading shift details
         }
     };
@@ -309,7 +318,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
 
                 // Reload the page to refresh runtime data
                 router.reload();
-            } catch (error) {
+            } catch {
                 toast.error('Erro ao associar turno');
                 return;
             }
@@ -321,6 +330,9 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     const handleShiftCreated = async (newShift: Shift) => {
         // Add the new shift to the list
         setShifts([...shifts, newShift]);
+
+        // Close the sheet
+        setCreateShiftSheetOpen(false);
 
         if (isEditingShift) {
             // Se estamos em modo de edição, apenas selecionar temporariamente
@@ -342,7 +354,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                         }
                     });
                     toast.success('Turno criado e associado ao ativo');
-                } catch (error) {
+                } catch {
                     toast.error('Erro ao associar turno ao ativo');
                 }
             }
@@ -372,7 +384,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     };
 
     const handleCreateShiftClick = () => {
-        createShiftSheetRef.current?.click();
+        setCreateShiftSheetOpen(true);
     };
 
     const handleAddShiftClick = () => {
@@ -421,8 +433,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         setEditingRoutineFormId(null);
         // Desativar modo comprimido ao fechar editor
         setIsCompressed(false);
-        // Reset saving state
-        setIsSavingForm(false);
     };
 
     const handleCloseFormFiller = () => {
@@ -439,7 +449,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             return r;
         }));
         setEditingRoutineFormId(null);
-        setIsSavingForm(false);
         toast.success('Formulário da rotina atualizado com sucesso!');
         // Desativar modo comprimido ao fechar editor
         setIsCompressed(false);
@@ -474,7 +483,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                 <AssetRuntimeInput
                                     assetId={asset?.id}
                                     runtimeData={asset?.runtime_data}
-                                    onRuntimeUpdated={(data) => {
+                                    onRuntimeUpdated={() => {
                                         // Handle runtime update if needed
                                     }}
                                 />
@@ -489,7 +498,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                     tempSelectedShiftId={tempSelectedShiftId}
                                     isEditingShift={isEditingShift}
                                     loadingShifts={loadingShifts}
-                                    plantToShow={plantToShow}
+
                                     onEditShift={handleEditShift}
                                     onCancelShiftEdit={handleCancelShiftEdit}
                                     onSaveShift={handleSaveShift}
@@ -533,13 +542,12 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                         )}
 
                         {/* CreateShiftSheet oculto para ser acionado programaticamente */}
-                        <div style={{ display: 'none' }}>
-                            <CreateShiftSheet
-                                ref={createShiftSheetRef}
-                                showTrigger
-                                onSuccess={handleShiftCreated}
-                            />
-                        </div>
+                        <CreateShiftSheet
+                            isOpen={createShiftSheetOpen}
+                            onOpenChange={setCreateShiftSheetOpen}
+                            showTrigger={false}
+                            onSuccess={handleShiftCreated}
+                        />
                     </div>
                 ),
             },
@@ -634,22 +642,28 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                         isCompressed ? "px-2" : "px-4"
                                     )}>
                                         <ul role="list" className="divide-y divide-gray-100 border-t border-b border-gray-100">
-                                            {filteredRoutines.map((routine) => (
-                                                <RoutineList
-                                                    key={routine.id}
-                                                    routine={routine}
-                                                    onSave={handleSaveRoutine}
-                                                    onDelete={handleDeleteRoutine}
-                                                    assetId={asset?.id}
-                                                    onEditForm={() => handleEditRoutineForm(routine.id)}
-                                                    onFillForm={() => handleFillRoutineForm(routine.id)}
-                                                    isCompressed={isCompressed}
-                                                    shift={selectedShift}
-                                                />
+                                            {sortedRoutines.map((routine) => (
+                                                <li key={routine.id}>
+                                                    <RoutineList
+                                                        routine={routine}
+                                                        onSave={handleSaveRoutine}
+                                                        onDelete={handleDeleteRoutine}
+                                                        assetId={asset?.id}
+                                                        onEditForm={() => handleEditRoutineForm(routine.id)}
+                                                        onFillForm={() => handleFillRoutineForm(routine.id)}
+                                                        isCompressed={isCompressed}
+                                                        shift={selectedShift}
+                                                        ref={(el) => {
+                                                            if (routine.id) {
+                                                                routineListRefs.current[routine.id] = el;
+                                                            }
+                                                        }}
+                                                    />
+                                                </li>
                                             ))}
                                         </ul>
 
-                                        {filteredRoutines.length === 0 && searchTerm && (
+                                        {sortedRoutines.length === 0 && searchTerm && (
                                             <div className={cn(
                                                 "text-center text-muted-foreground",
                                                 isCompressed ? "py-4 text-sm" : "py-8"
@@ -795,9 +809,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                         </span>
                     )
                 }
-                breadcrumbs={breadcrumbs}
                 editRoute={isCreating ? '' : (asset ? route('asset-hierarchy.assets.edit', asset.id) : '')}
-                backRoute={route('asset-hierarchy.assets')}
                 tabs={tabs}
                 defaultActiveTab={tabFromUrl || undefined}
                 defaultCompressed={isCompressed}

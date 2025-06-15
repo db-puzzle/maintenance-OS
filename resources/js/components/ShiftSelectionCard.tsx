@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import ItemSelect from '@/components/ItemSelect';
-import { Calendar, Clock, Coffee, Activity, Edit2, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Edit2, AlertCircle } from 'lucide-react';
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import CreateShiftSheet from '@/components/CreateShiftSheet';
 import axios from 'axios';
@@ -38,18 +38,12 @@ interface Shift {
     total_break_minutes?: number;
 }
 
-interface Plant {
-    id: number;
-    name: string;
-}
-
 interface ShiftSelectionCardProps {
     shifts: Shift[];
     selectedShiftId: string;
     tempSelectedShiftId: string;
     isEditingShift: boolean;
     loadingShifts: boolean;
-    plantToShow?: Plant;
     onEditShift: () => void;
     onCancelShiftEdit: () => void;
     onSaveShift: () => void;
@@ -102,7 +96,6 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
     tempSelectedShiftId,
     isEditingShift,
     loadingShifts,
-    plantToShow,
     onEditShift,
     onCancelShiftEdit,
     onSaveShift,
@@ -192,15 +185,9 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
     // Calculate totals for the selected shift
     let totalWorkMinutes = 0;
     let totalBreakMinutes = 0;
-    let activeDaysCount = 0;
 
     if (currentShift?.schedules) {
         currentShift.schedules.forEach(schedule => {
-            const hasActiveShifts = schedule.shifts.some(s => s.active);
-            if (hasActiveShifts) {
-                activeDaysCount++;
-            }
-
             schedule.shifts.forEach(shift => {
                 if (shift.active) {
                     const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
@@ -217,8 +204,6 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
         // Use pre-calculated values if available
         totalWorkMinutes = ((currentShift.total_work_hours || 0) * 60) + (currentShift.total_work_minutes || 0);
         totalBreakMinutes = ((currentShift.total_break_hours || 0) * 60) + (currentShift.total_break_minutes || 0);
-        // Estimate active days based on weekly hours (assuming 8-hour workdays)
-        activeDaysCount = Math.round(totalWorkMinutes / 60 / 8);
     }
 
     const netWorkMinutes = totalWorkMinutes - totalBreakMinutes;

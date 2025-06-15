@@ -1,5 +1,4 @@
 import PhotoUploader from '@/components/PhotoUploader';
-import { Task } from '@/types/task';
 import { Image } from 'lucide-react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 

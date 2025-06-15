@@ -23,7 +23,7 @@ export function useSorting({
 
     const handleSort = useCallback((columnId: string) => {
         let newDirection: 'asc' | 'desc' = 'asc';
-        let newSort = columnId;
+        const newSort = columnId;
 
         if (sort === columnId) {
             newDirection = direction === 'asc' ? 'desc' : 'asc';

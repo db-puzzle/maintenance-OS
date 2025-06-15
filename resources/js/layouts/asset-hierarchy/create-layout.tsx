@@ -1,35 +1,30 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { type BreadcrumbItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type ReactNode } from 'react';
 
 interface CreateLayoutProps {
     title: string;
     subtitle?: string | ReactNode;
-    breadcrumbs: BreadcrumbItem[];
     backRoute: string;
     children?: ReactNode;
     onSave?: () => void;
     isSaving?: boolean;
     contentWidth?: 'full' | 'custom';
     contentClassName?: string;
-    innerLayout?: boolean;
     saveButtonText?: string;
 }
 
 export default function CreateLayout({
     title,
     subtitle,
-    breadcrumbs,
     backRoute,
     children,
     onSave,
     isSaving,
     contentWidth = 'full',
     contentClassName,
-    innerLayout = false,
     saveButtonText = 'Criar',
 }: CreateLayoutProps) {
     const containerClass = contentWidth === 'custom' ? contentClassName : 'w-full';

@@ -19,14 +19,6 @@ interface PageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Cadastro',
-        href: '/asset-hierarchy/assets',
-    },
-    {
-        title: 'Ativos',
-        href: '/asset-hierarchy/assets',
-    },
-    {
         title: 'Exportar Ativos',
         href: '/asset-hierarchy/assets/exportar',
     },

@@ -1,21 +1,18 @@
 import InputError from '@/components/input-error';
 import SmartInput from '@/components/smart-input';
 import { Label } from '@/components/ui/label';
+import { forwardRef } from 'react';
 
-interface FormData {
-    [key: string]: any;
-}
-
-interface TextInputProps<T extends FormData> {
+interface TextInputProps {
     form: {
-        data: T;
-        setData: (name: keyof T, value: any) => void;
-        errors: Partial<Record<keyof T, string>>;
-        clearErrors: (...fields: (keyof T)[]) => void;
+        data: Record<string, any>;
+        setData: (name: string, value: any) => void;
+        errors: Partial<Record<string, string>>;
+        clearErrors: (...fields: string[]) => void;
         validateInput?: (value: string) => boolean;
-        processBlur?: (name: keyof T, value: string) => void;
+        processBlur?: (name: string, value: string) => void;
     };
-    name: keyof T;
+    name: string;
     label: string;
     placeholder: string;
     required?: boolean;
@@ -25,44 +22,51 @@ interface TextInputProps<T extends FormData> {
     validateInput?: (value: string) => boolean;
 }
 
-export default function TextInput<T extends FormData>({
-    form,
-    name,
-    label,
-    placeholder,
-    required = false,
-    disabled = false,
-    view = false,
-    onBlur,
-    validateInput,
-}: TextInputProps<T>) {
-    const value = form.data[name];
-    const hasValue = value !== null && value !== undefined && value !== '';
+const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
+    ({
+        form,
+        name,
+        label,
+        placeholder,
+        required = false,
+        disabled = false,
+        view = false,
+        onBlur,
+        validateInput,
+    }, ref) => {
+        const value = form.data[name];
+        const hasValue = value !== null && value !== undefined && value !== '';
 
-    return (
-        <div className="grid gap-2">
-            <Label htmlFor={String(name)}>
-                {label}
-                {required && <span className="text-destructive"> *</span>}
-            </Label>
-            <div className="bg-background">
-                {view && !hasValue ? (
-                    <div className="flex h-9 w-full rounded-md border border-input bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
-                        {placeholder}
-                    </div>
-                ) : (
-                    <SmartInput<T>
-                        form={form}
-                        name={name}
-                        placeholder={placeholder}
-                        disabled={disabled}
-                        view={view}
-                        onBlur={onBlur}
-                        validateInput={validateInput || form.validateInput}
-                    />
-                )}
+        return (
+            <div className="grid gap-2">
+                <Label htmlFor={String(name)}>
+                    {label}
+                    {required && <span className="text-destructive"> *</span>}
+                </Label>
+                <div className="bg-background">
+                    {view && !hasValue ? (
+                        <div className="flex h-9 w-full rounded-md border border-input bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                            {placeholder}
+                        </div>
+                    ) : (
+                        <SmartInput
+                            ref={ref}
+                            form={form}
+                            name={name}
+                            placeholder={placeholder}
+                            disabled={disabled}
+                            view={view}
+                            onBlur={onBlur}
+                            validateInput={validateInput || form.validateInput}
+                        />
+                    )}
+                </div>
+                <InputError message={form.errors[name]} />
             </div>
-            <InputError message={form.errors[name]} />
-        </div>
-    );
-}
+        );
+    }
+);
+
+TextInput.displayName = 'TextInput';
+
+export default TextInput;

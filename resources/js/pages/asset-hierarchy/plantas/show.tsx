@@ -1,7 +1,7 @@
 import { type BreadcrumbItem } from '@/types';
 import { router, Head } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Building2, Cog, Map } from 'lucide-react';
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 import MapComponent from '@/components/map';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -107,7 +107,6 @@ interface Props {
 
 export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, totalAsset, activeTab, filters }: Props) {
     const [isEditMode, setIsEditMode] = useState(false);
-    const createPlantSheetRef = useRef<HTMLButtonElement>(null);
 
     const handleEditClick = () => {
         setIsEditMode(true);
@@ -596,10 +595,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
             <ShowLayout
                 title={plant.name}
                 subtitle={subtitle}
-                breadcrumbs={breadcrumbs}
                 editRoute="#"
-                showEditButton={true}
-                backRoute={route('asset-hierarchy.plantas')}
                 tabs={tabs}
             />
 

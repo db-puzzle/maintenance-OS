@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,7 +6,7 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, router } from '@inertiajs/react';
-import { Building2, Globe, Mail, Phone, MapPin, FileText, Package } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import EmptyCard from '@/components/ui/empty-card';
@@ -314,9 +313,7 @@ export default function Show({ manufacturer }: Props) {
             <ShowLayout
                 title={manufacturer.name}
                 subtitle={`${manufacturer.assets_count || 0} ativo(s) associado(s)`}
-                breadcrumbs={breadcrumbs}
                 editRoute=""
-                backRoute={route('asset-hierarchy.manufacturers')}
                 tabs={tabs}
                 defaultActiveTab="informacoes"
             />

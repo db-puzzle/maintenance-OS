@@ -29,13 +29,13 @@ interface TaskCardProps {
     onViewNormal: () => void;
 }
 
-const getTaskTypeIcon = (type: TaskType, codeReaderType?: 'qr_code' | 'barcode') => {
+const getTaskTypeIcon = (type: TaskType) => {
     const taskType = TaskTypes.find((t) => t.value === type);
     return taskType ? <taskType.icon className="h-6 w-6" /> : <FileText className="h-4 w-4" />;
 };
 
-export default function TaskCard({ task, index, state, onEdit, onTypeChange, onNewTask, onPreview, onRespond, onViewNormal }: TaskCardProps) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal }: TaskCardProps) {
+    const { setNodeRef, transform, transition, isDragging } = useSortable({
         id: `task-${task.id}`,
         animateLayoutChanges: () => false,
     });
@@ -82,7 +82,7 @@ export default function TaskCard({ task, index, state, onEdit, onTypeChange, onN
         return (
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                    {getTaskTypeIcon(task.type, task.codeReaderType)}
+                    {getTaskTypeIcon(task.type)}
                     <Label className="text-lg font-semibold">{task.description}</Label>
                 </div>
 
@@ -127,7 +127,7 @@ export default function TaskCard({ task, index, state, onEdit, onTypeChange, onN
 
                 {task.type === 'photo' && task.instructions && task.instructions.length > 0 && (
                     <div className="text-muted-foreground pl-4">
-                        {task.instructions.map((instruction, index) => {
+                        {task.instructions.map((instruction) => {
                             if (instruction.type === 'text') {
                                 return <p key={instruction.id}>{instruction.content}</p>;
                             }
@@ -157,7 +157,7 @@ export default function TaskCard({ task, index, state, onEdit, onTypeChange, onN
         return (
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                    {getTaskTypeIcon(task.type, task.codeReaderType)}
+                    {getTaskTypeIcon(task.type)}
                     <Label className="text-lg font-semibold">{task.description}</Label>
                 </div>
 

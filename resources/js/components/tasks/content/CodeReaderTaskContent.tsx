@@ -1,6 +1,5 @@
 import ItemSelect from '@/components/ItemSelect';
 import { Button } from '@/components/ui/button';
-import { Task } from '@/types/task';
 import { Barcode, Check, QrCode, ScanBarcode } from 'lucide-react';
 import { memo, useEffect, useRef } from 'react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';

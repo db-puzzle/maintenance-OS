@@ -6,9 +6,6 @@ import { useState } from 'react';
 
 const STORAGE_KEY = 'nav_open_items';
 
-// Parâmetros que não devem afetar o estado ativo do item
-const QUERY_PARAMS_TO_IGNORE = ['search', 'page', 'per_page', 'from', 'to', 'sort', 'direction'];
-
 export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
     const page = usePage();
     const [openItems, setOpenItems] = useState<Record<string, boolean>>(() => {
@@ -25,7 +22,7 @@ export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
         }
 
         // Extrai o caminho e os parâmetros da URL atual
-        const [currentPath, currentQuery] = page.url.split('?');
+        const [currentPath] = page.url.split('?');
         const [itemPath] = href.split('?');
 
         // Se os caminhos são diferentes, verifica se é apenas uma questão de parâmetros de busca

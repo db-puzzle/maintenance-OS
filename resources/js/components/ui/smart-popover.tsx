@@ -26,7 +26,6 @@ interface SmartPopoverProps {
     placeholder?: string;
     searchPlaceholder?: string;
     emptyMessage?: string;
-    required?: boolean;
     className?: string;
     disabled?: boolean;
 }
@@ -41,19 +40,18 @@ export function SmartPopover({
     placeholder = "Selecione uma opção",
     searchPlaceholder = "Buscar...",
     emptyMessage = "Nenhuma opção encontrada.",
-    required = false,
     className,
     disabled = false,
 }: SmartPopoverProps) {
     const [open, setOpen] = useState(false);
 
-    const selectedOption = useMemo(() => 
+    const selectedOption = useMemo(() =>
         options.find((option) => option.id.toString() === value),
         [options, value]
     );
 
-    const sortedOptions = useMemo(() => 
-        [...options].sort((a, b) => 
+    const sortedOptions = useMemo(() =>
+        [...options].sort((a, b) =>
             a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
         ),
         [options]

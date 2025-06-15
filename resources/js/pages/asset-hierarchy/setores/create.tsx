@@ -36,7 +36,7 @@ interface Props {
 }
 
 export default function CreateSector({ plants }: Props) {
-    const { data, setData, post, processing, errors, reset } = useForm<SectorForm>({
+    const { data, setData, post, processing, errors } = useForm<SectorForm>({
         name: '',
         area_id: '',
     });
@@ -51,7 +51,7 @@ export default function CreateSector({ plants }: Props) {
             onSuccess: () => {
                 // Não precisa fazer nada aqui, a mensagem de flash será exibida
             },
-            onError: (errors) => {
+            onError: () => {
                 toast.error('Erro ao criar setor', {
                     description: 'Verifique os campos e tente novamente.',
                 });
@@ -75,7 +75,7 @@ export default function CreateSector({ plants }: Props) {
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors: () => {},
+                                    clearErrors: () => { },
                                 }}
                                 name="name"
                                 label="Nome do Setor"

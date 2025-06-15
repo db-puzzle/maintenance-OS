@@ -1,4 +1,3 @@
-import ItemSelect from '@/components/ItemSelect';
 import ShiftCalendarView from '@/components/ShiftCalendarView';
 import ShiftTableView from '@/components/ShiftTableView';
 import TextInput from '@/components/TextInput';
@@ -39,12 +38,7 @@ interface Schedule {
     shifts: Shift[];
 }
 
-// Interface para os dados do formulário
-interface FormData {
-    [key: string]: any;
-    name: string;
-    schedules: Schedule[];
-}
+
 
 interface CreateProps {
 }
@@ -287,9 +281,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
     });
 
     const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
-    const [bulkMode, setBulkMode] = useState(false);
     const [selectedDays, setSelectedDays] = useState<string[]>([]);
-    const [selectedShift, setSelectedShift] = useState(0);
     const [viewMode, setViewMode] = useState<'timeline' | 'table'>('timeline');
 
     // Função para adicionar um novo turno em um dia específico
@@ -429,11 +421,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
         setData('schedules', newSchedules);
     };
 
-    const toggleShiftActive = (dayIndex: number, shiftIndex: number) => {
-        const newSchedules = [...data.schedules];
-        newSchedules[dayIndex].shifts[shiftIndex].active = !newSchedules[dayIndex].shifts[shiftIndex].active;
-        setData('schedules', newSchedules);
-    };
+
 
     const applyToSelectedDays = () => {
         const sourceDay = data.schedules.find((s) => s.weekday === selectedDay);
@@ -516,7 +504,6 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             <CreateLayout
                 title={title}
                 subtitle={subtitle}
-                breadcrumbs={breadcrumbs}
                 backRoute={route('asset-hierarchy.shifts')}
                 onSave={handleSave}
                 isSaving={processing}

@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Task } from '@/types/task';
-import { Loader2, Save, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Loader2, ChevronRight, CheckCircle2 } from 'lucide-react';
 import React, { ComponentType, useState } from 'react';
 import { TaskCardMode } from './TaskContent';
 

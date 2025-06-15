@@ -34,7 +34,7 @@ export default function DeleteAsset({ assetId, assetTag }: Props) {
                 closeModal();
                 toast.success(`O ativo ${assetTag} foi excluído com sucesso!`);
             },
-            onError: (errors) => {
+            onError: () => {
                 toast.error('Erro ao excluir ativo', {
                     description: 'Não foi possível excluir o ativo. Tente novamente.',
                 });

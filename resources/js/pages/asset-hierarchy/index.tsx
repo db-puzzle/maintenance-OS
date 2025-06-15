@@ -9,8 +9,6 @@ import {
     Factory,
     Clock,
     ChevronRight,
-    FileDown,
-    FileUp,
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -70,20 +68,7 @@ const navigationCards: NavigationCard[] = [
     },
 ];
 
-const dataManagementCards: NavigationCard[] = [
-    {
-        title: 'Exportar Ativos',
-        description: 'Exporte dados de ativos para arquivo',
-        href: '/asset-hierarchy/assets/exportar',
-        icon: FileDown,
-    },
-    {
-        title: 'Importar Ativos',
-        description: 'Importe dados de ativos de arquivo',
-        href: '/asset-hierarchy/assets/importar',
-        icon: FileUp,
-    },
-];
+
 
 export default function AssetHierarchyIndex() {
     return (

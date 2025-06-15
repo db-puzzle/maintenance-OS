@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { router } from '@inertiajs/react';
 import axios from 'axios';
 import {
     AlertDialog,
@@ -71,7 +70,7 @@ export default function TimezoneDetector({ currentTimezone, userId, forceShow = 
             } else {
                 setIsUpdating(false);
             }
-        } catch (error) {
+        } catch {
             setIsUpdating(false);
         }
     };

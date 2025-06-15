@@ -50,7 +50,7 @@ export default function EditArea({ area, plants }: Props) {
     const handleSave = () => {
         put(route('asset-hierarchy.areas.update', area.id), {
             onSuccess: () => reset('name', 'plant_id'),
-            onError: (errors) => {
+            onError: () => {
                 toast.error('Erro ao atualizar área', {
                     description: 'Verifique os campos e tente novamente.',
                 });
@@ -65,7 +65,6 @@ export default function EditArea({ area, plants }: Props) {
             <EditLayout
                 title="Editar Área"
                 subtitle="Edite os dados da área"
-                breadcrumbs={breadcrumbs}
                 backRoute={route('asset-hierarchy.areas')}
                 onSave={handleSave}
                 isSaving={processing}

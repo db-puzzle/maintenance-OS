@@ -41,9 +41,7 @@ export function TaskInstructionList({ task, mode, onInstructionsUpdate }: TaskIn
         onInstructionsUpdate(updatedTask);
     };
 
-    const toggleInstructionsVisibility = () => {
-        setShowInstructions(!showInstructions);
-    };
+
 
     return (
         <div className="space-y-4">

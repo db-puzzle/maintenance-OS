@@ -19,6 +19,10 @@ declare const route: (name: string, params?: any) => string;
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
+        title: 'Home',
+        href: '/home',
+    },
+    {
         title: 'Ativos',
         href: '/asset-hierarchy/assets',
     },

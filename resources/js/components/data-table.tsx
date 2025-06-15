@@ -15,7 +15,6 @@ interface DataTableProps<T> {
     data: T[];
     columns: Column<T>[];
     columnVisibility: Record<string, boolean>;
-    onColumnVisibilityChange: (columnId: string, value: boolean) => void;
     onRowClick?: (row: T) => void;
     emptyMessage?: string;
 }
@@ -24,7 +23,6 @@ export function DataTable<T>({
     data,
     columns,
     columnVisibility,
-    onColumnVisibilityChange,
     onRowClick,
     emptyMessage = 'Nenhum registro encontrado.',
 }: DataTableProps<T>) {

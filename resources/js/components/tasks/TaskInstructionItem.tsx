@@ -20,20 +20,7 @@ export function TaskInstructionItem({ instruction, mode, onUpdate, onRemove }: T
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const isEditing = mode === 'edit';
 
-    // Cores para cada tipo de instrução
-    const instructionStyles = {
-        [InstructionType.Text]: {
-            textColor: 'text-blue-700',
-        },
-        [InstructionType.Image]: {
-            textColor: 'text-indigo-700',
-        },
-        [InstructionType.Video]: {
-            textColor: 'text-purple-700',
-        },
-    };
 
-    const currentStyle = instructionStyles[instruction.type];
 
     const handleSaveEdit = (updatedInstruction: Instruction) => {
         onUpdate(updatedInstruction);

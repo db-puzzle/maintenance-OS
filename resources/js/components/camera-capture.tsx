@@ -34,7 +34,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
             };
 
             try {
-                const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                await navigator.mediaDevices.getUserMedia(constraints);
 
                 // Se conseguir acesso, tenta melhorar a qualidade
                 constraints = {

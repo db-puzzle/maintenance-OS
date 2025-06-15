@@ -1,26 +1,11 @@
-import ActionShortcuts, { type PathItem } from '@/components/ActionShortcuts';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import {
-    AlertCircle,
-    AlertTriangle,
     Boxes,
-    CalendarDays,
     ChevronRight,
-    ClipboardCheck,
-    ClipboardList,
-    Clock,
-    List,
-    MessageSquare,
-    Package,
-    Play,
-    RotateCcw,
     Route,
-    Shield,
-    Wrench,
 } from 'lucide-react';
-import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,51 +15,19 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Dashboard() {
-    const [selectedPath, setSelectedPath] = useState(null);
-
     // Cards para a seção Quick Start (parte superior)
     const quickStartCards = {
-        maintenance: {
-            title: 'Manutenção',
-            icon: Wrench,
-            description: 'Manutenção e gestão de ativos',
-            href: '/maintenance/dashboard', // Link para o dashboard
+        assets: {
+            title: 'Ativos',
+            icon: Boxes,
+            description: 'Cadastro e gestão de ativos',
+            href: '/asset-hierarchy/assets',
         },
-    };
-
-    // Paths para os Action Shortcuts (parte inferior)
-    const paths: Record<string, PathItem> = {
-        maintenance: {
-            title: 'Manutenção',
-            icon: Wrench,
-            description: 'Manutenção e gestão de ativos',
-            actions: [
-                {
-                    name: 'Configurar Ativos',
-                    icon: Boxes,
-                    description: 'Cadastro de ativos e ativos',
-                    href: '/asset-hierarchy/assets',
-                    newFeature: true,
-                },
-                {
-                    name: 'Programar Manutenção',
-                    icon: Clock,
-                    comingSoon: true,
-                    description: 'Cronogramas de manutenção',
-                },
-                {
-                    name: 'Executar Ordem de Serviço',
-                    icon: Play,
-                    comingSoon: true,
-                    description: 'Execução de manutenção',
-                },
-                {
-                    name: 'Solicitar Manutenção',
-                    icon: MessageSquare,
-                    comingSoon: true,
-                    description: 'Solicitação sobre ativos e ativos',
-                },
-            ],
+        hierarchy: {
+            title: 'Hierarquia de Ativos',
+            icon: Route,
+            description: 'Estrutura e organização de ativos',
+            href: '/asset-hierarchy',
         },
     };
 
@@ -115,12 +68,12 @@ export default function Dashboard() {
                 </div>
 
                 {/* ActionShortcuts Component */}
-                <ActionShortcuts paths={paths} />
+                {/* <ActionShortcuts paths={paths} /> */}
 
                 {/* Footer Info */}
-                <div className="text-muted-foreground mt-12 text-center text-sm">
+                {/* <div className="text-muted-foreground mt-12 text-center text-sm">
                     <p>Precisa de ajuda? Entre em contato com o administrador do sistema ou consulte a documentação.</p>
-                </div>
+                </div> */}
             </div>
         </AppLayout>
     );

@@ -38,11 +38,7 @@ const timeToMinutes = (time: string) => {
     return hours * 60 + minutes;
 };
 
-const minutesToTime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-};
+
 
 const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDays = false }) => {
     // Função para encontrar o período mais extenso de horas em todos os dias
@@ -109,7 +105,6 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
     };
 
     const { earliestHour, latestHour } = findTimeRange();
-    const totalMinutes = (latestHour - earliestHour) * 60;
     const timeMarkers = Array.from({ length: latestHour - earliestHour }, (_, i) => {
         const hour = earliestHour + i;
         return {
@@ -118,62 +113,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
         };
     });
 
-    // Função para verificar se um horário está dentro de algum turno ativo
-    const isInActiveShift = (day: string, currentMinutes: number) => {
-        const schedule = schedules.find((s) => s.weekday === day);
-        if (!schedule) return false;
 
-        return schedule.shifts.some((shift) => {
-            if (!shift.active) return false;
-
-            const startMinutes = timeToMinutes(shift.start_time);
-            const endMinutes = timeToMinutes(shift.end_time);
-
-            // Se o turno atravessa a meia-noite
-            if (endMinutes < startMinutes) {
-                return currentMinutes >= startMinutes || currentMinutes < endMinutes;
-            }
-
-            return currentMinutes >= startMinutes && currentMinutes < endMinutes;
-        });
-    };
-
-    // Função para verificar se um horário está dentro de algum intervalo
-    const isInBreak = (day: string, currentMinutes: number) => {
-        const schedule = schedules.find((s) => s.weekday === day);
-        if (!schedule) return false;
-
-        return schedule.shifts.some((shift) => {
-            if (!shift.active) return false;
-
-            return shift.breaks.some((breakTime) => {
-                const breakStartMinutes = timeToMinutes(breakTime.start_time);
-                const breakEndMinutes = timeToMinutes(breakTime.end_time);
-
-                // Se o intervalo atravessa a meia-noite
-                if (breakEndMinutes < breakStartMinutes) {
-                    return currentMinutes >= breakStartMinutes || currentMinutes < breakEndMinutes;
-                }
-
-                return currentMinutes >= breakStartMinutes && currentMinutes < breakEndMinutes;
-            });
-        });
-    };
-
-    // Função auxiliar para verificar se um turno é noturno
-    const isOvernightShift = (startTime: string, endTime: string) => {
-        const startMinutes = timeToMinutes(startTime);
-        const endMinutes = timeToMinutes(endTime);
-        return endMinutes < startMinutes;
-    };
-
-    // Função auxiliar para ajustar o horário final de um turno noturno
-    const adjustEndTime = (startTime: string, endTime: string) => {
-        if (isOvernightShift(startTime, endTime)) {
-            return timeToMinutes(endTime) + 24 * 60;
-        }
-        return timeToMinutes(endTime);
-    };
 
     return (
         <div className="mt-6">
@@ -219,8 +159,7 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
 
                             if (!showAllDays && !schedule) return null;
 
-                            const nextDayIndex = (dayIndex + 1) % 7;
-                            const nextDay = weekdays[nextDayIndex].key;
+
 
                             return (
                                 <div key={dayKey} className="relative">

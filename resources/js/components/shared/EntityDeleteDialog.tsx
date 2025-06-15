@@ -14,7 +14,6 @@ import { Label } from '@/components/ui/label';
 interface EntityDeleteDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    entityName: string;
     entityLabel: string;
     onConfirm: () => Promise<void>;
 }
@@ -22,7 +21,6 @@ interface EntityDeleteDialogProps {
 export function EntityDeleteDialog({
     open,
     onOpenChange,
-    entityName,
     entityLabel,
     onConfirm,
 }: EntityDeleteDialogProps) {
@@ -35,7 +33,7 @@ export function EntityDeleteDialog({
             await onConfirm();
             setConfirmationText('');
             onOpenChange(false);
-        } catch (err: any) {
+        } catch {
             // Error is handled by the parent component
         } finally {
             setLoading(false);

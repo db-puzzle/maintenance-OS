@@ -1,21 +1,19 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { type BreadcrumbItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type ReactNode } from 'react';
 
 interface EditLayoutProps {
     title: string;
     subtitle?: string | ReactNode;
-    breadcrumbs: BreadcrumbItem[];
     backRoute: string;
     children?: ReactNode;
     onSave?: () => void;
     isSaving?: boolean;
 }
 
-export default function EditLayout({ title, subtitle, breadcrumbs, backRoute, children, onSave, isSaving }: EditLayoutProps) {
+export default function EditLayout({ title, subtitle, backRoute, children, onSave, isSaving }: EditLayoutProps) {
     return (
         <div className="bg-background pt-4 md:pt-6">
             <div className="container mx-auto flex flex-col gap-6 px-4 lg:px-6">
