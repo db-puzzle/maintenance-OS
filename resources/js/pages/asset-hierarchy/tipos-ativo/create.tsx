@@ -28,7 +28,7 @@ export default function CreateAssetType() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('asset-hierarchy.tipos-ativo.store'), {
-            onError: (errors) => {
+            onError: () => {
                 toast.error('Erro ao criar tipo de ativo', {
                     description: 'Verifique os campos e tente novamente.',
                 });

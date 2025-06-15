@@ -50,7 +50,7 @@ export default function ExportAsset() {
                     }
                 }
             },
-            onError: (errors) => {
+            onError: () => {
                 setShowProgress(false);
             },
         });
@@ -68,7 +68,7 @@ export default function ExportAsset() {
 
                 setShowProgress(false);
                 setDownloadUrl(null);
-            } catch (error) {
+            } catch {
                 // TODO: Tratar erro de download
             }
         }

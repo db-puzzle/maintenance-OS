@@ -181,6 +181,18 @@ class SectorController extends Controller
 
         return Inertia::render('asset-hierarchy/setores/show', [
             'sector' => $setor,
+            'plants' => Plant::with('areas')->get()->map(function ($plant) {
+                return [
+                    'id' => $plant->id,
+                    'name' => $plant->name,
+                    'areas' => $plant->areas->map(function ($area) {
+                        return [
+                            'id' => $area->id,
+                            'name' => $area->name,
+                        ];
+                    })->values()->all(),
+                ];
+            })->values()->all(),
             'asset' => $asset,
             'activeTab' => request()->get('tab', 'informacoes'),
             'filters' => [
@@ -196,7 +208,8 @@ class SectorController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'area_id' => 'required|exists:areas,id'
+            'area_id' => 'required|exists:areas,id',
+            'description' => 'nullable|string'
         ]);
 
         $setor->update($validated);

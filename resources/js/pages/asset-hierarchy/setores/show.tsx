@@ -4,23 +4,11 @@ import { router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Cog, Factory, Map } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Setores',
-        href: '/asset-hierarchy/setores',
-    },
-    {
-        title: 'Detalhes do Setor',
-        href: '#',
-    },
-];
+import SectorFormComponent from '@/components/SectorFormComponent';
 
 interface Props {
     sector: {
@@ -34,7 +22,9 @@ interface Props {
                 name: string;
             };
         };
+        area_id?: number;
     };
+    plants?: any[];
     asset: {
         data: Asset[];
         current_page: number;
@@ -51,7 +41,26 @@ interface Props {
     };
 }
 
-export default function Show({ sector, asset, activeTab, filters }: Props) {
+export default function Show({ sector, plants, asset, activeTab, filters }: Props) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Home',
+            href: '/home',
+        },
+        {
+            title: 'Hierarquia de Ativos',
+            href: '/asset-hierarchy',
+        },
+        {
+            title: 'Setores',
+            href: '/asset-hierarchy/setores',
+        },
+        {
+            title: sector.name,
+            href: '#',
+        },
+    ];
+
     const handleSort = (column: string) => {
         const direction = filters.asset.sort === column && filters.asset.direction === 'asc' ? 'desc' : 'asc';
 
@@ -76,22 +85,22 @@ export default function Show({ sector, asset, activeTab, filters }: Props) {
     };
 
     const subtitle = (
-        <div className="text-muted-foreground flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1">
+        <span className="text-muted-foreground flex items-center gap-4 text-sm">
+            <span className="flex items-center gap-1">
                 <Factory className="h-4 w-4" />
                 <span>{sector.area.plant.name}</span>
-            </div>
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-1">
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="flex items-center gap-1">
                 <Map className="h-4 w-4" />
                 <span>{sector.area.name}</span>
-            </div>
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-1">
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="flex items-center gap-1">
                 <Cog className="h-4 w-4" />
                 <span>{asset.total} ativos</span>
-            </div>
-        </div>
+            </span>
+        </span>
     );
 
     const tabs = [
@@ -99,28 +108,14 @@ export default function Show({ sector, asset, activeTab, filters }: Props) {
             id: 'informacoes',
             label: 'Informações Gerais',
             content: (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Informações Gerais</CardTitle>
-                        <CardDescription>Informações básicas sobre o setor</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid w-full items-center gap-4">
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="name">Nome</Label>
-                                <div className="text-muted-foreground text-sm">{sector.name}</div>
-                            </div>
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="area">Área</Label>
-                                <div className="text-muted-foreground text-sm">{sector.area.name}</div>
-                            </div>
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="plant">Planta</Label>
-                                <div className="text-muted-foreground text-sm">{sector.area.plant.name}</div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="py-8">
+                    <SectorFormComponent
+                        sector={sector as any}
+                        plants={plants || []}
+                        initialMode="view"
+                        onSuccess={() => router.reload()}
+                    />
+                </div>
             ),
         },
         {
@@ -246,9 +241,7 @@ export default function Show({ sector, asset, activeTab, filters }: Props) {
             <ShowLayout
                 title={sector.name}
                 subtitle={subtitle}
-                breadcrumbs={breadcrumbs}
                 editRoute={route('asset-hierarchy.setores.edit', sector.id)}
-                backRoute={route('asset-hierarchy.setores')}
                 tabs={tabs}
             />
         </AppLayout>

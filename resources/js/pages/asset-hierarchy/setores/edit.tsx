@@ -55,7 +55,7 @@ export default function EditSector({ sector, plants }: Props) {
             onSuccess: () => {
                 // O flash message será exibido automaticamente
             },
-            onError: (errors) => {
+            onError: () => {
                 toast.error('Erro ao atualizar setor', {
                     description: 'Verifique os campos e tente novamente.',
                 });
@@ -70,7 +70,6 @@ export default function EditSector({ sector, plants }: Props) {
             <EditLayout
                 title="Editar Setor"
                 subtitle="Atualize as informações do setor"
-                breadcrumbs={breadcrumbs}
                 backRoute={route('asset-hierarchy.setores')}
                 onSave={handleSave}
                 isSaving={processing}
@@ -89,7 +88,7 @@ export default function EditSector({ sector, plants }: Props) {
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {},
+                                clearErrors: () => { },
                             }}
                             name="name"
                             label="Nome do Setor"

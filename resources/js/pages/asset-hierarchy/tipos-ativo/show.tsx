@@ -11,17 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Tipos de Ativo',
-        href: '/asset-hierarchy/tipos-ativo',
-    },
-    {
-        title: 'Detalhes do Tipo de Ativo',
-        href: '#',
-    },
-];
-
 interface Props {
     assetType: {
         id: number;
@@ -39,6 +28,25 @@ interface Props {
 }
 
 export default function Show({ assetType, asset, activeTab }: Props) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Home',
+            href: '/home',
+        },
+        {
+            title: 'Hierarquia de Ativos',
+            href: '/asset-hierarchy',
+        },
+        {
+            title: 'Tipos de Ativo',
+            href: '/asset-hierarchy/tipos-ativo',
+        },
+        {
+            title: assetType.name,
+            href: '#',
+        },
+    ];
+
     const subtitle = (
         <div className="text-muted-foreground flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
@@ -175,9 +183,7 @@ export default function Show({ assetType, asset, activeTab }: Props) {
             <ShowLayout
                 title={assetType.name}
                 subtitle={subtitle}
-                breadcrumbs={breadcrumbs}
                 editRoute={route('asset-hierarchy.tipos-ativo.edit', assetType.id)}
-                backRoute={route('asset-hierarchy.tipos-ativo')}
                 tabs={tabs}
             />
         </AppLayout>

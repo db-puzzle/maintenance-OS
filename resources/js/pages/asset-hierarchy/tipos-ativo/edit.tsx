@@ -31,7 +31,7 @@ export default function Edit({ assetType }: Props) {
 
     const handleSave = () => {
         put(route('asset-hierarchy.tipos-ativo.update', assetType.id), {
-            onError: (errors) => {
+            onError: () => {
                 toast.error('Erro ao atualizar tipo de ativo', {
                     description: 'Verifique os campos e tente novamente.',
                 });
@@ -46,7 +46,6 @@ export default function Edit({ assetType }: Props) {
             <EditLayout
                 title="Editar Tipo de Ativo"
                 subtitle="Edite as informações do tipo de ativo"
-                breadcrumbs={breadcrumbs}
                 backRoute={route('asset-hierarchy.tipos-ativo')}
                 onSave={handleSave}
                 isSaving={processing}

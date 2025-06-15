@@ -1,28 +1,14 @@
 import { type BreadcrumbItem } from '@/types';
-import { type Asset } from '@/types/asset-hierarchy';
+import { type Asset, type Area, type Plant } from '@/types/asset-hierarchy';
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Building2, Cog, MapPin } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Áreas',
-        href: '/asset-hierarchy/areas',
-    },
-    {
-        title: 'Detalhes da Área',
-        href: '#',
-    },
-];
-
-
+import AreaFormComponent from '@/components/AreaFormComponent';
 
 interface Sector {
     id: number;
@@ -35,11 +21,16 @@ interface Props {
     area: {
         id: number;
         name: string;
+        factory_id?: number;
+        parent_area_id?: number;
+        created_at?: string;
+        updated_at?: string;
         plant: {
             id: number;
             name: string;
         };
     };
+    plants?: Plant[];
     sectors: {
         data: Sector[];
         current_page: number;
@@ -68,7 +59,26 @@ interface Props {
     };
 }
 
-export default function Show({ area, sectors, asset, totalAssetCount, activeTab, filters }: Props) {
+export default function Show({ area, plants, sectors, asset, totalAssetCount, activeTab, filters }: Props) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Home',
+            href: '/home',
+        },
+        {
+            title: 'Hierarquia de Ativos',
+            href: '/asset-hierarchy',
+        },
+        {
+            title: 'Áreas',
+            href: '/asset-hierarchy/areas',
+        },
+        {
+            title: area.name,
+            href: '#',
+        },
+    ];
+
     const handleSort = (section: 'sectors' | 'asset', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
 
@@ -104,22 +114,22 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
     }
 
     const subtitle = (
-        <div className="text-muted-foreground flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1">
+        <span className="text-muted-foreground flex items-center gap-4 text-sm">
+            <span className="flex items-center gap-1">
                 <Building2 className="h-4 w-4" />
                 <span>{area.plant.name}</span>
-            </div>
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-1">
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
                 <span>{sectors?.total || 0} setores</span>
-            </div>
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-1">
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="flex items-center gap-1">
                 <Cog className="h-4 w-4" />
                 <span>{totalAssetCount || 0} ativos</span>
-            </div>
-        </div>
+            </span>
+        </span>
     );
 
     const tabs = [
@@ -127,24 +137,14 @@ export default function Show({ area, sectors, asset, totalAssetCount, activeTab,
             id: 'informacoes',
             label: 'Informações Gerais',
             content: (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Informações Gerais</CardTitle>
-                        <CardDescription>Informações básicas sobre a área</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid w-full items-center gap-4">
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="name">Nome</Label>
-                                <div className="text-muted-foreground text-sm">{area.name}</div>
-                            </div>
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="plant">Planta</Label>
-                                <div className="text-muted-foreground text-sm">{area.plant.name}</div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="py-8">
+                    <AreaFormComponent
+                        area={area as Area & { plant: Plant }}
+                        plants={plants || []}
+                        initialMode="view"
+                        onSuccess={() => router.reload()}
+                    />
+                </div>
             ),
         },
         {

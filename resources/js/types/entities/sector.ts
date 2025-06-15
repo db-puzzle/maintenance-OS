@@ -1,5 +1,4 @@
 import { BaseEntity } from '../shared';
-import { Area } from './area';
 
 export interface Sector extends BaseEntity {
     name: string;

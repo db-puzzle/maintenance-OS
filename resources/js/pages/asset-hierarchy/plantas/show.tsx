@@ -1,38 +1,24 @@
 import { type BreadcrumbItem } from '@/types';
 import { router, Head } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Building2, Cog, Map } from 'lucide-react';
-import { useState, useEffect } from 'react';
 
 import MapComponent from '@/components/map';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import CreatePlantSheet from '@/components/CreatePlantSheet';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Plantas',
-        href: '/asset-hierarchy/plantas',
-    },
-    {
-        title: 'Detalhes da Planta',
-        href: '#',
-    },
-];
+import PlantFormComponent from '@/components/PlantFormComponent';
 
 interface Plant {
     id: number;
     name: string;
-    street: string | null;
-    number: string | null;
-    city: string | null;
-    state: string | null;
-    zip_code: string | null;
-    gps_coordinates: string | null;
+    street?: string;
+    number?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+    gps_coordinates?: string;
 }
 
 interface Area {
@@ -106,14 +92,26 @@ interface Props {
 }
 
 export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, totalAsset, activeTab, filters }: Props) {
-    const [isEditMode, setIsEditMode] = useState(false);
-
-    const handleEditClick = () => {
-        setIsEditMode(true);
-    };
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Home',
+            href: '/home',
+        },
+        {
+            title: 'Hierarquia de Ativos',
+            href: '/asset-hierarchy',
+        },
+        {
+            title: 'Plantas',
+            href: '/asset-hierarchy/plantas',
+        },
+        {
+            title: plant.name,
+            href: '#',
+        },
+    ];
 
     const handleEditSuccess = () => {
-        setIsEditMode(false);
         // Reload the page to refresh the data
         router.reload();
     };
@@ -142,22 +140,22 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
     };
 
     const subtitle = (
-        <div className="text-muted-foreground flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1">
+        <span className="text-muted-foreground flex items-center gap-4 text-sm">
+            <span className="flex items-center gap-1">
                 <Map className="h-4 w-4" />
                 <span>{areas.total} áreas</span>
-            </div>
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-1">
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="flex items-center gap-1">
                 <Building2 className="h-4 w-4" />
                 <span>{totalSectors} setores</span>
-            </div>
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-1">
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="flex items-center gap-1">
                 <Cog className="h-4 w-4" />
                 <span>{totalAsset} ativos</span>
-            </div>
-        </div>
+            </span>
+        </span>
     );
 
     const tabs = [
@@ -165,42 +163,13 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
             id: 'informacoes',
             label: 'Informações Gerais',
             content: (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Informações Gerais</CardTitle>
-                        <CardDescription>Informações básicas sobre a planta</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="name">Nome</Label>
-                                <div className="text-muted-foreground text-sm">{plant.name}</div>
-                            </div>
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="address">Endereço</Label>
-                                <div className="text-muted-foreground text-sm">
-                                    {plant.street}, {plant.number}
-                                </div>
-                            </div>
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="city">Cidade</Label>
-                                <div className="text-muted-foreground text-sm">{plant.city}</div>
-                            </div>
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="state">Estado</Label>
-                                <div className="text-muted-foreground text-sm">{plant.state}</div>
-                            </div>
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="zip_code">CEP</Label>
-                                <div className="text-muted-foreground text-sm">{plant.zip_code}</div>
-                            </div>
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="gps_coordinates">Coordenadas GPS</Label>
-                                <div className="text-muted-foreground text-sm">{plant.gps_coordinates}</div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="py-8">
+                    <PlantFormComponent
+                        plant={plant}
+                        initialMode="view"
+                        onSuccess={handleEditSuccess}
+                    />
+                </div>
             ),
         },
         {
@@ -213,7 +182,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                         <CardDescription>Mapa com a localização da planta</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <MapComponent coordinates={plant.gps_coordinates} />
+                        <MapComponent coordinates={plant.gps_coordinates || null} />
                     </CardContent>
                 </Card>
             ),
@@ -560,33 +529,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
         },
     ];
 
-    // Override the edit button behavior
-    useEffect(() => {
-        const overrideEditButton = () => {
-            const editButton = document.querySelector('a[href="#"]');
-            if (editButton) {
-                editButton.removeEventListener('click', handleEditButtonClick);
-                editButton.addEventListener('click', handleEditButtonClick);
-            }
-        };
 
-        const handleEditButtonClick = (e: Event) => {
-            e.preventDefault();
-            handleEditClick();
-        };
-
-        // Try to override immediately and after a delay
-        overrideEditButton();
-        const timeout = setTimeout(overrideEditButton, 100);
-
-        return () => {
-            clearTimeout(timeout);
-            const editButton = document.querySelector('a[href="#"]');
-            if (editButton) {
-                editButton.removeEventListener('click', handleEditButtonClick);
-            }
-        };
-    }, []);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -595,16 +538,8 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
             <ShowLayout
                 title={plant.name}
                 subtitle={subtitle}
-                editRoute="#"
+                editRoute=""
                 tabs={tabs}
-            />
-
-            {/* CreatePlantSheet for editing */}
-            <CreatePlantSheet
-                isOpen={isEditMode}
-                onOpenChange={setIsEditMode}
-                onSuccess={handleEditSuccess}
-                plant={plant}
             />
         </AppLayout>
     );

@@ -145,7 +145,7 @@ export default function ShowLayout({
 
                             {!isCompressed && subtitle && (
                                 <p className={cn(
-                                    "text-muted-foreground text-sm leading-5 transition-all duration-200 ease-in-out"
+                                    "mt-2 text-muted-foreground text-sm leading-5 transition-all duration-200 ease-in-out"
                                 )}>{subtitle}</p>
                             )}
                         </div>

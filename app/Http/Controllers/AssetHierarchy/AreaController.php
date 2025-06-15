@@ -228,6 +228,12 @@ class AreaController extends Controller
                     'name' => $area->plant->name,
                 ],
             ],
+            'plants' => Plant::all()->map(function ($plant) {
+                return [
+                    'id' => $plant->id,
+                    'name' => $plant->name,
+                ];
+            })->values()->all(),
             'sectors' => $sectors,
             'asset' => $asset,
             'totalAssetCount' => $totalAssetCount,
