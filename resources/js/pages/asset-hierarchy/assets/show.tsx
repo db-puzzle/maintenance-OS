@@ -91,6 +91,10 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     // Define breadcrumbs with dynamic asset tag
     const breadcrumbs: BreadcrumbItem[] = [
         {
+            title: 'Home',
+            href: '/home',
+        },
+        {
             title: 'Ativos',
             href: '/asset-hierarchy/assets',
         },

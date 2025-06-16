@@ -4,18 +4,19 @@ import { router } from '@inertiajs/react';
 import { Cog, Settings } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
+import AssetTypeFormComponent from '@/components/AssetTypeFormComponent';
 
 interface Props {
     assetType: {
         id: number;
         name: string;
-        description: string;
+        description: string | null;
+        created_at?: string;
+        updated_at?: string;
     };
     asset: {
         data: Asset[];
@@ -48,17 +49,17 @@ export default function Show({ assetType, asset, activeTab }: Props) {
     ];
 
     const subtitle = (
-        <div className="text-muted-foreground flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1">
+        <span className="text-muted-foreground flex items-center gap-4 text-sm">
+            <span className="flex items-center gap-1">
                 <Settings className="h-4 w-4" />
                 <span>Tipo de Ativo</span>
-            </div>
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-1">
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="flex items-center gap-1">
                 <Cog className="h-4 w-4" />
                 <span>{asset.total} ativos</span>
-            </div>
-        </div>
+            </span>
+        </span>
     );
 
     const tabs = [
@@ -66,24 +67,13 @@ export default function Show({ assetType, asset, activeTab }: Props) {
             id: 'informacoes',
             label: 'Informações Gerais',
             content: (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Informações Gerais</CardTitle>
-                        <CardDescription>Informações básicas sobre o tipo de ativo</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid w-full items-center gap-4">
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="name">Nome</Label>
-                                <div className="text-muted-foreground text-sm">{assetType.name}</div>
-                            </div>
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="description">Descrição</Label>
-                                <div className="text-muted-foreground text-sm">{assetType.description ?? '-'}</div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="py-8">
+                    <AssetTypeFormComponent
+                        assetType={assetType as any}
+                        initialMode="view"
+                        onSuccess={() => router.reload()}
+                    />
+                </div>
             ),
         },
         {

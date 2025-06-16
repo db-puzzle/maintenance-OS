@@ -1,16 +1,11 @@
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Package } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
 import EmptyCard from '@/components/ui/empty-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import ManufacturerFormComponent from '@/components/ManufacturerFormComponent';
 
 interface AssetData {
     id: number;
@@ -41,21 +36,10 @@ interface Props {
 }
 
 export default function Show({ manufacturer }: Props) {
-    const [isEditing, setIsEditing] = useState(false);
-
-    const { data, setData, put, processing, errors, reset } = useForm({
-        name: manufacturer.name,
-        website: manufacturer.website || '',
-        email: manufacturer.email || '',
-        phone: manufacturer.phone || '',
-        country: manufacturer.country || '',
-        notes: manufacturer.notes || '',
-    });
-
     const breadcrumbs: BreadcrumbItem[] = [
         {
-            title: 'Manutenção',
-            href: '/maintenance-dashboard',
+            title: 'Home',
+            href: '/home',
         },
         {
             title: 'Hierarquia de Ativos',
@@ -71,181 +55,17 @@ export default function Show({ manufacturer }: Props) {
         },
     ];
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        put(route('asset-hierarchy.manufacturers.update', manufacturer.id), {
-            onSuccess: () => {
-                toast.success('Fabricante atualizado com sucesso!');
-                setIsEditing(false);
-            },
-            onError: () => {
-                toast.error('Erro ao atualizar fabricante');
-            },
-        });
-    };
-
-    const handleCancel = () => {
-        reset();
-        setIsEditing(false);
-    };
-
     const tabs = [
         {
             id: 'informacoes',
             label: 'Informações Gerais',
             content: (
-                <div className="p-6">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Nome do Fabricante</Label>
-                                {isEditing ? (
-                                    <>
-                                        <Input
-                                            id="name"
-                                            value={data.name}
-                                            onChange={(e) => setData('name', e.target.value)}
-                                            required
-                                        />
-                                        {errors.name && (
-                                            <p className="text-sm text-destructive">{errors.name}</p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">{manufacturer.name}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="country">País</Label>
-                                {isEditing ? (
-                                    <>
-                                        <Input
-                                            id="country"
-                                            value={data.country}
-                                            onChange={(e) => setData('country', e.target.value)}
-                                        />
-                                        {errors.country && (
-                                            <p className="text-sm text-destructive">{errors.country}</p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">{manufacturer.country || '-'}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="website">Website</Label>
-                                {isEditing ? (
-                                    <>
-                                        <Input
-                                            id="website"
-                                            type="url"
-                                            value={data.website}
-                                            onChange={(e) => setData('website', e.target.value)}
-                                            placeholder="https://www.exemplo.com"
-                                        />
-                                        {errors.website && (
-                                            <p className="text-sm text-destructive">{errors.website}</p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        {manufacturer.website ? (
-                                            <a href={manufacturer.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                                {manufacturer.website}
-                                            </a>
-                                        ) : (
-                                            '-'
-                                        )}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="email">E-mail</Label>
-                                {isEditing ? (
-                                    <>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            value={data.email}
-                                            onChange={(e) => setData('email', e.target.value)}
-                                            placeholder="contato@exemplo.com"
-                                        />
-                                        {errors.email && (
-                                            <p className="text-sm text-destructive">{errors.email}</p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        {manufacturer.email ? (
-                                            <a href={`mailto:${manufacturer.email}`} className="text-primary hover:underline">
-                                                {manufacturer.email}
-                                            </a>
-                                        ) : (
-                                            '-'
-                                        )}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">Telefone</Label>
-                                {isEditing ? (
-                                    <>
-                                        <Input
-                                            id="phone"
-                                            value={data.phone}
-                                            onChange={(e) => setData('phone', e.target.value)}
-                                            placeholder="+55 11 99999-9999"
-                                        />
-                                        {errors.phone && (
-                                            <p className="text-sm text-destructive">{errors.phone}</p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">{manufacturer.phone || '-'}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="notes">Observações</Label>
-                            {isEditing ? (
-                                <>
-                                    <Textarea
-                                        id="notes"
-                                        value={data.notes}
-                                        onChange={(e) => setData('notes', e.target.value)}
-                                        placeholder="Observações sobre o fabricante..."
-                                        className="min-h-[100px]"
-                                    />
-                                    {errors.notes && (
-                                        <p className="text-sm text-destructive">{errors.notes}</p>
-                                    )}
-                                </>
-                            ) : (
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{manufacturer.notes || '-'}</p>
-                            )}
-                        </div>
-
-                        {isEditing ? (
-                            <div className="flex gap-2">
-                                <Button type="submit" disabled={processing}>
-                                    {processing ? 'Salvando...' : 'Salvar'}
-                                </Button>
-                                <Button type="button" variant="outline" onClick={handleCancel}>
-                                    Cancelar
-                                </Button>
-                            </div>
-                        ) : (
-                            <Button type="button" onClick={() => setIsEditing(true)}>
-                                Editar
-                            </Button>
-                        )}
-                    </form>
+                <div className="py-8">
+                    <ManufacturerFormComponent
+                        manufacturer={manufacturer}
+                        initialMode="view"
+                        onSuccess={() => router.reload()}
+                    />
                 </div>
             ),
         },
