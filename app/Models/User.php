@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Carbon\Carbon;
@@ -62,5 +63,21 @@ class User extends Authenticatable
     public function convertFromUTC($datetime): Carbon
     {
         return Carbon::parse($datetime, 'UTC')->setTimezone($this->timezone ?? 'UTC');
+    }
+
+    /**
+     * Get the routine executions performed by this user
+     */
+    public function executedRoutines(): HasMany
+    {
+        return $this->hasMany(\App\Models\Maintenance\RoutineExecution::class, 'executed_by');
+    }
+
+    /**
+     * Get the execution exports created by this user
+     */
+    public function executionExports(): HasMany
+    {
+        return $this->hasMany(\App\Models\Maintenance\ExecutionExport::class);
     }
 }

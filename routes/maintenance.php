@@ -3,11 +3,36 @@
 use App\Http\Controllers\Maintenance\DashboardController;
 use App\Http\Controllers\Maintenance\RoutineController;
 use App\Http\Controllers\Maintenance\InlineRoutineExecutionController;
+use App\Http\Controllers\Maintenance\ExecutionHistoryController;
+use App\Http\Controllers\Maintenance\ExecutionResponseController;
+use App\Http\Controllers\Maintenance\ExecutionExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenance.')->group(function () {
     // Dashboard de Manutenção
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // Execution History and Response Viewer
+    Route::prefix('executions')->name('executions.')->group(function () {
+        // Dashboard and analytics
+        Route::get('/history', [ExecutionHistoryController::class, 'dashboard'])->name('history');
+        Route::get('/history/api', [ExecutionHistoryController::class, 'dashboardApi'])->name('history.api');
+        Route::get('/performance-metrics', [ExecutionHistoryController::class, 'performanceMetrics'])->name('performance-metrics');
+        Route::get('/filter-options', [ExecutionHistoryController::class, 'filterOptions'])->name('filter-options');
+        
+        // List and detail views
+        Route::get('/', [ExecutionResponseController::class, 'index'])->name('index');
+        Route::get('/api', [ExecutionResponseController::class, 'api'])->name('api');
+        Route::get('/{execution}', [ExecutionResponseController::class, 'show'])->name('show');
+        
+        // Export functionality
+        Route::post('/{execution}/export', [ExecutionExportController::class, 'exportSingle'])->name('export.single');
+        Route::post('/export/batch', [ExecutionExportController::class, 'exportBatch'])->name('export.batch');
+        Route::get('/exports/{export}/status', [ExecutionExportController::class, 'exportStatus'])->name('export.status');
+        Route::get('/exports/{export}/download', [ExecutionExportController::class, 'download'])->name('export.download');
+        Route::get('/exports', [ExecutionExportController::class, 'userExports'])->name('export.user');
+        Route::delete('/exports/{export}', [ExecutionExportController::class, 'cancel'])->name('export.cancel');
+    });
     
     // Rotinas
     Route::prefix('routines')->name('routines.')->group(function () {
