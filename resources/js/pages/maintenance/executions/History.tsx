@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -72,6 +74,21 @@ interface HistoryProps {
   filterOptions: any;
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+  {
+    title: 'Home',
+    href: '/home',
+  },
+  {
+    title: 'Maintenance',
+    href: '/maintenance/dashboard',
+  },
+  {
+    title: 'Execution History',
+    href: '/maintenance/executions/history',
+  },
+];
+
 const History: React.FC<HistoryProps> = ({
   stats,
   recentExecutions,
@@ -127,7 +144,11 @@ const History: React.FC<HistoryProps> = ({
   const RecentExecutionsList = () => (
     <div className="space-y-3">
       {recentExecutions.map((execution) => (
-        <div key={execution.id} className="flex items-center justify-between p-3 border rounded-lg">
+        <Link
+          key={execution.id}
+          href={`/maintenance/executions/${execution.id}`}
+          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+        >
           <div className="flex-1">
             <div className="font-medium">{execution.routine_name}</div>
             <div className="text-sm text-muted-foreground">
@@ -142,7 +163,7 @@ const History: React.FC<HistoryProps> = ({
               {getRelativeTime(execution.started_at)}
             </div>
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   );
@@ -160,7 +181,7 @@ const History: React.FC<HistoryProps> = ({
           <p className="text-sm text-muted-foreground">Per execution</p>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Total Time</CardTitle>
@@ -172,7 +193,7 @@ const History: React.FC<HistoryProps> = ({
           <p className="text-sm text-muted-foreground">All executions</p>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Fastest/Slowest</CardTitle>
@@ -194,14 +215,14 @@ const History: React.FC<HistoryProps> = ({
   );
 
   return (
-    <>
+    <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Execution History - Maintenance" />
-      
-      <div className="container mx-auto px-4 py-6">
+
+      <div className="flex h-full flex-1 flex-col gap-6 rounded-xl p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Execution History</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Execution History</h1>
             <p className="text-muted-foreground">
               Track and analyze routine execution performance
             </p>
@@ -221,7 +242,7 @@ const History: React.FC<HistoryProps> = ({
         </div>
 
         {/* Filters */}
-        <Card className="mb-6">
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg">Filters</CardTitle>
           </CardHeader>
@@ -231,7 +252,7 @@ const History: React.FC<HistoryProps> = ({
         </Card>
 
         {/* Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Executions</CardTitle>
@@ -376,7 +397,7 @@ const History: React.FC<HistoryProps> = ({
           </TabsContent>
         </Tabs>
       </div>
-    </>
+    </AppLayout>
   );
 };
 

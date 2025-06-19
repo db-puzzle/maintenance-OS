@@ -5,6 +5,7 @@ namespace App\Models\Maintenance;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Maintenance\RoutineExecution;
 
 class ExecutionExport extends Model
 {
@@ -56,11 +57,10 @@ class ExecutionExport extends Model
     /**
      * Mark export as completed
      */
-    public function markAsCompleted(string $filePath): void
+    public function markAsCompleted(): void
     {
         $this->update([
             'status' => self::STATUS_COMPLETED,
-            'file_path' => $filePath,
             'completed_at' => now(),
         ]);
     }
@@ -71,6 +71,14 @@ class ExecutionExport extends Model
     public function markAsFailed(): void
     {
         $this->update(['status' => self::STATUS_FAILED]);
+    }
+
+    /**
+     * Get the executions for this export
+     */
+    public function getExecutions()
+    {
+        return \App\Models\Maintenance\RoutineExecution::whereIn('id', $this->execution_ids)->get();
     }
 
     /**

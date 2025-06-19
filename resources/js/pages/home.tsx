@@ -5,6 +5,7 @@ import {
     Boxes,
     ChevronRight,
     Route,
+    History,
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -28,6 +29,12 @@ export default function Dashboard() {
             icon: Route,
             description: 'Estrutura e organização de ativos',
             href: '/asset-hierarchy',
+        },
+        executionHistory: {
+            title: 'Histórico de Execuções',
+            icon: History,
+            description: 'Visualize e analise execuções de rotinas',
+            href: '/maintenance/executions/history',
         },
     };
 

@@ -69,24 +69,26 @@ class ExecutionAnalyticsService
     {
         $startDate = Carbon::now()->subDays($days)->startOfDay();
         
-        return RoutineExecution::select([
-                DB::raw('DATE(started_at) as date'),
-                DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed'),
-                DB::raw('SUM(CASE WHEN status = "cancelled" THEN 1 ELSE 0 END) as failed'),
-            ])
-            ->where('started_at', '>=', $startDate)
-            ->groupBy(DB::raw('DATE(started_at)'))
-            ->orderBy('date')
+        $executions = RoutineExecution::where('started_at', '>=', $startDate)
             ->get()
-            ->map(function ($item) {
+            ->groupBy(function ($execution) {
+                return Carbon::parse($execution->started_at)->format('Y-m-d');
+            })
+            ->map(function ($dayExecutions, $date) {
+                $completed = $dayExecutions->where('status', RoutineExecution::STATUS_COMPLETED)->count();
+                $cancelled = $dayExecutions->where('status', RoutineExecution::STATUS_CANCELLED)->count();
+                
                 return [
-                    'date' => $item->date,
-                    'count' => (int) $item->count,
-                    'completed' => (int) $item->completed,
-                    'failed' => (int) $item->failed,
+                    'date' => $date,
+                    'count' => $dayExecutions->count(),
+                    'completed' => $completed,
+                    'failed' => $cancelled,
                 ];
-            });
+            })
+            ->sortBy('date')
+            ->values();
+
+        return $executions;
     }
 
     /**
@@ -129,36 +131,46 @@ class ExecutionAnalyticsService
      */
     public function getAssetExecutionSummary(): Collection
     {
-        return DB::table('routine_executions')
-            ->join('routines', 'routine_executions.routine_id', '=', 'routines.id')
-            ->join('asset_routine', 'routines.id', '=', 'asset_routine.routine_id')
-            ->join('assets', 'asset_routine.asset_id', '=', 'assets.id')
-            ->select([
-                'assets.id',
-                'assets.tag',
-                'assets.description',
-                DB::raw('COUNT(routine_executions.id) as total_executions'),
-                DB::raw('SUM(CASE WHEN routine_executions.status = "completed" THEN 1 ELSE 0 END) as completed_executions'),
-                DB::raw('AVG(CASE WHEN routine_executions.status = "completed" AND routine_executions.started_at IS NOT NULL AND routine_executions.completed_at IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, routine_executions.started_at, routine_executions.completed_at) END) as avg_duration_minutes'),
-            ])
-            ->groupBy('assets.id', 'assets.tag', 'assets.description')
-            ->orderBy('total_executions', 'desc')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'asset_id' => $item->id,
-                    'asset_tag' => $item->tag,
-                    'asset_description' => $item->description,
-                    'total_executions' => (int) $item->total_executions,
-                    'completed_executions' => (int) $item->completed_executions,
-                    'completion_rate' => $item->total_executions > 0 
-                        ? round(($item->completed_executions / $item->total_executions) * 100, 1) 
-                        : 0,
-                    'avg_duration_minutes' => $item->avg_duration_minutes 
-                        ? round((float) $item->avg_duration_minutes, 1) 
-                        : null,
-                ];
-            });
+        // Get all assets that have routines with executions
+        $assets = \App\Models\AssetHierarchy\Asset::whereHas('routines.routineExecutions')
+            ->with(['routines.routineExecutions' => function ($query) {
+                $query->select('id', 'routine_id', 'status', 'started_at', 'completed_at');
+            }])
+            ->get();
+
+        return $assets->map(function ($asset) {
+            $allExecutions = $asset->routines->flatMap->routineExecutions;
+            $totalExecutions = $allExecutions->count();
+            $completedExecutions = $allExecutions->where('status', RoutineExecution::STATUS_COMPLETED);
+            $completedCount = $completedExecutions->count();
+            
+            // Calculate average duration for completed executions
+            $avgDuration = null;
+            if ($completedCount > 0) {
+                $totalDuration = $completedExecutions->sum(function ($execution) {
+                    if ($execution->started_at && $execution->completed_at) {
+                        return Carbon::parse($execution->completed_at)
+                            ->diffInMinutes(Carbon::parse($execution->started_at));
+                    }
+                    return 0;
+                });
+                $avgDuration = round($totalDuration / $completedCount, 1);
+            }
+
+            return [
+                'asset_id' => $asset->id,
+                'asset_tag' => $asset->tag,
+                'asset_description' => $asset->description,
+                'total_executions' => $totalExecutions,
+                'completed_executions' => $completedCount,
+                'completion_rate' => $totalExecutions > 0 
+                    ? round(($completedCount / $totalExecutions) * 100, 1) 
+                    : 0,
+                'avg_duration_minutes' => $avgDuration,
+            ];
+        })->filter(function ($summary) {
+            return $summary['total_executions'] > 0;
+        })->sortByDesc('total_executions')->values();
     }
 
     /**
