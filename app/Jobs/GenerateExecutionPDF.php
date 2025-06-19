@@ -132,22 +132,42 @@ class GenerateExecutionPDF implements ShouldQueue
     }
 
     /**
-     * Calculate progress percentage
+     * Get estimated progress percentage
      */
     public function getProgressPercentage(): int
     {
-        // This is a simple estimation
-        // In a real implementation, you might track actual progress
+        if ($this->export->isCompleted()) {
+            return 100;
+        }
+
+        if ($this->export->isPending()) {
+            return 0;
+        }
+
+        // Calculate based on creation time and estimated duration
         $createdAt = $this->export->created_at;
-        $estimatedSeconds = app(PDFGeneratorService::class)->getEstimatedGenerationTime(
-            count($this->export->execution_ids),
-            $this->export->export_format
-        );
+        $now = now();
+        $elapsedSeconds = $now->diffInSeconds($createdAt);
+        
+        // Estimate based on execution count
+        $executionCount = count($this->export->execution_ids);
+        $estimatedSeconds = $this->getEstimatedDuration($executionCount);
+        
+        $progress = min(95, round(($elapsedSeconds / $estimatedSeconds) * 100));
+        
+        return max(5, $progress); // Always show at least 5% when processing
+    }
 
-        $elapsedSeconds = now()->diffInSeconds($createdAt);
-        $percentage = min(95, ($elapsedSeconds / $estimatedSeconds) * 100);
-
-        return (int) $percentage;
+    /**
+     * Get estimated duration in seconds
+     */
+    private function getEstimatedDuration(int $executionCount): int
+    {
+        // Base time + time per execution
+        $baseTime = 5; // 5 seconds base
+        $timePerExecution = 3; // 3 seconds per execution
+        
+        return $baseTime + ($executionCount * $timePerExecution);
     }
 
     /**

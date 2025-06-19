@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import type { RoutineExecution, TaskResponse } from '@/types/maintenance';
 import { toast } from 'sonner';
+import { useExportManager } from '@/hooks/use-export-manager';
 
 interface ExecutionShowProps {
     execution: RoutineExecution;
@@ -38,9 +39,11 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
     const [activeTab, setActiveTab] = useState('responses');
     const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set(taskResponses.map(tr => tr.id)));
     const [isExporting, setIsExporting] = useState(false);
-    const [exportError, setExportError] = useState<string | null>(null);
     const [exportStatus, setExportStatus] = useState<'idle' | 'processing' | 'ready'>('idle');
     const [exportId, setExportId] = useState<number | null>(null);
+    const [exportError, setExportError] = useState<string | null>(null);
+
+    const { addExport, updateExport } = useExportManager();
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -155,6 +158,15 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
             setExportStatus('processing');
             setExportId(data.export_id);
 
+            // Add to export manager
+            addExport({
+                id: data.export_id,
+                type: 'single',
+                description: `Execution #${execution.id} - ${execution.routine.name}`,
+                status: 'processing',
+                progress: 0,
+            });
+
             const pollInterval = setInterval(async () => {
                 try {
                     const statusResponse = await fetch(`/maintenance/executions/exports/${data.export_id}/status`, {
@@ -164,11 +176,25 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                     });
                     const statusData = await statusResponse.json();
 
+                    // Update progress in export manager
+                    if (statusData.progress_percentage) {
+                        updateExport(data.export_id, {
+                            progress: statusData.progress_percentage,
+                        });
+                    }
+
                     if (statusData.status === 'completed' && statusData.download_url) {
                         clearInterval(pollInterval);
                         setExportStatus('ready');
 
-                        window.location.href = statusData.download_url;
+                        // Update export manager with completion
+                        updateExport(data.export_id, {
+                            status: 'completed',
+                            downloadUrl: statusData.download_url,
+                            completedAt: new Date(),
+                        });
+
+                        // No longer auto-download - user will click the toast or dropdown to download
 
                         setTimeout(() => {
                             setExportStatus('idle');
@@ -178,7 +204,12 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                         clearInterval(pollInterval);
                         setExportStatus('idle');
                         setExportId(null);
-                        toast.error('Export Failed: The export process failed. Please try again.');
+
+                        // Update export manager with failure
+                        updateExport(data.export_id, {
+                            status: 'failed',
+                            error: 'The export process failed. Please try again.',
+                        });
                     }
                 } catch (error) {
                     console.error('Status polling error:', error);
@@ -190,13 +221,27 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                 if (exportStatus === 'processing') {
                     setExportStatus('idle');
                     setExportId(null);
-                    toast.error('Export Timeout: The export is taking longer than expected. Please check your exports page.');
+
+                    // Update export manager with timeout
+                    updateExport(data.export_id, {
+                        status: 'failed',
+                        error: 'Export timeout - check your exports page',
+                    });
                 }
             }, 300000);
         } catch (error) {
             console.error('Export error:', error);
             setExportStatus('idle');
-            toast.error(error instanceof Error ? error.message : 'An error occurred while exporting');
+
+            // Show error in export manager
+            if (exportId) {
+                updateExport(exportId, {
+                    status: 'failed',
+                    error: error instanceof Error ? error.message : 'An error occurred',
+                });
+            } else {
+                toast.error(error instanceof Error ? error.message : 'An error occurred while exporting');
+            }
         } finally {
             setIsExporting(false);
         }

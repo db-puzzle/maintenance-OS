@@ -160,18 +160,35 @@ class ExecutionExportController extends Controller
             return response()->json(['error' => 'Export file not found'], 404);
         }
 
-        $fileName = basename($export->file_path);
+        // Generate a descriptive filename
+        $exportType = $export->export_type === 'single' ? 'execution' : 'batch';
+        $date = $export->created_at->format('Y-m-d_His');
+        $executionCount = count($export->execution_ids);
+        
+        if ($export->export_type === 'single' && $executionCount === 1) {
+            // For single exports, try to include execution ID
+            $fileName = "execution_{$export->execution_ids[0]}_{$date}.pdf";
+        } else {
+            // For batch exports
+            $fileName = "export_{$exportType}_{$executionCount}_executions_{$date}.pdf";
+        }
+        
         $mimeType = 'application/pdf';
         
-        if (str_ends_with($fileName, '.csv')) {
+        if (str_ends_with($export->file_path, '.csv')) {
             $mimeType = 'text/csv';
-        } elseif (str_ends_with($fileName, '.txt')) {
-            $mimeType = 'text/plain';
+            $fileName = str_replace('.pdf', '.csv', $fileName);
+        } elseif (str_ends_with($export->file_path, '.xlsx')) {
+            $mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            $fileName = str_replace('.pdf', '.xlsx', $fileName);
         }
 
         return response()->download($filePath, $fileName, [
             'Content-Type' => $mimeType,
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     }
 

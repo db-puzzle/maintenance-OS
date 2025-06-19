@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, TrendingUp, TrendingDown, Minus, Clock, Users, BarChart3, Download } from 'lucide-react';
+import { useExportManager } from '@/hooks/use-export-manager';
+import { toast } from 'sonner';
 
 // Simple utility functions inline
 const formatDate = (dateString: string | null): string => {
@@ -98,6 +100,8 @@ const History: React.FC<HistoryProps> = ({
   filterOptions,
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isExporting, setIsExporting] = useState(false);
+  const { addExport, updateExport } = useExportManager();
 
   const getTrendIcon = (direction: string) => {
     switch (direction) {
@@ -214,6 +218,105 @@ const History: React.FC<HistoryProps> = ({
     </div>
   );
 
+  const handleExportReport = async () => {
+    setIsExporting(true);
+
+    try {
+      // Get recent execution IDs for batch export
+      const executionIds = recentExecutions.slice(0, 10).map(e => e.id);
+
+      const response = await fetch('/maintenance/executions/export/batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        },
+        body: JSON.stringify({
+          execution_ids: executionIds,
+          format: 'pdf',
+          template: 'summary',
+          grouping: 'by_asset',
+          include_cover_page: true,
+          include_index: true,
+          separate_files: false,
+          include_images: true,
+          compress_images: true,
+          paper_size: 'A4',
+          delivery: {
+            method: 'download',
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Export failed');
+      }
+
+      // Add to export manager
+      addExport({
+        id: data.export_id,
+        type: 'batch',
+        description: `History Report - ${executionIds.length} executions`,
+        status: 'processing',
+        progress: 0,
+      });
+
+      // Poll for status
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(`/maintenance/executions/exports/${data.export_id}/status`, {
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          });
+          const statusData = await statusResponse.json();
+
+          // Update progress
+          if (statusData.progress_percentage) {
+            updateExport(data.export_id, {
+              progress: statusData.progress_percentage,
+            });
+          }
+
+          if (statusData.status === 'completed' && statusData.download_url) {
+            clearInterval(pollInterval);
+
+            // Update export manager
+            updateExport(data.export_id, {
+              status: 'completed',
+              downloadUrl: statusData.download_url,
+              completedAt: new Date(),
+            });
+
+            // No longer auto-download - user will click the toast or dropdown to download
+          } else if (statusData.status === 'failed') {
+            clearInterval(pollInterval);
+
+            updateExport(data.export_id, {
+              status: 'failed',
+              error: 'Export failed. Please try again.',
+            });
+          }
+        } catch (error) {
+          console.error('Status polling error:', error);
+        }
+      }, 2000);
+
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+      }, 300000);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to start export');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Execution History - Maintenance" />
@@ -234,9 +337,9 @@ const History: React.FC<HistoryProps> = ({
                 View All Executions
               </Link>
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExportReport} disabled={isExporting}>
               <Download className="h-4 w-4 mr-2" />
-              Export Report
+              {isExporting ? 'Starting Export...' : 'Export Report'}
             </Button>
           </div>
         </div>
