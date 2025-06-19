@@ -20,11 +20,11 @@ return new class extends Migration
             $table->string('country')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
-            
+
             // Add index for better performance
             $table->index('name');
         });
-        
+
         // Add manufacturer_id to assets table
         Schema::table('assets', function (Blueprint $table) {
             $table->foreignId('manufacturer_id')->nullable()->after('manufacturer')->constrained('manufacturers')->nullOnDelete();
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->dropForeign(['manufacturer_id']);
             $table->dropColumn('manufacturer_id');
         });
-        
+
         Schema::dropIfExists('manufacturers');
     }
-}; 
+};

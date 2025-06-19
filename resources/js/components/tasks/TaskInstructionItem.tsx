@@ -20,8 +20,6 @@ export function TaskInstructionItem({ instruction, mode, onUpdate, onRemove }: T
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const isEditing = mode === 'edit';
 
-
-
     const handleSaveEdit = (updatedInstruction: Instruction) => {
         onUpdate(updatedInstruction);
         setIsEditModalOpen(false);

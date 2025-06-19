@@ -273,9 +273,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
         });
 
         // Armazenar o tipo de operação atual
-        dropTypeRef.current = dropType === 'reorder' && position !== undefined
-            ? { parentId: targetId, index: position }
-            : null;
+        dropTypeRef.current = dropType === 'reorder' && position !== undefined ? { parentId: targetId, index: position } : null;
 
         if (dropType === 'reorder' && position !== undefined) {
             // Para reordenação, precisamos destacar a drop zone

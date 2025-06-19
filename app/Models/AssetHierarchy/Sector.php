@@ -11,12 +11,12 @@ class Sector extends Model
     protected $fillable = [
         'name',
         'area_id',
-        'shift_id'
+        'shift_id',
     ];
 
     protected $casts = [
         'area_id' => 'integer',
-        'shift_id' => 'integer'
+        'shift_id' => 'integer',
     ];
 
     public function area(): BelongsTo
@@ -44,4 +44,4 @@ class Sector extends Model
             }
         });
     }
-} 
+}

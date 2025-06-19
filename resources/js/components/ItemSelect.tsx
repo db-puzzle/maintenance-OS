@@ -1,10 +1,10 @@
 import InputError from '@/components/input-error';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
 import { type SelectProps } from '@radix-ui/react-select';
 import { LucideIcon, PlusCircle, Search } from 'lucide-react';
 import { forwardRef, useEffect, useMemo, useState } from 'react';
-import { cn } from '@/lib/utils';
 
 export interface ItemSelectProps extends SelectProps {
     label?: string;
@@ -140,15 +140,18 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                             ref={ref}
                             error={!!error}
                             className={cn(
-                                view && [
-                                    'cursor-default opacity-100 pointer-events-none',
-                                    'text-foreground [&>span]:text-foreground',
-                                    '[&>svg]:hidden',
-                                    // Don't override placeholder text color
-                                    '[&_[data-slot=select-value]:not(:has(*))]:text-inherit',
-                                    // Add muted background when empty
-                                    !selectedItem && 'bg-muted/20'
-                                ].filter(Boolean).join(' ')
+                                view &&
+                                    [
+                                        'pointer-events-none cursor-default opacity-100',
+                                        'text-foreground [&>span]:text-foreground',
+                                        '[&>svg]:hidden',
+                                        // Don't override placeholder text color
+                                        '[&_[data-slot=select-value]:not(:has(*))]:text-inherit',
+                                        // Add muted background when empty
+                                        !selectedItem && 'bg-muted/20',
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' '),
                             )}
                             tabIndex={view ? -1 : 0}
                         >

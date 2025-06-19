@@ -1,18 +1,18 @@
-import { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { ColumnVisibility } from '@/components/data-table';
+import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
+import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
+import { EntityPagination } from '@/components/shared/EntityPagination';
+import { useEntityOperations } from '@/hooks/useEntityOperations';
+import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { EntityPagination } from '@/components/shared/EntityPagination';
-import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
-import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
-import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { ColumnConfig } from '@/types/shared';
-import { ColumnVisibility } from '@/components/data-table';
-import { useEntityOperations } from '@/hooks/useEntityOperations';
-import { useSorting } from '@/hooks/useSorting';
+import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: any) => string;
@@ -67,8 +67,8 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
         initialDirection: filters.direction || 'asc',
         additionalParams: {
             search,
-            per_page: filters.per_page
-        }
+            per_page: filters.per_page,
+        },
     });
 
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
@@ -210,23 +210,22 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
 
     const handleSearch = (value: string) => {
         setSearch(value);
-        router.get(route('asset-hierarchy.assets'),
+        router.get(
+            route('asset-hierarchy.assets'),
             { search: value, sort, direction, per_page: filters.per_page },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('asset-hierarchy.assets'),
-            { ...filters, search, sort, direction, page },
-            { preserveState: true, preserveScroll: true }
-        );
+        router.get(route('asset-hierarchy.assets'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
     };
 
     const handlePerPageChange = (perPage: number) => {
-        router.get(route('asset-hierarchy.assets'),
+        router.get(
+            route('asset-hierarchy.assets'),
             { ...filters, search, sort, direction, per_page: perPage, page: 1 },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
@@ -244,11 +243,11 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
                 actions={
                     <div className="flex items-center gap-2">
                         <ColumnVisibility
-                            columns={columns.map(col => ({
+                            columns={columns.map((col) => ({
                                 id: col.key,
                                 header: col.label,
                                 cell: () => null,
-                                width: 'w-auto'
+                                width: 'w-auto',
                             }))}
                             columnVisibility={columnVisibility}
                             onColumnVisibilityChange={handleColumnVisibilityChange}
@@ -274,11 +273,7 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
                         )}
                     />
 
-                    <EntityPagination
-                        pagination={pagination}
-                        onPageChange={handlePageChange}
-                        onPerPageChange={handlePerPageChange}
-                    />
+                    <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
 

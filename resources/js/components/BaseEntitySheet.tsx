@@ -59,15 +59,13 @@ export function BaseEntitySheet<TFormData extends Record<string, any>>({
 }: BaseEntitySheetProps<TFormData>) {
     const isEditMode = mode === 'edit' && entity;
 
-    const { data, setData, post, put, processing, errors, reset } = useForm<TFormData>(
-        formConfig.initialData
-    );
+    const { data, setData, post, put, processing, errors, reset } = useForm<TFormData>(formConfig.initialData);
 
     const [internalSheetOpen, setInternalSheetOpen] = React.useState(false);
 
     // Determine whether to use internal or external control
     const sheetOpen = showTrigger ? internalSheetOpen : (controlledOpen ?? false);
-    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => { }));
+    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => {}));
 
     // Update form data when entity changes (for edit mode)
     useEffect(() => {
@@ -110,9 +108,7 @@ export function BaseEntitySheet<TFormData extends Record<string, any>>({
         // Add stay parameter to data before submission
         const submitData = { ...data, stay: true };
 
-        const successMessage = isEditMode
-            ? `${formConfig.entityName} atualizado com sucesso!`
-            : `${formConfig.entityName} criado com sucesso!`;
+        const successMessage = isEditMode ? `${formConfig.entityName} atualizado com sucesso!` : `${formConfig.entityName} criado com sucesso!`;
 
         const errorMessage = isEditMode
             ? `Erro ao atualizar ${formConfig.entityName.toLowerCase()}`
@@ -161,12 +157,12 @@ export function BaseEntitySheet<TFormData extends Record<string, any>>({
     };
 
     const sheetTitle = isEditMode
-        ? (formConfig.sheetTitle?.edit || `Editar ${formConfig.entityName}`)
-        : (formConfig.sheetTitle?.create || `Novo ${formConfig.entityName}`);
+        ? formConfig.sheetTitle?.edit || `Editar ${formConfig.entityName}`
+        : formConfig.sheetTitle?.create || `Novo ${formConfig.entityName}`;
 
     const sheetDescription = isEditMode
-        ? (formConfig.sheetDescription?.edit || `Atualize as informações do ${formConfig.entityName.toLowerCase()}`)
-        : (formConfig.sheetDescription?.create || `Adicione um novo ${formConfig.entityName.toLowerCase()} ao sistema`);
+        ? formConfig.sheetDescription?.edit || `Atualize as informações do ${formConfig.entityName.toLowerCase()}`
+        : formConfig.sheetDescription?.create || `Adicione um novo ${formConfig.entityName.toLowerCase()} ao sistema`;
 
     return (
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -190,9 +186,7 @@ export function BaseEntitySheet<TFormData extends Record<string, any>>({
                 </SheetHeader>
 
                 <form onSubmit={handleSubmit} className="m-4 space-y-6">
-                    <div className="grid gap-6">
-                        {children({ data, setData, errors, processing })}
-                    </div>
+                    <div className="grid gap-6">{children({ data, setData, errors, processing })}</div>
 
                     <SheetFooter className="flex justify-end gap-2">
                         <Button type="submit" disabled={processing}>
@@ -206,4 +200,4 @@ export function BaseEntitySheet<TFormData extends Record<string, any>>({
             </SheetContent>
         </Sheet>
     );
-} 
+}

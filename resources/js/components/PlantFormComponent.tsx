@@ -1,12 +1,12 @@
+import MapComponent from '@/components/map';
 import TextInput from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { type Plant } from '@/types/entities/plant';
 import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import MapComponent from '@/components/map';
 
 // Define a local form type with index signature
 interface PlantFormData {
@@ -27,12 +27,7 @@ interface PlantFormComponentProps {
     onSuccess?: () => void;
 }
 
-export default function PlantFormComponent({
-    plant,
-    initialMode = 'view',
-    onCancel,
-    onSuccess
-}: PlantFormComponentProps) {
+export default function PlantFormComponent({ plant, initialMode = 'view', onCancel, onSuccess }: PlantFormComponentProps) {
     const isEditing = !!plant;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
@@ -101,7 +96,7 @@ export default function PlantFormComponent({
                     }}
                     name="name"
                     label="Nome"
-                    placeholder={isViewMode ? "Nome não informado" : "Digite o nome da planta"}
+                    placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome da planta'}
                     required={!isViewMode}
                     view={isViewMode}
                 />
@@ -116,7 +111,7 @@ export default function PlantFormComponent({
                     }}
                     name="zip_code"
                     label="CEP"
-                    placeholder={isViewMode ? "CEP não informado" : "Digite o CEP"}
+                    placeholder={isViewMode ? 'CEP não informado' : 'Digite o CEP'}
                     view={isViewMode}
                 />
 
@@ -130,7 +125,7 @@ export default function PlantFormComponent({
                     }}
                     name="street"
                     label="Rua"
-                    placeholder={isViewMode ? "Rua não informada" : "Digite o nome da rua"}
+                    placeholder={isViewMode ? 'Rua não informada' : 'Digite o nome da rua'}
                     view={isViewMode}
                 />
 
@@ -144,7 +139,7 @@ export default function PlantFormComponent({
                     }}
                     name="number"
                     label="Número"
-                    placeholder={isViewMode ? "Número não informado" : "Digite o número"}
+                    placeholder={isViewMode ? 'Número não informado' : 'Digite o número'}
                     view={isViewMode}
                 />
 
@@ -158,7 +153,7 @@ export default function PlantFormComponent({
                     }}
                     name="city"
                     label="Cidade"
-                    placeholder={isViewMode ? "Cidade não informada" : "Digite a cidade"}
+                    placeholder={isViewMode ? 'Cidade não informada' : 'Digite a cidade'}
                     view={isViewMode}
                 />
 
@@ -172,7 +167,7 @@ export default function PlantFormComponent({
                     }}
                     name="state"
                     label="Estado"
-                    placeholder={isViewMode ? "Estado não informado" : "Digite o estado"}
+                    placeholder={isViewMode ? 'Estado não informado' : 'Digite o estado'}
                     view={isViewMode}
                 />
 
@@ -187,7 +182,7 @@ export default function PlantFormComponent({
                         }}
                         name="gps_coordinates"
                         label="Coordenadas GPS"
-                        placeholder={isViewMode ? "Coordenadas não informadas" : "Digite as coordenadas GPS"}
+                        placeholder={isViewMode ? 'Coordenadas não informadas' : 'Digite as coordenadas GPS'}
                         view={isViewMode}
                     />
                 </div>
@@ -225,4 +220,4 @@ export default function PlantFormComponent({
             )}
         </div>
     );
-} 
+}

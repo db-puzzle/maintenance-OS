@@ -1,15 +1,15 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MainSelectionTab, MainSelectionTabList, MainSelectionTabTrigger } from '@/components/ui/main-selection-tab';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSidebar } from '@/components/ui/sidebar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
 import { Check, Maximize2, Minimize2 } from 'lucide-react';
-import { useState, type ReactNode, useEffect } from 'react';
-import { cn } from '@/lib/utils';
+import { useEffect, useState, type ReactNode } from 'react';
 
 interface Tab {
     id: string;
@@ -57,7 +57,7 @@ export default function ShowLayout({
     });
 
     // Simple animation class for all tabs
-    const tabAnimationClass = "animate-in fade-in-2 slide-in-from-top-5 duration-200";
+    const tabAnimationClass = 'animate-in fade-in-2 slide-in-from-top-5 duration-200';
 
     useEffect(() => {
         // When compressed mode changes, toggle sidebar accordingly
@@ -81,41 +81,44 @@ export default function ShowLayout({
     };
 
     return (
-        <div className="relative flex flex-col h-[calc(100vh-3rem)]">
+        <div className="relative flex h-[calc(100vh-3rem)] flex-col">
             {/* Fixed Header Section */}
-            <div className="flex-shrink-0 bg-background">
+            <div className="bg-background flex-shrink-0">
                 {/* Title and Actions */}
-                <div className={cn(
-                    "transition-all duration-200 ease-in-out border-gray-200 dark:border-gray-800",
-                    isCompressed ? "py-2 border-b" : "px-6 lg:px-8 py-4"
-                )}>
-                    <div className={cn(
-                        "flex items-start justify-between gap-2 transition-all duration-200 ease-in-out",
-                        isCompressed ? "gap-2 px-6 lg:px-8" : "",
-                        !isCompressed && ""
-                    )}>
-                        <div className={cn(
-                            "flex-1 transition-all duration-200 ease-in-out",
-                            isCompressed ? "flex items-center gap-4" : "space-y-1"
-                        )}>
-                            <h1 className={cn(
-                                "text-foreground font-semibold transition-all duration-200 ease-in-out",
-                                isCompressed ? "text-base lg:text-lg leading-6" : "text-xl lg:text-2xl leading-7"
-                            )}>{title}</h1>
+                <div
+                    className={cn(
+                        'border-gray-200 transition-all duration-200 ease-in-out dark:border-gray-800',
+                        isCompressed ? 'border-b py-2' : 'px-6 py-4 lg:px-8',
+                    )}
+                >
+                    <div
+                        className={cn(
+                            'flex items-start justify-between gap-2 transition-all duration-200 ease-in-out',
+                            isCompressed ? 'gap-2 px-6 lg:px-8' : '',
+                            !isCompressed && '',
+                        )}
+                    >
+                        <div className={cn('flex-1 transition-all duration-200 ease-in-out', isCompressed ? 'flex items-center gap-4' : 'space-y-1')}>
+                            <h1
+                                className={cn(
+                                    'text-foreground font-semibold transition-all duration-200 ease-in-out',
+                                    isCompressed ? 'text-base leading-6 lg:text-lg' : 'text-xl leading-7 lg:text-2xl',
+                                )}
+                            >
+                                {title}
+                            </h1>
 
                             {/* Inline tabs for compressed mode - Desktop only */}
                             {isCompressed && tabs && tabs.length > 0 && (
-                                <div className="hidden md:flex items-center gap-1 flex-1">
+                                <div className="hidden flex-1 items-center gap-1 md:flex">
                                     {tabs.map((tab) => (
                                         <button
                                             key={tab.id}
                                             onClick={() => setActiveTab(tab.id)}
                                             className={cn(
-                                                "py-1 px-3 text-sm rounded-md transition-all duration-200",
-                                                "hover:bg-muted/50",
-                                                activeTab === tab.id
-                                                    ? "bg-muted text-foreground font-medium"
-                                                    : "text-muted-foreground"
+                                                'rounded-md px-3 py-1 text-sm transition-all duration-200',
+                                                'hover:bg-muted/50',
+                                                activeTab === tab.id ? 'bg-muted text-foreground font-medium' : 'text-muted-foreground',
                                             )}
                                         >
                                             {tab.label}
@@ -126,9 +129,9 @@ export default function ShowLayout({
 
                             {/* Mobile Select for compressed mode - Inline */}
                             {isCompressed && tabs && tabs.length > 0 && (
-                                <div className="md:hidden flex-1 min-w-0">
+                                <div className="min-w-0 flex-1 md:hidden">
                                     <Select value={activeTab} onValueChange={setActiveTab}>
-                                        <SelectTrigger className="w-full h-8 text-sm">
+                                        <SelectTrigger className="h-8 w-full text-sm">
                                             <SelectValue>{tabs.find((tab) => tab.id === activeTab)?.label}</SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
@@ -144,9 +147,9 @@ export default function ShowLayout({
                             )}
 
                             {!isCompressed && subtitle && (
-                                <p className={cn(
-                                    "mt-2 text-muted-foreground text-sm leading-5 transition-all duration-200 ease-in-out"
-                                )}>{subtitle}</p>
+                                <p className={cn('text-muted-foreground mt-2 text-sm leading-5 transition-all duration-200 ease-in-out')}>
+                                    {subtitle}
+                                </p>
                             )}
                         </div>
                         {/* Buttons */}
@@ -158,19 +161,13 @@ export default function ShowLayout({
                                             variant="ghost"
                                             size="icon"
                                             onClick={handleToggleCompressed}
-                                            className={cn(
-                                                "h-8 w-8 transition-all duration-200 flex-shrink-0"
-                                            )}
+                                            className={cn('h-8 w-8 flex-shrink-0 transition-all duration-200')}
                                         >
-                                            {isCompressed ? (
-                                                <Minimize2 className="h-4 w-4" />
-                                            ) : (
-                                                <Maximize2 className="h-4 w-4" />
-                                            )}
+                                            {isCompressed ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>{isCompressed ? "Expandir visualização" : "Comprimir visualização"}</p>
+                                        <p>{isCompressed ? 'Expandir visualização' : 'Comprimir visualização'}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
@@ -195,9 +192,11 @@ export default function ShowLayout({
                 {tabs && tabs.length > 0 && !isCompressed && (
                     <>
                         {/* Mobile Select */}
-                        <div className={cn(
-                            "md:hidden px-4 pb-4 transition-all duration-200 ease-in-out border-b border-gray-200 dark:border-gray-800"
-                        )}>
+                        <div
+                            className={cn(
+                                'border-b border-gray-200 px-4 pb-4 transition-all duration-200 ease-in-out md:hidden dark:border-gray-800',
+                            )}
+                        >
                             <Select value={activeTab} onValueChange={setActiveTab}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue>{tabs.find((tab) => tab.id === activeTab)?.label}</SelectValue>
@@ -218,13 +217,7 @@ export default function ShowLayout({
                             <MainSelectionTab value={activeTab} onValueChange={setActiveTab} className="w-full">
                                 <MainSelectionTabList className="px-6 lg:px-8">
                                     {tabs.map((tab) => (
-                                        <MainSelectionTabTrigger
-                                            key={tab.id}
-                                            value={tab.id}
-                                            className={cn(
-                                                "py-2"
-                                            )}
-                                        >
+                                        <MainSelectionTabTrigger key={tab.id} value={tab.id} className={cn('py-2')}>
                                             {tab.label}
                                         </MainSelectionTabTrigger>
                                     ))}
@@ -236,24 +229,22 @@ export default function ShowLayout({
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto bg-sidebar-accent/30">
+            <div className="bg-sidebar-accent/30 flex-1 overflow-y-auto">
                 <div className="px-6 lg:px-8">
-                    {tabs && tabs.length > 0 ? (
-                        tabs.map((tab) => (
-                            <div
-                                key={tab.id}
-                                className={cn(
-                                    activeTab === tab.id ? 'block' : 'hidden',
-                                    // Add smooth vertical animation when tab becomes active
-                                    activeTab === tab.id && tabAnimationClass
-                                )}
-                            >
-                                {tab.content}
-                            </div>
-                        ))
-                    ) : (
-                        children
-                    )}
+                    {tabs && tabs.length > 0
+                        ? tabs.map((tab) => (
+                              <div
+                                  key={tab.id}
+                                  className={cn(
+                                      activeTab === tab.id ? 'block' : 'hidden',
+                                      // Add smooth vertical animation when tab becomes active
+                                      activeTab === tab.id && tabAnimationClass,
+                                  )}
+                              >
+                                  {tab.content}
+                              </div>
+                          ))
+                        : children}
                 </div>
             </div>
         </div>

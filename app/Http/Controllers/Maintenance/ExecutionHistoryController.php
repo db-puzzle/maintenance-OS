@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Maintenance;
 
 use App\Http\Controllers\Controller;
-use App\Services\ExecutionAnalyticsService;
-use App\Models\Maintenance\RoutineExecution;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\Maintenance\Routine;
+use App\Models\Maintenance\RoutineExecution;
 use App\Models\User;
+use App\Services\ExecutionAnalyticsService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,7 +26,7 @@ class ExecutionHistoryController extends Controller
         // $this->authorize('viewAny', RoutineExecution::class);
 
         $filters = $this->getFiltersFromRequest($request);
-        
+
         // Get dashboard data
         $stats = $this->analyticsService->getDashboardStats($filters);
         $recentExecutions = $this->analyticsService->getRecentExecutions();
@@ -51,7 +51,7 @@ class ExecutionHistoryController extends Controller
         // $this->authorize('viewAny', RoutineExecution::class);
 
         $filters = $this->getFiltersFromRequest($request);
-        
+
         return response()->json([
             'stats' => $this->analyticsService->getDashboardStats($filters),
             'recent_executions' => $this->analyticsService->getRecentExecutions(),
@@ -92,29 +92,29 @@ class ExecutionHistoryController extends Controller
                 ->whereHas('routines.routineExecutions')
                 ->orderBy('tag')
                 ->get()
-                ->map(fn($asset) => [
+                ->map(fn ($asset) => [
                     'value' => $asset->id,
                     'label' => "{$asset->tag} - {$asset->description}",
                 ]),
-            
+
             'routines' => Routine::select('id', 'name', 'description')
                 ->whereHas('routineExecutions')
                 ->orderBy('name')
                 ->get()
-                ->map(fn($routine) => [
+                ->map(fn ($routine) => [
                     'value' => $routine->id,
                     'label' => $routine->name,
                 ]),
-            
+
             'executors' => User::select('id', 'name')
                 ->whereHas('executedRoutines')
                 ->orderBy('name')
                 ->get()
-                ->map(fn($user) => [
+                ->map(fn ($user) => [
                     'value' => $user->id,
                     'label' => $user->name,
                 ]),
-            
+
             'statuses' => [
                 ['value' => RoutineExecution::STATUS_PENDING, 'label' => 'Pending'],
                 ['value' => RoutineExecution::STATUS_IN_PROGRESS, 'label' => 'In Progress'],
@@ -153,7 +153,7 @@ class ExecutionHistoryController extends Controller
         ]);
 
         // Handle date presets
-        if (!empty($filters['date_preset']) && $filters['date_preset'] !== 'custom') {
+        if (! empty($filters['date_preset']) && $filters['date_preset'] !== 'custom') {
             $dateRange = $this->getDateRangeFromPreset($filters['date_preset']);
             $filters['date_from'] = $dateRange['from'];
             $filters['date_to'] = $dateRange['to'];
@@ -175,7 +175,7 @@ class ExecutionHistoryController extends Controller
     private function getDateRangeFromPreset(string $preset): array
     {
         $now = now();
-        
+
         return match ($preset) {
             'today' => [
                 'from' => $now->copy()->startOfDay(),

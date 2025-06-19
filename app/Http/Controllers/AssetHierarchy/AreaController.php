@@ -68,7 +68,7 @@ class AreaController extends Controller
                     'id' => $plant->id,
                     'name' => $plant->name,
                 ];
-            })->values()->all()
+            })->values()->all(),
         ]);
     }
 
@@ -78,14 +78,14 @@ class AreaController extends Controller
     public function create()
     {
         $plants = Plant::all();
-        
+
         return Inertia::render('asset-hierarchy/areas/create', [
             'plants' => $plants->map(function ($plant) {
                 return [
                     'id' => $plant->id,
                     'name' => $plant->name,
                 ];
-            })->values()->all()
+            })->values()->all(),
         ]);
     }
 
@@ -96,7 +96,7 @@ class AreaController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'plant_id' => 'required|exists:plants,id'
+            'plant_id' => 'required|exists:plants,id',
         ]);
 
         $area = Area::create($validated);
@@ -126,7 +126,7 @@ class AreaController extends Controller
                     'plant_id' => $area->plant_id,
                     'created_at' => $area->created_at,
                     'updated_at' => $area->updated_at,
-                ]
+                ],
             ]);
         }
 
@@ -153,7 +153,7 @@ class AreaController extends Controller
         // Aplica ordenação personalizada para setores
         $sectorsQuery = $sectorsQuery->sort(function ($a, $b) use ($sectorsSort, $sectorsDirection) {
             $direction = $sectorsDirection === 'asc' ? 1 : -1;
-            
+
             switch ($sectorsSort) {
                 case 'name':
                     return strcmp($a->name, $b->name) * $direction;
@@ -170,7 +170,7 @@ class AreaController extends Controller
         $allSectors = $sectorsQuery->all();
         $sectorsOffset = ($sectorsPage - 1) * $perPage;
         $sectorsItems = array_slice($allSectors, $sectorsOffset, $perPage);
-        
+
         $sectors = new \Illuminate\Pagination\LengthAwarePaginator(
             collect($sectorsItems),
             count($allSectors),
@@ -187,7 +187,7 @@ class AreaController extends Controller
         // Aplica ordenação personalizada para ativos
         $assetQuery = $assetQuery->sort(function ($a, $b) use ($assetSort, $assetDirection) {
             $direction = $assetDirection === 'asc' ? 1 : -1;
-            
+
             switch ($assetSort) {
                 case 'tag':
                     return strcmp($a->tag, $b->tag) * $direction;
@@ -206,7 +206,7 @@ class AreaController extends Controller
         $allAsset = $assetQuery->all();
         $assetOffset = ($assetPage - 1) * $perPage;
         $assetItems = array_slice($allAsset, $assetOffset, $perPage);
-        
+
         $asset = new \Illuminate\Pagination\LengthAwarePaginator(
             collect($assetItems),
             count($allAsset),
@@ -216,7 +216,7 @@ class AreaController extends Controller
         );
 
         // Conta o total de ativos (incluindo os dos setores)
-        $totalAssetCount = $area->asset()->count() + 
+        $totalAssetCount = $area->asset()->count() +
             $area->sectors()->withCount('asset')->get()->sum('asset_count');
 
         return Inertia::render('asset-hierarchy/areas/show', [
@@ -258,7 +258,7 @@ class AreaController extends Controller
     {
         return Inertia::render('asset-hierarchy/areas/edit', [
             'area' => $area->load(['plant']),
-            'plants' => Plant::all()
+            'plants' => Plant::all(),
         ]);
     }
 
@@ -269,7 +269,7 @@ class AreaController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'plant_id' => 'required|exists:plants,id'
+            'plant_id' => 'required|exists:plants,id',
         ]);
 
         $area->update($validated);
@@ -310,13 +310,13 @@ class AreaController extends Controller
             'dependencies' => [
                 'asset' => [
                     'total' => $totalAsset,
-                    'items' => $asset
+                    'items' => $asset,
                 ],
                 'sectors' => [
                     'total' => $totalSectors,
-                    'items' => $sectors
-                ]
-            ]
+                    'items' => $sectors,
+                ],
+            ],
         ]);
     }
 }

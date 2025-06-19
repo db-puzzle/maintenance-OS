@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('form_id')->constrained();
             $table->foreignId('active_form_version_id')->nullable()->constrained('form_versions')->nullOnDelete();
             $table->timestamps();
-            
+
             $table->index(['status', 'trigger_hours']);
             $table->index('form_id');
             $table->index('active_form_version_id');
@@ -34,4 +34,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('routines');
     }
-}; 
+};

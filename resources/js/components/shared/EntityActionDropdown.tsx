@@ -1,12 +1,7 @@
-import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Edit, MoreHorizontal, Trash } from 'lucide-react';
+import React, { useState } from 'react';
 
 interface EntityActionDropdownProps {
     onEdit?: () => void;
@@ -18,11 +13,7 @@ interface EntityActionDropdownProps {
     }>;
 }
 
-export function EntityActionDropdown({
-    onEdit,
-    onDelete,
-    additionalActions = [],
-}: EntityActionDropdownProps) {
+export function EntityActionDropdown({ onEdit, onDelete, additionalActions = [] }: EntityActionDropdownProps) {
     const [open, setOpen] = useState(false);
 
     const handleAction = (action: () => void) => {
@@ -54,10 +45,7 @@ export function EntityActionDropdown({
                     </DropdownMenuItem>
                 ))}
                 {onDelete && (
-                    <DropdownMenuItem
-                        onClick={() => handleAction(onDelete)}
-                        className="text-destructive focus:text-destructive"
-                    >
+                    <DropdownMenuItem onClick={() => handleAction(onDelete)} className="text-destructive focus:text-destructive">
                         <Trash className="mr-2 h-4 w-4" />
                         Excluir
                     </DropdownMenuItem>
@@ -65,4 +53,4 @@ export function EntityActionDropdown({
             </DropdownMenuContent>
         </DropdownMenu>
     );
-} 
+}

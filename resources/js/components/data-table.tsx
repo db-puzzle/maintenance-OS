@@ -19,13 +19,7 @@ interface DataTableProps<T> {
     emptyMessage?: string;
 }
 
-export function DataTable<T>({
-    data,
-    columns,
-    columnVisibility,
-    onRowClick,
-    emptyMessage = 'Nenhum registro encontrado.',
-}: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, columnVisibility, onRowClick, emptyMessage = 'Nenhum registro encontrado.' }: DataTableProps<T>) {
     // Memoize the filtered columns to prevent unnecessary re-renders
     const visibleColumns = React.useMemo(() => {
         return columns.filter((column) => column.id === 'actions' || columnVisibility[column.id]);

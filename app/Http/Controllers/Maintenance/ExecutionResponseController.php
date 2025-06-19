@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Maintenance;
 
 use App\Http\Controllers\Controller;
 use App\Models\Maintenance\RoutineExecution;
-use App\Services\ResponseFormatterService;
 use App\Services\ExecutionAnalyticsService;
-use Illuminate\Http\Request;
+use App\Services\ResponseFormatterService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,7 +28,7 @@ class ExecutionResponseController extends Controller
         $query = RoutineExecution::with([
             'routine.assets',
             'executor',
-            'formExecution'
+            'formExecution',
         ]);
 
         // Apply filters
@@ -40,7 +40,7 @@ class ExecutionResponseController extends Controller
         // Paginate
         $perPage = (int) $request->get('per_page', 25);
         $perPage = in_array($perPage, [25, 50, 100]) ? $perPage : 25;
-        
+
         $executions = $query->paginate($perPage)->withQueryString();
 
         // Transform data for frontend
@@ -51,7 +51,7 @@ class ExecutionResponseController extends Controller
                     'id' => $execution->routine->id,
                     'name' => $execution->routine->name,
                 ],
-                'assets' => $execution->routine->assets->map(fn($asset) => [
+                'assets' => $execution->routine->assets->map(fn ($asset) => [
                     'id' => $asset->id,
                     'tag' => $asset->tag,
                     'description' => $asset->description,
@@ -96,7 +96,7 @@ class ExecutionResponseController extends Controller
             'formExecution.taskResponses.formTask.instructions',
             'formExecution.taskResponses.attachments',
             'formExecution.formVersion',
-            'executor'
+            'executor',
         ]);
 
         // Format task responses
@@ -111,7 +111,7 @@ class ExecutionResponseController extends Controller
                         'description' => $response->formTask->description,
                         'is_required' => $response->formTask->is_required,
                         'configuration' => $response->formTask->configuration,
-                        'instructions' => $response->formTask->instructions->map(fn($inst) => [
+                        'instructions' => $response->formTask->instructions->map(fn ($inst) => [
                             'id' => $inst->id,
                             'type' => $inst->type,
                             'content' => $inst->content,
@@ -136,7 +136,7 @@ class ExecutionResponseController extends Controller
                     'name' => $execution->routine->name,
                     'description' => $execution->routine->description,
                 ],
-                'assets' => $execution->routine->assets->map(fn($asset) => [
+                'assets' => $execution->routine->assets->map(fn ($asset) => [
                     'id' => $asset->id,
                     'tag' => $asset->tag,
                     'description' => $asset->description,
@@ -177,7 +177,7 @@ class ExecutionResponseController extends Controller
         $query = RoutineExecution::with([
             'routine.assets',
             'executor',
-            'formExecution'
+            'formExecution',
         ]);
 
         $this->applyFilters($query, $request);
@@ -185,7 +185,7 @@ class ExecutionResponseController extends Controller
 
         $perPage = (int) $request->get('per_page', 25);
         $perPage = in_array($perPage, [25, 50, 100]) ? $perPage : 25;
-        
+
         $executions = $query->paginate($perPage);
 
         return response()->json($executions);
@@ -255,7 +255,7 @@ class ExecutionResponseController extends Controller
                         $sortDirection
                     );
                 break;
-            
+
             case 'executor_name':
                 // Use relationship for sorting
                 $query->whereHas('executor')
@@ -266,13 +266,13 @@ class ExecutionResponseController extends Controller
                         $sortDirection
                     );
                 break;
-            
+
             case 'duration':
                 // Sort by the duration_minutes accessor which is already calculated
                 $query->orderBy('completed_at', $sortDirection)
-                      ->orderBy('started_at', $sortDirection === 'desc' ? 'asc' : 'desc');
+                    ->orderBy('started_at', $sortDirection === 'desc' ? 'asc' : 'desc');
                 break;
-            
+
             default:
                 // Default to standard columns
                 if (in_array($sortBy, ['id', 'started_at', 'completed_at', 'status'])) {
@@ -311,29 +311,29 @@ class ExecutionResponseController extends Controller
                 ->whereHas('routines.routineExecutions')
                 ->orderBy('tag')
                 ->get()
-                ->map(fn($asset) => [
+                ->map(fn ($asset) => [
                     'value' => $asset->id,
                     'label' => "{$asset->tag} - {$asset->description}",
                 ]),
-            
+
             'routines' => \App\Models\Maintenance\Routine::select('id', 'name', 'description')
                 ->whereHas('routineExecutions')
                 ->orderBy('name')
                 ->get()
-                ->map(fn($routine) => [
+                ->map(fn ($routine) => [
                     'value' => $routine->id,
                     'label' => $routine->name,
                 ]),
-            
+
             'executors' => \App\Models\User::select('id', 'name')
                 ->whereHas('executedRoutines')
                 ->orderBy('name')
                 ->get()
-                ->map(fn($user) => [
+                ->map(fn ($user) => [
                     'value' => $user->id,
                     'label' => $user->name,
                 ]),
-            
+
             'statuses' => [
                 ['value' => RoutineExecution::STATUS_PENDING, 'label' => 'Pending'],
                 ['value' => RoutineExecution::STATUS_IN_PROGRESS, 'label' => 'In Progress'],

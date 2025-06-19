@@ -1,11 +1,11 @@
 import TextInput from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { type AssetType } from '@/types/asset-hierarchy';
 import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 // Define a local form type with index signature
@@ -22,12 +22,7 @@ interface AssetTypeFormComponentProps {
     onSuccess?: () => void;
 }
 
-export default function AssetTypeFormComponent({
-    assetType,
-    initialMode = 'view',
-    onCancel,
-    onSuccess
-}: AssetTypeFormComponentProps) {
+export default function AssetTypeFormComponent({ assetType, initialMode = 'view', onCancel, onSuccess }: AssetTypeFormComponentProps) {
     const isEditing = !!assetType;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
@@ -91,7 +86,7 @@ export default function AssetTypeFormComponent({
                     }}
                     name="name"
                     label="Nome"
-                    placeholder={isViewMode ? "Nome não informado" : "Digite o nome do tipo de ativo"}
+                    placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome do tipo de ativo'}
                     required={!isViewMode}
                     view={isViewMode}
                 />
@@ -100,7 +95,7 @@ export default function AssetTypeFormComponent({
                 <div className="grid gap-2">
                     <Label htmlFor="description">Descrição</Label>
                     {isViewMode && !data.description ? (
-                        <div className="flex min-h-[60px] w-full rounded-md border border-input bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                        <div className="border-input bg-muted/20 text-muted-foreground flex min-h-[60px] w-full rounded-md border px-3 py-2 text-sm">
                             Sem descrição
                         </div>
                     ) : (
@@ -138,4 +133,4 @@ export default function AssetTypeFormComponent({
             )}
         </div>
     );
-} 
+}

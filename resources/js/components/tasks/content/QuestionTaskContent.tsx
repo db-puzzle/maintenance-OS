@@ -2,7 +2,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 
-interface QuestionTaskContentProps extends WithSaveFunctionalityProps { }
+interface QuestionTaskContentProps extends WithSaveFunctionalityProps {}
 
 function QuestionTaskContent({ task, mode, response, setResponse, disabled }: QuestionTaskContentProps) {
     return (
@@ -25,7 +25,7 @@ function QuestionTaskContent({ task, mode, response, setResponse, disabled }: Qu
                     value={response?.value || ''}
                     readOnly
                     placeholder="O campo de resposta estará disponível quando o formulário for liberado para preenchimento..."
-                    className="min-h-[100px] cursor-not-allowed bg-muted/50"
+                    className="bg-muted/50 min-h-[100px] cursor-not-allowed"
                 />
             )}
         </div>

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\AssetHierarchy;
 use App\Http\Controllers\Controller;
 use App\Models\ShiftTime;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 
 class ShiftTimeController extends Controller
 {
@@ -51,4 +50,4 @@ class ShiftTimeController extends Controller
         return redirect()->back()
             ->with('success', 'Horário do turno excluído com sucesso.');
     }
-} 
+}

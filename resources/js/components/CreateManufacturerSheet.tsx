@@ -24,13 +24,7 @@ interface CreateManufacturerSheetProps {
     onSuccess?: () => void;
 }
 
-const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
-    manufacturer,
-    open,
-    onOpenChange,
-    mode,
-    onSuccess,
-}) => {
+const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manufacturer, open, onOpenChange, mode, onSuccess }) => {
     const nameInputRef = useRef<HTMLInputElement>(null);
 
     // Auto-focus the name input when sheet opens for creation
@@ -48,11 +42,11 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
 
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
-            const timers = timeouts.map(delay => setTimeout(focusInput, delay));
+            const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
 
             // Cleanup timeouts
             return () => {
-                timers.forEach(timer => clearTimeout(timer));
+                timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [open, mode]);
@@ -101,7 +95,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => { },
+                            clearErrors: () => {},
                         }}
                         name="name"
                         label="Nome do Fabricante"
@@ -115,7 +109,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => { },
+                            clearErrors: () => {},
                         }}
                         name="website"
                         label="Website"
@@ -129,7 +123,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => { },
+                                clearErrors: () => {},
                             }}
                             name="email"
                             label="E-mail"
@@ -140,7 +134,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => { },
+                                clearErrors: () => {},
                             }}
                             name="phone"
                             label="Telefone"
@@ -154,7 +148,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => { },
+                            clearErrors: () => {},
                         }}
                         name="country"
                         label="País"
@@ -173,9 +167,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
                             onChange={(e) => setData('notes', e.target.value)}
                             className="min-h-[100px]"
                         />
-                        {errors.notes && (
-                            <p className="text-sm text-destructive">{errors.notes}</p>
-                        )}
+                        {errors.notes && <p className="text-destructive text-sm">{errors.notes}</p>}
                     </div>
                 </>
             )}
@@ -183,4 +175,4 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({
     );
 };
 
-export default CreateManufacturerSheet; 
+export default CreateManufacturerSheet;

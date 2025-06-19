@@ -92,7 +92,12 @@ function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange, response, s
                         </div>
                     </div>
 
-                    <Button variant="outline" className="w-full" onClick={() => setResponse({ ...response, scanned: false })} disabled={isPreview || disabled}>
+                    <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setResponse({ ...response, scanned: false })}
+                        disabled={isPreview || disabled}
+                    >
                         <ScanBarcode className="mr-2 h-4 w-4" />
                         Ler novamente
                     </Button>

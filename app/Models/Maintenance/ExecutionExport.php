@@ -5,7 +5,6 @@ namespace App\Models\Maintenance;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\Maintenance\RoutineExecution;
 
 class ExecutionExport extends Model
 {
@@ -27,15 +26,21 @@ class ExecutionExport extends Model
     ];
 
     const TYPE_SINGLE = 'single';
+
     const TYPE_BATCH = 'batch';
 
     const FORMAT_PDF = 'pdf';
+
     const FORMAT_CSV = 'csv';
+
     const FORMAT_EXCEL = 'excel';
 
     const STATUS_PENDING = 'pending';
+
     const STATUS_PROCESSING = 'processing';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_FAILED = 'failed';
 
     /**
@@ -111,7 +116,7 @@ class ExecutionExport extends Model
     public function getEstimatedSizeKB(): int
     {
         $executionCount = count($this->execution_ids);
-        
+
         // Rough estimate: 50KB per execution for PDF, 5KB for CSV/Excel
         return match ($this->export_format) {
             self::FORMAT_PDF => $executionCount * 50,

@@ -20,17 +20,7 @@ interface SmartInputProps {
 }
 
 const SmartInput = forwardRef<HTMLInputElement, SmartInputProps>(
-    ({
-        form,
-        name,
-        placeholder,
-        type = 'text',
-        className,
-        disabled = false,
-        view = false,
-        onBlur,
-        validateInput,
-    }, ref) => {
+    ({ form, name, placeholder, type = 'text', className, disabled = false, view = false, onBlur, validateInput }, ref) => {
         const { data, setData, errors, clearErrors } = form;
 
         return (
@@ -59,15 +49,10 @@ const SmartInput = forwardRef<HTMLInputElement, SmartInputProps>(
                 placeholder={placeholder}
                 disabled={disabled}
                 readOnly={view}
-                className={cn(
-                    'w-full',
-                    errors[name] && 'border-destructive',
-                    view && 'cursor-default opacity-100 text-foreground',
-                    className
-                )}
+                className={cn('w-full', errors[name] && 'border-destructive', view && 'text-foreground cursor-default opacity-100', className)}
             />
         );
-    }
+    },
 );
 
 SmartInput.displayName = 'SmartInput';

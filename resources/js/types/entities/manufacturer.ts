@@ -17,4 +17,4 @@ export interface ManufacturerForm {
     phone: string;
     country: string;
     notes: string;
-} 
+}

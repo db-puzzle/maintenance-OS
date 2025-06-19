@@ -1,17 +1,10 @@
 import { TaskBaseCard, TaskContent } from '@/components/tasks';
 import AddTaskButton from '@/components/tasks/AddTaskButton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Task, TaskOperations, TaskState, TaskType, TaskTypes, DefaultMeasurement } from '@/types/task';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DefaultMeasurement, Task, TaskOperations, TaskState, TaskType, TaskTypes } from '@/types/task';
 import { UnitCategory } from '@/types/units';
 import {
     closestCenter,
@@ -27,8 +20,8 @@ import {
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { router } from '@inertiajs/react';
-import { ClipboardCheck, Save, Upload, AlertCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { AlertCircle, ClipboardCheck, Save, Upload } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { FormStatusBadge } from '@/components/form-lifecycle';
@@ -59,16 +52,16 @@ interface Props {
 
 export default function InlineRoutineFormEditor({ routine, assetId, onClose, onSuccess }: Props) {
     const [tasks, setTasks] = useState<Task[]>(
-        (routine.form?.tasks || []).map(task => ({
+        (routine.form?.tasks || []).map((task) => ({
             ...task,
-            state: TaskState.Previewing  // Set all tasks to Previewing state for the editor
-        }))
+            state: TaskState.Previewing, // Set all tasks to Previewing state for the editor
+        })),
     );
     const [originalTasks] = useState<Task[]>(
-        (routine.form?.tasks || []).map(task => ({
+        (routine.form?.tasks || []).map((task) => ({
             ...task,
-            state: TaskState.Previewing  // Set all tasks to Previewing state for the editor
-        }))
+            state: TaskState.Previewing, // Set all tasks to Previewing state for the editor
+        })),
     );
     const [activeId, setActiveId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
@@ -218,14 +211,14 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             ...task,
             measurement: task.measurement
                 ? {
-                    ...task.measurement,
-                    name: task.measurement.name,
-                    min: task.measurement.min,
-                    target: task.measurement.target,
-                    max: task.measurement.max,
-                    unit: task.measurement.unit,
-                    category: task.measurement.category,
-                }
+                      ...task.measurement,
+                      name: task.measurement.name,
+                      min: task.measurement.min,
+                      target: task.measurement.target,
+                      max: task.measurement.max,
+                      unit: task.measurement.unit,
+                      category: task.measurement.category,
+                  }
                 : undefined,
             options: task.options?.map((option) => option) || [],
             instructionImages: task.instructionImages || [],
@@ -234,7 +227,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
         router.post(
             route('maintenance.assets.routines.forms.store', {
                 asset: assetId,
-                routine: routine.id
+                routine: routine.id,
             }),
             {
                 tasks: JSON.stringify(tasksToSave),
@@ -264,7 +257,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
         router.post(
             route('maintenance.assets.routines.forms.publish', {
                 asset: assetId,
-                routine: routine.id
+                routine: routine.id,
             }),
             {},
             {
@@ -305,14 +298,14 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             ...task,
             measurement: task.measurement
                 ? {
-                    ...task.measurement,
-                    name: task.measurement.name,
-                    min: task.measurement.min,
-                    target: task.measurement.target,
-                    max: task.measurement.max,
-                    unit: task.measurement.unit,
-                    category: task.measurement.category,
-                }
+                      ...task.measurement,
+                      name: task.measurement.name,
+                      min: task.measurement.min,
+                      target: task.measurement.target,
+                      max: task.measurement.max,
+                      unit: task.measurement.unit,
+                      category: task.measurement.category,
+                  }
                 : undefined,
             options: task.options?.map((option) => option) || [],
             instructionImages: task.instructionImages || [],
@@ -321,7 +314,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
         router.post(
             route('maintenance.assets.routines.forms.store', {
                 asset: assetId,
-                routine: routine.id
+                routine: routine.id,
             }),
             {
                 tasks: JSON.stringify(tasksToSave),
@@ -344,38 +337,28 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between px-4 py-5 -mb-2 sticky top-0 z-10 bg-white/75 backdrop-blur-sm">
-                <div className="-ml-2 -mt-2 flex flex-wrap items-baseline gap-3">
+            <div className="sticky top-0 z-10 -mb-2 flex items-center justify-between bg-white/75 px-4 py-5 backdrop-blur-sm">
+                <div className="-mt-2 -ml-2 flex flex-wrap items-baseline gap-3">
                     <div className="flex flex-wrap items-baseline">
-                        <p className="ml-2 mt-1 truncate text-sm text-gray-500">Tarefas de</p>
-                        <h3 className="ml-2 mt-2 text-base font-semibold text-gray-900">{routine.name}</h3>
+                        <p className="mt-1 ml-2 truncate text-sm text-gray-500">Tarefas de</p>
+                        <h3 className="mt-2 ml-2 text-base font-semibold text-gray-900">{routine.name}</h3>
                     </div>
                     {routine.form && (
                         <FormStatusBadge
                             form={{
                                 ...routine.form,
                                 current_version_id: routine.form.currentVersionId ?? null,
-                                has_draft_changes: routine.form.has_draft_changes ?? routine.form.isDraft
+                                has_draft_changes: routine.form.has_draft_changes ?? routine.form.isDraft,
                             }}
                             size="sm"
                         />
                     )}
                 </div>
                 <div className="flex gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleClose}
-                    >
+                    <Button type="button" variant="outline" size="sm" onClick={handleClose}>
                         Voltar
                     </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        disabled={saving || tasks.length === 0}
-                        onClick={handleSave}
-                    >
+                    <Button type="button" size="sm" disabled={saving || tasks.length === 0} onClick={handleSave}>
                         {saving ? (
                             <>
                                 <Save className="mr-2 h-4 w-4 animate-pulse" />
@@ -389,13 +372,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                         )}
                     </Button>
                     {hasDraftChanges && (
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="action"
-                            disabled={publishing || tasks.length === 0}
-                            onClick={handlePublish}
-                        >
+                        <Button type="button" size="sm" variant="action" disabled={publishing || tasks.length === 0} onClick={handlePublish}>
                             {publishing ? (
                                 <>
                                     <Upload className="mr-2 h-4 w-4 animate-pulse" />
@@ -422,7 +399,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                 </Alert>
             )}
 
-            <div className="grid gap-6 mt-4">
+            <div className="mt-4 grid gap-6">
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
@@ -477,10 +454,10 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                                                 TaskOperations.isEditing(task)
                                                     ? 'edit'
                                                     : TaskOperations.isPreviewing(task)
-                                                        ? 'preview'
-                                                        : TaskOperations.isResponding(task)
-                                                            ? 'respond'
-                                                            : 'preview'
+                                                      ? 'preview'
+                                                      : TaskOperations.isResponding(task)
+                                                        ? 'respond'
+                                                        : 'preview'
                                             }
                                             icon={icon}
                                             title={task.description}
@@ -520,10 +497,10 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                                                     TaskOperations.isEditing(task)
                                                         ? 'edit'
                                                         : TaskOperations.isPreviewing(task)
-                                                            ? 'preview'
-                                                            : TaskOperations.isResponding(task)
-                                                                ? 'respond'
-                                                                : 'preview'
+                                                          ? 'preview'
+                                                          : TaskOperations.isResponding(task)
+                                                            ? 'respond'
+                                                            : 'preview'
                                                 }
                                                 onUpdate={(updatedTask) => {
                                                     if (updatedTask.type === 'measurement' && updatedTask.measurement) {
@@ -554,33 +531,32 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                     >
                         {activeId
                             ? (() => {
-                                const task = taskMethods.getById(activeId);
-                                if (!task) return null;
+                                  const task = taskMethods.getById(activeId);
+                                  if (!task) return null;
 
-                                const taskType = TaskTypes.find((t) => t.value === task.type);
-                                const icon =
-                                    taskIcons[task.id] ||
-                                    (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
+                                  const taskType = TaskTypes.find((t) => t.value === task.type);
+                                  const icon =
+                                      taskIcons[task.id] || (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
 
-                                return (
-                                    <TaskBaseCard
-                                        key={`overlay-${task.id}`}
-                                        id={task.id}
-                                        mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
-                                        icon={icon}
-                                        title={task.description}
-                                        isRequired={task.isRequired}
-                                        onTaskUpdate={() => { }}
-                                    >
-                                        <TaskContent
-                                            task={task}
-                                            mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
-                                            onUpdate={() => { }}
-                                            onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
-                                        />
-                                    </TaskBaseCard>
-                                );
-                            })()
+                                  return (
+                                      <TaskBaseCard
+                                          key={`overlay-${task.id}`}
+                                          id={task.id}
+                                          mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
+                                          icon={icon}
+                                          title={task.description}
+                                          isRequired={task.isRequired}
+                                          onTaskUpdate={() => {}}
+                                      >
+                                          <TaskContent
+                                              task={task}
+                                              mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
+                                              onUpdate={() => {}}
+                                              onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
+                                          />
+                                      </TaskBaseCard>
+                                  );
+                              })()
                             : null}
                     </DragOverlay>
                 </DndContext>
@@ -591,27 +567,16 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Alterações não salvas</DialogTitle>
-                        <DialogDescription>
-                            Você tem alterações não salvas. O que deseja fazer?
-                        </DialogDescription>
+                        <DialogDescription>Você tem alterações não salvas. O que deseja fazer?</DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="flex gap-2 sm:gap-0">
-                        <Button
-                            variant="outline"
-                            onClick={() => setShowExitDialog(false)}
-                        >
+                        <Button variant="outline" onClick={() => setShowExitDialog(false)}>
                             Continuar editando
                         </Button>
-                        <Button
-                            variant="ghost"
-                            onClick={handleConfirmExit}
-                        >
+                        <Button variant="ghost" onClick={handleConfirmExit}>
                             Sair sem salvar
                         </Button>
-                        <Button
-                            onClick={handleSaveAndExit}
-                            disabled={saving || tasks.length === 0}
-                        >
+                        <Button onClick={handleSaveAndExit} disabled={saving || tasks.length === 0}>
                             {saving ? 'Salvando...' : 'Salvar e sair'}
                         </Button>
                     </DialogFooter>
@@ -619,4 +584,4 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             </Dialog>
         </div>
     );
-} 
+}

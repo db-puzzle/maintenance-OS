@@ -2,13 +2,12 @@
 
 namespace App\Models\Maintenance;
 
+use App\Models\AssetHierarchy\Asset;
 use App\Models\Forms\FormExecution;
 use App\Models\User;
-use App\Models\AssetHierarchy\Asset;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Builder;
 
 class RoutineExecution extends Model
 {
@@ -20,18 +19,21 @@ class RoutineExecution extends Model
         'completed_at',
         'status',
         'notes',
-        'execution_data'
+        'execution_data',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
-        'execution_data' => 'array'
+        'execution_data' => 'array',
     ];
 
     const STATUS_PENDING = 'pending';
+
     const STATUS_IN_PROGRESS = 'in_progress';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_CANCELLED = 'cancelled';
 
     public function routine(): BelongsTo
@@ -100,7 +102,7 @@ class RoutineExecution extends Model
             'formExecution.taskResponses.formTask',
             'formExecution.taskResponses.attachments',
             'formExecution.formVersion',
-            'executor'
+            'executor',
         ]);
     }
 
@@ -153,9 +155,9 @@ class RoutineExecution extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('notes', 'LIKE', "%{$search}%")
-              ->orWhereHas('executor', function ($subQ) use ($search) {
-                  $subQ->where('name', 'LIKE', "%{$search}%");
-              });
+                ->orWhereHas('executor', function ($subQ) use ($search) {
+                    $subQ->where('name', 'LIKE', "%{$search}%");
+                });
         });
     }
 
@@ -164,7 +166,7 @@ class RoutineExecution extends Model
      */
     public function getDurationMinutesAttribute(): ?int
     {
-        if (!$this->started_at || !$this->completed_at) {
+        if (! $this->started_at || ! $this->completed_at) {
             return null;
         }
 
@@ -176,7 +178,7 @@ class RoutineExecution extends Model
      */
     public function getProgressPercentageAttribute(): int
     {
-        if (!$this->formExecution) {
+        if (! $this->formExecution) {
             return 0;
         }
 
@@ -188,18 +190,18 @@ class RoutineExecution extends Model
      */
     public function getTaskSummaryAttribute(): array
     {
-        if (!$this->formExecution) {
+        if (! $this->formExecution) {
             return ['total' => 0, 'completed' => 0, 'with_issues' => 0];
         }
 
         $responses = $this->formExecution->taskResponses;
         $total = $responses->count();
         $completed = $responses->where('is_completed', true)->count();
-        
+
         // Count tasks with issues (measurements outside range, etc.)
         $withIssues = $responses->filter(function ($response) {
             $task = $response->formTask;
-            if (!$task || !$response->is_completed) {
+            if (! $task || ! $response->is_completed) {
                 return false;
             }
 
@@ -208,6 +210,7 @@ class RoutineExecution extends Model
                 $config = $task->getMeasurementConfig();
                 if ($config && isset($config['min']) && isset($config['max'])) {
                     $value = (float) $response->response['value'];
+
                     return $value < $config['min'] || $value > $config['max'];
                 }
             }
@@ -276,7 +279,7 @@ class RoutineExecution extends Model
      */
     public function isWithinNormalDuration(): bool
     {
-        if (!$this->duration_minutes) {
+        if (! $this->duration_minutes) {
             return true; // Can't determine, assume OK
         }
 
@@ -290,6 +293,7 @@ class RoutineExecution extends Model
     public function getPrimaryAssetTagAttribute(): ?string
     {
         $assets = $this->routine->assets ?? collect();
+
         return $assets->first()?->tag;
     }
-} 
+}

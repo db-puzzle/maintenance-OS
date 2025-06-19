@@ -21,7 +21,7 @@ return new class extends Migration
             $table->boolean('is_required')->default(false);
             $table->json('configuration')->nullable()->comment('Type-specific configuration');
             $table->timestamps();
-            
+
             $table->index(['form_version_id', 'position']);
             $table->index(['form_id', 'position']);
             $table->index('type');

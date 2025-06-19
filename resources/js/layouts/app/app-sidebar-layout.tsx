@@ -17,12 +17,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: PropsWi
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}
             </AppContent>
-            {auth?.user && (
-                <TimezoneDetector
-                    currentTimezone={(auth.user.timezone as string) || 'UTC'}
-                    userId={auth.user.id}
-                />
-            )}
+            {auth?.user && <TimezoneDetector currentTimezone={(auth.user.timezone as string) || 'UTC'} userId={auth.user.id} />}
         </AppShell>
     );
 }

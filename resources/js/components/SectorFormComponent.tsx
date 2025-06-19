@@ -1,14 +1,14 @@
-import TextInput from '@/components/TextInput';
-import ItemSelect from '@/components/ItemSelect';
-import CreatePlantSheet from '@/components/CreatePlantSheet';
 import CreateAreaSheet from '@/components/CreateAreaSheet';
+import CreatePlantSheet from '@/components/CreatePlantSheet';
+import ItemSelect from '@/components/ItemSelect';
+import TextInput from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { type Area, type Plant, type Sector } from '@/types/asset-hierarchy';
 import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 // Define a local form type with index signature
@@ -32,13 +32,7 @@ interface SectorFormComponentProps {
     onSuccess?: () => void;
 }
 
-export default function SectorFormComponent({
-    sector,
-    plants = [],
-    initialMode = 'view',
-    onCancel,
-    onSuccess
-}: SectorFormComponentProps) {
+export default function SectorFormComponent({ sector, plants = [], initialMode = 'view', onCancel, onSuccess }: SectorFormComponentProps) {
     const isEditing = !!sector;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
@@ -194,7 +188,7 @@ export default function SectorFormComponent({
                     }}
                     name="name"
                     label="Nome"
-                    placeholder={isViewMode ? "Nome não informado" : "Digite o nome do setor"}
+                    placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome do setor'}
                     required={!isViewMode}
                     view={isViewMode}
                 />
@@ -218,7 +212,7 @@ export default function SectorFormComponent({
                             clearErrors('plant_id');
                         }}
                         onCreateClick={handleCreatePlantClick}
-                        placeholder={isViewMode && !data.plant_id ? "Planta não selecionada" : "Selecione uma planta"}
+                        placeholder={isViewMode && !data.plant_id ? 'Planta não selecionada' : 'Selecione uma planta'}
                         error={errors.plant_id}
                         disabled={isViewMode}
                         view={isViewMode}
@@ -240,8 +234,10 @@ export default function SectorFormComponent({
                         onCreateClick={handleCreateAreaClick}
                         placeholder={
                             isViewMode && !data.area_id
-                                ? "Área não selecionada"
-                                : (data.plant_id ? 'Selecione uma área' : 'Selecione uma planta primeiro')
+                                ? 'Área não selecionada'
+                                : data.plant_id
+                                  ? 'Selecione uma área'
+                                  : 'Selecione uma planta primeiro'
                         }
                         error={errors.area_id}
                         disabled={!data.plant_id || isViewMode}
@@ -255,7 +251,7 @@ export default function SectorFormComponent({
                     <div className="grid gap-2">
                         <Label htmlFor="description">Descrição</Label>
                         {isViewMode && !data.description ? (
-                            <div className="flex min-h-[60px] w-full rounded-md border border-input bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                            <div className="border-input bg-muted/20 text-muted-foreground flex min-h-[60px] w-full rounded-md border px-3 py-2 text-sm">
                                 Sem descrição
                             </div>
                         ) : (
@@ -294,11 +290,7 @@ export default function SectorFormComponent({
             )}
 
             {/* CreatePlantSheet for creating new plants */}
-            <CreatePlantSheet
-                open={plantSheetOpen}
-                onOpenChange={setPlantSheetOpen}
-                onSuccess={handlePlantCreated}
-            />
+            <CreatePlantSheet open={plantSheetOpen} onOpenChange={setPlantSheetOpen} onSuccess={handlePlantCreated} />
 
             {/* CreateAreaSheet for creating new areas */}
             <CreateAreaSheet
@@ -311,4 +303,4 @@ export default function SectorFormComponent({
             />
         </div>
     );
-} 
+}

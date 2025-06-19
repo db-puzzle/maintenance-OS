@@ -2,8 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\AssetController;
-use App\Http\Controllers\PlantsController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');

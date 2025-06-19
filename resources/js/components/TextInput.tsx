@@ -23,17 +23,7 @@ interface TextInputProps {
 }
 
 const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
-    ({
-        form,
-        name,
-        label,
-        placeholder,
-        required = false,
-        disabled = false,
-        view = false,
-        onBlur,
-        validateInput,
-    }, ref) => {
+    ({ form, name, label, placeholder, required = false, disabled = false, view = false, onBlur, validateInput }, ref) => {
         const value = form.data[name];
         const hasValue = value !== null && value !== undefined && value !== '';
 
@@ -45,7 +35,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
                 </Label>
                 <div className="bg-background">
                     {view && !hasValue ? (
-                        <div className="flex h-9 w-full rounded-md border border-input bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                        <div className="border-input bg-muted/20 text-muted-foreground flex h-9 w-full rounded-md border px-3 py-2 text-sm">
                             {placeholder}
                         </div>
                     ) : (
@@ -64,7 +54,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
                 <InputError message={form.errors[name]} />
             </div>
         );
-    }
+    },
 );
 
 TextInput.displayName = 'TextInput';

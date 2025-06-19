@@ -12,11 +12,11 @@ class ShiftTime extends Model
         'shift_schedule_id',
         'start_time',
         'end_time',
-        'active'
+        'active',
     ];
 
     protected $casts = [
-        'active' => 'boolean'
+        'active' => 'boolean',
     ];
 
     public function schedule(): BelongsTo
@@ -28,4 +28,4 @@ class ShiftTime extends Model
     {
         return $this->hasMany(ShiftBreak::class);
     }
-} 
+}

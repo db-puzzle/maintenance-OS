@@ -12,34 +12,34 @@ class AreaSeeder extends Seeder
     {
         $plant = Plant::first();
 
-        if (!$plant) {
+        if (! $plant) {
             throw new \Exception('Planta não encontrada. Execute o PlantSeeder primeiro.');
         }
 
         // Áreas para a primeira planta
         Area::create([
             'name' => 'Produção',
-            'plant_id' => $plant->id
+            'plant_id' => $plant->id,
         ]);
 
         Area::create([
             'name' => 'Manutenção',
-            'plant_id' => $plant->id
+            'plant_id' => $plant->id,
         ]);
 
         Area::create([
             'name' => 'Utilidades',
-            'plant_id' => $plant->id
+            'plant_id' => $plant->id,
         ]);
 
         Area::create([
             'name' => 'Qualidade',
-            'plant_id' => $plant->id
+            'plant_id' => $plant->id,
         ]);
 
         Area::create([
             'name' => 'Logística',
-            'plant_id' => $plant->id
+            'plant_id' => $plant->id,
         ]);
 
         // Cria uma segunda planta com áreas
@@ -50,17 +50,17 @@ class AreaSeeder extends Seeder
             'city' => 'São Paulo',
             'state' => 'SP',
             'zip_code' => '01234-567',
-            'gps_coordinates' => '-23.550520,-46.633308'
+            'gps_coordinates' => '-23.550520,-46.633308',
         ]);
 
         Area::create([
             'name' => 'Produção 2',
-            'plant_id' => $plant2->id
+            'plant_id' => $plant2->id,
         ]);
 
         Area::create([
             'name' => 'Manutenção 2',
-            'plant_id' => $plant2->id
+            'plant_id' => $plant2->id,
         ]);
 
         // Cria uma terceira planta vazia (para testes de deleção)
@@ -71,7 +71,7 @@ class AreaSeeder extends Seeder
             'city' => 'Rio de Janeiro',
             'state' => 'RJ',
             'zip_code' => '98765-432',
-            'gps_coordinates' => '-22.906847,-43.172897'
+            'gps_coordinates' => '-22.906847,-43.172897',
         ]);
     }
-} 
+}

@@ -14,4 +14,4 @@ class AssetHierarchyController extends Controller
     {
         return Inertia::render('asset-hierarchy/index');
     }
-} 
+}

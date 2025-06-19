@@ -9,7 +9,7 @@ import { MeasurementUnitCategories, UnitCategory } from '@/types/units';
 import { useEffect, useState } from 'react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 
-interface MeasurementTaskContentProps extends WithSaveFunctionalityProps { }
+interface MeasurementTaskContentProps extends WithSaveFunctionalityProps {}
 
 interface MeasurementFormData {
     targetValue: string;
@@ -102,7 +102,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             handleUpdate(
                 name === 'targetValue' ? finalValue : targetValue,
                 name === 'minValue' ? finalValue : minValue,
-                name === 'maxValue' ? finalValue : maxValue
+                name === 'maxValue' ? finalValue : maxValue,
             );
         }
     };

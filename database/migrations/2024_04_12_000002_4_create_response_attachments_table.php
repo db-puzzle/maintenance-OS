@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('file_size');
             $table->json('metadata')->nullable();
             $table->timestamps();
-            
+
             $table->index('task_response_id');
         });
     }

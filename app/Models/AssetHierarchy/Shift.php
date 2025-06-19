@@ -2,16 +2,15 @@
 
 namespace App\Models\AssetHierarchy;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Shift extends Model
 {
     protected $fillable = [
         'name',
-        'timezone'
+        'timezone',
     ];
 
     protected $appends = ['asset_count'];
@@ -48,21 +47,17 @@ class Shift extends Model
 
     /**
      * Convert a local time to UTC for a specific date
-     * 
-     * @param string $time The time in HH:MM format
-     * @param string $date The date in Y-m-d format
-     * @return Carbon
+     *
+     * @param  string  $time  The time in HH:MM format
+     * @param  string  $date  The date in Y-m-d format
      */
     public function localTimeToUTC(string $time, string $date): Carbon
     {
-        return Carbon::parse($date . ' ' . $time, $this->timezone)->utc();
+        return Carbon::parse($date.' '.$time, $this->timezone)->utc();
     }
 
     /**
      * Convert a UTC time to local time
-     * 
-     * @param Carbon $utcTime
-     * @return Carbon
      */
     public function utcToLocalTime(Carbon $utcTime): Carbon
     {
@@ -71,21 +66,20 @@ class Shift extends Model
 
     /**
      * Get shift times for a specific date in UTC
-     * 
-     * @param string $date The date in Y-m-d format
-     * @param string $weekday The weekday name
-     * @return array
+     *
+     * @param  string  $date  The date in Y-m-d format
+     * @param  string  $weekday  The weekday name
      */
     public function getShiftTimesForDateInUTC(string $date, string $weekday): array
     {
         $schedule = $this->schedules()->where('weekday', $weekday)->first();
-        if (!$schedule) {
+        if (! $schedule) {
             return [];
         }
 
         $shiftTimes = [];
         foreach ($schedule->shiftTimes as $shiftTime) {
-            if (!$shiftTime->active) {
+            if (! $shiftTime->active) {
                 continue;
             }
 
@@ -109,14 +103,14 @@ class Shift extends Model
 
                 $breaks[] = [
                     'start' => $breakStartUTC,
-                    'end' => $breakEndUTC
+                    'end' => $breakEndUTC,
                 ];
             }
 
             $shiftTimes[] = [
                 'start' => $startUTC,
                 'end' => $endUTC,
-                'breaks' => $breaks
+                'breaks' => $breaks,
             ];
         }
 
@@ -135,7 +129,7 @@ class Shift extends Model
                     $start = strtotime($shiftTime->start_time);
                     $end = strtotime($shiftTime->end_time);
                     $workMinutes = ($end - $start) / 60;
-                    
+
                     // Subtract break time
                     foreach ($shiftTime->breaks as $break) {
                         $breakStart = strtotime($break->start_time);
@@ -144,7 +138,7 @@ class Shift extends Model
                         $totalBreakMinutes += $breakMinutes;
                         $workMinutes -= $breakMinutes;
                     }
-                    
+
                     $totalWorkMinutes += $workMinutes;
                 }
             }
@@ -157,4 +151,4 @@ class Shift extends Model
             'break_minutes' => $totalBreakMinutes % 60,
         ];
     }
-} 
+}

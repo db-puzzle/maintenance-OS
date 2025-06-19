@@ -29,4 +29,4 @@ class AssetType extends Model
             }
         });
     }
-} 
+}

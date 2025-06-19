@@ -39,4 +39,4 @@ class Manufacturer extends Model
     {
         return $this->assets()->count();
     }
-} 
+}

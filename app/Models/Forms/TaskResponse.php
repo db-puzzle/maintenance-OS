@@ -3,8 +3,8 @@
 namespace App\Models\Forms;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TaskResponse extends Model
 {
@@ -13,13 +13,13 @@ class TaskResponse extends Model
         'form_task_id',
         'response',
         'is_completed',
-        'responded_at'
+        'responded_at',
     ];
 
     protected $casts = [
         'response' => 'array',
         'is_completed' => 'boolean',
-        'responded_at' => 'datetime'
+        'responded_at' => 'datetime',
     ];
 
     /**
@@ -54,7 +54,7 @@ class TaskResponse extends Model
         $this->update([
             'response' => $responseData,
             'is_completed' => true,
-            'responded_at' => now()
+            'responded_at' => now(),
         ]);
     }
 
@@ -105,4 +105,4 @@ class TaskResponse extends Model
     {
         return $this->getTaskType() === FormTask::TYPE_FILE_UPLOAD;
     }
-} 
+}

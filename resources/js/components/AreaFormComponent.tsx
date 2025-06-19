@@ -1,11 +1,11 @@
-import TextInput from '@/components/TextInput';
-import ItemSelect from '@/components/ItemSelect';
 import CreatePlantSheet from '@/components/CreatePlantSheet';
+import ItemSelect from '@/components/ItemSelect';
+import TextInput from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
 import { type Area, type Plant } from '@/types/asset-hierarchy';
 import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 // Define a local form type with index signature
@@ -25,13 +25,7 @@ interface AreaFormComponentProps {
     onSuccess?: () => void;
 }
 
-export default function AreaFormComponent({
-    area,
-    plants = [],
-    initialMode = 'view',
-    onCancel,
-    onSuccess
-}: AreaFormComponentProps) {
+export default function AreaFormComponent({ area, plants = [], initialMode = 'view', onCancel, onSuccess }: AreaFormComponentProps) {
     const isEditing = !!area;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
@@ -133,7 +127,7 @@ export default function AreaFormComponent({
                     }}
                     name="name"
                     label="Nome"
-                    placeholder={isViewMode ? "Nome não informado" : "Digite o nome da área"}
+                    placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome da área'}
                     required={!isViewMode}
                     view={isViewMode}
                 />
@@ -150,7 +144,7 @@ export default function AreaFormComponent({
                             clearErrors('plant_id');
                         }}
                         onCreateClick={handleCreatePlantClick}
-                        placeholder={isViewMode && !data.plant_id ? "Planta não selecionada" : "Selecione uma planta"}
+                        placeholder={isViewMode && !data.plant_id ? 'Planta não selecionada' : 'Selecione uma planta'}
                         error={errors.plant_id}
                         disabled={isViewMode}
                         view={isViewMode}
@@ -181,11 +175,7 @@ export default function AreaFormComponent({
             )}
 
             {/* CreatePlantSheet for creating new plants */}
-            <CreatePlantSheet
-                open={plantSheetOpen}
-                onOpenChange={setPlantSheetOpen}
-                onSuccess={handlePlantCreated}
-            />
+            <CreatePlantSheet open={plantSheetOpen} onOpenChange={setPlantSheetOpen} onSuccess={handlePlantCreated} />
         </div>
     );
-} 
+}

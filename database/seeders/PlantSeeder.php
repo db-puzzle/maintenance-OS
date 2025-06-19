@@ -16,7 +16,7 @@ class PlantSeeder extends Seeder
             'city' => 'Rafard',
             'state' => 'SP',
             'zip_code' => '13370-000',
-            'gps_coordinates' => '-23.0322775,-47.5378189'
+            'gps_coordinates' => '-23.0322775,-47.5378189',
         ]);
 
         Plant::create([
@@ -26,7 +26,7 @@ class PlantSeeder extends Seeder
             'city' => 'Itapira',
             'state' => 'SP',
             'zip_code' => '13971-088',
-            'gps_coordinates' => '-22.4189712,-46.8253333'
+            'gps_coordinates' => '-22.4189712,-46.8253333',
         ]);
 
         Plant::create([
@@ -36,7 +36,7 @@ class PlantSeeder extends Seeder
             'city' => 'São Luís',
             'state' => 'MA',
             'zip_code' => '65095-602',
-            'gps_coordinates' => '-2.5299999,-44.2813889'
+            'gps_coordinates' => '-2.5299999,-44.2813889',
         ]);
 
         Plant::create([
@@ -46,7 +46,7 @@ class PlantSeeder extends Seeder
             'city' => 'Parauapebas',
             'state' => 'PA',
             'zip_code' => '68515-000',
-            'gps_coordinates' => '-6.0886386,-49.8766676'
+            'gps_coordinates' => '-6.0886386,-49.8766676',
         ]);
     }
-} 
+}

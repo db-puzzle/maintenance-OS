@@ -80,8 +80,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
         }
     }, [routine]);
 
-
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -237,8 +235,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                             />
                             {errors.trigger_hours && <p className="text-sm text-red-500">{errors.trigger_hours}</p>}
                         </div>
-
-
 
                         {/* Status */}
                         <div className="space-y-2">

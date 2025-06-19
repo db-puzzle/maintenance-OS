@@ -61,11 +61,11 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
 
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
-            const timers = timeouts.map(delay => setTimeout(focusInput, delay));
+            const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
 
             // Cleanup timeouts
             return () => {
-                timers.forEach(timer => clearTimeout(timer));
+                timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [open, mode]);
@@ -114,7 +114,7 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => { },
+                            clearErrors: () => {},
                         }}
                         name="name"
                         label="Nome da Área"

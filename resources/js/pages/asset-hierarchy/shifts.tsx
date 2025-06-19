@@ -14,10 +14,10 @@ import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowUpDown, Calendar, ChevronDownIcon, ChevronUpIcon, Clock, List, MoreVertical, Plus, Settings, AlertTriangle } from 'lucide-react';
+import axios from 'axios';
+import { AlertTriangle, ArrowUpDown, Calendar, ChevronDownIcon, ChevronUpIcon, Clock, List, MoreVertical, Plus, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import axios from 'axios';
 
 interface Break {
     start_time: string;
@@ -70,14 +70,14 @@ interface PageProps {
 
 interface Props {
     shifts:
-    | ShiftData[]
-    | {
-        data: ShiftData[];
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-    };
+        | ShiftData[]
+        | {
+              data: ShiftData[];
+              current_page: number;
+              last_page: number;
+              per_page: number;
+              total: number;
+          };
     filters?: {
         search: string;
         sort: string;
@@ -150,23 +150,14 @@ const AssetsList = ({ shiftId, assetCount }: { shiftId: number; assetCount: numb
                             {assets.map((asset) => (
                                 <TableRow key={asset.id}>
                                     <TableCell className="font-medium">
-                                        <Link
-                                            href={route('asset-hierarchy.assets.show', asset.id)}
-                                            className="text-primary hover:underline"
-                                        >
+                                        <Link href={route('asset-hierarchy.assets.show', asset.id)} className="text-primary hover:underline">
                                             {asset.tag}
                                         </Link>
                                     </TableCell>
                                     <TableCell>{asset.description || '-'}</TableCell>
                                     <TableCell>{asset.asset_type || '-'}</TableCell>
-                                    <TableCell>
-                                        {[asset.plant, asset.area, asset.sector]
-                                            .filter(Boolean)
-                                            .join(' > ') || '-'}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {asset.current_runtime_hours.toFixed(1)}h
-                                    </TableCell>
+                                    <TableCell>{[asset.plant, asset.area, asset.sector].filter(Boolean).join(' > ') || '-'}</TableCell>
+                                    <TableCell className="text-right">{asset.current_runtime_hours.toFixed(1)}h</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -281,7 +272,7 @@ export default function Index({
             },
             onFinish: () => {
                 setIsDeleting(false);
-            }
+            },
         });
     };
 
@@ -303,18 +294,18 @@ export default function Index({
                         end_time: breakTime.end_time,
                     })) || [],
             })) || [
-                    {
-                        start_time: '07:00',
-                        end_time: '17:00',
-                        active: true,
-                        breaks: [
-                            {
-                                start_time: '12:00',
-                                end_time: '13:00',
-                            },
-                        ],
-                    },
-                ], // Valor padrão se não houver turnos
+                {
+                    start_time: '07:00',
+                    end_time: '17:00',
+                    active: true,
+                    breaks: [
+                        {
+                            start_time: '12:00',
+                            end_time: '13:00',
+                        },
+                    ],
+                },
+            ], // Valor padrão se não houver turnos
         }));
     };
 
@@ -382,10 +373,7 @@ export default function Index({
             id: 'actions',
             header: 'Ações',
             cell: (row: { original: ShiftData }) => (
-                <DropdownMenu
-                    open={openDropdownId === row.original.id}
-                    onOpenChange={(open) => setOpenDropdownId(open ? row.original.id : null)}
-                >
+                <DropdownMenu open={openDropdownId === row.original.id} onOpenChange={(open) => setOpenDropdownId(open ? row.original.id : null)}>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="text-muted-foreground data-[state=open]:bg-muted ignore-row-click flex size-8" size="icon">
                             <MoreVertical />
@@ -613,7 +601,7 @@ export default function Index({
                     ) : associatedAssets.length > 5 ? (
                         <div className="rounded-md border">
                             <Table>
-                                <TableHeader className="sticky top-0 z-10 bg-background border-b">
+                                <TableHeader className="bg-background sticky top-0 z-10 border-b">
                                     <TableRow>
                                         <TableHead>Tag</TableHead>
                                         <TableHead>Descrição</TableHead>
@@ -638,14 +626,8 @@ export default function Index({
                                                 </TableCell>
                                                 <TableCell>{asset.description || '-'}</TableCell>
                                                 <TableCell>{asset.asset_type || '-'}</TableCell>
-                                                <TableCell>
-                                                    {[asset.plant, asset.area, asset.sector]
-                                                        .filter(Boolean)
-                                                        .join(' > ') || '-'}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    {asset.current_runtime_hours.toFixed(1)}h
-                                                </TableCell>
+                                                <TableCell>{[asset.plant, asset.area, asset.sector].filter(Boolean).join(' > ') || '-'}</TableCell>
+                                                <TableCell className="text-right">{asset.current_runtime_hours.toFixed(1)}h</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -668,23 +650,14 @@ export default function Index({
                                     {associatedAssets.map((asset) => (
                                         <TableRow key={asset.id}>
                                             <TableCell className="font-medium">
-                                                <Link
-                                                    href={route('asset-hierarchy.assets.show', asset.id)}
-                                                    className="text-primary hover:underline"
-                                                >
+                                                <Link href={route('asset-hierarchy.assets.show', asset.id)} className="text-primary hover:underline">
                                                     {asset.tag}
                                                 </Link>
                                             </TableCell>
                                             <TableCell>{asset.description || '-'}</TableCell>
                                             <TableCell>{asset.asset_type || '-'}</TableCell>
-                                            <TableCell>
-                                                {[asset.plant, asset.area, asset.sector]
-                                                    .filter(Boolean)
-                                                    .join(' > ') || '-'}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {asset.current_runtime_hours.toFixed(1)}h
-                                            </TableCell>
+                                            <TableCell>{[asset.plant, asset.area, asset.sector].filter(Boolean).join(' > ') || '-'}</TableCell>
+                                            <TableCell className="text-right">{asset.current_runtime_hours.toFixed(1)}h</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -703,9 +676,7 @@ export default function Index({
                             <Button variant="outline">Fechar</Button>
                         </DialogClose>
                         <Button asChild>
-                            <Link href={route('asset-hierarchy.shifts.edit', selectedShift?.id || 0)}>
-                                Editar Turno
-                            </Link>
+                            <Link href={route('asset-hierarchy.shifts.edit', selectedShift?.id || 0)}>Editar Turno</Link>
                         </Button>
                     </DialogFooter>
                 </DialogContent>

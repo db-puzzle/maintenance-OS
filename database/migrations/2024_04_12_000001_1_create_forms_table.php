@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index('is_active');
             $table->index('created_by');
             $table->index('current_version_id');

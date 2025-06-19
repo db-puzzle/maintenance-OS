@@ -2,9 +2,9 @@
 
 namespace App\Models\AssetHierarchy;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\User;
 
 class AssetRuntimeMeasurement extends Model
 {
@@ -14,14 +14,14 @@ class AssetRuntimeMeasurement extends Model
         'reported_hours',
         'source',
         'notes',
-        'measurement_datetime'
+        'measurement_datetime',
     ];
 
     protected $casts = [
         'reported_hours' => 'float',
         'measurement_datetime' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     protected $appends = ['previous_hours', 'hours_difference'];
@@ -51,7 +51,7 @@ class AssetRuntimeMeasurement extends Model
             ->where('created_at', '<', $this->created_at)
             ->orderBy('created_at', 'desc')
             ->first();
-            
+
         return $previousMeasurement ? $previousMeasurement->reported_hours : 0.0;
     }
 

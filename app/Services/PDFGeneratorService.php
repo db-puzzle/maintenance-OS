@@ -3,12 +3,9 @@
 namespace App\Services;
 
 use App\Models\Maintenance\RoutineExecution;
-use App\Models\Maintenance\ExecutionExport;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\Enums\Format;
-use App\Services\ResponseFormatterService;
+use Spatie\LaravelPdf\Facades\Pdf;
 
 class PDFGeneratorService
 {
@@ -32,7 +29,7 @@ class PDFGeneratorService
             'formExecution.taskResponses.formTask.instructions',
             'formExecution.taskResponses.attachments',
             'formExecution.formVersion',
-            'executor'
+            'executor',
         ]);
 
         // Format task responses
@@ -47,9 +44,9 @@ class PDFGeneratorService
         $html = $this->generateExecutionReportHtml($execution, $taskResponses, $options);
 
         // Generate the PDF using Spatie/Laravel-PDF
-        $filename = "execution-report-{$execution->id}-" . now()->format('YmdHis') . '.pdf';
+        $filename = "execution-report-{$execution->id}-".now()->format('YmdHis').'.pdf';
         $path = "exports/executions/{$filename}";
-        
+
         // Create the PDF from HTML
         $pdf = Pdf::html($html)
             ->format(Format::A4)
@@ -57,15 +54,15 @@ class PDFGeneratorService
             ->withBrowsershot(function ($browsershot) {
                 $browsershot->setChromePath('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
             });
-        
+
         // Apply paper size option if provided
         if (isset($options['paper_size']) && $options['paper_size'] === 'Letter') {
             $pdf->format(Format::Letter);
         }
-        
+
         // Save the PDF to storage
-        $pdf->save(storage_path('app/' . $path));
-        
+        $pdf->save(storage_path('app/'.$path));
+
         return $path;
     }
 
@@ -76,7 +73,7 @@ class PDFGeneratorService
     {
         $includeImages = $options['include_images'] ?? true;
         $logoPath = file_exists(public_path('logo.svg')) ? asset('logo.svg') : '';
-        
+
         $html = '<!DOCTYPE html>
 <html>
 <head>
@@ -112,117 +109,117 @@ class PDFGeneratorService
     </style>
 </head>
 <body>';
-        
+
         // Header
         $html .= '<div class="header">
             <table style="width: 100%;">
                 <tr>
                     <td style="width: 50%;">';
         if ($logoPath) {
-            $html .= '<img src="' . $logoPath . '" alt="Logo" class="logo">';
+            $html .= '<img src="'.$logoPath.'" alt="Logo" class="logo">';
         }
         $html .= '</td>
                     <td style="text-align: right;">
                         <h1>Routine Execution Report</h1>
-                        <p class="subtitle">Generated on ' . now()->format('Y-m-d H:i:s') . '</p>
+                        <p class="subtitle">Generated on '.now()->format('Y-m-d H:i:s').'</p>
                     </td>
                 </tr>
             </table>
         </div>';
-        
+
         // Execution Details
         $html .= '<div class="section">
             <h2>Execution Details</h2>
             <table>
                 <tr>
                     <td class="label">Execution ID</td>
-                    <td>#' . $execution->id . '</td>
+                    <td>#'.$execution->id.'</td>
                     <td class="label">Status</td>
-                    <td><span class="status-' . $execution->status . '">' . str_replace('_', ' ', $execution->status) . '</span></td>
+                    <td><span class="status-'.$execution->status.'">'.str_replace('_', ' ', $execution->status).'</span></td>
                 </tr>
                 <tr>
                     <td class="label">Routine</td>
-                    <td>' . e($execution->routine->name) . '</td>
+                    <td>'.e($execution->routine->name).'</td>
                     <td class="label">Asset</td>
-                    <td>' . e($execution->primary_asset_tag ?? 'N/A') . '</td>
+                    <td>'.e($execution->primary_asset_tag ?? 'N/A').'</td>
                 </tr>
                 <tr>
                     <td class="label">Executor</td>
-                    <td>' . e($execution->executor->name) . '</td>
+                    <td>'.e($execution->executor->name).'</td>
                     <td class="label">Started At</td>
-                    <td>' . ($execution->started_at ? $execution->started_at->format('Y-m-d H:i:s') : 'N/A') . '</td>
+                    <td>'.($execution->started_at ? $execution->started_at->format('Y-m-d H:i:s') : 'N/A').'</td>
                 </tr>
                 <tr>
                     <td class="label">Completed At</td>
-                    <td>' . ($execution->completed_at ? $execution->completed_at->format('Y-m-d H:i:s') : 'N/A') . '</td>
+                    <td>'.($execution->completed_at ? $execution->completed_at->format('Y-m-d H:i:s') : 'N/A').'</td>
                     <td class="label">Duration</td>
-                    <td>' . ($execution->duration_minutes ? $execution->duration_minutes . ' minutes' : 'N/A') . '</td>
+                    <td>'.($execution->duration_minutes ? $execution->duration_minutes.' minutes' : 'N/A').'</td>
                 </tr>';
-        
+
         if ($execution->notes) {
             $html .= '<tr>
                 <td class="label">Notes</td>
-                <td colspan="3">' . e($execution->notes) . '</td>
+                <td colspan="3">'.e($execution->notes).'</td>
             </tr>';
         }
-        
+
         $html .= '</table></div>';
-        
+
         // Task Responses
         $html .= '<div>
             <h2>Task Responses</h2>';
-        
+
         if ($execution->formExecution && $execution->formExecution->taskResponses) {
             $index = 1;
             foreach ($execution->formExecution->taskResponses as $response) {
                 $formattedResponse = $this->responseFormatter->formatResponse($response);
-                
+
                 $html .= '<div class="task-container">
                     <div class="task-header">
-                        ' . $index . '. ' . e($response->formTask->description);
-                
+                        '.$index.'. '.e($response->formTask->description);
+
                 if ($response->formTask->is_required) {
                     $html .= ' <span style="color: #dc3545; font-size: 12px;">(Required)</span>';
                 }
-                
+
                 $html .= '</div>
                     <div class="task-body">
                         <div class="task-meta">
-                            <strong>Type:</strong> ' . str_replace('_', ' ', $response->formTask->type);
-                
+                            <strong>Type:</strong> '.str_replace('_', ' ', $response->formTask->type);
+
                 if ($response->responded_at) {
-                    $html .= ' | <strong>Completed:</strong> ' . $response->responded_at->format('Y-m-d H:i:s');
+                    $html .= ' | <strong>Completed:</strong> '.$response->responded_at->format('Y-m-d H:i:s');
                 }
-                
+
                 $html .= '</div>';
-                
+
                 // Instructions
                 if ($response->formTask->instructions->count() > 0) {
                     $html .= '<div class="instructions">
                         <strong>Instructions:</strong><br>';
                     foreach ($response->formTask->instructions as $instruction) {
-                        $html .= e($instruction->content) . '<br>';
+                        $html .= e($instruction->content).'<br>';
                     }
                     $html .= '</div>';
                 }
-                
+
                 // Response content
                 $html .= $this->renderResponseHtml($formattedResponse, $includeImages);
-                
+
                 $html .= '</div></div>';
                 $index++;
             }
         }
-        
+
         $html .= '</div>';
-        
+
         // Footer
         $html .= '<div class="footer">
-            <p>Routine Execution Report | Generated on ' . now()->format('Y-m-d H:i:s') . ' | Execution #' . $execution->id . '</p>
+            <p>Routine Execution Report | Generated on '.now()->format('Y-m-d H:i:s').' | Execution #'.$execution->id.'</p>
         </div>';
-        
+
         $html .= '</body></html>';
-        
+
         return $html;
     }
 
@@ -232,68 +229,69 @@ class PDFGeneratorService
     private function renderResponseHtml(array $response, bool $includeImages): string
     {
         $html = '<div>';
-        
+
         switch ($response['type']) {
             case 'measurement':
                 $html .= '<div style="margin-bottom: 8px;">
                     <strong>Value: </strong>
-                    <span class="measurement-value ' . ($response['is_within_range'] ? 'in-range' : 'out-range') . '">
-                        ' . e($response['display_value']) . '
+                    <span class="measurement-value '.($response['is_within_range'] ? 'in-range' : 'out-range').'">
+                        '.e($response['display_value']).'
                     </span>
                 </div>';
                 if (isset($response['range_info'])) {
-                    $html .= '<p style="font-size: 14px; color: #666;">' . e($response['range_info']['range_text']) . '</p>';
+                    $html .= '<p style="font-size: 14px; color: #666;">'.e($response['range_info']['range_text']).'</p>';
                 }
                 break;
-                
+
             case 'multiple_choice':
             case 'multiple_select':
-                $html .= '<strong>Selected: </strong>' . e($response['display_value']);
+                $html .= '<strong>Selected: </strong>'.e($response['display_value']);
                 break;
-                
+
             case 'question':
-                $html .= '<p>' . nl2br(e($response['display_value'])) . '</p>';
-                $html .= '<p style="font-size: 12px; color: #666;">' . 
-                    $response['word_count'] . ' words • ' . $response['character_count'] . ' characters</p>';
+                $html .= '<p>'.nl2br(e($response['display_value'])).'</p>';
+                $html .= '<p style="font-size: 12px; color: #666;">'.
+                    $response['word_count'].' words • '.$response['character_count'].' characters</p>';
                 break;
-                
+
             case 'photo':
-                $html .= '<p>' . e($response['display_value']) . '</p>';
+                $html .= '<p>'.e($response['display_value']).'</p>';
                 if ($includeImages && isset($response['photos']) && count($response['photos']) > 0) {
                     $html .= '<div class="photo-container">';
                     foreach ($response['photos'] as $photo) {
                         $html .= '<div>
-                            <img src="' . $photo['url'] . '" alt="' . e($photo['filename']) . '" class="photo">
-                            <p style="font-size: 12px; color: #666; margin-top: 4px;">' . e($photo['filename']) . '</p>
+                            <img src="'.$photo['url'].'" alt="'.e($photo['filename']).'" class="photo">
+                            <p style="font-size: 12px; color: #666; margin-top: 4px;">'.e($photo['filename']).'</p>
                         </div>';
                     }
                     $html .= '</div>';
                 }
                 break;
-                
+
             case 'file_upload':
-                $html .= '<p>' . e($response['display_value']) . '</p>';
+                $html .= '<p>'.e($response['display_value']).'</p>';
                 if (isset($response['files']) && count($response['files']) > 0) {
                     $html .= '<div style="margin-top: 8px;">';
                     foreach ($response['files'] as $file) {
-                        $html .= '<p style="font-size: 14px; margin: 4px 0;">📎 ' . e($file['filename']) . '</p>';
+                        $html .= '<p style="font-size: 14px; margin: 4px 0;">📎 '.e($file['filename']).'</p>';
                     }
                     $html .= '</div>';
                 }
                 break;
-                
+
             case 'code_reader':
                 $html .= '<strong>Code: </strong>
                     <code style="background-color: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: monospace;">
-                        ' . e($response['display_value']) . '
+                        '.e($response['display_value']).'
                     </code>';
                 break;
-                
+
             default:
                 $html .= e($response['display_value']);
         }
-        
+
         $html .= '</div>';
+
         return $html;
     }
 
@@ -313,9 +311,9 @@ class PDFGeneratorService
         $html = $this->generateBatchReportHtml($executions, $options);
 
         // Generate the PDF
-        $filename = "batch-report-" . now()->format('YmdHis') . '.pdf';
+        $filename = 'batch-report-'.now()->format('YmdHis').'.pdf';
         $path = "exports/executions/{$filename}";
-        
+
         // Create the PDF with landscape orientation for batch reports
         $pdf = Pdf::html($html)
             ->format(Format::A4)
@@ -324,10 +322,10 @@ class PDFGeneratorService
             ->withBrowsershot(function ($browsershot) {
                 $browsershot->setChromePath('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
             });
-        
+
         // Save the PDF to storage
-        $pdf->save(storage_path('app/' . $path));
-        
+        $pdf->save(storage_path('app/'.$path));
+
         return $path;
     }
 
@@ -339,7 +337,7 @@ class PDFGeneratorService
         $includeImages = $options['include_images'] ?? true;
         $includeCoverPage = $options['include_cover_page'] ?? true;
         $includeIndex = $options['include_index'] ?? true;
-        
+
         $html = '<!DOCTYPE html>
 <html>
 <head>
@@ -366,8 +364,8 @@ class PDFGeneratorService
         if ($includeCoverPage) {
             $html .= '<div class="cover-page">
                 <h1 class="cover-title">Batch Execution Report</h1>
-                <p class="cover-subtitle">Generated on ' . now()->format('F j, Y') . '</p>
-                <p class="cover-subtitle">Total Executions: ' . $executions->count() . '</p>
+                <p class="cover-subtitle">Generated on '.now()->format('F j, Y').'</p>
+                <p class="cover-subtitle">Total Executions: '.$executions->count().'</p>
             </div>
             <div class="page-break"></div>';
         }
@@ -387,18 +385,18 @@ class PDFGeneratorService
                     </tr>
                 </thead>
                 <tbody>';
-            
+
             foreach ($executions as $execution) {
                 $html .= '<tr>
-                    <td>#' . $execution->id . '</td>
-                    <td>' . e($execution->routine->name) . '</td>
-                    <td>' . e($execution->primary_asset_tag ?? 'N/A') . '</td>
-                    <td>' . e($execution->executor->name) . '</td>
-                    <td>' . ucwords(str_replace('_', ' ', $execution->status)) . '</td>
-                    <td>' . ($execution->started_at ? $execution->started_at->format('Y-m-d') : 'N/A') . '</td>
+                    <td>#'.$execution->id.'</td>
+                    <td>'.e($execution->routine->name).'</td>
+                    <td>'.e($execution->primary_asset_tag ?? 'N/A').'</td>
+                    <td>'.e($execution->executor->name).'</td>
+                    <td>'.ucwords(str_replace('_', ' ', $execution->status)).'</td>
+                    <td>'.($execution->started_at ? $execution->started_at->format('Y-m-d') : 'N/A').'</td>
                 </tr>';
             }
-            
+
             $html .= '</tbody></table>
             <div class="page-break"></div>';
         }
@@ -406,39 +404,39 @@ class PDFGeneratorService
         // Individual execution summaries
         foreach ($executions as $execution) {
             $html .= '<div class="execution-summary">
-                <div class="summary-header">Execution #' . $execution->id . ' - ' . e($execution->routine->name) . '</div>
+                <div class="summary-header">Execution #'.$execution->id.' - '.e($execution->routine->name).'</div>
                 <table class="details">
                     <tr>
                         <td class="label">Asset:</td>
-                        <td>' . e($execution->primary_asset_tag ?? 'N/A') . '</td>
+                        <td>'.e($execution->primary_asset_tag ?? 'N/A').'</td>
                         <td class="label">Executor:</td>
-                        <td>' . e($execution->executor->name) . '</td>
+                        <td>'.e($execution->executor->name).'</td>
                     </tr>
                     <tr>
                         <td class="label">Status:</td>
-                        <td>' . ucwords(str_replace('_', ' ', $execution->status)) . '</td>
+                        <td>'.ucwords(str_replace('_', ' ', $execution->status)).'</td>
                         <td class="label">Progress:</td>
-                        <td>' . $execution->progress_percentage . '%</td>
+                        <td>'.$execution->progress_percentage.'%</td>
                     </tr>
                     <tr>
                         <td class="label">Started:</td>
-                        <td>' . ($execution->started_at ? $execution->started_at->format('Y-m-d H:i:s') : 'N/A') . '</td>
+                        <td>'.($execution->started_at ? $execution->started_at->format('Y-m-d H:i:s') : 'N/A').'</td>
                         <td class="label">Completed:</td>
-                        <td>' . ($execution->completed_at ? $execution->completed_at->format('Y-m-d H:i:s') : 'N/A') . '</td>
+                        <td>'.($execution->completed_at ? $execution->completed_at->format('Y-m-d H:i:s') : 'N/A').'</td>
                     </tr>';
-            
+
             if ($execution->notes) {
                 $html .= '<tr>
                     <td class="label">Notes:</td>
-                    <td colspan="3">' . e($execution->notes) . '</td>
+                    <td colspan="3">'.e($execution->notes).'</td>
                 </tr>';
             }
-            
+
             $html .= '</table></div>';
         }
 
         $html .= '</body></html>';
-        
+
         return $html;
     }
 
@@ -453,7 +451,7 @@ class PDFGeneratorService
             ->get();
 
         $csvData = [];
-        
+
         // Header row
         $csvData[] = [
             'Execution ID',
@@ -465,7 +463,7 @@ class PDFGeneratorService
             'Completed At',
             'Duration (minutes)',
             'Progress (%)',
-            'Notes'
+            'Notes',
         ];
 
         // Data rows
@@ -486,12 +484,12 @@ class PDFGeneratorService
 
         // Convert to CSV
         $csv = $this->arrayToCsv($csvData);
-        
-        $filename = "executions-export-" . now()->format('YmdHis') . '.csv';
+
+        $filename = 'executions-export-'.now()->format('YmdHis').'.csv';
         $path = "exports/executions/{$filename}";
-        
+
         Storage::put($path, $csv);
-        
+
         return $path;
     }
 
@@ -502,12 +500,12 @@ class PDFGeneratorService
     {
         // Get the export record that has this file path
         $export = \App\Models\Maintenance\ExecutionExport::where('file_path', $filePath)->first();
-        
+
         if ($export) {
             // Return the proper download route
             return route('maintenance.executions.export.download', ['export' => $export->id]);
         }
-        
+
         // Fallback to temporary URL for other files
         return Storage::temporaryUrl($filePath, now()->addHours(24));
     }
@@ -538,15 +536,15 @@ class PDFGeneratorService
     private function arrayToCsv(array $data): string
     {
         $output = fopen('php://temp', 'r+');
-        
+
         foreach ($data as $row) {
             fputcsv($output, $row);
         }
-        
+
         rewind($output);
         $csv = stream_get_contents($output);
         fclose($output);
-        
+
         return $csv;
     }
 

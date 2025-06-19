@@ -39,7 +39,7 @@ class ProfileController extends Controller
 
         return to_route('profile.edit');
     }
-    
+
     /**
      * Update only the user's timezone.
      */
@@ -48,15 +48,15 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'timezone' => ['required', 'string', 'timezone'],
         ]);
-        
+
         $request->user()->update([
-            'timezone' => $validated['timezone']
+            'timezone' => $validated['timezone'],
         ]);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Timezone updated successfully',
-            'timezone' => $validated['timezone']
+            'timezone' => $validated['timezone'],
         ]);
     }
 

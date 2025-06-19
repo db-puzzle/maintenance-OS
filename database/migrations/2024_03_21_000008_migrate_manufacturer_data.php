@@ -1,10 +1,8 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Manufacturer;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -22,7 +20,7 @@ return new class extends Migration
         // Create manufacturers for each unique name
         foreach ($manufacturerNames as $name) {
             $manufacturer = Manufacturer::firstOrCreate(['name' => $name]);
-            
+
             // Update all assets with this manufacturer name
             Asset::where('manufacturer', $name)
                 ->update(['manufacturer_id' => $manufacturer->id]);
@@ -38,4 +36,4 @@ return new class extends Migration
         Asset::whereNotNull('manufacturer_id')
             ->update(['manufacturer_id' => null]);
     }
-}; 
+};

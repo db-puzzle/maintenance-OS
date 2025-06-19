@@ -53,12 +53,12 @@ class PlantsController extends Controller
 
         // Aplicar ordenação
         $plants = $plants->sort(function ($a, $b) use ($sort, $direction) {
-            $comparison = match($sort) {
+            $comparison = match ($sort) {
                 'name' => strcmp($a[$sort], $b[$sort]),
                 'created_at', 'updated_at' => strtotime($a[$sort]) - strtotime($b[$sort]),
                 default => $a[$sort] - $b[$sort]
             };
-            
+
             return $direction === 'asc' ? $comparison : -$comparison;
         });
 
@@ -66,7 +66,7 @@ class PlantsController extends Controller
         $total = $plants->count();
         $page = $request->input('page', 1);
         $items = $plants->forPage($page, $perPage)->values();
-        
+
         $plants = new \Illuminate\Pagination\LengthAwarePaginator(
             $items,
             $total,
@@ -140,13 +140,13 @@ class PlantsController extends Controller
             'dependencies' => [
                 'areas' => [
                     'total' => $totalAreas,
-                    'items' => $areas
+                    'items' => $areas,
                 ],
                 'asset' => [
                     'total' => $totalAsset,
-                    'items' => $asset
-                ]
-            ]
+                    'items' => $asset,
+                ],
+            ],
         ]);
     }
 
@@ -167,7 +167,7 @@ class PlantsController extends Controller
                     'gps_coordinates' => $plant->gps_coordinates,
                     'created_at' => $plant->created_at,
                     'updated_at' => $plant->updated_at,
-                ]
+                ],
             ]);
         }
 
@@ -213,7 +213,7 @@ class PlantsController extends Controller
         $allAreas = $areasQuery->get();
         $areasOffset = ($areasPage - 1) * $perPage;
         $areasItems = array_slice($allAreas->all(), $areasOffset, $perPage);
-        
+
         $areas = new \Illuminate\Pagination\LengthAwarePaginator(
             collect($areasItems),
             count($allAreas),
@@ -230,7 +230,7 @@ class PlantsController extends Controller
 
         // Busca os setores com suas áreas
         $sectorsQuery = $plant->areas()
-            ->with(['sectors' => function ($query) use ($sectorsSort, $sectorsDirection) {
+            ->with(['sectors' => function ($query) {
                 $query->withCount('asset');
             }])
             ->get()
@@ -253,7 +253,7 @@ class PlantsController extends Controller
         // Aplica ordenação personalizada para setores
         $sectorsQuery = $sectorsQuery->sort(function ($a, $b) use ($sectorsSort, $sectorsDirection) {
             $direction = $sectorsDirection === 'asc' ? 1 : -1;
-            
+
             switch ($sectorsSort) {
                 case 'name':
                     return strcmp($a['name'], $b['name']) * $direction;
@@ -270,7 +270,7 @@ class PlantsController extends Controller
         $allSectors = $sectorsQuery->all();
         $sectorsOffset = ($sectorsPage - 1) * $perPage;
         $sectorsItems = array_slice($allSectors, $sectorsOffset, $perPage);
-        
+
         $sectors = new \Illuminate\Pagination\LengthAwarePaginator(
             collect($sectorsItems),
             count($allSectors),
@@ -302,15 +302,15 @@ class PlantsController extends Controller
         // Aplica ordenação personalizada para ativos
         $assetQuery = $assetQuery->sort(function ($a, $b) use ($assetSort, $assetDirection) {
             $direction = $assetDirection === 'asc' ? 1 : -1;
-            
+
             switch ($assetSort) {
                 case 'tag':
                     return strcmp($a['tag'], $b['tag']) * $direction;
                 case 'type':
                     return strcmp($a['asset_type']['name'] ?? '', $b['asset_type']['name'] ?? '') * $direction;
                 case 'location':
-                    return strcmp($a['area_name'] . ($a['sector_name'] ? ' / ' . $a['sector_name'] : ''), 
-                                $b['area_name'] . ($b['sector_name'] ? ' / ' . $b['sector_name'] : '')) * $direction;
+                    return strcmp($a['area_name'].($a['sector_name'] ? ' / '.$a['sector_name'] : ''),
+                        $b['area_name'].($b['sector_name'] ? ' / '.$b['sector_name'] : '')) * $direction;
                 case 'manufacturer':
                     return strcmp($a['manufacturer'] ?? '', $b['manufacturer'] ?? '') * $direction;
                 case 'year':
@@ -324,7 +324,7 @@ class PlantsController extends Controller
         $allAsset = $assetQuery->all();
         $offset = ($assetPage - 1) * $perPage;
         $items = array_slice($allAsset, $offset, $perPage);
-        
+
         $asset = new \Illuminate\Pagination\LengthAwarePaginator(
             collect($items),
             count($allAsset),
@@ -381,4 +381,4 @@ class PlantsController extends Controller
         return redirect()->route('asset-hierarchy.plantas')
             ->with('success', "A planta {$plant->name} foi atualizada com sucesso.");
     }
-} 
+}

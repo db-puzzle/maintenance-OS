@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils';
 import { Task } from '@/types/task';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 import { TaskCardMode } from './TaskContent';
+import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 
 interface MultipleChoiceTaskContentProps extends WithSaveFunctionalityProps {
     task: Task;

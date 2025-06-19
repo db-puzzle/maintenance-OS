@@ -74,7 +74,7 @@ const TimeSelect: React.FC<TimeSelectProps> = ({ value, onChange, label }) => {
                             {selectedHour || 'Hora'}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[80px] p-0 z-[100]" align="center" side="bottom">
+                    <PopoverContent className="z-[100] w-[80px] p-0" align="center" side="bottom">
                         <Command>
                             <CommandInput placeholder="Hora" className="h-8" />
                             <CommandEmpty>Não encontrado</CommandEmpty>
@@ -110,7 +110,7 @@ const TimeSelect: React.FC<TimeSelectProps> = ({ value, onChange, label }) => {
                             {selectedMinute || 'Min'}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[80px] p-0 z-[100]" align="center" side="bottom">
+                    <PopoverContent className="z-[100] w-[80px] p-0" align="center" side="bottom">
                         <Command>
                             <CommandInput placeholder="Min" className="h-8" />
                             <CommandEmpty>Não encontrado</CommandEmpty>
@@ -143,7 +143,7 @@ const TimeSelect: React.FC<TimeSelectProps> = ({ value, onChange, label }) => {
                             {selectedPeriod}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[80px] p-0 z-[100]" align="center" side="bottom">
+                    <PopoverContent className="z-[100] w-[80px] p-0" align="center" side="bottom">
                         <Command>
                             <CommandList className="max-h-20">
                                 <CommandGroup>

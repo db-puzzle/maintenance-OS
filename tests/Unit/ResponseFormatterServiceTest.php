@@ -2,12 +2,11 @@
 
 namespace Tests\Unit;
 
-use App\Models\Forms\TaskResponse;
 use App\Models\Forms\FormTask;
 use App\Models\Forms\ResponseAttachment;
+use App\Models\Forms\TaskResponse;
 use App\Services\ResponseFormatterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class ResponseFormatterServiceTest extends TestCase
@@ -19,7 +18,7 @@ class ResponseFormatterServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new ResponseFormatterService();
+        $this->service = new ResponseFormatterService;
     }
 
     /** @test */
@@ -333,13 +332,13 @@ class ResponseFormatterServiceTest extends TestCase
         $responses = collect([
             // Completed and acceptable
             $this->createMockResponse(FormTask::TYPE_QUESTION, ['answer' => 'Good'], true),
-            
+
             // Completed but with issues (measurement outside range)
             $this->createMockMeasurementResponse(6.0, true), // Outside range 3-5
-            
+
             // Incomplete
             $this->createMockResponse(FormTask::TYPE_QUESTION, ['answer' => ''], false),
-            
+
             // Completed and acceptable
             $this->createMockResponse(FormTask::TYPE_QUESTION, ['answer' => 'Excellent'], true),
         ]);

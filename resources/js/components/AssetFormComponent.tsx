@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { type Area, type Asset, type AssetForm, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
 import { router, useForm } from '@inertiajs/react';
 import { Camera, Pencil } from 'lucide-react';
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface Manufacturer {
@@ -94,15 +94,13 @@ function AssetFormFields({
             {/* Foto e Campos Principais */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Coluna 1: Foto - Spans 2 rows */}
-                <div className="lg:row-span-2 flex">
+                <div className="flex lg:row-span-2">
                     {isViewMode ? (
                         <div className="flex h-full w-full flex-col">
-                            <Label className="mb-2">
-                                Foto do Ativo
-                            </Label>
+                            <Label className="mb-2">Foto do Ativo</Label>
                             <div className="flex flex-1 flex-col gap-2">
                                 <div
-                                    className={`bg-muted relative flex-1 min-h-[200px] overflow-hidden rounded-lg border ${!data.photo_path ? 'bg-muted' : ''}`}
+                                    className={`bg-muted relative min-h-[200px] flex-1 overflow-hidden rounded-lg border ${!data.photo_path ? 'bg-muted' : ''}`}
                                 >
                                     {data.photo_path ? (
                                         <img
@@ -162,7 +160,7 @@ function AssetFormFields({
                         }}
                         name="part_number"
                         label="Part Number"
-                        placeholder={isViewMode ? "Part number não informado" : "Informe o part number do ativo"}
+                        placeholder={isViewMode ? 'Part number não informado' : 'Informe o part number do ativo'}
                         view={isViewMode}
                     />
 
@@ -178,7 +176,7 @@ function AssetFormFields({
                                 clearErrors('manufacturer_id');
                             }}
                             onCreateClick={handleCreateManufacturerClick}
-                            placeholder={isViewMode && !data.manufacturer_id ? "Fabricante não selecionado" : "Selecione um fabricante (opcional)"}
+                            placeholder={isViewMode && !data.manufacturer_id ? 'Fabricante não selecionado' : 'Selecione um fabricante (opcional)'}
                             error={errors.manufacturer_id}
                             canClear={!isViewMode}
                             view={isViewMode}
@@ -200,7 +198,9 @@ function AssetFormFields({
                                 clearErrors('asset_type_id');
                             }}
                             onCreateClick={handleCreateAssetTypeClick}
-                            placeholder={isViewMode && !data.asset_type_id ? "Tipo de ativo não selecionado" : "Selecione um tipo de ativo (opcional)"}
+                            placeholder={
+                                isViewMode && !data.asset_type_id ? 'Tipo de ativo não selecionado' : 'Selecione um tipo de ativo (opcional)'
+                            }
                             error={errors.asset_type_id}
                             canClear={!isViewMode}
                             view={isViewMode}
@@ -217,7 +217,7 @@ function AssetFormFields({
                         }}
                         name="serial_number"
                         label="Número Serial"
-                        placeholder={isViewMode ? "Número serial não informado" : "Informe o número serial do ativo"}
+                        placeholder={isViewMode ? 'Número serial não informado' : 'Informe o número serial do ativo'}
                         view={isViewMode}
                     />
 
@@ -231,10 +231,9 @@ function AssetFormFields({
                         }}
                         name="manufacturing_year"
                         label="Ano de Fabricação"
-                        placeholder={isViewMode ? "Ano de fabricação não informado" : "Informe o ano de fabricação do ativo"}
+                        placeholder={isViewMode ? 'Ano de fabricação não informado' : 'Informe o ano de fabricação do ativo'}
                         view={isViewMode}
                     />
-
                 </div>
 
                 {/* Descrição - Ocupa colunas 2 e 3 */}
@@ -242,7 +241,7 @@ function AssetFormFields({
                     <div className="grid gap-2">
                         <Label htmlFor="description">Descrição</Label>
                         {isViewMode && !data.description ? (
-                            <div className="flex min-h-[60px] w-full rounded-md border border-input bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                            <div className="border-input bg-muted/20 text-muted-foreground flex min-h-[60px] w-full rounded-md border px-3 py-2 text-sm">
                                 Sem descrição
                             </div>
                         ) : (
@@ -258,7 +257,6 @@ function AssetFormFields({
                         <InputError message={errors.description} />
                     </div>
                 </div>
-
             </div>
 
             {/* Localização - Grid com 3 colunas em toda largura */}
@@ -284,7 +282,7 @@ function AssetFormFields({
                             clearErrors('plant_id');
                         }}
                         onCreateClick={handleCreatePlantClick}
-                        placeholder={isViewMode && !data.plant_id ? "Planta não selecionada" : "Selecione uma planta (opcional)"}
+                        placeholder={isViewMode && !data.plant_id ? 'Planta não selecionada' : 'Selecione uma planta (opcional)'}
                         error={errors.plant_id}
                         canClear={!isViewMode}
                         view={isViewMode}
@@ -312,8 +310,10 @@ function AssetFormFields({
                         onCreateClick={handleCreateAreaClick}
                         placeholder={
                             isViewMode && !data.area_id
-                                ? "Área não selecionada"
-                                : (data.plant_id ? 'Selecione uma área (opcional)' : 'Selecione uma planta primeiro')
+                                ? 'Área não selecionada'
+                                : data.plant_id
+                                  ? 'Selecione uma área (opcional)'
+                                  : 'Selecione uma planta primeiro'
                         }
                         error={errors.area_id}
                         disabled={!data.plant_id}
@@ -336,8 +336,10 @@ function AssetFormFields({
                         onCreateClick={handleCreateSectorClick}
                         placeholder={
                             isViewMode && !data.sector_id
-                                ? "Setor não selecionado"
-                                : (data.area_id ? 'Selecione um setor (opcional)' : 'Selecione uma área primeiro')
+                                ? 'Setor não selecionado'
+                                : data.area_id
+                                  ? 'Selecione um setor (opcional)'
+                                  : 'Selecione uma área primeiro'
                         }
                         error={errors.sector_id}
                         disabled={!data.area_id}
@@ -357,7 +359,7 @@ export default function AssetFormComponent({
     asset,
     initialMode = 'view',
     onCancel,
-    onSuccess
+    onSuccess,
 }: AssetFormComponentProps) {
     const isEditing = !!asset;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
@@ -649,7 +651,7 @@ export default function AssetFormComponent({
 
                 {/* Action buttons */}
                 {isEditing && (
-                    <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-between sm:items-center">
+                    <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:items-center sm:justify-between">
                         {/* Delete button on the left when in edit mode */}
                         {!isViewMode && (
                             <div className="w-full sm:w-auto">
@@ -658,7 +660,7 @@ export default function AssetFormComponent({
                         )}
 
                         {/* Edit/Save/Cancel buttons on the right */}
-                        <div className="flex flex-col gap-2 sm:flex-row sm:ml-auto">
+                        <div className="flex flex-col gap-2 sm:ml-auto sm:flex-row">
                             {isViewMode ? (
                                 <Button
                                     type="button"
@@ -676,21 +678,10 @@ export default function AssetFormComponent({
                                 </Button>
                             ) : (
                                 <>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full sm:w-auto"
-                                        onClick={handleCancel}
-                                    >
+                                    <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" onClick={handleCancel}>
                                         Cancelar
                                     </Button>
-                                    <Button
-                                        type="submit"
-                                        size="sm"
-                                        className="w-full sm:w-auto"
-                                        disabled={processing}
-                                    >
+                                    <Button type="submit" size="sm" className="w-full sm:w-auto" disabled={processing}>
                                         {processing ? 'Salvando...' : 'Salvar'}
                                     </Button>
                                 </>
@@ -702,19 +693,10 @@ export default function AssetFormComponent({
                 {/* Action buttons for create mode */}
                 {!isEditing && (
                     <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-start">
-                        <Button
-                            type="submit"
-                            className="w-full sm:w-auto"
-                            disabled={processing}
-                        >
+                        <Button type="submit" className="w-full sm:w-auto" disabled={processing}>
                             {processing ? 'Criando...' : 'Criar Ativo'}
                         </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full sm:w-auto"
-                            onClick={handleCancel}
-                        >
+                        <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleCancel}>
                             Cancelar
                         </Button>
                     </div>
@@ -722,11 +704,7 @@ export default function AssetFormComponent({
             </form>
 
             {/* Hidden Sheets for creating new entities */}
-            <CreatePlantSheet
-                open={plantSheetOpen}
-                onOpenChange={setPlantSheetOpen}
-                onSuccess={handlePlantCreated}
-            />
+            <CreatePlantSheet open={plantSheetOpen} onOpenChange={setPlantSheetOpen} onSuccess={handlePlantCreated} />
 
             <CreateAreaSheet
                 open={areaSheetOpen}
@@ -748,12 +726,7 @@ export default function AssetFormComponent({
                 onSuccess={handleSectorCreated}
             />
 
-            <CreateAssetTypeSheet
-                open={assetTypeSheetOpen}
-                onOpenChange={setAssetTypeSheetOpen}
-                mode="create"
-                onSuccess={handleAssetTypeCreated}
-            />
+            <CreateAssetTypeSheet open={assetTypeSheetOpen} onOpenChange={setAssetTypeSheetOpen} mode="create" onSuccess={handleAssetTypeCreated} />
 
             <CreateManufacturerSheet
                 open={manufacturerSheetOpen}
@@ -763,4 +736,4 @@ export default function AssetFormComponent({
             />
         </>
     );
-} 
+}

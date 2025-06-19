@@ -2,12 +2,12 @@
 
 namespace App\Models\Forms;
 
-use App\Models\User;
 use App\Models\Maintenance\RoutineExecution;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FormExecution extends Model
 {
@@ -16,17 +16,20 @@ class FormExecution extends Model
         'user_id',
         'status',
         'started_at',
-        'completed_at'
+        'completed_at',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
-        'completed_at' => 'datetime'
+        'completed_at' => 'datetime',
     ];
 
     const STATUS_PENDING = 'pending';
+
     const STATUS_IN_PROGRESS = 'in_progress';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_CANCELLED = 'cancelled';
 
     /**
@@ -128,13 +131,13 @@ class FormExecution extends Model
     public function getProgressPercentage(): int
     {
         $totalTasks = $this->formVersion->tasks()->count();
-        
+
         if ($totalTasks === 0) {
             return 0;
         }
-        
+
         $completedTasks = $this->taskResponses()->where('is_completed', true)->count();
-        
+
         return (int) round(($completedTasks / $totalTasks) * 100);
     }
 
@@ -172,4 +175,4 @@ class FormExecution extends Model
             ->whereIn('id', $requiredTaskIds->diff($completedTaskIds))
             ->get();
     }
-} 
+}

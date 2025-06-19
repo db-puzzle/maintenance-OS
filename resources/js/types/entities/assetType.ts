@@ -9,4 +9,4 @@ export interface AssetType extends BaseEntity {
 export interface AssetTypeForm {
     name: string;
     description: string;
-} 
+}

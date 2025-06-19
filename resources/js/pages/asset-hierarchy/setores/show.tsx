@@ -3,12 +3,12 @@ import { type Asset } from '@/types/asset-hierarchy';
 import { router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Cog, Factory, Map } from 'lucide-react';
 
+import SectorFormComponent from '@/components/SectorFormComponent';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import SectorFormComponent from '@/components/SectorFormComponent';
 
 interface Props {
     sector: {
@@ -109,12 +109,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             label: 'Informações Gerais',
             content: (
                 <div className="py-8">
-                    <SectorFormComponent
-                        sector={sector as any}
-                        plants={plants || []}
-                        initialMode="view"
-                        onSuccess={() => router.reload()}
-                    />
+                    <SectorFormComponent sector={sector as any} plants={plants || []} initialMode="view" onSuccess={() => router.reload()} />
                 </div>
             ),
         },
@@ -170,9 +165,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                                     <div className="font-medium">{asset.tag}</div>
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{asset.asset_type?.name ?? '-'}</TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">
-                                                    {asset.manufacturer?.name ?? '-'}
-                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturer?.name ?? '-'}</TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{asset.manufacturing_year ?? '-'}</TableCell>
                                             </TableRow>
                                         ))}
@@ -238,12 +231,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <ShowLayout
-                title={sector.name}
-                subtitle={subtitle}
-                editRoute={route('asset-hierarchy.setores.edit', sector.id)}
-                tabs={tabs}
-            />
+            <ShowLayout title={sector.name} subtitle={subtitle} editRoute={route('asset-hierarchy.setores.edit', sector.id)} tabs={tabs} />
         </AppLayout>
     );
 }

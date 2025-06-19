@@ -19,4 +19,4 @@ export interface SectorForm {
     name: string;
     area_id: number | null;
     shift_id: number | null;
-} 
+}

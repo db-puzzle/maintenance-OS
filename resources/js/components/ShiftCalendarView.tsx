@@ -38,8 +38,6 @@ const timeToMinutes = (time: string) => {
     return hours * 60 + minutes;
 };
 
-
-
 const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDays = false }) => {
     // Função para encontrar o período mais extenso de horas em todos os dias
     const findTimeRange = () => {
@@ -113,8 +111,6 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
         };
     });
 
-
-
     return (
         <div className="mt-6">
             <div className="flex flex-col">
@@ -158,8 +154,6 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                             const schedule = schedules.find((s) => s.weekday === dayKey);
 
                             if (!showAllDays && !schedule) return null;
-
-
 
                             return (
                                 <div key={dayKey} className="relative">

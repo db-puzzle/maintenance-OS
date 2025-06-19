@@ -40,8 +40,8 @@ class RoutineExecutionPolicy
     public function update(User $user, RoutineExecution $routineExecution): bool
     {
         // Only the executor can update their own executions, and only if not completed
-        return $user->id === $routineExecution->executed_by && 
-               !$routineExecution->isCompleted();
+        return $user->id === $routineExecution->executed_by &&
+               ! $routineExecution->isCompleted();
     }
 
     /**
@@ -53,7 +53,7 @@ class RoutineExecutionPolicy
         return ($user->id === $routineExecution->executed_by || $this->isAdmin($user)) &&
                in_array($routineExecution->status, [
                    RoutineExecution::STATUS_PENDING,
-                   RoutineExecution::STATUS_CANCELLED
+                   RoutineExecution::STATUS_CANCELLED,
                ]);
     }
 

@@ -1,29 +1,16 @@
-import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import {
-    Clock,
-    User,
-    Calendar,
-    Download,
-    ChevronRight,
-    CheckCircle2,
-    AlertCircle,
-    Camera,
-    FileText,
-    Ruler,
-    ListChecks
-} from 'lucide-react';
-import type { RoutineExecution, TaskResponse } from '@/types/maintenance';
-import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useExportManager } from '@/hooks/use-export-manager';
+import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
+import type { RoutineExecution, TaskResponse } from '@/types/maintenance';
+import { Head } from '@inertiajs/react';
+import { AlertCircle, Calendar, Camera, CheckCircle2, ChevronRight, Clock, Download, FileText, ListChecks, Ruler, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 
 interface ExecutionShowProps {
     execution: RoutineExecution;
@@ -31,13 +18,9 @@ interface ExecutionShowProps {
     canExport: boolean;
 }
 
-const ExecutionShow: React.FC<ExecutionShowProps> = ({
-    execution,
-    taskResponses,
-    canExport,
-}) => {
+const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses, canExport }) => {
     const [activeTab, setActiveTab] = useState('responses');
-    const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set(taskResponses.map(tr => tr.id)));
+    const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set(taskResponses.map((tr) => tr.id)));
     const [isExporting, setIsExporting] = useState(false);
     const [exportStatus, setExportStatus] = useState<'idle' | 'processing' | 'ready'>('idle');
     const [exportId, setExportId] = useState<number | null>(null);
@@ -150,7 +133,9 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
 
             if (!response.ok) {
                 if (data.error && data.error.includes('Chrome')) {
-                    throw new Error('Chrome/Chromium is required for PDF generation. Please install Google Chrome: brew install --cask google-chrome');
+                    throw new Error(
+                        'Chrome/Chromium is required for PDF generation. Please install Google Chrome: brew install --cask google-chrome',
+                    );
                 }
                 throw new Error(data.error || `Export failed: ${response.statusText}`);
             }
@@ -256,15 +241,9 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
                             <span className="font-medium">Value:</span>
-                            <Badge variant={formattedResponse.is_within_range ? 'default' : 'destructive'}>
-                                {formattedResponse.display_value}
-                            </Badge>
+                            <Badge variant={formattedResponse.is_within_range ? 'default' : 'destructive'}>{formattedResponse.display_value}</Badge>
                         </div>
-                        {formattedResponse.range_info && (
-                            <p className="text-sm text-muted-foreground">
-                                {formattedResponse.range_info.range_text}
-                            </p>
-                        )}
+                        {formattedResponse.range_info && <p className="text-muted-foreground text-sm">{formattedResponse.range_info.range_text}</p>}
                     </div>
                 );
 
@@ -292,7 +271,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                 return (
                     <div className="space-y-2">
                         <p className="text-sm">{formattedResponse.display_value}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                             {formattedResponse.word_count} words • {formattedResponse.character_count} characters
                         </p>
                     </div>
@@ -303,16 +282,16 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                     <div className="space-y-2">
                         <p className="text-sm">{formattedResponse.display_value}</p>
                         {formattedResponse.photos && formattedResponse.photos.length > 0 && (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                                 {formattedResponse.photos.map((photo) => (
-                                    <div key={photo.id} className="relative group">
+                                    <div key={photo.id} className="group relative">
                                         <img
                                             src={photo.thumbnail_url}
                                             alt={photo.filename}
-                                            className="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                                            className="h-32 w-full cursor-pointer rounded-lg border object-cover transition-opacity hover:opacity-90"
                                             onClick={() => window.open(photo.url, '_blank')}
                                         />
-                                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="absolute right-0 bottom-0 left-0 rounded-b-lg bg-black/50 p-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
                                             {photo.filename}
                                         </div>
                                     </div>
@@ -350,22 +329,14 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
                             <span className="font-medium">Code:</span>
-                            <code className="bg-muted px-2 py-1 rounded text-sm">
-                                {formattedResponse.display_value}
-                            </code>
+                            <code className="bg-muted rounded px-2 py-1 text-sm">{formattedResponse.display_value}</code>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            Type: {formattedResponse.code_type}
-                        </p>
+                        <p className="text-muted-foreground text-xs">Type: {formattedResponse.code_type}</p>
                     </div>
                 );
 
             default:
-                return (
-                    <div className="text-sm">
-                        {formattedResponse.display_value}
-                    </div>
-                );
+                return <div className="text-sm">{formattedResponse.display_value}</div>;
         }
     };
 
@@ -377,9 +348,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-foreground">
-                            Execution #{execution.id}
-                        </h1>
+                        <h1 className="text-foreground text-2xl font-semibold">Execution #{execution.id}</h1>
                         <p className="text-muted-foreground">
                             {execution.routine.name} • {execution.assets[0]?.tag || execution.primary_asset_tag}
                         </p>
@@ -387,18 +356,11 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                     <div className="flex gap-3">
                         {canExport && (
                             <>
-                                <Button
-                                    onClick={handleExport}
-                                    disabled={isExporting}
-                                >
-                                    <Download className="h-4 w-4 mr-2" />
+                                <Button onClick={handleExport} disabled={isExporting}>
+                                    <Download className="mr-2 h-4 w-4" />
                                     {isExporting ? 'Exporting...' : 'Export PDF'}
                                 </Button>
-                                {exportError && (
-                                    <p className="text-sm text-red-600 self-center">
-                                        {exportError}
-                                    </p>
-                                )}
+                                {exportError && <p className="self-center text-sm text-red-600">{exportError}</p>}
                             </>
                         )}
                     </div>
@@ -410,9 +372,9 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                         <CardTitle>Execution Summary</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
                             <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-muted-foreground">
+                                <div className="text-muted-foreground flex items-center gap-2">
                                     <User className="h-4 w-4" />
                                     <span className="text-sm">Executor</span>
                                 </div>
@@ -420,7 +382,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                             </div>
 
                             <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-muted-foreground">
+                                <div className="text-muted-foreground flex items-center gap-2">
                                     <Calendar className="h-4 w-4" />
                                     <span className="text-sm">Started At</span>
                                 </div>
@@ -428,30 +390,26 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                             </div>
 
                             <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-muted-foreground">
+                                <div className="text-muted-foreground flex items-center gap-2">
                                     <Clock className="h-4 w-4" />
                                     <span className="text-sm">Duration</span>
                                 </div>
-                                <p className="font-medium">
-                                    {execution.duration_minutes ? `${execution.duration_minutes} minutes` : 'In Progress'}
-                                </p>
+                                <p className="font-medium">{execution.duration_minutes ? `${execution.duration_minutes} minutes` : 'In Progress'}</p>
                             </div>
 
                             <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-muted-foreground">
+                                <div className="text-muted-foreground flex items-center gap-2">
                                     <CheckCircle2 className="h-4 w-4" />
                                     <span className="text-sm">Status</span>
                                 </div>
-                                <Badge className={getStatusColor(execution.status)}>
-                                    {execution.status.replace('_', ' ')}
-                                </Badge>
+                                <Badge className={getStatusColor(execution.status)}>{execution.status.replace('_', ' ')}</Badge>
                             </div>
                         </div>
 
                         {execution.status === 'in_progress' && (
                             <div className="mt-6">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm text-muted-foreground">Progress</span>
+                                <div className="mb-2 flex items-center justify-between">
+                                    <span className="text-muted-foreground text-sm">Progress</span>
                                     <span className="text-sm font-medium">{execution.progress}%</span>
                                 </div>
                                 <Progress value={execution.progress} />
@@ -460,8 +418,8 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
 
                         {execution.notes && (
                             <div className="mt-6">
-                                <h4 className="font-medium mb-2">Notes</h4>
-                                <p className="text-sm text-muted-foreground">{execution.notes}</p>
+                                <h4 className="mb-2 font-medium">Notes</h4>
+                                <p className="text-muted-foreground text-sm">{execution.notes}</p>
                             </div>
                         )}
                     </CardContent>
@@ -470,30 +428,18 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                 {/* Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
                     <TabsList>
-                        <TabsTrigger value="responses">
-                            Task Responses ({taskResponses.length})
-                        </TabsTrigger>
-                        <TabsTrigger value="timeline">
-                            Timeline
-                        </TabsTrigger>
+                        <TabsTrigger value="responses">Task Responses ({taskResponses.length})</TabsTrigger>
+                        <TabsTrigger value="timeline">Timeline</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="responses" className="space-y-4">
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="mb-4 flex items-center justify-between">
                             <h3 className="text-lg font-medium">Task Responses</h3>
                             <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setExpandedTasks(new Set(taskResponses.map(tr => tr.id)))}
-                                >
+                                <Button variant="outline" size="sm" onClick={() => setExpandedTasks(new Set(taskResponses.map((tr) => tr.id)))}>
                                     Expand All
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setExpandedTasks(new Set())}
-                                >
+                                <Button variant="outline" size="sm" onClick={() => setExpandedTasks(new Set())}>
                                     Collapse All
                                 </Button>
                             </div>
@@ -501,22 +447,15 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
 
                         {taskResponses.map((response, index) => (
                             <Card key={response.id}>
-                                <CardHeader
-                                    className="cursor-pointer"
-                                    onClick={() => toggleTaskExpanded(response.id)}
-                                >
+                                <CardHeader className="cursor-pointer" onClick={() => toggleTaskExpanded(response.id)}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-medium text-muted-foreground">
-                                                    {index + 1}.
-                                                </span>
+                                                <span className="text-muted-foreground text-sm font-medium">{index + 1}.</span>
                                                 {getTaskTypeIcon(response.task.type)}
                                             </div>
                                             <div>
-                                                <CardTitle className="text-base">
-                                                    {response.task.description}
-                                                </CardTitle>
+                                                <CardTitle className="text-base">{response.task.description}</CardTitle>
                                                 {response.task.is_required && (
                                                     <Badge variant="secondary" className="mt-1">
                                                         Required
@@ -527,8 +466,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                                         <div className="flex items-center gap-2">
                                             {getResponseStatusIcon(response.response.status)}
                                             <ChevronRight
-                                                className={`h-4 w-4 transition-transform ${expandedTasks.has(response.id) ? 'rotate-90' : ''
-                                                    }`}
+                                                className={`h-4 w-4 transition-transform ${expandedTasks.has(response.id) ? 'rotate-90' : ''}`}
                                             />
                                         </div>
                                     </div>
@@ -537,10 +475,10 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                                 {expandedTasks.has(response.id) && (
                                     <CardContent>
                                         {response.task.instructions.length > 0 && (
-                                            <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-                                                <p className="text-sm font-medium mb-2">Instructions:</p>
+                                            <div className="bg-muted/50 mb-4 rounded-lg p-3">
+                                                <p className="mb-2 text-sm font-medium">Instructions:</p>
                                                 {response.task.instructions.map((instruction) => (
-                                                    <p key={instruction.id} className="text-sm text-muted-foreground">
+                                                    <p key={instruction.id} className="text-muted-foreground text-sm">
                                                         {instruction.content}
                                                     </p>
                                                 ))}
@@ -553,9 +491,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                                         </div>
 
                                         {response.responded_at && (
-                                            <p className="text-xs text-muted-foreground mt-4">
-                                                Responded at: {formatDate(response.responded_at)}
-                                            </p>
+                                            <p className="text-muted-foreground mt-4 text-xs">Responded at: {formatDate(response.responded_at)}</p>
                                         )}
                                     </CardContent>
                                 )}
@@ -567,23 +503,19 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
                         <Card>
                             <CardHeader>
                                 <CardTitle>Execution Timeline</CardTitle>
-                                <CardDescription>
-                                    Complete history of execution events
-                                </CardDescription>
+                                <CardDescription>Complete history of execution events</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
                                     {execution.timeline.map((event, index) => (
                                         <div key={index} className="flex gap-4">
                                             <div className="flex flex-col items-center">
-                                                <div className="w-3 h-3 bg-primary rounded-full" />
-                                                {index < execution.timeline.length - 1 && (
-                                                    <div className="w-0.5 h-16 bg-border" />
-                                                )}
+                                                <div className="bg-primary h-3 w-3 rounded-full" />
+                                                {index < execution.timeline.length - 1 && <div className="bg-border h-16 w-0.5" />}
                                             </div>
                                             <div className="flex-1 pb-8">
                                                 <p className="font-medium">{event.description}</p>
-                                                <p className="text-sm text-muted-foreground">
+                                                <p className="text-muted-foreground text-sm">
                                                     {formatDate(event.timestamp)}
                                                     {event.user && ` • ${event.user}`}
                                                 </p>
@@ -600,4 +532,4 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({
     );
 };
 
-export default ExecutionShow; 
+export default ExecutionShow;

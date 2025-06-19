@@ -1,19 +1,7 @@
-import React from 'react';
-import {
-    ChevronLeft,
-    ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
-} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PaginationMeta } from '@/types/shared';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface EntityPaginationProps {
     pagination: PaginationMeta;
@@ -22,12 +10,7 @@ interface EntityPaginationProps {
     perPageOptions?: number[];
 }
 
-export function EntityPagination({
-    pagination,
-    onPageChange,
-    onPerPageChange,
-    perPageOptions = [10, 20, 30, 50, 100],
-}: EntityPaginationProps) {
+export function EntityPagination({ pagination, onPageChange, onPerPageChange, perPageOptions = [10, 20, 30, 50, 100] }: EntityPaginationProps) {
     const { current_page, last_page, per_page, total } = pagination;
 
     // Ensure per_page is a valid option, default to 10 if not
@@ -35,7 +18,7 @@ export function EntityPagination({
 
     return (
         <div className="flex items-center justify-between px-2">
-            <div className="flex-1 text-sm text-muted-foreground">
+            <div className="text-muted-foreground flex-1 text-sm">
                 {total} registro{total !== 1 ? 's' : ''} no total
             </div>
 
@@ -43,10 +26,7 @@ export function EntityPagination({
                 {onPerPageChange && (
                     <div className="flex items-center space-x-2">
                         <p className="text-sm font-medium">Linhas por página</p>
-                        <Select
-                            value={`${validPerPage}`}
-                            onValueChange={(value) => onPerPageChange(Number(value))}
-                        >
+                        <Select value={`${validPerPage}`} onValueChange={(value) => onPerPageChange(Number(value))}>
                             <SelectTrigger className="h-8 w-[70px]">
                                 <SelectValue placeholder={`${validPerPage}`} />
                             </SelectTrigger>
@@ -66,21 +46,11 @@ export function EntityPagination({
                 </div>
 
                 <div className="flex items-center space-x-2">
-                    <Button
-                        variant="outline"
-                        className="hidden h-8 w-8 p-0 lg:flex"
-                        onClick={() => onPageChange(1)}
-                        disabled={current_page === 1}
-                    >
+                    <Button variant="outline" className="hidden h-8 w-8 p-0 lg:flex" onClick={() => onPageChange(1)} disabled={current_page === 1}>
                         <span className="sr-only">Ir para primeira página</span>
                         <ChevronsLeft className="h-4 w-4" />
                     </Button>
-                    <Button
-                        variant="outline"
-                        className="h-8 w-8 p-0"
-                        onClick={() => onPageChange(current_page - 1)}
-                        disabled={current_page === 1}
-                    >
+                    <Button variant="outline" className="h-8 w-8 p-0" onClick={() => onPageChange(current_page - 1)} disabled={current_page === 1}>
                         <span className="sr-only">Ir para página anterior</span>
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -106,4 +76,4 @@ export function EntityPagination({
             </div>
         </div>
     );
-} 
+}

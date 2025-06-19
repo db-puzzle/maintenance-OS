@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\AssetHierarchy;
 
 use App\Http\Controllers\Controller;
-use App\Models\AssetHierarchy\Area;
-use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Plant;
+use App\Models\AssetHierarchy\Sector;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -66,15 +65,16 @@ class SectorController extends Controller
                 'direction' => $direction,
                 'per_page' => $perPage,
             ],
-            'plants' => $plants
+            'plants' => $plants,
         ]);
     }
 
     public function create()
     {
         $plants = Plant::with('areas')->get();
+
         return Inertia::render('asset-hierarchy/setores/create', [
-            'plants' => $plants
+            'plants' => $plants,
         ]);
     }
 
@@ -82,7 +82,7 @@ class SectorController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'area_id' => 'required|exists:areas,id'
+            'area_id' => 'required|exists:areas,id',
         ]);
 
         $sector = Sector::create($validated);
@@ -100,9 +100,10 @@ class SectorController extends Controller
     public function edit(Sector $setor)
     {
         $plants = Plant::with('areas')->get();
+
         return Inertia::render('asset-hierarchy/setores/edit', [
             'sector' => $setor->load('area.plant'),
-            'plants' => $plants
+            'plants' => $plants,
         ]);
     }
 
@@ -118,12 +119,12 @@ class SectorController extends Controller
                     'area_id' => $setor->area_id,
                     'created_at' => $setor->created_at,
                     'updated_at' => $setor->updated_at,
-                ]
+                ],
             ]);
         }
 
         $setor->load(['area.plant']);
-        
+
         // Busca a página atual e parâmetros de ordenação para ativos
         $assetPage = request()->get('asset_page', 1);
         $perPage = 10;
@@ -151,7 +152,7 @@ class SectorController extends Controller
         // Aplica ordenação personalizada para ativos
         $assetQuery = $assetQuery->sort(function ($a, $b) use ($assetSort, $assetDirection) {
             $direction = $assetDirection === 'asc' ? 1 : -1;
-            
+
             switch ($assetSort) {
                 case 'tag':
                     return strcmp($a['tag'], $b['tag']) * $direction;
@@ -170,7 +171,7 @@ class SectorController extends Controller
         $allAsset = $assetQuery->all();
         $assetOffset = ($assetPage - 1) * $perPage;
         $assetItems = array_slice($allAsset, $assetOffset, $perPage);
-        
+
         $asset = new \Illuminate\Pagination\LengthAwarePaginator(
             collect($assetItems),
             count($allAsset),
@@ -209,7 +210,7 @@ class SectorController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'area_id' => 'required|exists:areas,id',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
         ]);
 
         $setor->update($validated);
@@ -248,9 +249,9 @@ class SectorController extends Controller
             'dependencies' => [
                 'asset' => [
                     'total' => $totalAsset,
-                    'items' => $asset
-                ]
-            ]
+                    'items' => $asset,
+                ],
+            ],
         ]);
     }
-} 
+}

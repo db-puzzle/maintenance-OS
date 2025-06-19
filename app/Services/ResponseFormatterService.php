@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Forms\TaskResponse;
 use App\Models\Forms\FormTask;
+use App\Models\Forms\TaskResponse;
 
 class ResponseFormatterService
 {
@@ -13,8 +13,8 @@ class ResponseFormatterService
     public function formatResponse(TaskResponse $response): array
     {
         $task = $response->formTask;
-        
-        if (!$task) {
+
+        if (! $task) {
             return $this->getEmptyResponse();
         }
 
@@ -37,7 +37,7 @@ class ResponseFormatterService
     {
         $config = $task->getMeasurementConfig();
         $value = $response->response['value'] ?? null;
-        
+
         $formatted = [
             'type' => 'measurement',
             'value' => $value,
@@ -58,12 +58,12 @@ class ResponseFormatterService
                 $isWithinRange = $numericValue >= $min && $numericValue <= $max;
                 $formatted['is_within_range'] = $isWithinRange;
                 $formatted['status'] = $isWithinRange ? 'success' : 'warning';
-                
+
                 $formatted['range_info'] = [
                     'min' => $min,
                     'max' => $max,
                     'target' => $target,
-                    'range_text' => $target 
+                    'range_text' => $target
                         ? "Target: {$target} (Range: {$min} - {$max})"
                         : "Range: {$min} - {$max}",
                 ];
@@ -80,9 +80,9 @@ class ResponseFormatterService
     {
         $selectedValue = $response->response['value'] ?? null;
         $options = $task->getOptions();
-        
+
         $selectedOption = collect($options)->firstWhere('value', $selectedValue);
-        
+
         return [
             'type' => 'multiple_choice',
             'value' => $selectedValue,
@@ -99,21 +99,21 @@ class ResponseFormatterService
     {
         $selectedValues = $response->response['values'] ?? [];
         $options = $task->getOptions();
-        
+
         $selectedOptions = collect($options)
             ->whereIn('value', $selectedValues)
             ->pluck('label')
             ->toArray();
-        
+
         return [
             'type' => 'multiple_select',
             'values' => $selectedValues,
-            'display_value' => !empty($selectedOptions) 
+            'display_value' => ! empty($selectedOptions)
                 ? implode(', ', $selectedOptions)
                 : 'No selections',
             'selected_count' => count($selectedValues),
             'options' => $options,
-            'status' => !empty($selectedValues) ? 'success' : 'incomplete',
+            'status' => ! empty($selectedValues) ? 'success' : 'incomplete',
         ];
     }
 
@@ -123,7 +123,7 @@ class ResponseFormatterService
     private function formatQuestionResponse(TaskResponse $response, FormTask $task): array
     {
         $answer = $response->response['answer'] ?? '';
-        
+
         return [
             'type' => 'question',
             'value' => $answer,
@@ -143,7 +143,7 @@ class ResponseFormatterService
         $photoAttachments = $attachments->filter(function ($attachment) {
             return $this->isImageFile($attachment->file_path);
         });
-        
+
         return [
             'type' => 'photo',
             'photos' => $photoAttachments->map(function ($attachment) {
@@ -158,7 +158,7 @@ class ResponseFormatterService
                 ];
             })->values()->toArray(),
             'photo_count' => $photoAttachments->count(),
-            'display_value' => $photoAttachments->count() > 0 
+            'display_value' => $photoAttachments->count() > 0
                 ? "{$photoAttachments->count()} photo(s) captured"
                 : 'No photos captured',
             'status' => $photoAttachments->count() > 0 ? 'success' : 'incomplete',
@@ -171,7 +171,7 @@ class ResponseFormatterService
     private function formatFileUploadResponse(TaskResponse $response, FormTask $task): array
     {
         $attachments = $response->attachments;
-        
+
         return [
             'type' => 'file_upload',
             'files' => $attachments->map(function ($attachment) {
@@ -186,7 +186,7 @@ class ResponseFormatterService
                 ];
             })->values()->toArray(),
             'file_count' => $attachments->count(),
-            'display_value' => $attachments->count() > 0 
+            'display_value' => $attachments->count() > 0
                 ? "{$attachments->count()} file(s) uploaded"
                 : 'No files uploaded',
             'status' => $attachments->count() > 0 ? 'success' : 'incomplete',
@@ -200,7 +200,7 @@ class ResponseFormatterService
     {
         $code = $response->response['code'] ?? '';
         $type = $task->getCodeReaderType() ?? 'unknown';
-        
+
         return [
             'type' => 'code_reader',
             'value' => $code,
@@ -216,12 +216,12 @@ class ResponseFormatterService
     private function formatGenericResponse(TaskResponse $response, FormTask $task): array
     {
         $responseData = $response->response ?? [];
-        
+
         return [
             'type' => 'generic',
             'value' => $responseData,
             'display_value' => $this->formatGenericValue($responseData),
-            'status' => !empty($responseData) ? 'success' : 'incomplete',
+            'status' => ! empty($responseData) ? 'success' : 'incomplete',
         ];
     }
 
@@ -246,11 +246,11 @@ class ResponseFormatterService
         if (is_array($value)) {
             return json_encode($value, JSON_PRETTY_PRINT);
         }
-        
+
         if (is_bool($value)) {
             return $value ? 'Yes' : 'No';
         }
-        
+
         return (string) $value;
     }
 
@@ -260,6 +260,7 @@ class ResponseFormatterService
     private function isImageFile(string $filePath): bool
     {
         $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+
         return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
     }
 
@@ -286,11 +287,12 @@ class ResponseFormatterService
      */
     public function getTaskCompletionStatus(TaskResponse $response): string
     {
-        if (!$response->is_completed) {
+        if (! $response->is_completed) {
             return 'incomplete';
         }
 
         $formatted = $this->formatResponse($response);
+
         return $formatted['status'] ?? 'unknown';
     }
 
@@ -299,12 +301,12 @@ class ResponseFormatterService
      */
     public function isResponseAcceptable(TaskResponse $response): bool
     {
-        if (!$response->is_completed) {
+        if (! $response->is_completed) {
             return false;
         }
 
         $formatted = $this->formatResponse($response);
-        
+
         // For measurements, check if within range
         if ($formatted['type'] === 'measurement') {
             return $formatted['is_within_range'] ?? false;
@@ -323,13 +325,13 @@ class ResponseFormatterService
         $completed = 0;
         $acceptable = 0;
         $withIssues = 0;
-        
+
         foreach ($responses as $response) {
             $total++;
-            
+
             if ($response->is_completed) {
                 $completed++;
-                
+
                 if ($this->isResponseAcceptable($response)) {
                     $acceptable++;
                 } else {

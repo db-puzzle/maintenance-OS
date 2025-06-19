@@ -1,22 +1,10 @@
-import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
-import { ColumnConfig } from '@/types/shared';
-import { AreaChart, Area, XAxis, CartesianGrid } from 'recharts';
-import {
-    ChartConfig,
-    ChartContainer,
-    ChartTooltip,
-    ChartTooltipContent,
-} from '@/components/ui/chart';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -25,38 +13,38 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-    DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { DateRange } from 'react-day-picker';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
+import { useExportManager } from '@/hooks/use-export-manager';
+import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
+import { type BreadcrumbItem } from '@/types';
+import { ColumnConfig } from '@/types/shared';
+import { Head, router } from '@inertiajs/react';
+import { format } from 'date-fns';
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-    Calendar as CalendarIcon,
-    ChevronDown,
-    Download,
-    MoreHorizontal,
-    Plus,
-    Search,
-    TrendingUp,
-    TrendingDown,
-    Minus,
-    BarChart3,
-    Clock,
-    CheckCircle,
-    XCircle,
     AlertCircle,
+    BarChart3,
+    Calendar as CalendarIcon,
+    CheckCircle,
+    ChevronDown,
+    Clock,
+    Download,
     Eye,
     FileText,
+    Minus,
+    Plus,
+    Search,
+    TrendingDown,
+    TrendingUp,
+    XCircle,
 } from 'lucide-react';
-import { useExportManager } from '@/hooks/use-export-manager';
+import React, { useState } from 'react';
+import { DateRange } from 'react-day-picker';
+import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
 import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
 
 // Types from History.tsx
 interface Stats {
@@ -141,23 +129,16 @@ const getRelativeTime = (dateString: string | null): string => {
 
 const chartConfig = {
     completed: {
-        label: "Completed",
-        color: "hsl(var(--chart-1))",
+        label: 'Completed',
+        color: 'hsl(var(--chart-1))',
     },
     failed: {
-        label: "Failed",
-        color: "hsl(var(--chart-2))",
+        label: 'Failed',
+        color: 'hsl(var(--chart-2))',
     },
 } satisfies ChartConfig;
 
-const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
-    stats,
-    recentExecutions,
-    dailyTrend,
-    performanceMetrics,
-    filters,
-    filterOptions,
-}) => {
+const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecutions, dailyTrend, performanceMetrics, filters, filterOptions }) => {
     const [date, setDate] = useState<DateRange | undefined>(() => {
         // Initialize from URL params or use default range
         const urlParams = new URLSearchParams(window.location.search);
@@ -178,12 +159,12 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
     });
     const [statusFilter, setStatusFilter] = useState(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('status') || "All";
+        return urlParams.get('status') || 'All';
     });
-    const [timeframe, setTimeframe] = useState("Daily");
+    const [timeframe, setTimeframe] = useState('Daily');
     const [searchQuery, setSearchQuery] = useState(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('search') || "";
+        return urlParams.get('search') || '';
     });
     const [isExporting, setIsExporting] = useState(false);
     const { addExport, updateExport } = useExportManager();
@@ -222,7 +203,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
             sortable: true,
             width: 'w-[120px]',
             render: (value, row) => (
-                <Badge className={cn("flex items-center w-fit", getStatusColor(row.status))}>
+                <Badge className={cn('flex w-fit items-center', getStatusColor(row.status))}>
                     {getStatusIcon(row.status)}
                     {row.status.replace('_', ' ')}
                 </Badge>
@@ -251,7 +232,10 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
                 <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
                         <AvatarFallback>
-                            {row.executor_name.split(' ').map((n: string) => n[0]).join('')}
+                            {row.executor_name
+                                .split(' ')
+                                .map((n: string) => n[0])
+                                .join('')}
                         </AvatarFallback>
                     </Avatar>
                     <span>{row.executor_name}</span>
@@ -304,28 +288,29 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'completed':
-                return <CheckCircle className="h-4 w-4 mr-1" />;
+                return <CheckCircle className="mr-1 h-4 w-4" />;
             case 'in_progress':
-                return <Clock className="h-4 w-4 mr-1" />;
+                return <Clock className="mr-1 h-4 w-4" />;
             case 'failed':
             case 'cancelled':
-                return <XCircle className="h-4 w-4 mr-1" />;
+                return <XCircle className="mr-1 h-4 w-4" />;
             default:
-                return <AlertCircle className="h-4 w-4 mr-1" />;
+                return <AlertCircle className="mr-1 h-4 w-4" />;
         }
     };
 
     // Transform dailyTrend data for the chart
-    const chartData = dailyTrend?.map(day => ({
-        date: day.date,
-        completed: day.completed || 0,
-        failed: day.failed || 0,
-    })) || [];
+    const chartData =
+        dailyTrend?.map((day) => ({
+            date: day.date,
+            completed: day.completed || 0,
+            failed: day.failed || 0,
+        })) || [];
 
     const handleExportReport = async () => {
         setIsExporting(true);
         try {
-            const executionIds = recentExecutions.slice(0, 10).map(e => e.id);
+            const executionIds = recentExecutions.slice(0, 10).map((e) => e.id);
             const response = await fetch('/maintenance/executions/export/batch', {
                 method: 'POST',
                 headers: {
@@ -419,7 +404,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
             params.set('date_to', newDate.to.toISOString().split('T')[0]);
 
             // Keep existing filters
-            if (statusFilter !== "All") {
+            if (statusFilter !== 'All') {
                 params.set('status', statusFilter.toLowerCase());
             }
             if (searchQuery) {
@@ -445,7 +430,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
         }
 
         // Add status filter if not "All"
-        if (newStatus !== "All") {
+        if (newStatus !== 'All') {
             params.set('status', newStatus.toLowerCase());
         }
 
@@ -474,7 +459,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
             }
 
             // Add status filter if not "All"
-            if (statusFilter !== "All") {
+            if (statusFilter !== 'All') {
                 params.set('status', statusFilter.toLowerCase());
             }
 
@@ -491,13 +476,14 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
     };
 
     // Filter executions based on search
-    const filteredExecutions = recentExecutions.filter(execution => {
-        const matchesSearch = searchQuery === "" ||
+    const filteredExecutions = recentExecutions.filter((execution) => {
+        const matchesSearch =
+            searchQuery === '' ||
             execution.routine_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             execution.executor_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (execution.asset_tag && execution.asset_tag.toLowerCase().includes(searchQuery.toLowerCase()));
 
-        const matchesStatus = statusFilter === "All" || execution.status === statusFilter.toLowerCase();
+        const matchesStatus = statusFilter === 'All' || execution.status === statusFilter.toLowerCase();
 
         return matchesSearch && matchesStatus;
     });
@@ -511,24 +497,20 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
                 <div className="border-border flex flex-col border-b px-4 py-4 md:px-6 md:py-6">
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-                                Routine Executions
-                            </h1>
-                            <p className="text-muted-foreground">
-                                Track and analyze routine execution performance
-                            </p>
+                            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Routine Executions</h1>
+                            <p className="text-muted-foreground">Track and analyze routine execution performance</p>
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" onClick={() => router.visit('/maintenance/executions')}>
-                                <BarChart3 className="h-4 w-4 mr-2" />
+                                <BarChart3 className="mr-2 h-4 w-4" />
                                 <span className="hidden md:block">View All</span>
                             </Button>
                             <Button variant="outline" onClick={handleExportReport} disabled={isExporting}>
-                                <Download className="h-4 w-4 mr-2" />
+                                <Download className="mr-2 h-4 w-4" />
                                 <span className="hidden md:block">{isExporting ? 'Exporting...' : 'Export'}</span>
                             </Button>
                             <Button onClick={() => router.visit('/maintenance/routines/create')}>
-                                <Plus className="h-4 w-4 mr-2" />
+                                <Plus className="mr-2 h-4 w-4" />
                                 <span className="hidden md:block">New Routine</span>
                             </Button>
                         </div>
@@ -544,19 +526,16 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
                                 <PopoverTrigger asChild className="max-w-[300px]">
                                     <Button
                                         variant="outline"
-                                        className={cn(
-                                            "w-[300px] justify-start text-left font-normal",
-                                            !date && "text-muted-foreground",
-                                        )}
+                                        className={cn('w-[300px] justify-start text-left font-normal', !date && 'text-muted-foreground')}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                         {date?.from ? (
                                             date.to ? (
                                                 <>
-                                                    {format(date.from, "MMM dd, y")} - {format(date.to, "MMM dd, y")}
+                                                    {format(date.from, 'MMM dd, y')} - {format(date.to, 'MMM dd, y')}
                                                 </>
                                             ) : (
-                                                format(date.from, "MMM dd, y")
+                                                format(date.from, 'MMM dd, y')
                                             )
                                         ) : (
                                             <span>Pick a date range</span>
@@ -622,73 +601,49 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
                             <p className="text-muted-foreground flex justify-between text-sm font-medium">
                                 Total Executions
                                 <span
-                                    className={`${stats.trend.direction === "up"
-                                        ? "text-green-600"
-                                        : stats.trend.direction === "down"
-                                            ? "text-red-600"
-                                            : "text-gray-600"
-                                        }`}
+                                    className={`${
+                                        stats.trend.direction === 'up'
+                                            ? 'text-green-600'
+                                            : stats.trend.direction === 'down'
+                                              ? 'text-red-600'
+                                              : 'text-gray-600'
+                                    }`}
                                 >
-                                    {stats.trend.percentage > 0 ? "+" : ""}{stats.trend.percentage}%
+                                    {stats.trend.percentage > 0 ? '+' : ''}
+                                    {stats.trend.percentage}%
                                 </span>
                             </p>
-                            <p className="text-xl font-semibold md:text-3xl">
-                                {stats.total.toLocaleString()}
-                            </p>
+                            <p className="text-xl font-semibold md:text-3xl">{stats.total.toLocaleString()}</p>
                         </div>
-                        <Separator
-                            orientation="vertical"
-                            className="hidden h-16! lg:block"
-                        />
+                        <Separator orientation="vertical" className="hidden h-16! lg:block" />
                         <div className="flex flex-1 flex-col gap-2">
                             <p className="text-muted-foreground flex justify-between text-sm font-medium">
                                 Completed
-                                <span className="text-green-600">
-                                    +{stats.completion_rate}%
-                                </span>
+                                <span className="text-green-600">+{stats.completion_rate}%</span>
                             </p>
-                            <p className="text-xl font-semibold md:text-3xl">
-                                {stats.completed.toLocaleString()}
-                            </p>
+                            <p className="text-xl font-semibold md:text-3xl">{stats.completed.toLocaleString()}</p>
                         </div>
-                        <Separator
-                            orientation="vertical"
-                            className="hidden h-16! lg:block"
-                        />
+                        <Separator orientation="vertical" className="hidden h-16! lg:block" />
                         <div className="flex flex-1 flex-col gap-2">
                             <p className="text-muted-foreground flex justify-between text-sm font-medium">
                                 In Progress
-                                <span className="text-blue-600">
-                                    +{stats.total > 0 ? ((stats.in_progress / stats.total) * 100).toFixed(1) : 0}%
-                                </span>
+                                <span className="text-blue-600">+{stats.total > 0 ? ((stats.in_progress / stats.total) * 100).toFixed(1) : 0}%</span>
                             </p>
-                            <p className="text-xl font-semibold md:text-3xl">
-                                {stats.in_progress.toLocaleString()}
-                            </p>
+                            <p className="text-xl font-semibold md:text-3xl">{stats.in_progress.toLocaleString()}</p>
                         </div>
-                        <Separator
-                            orientation="vertical"
-                            className="hidden h-16! lg:block"
-                        />
+                        <Separator orientation="vertical" className="hidden h-16! lg:block" />
                         <div className="flex flex-1 flex-col gap-2">
                             <p className="text-muted-foreground flex justify-between text-sm font-medium">
                                 Failed
-                                <span className="text-red-600">
-                                    +{stats.total > 0 ? ((stats.failed / stats.total) * 100).toFixed(1) : 0}%
-                                </span>
+                                <span className="text-red-600">+{stats.total > 0 ? ((stats.failed / stats.total) * 100).toFixed(1) : 0}%</span>
                             </p>
-                            <p className="text-xl font-semibold md:text-3xl">
-                                {stats.failed.toLocaleString()}
-                            </p>
+                            <p className="text-xl font-semibold md:text-3xl">{stats.failed.toLocaleString()}</p>
                         </div>
                     </div>
 
                     {/* Chart */}
                     <ChartContainer config={chartConfig} className="max-h-[280px] w-full">
-                        <AreaChart
-                            data={chartData}
-                            margin={{ left: 12, right: 12 }}
-                        >
+                        <AreaChart data={chartData} margin={{ left: 12, right: 12 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis
                                 dataKey="date"
@@ -697,10 +652,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
                                 tickMargin={8}
                                 tickFormatter={(value) => new Date(value).toLocaleDateString()}
                             />
-                            <ChartTooltip
-                                cursor={false}
-                                content={<ChartTooltipContent indicator="dot" />}
-                            />
+                            <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                             <defs>
                                 <linearGradient id="fillCompleted" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="var(--color-completed)" stopOpacity={0.8} />
@@ -776,8 +728,6 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
                                 />
                             )}
                         />
-
-
                     </div>
                 </div>
             </div>
@@ -785,4 +735,4 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
     );
 };
 
-export default RoutineDashboard; 
+export default RoutineDashboard;

@@ -17,7 +17,7 @@ interface AddTaskButtonProps {
     onTaskAdded?: (newTask: Task) => void;
 }
 
-export default function AddTaskButton({ label, tasks, currentIndex = -1, onTaskAdded = () => { } }: AddTaskButtonProps) {
+export default function AddTaskButton({ label, tasks, currentIndex = -1, onTaskAdded = () => {} }: AddTaskButtonProps) {
     const handleAddTask = (type: TaskType) => {
         const newTask = TaskOperations.createAtIndex(tasks, currentIndex + 1, type);
         if (onTaskAdded) {

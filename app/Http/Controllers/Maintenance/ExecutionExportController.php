@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Maintenance;
 
 use App\Http\Controllers\Controller;
-use App\Models\Maintenance\RoutineExecution;
-use App\Models\Maintenance\ExecutionExport;
-use App\Services\PDFGeneratorService;
 use App\Jobs\GenerateExecutionPDF;
+use App\Models\Maintenance\ExecutionExport;
+use App\Models\Maintenance\RoutineExecution;
+use App\Services\PDFGeneratorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -66,7 +66,7 @@ class ExecutionExportController extends Controller
 
         if ($executions->count() !== count($executionIds)) {
             return response()->json([
-                'error' => 'Some execution IDs are invalid or not found.'
+                'error' => 'Some execution IDs are invalid or not found.',
             ], 422);
         }
 
@@ -100,7 +100,7 @@ class ExecutionExportController extends Controller
             'export_id' => $export->id,
             'status' => 'processing',
             'estimated_time_seconds' => $this->pdfService->getEstimatedGenerationTime(
-                count($executionIds), 
+                count($executionIds),
                 $validated['format']
             ),
             'download_url' => null,
@@ -150,13 +150,13 @@ class ExecutionExportController extends Controller
             abort(403);
         }
 
-        if (!$export->isCompleted() || !$export->file_path) {
+        if (! $export->isCompleted() || ! $export->file_path) {
             return response()->json(['error' => 'Export is not ready for download'], 422);
         }
 
         $filePath = storage_path("app/{$export->file_path}");
-        
-        if (!file_exists($filePath)) {
+
+        if (! file_exists($filePath)) {
             return response()->json(['error' => 'Export file not found'], 404);
         }
 
@@ -164,7 +164,7 @@ class ExecutionExportController extends Controller
         $exportType = $export->export_type === 'single' ? 'execution' : 'batch';
         $date = $export->created_at->format('Y-m-d_His');
         $executionCount = count($export->execution_ids);
-        
+
         if ($export->export_type === 'single' && $executionCount === 1) {
             // For single exports, try to include execution ID
             $fileName = "execution_{$export->execution_ids[0]}_{$date}.pdf";
@@ -172,9 +172,9 @@ class ExecutionExportController extends Controller
             // For batch exports
             $fileName = "export_{$exportType}_{$executionCount}_executions_{$date}.pdf";
         }
-        
+
         $mimeType = 'application/pdf';
-        
+
         if (str_ends_with($export->file_path, '.csv')) {
             $mimeType = 'text/csv';
             $fileName = str_replace('.pdf', '.csv', $fileName);
@@ -185,7 +185,7 @@ class ExecutionExportController extends Controller
 
         return response()->download($filePath, $fileName, [
             'Content-Type' => $mimeType,
-            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',
             'Expires' => '0',
@@ -227,7 +227,7 @@ class ExecutionExportController extends Controller
             abort(403);
         }
 
-        if (!in_array($export->status, [ExecutionExport::STATUS_PENDING, ExecutionExport::STATUS_PROCESSING])) {
+        if (! in_array($export->status, [ExecutionExport::STATUS_PENDING, ExecutionExport::STATUS_PROCESSING])) {
             return response()->json(['error' => 'Export cannot be cancelled'], 422);
         }
 
@@ -314,9 +314,9 @@ class ExecutionExportController extends Controller
             ]);
         } catch (\Exception $e) {
             $export->markAsFailed();
-            
+
             return response()->json([
-                'error' => 'Export failed: ' . $e->getMessage()
+                'error' => 'Export failed: '.$e->getMessage(),
             ], 500);
         }
     }

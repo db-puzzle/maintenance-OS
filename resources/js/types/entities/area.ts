@@ -17,4 +17,4 @@ export interface AreaForm {
     description: string;
     plant_id: number | null;
     shift_id: number | null;
-} 
+}

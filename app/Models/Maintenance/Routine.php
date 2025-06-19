@@ -2,39 +2,39 @@
 
 namespace App\Models\Maintenance;
 
+use App\Models\AssetHierarchy\Asset;
 use App\Models\Forms\Form;
 use App\Models\Forms\FormVersion;
-use App\Models\AssetHierarchy\Asset;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Routine extends Model
 {
     protected $fillable = [
-        'name', 
-        'trigger_hours', 
-        'status', 
+        'name',
+        'trigger_hours',
+        'status',
         'description',
         'form_id',
-        'active_form_version_id'
+        'active_form_version_id',
     ];
 
     protected $casts = [
-        'trigger_hours' => 'integer'
+        'trigger_hours' => 'integer',
     ];
 
     protected static function booted()
     {
         // Automatically create a form when a routine is created
         static::creating(function ($routine) {
-            if (!$routine->form_id) {
+            if (! $routine->form_id) {
                 $form = Form::create([
-                    'name' => $routine->name . ' - Form',
-                    'description' => 'Form for routine: ' . $routine->name,
+                    'name' => $routine->name.' - Form',
+                    'description' => 'Form for routine: '.$routine->name,
                     'is_active' => true,
-                    'created_by' => auth()->id() ?? null
+                    'created_by' => auth()->id() ?? null,
                 ]);
                 $routine->form_id = $form->id;
             }
@@ -48,10 +48,10 @@ class Routine extends Model
                     $version->tasks()->delete();
                 }
                 $routine->form->versions()->delete();
-                
+
                 // Delete draft tasks
                 $routine->form->draftTasks()->delete();
-                
+
                 // Then delete the form
                 $routine->form->delete();
             }
@@ -100,4 +100,4 @@ class Routine extends Model
     {
         return $this->getFormVersionForExecution() !== null;
     }
-} 
+}

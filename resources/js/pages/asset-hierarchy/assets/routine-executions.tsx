@@ -64,8 +64,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-
-
 export default function RoutineExecutions({ asset, routine, executions }: Props) {
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -97,8 +95,6 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                 return <Badge variant="secondary">{status}</Badge>;
         }
     };
-
-
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -220,8 +216,9 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                                         routine: routine.id,
                                         page,
                                     })}
-                                    className={`rounded px-3 py-1 ${page === executions.current_page ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
-                                        }`}
+                                    className={`rounded px-3 py-1 ${
+                                        page === executions.current_page ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+                                    }`}
                                 >
                                     {page}
                                 </Link>

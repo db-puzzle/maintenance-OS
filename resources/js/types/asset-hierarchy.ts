@@ -23,7 +23,7 @@ export interface Asset {
     area: Area | null;
     area_id: number | null;
     sector?: Sector | null;
-    sector_id?: number | null
+    sector_id?: number | null;
     plant?: Plant | null;
     plant_id?: number | null;
     shift?: Shift | null;

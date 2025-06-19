@@ -45,4 +45,4 @@ export interface BaseEntity {
 
 export interface FormErrors {
     [key: string]: string | string[];
-} 
+}

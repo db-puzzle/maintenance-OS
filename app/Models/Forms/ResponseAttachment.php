@@ -15,15 +15,16 @@ class ResponseAttachment extends Model
         'file_name',
         'mime_type',
         'file_size',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
         'file_size' => 'integer',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
     const TYPE_PHOTO = 'photo';
+
     const TYPE_FILE = 'file';
 
     /**
@@ -75,4 +76,4 @@ class ResponseAttachment extends Model
             $attachment->deleteFile();
         });
     }
-} 
+}

@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -10,8 +8,10 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { getCurrentTimeInTimezone, getTimezoneDisplayName } from '@/constants/timezones';
+import axios from 'axios';
 import { Globe } from 'lucide-react';
-import { getTimezoneDisplayName, getCurrentTimeInTimezone } from '@/constants/timezones';
+import { useEffect, useState } from 'react';
 
 // Set up axios defaults for CSRF protection
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -88,16 +88,14 @@ export default function TimezoneDetector({ currentTimezone, userId, forceShow = 
                         <AlertDialogTitle>Timezone Detection</AlertDialogTitle>
                     </div>
                     <AlertDialogDescription className="space-y-3">
-                        <p>
-                            We detected that your browser is in a different timezone than your account settings.
-                        </p>
+                        <p>We detected that your browser is in a different timezone than your account settings.</p>
                         <div className="space-y-2 text-sm">
-                            <div className="flex justify-between py-2 border-b">
+                            <div className="flex justify-between border-b py-2">
                                 <span className="text-muted-foreground">Current timezone:</span>
                                 <div className="text-right">
                                     <div className="font-medium">{getTimezoneDisplayName(currentTimezone)}</div>
                                     {currentTimezone && (
-                                        <div className="text-xs text-muted-foreground">{getCurrentTimeInTimezone(currentTimezone)}</div>
+                                        <div className="text-muted-foreground text-xs">{getCurrentTimeInTimezone(currentTimezone)}</div>
                                     )}
                                 </div>
                             </div>
@@ -106,14 +104,12 @@ export default function TimezoneDetector({ currentTimezone, userId, forceShow = 
                                 <div className="text-right">
                                     <div className="font-medium text-blue-600">{getTimezoneDisplayName(detectedTimezone)}</div>
                                     {detectedTimezone && (
-                                        <div className="text-xs text-muted-foreground">{getCurrentTimeInTimezone(detectedTimezone)}</div>
+                                        <div className="text-muted-foreground text-xs">{getCurrentTimeInTimezone(detectedTimezone)}</div>
                                     )}
                                 </div>
                             </div>
                         </div>
-                        <p className="text-sm">
-                            Would you like to update your timezone settings?
-                        </p>
+                        <p className="text-sm">Would you like to update your timezone settings?</p>
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -127,4 +123,4 @@ export default function TimezoneDetector({ currentTimezone, userId, forceShow = 
             </AlertDialogContent>
         </AlertDialog>
     );
-} 
+}

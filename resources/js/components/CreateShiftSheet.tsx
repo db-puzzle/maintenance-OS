@@ -4,22 +4,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { type ShiftForm } from '@/types/asset-hierarchy';
 import { useForm } from '@inertiajs/react';
-import { AlertCircle, Clock, Copy, Plus, Table, Trash2, AlertTriangle } from 'lucide-react';
-import React, { useState, forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
+import { AlertCircle, AlertTriangle, Clock, Copy, Plus, Table, Trash2 } from 'lucide-react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import ShiftCalendarView from '@/components/ShiftCalendarView';
@@ -246,1002 +239,991 @@ const isBreakOverlapping = (shift: Shift, currentBreak: Break, currentBreakIndex
     return shift.breaks.some((breakTime, index) => index !== currentBreakIndex && hasOverlappingBreaks(currentBreak, breakTime));
 };
 
-const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(({
-    isOpen,
-    onOpenChange,
-    onSuccess,
-    triggerText = 'Novo Turno',
-    triggerVariant = 'outline',
-    showTrigger = false,
-    initialShift,
-}, ref) => {
-    const [open, setOpen] = useState(false);
-    const buttonRef = useRef<HTMLButtonElement>(null);
-    const nameInputRef = useRef<HTMLInputElement>(null);
+const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
+    ({ isOpen, onOpenChange, onSuccess, triggerText = 'Novo Turno', triggerVariant = 'outline', showTrigger = false, initialShift }, ref) => {
+        const [open, setOpen] = useState(false);
+        const buttonRef = useRef<HTMLButtonElement>(null);
+        const nameInputRef = useRef<HTMLInputElement>(null);
 
-    // Expose button click to parent component
-    useImperativeHandle(ref, () => buttonRef.current!, []);
+        // Expose button click to parent component
+        useImperativeHandle(ref, () => buttonRef.current!, []);
 
-    // Get user's timezone
-    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        // Get user's timezone
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // Initialize form data based on whether we're editing or creating
-    const getInitialFormData = (): ShiftForm & { timezone: string } => {
-        if (initialShift) {
-            return {
-                name: initialShift.name,
-                timezone: initialShift.timezone || userTimezone,
-                schedules: initialShift.schedules,
-            };
-        }
-
-        return {
-            name: '',
-            timezone: userTimezone,
-            schedules: weekdays.map((day) => ({
-                weekday: day.key,
-                shifts:
-                    day.key === 'Saturday' || day.key === 'Sunday'
-                        ? []
-                        : [
-                            {
-                                start_time: '07:00',
-                                end_time: '17:00',
-                                active: true,
-                                breaks: [{ start_time: '12:00', end_time: '13:00' }],
-                            },
-                        ],
-            })),
-        };
-    };
-
-    const { data, setData, processing, errors, clearErrors } = useForm<ShiftForm & { timezone: string }>(getInitialFormData());
-
-    const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
-    const [selectedDays, setSelectedDays] = useState<string[]>([]);
-    const [viewMode, setViewMode] = useState<'timeline' | 'table'>('timeline');
-    const [copyPopoverOpen, setCopyPopoverOpen] = useState(false);
-    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-    const [affectedAssets, setAffectedAssets] = useState<AffectedAsset[]>([]);
-
-    const [pendingSubmitData, setPendingSubmitData] = useState<any>(null);
-    const [updateMode, setUpdateMode] = useState<'all' | 'selected'>('all');
-    const [selectedAssetIds, setSelectedAssetIds] = useState<number[]>([]);
-
-    const effectiveOpen = isOpen !== undefined ? isOpen : open;
-    const effectiveSetOpen = onOpenChange || setOpen;
-
-    // Auto-focus name input when sheet opens
-    useEffect(() => {
-        if (effectiveOpen && nameInputRef.current) {
-            // Use requestAnimationFrame to ensure the sheet animation has started
-            requestAnimationFrame(() => {
-                // Add a small delay to ensure the sheet is fully rendered
-                setTimeout(() => {
-                    nameInputRef.current?.focus();
-                }, 100);
-            });
-        }
-    }, [effectiveOpen]);
-
-    // Additional focus attempt when the component mounts and sheet is open
-    useEffect(() => {
-        if (effectiveOpen) {
-            // Try multiple times to ensure focus works
-            const attempts = [100, 200, 300, 500];
-            attempts.forEach(delay => {
-                setTimeout(() => {
-                    if (nameInputRef.current && document.activeElement !== nameInputRef.current) {
-                        nameInputRef.current.focus();
-                    }
-                }, delay);
-            });
-        }
-    }, [effectiveOpen]);
-
-    const addShift = (dayIndex: number) => {
-        const newSchedules = [...data.schedules];
-        const existingShifts = newSchedules[dayIndex].shifts;
-
-        // Se não houver turnos, usa o padrão
-        if (existingShifts.length === 0) {
-            newSchedules[dayIndex].shifts.push({
-                start_time: '07:00',
-                end_time: '17:00',
-                active: true,
-                breaks: [{ start_time: '12:00', end_time: '13:00' }],
-            });
-        } else {
-            // Pega o último turno
-            const lastShift = existingShifts[existingShifts.length - 1];
-            const lastEndTime = lastShift.end_time;
-
-            // Calcula o novo horário
-            const [lastEndHour, lastEndMinute] = lastEndTime.split(':').map(Number);
-            const newStartHour = lastEndHour;
-            const newStartMinute = lastEndMinute;
-
-            // Calcula o horário de término (9 horas depois)
-            let newEndHour = newStartHour + 9;
-            if (newEndHour >= 24) {
-                newEndHour -= 24;
-            }
-
-            // Calcula o horário do intervalo (4 horas depois do início)
-            let breakStartHour = newStartHour + 4;
-            if (breakStartHour >= 24) {
-                breakStartHour -= 24;
-            }
-            let breakEndHour = breakStartHour + 1;
-            if (breakEndHour >= 24) {
-                breakEndHour -= 24;
-            }
-
-            // Formata os horários
-            const formatTime = (hour: number, minute: number) => {
-                return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-            };
-
-            newSchedules[dayIndex].shifts.push({
-                start_time: formatTime(newStartHour, newStartMinute),
-                end_time: formatTime(newEndHour, newStartMinute),
-                active: true,
-                breaks: [
-                    {
-                        start_time: formatTime(breakStartHour, newStartMinute),
-                        end_time: formatTime(breakEndHour, newStartMinute),
-                    },
-                ],
-            });
-        }
-
-        setData('schedules', newSchedules);
-    };
-
-    const removeShift = (dayIndex: number, shiftIndex: number) => {
-        const newSchedules = data.schedules.map((day, idx) => {
-            if (idx === dayIndex) {
+        // Initialize form data based on whether we're editing or creating
+        const getInitialFormData = (): ShiftForm & { timezone: string } => {
+            if (initialShift) {
                 return {
-                    ...day,
-                    shifts: day.shifts.filter((_, index) => index !== shiftIndex),
+                    name: initialShift.name,
+                    timezone: initialShift.timezone || userTimezone,
+                    schedules: initialShift.schedules,
                 };
             }
-            return day;
-        });
 
-        setData('schedules', newSchedules);
-    };
+            return {
+                name: '',
+                timezone: userTimezone,
+                schedules: weekdays.map((day) => ({
+                    weekday: day.key,
+                    shifts:
+                        day.key === 'Saturday' || day.key === 'Sunday'
+                            ? []
+                            : [
+                                  {
+                                      start_time: '07:00',
+                                      end_time: '17:00',
+                                      active: true,
+                                      breaks: [{ start_time: '12:00', end_time: '13:00' }],
+                                  },
+                              ],
+                })),
+            };
+        };
 
-    const addBreak = (dayIndex: number, shiftIndex: number) => {
-        const newSchedules = [...data.schedules];
-        const shift = newSchedules[dayIndex].shifts[shiftIndex];
+        const { data, setData, processing, errors, clearErrors } = useForm<ShiftForm & { timezone: string }>(getInitialFormData());
 
-        if (shift.breaks.length === 0) {
-            // Se não houver intervalos, adiciona um intervalo de 30 minutos no meio do turno
-            const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
-            const breakStart = addMinutes(shift.start_time, Math.floor(shiftDuration / 2) - 15);
-            const breakEnd = addMinutes(breakStart, 30);
+        const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
+        const [selectedDays, setSelectedDays] = useState<string[]>([]);
+        const [viewMode, setViewMode] = useState<'timeline' | 'table'>('timeline');
+        const [copyPopoverOpen, setCopyPopoverOpen] = useState(false);
+        const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+        const [affectedAssets, setAffectedAssets] = useState<AffectedAsset[]>([]);
 
-            newSchedules[dayIndex].shifts[shiftIndex].breaks.push({
-                start_time: breakStart,
-                end_time: breakEnd,
+        const [pendingSubmitData, setPendingSubmitData] = useState<any>(null);
+        const [updateMode, setUpdateMode] = useState<'all' | 'selected'>('all');
+        const [selectedAssetIds, setSelectedAssetIds] = useState<number[]>([]);
+
+        const effectiveOpen = isOpen !== undefined ? isOpen : open;
+        const effectiveSetOpen = onOpenChange || setOpen;
+
+        // Auto-focus name input when sheet opens
+        useEffect(() => {
+            if (effectiveOpen && nameInputRef.current) {
+                // Use requestAnimationFrame to ensure the sheet animation has started
+                requestAnimationFrame(() => {
+                    // Add a small delay to ensure the sheet is fully rendered
+                    setTimeout(() => {
+                        nameInputRef.current?.focus();
+                    }, 100);
+                });
+            }
+        }, [effectiveOpen]);
+
+        // Additional focus attempt when the component mounts and sheet is open
+        useEffect(() => {
+            if (effectiveOpen) {
+                // Try multiple times to ensure focus works
+                const attempts = [100, 200, 300, 500];
+                attempts.forEach((delay) => {
+                    setTimeout(() => {
+                        if (nameInputRef.current && document.activeElement !== nameInputRef.current) {
+                            nameInputRef.current.focus();
+                        }
+                    }, delay);
+                });
+            }
+        }, [effectiveOpen]);
+
+        const addShift = (dayIndex: number) => {
+            const newSchedules = [...data.schedules];
+            const existingShifts = newSchedules[dayIndex].shifts;
+
+            // Se não houver turnos, usa o padrão
+            if (existingShifts.length === 0) {
+                newSchedules[dayIndex].shifts.push({
+                    start_time: '07:00',
+                    end_time: '17:00',
+                    active: true,
+                    breaks: [{ start_time: '12:00', end_time: '13:00' }],
+                });
+            } else {
+                // Pega o último turno
+                const lastShift = existingShifts[existingShifts.length - 1];
+                const lastEndTime = lastShift.end_time;
+
+                // Calcula o novo horário
+                const [lastEndHour, lastEndMinute] = lastEndTime.split(':').map(Number);
+                const newStartHour = lastEndHour;
+                const newStartMinute = lastEndMinute;
+
+                // Calcula o horário de término (9 horas depois)
+                let newEndHour = newStartHour + 9;
+                if (newEndHour >= 24) {
+                    newEndHour -= 24;
+                }
+
+                // Calcula o horário do intervalo (4 horas depois do início)
+                let breakStartHour = newStartHour + 4;
+                if (breakStartHour >= 24) {
+                    breakStartHour -= 24;
+                }
+                let breakEndHour = breakStartHour + 1;
+                if (breakEndHour >= 24) {
+                    breakEndHour -= 24;
+                }
+
+                // Formata os horários
+                const formatTime = (hour: number, minute: number) => {
+                    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                };
+
+                newSchedules[dayIndex].shifts.push({
+                    start_time: formatTime(newStartHour, newStartMinute),
+                    end_time: formatTime(newEndHour, newStartMinute),
+                    active: true,
+                    breaks: [
+                        {
+                            start_time: formatTime(breakStartHour, newStartMinute),
+                            end_time: formatTime(breakEndHour, newStartMinute),
+                        },
+                    ],
+                });
+            }
+
+            setData('schedules', newSchedules);
+        };
+
+        const removeShift = (dayIndex: number, shiftIndex: number) => {
+            const newSchedules = data.schedules.map((day, idx) => {
+                if (idx === dayIndex) {
+                    return {
+                        ...day,
+                        shifts: day.shifts.filter((_, index) => index !== shiftIndex),
+                    };
+                }
+                return day;
             });
-        } else {
-            // Encontra o maior período sem intervalo
-            const largestGap = findLargestGap(shift);
 
-            if (largestGap) {
-                const gapDuration = calculateDuration(largestGap.start, largestGap.end);
-                const breakStart = addMinutes(largestGap.start, Math.floor(gapDuration / 2) - 7);
-                const breakEnd = addMinutes(breakStart, 15);
+            setData('schedules', newSchedules);
+        };
+
+        const addBreak = (dayIndex: number, shiftIndex: number) => {
+            const newSchedules = [...data.schedules];
+            const shift = newSchedules[dayIndex].shifts[shiftIndex];
+
+            if (shift.breaks.length === 0) {
+                // Se não houver intervalos, adiciona um intervalo de 30 minutos no meio do turno
+                const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
+                const breakStart = addMinutes(shift.start_time, Math.floor(shiftDuration / 2) - 15);
+                const breakEnd = addMinutes(breakStart, 30);
 
                 newSchedules[dayIndex].shifts[shiftIndex].breaks.push({
                     start_time: breakStart,
                     end_time: breakEnd,
                 });
+            } else {
+                // Encontra o maior período sem intervalo
+                const largestGap = findLargestGap(shift);
+
+                if (largestGap) {
+                    const gapDuration = calculateDuration(largestGap.start, largestGap.end);
+                    const breakStart = addMinutes(largestGap.start, Math.floor(gapDuration / 2) - 7);
+                    const breakEnd = addMinutes(breakStart, 15);
+
+                    newSchedules[dayIndex].shifts[shiftIndex].breaks.push({
+                        start_time: breakStart,
+                        end_time: breakEnd,
+                    });
+                }
             }
-        }
 
-        setData('schedules', newSchedules);
-    };
+            setData('schedules', newSchedules);
+        };
 
-    const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
-        const newSchedules = data.schedules.map((day, idx) => {
-            if (idx === dayIndex) {
-                return {
-                    ...day,
-                    shifts: day.shifts.map((shift, sIdx) => {
-                        if (sIdx === shiftIndex) {
-                            return {
-                                ...shift,
-                                breaks: shift.breaks.filter((_, bIdx) => bIdx !== breakIndex),
-                            };
-                        }
-                        return shift;
-                    }),
-                };
-            }
-            return day;
-        });
+        const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
+            const newSchedules = data.schedules.map((day, idx) => {
+                if (idx === dayIndex) {
+                    return {
+                        ...day,
+                        shifts: day.shifts.map((shift, sIdx) => {
+                            if (sIdx === shiftIndex) {
+                                return {
+                                    ...shift,
+                                    breaks: shift.breaks.filter((_, bIdx) => bIdx !== breakIndex),
+                                };
+                            }
+                            return shift;
+                        }),
+                    };
+                }
+                return day;
+            });
 
-        setData('schedules', newSchedules);
-    };
+            setData('schedules', newSchedules);
+        };
 
-    const updateBreak = (dayIndex: number, shiftIndex: number, breakIndex: number, field: keyof Break, value: string) => {
-        const newSchedules = [...data.schedules];
-        newSchedules[dayIndex].shifts[shiftIndex].breaks[breakIndex][field] = value;
-        setData('schedules', newSchedules);
-    };
+        const updateBreak = (dayIndex: number, shiftIndex: number, breakIndex: number, field: keyof Break, value: string) => {
+            const newSchedules = [...data.schedules];
+            newSchedules[dayIndex].shifts[shiftIndex].breaks[breakIndex][field] = value;
+            setData('schedules', newSchedules);
+        };
 
+        const applyToSelectedDays = () => {
+            const sourceDay = data.schedules.find((s) => s.weekday === selectedDay);
+            if (!sourceDay) return;
 
+            const newSchedules = data.schedules.map((schedule) => {
+                if (selectedDays.includes(schedule.weekday)) {
+                    // Cria uma cópia profunda do dia de origem
+                    return {
+                        ...sourceDay,
+                        weekday: schedule.weekday,
+                        shifts: sourceDay.shifts.map((shift) => ({
+                            ...shift,
+                            breaks: shift.breaks.map((breakTime) => ({ ...breakTime })),
+                        })),
+                    };
+                }
+                return schedule;
+            });
 
-    const applyToSelectedDays = () => {
-        const sourceDay = data.schedules.find((s) => s.weekday === selectedDay);
-        if (!sourceDay) return;
+            setData('schedules', newSchedules);
+            setSelectedDays([]);
+            setCopyPopoverOpen(false);
+        };
 
-        const newSchedules = data.schedules.map((schedule) => {
-            if (selectedDays.includes(schedule.weekday)) {
-                // Cria uma cópia profunda do dia de origem
-                return {
-                    ...sourceDay,
-                    weekday: schedule.weekday,
-                    shifts: sourceDay.shifts.map((shift) => ({
+        const handleSubmit = (e: React.FormEvent) => {
+            e.preventDefault();
+
+            // Remove os segundos de todos os horários antes de enviar
+            const formattedData = {
+                ...data,
+                timezone: data.timezone, // Include timezone in submission
+                schedules: data.schedules.map((schedule) => ({
+                    ...schedule,
+                    shifts: schedule.shifts.map((shift) => ({
                         ...shift,
-                        breaks: shift.breaks.map((breakTime) => ({ ...breakTime })),
-                    })),
-                };
-            }
-            return schedule;
-        });
-
-        setData('schedules', newSchedules);
-        setSelectedDays([]);
-        setCopyPopoverOpen(false);
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // Remove os segundos de todos os horários antes de enviar
-        const formattedData = {
-            ...data,
-            timezone: data.timezone, // Include timezone in submission
-            schedules: data.schedules.map((schedule) => ({
-                ...schedule,
-                shifts: schedule.shifts.map((shift) => ({
-                    ...shift,
-                    start_time: shift.start_time?.substring(0, 5) || shift.start_time,
-                    end_time: shift.end_time?.substring(0, 5) || shift.end_time,
-                    breaks: shift.breaks.map((breakTime) => ({
-                        start_time: breakTime.start_time?.substring(0, 5) || breakTime.start_time,
-                        end_time: breakTime.end_time?.substring(0, 5) || breakTime.end_time,
+                        start_time: shift.start_time?.substring(0, 5) || shift.start_time,
+                        end_time: shift.end_time?.substring(0, 5) || shift.end_time,
+                        breaks: shift.breaks.map((breakTime) => ({
+                            start_time: breakTime.start_time?.substring(0, 5) || breakTime.start_time,
+                            end_time: breakTime.end_time?.substring(0, 5) || breakTime.end_time,
+                        })),
                     })),
                 })),
-            })),
+            };
+
+            const isEditing = !!initialShift;
+
+            // If editing, check for affected assets first
+            if (isEditing) {
+                axios
+                    .get(route('asset-hierarchy.shifts.assets', { shift: initialShift.id }))
+                    .then((response) => {
+                        if (response.data.total > 0) {
+                            setAffectedAssets(response.data.assets);
+                            setPendingSubmitData(formattedData);
+                            setShowConfirmDialog(true);
+                        } else {
+                            // No assets affected, proceed with update
+                            performUpdate(formattedData);
+                        }
+                    })
+                    .catch((error) => {
+                        toast.error('Erro ao verificar ativos afetados');
+                        console.error(error);
+                    });
+            } else {
+                // Creating new shift, proceed directly
+                performCreate(formattedData);
+            }
         };
 
-        const isEditing = !!initialShift;
-
-        // If editing, check for affected assets first
-        if (isEditing) {
-            axios.get(route('asset-hierarchy.shifts.assets', { shift: initialShift.id }))
-                .then(response => {
-                    if (response.data.total > 0) {
-                        setAffectedAssets(response.data.assets);
-                        setPendingSubmitData(formattedData);
-                        setShowConfirmDialog(true);
-                    } else {
-                        // No assets affected, proceed with update
-                        performUpdate(formattedData);
+        const performCreate = (formattedData: any) => {
+            axios
+                .post(route('asset-hierarchy.shifts.store'), formattedData, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                })
+                .then((response) => {
+                    clearErrors();
+                    effectiveSetOpen(false);
+                    toast.success('Turno criado com sucesso!');
+                    if (onSuccess && response.data.shift) {
+                        onSuccess(response.data.shift);
                     }
                 })
-                .catch(error => {
-                    toast.error('Erro ao verificar ativos afetados');
-                    console.error(error);
+                .catch((error) => {
+                    if (error.response && error.response.data && error.response.data.errors) {
+                        // Handle validation errors
+                        Object.keys(error.response.data.errors).forEach((key) => {
+                            toast.error(error.response.data.errors[key][0]);
+                        });
+                    } else {
+                        toast.error('Erro ao criar turno', {
+                            description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
+                        });
+                    }
                 });
-        } else {
-            // Creating new shift, proceed directly
-            performCreate(formattedData);
-        }
-    };
-
-    const performCreate = (formattedData: any) => {
-        axios.post(route('asset-hierarchy.shifts.store'), formattedData, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            }
-        })
-            .then(response => {
-                clearErrors();
-                effectiveSetOpen(false);
-                toast.success('Turno criado com sucesso!');
-                if (onSuccess && response.data.shift) {
-                    onSuccess(response.data.shift);
-                }
-            })
-            .catch(error => {
-                if (error.response && error.response.data && error.response.data.errors) {
-                    // Handle validation errors
-                    Object.keys(error.response.data.errors).forEach(key => {
-                        toast.error(error.response.data.errors[key][0]);
-                    });
-                } else {
-                    toast.error('Erro ao criar turno', {
-                        description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
-                    });
-                }
-            });
-    };
-
-    const performUpdate = (formattedData: any) => {
-        axios.put(route('asset-hierarchy.shifts.update', { shift: initialShift!.id }), formattedData, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            }
-        })
-            .then(response => {
-                clearErrors();
-                effectiveSetOpen(false);
-                setShowConfirmDialog(false);
-                setPendingSubmitData(null);
-                setAffectedAssets([]);
-                toast.success('Turno atualizado com sucesso!');
-                if (onSuccess && response.data.shift) {
-                    onSuccess(response.data.shift);
-                }
-            })
-            .catch(error => {
-                if (error.response && error.response.data && error.response.data.errors) {
-                    // Handle validation errors
-                    Object.keys(error.response.data.errors).forEach(key => {
-                        toast.error(error.response.data.errors[key][0]);
-                    });
-                } else {
-                    toast.error('Erro ao atualizar turno', {
-                        description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
-                    });
-                }
-            });
-    };
-
-    const performCopyAndUpdate = (formattedData: any) => {
-        const dataWithAssets = {
-            ...formattedData,
-            asset_ids: selectedAssetIds
         };
 
-        axios.post(route('asset-hierarchy.shifts.copy-and-update', { shift: initialShift!.id }), dataWithAssets, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            }
-        })
-            .then(response => {
-                clearErrors();
-                effectiveSetOpen(false);
-                setShowConfirmDialog(false);
-                setPendingSubmitData(null);
-                setAffectedAssets([]);
-                setSelectedAssetIds([]);
-                setUpdateMode('all');
-                toast.success(response.data.message || 'Novo turno criado e ativos atualizados com sucesso!');
-                if (onSuccess && response.data.shift) {
-                    onSuccess(response.data.shift);
-                }
-            })
-            .catch(error => {
-                if (error.response && error.response.data && error.response.data.errors) {
-                    // Handle validation errors
-                    Object.keys(error.response.data.errors).forEach(key => {
-                        toast.error(error.response.data.errors[key][0]);
-                    });
+        const performUpdate = (formattedData: any) => {
+            axios
+                .put(route('asset-hierarchy.shifts.update', { shift: initialShift!.id }), formattedData, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                })
+                .then((response) => {
+                    clearErrors();
+                    effectiveSetOpen(false);
+                    setShowConfirmDialog(false);
+                    setPendingSubmitData(null);
+                    setAffectedAssets([]);
+                    toast.success('Turno atualizado com sucesso!');
+                    if (onSuccess && response.data.shift) {
+                        onSuccess(response.data.shift);
+                    }
+                })
+                .catch((error) => {
+                    if (error.response && error.response.data && error.response.data.errors) {
+                        // Handle validation errors
+                        Object.keys(error.response.data.errors).forEach((key) => {
+                            toast.error(error.response.data.errors[key][0]);
+                        });
+                    } else {
+                        toast.error('Erro ao atualizar turno', {
+                            description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
+                        });
+                    }
+                });
+        };
+
+        const performCopyAndUpdate = (formattedData: any) => {
+            const dataWithAssets = {
+                ...formattedData,
+                asset_ids: selectedAssetIds,
+            };
+
+            axios
+                .post(route('asset-hierarchy.shifts.copy-and-update', { shift: initialShift!.id }), dataWithAssets, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                })
+                .then((response) => {
+                    clearErrors();
+                    effectiveSetOpen(false);
+                    setShowConfirmDialog(false);
+                    setPendingSubmitData(null);
+                    setAffectedAssets([]);
+                    setSelectedAssetIds([]);
+                    setUpdateMode('all');
+                    toast.success(response.data.message || 'Novo turno criado e ativos atualizados com sucesso!');
+                    if (onSuccess && response.data.shift) {
+                        onSuccess(response.data.shift);
+                    }
+                })
+                .catch((error) => {
+                    if (error.response && error.response.data && error.response.data.errors) {
+                        // Handle validation errors
+                        Object.keys(error.response.data.errors).forEach((key) => {
+                            toast.error(error.response.data.errors[key][0]);
+                        });
+                    } else {
+                        toast.error('Erro ao criar cópia do turno', {
+                            description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
+                        });
+                    }
+                });
+        };
+
+        const handleConfirmUpdate = () => {
+            if (pendingSubmitData) {
+                if (updateMode === 'all') {
+                    performUpdate(pendingSubmitData);
                 } else {
-                    toast.error('Erro ao criar cópia do turno', {
-                        description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
-                    });
+                    performCopyAndUpdate(pendingSubmitData);
                 }
-            });
-    };
-
-    const handleConfirmUpdate = () => {
-        if (pendingSubmitData) {
-            if (updateMode === 'all') {
-                performUpdate(pendingSubmitData);
-            } else {
-                performCopyAndUpdate(pendingSubmitData);
             }
-        }
-    };
+        };
 
-    const handleCancelUpdate = () => {
-        setShowConfirmDialog(false);
-        setPendingSubmitData(null);
-        setAffectedAssets([]);
-        setSelectedAssetIds([]);
-        setUpdateMode('all');
-    };
+        const handleCancelUpdate = () => {
+            setShowConfirmDialog(false);
+            setPendingSubmitData(null);
+            setAffectedAssets([]);
+            setSelectedAssetIds([]);
+            setUpdateMode('all');
+        };
 
-    const handleCancel = () => {
-        clearErrors();
-        effectiveSetOpen(false);
-        setSelectedDays([]);
-        setCopyPopoverOpen(false);
-    };
+        const handleCancel = () => {
+            clearErrors();
+            effectiveSetOpen(false);
+            setSelectedDays([]);
+            setCopyPopoverOpen(false);
+        };
 
-    return (
-        <>
-            {showTrigger && (
-                <Button
-                    ref={buttonRef}
-                    variant={triggerVariant}
-                    onClick={() => effectiveSetOpen(true)}
-                    className="gap-2"
-                >
-                    <Plus className="h-4 w-4" />
-                    {triggerText}
-                </Button>
-            )}
+        return (
+            <>
+                {showTrigger && (
+                    <Button ref={buttonRef} variant={triggerVariant} onClick={() => effectiveSetOpen(true)} className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        {triggerText}
+                    </Button>
+                )}
 
-            <Sheet open={effectiveOpen} onOpenChange={effectiveSetOpen}>
-                <SheetContent
-                    className="w-full sm:max-w-[950px] overflow-y-auto"
-                    onOpenAutoFocus={(e) => {
-                        // Prevent default auto-focus behavior
-                        e.preventDefault();
-                        // Our custom focus logic will handle it
-                    }}
-                >
-                    <SheetHeader>
-                        <SheetTitle>{initialShift ? 'Editar Turno' : 'Cadastrar Turno'}</SheetTitle>
-                    </SheetHeader>
+                <Sheet open={effectiveOpen} onOpenChange={effectiveSetOpen}>
+                    <SheetContent
+                        className="w-full overflow-y-auto sm:max-w-[950px]"
+                        onOpenAutoFocus={(e) => {
+                            // Prevent default auto-focus behavior
+                            e.preventDefault();
+                            // Our custom focus logic will handle it
+                        }}
+                    >
+                        <SheetHeader>
+                            <SheetTitle>{initialShift ? 'Editar Turno' : 'Cadastrar Turno'}</SheetTitle>
+                        </SheetHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-4 mr-4 ml-4">
-                        <div className="grid grid-cols-1 justify-items-start">
-                            <div className="w-full space-y-6">
-                                {/* Alert about automatic runtime recording for shift updates */}
-                                {initialShift && (
-                                    <Alert>
-                                        <AlertCircle className="h-4 w-4" />
-                                        <AlertDescription>
-                                            Ao atualizar este turno, você será solicitado a confirmar a alteração se houver ativos associados.
-                                            O horímetro atual será registrado automaticamente para todos os ativos afetados, preservando o histórico de operação.
-                                        </AlertDescription>
-                                    </Alert>
-                                )}
+                        <form onSubmit={handleSubmit} className="mr-4 ml-4 space-y-4">
+                            <div className="grid grid-cols-1 justify-items-start">
+                                <div className="w-full space-y-6">
+                                    {/* Alert about automatic runtime recording for shift updates */}
+                                    {initialShift && (
+                                        <Alert>
+                                            <AlertCircle className="h-4 w-4" />
+                                            <AlertDescription>
+                                                Ao atualizar este turno, você será solicitado a confirmar a alteração se houver ativos associados. O
+                                                horímetro atual será registrado automaticamente para todos os ativos afetados, preservando o histórico
+                                                de operação.
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
 
-                                {/* Campo de nome do turno */}
-                                <div className="w-full space-y-2">
-                                    <TextInput
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors,
-                                        }}
-                                        name="name"
-                                        label="Nome do Turno"
-                                        placeholder="Digite o nome do turno"
-                                        required
-                                        ref={nameInputRef}
-                                    />
-                                </div>
+                                    {/* Campo de nome do turno */}
+                                    <div className="w-full space-y-2">
+                                        <TextInput
+                                            form={{
+                                                data,
+                                                setData,
+                                                errors,
+                                                clearErrors,
+                                            }}
+                                            name="name"
+                                            label="Nome do Turno"
+                                            placeholder="Digite o nome do turno"
+                                            required
+                                            ref={nameInputRef}
+                                        />
+                                    </div>
 
-                                {/* Timezone display */}
-                                <div className="w-full space-y-2">
-                                    <Label className="text-sm text-muted-foreground">
-                                        Fuso Horário: {data.timezone}
-                                    </Label>
-                                    <p className="text-xs text-muted-foreground">
-                                        Os horários do turno serão configurados neste fuso horário
-                                    </p>
-                                </div>
+                                    {/* Timezone display */}
+                                    <div className="w-full space-y-2">
+                                        <Label className="text-muted-foreground text-sm">Fuso Horário: {data.timezone}</Label>
+                                        <p className="text-muted-foreground text-xs">Os horários do turno serão configurados neste fuso horário</p>
+                                    </div>
 
-                                {/* Seletor de dias da semana */}
-                                <Tabs value={selectedDay} onValueChange={setSelectedDay}>
-                                    <TabsList className="grid grid-cols-7 gap-2">
-                                        {weekdays.map((day) => (
-                                            <TabsTrigger key={day.key} value={day.key} className="px-4">
-                                                {day.label}
-                                            </TabsTrigger>
-                                        ))}
-                                    </TabsList>
+                                    {/* Seletor de dias da semana */}
+                                    <Tabs value={selectedDay} onValueChange={setSelectedDay}>
+                                        <TabsList className="grid grid-cols-7 gap-2">
+                                            {weekdays.map((day) => (
+                                                <TabsTrigger key={day.key} value={day.key} className="px-4">
+                                                    {day.label}
+                                                </TabsTrigger>
+                                            ))}
+                                        </TabsList>
 
-                                    {/* Conteúdo de cada dia da semana */}
-                                    {weekdays.map((day, dayIndex) => (
-                                        <TabsContent key={day.key} value={day.key} className="!pr-0 !pl-2">
-                                            <div className="flex flex-row items-center justify-between pt-6 pb-6">
-                                                <h3 className="text-lg font-semibold">Turnos da {day.label}</h3>
-                                                <div className="flex items-center gap-2">
-                                                    {/* Botão para copiar turnos para múltiplos dias */}
-                                                    <Popover modal={true} open={copyPopoverOpen} onOpenChange={setCopyPopoverOpen}>
-                                                        <PopoverTrigger asChild>
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                disabled={data.schedules[dayIndex].shifts.length === 0}
-                                                            >
-                                                                <Copy className="mr-2 h-4 w-4" />
-                                                                Copiar para Múltiplos Dias
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-80 p-6" align="end" sideOffset={5}>
-                                                            {/* Conteúdo do popover de cópia */}
-                                                            <div className="space-y-5">
-                                                                <div className="mt-1 grid grid-cols-2 gap-4">
-                                                                    {weekdays
-                                                                        .filter((d) => d.key !== day.key)
-                                                                        .map((d) => (
-                                                                            <div key={d.key} className="flex items-center space-x-1 py-1">
-                                                                                <Checkbox
-                                                                                    checked={selectedDays.includes(d.key)}
-                                                                                    onCheckedChange={(checked) => {
-                                                                                        if (checked) {
-                                                                                            setSelectedDays([...selectedDays, d.key]);
-                                                                                        } else {
-                                                                                            setSelectedDays(selectedDays.filter((day) => day !== d.key));
-                                                                                        }
-                                                                                    }}
-                                                                                    id={`copy-day-${d.key}`}
-                                                                                    className="h-5 w-5"
-                                                                                />
-                                                                                <Label htmlFor={`copy-day-${d.key}`} className="cursor-pointer">
-                                                                                    {d.label}
-                                                                                </Label>
-                                                                            </div>
-                                                                        ))}
-                                                                </div>
-                                                                <div className="pt-3">
-                                                                    <Button
-                                                                        type="button"
-                                                                        onClick={applyToSelectedDays}
-                                                                        size="sm"
-                                                                        disabled={selectedDays.length === 0}
-                                                                        className="w-full"
-                                                                    >
-                                                                        Aplicar
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                    {/* Botão para adicionar novo turno */}
-                                                    <Button type="button" variant="outline" size="sm" onClick={() => addShift(dayIndex)}>
-                                                        <Plus className="mr-2 h-4 w-4" />
-                                                        Adicionar Turno
-                                                    </Button>
-                                                </div>
-                                            </div>
-
-                                            {/* Lista de turnos do dia */}
-                                            {data.schedules[dayIndex].shifts.length === 0 ? (
-                                                <div className="bg-muted/50 rounded-lg border p-6 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
-                                                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                                                        <div className="bg-muted mb-3 flex size-12 items-center justify-center rounded-full">
-                                                            <Clock className="text-muted-foreground size-6" />
-                                                        </div>
-                                                        <h3 className="mb-1 text-lg font-medium">Nenhum turno adicionado</h3>
-                                                        <p className="text-muted-foreground mb-4 text-sm">Adicione turnos para este dia da semana.</p>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                data.schedules[dayIndex].shifts.map((shift, shiftIndex) => {
-                                                    const overlappingShifts = findOverlappingShifts(data.schedules[dayIndex].shifts, shiftIndex);
-
-                                                    return (
-                                                        <Card
-                                                            key={`shift-${dayIndex}-${shiftIndex}-${shift.start_time}-${shift.end_time}`}
-                                                            className="bg-muted/50 mb-4 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                                                        >
-                                                            <CardHeader className="flex flex-col space-y-2">
-                                                                <div className="flex items-center">
-                                                                    <Label className="text-md font-semibold">Turno {shiftIndex + 1}</Label>
-                                                                </div>
-                                                                <div className="flex items-center space-x-2">
-                                                                    <div className="flex items-center space-x-2">
-                                                                        {/* Seletor de horário de início */}
-                                                                        <TimeSelect
-                                                                            value={shift.start_time}
-                                                                            onChange={(value: string) => {
-                                                                                const newSchedules = [...data.schedules];
-                                                                                newSchedules[dayIndex].shifts[shiftIndex].start_time = value;
-                                                                                setData('schedules', newSchedules);
-                                                                            }}
-                                                                        />
-                                                                        <span className="text-muted-foreground">até</span>
-                                                                        {/* Seletor de horário de término */}
-                                                                        <TimeSelect
-                                                                            value={shift.end_time}
-                                                                            onChange={(value: string) => {
-                                                                                const newSchedules = [...data.schedules];
-                                                                                newSchedules[dayIndex].shifts[shiftIndex].end_time = value;
-                                                                                setData('schedules', newSchedules);
-                                                                            }}
-                                                                        />
-                                                                        {/* Botão para remover turno */}
+                                        {/* Conteúdo de cada dia da semana */}
+                                        {weekdays.map((day, dayIndex) => (
+                                            <TabsContent key={day.key} value={day.key} className="!pr-0 !pl-2">
+                                                <div className="flex flex-row items-center justify-between pt-6 pb-6">
+                                                    <h3 className="text-lg font-semibold">Turnos da {day.label}</h3>
+                                                    <div className="flex items-center gap-2">
+                                                        {/* Botão para copiar turnos para múltiplos dias */}
+                                                        <Popover modal={true} open={copyPopoverOpen} onOpenChange={setCopyPopoverOpen}>
+                                                            <PopoverTrigger asChild>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    disabled={data.schedules[dayIndex].shifts.length === 0}
+                                                                >
+                                                                    <Copy className="mr-2 h-4 w-4" />
+                                                                    Copiar para Múltiplos Dias
+                                                                </Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-80 p-6" align="end" sideOffset={5}>
+                                                                {/* Conteúdo do popover de cópia */}
+                                                                <div className="space-y-5">
+                                                                    <div className="mt-1 grid grid-cols-2 gap-4">
+                                                                        {weekdays
+                                                                            .filter((d) => d.key !== day.key)
+                                                                            .map((d) => (
+                                                                                <div key={d.key} className="flex items-center space-x-1 py-1">
+                                                                                    <Checkbox
+                                                                                        checked={selectedDays.includes(d.key)}
+                                                                                        onCheckedChange={(checked) => {
+                                                                                            if (checked) {
+                                                                                                setSelectedDays([...selectedDays, d.key]);
+                                                                                            } else {
+                                                                                                setSelectedDays(
+                                                                                                    selectedDays.filter((day) => day !== d.key),
+                                                                                                );
+                                                                                            }
+                                                                                        }}
+                                                                                        id={`copy-day-${d.key}`}
+                                                                                        className="h-5 w-5"
+                                                                                    />
+                                                                                    <Label htmlFor={`copy-day-${d.key}`} className="cursor-pointer">
+                                                                                        {d.label}
+                                                                                    </Label>
+                                                                                </div>
+                                                                            ))}
+                                                                    </div>
+                                                                    <div className="pt-3">
                                                                         <Button
                                                                             type="button"
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            onClick={() => removeShift(dayIndex, shiftIndex)}
-                                                                            className="h-10 w-10"
+                                                                            onClick={applyToSelectedDays}
+                                                                            size="sm"
+                                                                            disabled={selectedDays.length === 0}
+                                                                            className="w-full"
                                                                         >
-                                                                            <Trash2 className="text-destructive h-4 w-4" />
+                                                                            Aplicar
                                                                         </Button>
                                                                     </div>
-                                                                    {overlappingShifts.length > 0 && (
-                                                                        <Alert
-                                                                            variant="destructive"
-                                                                            className="ml-2 flex items-center gap-2 border-0 py-2"
-                                                                        >
-                                                                            <AlertCircle className="mb-1 h-4 w-4" />
-                                                                            <AlertDescription className="text-sm">
-                                                                                Este turno está sobrepondo com{' '}
-                                                                                {overlappingShifts.length === 1 ? 'o turno' : 'os turnos'}{' '}
-                                                                                {overlappingShifts.map((i) => i + 1).join(', ')}
-                                                                            </AlertDescription>
-                                                                        </Alert>
-                                                                    )}
                                                                 </div>
-                                                            </CardHeader>
-                                                            <CardContent className="-mt-2 space-y-2">
-                                                                <div className="grid grid-cols-1 gap-2">
-                                                                    {/* Seção de intervalos */}
-                                                                    <div className="space-y-0.5 pl-4">
-                                                                        <div className="mb-2 flex items-center justify-between">
-                                                                            <Label className="ml-2 pt-2 text-base font-medium">Intervalos</Label>
-                                                                            {/* Botão para adicionar intervalo */}
-                                                                            <Button
-                                                                                type="button"
-                                                                                variant="outline"
-                                                                                size="sm"
-                                                                                onClick={() => addBreak(dayIndex, shiftIndex)}
-                                                                            >
-                                                                                <Plus className="mr-2 h-4 w-4" />
-                                                                                Adicionar Intervalo
-                                                                            </Button>
-                                                                        </div>
-                                                                        {shift.breaks.length === 0 ? (
-                                                                            <Card className="bg-background shadow-none">
-                                                                                <CardContent className="-mt-3 -mb-3 ml-2 flex items-start space-x-2 px-2 py-0">
-                                                                                    <div className="bg-muted -mt-0.75 flex size-8 items-center justify-center rounded-full">
-                                                                                        <Clock className="text-muted-foreground size-4" />
-                                                                                    </div>
-                                                                                    <div className="flex flex-col py-0.5">
-                                                                                        <h3 className="text-base font-medium">
-                                                                                            Nenhum intervalo adicionado
-                                                                                        </h3>
-                                                                                        <p className="text-muted-foreground text-sm">
-                                                                                            Adicione intervalos para este turno.
-                                                                                        </p>
-                                                                                    </div>
-                                                                                </CardContent>
-                                                                            </Card>
-                                                                        ) : (
-                                                                            <div className="space-y-2">
-                                                                                {/* Lista de intervalos */}
-                                                                                {shift.breaks.map((breakTime, breakIndex) => {
-                                                                                    const isValidInShift = isBreakValid(shift, breakTime);
-                                                                                    const isOverlapping =
-                                                                                        isValidInShift &&
-                                                                                        isBreakOverlapping(shift, breakTime, breakIndex);
-
-                                                                                    return (
-                                                                                        <Card
-                                                                                            key={`break-${dayIndex}-${shiftIndex}-${breakIndex}-${breakTime.start_time}-${breakTime.end_time}`}
-                                                                                            className="bg-background shadow-none"
-                                                                                        >
-                                                                                            <CardContent className="-mt-3 -mb-3 ml-1 flex items-center space-x-2 px-2">
-                                                                                                <div className="flex items-center space-x-2">
-                                                                                                    {/* Seletor de horário de início do intervalo */}
-                                                                                                    <TimeSelect
-                                                                                                        value={breakTime.start_time}
-                                                                                                        onChange={(value: string) =>
-                                                                                                            updateBreak(
-                                                                                                                dayIndex,
-                                                                                                                shiftIndex,
-                                                                                                                breakIndex,
-                                                                                                                'start_time',
-                                                                                                                value,
-                                                                                                            )
-                                                                                                        }
-                                                                                                    />
-                                                                                                    <span className="text-muted-foreground">até</span>
-                                                                                                    {/* Seletor de horário de término do intervalo */}
-                                                                                                    <TimeSelect
-                                                                                                        value={breakTime.end_time}
-                                                                                                        onChange={(value: string) =>
-                                                                                                            updateBreak(
-                                                                                                                dayIndex,
-                                                                                                                shiftIndex,
-                                                                                                                breakIndex,
-                                                                                                                'end_time',
-                                                                                                                value,
-                                                                                                            )
-                                                                                                        }
-                                                                                                    />
-                                                                                                    {/* Botão para remover intervalo */}
-                                                                                                    <Button
-                                                                                                        type="button"
-                                                                                                        variant="ghost"
-                                                                                                        size="icon"
-                                                                                                        className="h-10 w-10"
-                                                                                                        onClick={() =>
-                                                                                                            removeBreak(dayIndex, shiftIndex, breakIndex)
-                                                                                                        }
-                                                                                                    >
-                                                                                                        <Trash2 className="text-destructive h-4 w-4" />
-                                                                                                    </Button>
-                                                                                                </div>
-                                                                                                {!isValidInShift && (
-                                                                                                    <Alert
-                                                                                                        variant="destructive"
-                                                                                                        className="ml-2 flex items-center gap-2 border-0 py-2"
-                                                                                                    >
-                                                                                                        <AlertCircle className="mb-1 h-4 w-4" />
-                                                                                                        <AlertDescription className="text-sm">
-                                                                                                            O intervalo deve estar dentro do horário do
-                                                                                                            turno
-                                                                                                        </AlertDescription>
-                                                                                                    </Alert>
-                                                                                                )}
-                                                                                                {isOverlapping && (
-                                                                                                    <Alert
-                                                                                                        variant="destructive"
-                                                                                                        className="ml-2 flex items-center gap-2 border-0 py-2"
-                                                                                                    >
-                                                                                                        <AlertCircle className="mb-1 h-4 w-4" />
-                                                                                                        <AlertDescription className="text-sm">
-                                                                                                            Este intervalo está sobrepondo com outro
-                                                                                                            intervalo do turno
-                                                                                                        </AlertDescription>
-                                                                                                    </Alert>
-                                                                                                )}
-                                                                                            </CardContent>
-                                                                                        </Card>
-                                                                                    );
-                                                                                })}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </CardContent>
-                                                        </Card>
-                                                    );
-                                                })
-                                            )}
-                                        </TabsContent>
-                                    ))}
-                                </Tabs>
-
-                                {/* Seção de visualização */}
-                                <div className="space-y-4">
-                                    {/* Seletor de modo de visualização */}
-                                    <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'timeline' | 'table')}>
-                                        <TabsList className="grid w-[200px] grid-cols-2">
-                                            <TabsTrigger value="timeline" className="flex items-center gap-2">
-                                                <Clock className="h-4 w-4" />
-                                                Timeline
-                                            </TabsTrigger>
-                                            <TabsTrigger value="table" className="flex items-center gap-2">
-                                                <Table className="h-4 w-4" />
-                                                Tabela
-                                            </TabsTrigger>
-                                        </TabsList>
-                                    </Tabs>
-
-                                    {/* Visualização dos turnos */}
-                                    <div className="relative">
-                                        {/* Visualização em timeline */}
-                                        <div
-                                            className={`transition-opacity duration-300 ${viewMode === 'timeline' ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
-                                        >
-                                            <Card>
-                                                <CardHeader>
-                                                    <CardTitle>Visualização dos Turnos</CardTitle>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <ShiftCalendarView schedules={data.schedules} />
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                        {/* Visualização em tabela */}
-                                        <div
-                                            className={`transition-opacity duration-300 ${viewMode === 'table' ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
-                                        >
-                                            <Card>
-                                                <CardHeader>
-                                                    <CardTitle>Visão Geral Semanal</CardTitle>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <ShiftTableView schedules={data.schedules} />
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end gap-3 pt-6 border-t">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleCancel}
-                                disabled={processing}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button type="submit" disabled={processing}>
-                                {processing ? (initialShift ? 'Atualizando...' : 'Criando...') : 'Salvar'}
-                            </Button>
-                        </div>
-                    </form>
-                </SheetContent>
-            </Sheet>
-
-            {/* Confirmation Dialog for Affected Assets */}
-            <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                            Confirmação de Atualização de Turno
-                        </DialogTitle>
-                        <DialogDescription>
-                            Esta alteração afetará {affectedAssets.length} {affectedAssets.length === 1 ? 'ativo' : 'ativos'}.
-                            Escolha como deseja proceder:
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="space-y-4 my-4">
-                        {/* Update Mode Selection */}
-                        <div className="space-y-3">
-                            <div className="flex items-start space-x-3">
-                                <input
-                                    type="radio"
-                                    id="update-all"
-                                    name="update-mode"
-                                    value="all"
-                                    checked={updateMode === 'all'}
-                                    onChange={() => {
-                                        setUpdateMode('all');
-                                        setSelectedAssetIds([]);
-                                    }}
-                                    className="mt-1"
-                                />
-                                <label htmlFor="update-all" className="cursor-pointer">
-                                    <div className="font-medium">Atualizar todos os ativos</div>
-                                    <div className="text-sm text-muted-foreground">
-                                        O turno existente será atualizado e todos os {affectedAssets.length} ativos continuarão usando este turno.
-                                    </div>
-                                </label>
-                            </div>
-
-                            <div className="flex items-start space-x-3">
-                                <input
-                                    type="radio"
-                                    id="update-selected"
-                                    name="update-mode"
-                                    value="selected"
-                                    checked={updateMode === 'selected'}
-                                    onChange={() => {
-                                        setUpdateMode('selected');
-                                        // Select all assets by default when switching to this mode
-                                        setSelectedAssetIds(affectedAssets.map(a => a.id));
-                                    }}
-                                    className="mt-1"
-                                />
-                                <label htmlFor="update-selected" className="cursor-pointer">
-                                    <div className="font-medium">Criar cópia do turno para ativos selecionados</div>
-                                    <div className="text-sm text-muted-foreground">
-                                        Um novo turno será criado com as alterações e apenas os ativos selecionados serão associados a ele.
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
-                        {/* Asset List */}
-                        <div className="border rounded-lg p-2 max-h-[300px] overflow-y-auto">
-                            {updateMode === 'selected' && (
-                                <div className="flex justify-between items-center mb-2 pb-2 border-b">
-                                    <span className="text-sm font-medium">Selecione os ativos para atualizar:</span>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                            if (selectedAssetIds.length === affectedAssets.length) {
-                                                setSelectedAssetIds([]);
-                                            } else {
-                                                setSelectedAssetIds(affectedAssets.map(a => a.id));
-                                            }
-                                        }}
-                                    >
-                                        {selectedAssetIds.length === affectedAssets.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
-                                    </Button>
-                                </div>
-                            )}
-                            <div className="space-y-2">
-                                {affectedAssets.map((asset) => (
-                                    <Card key={asset.id} className="p-3">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex items-start space-x-3 flex-1">
-                                                {updateMode === 'selected' && (
-                                                    <Checkbox
-                                                        checked={selectedAssetIds.includes(asset.id)}
-                                                        onCheckedChange={(checked) => {
-                                                            if (checked) {
-                                                                setSelectedAssetIds([...selectedAssetIds, asset.id]);
-                                                            } else {
-                                                                setSelectedAssetIds(selectedAssetIds.filter(id => id !== asset.id));
-                                                            }
-                                                        }}
-                                                        className="mt-1"
-                                                    />
-                                                )}
-                                                <div className="space-y-1 flex-1">
-                                                    <div className="font-medium">{asset.tag}</div>
-                                                    {asset.description && (
-                                                        <div className="text-sm text-muted-foreground">{asset.description}</div>
-                                                    )}
-                                                    <div className="text-xs text-muted-foreground space-x-2">
-                                                        {asset.asset_type && <span>Tipo: {asset.asset_type}</span>}
-                                                        {asset.plant && <span>• Planta: {asset.plant}</span>}
-                                                        {asset.area && <span>• Área: {asset.area}</span>}
-                                                        {asset.sector && <span>• Setor: {asset.sector}</span>}
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                        {/* Botão para adicionar novo turno */}
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => addShift(dayIndex)}>
+                                                            <Plus className="mr-2 h-4 w-4" />
+                                                            Adicionar Turno
+                                                        </Button>
                                                     </div>
                                                 </div>
+
+                                                {/* Lista de turnos do dia */}
+                                                {data.schedules[dayIndex].shifts.length === 0 ? (
+                                                    <div className="bg-muted/50 rounded-lg border p-6 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
+                                                        <div className="flex flex-col items-center justify-center py-8 text-center">
+                                                            <div className="bg-muted mb-3 flex size-12 items-center justify-center rounded-full">
+                                                                <Clock className="text-muted-foreground size-6" />
+                                                            </div>
+                                                            <h3 className="mb-1 text-lg font-medium">Nenhum turno adicionado</h3>
+                                                            <p className="text-muted-foreground mb-4 text-sm">
+                                                                Adicione turnos para este dia da semana.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    data.schedules[dayIndex].shifts.map((shift, shiftIndex) => {
+                                                        const overlappingShifts = findOverlappingShifts(data.schedules[dayIndex].shifts, shiftIndex);
+
+                                                        return (
+                                                            <Card
+                                                                key={`shift-${dayIndex}-${shiftIndex}-${shift.start_time}-${shift.end_time}`}
+                                                                className="bg-muted/50 mb-4 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                                                            >
+                                                                <CardHeader className="flex flex-col space-y-2">
+                                                                    <div className="flex items-center">
+                                                                        <Label className="text-md font-semibold">Turno {shiftIndex + 1}</Label>
+                                                                    </div>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <div className="flex items-center space-x-2">
+                                                                            {/* Seletor de horário de início */}
+                                                                            <TimeSelect
+                                                                                value={shift.start_time}
+                                                                                onChange={(value: string) => {
+                                                                                    const newSchedules = [...data.schedules];
+                                                                                    newSchedules[dayIndex].shifts[shiftIndex].start_time = value;
+                                                                                    setData('schedules', newSchedules);
+                                                                                }}
+                                                                            />
+                                                                            <span className="text-muted-foreground">até</span>
+                                                                            {/* Seletor de horário de término */}
+                                                                            <TimeSelect
+                                                                                value={shift.end_time}
+                                                                                onChange={(value: string) => {
+                                                                                    const newSchedules = [...data.schedules];
+                                                                                    newSchedules[dayIndex].shifts[shiftIndex].end_time = value;
+                                                                                    setData('schedules', newSchedules);
+                                                                                }}
+                                                                            />
+                                                                            {/* Botão para remover turno */}
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                onClick={() => removeShift(dayIndex, shiftIndex)}
+                                                                                className="h-10 w-10"
+                                                                            >
+                                                                                <Trash2 className="text-destructive h-4 w-4" />
+                                                                            </Button>
+                                                                        </div>
+                                                                        {overlappingShifts.length > 0 && (
+                                                                            <Alert
+                                                                                variant="destructive"
+                                                                                className="ml-2 flex items-center gap-2 border-0 py-2"
+                                                                            >
+                                                                                <AlertCircle className="mb-1 h-4 w-4" />
+                                                                                <AlertDescription className="text-sm">
+                                                                                    Este turno está sobrepondo com{' '}
+                                                                                    {overlappingShifts.length === 1 ? 'o turno' : 'os turnos'}{' '}
+                                                                                    {overlappingShifts.map((i) => i + 1).join(', ')}
+                                                                                </AlertDescription>
+                                                                            </Alert>
+                                                                        )}
+                                                                    </div>
+                                                                </CardHeader>
+                                                                <CardContent className="-mt-2 space-y-2">
+                                                                    <div className="grid grid-cols-1 gap-2">
+                                                                        {/* Seção de intervalos */}
+                                                                        <div className="space-y-0.5 pl-4">
+                                                                            <div className="mb-2 flex items-center justify-between">
+                                                                                <Label className="ml-2 pt-2 text-base font-medium">Intervalos</Label>
+                                                                                {/* Botão para adicionar intervalo */}
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    onClick={() => addBreak(dayIndex, shiftIndex)}
+                                                                                >
+                                                                                    <Plus className="mr-2 h-4 w-4" />
+                                                                                    Adicionar Intervalo
+                                                                                </Button>
+                                                                            </div>
+                                                                            {shift.breaks.length === 0 ? (
+                                                                                <Card className="bg-background shadow-none">
+                                                                                    <CardContent className="-mt-3 -mb-3 ml-2 flex items-start space-x-2 px-2 py-0">
+                                                                                        <div className="bg-muted -mt-0.75 flex size-8 items-center justify-center rounded-full">
+                                                                                            <Clock className="text-muted-foreground size-4" />
+                                                                                        </div>
+                                                                                        <div className="flex flex-col py-0.5">
+                                                                                            <h3 className="text-base font-medium">
+                                                                                                Nenhum intervalo adicionado
+                                                                                            </h3>
+                                                                                            <p className="text-muted-foreground text-sm">
+                                                                                                Adicione intervalos para este turno.
+                                                                                            </p>
+                                                                                        </div>
+                                                                                    </CardContent>
+                                                                                </Card>
+                                                                            ) : (
+                                                                                <div className="space-y-2">
+                                                                                    {/* Lista de intervalos */}
+                                                                                    {shift.breaks.map((breakTime, breakIndex) => {
+                                                                                        const isValidInShift = isBreakValid(shift, breakTime);
+                                                                                        const isOverlapping =
+                                                                                            isValidInShift &&
+                                                                                            isBreakOverlapping(shift, breakTime, breakIndex);
+
+                                                                                        return (
+                                                                                            <Card
+                                                                                                key={`break-${dayIndex}-${shiftIndex}-${breakIndex}-${breakTime.start_time}-${breakTime.end_time}`}
+                                                                                                className="bg-background shadow-none"
+                                                                                            >
+                                                                                                <CardContent className="-mt-3 -mb-3 ml-1 flex items-center space-x-2 px-2">
+                                                                                                    <div className="flex items-center space-x-2">
+                                                                                                        {/* Seletor de horário de início do intervalo */}
+                                                                                                        <TimeSelect
+                                                                                                            value={breakTime.start_time}
+                                                                                                            onChange={(value: string) =>
+                                                                                                                updateBreak(
+                                                                                                                    dayIndex,
+                                                                                                                    shiftIndex,
+                                                                                                                    breakIndex,
+                                                                                                                    'start_time',
+                                                                                                                    value,
+                                                                                                                )
+                                                                                                            }
+                                                                                                        />
+                                                                                                        <span className="text-muted-foreground">
+                                                                                                            até
+                                                                                                        </span>
+                                                                                                        {/* Seletor de horário de término do intervalo */}
+                                                                                                        <TimeSelect
+                                                                                                            value={breakTime.end_time}
+                                                                                                            onChange={(value: string) =>
+                                                                                                                updateBreak(
+                                                                                                                    dayIndex,
+                                                                                                                    shiftIndex,
+                                                                                                                    breakIndex,
+                                                                                                                    'end_time',
+                                                                                                                    value,
+                                                                                                                )
+                                                                                                            }
+                                                                                                        />
+                                                                                                        {/* Botão para remover intervalo */}
+                                                                                                        <Button
+                                                                                                            type="button"
+                                                                                                            variant="ghost"
+                                                                                                            size="icon"
+                                                                                                            className="h-10 w-10"
+                                                                                                            onClick={() =>
+                                                                                                                removeBreak(
+                                                                                                                    dayIndex,
+                                                                                                                    shiftIndex,
+                                                                                                                    breakIndex,
+                                                                                                                )
+                                                                                                            }
+                                                                                                        >
+                                                                                                            <Trash2 className="text-destructive h-4 w-4" />
+                                                                                                        </Button>
+                                                                                                    </div>
+                                                                                                    {!isValidInShift && (
+                                                                                                        <Alert
+                                                                                                            variant="destructive"
+                                                                                                            className="ml-2 flex items-center gap-2 border-0 py-2"
+                                                                                                        >
+                                                                                                            <AlertCircle className="mb-1 h-4 w-4" />
+                                                                                                            <AlertDescription className="text-sm">
+                                                                                                                O intervalo deve estar dentro do
+                                                                                                                horário do turno
+                                                                                                            </AlertDescription>
+                                                                                                        </Alert>
+                                                                                                    )}
+                                                                                                    {isOverlapping && (
+                                                                                                        <Alert
+                                                                                                            variant="destructive"
+                                                                                                            className="ml-2 flex items-center gap-2 border-0 py-2"
+                                                                                                        >
+                                                                                                            <AlertCircle className="mb-1 h-4 w-4" />
+                                                                                                            <AlertDescription className="text-sm">
+                                                                                                                Este intervalo está sobrepondo com
+                                                                                                                outro intervalo do turno
+                                                                                                            </AlertDescription>
+                                                                                                        </Alert>
+                                                                                                    )}
+                                                                                                </CardContent>
+                                                                                            </Card>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </CardContent>
+                                                            </Card>
+                                                        );
+                                                    })
+                                                )}
+                                            </TabsContent>
+                                        ))}
+                                    </Tabs>
+
+                                    {/* Seção de visualização */}
+                                    <div className="space-y-4">
+                                        {/* Seletor de modo de visualização */}
+                                        <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'timeline' | 'table')}>
+                                            <TabsList className="grid w-[200px] grid-cols-2">
+                                                <TabsTrigger value="timeline" className="flex items-center gap-2">
+                                                    <Clock className="h-4 w-4" />
+                                                    Timeline
+                                                </TabsTrigger>
+                                                <TabsTrigger value="table" className="flex items-center gap-2">
+                                                    <Table className="h-4 w-4" />
+                                                    Tabela
+                                                </TabsTrigger>
+                                            </TabsList>
+                                        </Tabs>
+
+                                        {/* Visualização dos turnos */}
+                                        <div className="relative">
+                                            {/* Visualização em timeline */}
+                                            <div
+                                                className={`transition-opacity duration-300 ${viewMode === 'timeline' ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
+                                            >
+                                                <Card>
+                                                    <CardHeader>
+                                                        <CardTitle>Visualização dos Turnos</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <ShiftCalendarView schedules={data.schedules} />
+                                                    </CardContent>
+                                                </Card>
                                             </div>
-                                            <div className="text-right ml-4">
-                                                <div className="text-sm font-medium">Horímetro Atual</div>
-                                                <div className="text-lg">{asset.current_runtime_hours.toFixed(2)}h</div>
+                                            {/* Visualização em tabela */}
+                                            <div
+                                                className={`transition-opacity duration-300 ${viewMode === 'table' ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
+                                            >
+                                                <Card>
+                                                    <CardHeader>
+                                                        <CardTitle>Visão Geral Semanal</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <ShiftTableView schedules={data.schedules} />
+                                                    </CardContent>
+                                                </Card>
                                             </div>
                                         </div>
-                                    </Card>
-                                ))}
+                                    </div>
+                                </div>
                             </div>
+
+                            <div className="flex justify-end gap-3 border-t pt-6">
+                                <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" disabled={processing}>
+                                    {processing ? (initialShift ? 'Atualizando...' : 'Criando...') : 'Salvar'}
+                                </Button>
+                            </div>
+                        </form>
+                    </SheetContent>
+                </Sheet>
+
+                {/* Confirmation Dialog for Affected Assets */}
+                <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                    <DialogContent className="flex max-h-[80vh] max-w-2xl flex-col overflow-hidden">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                                Confirmação de Atualização de Turno
+                            </DialogTitle>
+                            <DialogDescription>
+                                Esta alteração afetará {affectedAssets.length} {affectedAssets.length === 1 ? 'ativo' : 'ativos'}. Escolha como deseja
+                                proceder:
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="my-4 space-y-4">
+                            {/* Update Mode Selection */}
+                            <div className="space-y-3">
+                                <div className="flex items-start space-x-3">
+                                    <input
+                                        type="radio"
+                                        id="update-all"
+                                        name="update-mode"
+                                        value="all"
+                                        checked={updateMode === 'all'}
+                                        onChange={() => {
+                                            setUpdateMode('all');
+                                            setSelectedAssetIds([]);
+                                        }}
+                                        className="mt-1"
+                                    />
+                                    <label htmlFor="update-all" className="cursor-pointer">
+                                        <div className="font-medium">Atualizar todos os ativos</div>
+                                        <div className="text-muted-foreground text-sm">
+                                            O turno existente será atualizado e todos os {affectedAssets.length} ativos continuarão usando este turno.
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div className="flex items-start space-x-3">
+                                    <input
+                                        type="radio"
+                                        id="update-selected"
+                                        name="update-mode"
+                                        value="selected"
+                                        checked={updateMode === 'selected'}
+                                        onChange={() => {
+                                            setUpdateMode('selected');
+                                            // Select all assets by default when switching to this mode
+                                            setSelectedAssetIds(affectedAssets.map((a) => a.id));
+                                        }}
+                                        className="mt-1"
+                                    />
+                                    <label htmlFor="update-selected" className="cursor-pointer">
+                                        <div className="font-medium">Criar cópia do turno para ativos selecionados</div>
+                                        <div className="text-muted-foreground text-sm">
+                                            Um novo turno será criado com as alterações e apenas os ativos selecionados serão associados a ele.
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Asset List */}
+                            <div className="max-h-[300px] overflow-y-auto rounded-lg border p-2">
+                                {updateMode === 'selected' && (
+                                    <div className="mb-2 flex items-center justify-between border-b pb-2">
+                                        <span className="text-sm font-medium">Selecione os ativos para atualizar:</span>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                if (selectedAssetIds.length === affectedAssets.length) {
+                                                    setSelectedAssetIds([]);
+                                                } else {
+                                                    setSelectedAssetIds(affectedAssets.map((a) => a.id));
+                                                }
+                                            }}
+                                        >
+                                            {selectedAssetIds.length === affectedAssets.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                                        </Button>
+                                    </div>
+                                )}
+                                <div className="space-y-2">
+                                    {affectedAssets.map((asset) => (
+                                        <Card key={asset.id} className="p-3">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex flex-1 items-start space-x-3">
+                                                    {updateMode === 'selected' && (
+                                                        <Checkbox
+                                                            checked={selectedAssetIds.includes(asset.id)}
+                                                            onCheckedChange={(checked) => {
+                                                                if (checked) {
+                                                                    setSelectedAssetIds([...selectedAssetIds, asset.id]);
+                                                                } else {
+                                                                    setSelectedAssetIds(selectedAssetIds.filter((id) => id !== asset.id));
+                                                                }
+                                                            }}
+                                                            className="mt-1"
+                                                        />
+                                                    )}
+                                                    <div className="flex-1 space-y-1">
+                                                        <div className="font-medium">{asset.tag}</div>
+                                                        {asset.description && (
+                                                            <div className="text-muted-foreground text-sm">{asset.description}</div>
+                                                        )}
+                                                        <div className="text-muted-foreground space-x-2 text-xs">
+                                                            {asset.asset_type && <span>Tipo: {asset.asset_type}</span>}
+                                                            {asset.plant && <span>• Planta: {asset.plant}</span>}
+                                                            {asset.area && <span>• Área: {asset.area}</span>}
+                                                            {asset.sector && <span>• Setor: {asset.sector}</span>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="ml-4 text-right">
+                                                    <div className="text-sm font-medium">Horímetro Atual</div>
+                                                    <div className="text-lg">{asset.current_runtime_hours.toFixed(2)}h</div>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {updateMode === 'selected' && (
+                                <div className="text-muted-foreground text-sm">
+                                    {selectedAssetIds.length} de {affectedAssets.length} ativos selecionados
+                                </div>
+                            )}
+
+                            {/* Runtime Recording Note */}
+                            <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription className="text-sm">
+                                    O horímetro atual será registrado automaticamente para {updateMode === 'all' ? 'todos os' : 'os'} ativos{' '}
+                                    {updateMode === 'selected' ? 'selecionados' : 'afetados'} antes da alteração, preservando o histórico de operação.
+                                </AlertDescription>
+                            </Alert>
                         </div>
 
-                        {updateMode === 'selected' && (
-                            <div className="text-sm text-muted-foreground">
-                                {selectedAssetIds.length} de {affectedAssets.length} ativos selecionados
-                            </div>
-                        )}
-
-                        {/* Runtime Recording Note */}
-                        <Alert>
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription className="text-sm">
-                                O horímetro atual será registrado automaticamente para {updateMode === 'all' ? 'todos os' : 'os'} ativos {updateMode === 'selected' ? 'selecionados' : 'afetados'} antes da alteração, preservando o histórico de operação.
-                            </AlertDescription>
-                        </Alert>
-                    </div>
-
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={handleCancelUpdate}
-                            disabled={processing}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            onClick={handleConfirmUpdate}
-                            disabled={processing || (updateMode === 'selected' && selectedAssetIds.length === 0)}
-                        >
-                            {processing ? 'Processando...' :
-                                updateMode === 'all' ? 'Atualizar Todos' : 'Criar Cópia e Atualizar'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
-    );
-});
+                        <DialogFooter>
+                            <Button variant="outline" onClick={handleCancelUpdate} disabled={processing}>
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={handleConfirmUpdate}
+                                disabled={processing || (updateMode === 'selected' && selectedAssetIds.length === 0)}
+                            >
+                                {processing ? 'Processando...' : updateMode === 'all' ? 'Atualizar Todos' : 'Criar Cópia e Atualizar'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </>
+        );
+    },
+);
 
 CreateShiftSheet.displayName = 'CreateShiftSheet';
 
-export default CreateShiftSheet; 
+export default CreateShiftSheet;
