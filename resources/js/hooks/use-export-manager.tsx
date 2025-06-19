@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
 import { downloadFile } from '@/utils/download';
+import { Button } from '@/components/ui/button';
 
 export interface ExportTask {
     id: number;
@@ -40,10 +41,19 @@ export const useExportManager = create<ExportManagerStore>((set, get) => ({
         }));
 
         // Show initial toast
-        toast.info('Export started - we\'ll notify you when ready', {
-            duration: 3000,
-            id: `export-start-${newExport.id}`,
-        });
+        toast.info(
+            <div className="w-full">
+                <p className="font-semibold text-sm">Export Started</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                    We'll notify you when your PDF is ready
+                </p>
+            </div>,
+            {
+                duration: 3000,
+                id: `export-start-${newExport.id}`,
+                className: 'font-sans',
+            }
+        );
     },
 
     updateExport: (id, updates) => {
@@ -63,22 +73,33 @@ export const useExportManager = create<ExportManagerStore>((set, get) => ({
                 if (updates.status === 'completed' && updates.downloadUrl) {
                     const toastId = `export-complete-${id}`;
                     toast.success(
-                        <div className="flex flex-col gap-2">
-                            <span>Your export is ready!</span>
-                            <button
+                        <div className="w-full space-y-2">
+                            <div>
+                                <p className="font-semibold text-sm">Export Ready!</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Your PDF has been generated successfully
+                                </p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     get().downloadExport(id);
                                     toast.dismiss(toastId);
                                 }}
-                                className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 text-left"
+                                className="gap-2"
                             >
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
                                 Download PDF
-                            </button>
+                            </Button>
                         </div>,
                         {
                             duration: Infinity, // Permanent until dismissed
                             id: toastId,
+                            className: 'font-sans',
                             onDismiss: () => {
                                 // Optional: track that user dismissed without downloading
                                 console.log('Export toast dismissed without download');
@@ -87,15 +108,16 @@ export const useExportManager = create<ExportManagerStore>((set, get) => ({
                     );
                 } else if (updates.status === 'failed') {
                     toast.error(
-                        <div className="flex flex-col gap-1">
-                            <span>Export failed</span>
-                            <span className="text-sm text-muted-foreground">
+                        <div className="w-full">
+                            <p className="font-semibold text-sm">Export Failed</p>
+                            <p className="text-sm text-muted-foreground mt-0.5">
                                 {updates.error || 'Please try again'}
-                            </span>
+                            </p>
                         </div>,
                         {
                             duration: 5000,
                             id: `export-failed-${id}`,
+                            className: 'font-sans',
                         }
                     );
                 } else if (updates.progress && updates.progress > 0 && updates.progress < 100) {
@@ -103,21 +125,29 @@ export const useExportManager = create<ExportManagerStore>((set, get) => ({
                     const shouldShowProgress = updates.progress % 25 === 0;
                     if (shouldShowProgress) {
                         toast.loading(
-                            <div className="flex flex-col gap-1">
-                                <span>Generating PDF...</span>
+                            <div className="w-full space-y-2">
+                                <div>
+                                    <p className="font-semibold text-sm">Generating PDF</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Please wait while we prepare your document
+                                    </p>
+                                </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="h-2 w-32 rounded-full bg-gray-200">
+                                    <div className="h-2 flex-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                                         <div
-                                            className="h-full rounded-full bg-blue-600 transition-all"
+                                            className="h-full bg-blue-600 dark:bg-blue-500 transition-all duration-300 ease-out"
                                             style={{ width: `${updates.progress}%` }}
                                         />
                                     </div>
-                                    <span className="text-sm">{updates.progress}%</span>
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                        {updates.progress}%
+                                    </span>
                                 </div>
                             </div>,
                             {
                                 duration: 2000,
                                 id: `export-progress-${id}`,
+                                className: 'font-sans',
                             }
                         );
                     }

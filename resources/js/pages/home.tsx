@@ -6,6 +6,7 @@ import {
     ChevronRight,
     Route,
     History,
+    BarChart3,
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -36,6 +37,12 @@ export default function Dashboard() {
             description: 'Visualize e analise execuções de rotinas',
             href: '/maintenance/executions/history',
         },
+        routineDashboard: {
+            title: 'Routine Dashboard',
+            icon: BarChart3,
+            description: 'Modern dashboard for routine executions',
+            href: '/maintenance/routine-dashboard',
+        },
     };
 
     return (
@@ -45,7 +52,7 @@ export default function Dashboard() {
                 {/* Quick Start Section */}
                 <div>
                     <h2 className="text-foreground mb-6 text-xl font-semibold">Home</h2>
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-4">
                         {Object.entries(quickStartCards).map(([key, card]) => {
                             const IconComponent = card.icon;
                             const hasLink = !!card.href;
