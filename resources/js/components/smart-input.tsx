@@ -4,10 +4,12 @@ import { forwardRef } from 'react';
 
 interface SmartInputProps {
     form: {
-        data: Record<string, any>;
-        setData: (name: string, value: any) => void;
+        data: Record<string, string | number | boolean | File | null | undefined>;
+        setData: (name: string, value: string | number | boolean | File | null | undefined) => void;
         errors: Partial<Record<string, string>>;
         clearErrors: (...fields: string[]) => void;
+        validateInput?: (value: string) => boolean;
+        processBlur?: (name: string, value: string) => void;
     };
     name: string;
     placeholder?: string;
@@ -28,7 +30,7 @@ const SmartInput = forwardRef<HTMLInputElement, SmartInputProps>(
                 ref={ref}
                 id={name}
                 type={type}
-                value={data[name]}
+                value={String(data[name] || '')}
                 onChange={(e) => {
                     // Prevent changes in view mode
                     if (view) return;

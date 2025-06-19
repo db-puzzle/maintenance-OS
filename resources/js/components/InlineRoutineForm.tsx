@@ -7,7 +7,7 @@ import { Task, TaskState, TaskTypes } from '@/types/task';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { AlertCircle, CheckCircle2, ClipboardCheck, Loader2, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
 interface RoutineData {
@@ -34,7 +34,7 @@ interface ExecutionData {
 interface TaskResponseData {
     id: number;
     form_task_id: string;
-    response: any;
+    response: Record<string, unknown>;
     is_completed: boolean;
 }
 
@@ -58,11 +58,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
     const taskRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
     // Initialize or get existing execution
-    useEffect(() => {
-        initializeExecution();
-    }, [routine.id]);
-
-    const initializeExecution = async () => {
+    const initializeExecution = useCallback(async () => {
         try {
             setLoading(true);
             const response = await axios.post(
@@ -114,16 +110,30 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                 state: idx === initialIndex ? TaskState.Responding : TaskState.Viewing,
             }));
             setTasks(initialTasks);
-        } catch (error: any) {
-            console.error('Error initializing execution:', error);
+        } catch (error: unknown) {
+            const err = error as { 
+                response?: { 
+                    status?: number;
+                    data?: { 
+                        errors?: Record<string, string[]>;
+                        message?: string;
+                        error?: string;
+                    };
+                };
+            };
+            console.error('Error initializing execution:', err);
             toast.error('Erro ao iniciar execução', {
-                description: error.response?.data?.error || 'Tente novamente',
+                description: err.response?.data?.error || 'Tente novamente',
             });
             if (onClose) onClose();
         } finally {
             setLoading(false);
         }
-    };
+    }, [assetId, routine.id, routine.form?.tasks, onClose]);
+
+    useEffect(() => {
+        initializeExecution();
+    }, [initializeExecution]);
 
     const updateTaskIcon = (taskId: string, icon: React.ReactNode) => {
         setTaskIcons((prev) => ({
@@ -146,7 +156,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
         setTasks(tasks.map((t) => (t.id === taskId ? updatedTask : t)));
     };
 
-    const handleTaskSave = async (taskId: string, responseData: any) => {
+    const handleTaskSave = async (taskId: string, responseData: Record<string, unknown>) => {
         if (!execution || saving) return;
 
         setSaving(true);
@@ -158,20 +168,20 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             const dataToSend = responseData || {};
 
             // Handle different response types
-            if (dataToSend.files && dataToSend.files.length > 0) {
-                dataToSend.files.forEach((file: File, index: number) => {
+            if (Array.isArray(dataToSend.files) && dataToSend.files.length > 0) {
+                (dataToSend.files as File[]).forEach((file: File, index: number) => {
                     formData.append(`files[${index}]`, file);
                 });
                 // Remove files from response data to avoid sending as JSON
-                const { files: _, ...restData } = dataToSend;
+                const { files: _files, ...restData } = dataToSend;
                 // Send response as array fields instead of JSON string
                 Object.keys(restData).forEach((key) => {
-                    formData.append(`response[${key}]`, restData[key]);
+                    formData.append(`response[${key}]`, String(restData[key]));
                 });
             } else {
                 // Send response as array fields instead of JSON string
                 Object.keys(dataToSend).forEach((key) => {
-                    formData.append(`response[${key}]`, dataToSend[key]);
+                    formData.append(`response[${key}]`, String(dataToSend[key]));
                 });
             }
 
@@ -226,19 +236,29 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                 // All tasks completed, automatically complete the routine
                 handleCompleteExecution();
             }
-        } catch (error: any) {
-            console.error('Error saving task:', error);
+        } catch (error: unknown) {
+            const err = error as { 
+                response?: { 
+                    status?: number;
+                    data?: { 
+                        errors?: Record<string, string[]>;
+                        message?: string;
+                        error?: string;
+                    };
+                };
+            };
+            console.error('Error saving task:', err);
 
             // Check for validation errors
-            if (error.response?.status === 422 && error.response?.data?.errors) {
-                const errors = error.response.data.errors;
+            if (err.response?.status === 422 && err.response?.data?.errors) {
+                const errors = err.response.data.errors;
                 const errorMessages = Object.values(errors).flat().join(', ');
                 toast.error('Erro de validação', {
                     description: errorMessages,
                 });
             } else {
                 toast.error('Erro ao salvar tarefa', {
-                    description: error.response?.data?.message || error.response?.data?.error || 'Tente novamente',
+                    description: err.response?.data?.message || err.response?.data?.error || 'Tente novamente',
                 });
             }
         } finally {
@@ -265,15 +285,23 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
 
             // Reload the page to refresh the routine list
             router.reload();
-        } catch (error: any) {
-            console.error('Error completing execution:', error);
-            if (error.response?.data?.missing_tasks) {
+        } catch (error: unknown) {
+            const err = error as { 
+                response?: { 
+                    data?: { 
+                        missing_tasks?: string[];
+                        error?: string;
+                    };
+                };
+            };
+            console.error('Error completing execution:', err);
+            if (err.response?.data?.missing_tasks) {
                 toast.error('Existem tarefas obrigatórias não preenchidas', {
-                    description: error.response.data.missing_tasks.join(', '),
+                    description: err.response.data.missing_tasks.join(', '),
                 });
             } else {
                 toast.error('Erro ao concluir rotina', {
-                    description: error.response?.data?.error || 'Tente novamente',
+                    description: err.response?.data?.error || 'Tente novamente',
                 });
             }
         } finally {
@@ -294,7 +322,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             );
             toast.info('Execução cancelada');
             if (onClose) onClose();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error canceling execution:', error);
             toast.error('Erro ao cancelar execução');
         }

@@ -14,7 +14,7 @@ interface EntityDataTableProps<T> {
     onSort?: (columnKey: string) => void;
 }
 
-export function EntityDataTable<T extends Record<string, any>>({
+export function EntityDataTable<T extends Record<string, unknown>>({
     data,
     columns,
     loading = false,
@@ -36,8 +36,9 @@ export function EntityDataTable<T extends Record<string, any>>({
             ) : (
                 col.label
             ),
-        cell: (row: { original: T }) => {
-            return col.render ? col.render(row.original[col.key], row.original) : row.original[col.key];
+        cell: (row: { original: T }): React.ReactNode => {
+            const value = col.render ? col.render(row.original[col.key], row.original) : row.original[col.key];
+            return value as React.ReactNode;
         },
         width: col.width,
     }));
@@ -69,11 +70,11 @@ export function EntityDataTable<T extends Record<string, any>>({
         const skeletonData = Array(5)
             .fill({})
             .map((_, index) => {
-                const item: any = { id: `skeleton-${index}` };
+                const item: Record<string, unknown> = { id: `skeleton-${index}` };
                 columns.forEach((col) => {
                     item[col.key] = '...';
                 });
-                return item;
+                return item as T;
             });
 
         return <DataTable data={skeletonData} columns={dataTableColumns} columnVisibility={effectiveColumnVisibility} emptyMessage={emptyMessage} />;

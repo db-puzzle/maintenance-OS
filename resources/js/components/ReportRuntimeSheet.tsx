@@ -18,7 +18,7 @@ interface ReportRuntimeSheetProps {
     assetId?: number;
     currentRuntime: number;
     showTrigger?: boolean;
-    onSuccess?: (data: any) => void;
+    onSuccess?: (data: { current_hours: number; last_measurement?: { hours: number; datetime: string; user_name?: string; source?: string; }; user_timezone?: string; }) => void;
 }
 
 const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps>(
@@ -83,11 +83,12 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                     // Refresh the page data
                     router.reload();
                 }
-            } catch (err: any) {
-                if (err.response?.data?.errors?.measurement_datetime) {
-                    setError(err.response.data.errors.measurement_datetime[0]);
+            } catch (err: unknown) {
+                const error = err as { response?: { data?: { errors?: { measurement_datetime?: string[] }; message?: string; } } };
+                if (error.response?.data?.errors?.measurement_datetime) {
+                    setError(error.response.data.errors.measurement_datetime[0]);
                 } else {
-                    setError(err.response?.data?.message || 'Erro ao reportar horímetro');
+                    setError(error.response?.data?.message || 'Erro ao reportar horímetro');
                 }
             } finally {
                 setIsSubmitting(false);

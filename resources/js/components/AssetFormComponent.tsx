@@ -40,7 +40,7 @@ interface AssetFormComponentProps {
 
 interface AssetFormFieldsProps {
     data: AssetForm;
-    setData: (key: string, value: any) => void;
+    setData: (key: string, value: string | number | boolean | File | null | undefined) => void;
     errors: Partial<Record<string, string>>;
     clearErrors: (...fields: string[]) => void;
     plants: Plant[];
@@ -626,7 +626,7 @@ export default function AssetFormComponent({
             >
                 <AssetFormFields
                     data={data}
-                    setData={setData as (key: string, value: any) => void}
+                    setData={setData as (key: string, value: string | number | boolean | File | null | undefined) => void}
                     errors={errors as Partial<Record<string, string>>}
                     clearErrors={clearErrors as (...fields: string[]) => void}
                     plants={plants}

@@ -148,7 +148,7 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
         };
 
         // Handle successful shift update
-        const handleShiftUpdateSuccess = (updatedShift: any) => {
+        const handleShiftUpdateSuccess = (updatedShift: Shift) => {
             setIsEditSheetOpen(false);
             setSelectedShiftData(null);
 

@@ -27,8 +27,8 @@ export interface FormData {
         id: number;
         name: string;
     };
-    tasks?: any[];
-    draft_tasks?: any[];
+    tasks?: Array<{ id: number; name: string; type: string; [key: string]: unknown }>;
+    draft_tasks?: Array<{ id: number; name: string; type: string; [key: string]: unknown }>;
     last_execution?: {
         completed_at: string;
         executed_by?: {

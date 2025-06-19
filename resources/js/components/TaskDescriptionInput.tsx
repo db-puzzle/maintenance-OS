@@ -4,26 +4,22 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 
-interface FormData {
-    [key: string]: any;
-}
-
-interface TaskDescriptionInputProps<T extends FormData> {
+interface TaskDescriptionInputProps {
     mode: 'view' | 'edit';
     icon: LucideIcon;
     form?: {
-        data: T;
-        setData: (name: keyof T, value: any) => void;
-        errors: Partial<Record<keyof T, string>>;
-        clearErrors: (...fields: (keyof T)[]) => void;
+        data: Record<string, string | number | boolean | File | null | undefined>;
+        setData: (name: string, value: string | number | boolean | File | null | undefined) => void;
+        errors: Partial<Record<string, string>>;
+        clearErrors: (...fields: string[]) => void;
     };
-    name?: keyof T;
+    name?: string;
     value?: string;
     placeholder?: string;
     required?: boolean;
 }
 
-export default function TaskDescriptionInput<T extends FormData>({
+export default function TaskDescriptionInput({
     mode,
     icon: Icon,
     form,
@@ -31,7 +27,7 @@ export default function TaskDescriptionInput<T extends FormData>({
     value: propValue,
     placeholder,
     required = false,
-}: TaskDescriptionInputProps<T>) {
+}: TaskDescriptionInputProps) {
     const baseClasses = 'flex items-center gap-2';
     const textClasses = 'text-lg font-semibold flex-1 leading-none';
 
@@ -49,7 +45,7 @@ export default function TaskDescriptionInput<T extends FormData>({
     if (!form || !name) return null;
 
     const { data, setData, errors, clearErrors } = form;
-    const value = data[name] ?? '';
+    const value = String(data[name] ?? '');
 
     return (
         <div className="mr-4 flex-1">
@@ -63,7 +59,7 @@ export default function TaskDescriptionInput<T extends FormData>({
                     )}
                 >
                     <Input
-                        id={name as string}
+                        id={name}
                         type="text"
                         value={value}
                         onChange={(e) => {

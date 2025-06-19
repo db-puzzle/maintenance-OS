@@ -7,7 +7,7 @@ import { Link } from '@inertiajs/react';
 import { AlertCircle, FileText, Layers, MapPin, Package } from 'lucide-react';
 
 // Declare the global route function from Ziggy
-declare const route: (name: string, params?: any) => string;
+declare const route: (name: string, params?: string | number | Record<string, string | number>) => string;
 
 interface EntityDependenciesDialogProps {
     open: boolean;
@@ -17,7 +17,7 @@ interface EntityDependenciesDialogProps {
 }
 
 // Map dependency keys to icons and routes
-const dependencyConfig: Record<string, { icon: any; route?: string; label: string }> = {
+const dependencyConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; route?: string; label: string }> = {
     areas: { icon: MapPin, route: 'asset-hierarchy.areas.show', label: 'Áreas' },
     sectors: { icon: Layers, route: 'asset-hierarchy.setores.show', label: 'Setores' },
     assets: { icon: Package, route: 'asset-hierarchy.assets.show', label: 'Ativos' },
@@ -27,7 +27,7 @@ const dependencyConfig: Record<string, { icon: any; route?: string; label: strin
 
 export function EntityDependenciesDialog({ open, onOpenChange, entityName, dependencies }: EntityDependenciesDialogProps) {
     // Filter out dependencies with zero count
-    const activeDependencies = dependencies ? Object.entries(dependencies.dependencies).filter(([_, dep]) => (dep.count || dep.total || 0) > 0) : [];
+    const activeDependencies = dependencies ? Object.entries(dependencies.dependencies).filter(([, dep]) => (dep.count || dep.total || 0) > 0) : [];
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,7 +64,7 @@ export function EntityDependenciesDialog({ open, onOpenChange, entityName, depen
                                         <div className="rounded-lg border">
                                             {dep.items.length <= 3 ? (
                                                 <div className="space-y-1 p-2">
-                                                    {dep.items.map((item: any) => {
+                                                    {dep.items.map((item: { id: number; name?: string; tag?: string; description?: string }) => {
                                                         const content = (
                                                             <div className="flex items-center">
                                                                 <div className="flex flex-1 items-center">
@@ -94,7 +94,7 @@ export function EntityDependenciesDialog({ open, onOpenChange, entityName, depen
                                                 <>
                                                     <ScrollArea className="h-[140px]">
                                                         <div className="space-y-1 p-2">
-                                                            {dep.items.map((item: any) => {
+                                                            {dep.items.map((item: { id: number; name?: string; tag?: string; description?: string }) => {
                                                                 const content = (
                                                                     <div className="flex items-center">
                                                                         <div className="flex flex-1 items-center">

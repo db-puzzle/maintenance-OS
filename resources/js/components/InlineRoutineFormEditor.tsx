@@ -16,6 +16,8 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
+    DragStartEvent,
+    DragEndEvent,
 } from '@dnd-kit/core';
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -47,7 +49,7 @@ interface Props {
     routine: RoutineData;
     assetId: number;
     onClose?: () => void;
-    onSuccess?: (formData: any) => void;
+    onSuccess?: (formData: { published: boolean }) => void;
 }
 
 export default function InlineRoutineFormEditor({ routine, assetId, onClose, onSuccess }: Props) {
@@ -179,11 +181,11 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
         }),
     );
 
-    const handleDragStart = (event: any) => {
-        setActiveId(event.active.id);
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id.toString());
     };
 
-    const handleDragEnd = (event: any) => {
+    const handleDragEnd = (event: DragEndEvent) => {
         setActiveId(null);
         const { active, over } = event;
 

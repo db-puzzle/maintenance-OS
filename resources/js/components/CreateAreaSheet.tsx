@@ -6,7 +6,7 @@ import TextInput from '@/components/TextInput';
 import { Area } from '@/types/entities/area';
 
 interface AreaForm {
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
     name: string;
     plant_id: string;
 }

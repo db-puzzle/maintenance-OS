@@ -50,7 +50,7 @@ interface AffectedAsset {
 interface CreateShiftSheetProps {
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
-    onSuccess?: (shift: any) => void;
+    onSuccess?: (shift: { id: number; name: string; timezone?: string; schedules: Schedule[]; }) => void;
     triggerText?: string;
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
@@ -290,7 +290,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         const [showConfirmDialog, setShowConfirmDialog] = useState(false);
         const [affectedAssets, setAffectedAssets] = useState<AffectedAsset[]>([]);
 
-        const [pendingSubmitData, setPendingSubmitData] = useState<any>(null);
+        const [pendingSubmitData, setPendingSubmitData] = useState<ShiftForm & { timezone: string } | null>(null);
         const [updateMode, setUpdateMode] = useState<'all' | 'selected'>('all');
         const [selectedAssetIds, setSelectedAssetIds] = useState<number[]>([]);
 
@@ -530,7 +530,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             }
         };
 
-        const performCreate = (formattedData: any) => {
+        const performCreate = (formattedData: ShiftForm & { timezone: string }) => {
             axios
                 .post(route('asset-hierarchy.shifts.store'), formattedData, {
                     headers: {
@@ -560,7 +560,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 });
         };
 
-        const performUpdate = (formattedData: any) => {
+        const performUpdate = (formattedData: ShiftForm & { timezone: string }) => {
             axios
                 .put(route('asset-hierarchy.shifts.update', { shift: initialShift!.id }), formattedData, {
                     headers: {
@@ -593,7 +593,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 });
         };
 
-        const performCopyAndUpdate = (formattedData: any) => {
+        const performCopyAndUpdate = (formattedData: ShiftForm & { timezone: string }) => {
             const dataWithAssets = {
                 ...formattedData,
                 asset_ids: selectedAssetIds,

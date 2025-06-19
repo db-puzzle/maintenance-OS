@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 interface AreaFormData {
     name: string;
     plant_id: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
 }
 
 interface AreaFormComponentProps {

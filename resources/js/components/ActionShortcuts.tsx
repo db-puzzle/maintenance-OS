@@ -1,9 +1,10 @@
 import { router } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 
 export interface ActionItem {
     name: string;
-    icon: any;
+    icon: LucideIcon;
     isDefault?: boolean;
     comingSoon?: boolean;
     newFeature?: boolean;
@@ -13,7 +14,7 @@ export interface ActionItem {
 
 export interface PathItem {
     title: string;
-    icon: any;
+    icon: LucideIcon;
     description: string;
     href?: string;
     actions: ActionItem[];

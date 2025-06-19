@@ -1,0 +1,576 @@
+
+> lint
+> eslint . --fix
+
+
+/workspace/resources/js/components/ActionShortcuts.tsx
+   6:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/AreaFormComponent.tsx
+  15:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/AssetFormComponent.tsx
+   43:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  629:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/AssetRuntimeInput.tsx
+  20:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/AssetTypeFormComponent.tsx
+  15:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/BaseEntitySheet.tsx
+    8:72  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+   10:14  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+   41:61  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+   47:66  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+   87:8   warning  React Hook useEffect has missing dependencies: 'formConfig.initialData', 'reset', and 'setData'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  103:8   warning  React Hook useEffect has missing dependencies: 'data' and 'setData'. Either include them or remove the dependency array                              react-hooks/exhaustive-deps
+
+/workspace/resources/js/components/CreateAreaSheet.tsx
+  9:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/CreateAssetTypeSheet.tsx
+  8:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/CreateManufacturerSheet.tsx
+  10:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/CreatePlantSheet.tsx
+  15:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/CreateSectorSheet.tsx
+  10:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/CreateShiftSheet.tsx
+   53:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  293:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  533:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  563:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  596:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/EditRoutineSheet.tsx
+   15:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  120:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  182:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/InlineRoutineForm.tsx
+   37:15  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+   63:8   warning  React Hook useEffect has a missing dependency: 'initializeExecution'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  117:25  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  149:65  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  166:32  error    '_' is assigned a value but never used                                                                                  @typescript-eslint/no-unused-vars
+  229:25  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  268:25  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  297:25  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/InlineRoutineFormEditor.tsx
+   50:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  182:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  186:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/ManufacturerFormComponent.tsx
+  20:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/PhotoUploader.tsx
+  40:8  warning  React Hook useEffect has a missing dependency: 'previewUrl'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/resources/js/components/PlantFormComponent.tsx
+  20:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/ReportRuntimeSheet.tsx
+  21:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  86:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/RoutineList.tsx
+  180:12  warning  React Hook useEffect has missing dependencies: 'fetchRoutineFormData' and 'isNew'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/resources/js/components/SectorFormComponent.tsx
+  20:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/ShiftSelectionCard.tsx
+  151:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/TaskDescriptionInput.tsx
+   8:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/TaskEditorCard.tsx
+  126:8  warning  React Hook useEffect has a missing dependency: 'setData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/resources/js/components/TextInput.tsx
+  8:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  9:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/camera-capture.tsx
+  20:8   warning  React Hook useEffect has missing dependencies: 'startCamera' and 'stopCamera'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  63:23  error    Unexpected any. Specify a different type                                                                                           @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/data-table.tsx
+  44:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/form-lifecycle/FormExecutionGuard.tsx
+  13:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/form-lifecycle/FormStatusBadge.tsx
+  30:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  31:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/form-lifecycle/FormVersionHistory.tsx
+  12:54  error  '_formId' is defined but never used            @typescript-eslint/no-unused-vars
+  12:81  error  '_currentVersionId' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/resources/js/components/shared/EntityDataTable.tsx
+  17:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  72:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/shared/EntityDependenciesDialog.tsx
+  10:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  30:98  error  '_' is defined but never used             @typescript-eslint/no-unused-vars
+  67:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  97:83  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/smart-input.tsx
+  7:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  8:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/tasks/AddInstructionModal.tsx
+  67:8  warning  React Hook useEffect has a missing dependency: 'getDefaultInstructionByType'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/resources/js/components/tasks/EditInstructionModal.tsx
+  25:31  error  '_' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/resources/js/components/tasks/content/FileUploadTaskContent.tsx
+  6:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/workspace/resources/js/components/tasks/content/MeasurementTaskContent.tsx
+   12:11   error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+   19:20   error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  173:121  error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  185:137  error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  205:51   error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  215:51   error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  225:51   error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/tasks/content/PhotoTaskContent.tsx
+  5:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/workspace/resources/js/components/tasks/content/QuestionTaskContent.tsx
+  5:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/workspace/resources/js/components/tasks/content/TaskContent.tsx
+  22:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/tasks/content/withSaveFunctionality.tsx
+  11:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  14:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  15:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  32:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/components/ui/main-selection-tab.tsx
+  35:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  64:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  90:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/hooks/useEntityForm.ts
+   6:14  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                @typescript-eslint/no-explicit-any
+   8:38  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                @typescript-eslint/no-explicit-any
+  11:64  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                @typescript-eslint/no-explicit-any
+  42:8   warning  React Hook useEffect has missing dependencies: 'form', 'initialData', and 'transformEntityToForm'. Either include them or remove the dependency array. If 'transformEntityToForm' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+/workspace/resources/js/hooks/useEntityOperations.ts
+   8:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/hooks/useSorting.ts
+   5:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  12:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/layouts/asset-hierarchy/show-layout.tsx
+  49:27  error    React Hook "useSidebar" is called conditionally. React Hooks must be called in the exact same order in every component render                   react-hooks/rules-of-hooks
+  75:8   warning  React Hook useEffect has missing dependencies: 'previousSidebarOpen' and 'sidebarControls'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/resources/js/pages/asset-hierarchy/areas.tsx
+  19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/asset-hierarchy/assets.tsx
+  18:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/asset-hierarchy/assets/import.tsx
+   67:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  170:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  238:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/asset-hierarchy/assets/show.tsx
+   63:26  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+   83:29  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  106:52  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  168:41  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  180:43  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  189:43  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  232:8   warning  React Hook useEffect has a missing dependency: 'routines'. Either include it or remove the dependency array. You can also do a functional update 'setRoutines(r => ...)' if you only need 'routines' in the 'setRoutines' call  react-hooks/exhaustive-deps
+  415:25  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  445:40  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/asset-hierarchy/manufacturers.tsx
+  19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/asset-hierarchy/plantas.tsx
+  19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/asset-hierarchy/setores.tsx
+  20:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/asset-hierarchy/setores/show.tsx
+   27:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/asset-hierarchy/shifts.tsx
+   65:20  error    Unexpected any. Specify a different type                                                                                          @typescript-eslint/no-explicit-any
+  113:8   warning  React Hook useEffect has missing dependencies: 'assetCount' and 'loadAssets'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  284:44  error    Unexpected any. Specify a different type                                                                                          @typescript-eslint/no-explicit-any
+  287:50  error    Unexpected any. Specify a different type                                                                                          @typescript-eslint/no-explicit-any
+  292:51  error    Unexpected any. Specify a different type                                                                                          @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/asset-hierarchy/shifts/shift-editor.tsx
+  41:11  error  An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+
+/workspace/resources/js/pages/asset-hierarchy/tipos-ativo.tsx
+  19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/asset-hierarchy/tipos-ativo/show.tsx
+  31:50  error  'activeTab' is defined but never used     @typescript-eslint/no-unused-vars
+  71:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/pages/auth/register.tsx
+  35:8  warning  React Hook useEffect has a missing dependency: 'setData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/resources/js/pages/items/bom-config.tsx
+   23:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  176:55  error  'id' is defined but never used            @typescript-eslint/no-unused-vars
+  337:28  error  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  622:47  error  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  744:37  error  'data' is defined but never used          @typescript-eslint/no-unused-vars
+  744:43  error  'filters' is defined but never used       @typescript-eslint/no-unused-vars
+
+/workspace/resources/js/pages/maintenance/dashboard-maintenance.tsx
+  35:12  error  'selectedPath' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  35:26  error  'setSelectedPath' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/resources/js/pages/maintenance/executions/History.tsx
+  73:17   error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  75:14   error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  76:20   error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  94:69   error  'dailyTrend' is defined but never used     @typescript-eslint/no-unused-vars
+  94:101  error  'filters' is defined but never used        @typescript-eslint/no-unused-vars
+  94:110  error  'filterOptions' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/resources/js/pages/maintenance/executions/Index.tsx
+   21:46  error  Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+   54:94  error  'sortOptions' is defined but never used               @typescript-eslint/no-unused-vars
+  243:11  error  'handleSelectAll' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/resources/js/pages/maintenance/routine-dashboard.tsx
+   84:17   error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+   86:14   error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+   87:20   error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+  141:99   error  'performanceMetrics' is defined but never used            @typescript-eslint/no-unused-vars
+  141:119  error  'filters' is defined but never used                       @typescript-eslint/no-unused-vars
+  141:128  error  'filterOptions' is defined but never used                 @typescript-eslint/no-unused-vars
+  173:30   error  'setColumnVisibility' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  261:11   error  'getTrendIcon' is assigned a value but never used         @typescript-eslint/no-unused-vars
+
+/workspace/resources/js/pages/scheduler/route-editor.tsx
+   89:11  error  An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+   93:37  error  Unexpected empty object pattern                                                                                                                                                                                                                                                                                                                                                           no-empty-pattern
+  123:51  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  229:37  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  248:13  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  273:31  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  311:39  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/types/asset-hierarchy.ts
+  135:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/types/maintenance.ts
+  64:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  77:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/types/shared.ts
+  25:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/utils/download.ts
+  23:14  error  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/resources/js/utils/route.ts
+  1:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/resources/js/ziggy.js
+  1:28     error  Unnecessary escape character: \/  no-useless-escape
+  1:30     error  Unnecessary escape character: \/  no-useless-escape
+  1:97     error  Unnecessary escape character: \/  no-useless-escape
+  1:205    error  Unnecessary escape character: \/  no-useless-escape
+  1:275    error  Unnecessary escape character: \/  no-useless-escape
+  1:349    error  Unnecessary escape character: \/  no-useless-escape
+  1:416    error  Unnecessary escape character: \/  no-useless-escape
+  1:481    error  Unnecessary escape character: \/  no-useless-escape
+  1:553    error  Unnecessary escape character: \/  no-useless-escape
+  1:613    error  Unnecessary escape character: \/  no-useless-escape
+  1:928    error  Unnecessary escape character: \/  no-useless-escape
+  1:1161   error  Unnecessary escape character: \/  no-useless-escape
+  1:1167   error  Unnecessary escape character: \/  no-useless-escape
+  1:1263   error  Unnecessary escape character: \/  no-useless-escape
+  1:1515   error  Unnecessary escape character: \/  no-useless-escape
+  1:1629   error  Unnecessary escape character: \/  no-useless-escape
+  1:1638   error  Unnecessary escape character: \/  no-useless-escape
+  1:1753   error  Unnecessary escape character: \/  no-useless-escape
+  1:1863   error  Unnecessary escape character: \/  no-useless-escape
+  1:1975   error  Unnecessary escape character: \/  no-useless-escape
+  1:2051   error  Unnecessary escape character: \/  no-useless-escape
+  1:2061   error  Unnecessary escape character: \/  no-useless-escape
+  1:2128   error  Unnecessary escape character: \/  no-useless-escape
+  1:2138   error  Unnecessary escape character: \/  no-useless-escape
+  1:2215   error  Unnecessary escape character: \/  no-useless-escape
+  1:2306   error  Unnecessary escape character: \/  no-useless-escape
+  1:2314   error  Unnecessary escape character: \/  no-useless-escape
+  1:2404   error  Unnecessary escape character: \/  no-useless-escape
+  1:2489   error  Unnecessary escape character: \/  no-useless-escape
+  1:2497   error  Unnecessary escape character: \/  no-useless-escape
+  1:2598   error  Unnecessary escape character: \/  no-useless-escape
+  1:2606   error  Unnecessary escape character: \/  no-useless-escape
+  1:2616   error  Unnecessary escape character: \/  no-useless-escape
+  1:2708   error  Unnecessary escape character: \/  no-useless-escape
+  1:2716   error  Unnecessary escape character: \/  no-useless-escape
+  1:2726   error  Unnecessary escape character: \/  no-useless-escape
+  1:2819   error  Unnecessary escape character: \/  no-useless-escape
+  1:2827   error  Unnecessary escape character: \/  no-useless-escape
+  1:2837   error  Unnecessary escape character: \/  no-useless-escape
+  1:2931   error  Unnecessary escape character: \/  no-useless-escape
+  1:2939   error  Unnecessary escape character: \/  no-useless-escape
+  1:3037   error  Unnecessary escape character: \/  no-useless-escape
+  1:3045   error  Unnecessary escape character: \/  no-useless-escape
+  1:3141   error  Unnecessary escape character: \/  no-useless-escape
+  1:3149   error  Unnecessary escape character: \/  no-useless-escape
+  1:3159   error  Unnecessary escape character: \/  no-useless-escape
+  1:3278   error  Unnecessary escape character: \/  no-useless-escape
+  1:3286   error  Unnecessary escape character: \/  no-useless-escape
+  1:3399   error  Unnecessary escape character: \/  no-useless-escape
+  1:3407   error  Unnecessary escape character: \/  no-useless-escape
+  1:3416   error  Unnecessary escape character: \/  no-useless-escape
+  1:3554   error  Unnecessary escape character: \/  no-useless-escape
+  1:3562   error  Unnecessary escape character: \/  no-useless-escape
+  1:3699   error  Unnecessary escape character: \/  no-useless-escape
+  1:3707   error  Unnecessary escape character: \/  no-useless-escape
+  1:3850   error  Unnecessary escape character: \/  no-useless-escape
+  1:3858   error  Unnecessary escape character: \/  no-useless-escape
+  1:3867   error  Unnecessary escape character: \/  no-useless-escape
+  1:4003   error  Unnecessary escape character: \/  no-useless-escape
+  1:4011   error  Unnecessary escape character: \/  no-useless-escape
+  1:4020   error  Unnecessary escape character: \/  no-useless-escape
+  1:4169   error  Unnecessary escape character: \/  no-useless-escape
+  1:4177   error  Unnecessary escape character: \/  no-useless-escape
+  1:4186   error  Unnecessary escape character: \/  no-useless-escape
+  1:4330   error  Unnecessary escape character: \/  no-useless-escape
+  1:4338   error  Unnecessary escape character: \/  no-useless-escape
+  1:4347   error  Unnecessary escape character: \/  no-useless-escape
+  1:4356   error  Unnecessary escape character: \/  no-useless-escape
+  1:4518   error  Unnecessary escape character: \/  no-useless-escape
+  1:4526   error  Unnecessary escape character: \/  no-useless-escape
+  1:4535   error  Unnecessary escape character: \/  no-useless-escape
+  1:4544   error  Unnecessary escape character: \/  no-useless-escape
+  1:4708   error  Unnecessary escape character: \/  no-useless-escape
+  1:4716   error  Unnecessary escape character: \/  no-useless-escape
+  1:4725   error  Unnecessary escape character: \/  no-useless-escape
+  1:4734   error  Unnecessary escape character: \/  no-useless-escape
+  1:4871   error  Unnecessary escape character: \/  no-useless-escape
+  1:4964   error  Unnecessary escape character: \/  no-useless-escape
+  1:4973   error  Unnecessary escape character: \/  no-useless-escape
+  1:5064   error  Unnecessary escape character: \/  no-useless-escape
+  1:5149   error  Unnecessary escape character: \/  no-useless-escape
+  1:5158   error  Unnecessary escape character: \/  no-useless-escape
+  1:5298   error  Unnecessary escape character: \/  no-useless-escape
+  1:5307   error  Unnecessary escape character: \/  no-useless-escape
+  1:5316   error  Unnecessary escape character: \/  no-useless-escape
+  1:5455   error  Unnecessary escape character: \/  no-useless-escape
+  1:5464   error  Unnecessary escape character: \/  no-useless-escape
+  1:5600   error  Unnecessary escape character: \/  no-useless-escape
+  1:5609   error  Unnecessary escape character: \/  no-useless-escape
+  1:5759   error  Unnecessary escape character: \/  no-useless-escape
+  1:5768   error  Unnecessary escape character: \/  no-useless-escape
+  1:5777   error  Unnecessary escape character: \/  no-useless-escape
+  1:5921   error  Unnecessary escape character: \/  no-useless-escape
+  1:6010   error  Unnecessary escape character: \/  no-useless-escape
+  1:6017   error  Unnecessary escape character: \/  no-useless-escape
+  1:6106   error  Unnecessary escape character: \/  no-useless-escape
+  1:6187   error  Unnecessary escape character: \/  no-useless-escape
+  1:6194   error  Unnecessary escape character: \/  no-useless-escape
+  1:6329   error  Unnecessary escape character: \/  no-useless-escape
+  1:6336   error  Unnecessary escape character: \/  no-useless-escape
+  1:6344   error  Unnecessary escape character: \/  no-useless-escape
+  1:6479   error  Unnecessary escape character: \/  no-useless-escape
+  1:6486   error  Unnecessary escape character: \/  no-useless-escape
+  1:6617   error  Unnecessary escape character: \/  no-useless-escape
+  1:6624   error  Unnecessary escape character: \/  no-useless-escape
+  1:6769   error  Unnecessary escape character: \/  no-useless-escape
+  1:6776   error  Unnecessary escape character: \/  no-useless-escape
+  1:6784   error  Unnecessary escape character: \/  no-useless-escape
+  1:6928   error  Unnecessary escape character: \/  no-useless-escape
+  1:7020   error  Unnecessary escape character: \/  no-useless-escape
+  1:7105   error  Unnecessary escape character: \/  no-useless-escape
+  1:7114   error  Unnecessary escape character: \/  no-useless-escape
+  1:7256   error  Unnecessary escape character: \/  no-useless-escape
+  1:7265   error  Unnecessary escape character: \/  no-useless-escape
+  1:7401   error  Unnecessary escape character: \/  no-useless-escape
+  1:7410   error  Unnecessary escape character: \/  no-useless-escape
+  1:7560   error  Unnecessary escape character: \/  no-useless-escape
+  1:7569   error  Unnecessary escape character: \/  no-useless-escape
+  1:7578   error  Unnecessary escape character: \/  no-useless-escape
+  1:7728   error  Unnecessary escape character: \/  no-useless-escape
+  1:7829   error  Unnecessary escape character: \/  no-useless-escape
+  1:7842   error  Unnecessary escape character: \/  no-useless-escape
+  1:7937   error  Unnecessary escape character: \/  no-useless-escape
+  1:8030   error  Unnecessary escape character: \/  no-useless-escape
+  1:8043   error  Unnecessary escape character: \/  no-useless-escape
+  1:8199   error  Unnecessary escape character: \/  no-useless-escape
+  1:8212   error  Unnecessary escape character: \/  no-useless-escape
+  1:8225   error  Unnecessary escape character: \/  no-useless-escape
+  1:8376   error  Unnecessary escape character: \/  no-useless-escape
+  1:8389   error  Unnecessary escape character: \/  no-useless-escape
+  1:8541   error  Unnecessary escape character: \/  no-useless-escape
+  1:8554   error  Unnecessary escape character: \/  no-useless-escape
+  1:8720   error  Unnecessary escape character: \/  no-useless-escape
+  1:8733   error  Unnecessary escape character: \/  no-useless-escape
+  1:8746   error  Unnecessary escape character: \/  no-useless-escape
+  1:8899   error  Unnecessary escape character: \/  no-useless-escape
+  1:8996   error  Unnecessary escape character: \/  no-useless-escape
+  1:9004   error  Unnecessary escape character: \/  no-useless-escape
+  1:9100   error  Unnecessary escape character: \/  no-useless-escape
+  1:9183   error  Unnecessary escape character: \/  no-useless-escape
+  1:9191   error  Unnecessary escape character: \/  no-useless-escape
+  1:9330   error  Unnecessary escape character: \/  no-useless-escape
+  1:9338   error  Unnecessary escape character: \/  no-useless-escape
+  1:9347   error  Unnecessary escape character: \/  no-useless-escape
+  1:9485   error  Unnecessary escape character: \/  no-useless-escape
+  1:9493   error  Unnecessary escape character: \/  no-useless-escape
+  1:9628   error  Unnecessary escape character: \/  no-useless-escape
+  1:9636   error  Unnecessary escape character: \/  no-useless-escape
+  1:9785   error  Unnecessary escape character: \/  no-useless-escape
+  1:9793   error  Unnecessary escape character: \/  no-useless-escape
+  1:9802   error  Unnecessary escape character: \/  no-useless-escape
+  1:9954   error  Unnecessary escape character: \/  no-useless-escape
+  1:9962   error  Unnecessary escape character: \/  no-useless-escape
+  1:9971   error  Unnecessary escape character: \/  no-useless-escape
+  1:10120  error  Unnecessary escape character: \/  no-useless-escape
+  1:10128  error  Unnecessary escape character: \/  no-useless-escape
+  1:10137  error  Unnecessary escape character: \/  no-useless-escape
+  1:10280  error  Unnecessary escape character: \/  no-useless-escape
+  1:10382  error  Unnecessary escape character: \/  no-useless-escape
+  1:10397  error  Unnecessary escape character: \/  no-useless-escape
+  1:10491  error  Unnecessary escape character: \/  no-useless-escape
+  1:10588  error  Unnecessary escape character: \/  no-useless-escape
+  1:10603  error  Unnecessary escape character: \/  no-useless-escape
+  1:10770  error  Unnecessary escape character: \/  no-useless-escape
+  1:10785  error  Unnecessary escape character: \/  no-useless-escape
+  1:10801  error  Unnecessary escape character: \/  no-useless-escape
+  1:10960  error  Unnecessary escape character: \/  no-useless-escape
+  1:10975  error  Unnecessary escape character: \/  no-useless-escape
+  1:11138  error  Unnecessary escape character: \/  no-useless-escape
+  1:11153  error  Unnecessary escape character: \/  no-useless-escape
+  1:11318  error  Unnecessary escape character: \/  no-useless-escape
+  1:11333  error  Unnecessary escape character: \/  no-useless-escape
+  1:11349  error  Unnecessary escape character: \/  no-useless-escape
+  1:11491  error  Unnecessary escape character: \/  no-useless-escape
+  1:11578  error  Unnecessary escape character: \/  no-useless-escape
+  1:11665  error  Unnecessary escape character: \/  no-useless-escape
+  1:11675  error  Unnecessary escape character: \/  no-useless-escape
+  1:11759  error  Unnecessary escape character: \/  no-useless-escape
+  1:11838  error  Unnecessary escape character: \/  no-useless-escape
+  1:11848  error  Unnecessary escape character: \/  no-useless-escape
+  1:11987  error  Unnecessary escape character: \/  no-useless-escape
+  1:11997  error  Unnecessary escape character: \/  no-useless-escape
+  1:12008  error  Unnecessary escape character: \/  no-useless-escape
+  1:12144  error  Unnecessary escape character: \/  no-useless-escape
+  1:12154  error  Unnecessary escape character: \/  no-useless-escape
+  1:12289  error  Unnecessary escape character: \/  no-useless-escape
+  1:12299  error  Unnecessary escape character: \/  no-useless-escape
+  1:12446  error  Unnecessary escape character: \/  no-useless-escape
+  1:12456  error  Unnecessary escape character: \/  no-useless-escape
+  1:12467  error  Unnecessary escape character: \/  no-useless-escape
+  1:12607  error  Unnecessary escape character: \/  no-useless-escape
+  1:12617  error  Unnecessary escape character: \/  no-useless-escape
+  1:12628  error  Unnecessary escape character: \/  no-useless-escape
+  1:12775  error  Unnecessary escape character: \/  no-useless-escape
+  1:12785  error  Unnecessary escape character: \/  no-useless-escape
+  1:12796  error  Unnecessary escape character: \/  no-useless-escape
+  1:12944  error  Unnecessary escape character: \/  no-useless-escape
+  1:12954  error  Unnecessary escape character: \/  no-useless-escape
+  1:12965  error  Unnecessary escape character: \/  no-useless-escape
+  1:13102  error  Unnecessary escape character: \/  no-useless-escape
+  1:13110  error  Unnecessary escape character: \/  no-useless-escape
+  1:13119  error  Unnecessary escape character: \/  no-useless-escape
+  1:13261  error  Unnecessary escape character: \/  no-useless-escape
+  1:13269  error  Unnecessary escape character: \/  no-useless-escape
+  1:13278  error  Unnecessary escape character: \/  no-useless-escape
+  1:13415  error  Unnecessary escape character: \/  no-useless-escape
+  1:13423  error  Unnecessary escape character: \/  no-useless-escape
+  1:13432  error  Unnecessary escape character: \/  no-useless-escape
+  1:13442  error  Unnecessary escape character: \/  no-useless-escape
+  1:13605  error  Unnecessary escape character: \/  no-useless-escape
+  1:13613  error  Unnecessary escape character: \/  no-useless-escape
+  1:13622  error  Unnecessary escape character: \/  no-useless-escape
+  1:13632  error  Unnecessary escape character: \/  no-useless-escape
+  1:13802  error  Unnecessary escape character: \/  no-useless-escape
+  1:13810  error  Unnecessary escape character: \/  no-useless-escape
+  1:13819  error  Unnecessary escape character: \/  no-useless-escape
+  1:13829  error  Unnecessary escape character: \/  no-useless-escape
+  1:13840  error  Unnecessary escape character: \/  no-useless-escape
+  1:14016  error  Unnecessary escape character: \/  no-useless-escape
+  1:14024  error  Unnecessary escape character: \/  no-useless-escape
+  1:14033  error  Unnecessary escape character: \/  no-useless-escape
+  1:14043  error  Unnecessary escape character: \/  no-useless-escape
+  1:14054  error  Unnecessary escape character: \/  no-useless-escape
+  1:14211  error  Unnecessary escape character: \/  no-useless-escape
+  1:14219  error  Unnecessary escape character: \/  no-useless-escape
+  1:14228  error  Unnecessary escape character: \/  no-useless-escape
+  1:14238  error  Unnecessary escape character: \/  no-useless-escape
+  1:14249  error  Unnecessary escape character: \/  no-useless-escape
+  1:14416  error  Unnecessary escape character: \/  no-useless-escape
+  1:14424  error  Unnecessary escape character: \/  no-useless-escape
+  1:14433  error  Unnecessary escape character: \/  no-useless-escape
+  1:14443  error  Unnecessary escape character: \/  no-useless-escape
+  1:14454  error  Unnecessary escape character: \/  no-useless-escape
+  1:14626  error  Unnecessary escape character: \/  no-useless-escape
+  1:14634  error  Unnecessary escape character: \/  no-useless-escape
+  1:14643  error  Unnecessary escape character: \/  no-useless-escape
+  1:14653  error  Unnecessary escape character: \/  no-useless-escape
+  1:14664  error  Unnecessary escape character: \/  no-useless-escape
+  1:14837  error  Unnecessary escape character: \/  no-useless-escape
+  1:14845  error  Unnecessary escape character: \/  no-useless-escape
+  1:14854  error  Unnecessary escape character: \/  no-useless-escape
+  1:14864  error  Unnecessary escape character: \/  no-useless-escape
+  1:14875  error  Unnecessary escape character: \/  no-useless-escape
+  1:15055  error  Unnecessary escape character: \/  no-useless-escape
+  1:15063  error  Unnecessary escape character: \/  no-useless-escape
+  1:15072  error  Unnecessary escape character: \/  no-useless-escape
+  1:15082  error  Unnecessary escape character: \/  no-useless-escape
+  1:15093  error  Unnecessary escape character: \/  no-useless-escape
+  1:15243  error  Unnecessary escape character: \/  no-useless-escape
+  1:15317  error  Unnecessary escape character: \/  no-useless-escape
+  1:15388  error  Unnecessary escape character: \/  no-useless-escape
+
+✖ 421 problems (408 errors, 13 warnings)
+

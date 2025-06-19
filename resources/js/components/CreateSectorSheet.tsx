@@ -7,7 +7,7 @@ import { type Plant } from '@/types/asset-hierarchy';
 import { Sector } from '@/types/entities/sector';
 
 interface SectorForm {
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
     name: string;
     area_id: string;
 }

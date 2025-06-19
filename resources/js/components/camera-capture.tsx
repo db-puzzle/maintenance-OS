@@ -60,20 +60,21 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                     videoRef.current.srcObject = basicStream;
                 }
             }
-        } catch (err: any) {
-            console.error('Erro detalhado da câmera:', err);
+        } catch (err: unknown) {
+            const error = err as { name?: string; message?: string };
+            console.error('Erro detalhado da câmera:', error);
 
             // Mensagens de erro mais específicas
-            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
                 setError('Acesso à câmera negado. Por favor, permita o acesso à câmera nas configurações do seu navegador.');
-            } else if (err.name === 'NotFoundError') {
+            } else if (error.name === 'NotFoundError') {
                 setError('Nenhuma câmera encontrada no dispositivo.');
-            } else if (err.name === 'NotReadableError' || err.name === 'AbortError') {
+            } else if (error.name === 'NotReadableError' || error.name === 'AbortError') {
                 setError('Não foi possível acessar a câmera. Ela pode estar sendo usada por outro aplicativo.');
-            } else if (err.message.includes('HTTPS')) {
+            } else if (error.message?.includes('HTTPS')) {
                 setError('A câmera só pode ser acessada em conexões seguras (HTTPS).');
             } else {
-                setError(`Não foi possível acessar a câmera. ${err.message || 'Verifique as permissões.'}`);
+                setError(`Não foi possível acessar a câmera. ${error.message || 'Verifique as permissões.'}`);
             }
         } finally {
             setIsLoading(false);

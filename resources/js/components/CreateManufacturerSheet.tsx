@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Manufacturer } from '@/types/entities/manufacturer';
 
 interface ManufacturerForm {
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
     name: string;
     website: string;
     email: string;

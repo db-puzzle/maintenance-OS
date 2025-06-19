@@ -5,9 +5,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
-export interface BaseEntitySheetProps<TFormData extends Record<string, any>> {
+export interface BaseEntitySheetProps<TFormData extends Record<string, unknown>> {
     // Entity data for edit mode
-    entity?: any;
+    entity?: unknown;
     // Sheet state
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -38,13 +38,13 @@ export interface BaseEntitySheetProps<TFormData extends Record<string, any>> {
     // Children render prop for form fields
     children: (props: {
         data: TFormData;
-        setData: (key: keyof TFormData | TFormData, value?: any) => void;
+        setData: (key: keyof TFormData | TFormData, value?: unknown) => void;
         errors: Partial<Record<keyof TFormData, string>>;
         processing: boolean;
     }) => React.ReactNode;
 }
 
-export function BaseEntitySheet<TFormData extends Record<string, any>>({
+export function BaseEntitySheet<TFormData extends Record<string, unknown>>({
     entity,
     open: controlledOpen,
     onOpenChange,
@@ -72,7 +72,7 @@ export function BaseEntitySheet<TFormData extends Record<string, any>>({
         if (isEditMode && entity) {
             // Allow parent to transform entity data to form data
             const entityData = Object.keys(formConfig.initialData).reduce((acc, key) => {
-                acc[key as keyof TFormData] = entity[key] ?? formConfig.initialData[key as keyof TFormData];
+                acc[key as keyof TFormData] = (entity as Record<string, unknown>)[key] ?? formConfig.initialData[key as keyof TFormData];
                 return acc;
             }, {} as TFormData);
 
@@ -115,7 +115,7 @@ export function BaseEntitySheet<TFormData extends Record<string, any>>({
             : `Erro ao criar ${formConfig.entityName.toLowerCase()}`;
 
         if (isEditMode && formConfig.updateRoute) {
-            put(route(formConfig.updateRoute, entity.id), {
+            put(route(formConfig.updateRoute, (entity as Record<string, unknown>).id), {
                 ...submitData,
                 onSuccess: () => {
                     toast.success(successMessage);

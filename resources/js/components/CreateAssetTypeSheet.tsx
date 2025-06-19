@@ -5,7 +5,7 @@ import TextInput from '@/components/TextInput';
 import { AssetType } from '@/types/entities/asset-type';
 
 interface AssetTypeForm {
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
     name: string;
     description: string;
 }

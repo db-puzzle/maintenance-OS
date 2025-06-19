@@ -17,7 +17,7 @@ interface PlantFormData {
     state: string;
     zip_code: string;
     gps_coordinates: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
 }
 
 interface PlantFormComponentProps {

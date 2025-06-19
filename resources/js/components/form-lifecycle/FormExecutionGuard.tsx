@@ -10,7 +10,7 @@ interface FormExecutionGuardProps {
     onExecute: (versionId: number) => void;
     onPublishAndExecute?: () => void;
     onEditForm?: () => void;
-    children: React.ReactElement<any>;
+    children: React.ReactElement;
 }
 
 export default function FormExecutionGuard({ form, onExecute, onPublishAndExecute, onEditForm, children }: FormExecutionGuardProps) {
@@ -64,7 +64,7 @@ export default function FormExecutionGuard({ form, onExecute, onPublishAndExecut
     // Clone the child element and add onClick handler
     const childWithHandler = React.cloneElement(children, {
         onClick: handleClick,
-        disabled: state === 'unpublished' || children.props.disabled,
+        disabled: state === 'unpublished' || (children.props as { disabled?: boolean }).disabled,
     });
 
     return (

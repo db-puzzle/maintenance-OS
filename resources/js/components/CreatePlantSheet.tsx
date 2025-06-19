@@ -12,7 +12,7 @@ import { estados } from '@/data/estados';
 import { Plant as ImportedPlant } from '@/types/entities/plant';
 
 interface PlantForm {
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
     name: string;
     street: string;
     number: string;

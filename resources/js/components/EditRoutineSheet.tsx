@@ -12,7 +12,7 @@ import { FileText, Save, X } from 'lucide-react';
 import { Routine } from './RoutineList';
 
 interface RoutineForm {
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
     name: string;
     trigger_hours: number;
     status: 'Active' | 'Inactive';
@@ -117,7 +117,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                     setSheetOpen(false);
                     // Backend will redirect to routines tab with newRoutineId
                 },
-                onError: (errors: any) => {
+                onError: (errors: Record<string, string>) => {
                     console.error('Erro ao criar rotina:', errors);
                     if (errors.name) setErrors((prev) => ({ ...prev, name: errors.name }));
                     if (errors.trigger_hours) setErrors((prev) => ({ ...prev, trigger_hours: errors.trigger_hours }));
@@ -140,14 +140,14 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             }
 
             router.put(route('maintenance.assets.routines.update', { asset: assetId, routine: routine.id }), data, {
-                onSuccess: (response: any) => {
-                    const savedRoutine: Routine = response.props?.routine || { ...routine, ...data };
+                onSuccess: (response) => {
+                    const savedRoutine: Routine = { ...routine, ...data };
                     toast.success('Rotina atualizada com sucesso!');
                     setProcessing(false);
                     setSheetOpen(false);
                     onSuccess?.(savedRoutine);
                 },
-                onError: (errors: any) => {
+                onError: (errors: Record<string, string>) => {
                     console.error('Erro ao atualizar rotina:', errors);
                     if (errors.name) setErrors((prev) => ({ ...prev, name: errors.name }));
                     if (errors.trigger_hours) setErrors((prev) => ({ ...prev, trigger_hours: errors.trigger_hours }));
@@ -179,7 +179,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
         setSheetOpen(false);
     };
 
-    const updateData = (key: keyof RoutineForm, value: any) => {
+    const updateData = (key: keyof RoutineForm, value: string | number | boolean | null | undefined) => {
         setData((prev) => ({ ...prev, [key]: value }));
         // Limpar erro do campo quando ele é alterado
         if (errors[key]) {

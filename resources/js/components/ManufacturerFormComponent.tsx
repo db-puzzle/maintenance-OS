@@ -17,7 +17,7 @@ interface ManufacturerFormData {
     phone: string;
     country: string;
     notes: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
 }
 
 interface ManufacturerData {

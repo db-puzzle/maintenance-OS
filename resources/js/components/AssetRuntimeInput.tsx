@@ -17,7 +17,7 @@ interface RuntimeData {
 interface AssetRuntimeInputProps {
     assetId?: number;
     runtimeData?: RuntimeData;
-    onRuntimeUpdated?: (data: any) => void;
+    onRuntimeUpdated?: (data: RuntimeData) => void;
 }
 
 export default function AssetRuntimeInput({ assetId, runtimeData, onRuntimeUpdated }: AssetRuntimeInputProps) {

@@ -11,15 +11,15 @@ export interface Column<T> {
     width?: string;
 }
 
-interface DataTableProps<T> {
-    data: T[];
-    columns: Column<T>[];
+interface DataTableProps<TData> {
+    columns: Column<TData>[];
+    data: TData[];
     columnVisibility: Record<string, boolean>;
-    onRowClick?: (row: T) => void;
+    onRowClick?: (row: TData) => void;
     emptyMessage?: string;
 }
 
-export function DataTable<T>({ data, columns, columnVisibility, onRowClick, emptyMessage = 'Nenhum registro encontrado.' }: DataTableProps<T>) {
+export function DataTable<TData>({ data, columns, columnVisibility, onRowClick, emptyMessage = 'Nenhum registro encontrado.' }: DataTableProps<TData>) {
     // Memoize the filtered columns to prevent unnecessary re-renders
     const visibleColumns = React.useMemo(() => {
         return columns.filter((column) => column.id === 'actions' || columnVisibility[column.id]);
@@ -41,7 +41,7 @@ export function DataTable<T>({ data, columns, columnVisibility, onRowClick, empt
                     {data.length ? (
                         data.map((row) => (
                             <TableRow
-                                key={(row as any).id}
+                                key={(row as { id: string | number }).id}
                                 className="hover:bg-muted/50 cursor-pointer transition-colors"
                                 onClick={() => onRowClick?.(row)}
                             >

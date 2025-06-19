@@ -17,7 +17,7 @@ interface SectorFormData {
     description: string;
     plant_id: string;
     area_id: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
 }
 
 interface SectorFormComponentProps {
