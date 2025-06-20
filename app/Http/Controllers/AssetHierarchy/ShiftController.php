@@ -19,20 +19,81 @@ class ShiftController extends Controller
 
     public function index(Request $request)
     {
+        $search = $request->input('search', '');
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        $perPage = $request->input('per_page', 10);
+
         $query = Shift::with(['schedules.shiftTimes.breaks', 'assets']);
 
-        // For now, since there's no direct plant-shift relationship in the database,
-        // we'll return all shifts. In the future, you might want to add a pivot table
-        // or modify the database schema to support plant-specific shifts.
-        $plantId = $request->input('plant_id');
-        if ($plantId) {
-            // If you want to filter by plant in the future, you can add logic here
-            // For now, we'll return all available shifts
+        // Search
+        if ($search) {
+            $query->where('name', 'like', "%{$search}%");
         }
 
-        $shifts = $query->get();
+        // Sorting
+        $query->orderBy($sort, $direction);
 
-        $formattedShifts = $shifts->map(function ($shift) {
+        // For JSON requests without pagination params, return all shifts
+        if (($request->wantsJson() || $request->input('format') === 'json') && 
+            !$request->has('page') && 
+            !$request->has('per_page')) {
+            
+            $shifts = $query->get();
+            
+            $formattedShifts = $shifts->map(function ($shift) {
+                $schedules = $shift->schedules->map(function ($schedule) {
+                    return [
+                        'weekday' => $schedule->weekday,
+                        'shifts' => $schedule->shiftTimes->map(function ($shiftTime) {
+                            return [
+                                'start_time' => $shiftTime->start_time,
+                                'end_time' => $shiftTime->end_time,
+                                'active' => $shiftTime->active,
+                                'breaks' => $shiftTime->breaks->map(function ($break) {
+                                    return [
+                                        'start_time' => $break->start_time,
+                                        'end_time' => $break->end_time,
+                                    ];
+                                })->toArray(),
+                            ];
+                        })->toArray(),
+                    ];
+                })->toArray();
+
+                $totals = $this->calculateShiftTotals($schedules);
+
+                // Count relationships through assets
+                $assets = $shift->assets;
+                $plantIds = $assets->pluck('plant_id')->unique()->filter();
+                $areaIds = $assets->pluck('area_id')->unique()->filter();
+                $sectorIds = $assets->pluck('sector_id')->unique()->filter();
+
+                return [
+                    'id' => $shift->id,
+                    'name' => $shift->name,
+                    'timezone' => $shift->timezone,
+                    'plant_count' => $plantIds->count(),
+                    'area_count' => $areaIds->count(),
+                    'sector_count' => $sectorIds->count(),
+                    'asset_count' => $assets->count(),
+                    'total_work_hours' => $totals['work_hours'],
+                    'total_work_minutes' => $totals['work_minutes'],
+                    'total_break_hours' => $totals['break_hours'],
+                    'total_break_minutes' => $totals['break_minutes'],
+                    'schedules' => $schedules,
+                ];
+            });
+
+            return response()->json([
+                'shifts' => $formattedShifts->toArray(),
+            ]);
+        }
+
+        // Get paginated results
+        $shiftsPaginated = $query->paginate($perPage);
+
+        $formattedShifts = $shiftsPaginated->map(function ($shift) {
             $schedules = $shift->schedules->map(function ($schedule) {
                 return [
                     'weekday' => $schedule->weekday,
@@ -54,28 +115,52 @@ class ShiftController extends Controller
 
             $totals = $this->calculateShiftTotals($schedules);
 
+            // Count relationships through assets
+            $assets = $shift->assets;
+            $plantIds = $assets->pluck('plant_id')->unique()->filter();
+            $areaIds = $assets->pluck('area_id')->unique()->filter();
+            $sectorIds = $assets->pluck('sector_id')->unique()->filter();
+
             return [
                 'id' => $shift->id,
                 'name' => $shift->name,
-                'asset_count' => $shift->assets->count(),
+                'timezone' => $shift->timezone,
+                'plant_count' => $plantIds->count(),
+                'area_count' => $areaIds->count(),
+                'sector_count' => $sectorIds->count(),
+                'asset_count' => $assets->count(),
                 'total_work_hours' => $totals['work_hours'],
                 'total_work_minutes' => $totals['work_minutes'],
                 'total_break_hours' => $totals['break_hours'],
                 'total_break_minutes' => $totals['break_minutes'],
                 'schedules' => $schedules,
             ];
-        })->toArray();
+        });
+
+        $data = [
+            'shifts' => [
+                'data' => $formattedShifts->toArray(),
+                'current_page' => $shiftsPaginated->currentPage(),
+                'last_page' => $shiftsPaginated->lastPage(),
+                'per_page' => $shiftsPaginated->perPage(),
+                'total' => $shiftsPaginated->total(),
+                'from' => $shiftsPaginated->firstItem(),
+                'to' => $shiftsPaginated->lastItem(),
+            ],
+            'filters' => [
+                'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
+                'per_page' => $perPage,
+            ],
+        ];
 
         // Return JSON for AJAX requests
         if ($request->wantsJson() || $request->input('format') === 'json') {
-            return response()->json([
-                'shifts' => $formattedShifts,
-            ]);
+            return response()->json($data);
         }
 
-        return Inertia::render('asset-hierarchy/shifts', [
-            'shifts' => $formattedShifts,
-        ]);
+        return Inertia::render('asset-hierarchy/shifts/index', $data);
     }
 
     public function create()
@@ -300,12 +385,52 @@ class ShiftController extends Controller
 
     public function show(Request $request, Shift $shift)
     {
-        $shift->load(['schedules.shiftTimes.breaks', 'assets']);
+        $shift->load(['schedules.shiftTimes.breaks', 'assets.assetType']);
+
+        // Assets pagination
+        $assetsSort = $request->input('assets_sort', 'tag');
+        $assetsDirection = $request->input('assets_direction', 'asc');
+        $assetsPage = $request->input('assets_page', 1);
+        $activeTab = $request->input('tab', 'informacoes');
+
+        $assetsQuery = $shift->assets()
+            ->with(['assetType', 'plant', 'area', 'sector'])
+            ->orderBy($assetsSort, $assetsDirection);
+        
+        $assetsPaginated = $assetsQuery->paginate(10, ['*'], 'assets_page', $assetsPage);
+
+        $formattedAssets = $assetsPaginated->map(function ($asset) {
+            return [
+                'id' => $asset->id,
+                'tag' => $asset->tag,
+                'description' => $asset->description,
+                'asset_type' => $asset->assetType ? [
+                    'id' => $asset->assetType->id,
+                    'name' => $asset->assetType->name,
+                ] : null,
+                'manufacturer' => $asset->manufacturer,
+                'serial_number' => $asset->serial_number,
+                'plant' => $asset->plant ? $asset->plant->name : null,
+                'area' => $asset->area ? $asset->area->name : null,
+                'sector' => $asset->sector ? $asset->sector->name : null,
+                'current_runtime_hours' => $asset->current_runtime_hours ?? 0,
+            ];
+        });
+
+        // Count relationships through assets
+        $assets = $shift->assets;
+        $plantIds = $assets->pluck('plant_id')->unique()->filter();
+        $areaIds = $assets->pluck('area_id')->unique()->filter();
+        $sectorIds = $assets->pluck('sector_id')->unique()->filter();
 
         $formattedShift = [
             'id' => $shift->id,
             'name' => $shift->name,
-            'asset_count' => $shift->assets->count(),
+            'timezone' => $shift->timezone,
+            'plant_count' => $plantIds->count(),
+            'area_count' => $areaIds->count(),
+            'sector_count' => $sectorIds->count(),
+            'asset_count' => $assets->count(),
             'schedules' => $shift->schedules->map(function ($schedule) {
                 return [
                     'weekday' => $schedule->weekday,
@@ -326,6 +451,14 @@ class ShiftController extends Controller
             })->toArray(),
         ];
 
+        $totals = $this->calculateShiftTotals($formattedShift['schedules']);
+        $formattedShift = array_merge($formattedShift, [
+            'total_work_hours' => $totals['work_hours'],
+            'total_work_minutes' => $totals['work_minutes'],
+            'total_break_hours' => $totals['break_hours'],
+            'total_break_minutes' => $totals['break_minutes'],
+        ]);
+
         // Return JSON for AJAX requests
         if ($request->wantsJson() || $request->input('format') === 'json') {
             return response()->json([
@@ -333,8 +466,22 @@ class ShiftController extends Controller
             ]);
         }
 
-        return Inertia::render('Cadastro/Shifts/Show', [
+        return Inertia::render('asset-hierarchy/shifts/show', [
             'shift' => $formattedShift,
+            'assets' => [
+                'data' => $formattedAssets->toArray(),
+                'current_page' => $assetsPaginated->currentPage(),
+                'last_page' => $assetsPaginated->lastPage(),
+                'per_page' => $assetsPaginated->perPage(),
+                'total' => $assetsPaginated->total(),
+            ],
+            'activeTab' => $activeTab,
+            'filters' => [
+                'assets' => [
+                    'sort' => $assetsSort,
+                    'direction' => $assetsDirection,
+                ],
+            ],
         ]);
     }
 
@@ -498,7 +645,27 @@ class ShiftController extends Controller
 
     public function destroy(Shift $shift)
     {
+        // Check if shift has assets
+        if ($shift->assets()->count() > 0) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este turno não pode ser excluído porque possui ativos associados.',
+                ], 422);
+            }
+            
+            return redirect()->route('asset-hierarchy.shifts')
+                ->with('error', 'Este turno não pode ser excluído porque possui ativos associados.');
+        }
+
         $shift->delete();
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Turno excluído com sucesso!',
+            ]);
+        }
 
         return redirect()->route('asset-hierarchy.shifts')
             ->with('success', 'Turno removido com sucesso!');
@@ -509,26 +676,50 @@ class ShiftController extends Controller
         // Verificar se há entidades associadas ao turno
         $assetCount = $shift->assets()->count();
 
+        $dependencies = [];
+        $hasDependencies = false;
+
+        if ($assetCount > 0) {
+            $hasDependencies = true;
+            $dependencies['assets'] = [
+                'count' => $assetCount,
+                'message' => "Este turno está associado a {$assetCount} ativo(s)",
+                'items' => $shift->assets()
+                    ->limit(5)
+                    ->select('id', 'tag', 'description')
+                    ->get()
+                    ->map(function ($asset) {
+                        return [
+                            'id' => $asset->id,
+                            'name' => $asset->tag,
+                            'description' => $asset->description,
+                        ];
+                    }),
+            ];
+        }
+
+        // Return JSON for AJAX requests
+        if (request()->wantsJson()) {
+            return response()->json([
+                'hasDependencies' => $hasDependencies,
+                'dependencies' => $dependencies,
+                'message' => $hasDependencies 
+                    ? 'Este turno possui dependências e não pode ser excluído.'
+                    : 'Este turno pode ser excluído com segurança.',
+            ]);
+        }
+
         // Se não há dependências, redirecionar para confirmação de exclusão
-        if ($assetCount === 0) {
+        if (!$hasDependencies) {
             return redirect()->route('asset-hierarchy.shifts')
                 ->with('info', "O turno {$shift->name} pode ser excluído com segurança.");
         }
 
         // Se há dependências, mostrar página com detalhes das dependências
-        $dependencies = [];
-
-        if ($assetCount > 0) {
-            $dependencies['assets'] = [
-                'total' => $assetCount,
-                'message' => 'Este turno está associado a ativos',
-            ];
-        }
-
         return Inertia::render('asset-hierarchy/shifts/dependencies', [
             'shift' => $shift,
             'dependencies' => $dependencies,
-            'hasDependencies' => true,
+            'hasDependencies' => $hasDependencies,
         ]);
     }
 
@@ -618,25 +809,35 @@ class ShiftController extends Controller
      */
     public function getAssets(Request $request, Shift $shift)
     {
-        $assets = $shift->assets()
-            ->with(['assetType', 'plant', 'area', 'sector'])
-            ->get()
-            ->map(function ($asset) {
-                return [
-                    'id' => $asset->id,
-                    'tag' => $asset->tag,
-                    'description' => $asset->description,
-                    'asset_type' => $asset->assetType ? $asset->assetType->name : null,
-                    'plant' => $asset->plant ? $asset->plant->name : null,
-                    'area' => $asset->area ? $asset->area->name : null,
-                    'sector' => $asset->sector ? $asset->sector->name : null,
-                    'current_runtime_hours' => $asset->current_runtime_hours,
-                ];
-            });
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+
+        $assetsQuery = $shift->assets()
+            ->with(['assetType', 'plant', 'area', 'sector']);
+
+        $assetsPaginated = $assetsQuery->paginate($perPage, ['*'], 'page', $page);
+
+        $assets = $assetsPaginated->map(function ($asset) {
+            return [
+                'id' => $asset->id,
+                'tag' => $asset->tag,
+                'description' => $asset->description,
+                'asset_type' => $asset->assetType ? $asset->assetType->name : null,
+                'plant' => $asset->plant ? $asset->plant->name : null,
+                'area' => $asset->area ? $asset->area->name : null,
+                'sector' => $asset->sector ? $asset->sector->name : null,
+                'current_runtime_hours' => $asset->current_runtime_hours,
+            ];
+        });
 
         return response()->json([
             'assets' => $assets,
-            'total' => $assets->count(),
+            'total' => $assetsPaginated->total(),
+            'current_page' => $assetsPaginated->currentPage(),
+            'last_page' => $assetsPaginated->lastPage(),
+            'per_page' => $assetsPaginated->perPage(),
+            'from' => $assetsPaginated->firstItem(),
+            'to' => $assetsPaginated->lastItem(),
         ]);
     }
 

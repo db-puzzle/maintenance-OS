@@ -1,5 +1,7 @@
 import ShiftCalendarView from '@/components/ShiftCalendarView';
 import ShiftTableView from '@/components/ShiftTableView';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
@@ -13,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
+import { ColumnConfig, PaginationMeta } from '@/types/shared';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { AlertTriangle, ArrowUpDown, Calendar, ChevronDownIcon, ChevronUpIcon, Clock, List, MoreVertical, Plus, Settings } from 'lucide-react';
@@ -50,7 +53,7 @@ interface ShiftData {
     total_break_minutes?: number;
 }
 
-interface AssetData {
+interface AssetData extends Record<string, unknown> {
     id: number;
     tag: string;
     description: string;
@@ -105,12 +108,29 @@ const breadcrumbs: BreadcrumbItem[] = [
 const AssetsList = ({ shiftId, assetCount }: { shiftId: number; assetCount: number }) => {
     const [assets, setAssets] = useState<AssetData[]>([]);
     const [loading, setLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
 
-    const loadAssets = useCallback(async () => {
+    const loadAssets = useCallback(async (page: number = 1, itemsPerPage: number = 10) => {
         setLoading(true);
         try {
-            const response = await axios.get(route('asset-hierarchy.shifts.assets', shiftId));
+            const response = await axios.get(route('asset-hierarchy.shifts.assets', shiftId), {
+                params: {
+                    page,
+                    per_page: itemsPerPage,
+                },
+            });
             setAssets(response.data.assets || []);
+            // Create pagination meta from response
+            setPagination({
+                current_page: response.data.current_page || page,
+                last_page: response.data.last_page || 1,
+                per_page: response.data.per_page || itemsPerPage,
+                total: response.data.total || 0,
+                from: response.data.from || null,
+                to: response.data.to || null,
+            });
         } catch (error) {
             console.error('Error loading assets:', error);
             toast.error('Erro ao carregar ativos');
@@ -121,48 +141,91 @@ const AssetsList = ({ shiftId, assetCount }: { shiftId: number; assetCount: numb
 
     useEffect(() => {
         if (assetCount > 0) {
-            loadAssets();
+            loadAssets(currentPage, perPage);
         }
-    }, [assetCount, loadAssets]);
+    }, [assetCount, currentPage, perPage, loadAssets]);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const handlePerPageChange = (newPerPage: number) => {
+        setPerPage(newPerPage);
+        setCurrentPage(1); // Reset to first page when changing items per page
+    };
+
+    const columns: ColumnConfig[] = [
+        {
+            key: 'tag',
+            label: 'Tag',
+            sortable: false,
+            width: 'w-[150px]',
+            render: (value, row) => (
+                <Link href={route('asset-hierarchy.assets.show', (row as AssetData).id)} className="text-primary hover:underline">
+                    {(row as AssetData).tag}
+                </Link>
+            ),
+        },
+        {
+            key: 'description',
+            label: 'Descrição',
+            sortable: false,
+            width: 'w-[250px]',
+            render: (value) => (value as string) || '-',
+        },
+        {
+            key: 'asset_type',
+            label: 'Tipo',
+            sortable: false,
+            width: 'w-[150px]',
+            render: (value) => (value as string) || '-',
+        },
+        {
+            key: 'location',
+            label: 'Localização',
+            sortable: false,
+            width: 'w-[250px]',
+            render: (value, row) => {
+                const asset = row as AssetData;
+                return [asset.plant, asset.area, asset.sector].filter(Boolean).join(' > ') || '-';
+            },
+        },
+        {
+            key: 'current_runtime_hours',
+            label: 'Horímetro',
+            sortable: false,
+            width: 'w-[120px]',
+            render: (value) => {
+                const numValue = typeof value === 'number' ? value : parseFloat(value as string);
+                return isNaN(numValue) ? '0.0h' : `${numValue.toFixed(1)}h`;
+            },
+        },
+    ];
 
     return (
-        <div className="p-4">
-            <h4 className="mb-4 font-medium">Ativos Associados</h4>
-            {loading ? (
+        <div className="space-y-4">
+            {assetCount === 0 ? (
                 <div className="flex items-center justify-center py-8">
-                    <div className="text-muted-foreground">Carregando ativos...</div>
+                    <p className="text-muted-foreground">Nenhum ativo associado a este turno.</p>
                 </div>
-            ) : assetCount === 0 ? (
-                <p className="text-muted-foreground">Nenhum ativo associado a este turno.</p>
             ) : (
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Tag</TableHead>
-                                <TableHead>Descrição</TableHead>
-                                <TableHead>Tipo</TableHead>
-                                <TableHead>Localização</TableHead>
-                                <TableHead className="text-right">Horímetro</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {assets.map((asset) => (
-                                <TableRow key={asset.id}>
-                                    <TableCell className="font-medium">
-                                        <Link href={route('asset-hierarchy.assets.show', asset.id)} className="text-primary hover:underline">
-                                            {asset.tag}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell>{asset.description || '-'}</TableCell>
-                                    <TableCell>{asset.asset_type || '-'}</TableCell>
-                                    <TableCell>{[asset.plant, asset.area, asset.sector].filter(Boolean).join(' > ') || '-'}</TableCell>
-                                    <TableCell className="text-right">{asset.current_runtime_hours.toFixed(1)}h</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                <>
+                    <EntityDataTable
+                        data={assets}
+                        columns={columns}
+                        loading={loading}
+                        onRowClick={(asset) => router.visit(route('asset-hierarchy.assets.show', (asset as AssetData).id))}
+                        emptyMessage="Nenhum ativo encontrado."
+                    />
+                    {pagination && pagination.last_page > 1 && (
+                        <EntityPagination
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            onPerPageChange={handlePerPageChange}
+                            perPageOptions={[10, 20, 30, 50]}
+                        />
+                    )}
+                </>
             )}
         </div>
     );
@@ -504,13 +567,13 @@ export default function Index({
                                                         </div>
                                                         <TabsContent value="calendar">
                                                             <ShiftCalendarView
-                                                                schedules={transformSchedules(shift.schedules as Record<string, unknown>[])}
+                                                                schedules={transformSchedules(shift.schedules as unknown as Record<string, unknown>[])}
                                                                 showAllDays={true}
                                                             />
                                                         </TabsContent>
                                                         <TabsContent value="table">
                                                             <ShiftTableView
-                                                                schedules={transformSchedules(shift.schedules as Record<string, unknown>[])}
+                                                                schedules={transformSchedules(shift.schedules as unknown as Record<string, unknown>[])}
                                                             />
                                                         </TabsContent>
                                                         <TabsContent value="asset">

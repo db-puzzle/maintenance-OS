@@ -39,7 +39,7 @@ class ManufacturerController extends Controller
 
         $manufacturers = $query->paginate($perPage)->withQueryString();
 
-        return Inertia::render('asset-hierarchy/manufacturers', [
+        return Inertia::render('asset-hierarchy/manufacturers/index', [
             'manufacturers' => $manufacturers,
             'filters' => [
                 'search' => $search,

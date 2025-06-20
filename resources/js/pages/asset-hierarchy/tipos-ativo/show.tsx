@@ -1,12 +1,12 @@
 import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
+import { ColumnConfig } from '@/types/shared';
 import { router } from '@inertiajs/react';
 import { Cog, Settings } from 'lucide-react';
 
 import AssetTypeFormComponent from '@/components/AssetTypeFormComponent';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 
@@ -79,88 +79,58 @@ export default function Show({ assetType, asset }: Props) {
             id: 'ativos',
             label: 'Ativos',
             content: (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Ativos</CardTitle>
-                        <CardDescription>Lista de ativos deste tipo</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {asset.data.length > 0 ? (
-                            <div className="rounded-md">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="h-12">TAG</TableHead>
-                                            <TableHead className="h-12">Área</TableHead>
-                                            <TableHead className="h-12">Fabricante</TableHead>
-                                            <TableHead className="h-12">Ano</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {asset.data.map((asset) => (
-                                            <TableRow
-                                                key={asset.id}
-                                                className="hover:bg-muted/50 h-12 cursor-pointer"
-                                                onClick={() => router.get(route('asset-hierarchy.assets.show', asset.id))}
-                                            >
-                                                <TableCell>
-                                                    <div className="font-medium">{asset.tag}</div>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">{asset.area?.name ?? '-'}</TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturer?.name ?? '-'}</TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturing_year ?? '-'}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        ) : (
-                            <div className="text-muted-foreground py-6 text-center text-sm">Nenhum ativo cadastrado deste tipo.</div>
-                        )}
-                        <div className="mt-4 flex justify-center">
-                            <Pagination>
-                                <PaginationContent>
-                                    <PaginationItem>
-                                        <PaginationPrevious
-                                            href={route('asset-hierarchy.tipos-ativo.show', {
-                                                assetType: assetType.id,
-                                                asset_page: asset.current_page - 1,
-                                                tab: 'ativos',
-                                            })}
-                                            className={asset.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
-                                        />
-                                    </PaginationItem>
+                <div className="mt-6 space-y-4">
+                    <EntityDataTable
+                        data={asset.data as Record<string, unknown>[]}
+                        columns={[
+                            {
+                                key: 'tag',
+                                label: 'TAG',
+                                sortable: false,
+                                width: 'w-[25%]',
+                                render: (value, row) => <div className="font-medium">{(row as any).tag}</div>,
+                            },
+                            {
+                                key: 'area',
+                                label: 'Área',
+                                sortable: false,
+                                width: 'w-[25%]',
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).area?.name ?? '-'}</span>,
+                            },
+                            {
+                                key: 'manufacturer',
+                                label: 'Fabricante',
+                                sortable: false,
+                                width: 'w-[25%]',
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).manufacturer?.name ?? '-'}</span>,
+                            },
+                            {
+                                key: 'manufacturing_year',
+                                label: 'Ano',
+                                sortable: false,
+                                width: 'w-[25%]',
+                                render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
+                            },
+                        ]}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as any).id))}
+                    />
 
-                                    {Array.from({ length: asset.last_page }, (_, i) => i + 1).map((page) => (
-                                        <PaginationItem key={`asset-pagination-${page}`}>
-                                            <PaginationLink
-                                                href={route('asset-hierarchy.tipos-ativo.show', {
-                                                    assetType: assetType.id,
-                                                    asset_page: page,
-                                                    tab: 'ativos',
-                                                })}
-                                                isActive={page === asset.current_page}
-                                            >
-                                                {page}
-                                            </PaginationLink>
-                                        </PaginationItem>
-                                    ))}
-
-                                    <PaginationItem>
-                                        <PaginationNext
-                                            href={route('asset-hierarchy.tipos-ativo.show', {
-                                                assetType: assetType.id,
-                                                asset_page: asset.current_page + 1,
-                                                tab: 'ativos',
-                                            })}
-                                            className={asset.current_page === asset.last_page ? 'pointer-events-none opacity-50' : ''}
-                                        />
-                                    </PaginationItem>
-                                </PaginationContent>
-                            </Pagination>
-                        </div>
-                    </CardContent>
-                </Card>
+                    <EntityPagination
+                        pagination={{
+                            current_page: asset.current_page,
+                            last_page: asset.last_page,
+                            per_page: asset.per_page,
+                            total: asset.total,
+                            from: asset.current_page > 0 ? (asset.current_page - 1) * asset.per_page + 1 : null,
+                            to: asset.current_page > 0 ? Math.min(asset.current_page * asset.per_page, asset.total) : null,
+                        }}
+                        onPageChange={(page) => router.get(route('asset-hierarchy.tipos-ativo.show', {
+                            assetType: assetType.id,
+                            asset_page: page,
+                            tab: 'ativos',
+                        }))}
+                    />
+                </div>
             ),
         },
     ];

@@ -15,21 +15,6 @@ class Shift extends Model
 
     protected $appends = ['asset_count'];
 
-    public function plants(): HasMany
-    {
-        return $this->hasMany(Plant::class);
-    }
-
-    public function areas(): HasMany
-    {
-        return $this->hasMany(Area::class);
-    }
-
-    public function sectors(): HasMany
-    {
-        return $this->hasMany(Sector::class);
-    }
-
     public function schedules(): HasMany
     {
         return $this->hasMany(ShiftSchedule::class);

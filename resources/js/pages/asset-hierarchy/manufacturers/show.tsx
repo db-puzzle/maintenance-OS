@@ -1,11 +1,11 @@
 import ManufacturerFormComponent from '@/components/ManufacturerFormComponent';
-import EmptyCard from '@/components/ui/empty-card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
+import { ColumnConfig } from '@/types/shared';
 import { Head, Link, router } from '@inertiajs/react';
-import { Package } from 'lucide-react';
 
 interface AssetData {
     id: number;
@@ -13,10 +13,14 @@ interface AssetData {
     description: string;
     serial_number: string | null;
     part_number: string | null;
-    asset_type: string | null;
-    plant: string | null;
-    area: string | null;
-    sector: string | null;
+    asset_type: string | null | { id: number; name: string };
+    plant: string | null | { id: number; name: string };
+    area: string | null | { id: number; name: string };
+    sector: string | null | { id: number; name: string };
+    manufacturer: string | null;
+    manufacturing_year: number | null;
+    area_name?: string;
+    sector_name?: string | null;
 }
 
 interface ManufacturerData {
@@ -28,14 +32,61 @@ interface ManufacturerData {
     country?: string | null;
     notes?: string | null;
     assets_count?: number;
-    assets?: AssetData[];
+    assets?: AssetData[]; // For backward compatibility
 }
 
 interface Props {
     manufacturer: ManufacturerData;
+    assets?: {
+        data: AssetData[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+    activeTab?: string;
+    filters?: {
+        assets: {
+            sort: string;
+            direction: string;
+        };
+    };
 }
 
-export default function Show({ manufacturer }: Props) {
+export default function Show({ manufacturer, assets, activeTab = 'informacoes', filters = { assets: { sort: 'tag', direction: 'asc' } } }: Props) {
+    // Handle backward compatibility - if assets is not provided, use the old structure
+    const assetsData = assets || {
+        data: manufacturer.assets || [],
+        current_page: 1,
+        last_page: 1,
+        per_page: manufacturer.assets?.length || 0,
+        total: manufacturer.assets?.length || 0,
+    };
+
+    // Helper function to extract name from string or object
+    const getNameFromValue = (value: string | null | { id: number; name: string }): string => {
+        if (!value) return '-';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'object' && 'name' in value) return value.name;
+        return '-';
+    };
+
+    const handleSort = (column: string) => {
+        const direction = filters.assets.sort === column && filters.assets.direction === 'asc' ? 'desc' : 'asc';
+
+        router.get(
+            route('asset-hierarchy.manufacturers.show', {
+                manufacturer: manufacturer.id,
+                tab: activeTab,
+                assets_sort: column,
+                assets_direction: direction,
+                assets_page: 1,
+            }),
+            {},
+            { preserveState: true },
+        );
+    };
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Home',
@@ -67,48 +118,91 @@ export default function Show({ manufacturer }: Props) {
         },
         {
             id: 'ativos',
-            label: 'Ativos Associados',
+            label: 'Ativos',
             content: (
-                <div className="p-6">
-                    {manufacturer.assets_count === 0 ? (
-                        <EmptyCard
-                            icon={Package}
-                            title="Nenhum ativo associado"
-                            description="Este fabricante ainda não possui ativos associados."
-                            primaryButtonText="Ver todos os ativos"
-                            primaryButtonAction={() => router.visit(route('asset-hierarchy.assets'))}
+                <div className="mt-4 space-y-4">
+                    <EntityDataTable
+                        data={assetsData.data.map(asset => ({
+                            ...asset,
+                            // Ensure backward compatibility - transform old structure to new
+                            asset_type: typeof asset.asset_type === 'object' ? asset.asset_type : { name: asset.asset_type },
+                            area_name: asset.area_name || getNameFromValue(asset.area),
+                            sector_name: asset.sector_name || getNameFromValue(asset.sector),
+                        })) as unknown as Record<string, unknown>[]}
+                        columns={[
+                            {
+                                key: 'tag',
+                                label: 'TAG',
+                                sortable: true,
+                                width: 'w-[300px]',
+                                render: (value, row) => <div className="font-medium">{(row as any).tag}</div>,
+                            },
+                            {
+                                key: 'asset_type_name',
+                                label: 'Tipo',
+                                sortable: true,
+                                width: 'w-[200px]',
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).asset_type?.name ?? '-'}</span>,
+                            },
+                            {
+                                key: 'location',
+                                label: 'Localização',
+                                sortable: true,
+                                width: 'w-[250px]',
+                                render: (value, row) => {
+                                    const item = row as any;
+                                    return (
+                                        <span className="text-muted-foreground text-sm">
+                                            {item.area_name}
+                                            {item.sector_name && ` / ${item.sector_name}`}
+                                        </span>
+                                    );
+                                },
+                            },
+                            {
+                                key: 'serial_number',
+                                label: 'Número Serial',
+                                sortable: true,
+                                width: 'w-[200px]',
+                                render: (value) => <span className="text-muted-foreground text-sm">{value as string ?? '-'}</span>,
+                            },
+                            {
+                                key: 'manufacturing_year',
+                                label: 'Ano',
+                                sortable: true,
+                                width: 'w-[100px]',
+                                render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
+                            },
+                        ]}
+                        onRowClick={(row) => router.get(route('asset-hierarchy.assets.show', (row as any).id))}
+                        onSort={(columnKey) => {
+                            const columnMap: Record<string, string> = {
+                                asset_type_name: 'type',
+                                location: 'location',
+                                manufacturing_year: 'year',
+                            };
+                            handleSort(columnMap[columnKey] || columnKey);
+                        }}
+                    />
+
+                    {assetsData.last_page > 1 && (
+                        <EntityPagination
+                            pagination={{
+                                current_page: assetsData.current_page,
+                                last_page: assetsData.last_page,
+                                per_page: assetsData.per_page,
+                                total: assetsData.total,
+                                from: assetsData.current_page > 0 ? (assetsData.current_page - 1) * assetsData.per_page + 1 : null,
+                                to: assetsData.current_page > 0 ? Math.min(assetsData.current_page * assetsData.per_page, assetsData.total) : null,
+                            }}
+                            onPageChange={(page) => router.get(route('asset-hierarchy.manufacturers.show', {
+                                manufacturer: manufacturer.id,
+                                assets_page: page,
+                                tab: 'ativos',
+                                assets_sort: filters.assets.sort,
+                                assets_direction: filters.assets.direction,
+                            }))}
                         />
-                    ) : (
-                        <div className="rounded-md border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Tag</TableHead>
-                                        <TableHead>Descrição</TableHead>
-                                        <TableHead>Número Serial</TableHead>
-                                        <TableHead>Part Number</TableHead>
-                                        <TableHead>Tipo</TableHead>
-                                        <TableHead>Localização</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {manufacturer.assets?.map((asset) => (
-                                        <TableRow key={asset.id}>
-                                            <TableCell className="font-medium">
-                                                <Link href={route('asset-hierarchy.assets.show', asset.id)} className="text-primary hover:underline">
-                                                    {asset.tag}
-                                                </Link>
-                                            </TableCell>
-                                            <TableCell>{asset.description || '-'}</TableCell>
-                                            <TableCell>{asset.serial_number || '-'}</TableCell>
-                                            <TableCell>{asset.part_number || '-'}</TableCell>
-                                            <TableCell>{asset.asset_type || '-'}</TableCell>
-                                            <TableCell>{[asset.plant, asset.area, asset.sector].filter(Boolean).join(' > ') || '-'}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
                     )}
                 </div>
             ),
@@ -121,10 +215,10 @@ export default function Show({ manufacturer }: Props) {
 
             <ShowLayout
                 title={manufacturer.name}
-                subtitle={`${manufacturer.assets_count || 0} ativo(s) associado(s)`}
+                subtitle={`${assetsData.total || 0} ativo(s) associado(s)`}
                 editRoute=""
                 tabs={tabs}
-                defaultActiveTab="informacoes"
+                defaultActiveTab={activeTab}
             />
         </AppLayout>
     );

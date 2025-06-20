@@ -17,6 +17,8 @@ This document outlines a comprehensive permission system for a maintenance manag
 ### Key Requirements
 - First user to sign up becomes the Super Administrator
 - Super Administrators can grant super administrator privileges to other users
+- New users can only be added by invitation from system administrators
+- Invitations are sent via email with secure, time-limited tokens
 - Permissions can be scoped to specific resources (e.g., create assets in Plant A but not Plant B)
 - Role-based access control (RBAC) using Laravel's authorization features
 - Permission inheritance and hierarchical structure
@@ -32,6 +34,9 @@ This document outlines a comprehensive permission system for a maintenance manag
 - **Eloquent Relationships**: For permission associations
 - **Form Requests**: For authorization in request validation
 - **Spatie Laravel-Permission Package**: For enhanced permission management
+- **Laravel Notifications**: For invitation emails
+- **Signed URLs**: For secure invitation links
+- **Inertia.js**: For seamless React integration with Laravel backend
 
 ## Core Concepts
 
@@ -62,6 +67,14 @@ This document outlines a comprehensive permission system for a maintenance manag
 - Extends Spatie's permission model with scope metadata
 - Stored as JSON in permission's metadata column
 - Evaluated through custom Gate callbacks
+
+### 6. User Invitations (Laravel Notifications & Signed URLs)
+- Only system administrators can invite new users
+- Invitations are sent via Laravel Notifications (email)
+- Each invitation contains a signed URL with expiration
+- Invitations can specify initial role assignment
+- Audit trail for all invitations (sent, accepted, expired)
+- Ability to revoke pending invitations
 
 ## Laravel Integration Strategy
 
@@ -112,7 +125,115 @@ class Permission extends SpatiePermission
 }
 ```
 
-### 3. Laravel Authorization Integration
+### 3. User Invitation Model
+```php
+// app/Models/UserInvitation.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+
+class UserInvitation extends Model
+{
+    protected $fillable = [
+        'email',
+        'token',
+        'invited_by',
+        'initial_role',
+        'initial_permissions',
+        'expires_at',
+        'accepted_at',
+        'accepted_by',
+        'revoked_at',
+        'revoked_by',
+        'revocation_reason'
+    ];
+
+    protected $casts = [
+        'initial_permissions' => 'array',
+        'expires_at' => 'datetime',
+        'accepted_at' => 'datetime',
+        'revoked_at' => 'datetime'
+    ];
+
+    protected static function booted()
+    {
+        static::creating(function ($invitation) {
+            $invitation->token = Str::random(64);
+            $invitation->expires_at = Carbon::now()->addDays(7);
+        });
+    }
+
+    public function invitedBy()
+    {
+        return $this->belongsTo(User::class, 'invited_by');
+    }
+
+    public function acceptedBy()
+    {
+        return $this->belongsTo(User::class, 'accepted_by');
+    }
+
+    public function isValid()
+    {
+        return !$this->accepted_at 
+            && !$this->revoked_at 
+            && $this->expires_at->isFuture();
+    }
+
+    public function generateSignedUrl()
+    {
+        return URL::temporarySignedRoute(
+            'invitations.accept',
+            $this->expires_at,
+            ['token' => $this->token]
+        );
+    }
+}
+```
+
+### 4. Invitation Notification
+```php
+// app/Notifications/UserInvitation.php
+namespace App\Notifications;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+use App\Models\UserInvitation as InvitationModel;
+
+class UserInvitation extends Notification implements ShouldQueue
+{
+    use Queueable;
+
+    protected $invitation;
+
+    public function __construct(InvitationModel $invitation)
+    {
+        $this->invitation = $invitation;
+    }
+
+    public function via($notifiable)
+    {
+        return ['mail'];
+    }
+
+    public function toMail($notifiable)
+    {
+        return (new MailMessage)
+            ->subject('Invitation to join ' . config('app.name'))
+            ->greeting('Hello!')
+            ->line('You have been invited to join our maintenance management system by ' . $this->invitation->invitedBy->name . '.')
+            ->action('Accept Invitation', $this->invitation->generateSignedUrl())
+            ->line('This invitation will expire on ' . $this->invitation->expires_at->format('F j, Y at g:i A') . '.')
+            ->line('If you did not expect to receive this invitation, you can safely ignore this email.');
+    }
+}
+```
+
+### 5. Laravel Authorization Integration
 ```php
 // app/Providers/AuthServiceProvider.php
 public function boot()
@@ -181,6 +302,25 @@ class AddPermissionFields extends Migration
             $table->timestamp('revoked_at')->nullable();
             $table->foreignId('revoked_by')->nullable()->constrained('users');
             $table->index(['granted_to', 'revoked_at']);
+        });
+        
+        // User invitations
+        Schema::create('user_invitations', function (Blueprint $table) {
+            $table->id();
+            $table->string('email')->index();
+            $table->string('token', 64)->unique();
+            $table->foreignId('invited_by')->constrained('users');
+            $table->string('initial_role')->nullable();
+            $table->json('initial_permissions')->nullable();
+            $table->timestamp('expires_at');
+            $table->timestamp('accepted_at')->nullable();
+            $table->foreignId('accepted_by')->nullable()->constrained('users');
+            $table->timestamp('revoked_at')->nullable();
+            $table->foreignId('revoked_by')->nullable()->constrained('users');
+            $table->string('revocation_reason')->nullable();
+            $table->timestamps();
+            $table->index(['email', 'expires_at']);
+            $table->index('expires_at');
         });
     }
 }
@@ -318,7 +458,66 @@ class PermissionServiceProvider extends ServiceProvider
 }
 ```
 
-### 2. Middleware Implementation
+### 2. Inertia.js Middleware Configuration
+
+```php
+// app/Http/Middleware/HandleInertiaRequests.php
+namespace App\Http\Middleware;
+
+use Illuminate\Http\Request;
+use Inertia\Middleware;
+
+class HandleInertiaRequests extends Middleware
+{
+    /**
+     * The root template that is loaded on the first page visit.
+     *
+     * @var string
+     */
+    protected $rootView = 'app';
+
+    /**
+     * Determine the current asset version.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return string|null
+     */
+    public function version(Request $request)
+    {
+        return parent::version($request);
+    }
+
+    /**
+     * Define the props that are shared by default.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
+    public function share(Request $request)
+    {
+        return array_merge(parent::share($request), [
+            'auth' => [
+                'user' => $request->user() ? [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'is_super_admin' => $request->user()->is_super_admin,
+                ] : null,
+                'permissions' => $request->user() ? $request->user()->getAllPermissions()->pluck('name') : [],
+                'roles' => $request->user() ? $request->user()->getRoleNames() : [],
+            ],
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+                'warning' => $request->session()->get('warning'),
+                'info' => $request->session()->get('info'),
+            ],
+        ]);
+    }
+}
+```
+
+### 3. Middleware Implementation
 
 ```php
 // app/Http/Middleware/CheckPermission.php
@@ -350,7 +549,51 @@ class CheckPermission
 }
 ```
 
-### 3. Form Request Authorization
+### 4. Disable Public Registration
+
+```php
+// app/Providers/RouteServiceProvider.php
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+
+class RouteServiceProvider extends ServiceProvider
+{
+    public function boot()
+    {
+        // Disable registration routes except for first user
+        Route::macro('authWithConditionalRegistration', function () {
+            // Check if any users exist
+            $hasUsers = \App\Models\User::exists();
+            
+            if (!$hasUsers) {
+                // Allow registration for first user only
+                Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+                Route::post('register', [RegisterController::class, 'register']);
+            }
+            
+            // Always allow login and other auth routes
+            Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+            Route::post('login', [LoginController::class, 'login']);
+            Route::post('logout', [LoginController::class, 'logout'])->name('logout');
+            
+            // Invitation routes (public)
+            Route::get('invitations/{token}', [UserInvitationController::class, 'show'])->name('invitations.show');
+            Route::post('invitations/{token}/accept', [UserInvitationController::class, 'accept'])->name('invitations.accept');
+        });
+    }
+}
+
+// routes/web.php
+Route::authWithConditionalRegistration();
+
+// routes/auth.php (Laravel Breeze/Jetstream)
+// Comment out or remove the registration routes
+// Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+// Route::post('/register', [RegisteredUserController::class, 'store']);
+```
+
+### 4. Form Request Authorization
 
 ```php
 // app/Http/Requests/StoreAssetRequest.php
@@ -380,7 +623,7 @@ class StoreAssetRequest extends FormRequest
 }
 ```
 
-### 4. Controller Implementation
+### 5. Controller Implementation
 
 ```php
 // app/Http/Controllers/AssetController.php
@@ -390,6 +633,7 @@ use App\Models\Asset;
 use App\Models\Plant;
 use App\Http\Requests\StoreAssetRequest;
 use App\Http\Requests\UpdateAssetRequest;
+use Inertia\Inertia;
 
 class AssetController extends Controller
 {
@@ -410,13 +654,21 @@ class AssetController extends Controller
             })
             ->paginate();
             
-        return view('assets.index', compact('assets'));
+        return Inertia::render('Assets/Index', [
+            'assets' => $assets,
+            'can' => [
+                'createAsset' => $request->user()->can('create', Asset::class)
+            ]
+        ]);
     }
     
     public function create(Plant $plant = null)
     {
         // Authorization handled by policy
-        return view('assets.create', compact('plant'));
+        return Inertia::render('Assets/Create', [
+            'plant' => $plant,
+            'plants' => $plant ? [$plant] : Plant::all()
+        ]);
     }
     
     public function store(StoreAssetRequest $request)
@@ -430,203 +682,544 @@ class AssetController extends Controller
 }
 ```
 
-### 5. Blade Directives
+### 6. React Components with Inertia.js
 
-```blade
-{{-- resources/views/assets/index.blade.php --}}
-@extends('layouts.app')
+```tsx
+// resources/js/Pages/Assets/Index.tsx
+import React from 'react';
+import { Link, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
-@section('content')
-    <div class="container">
-        @can('create', App\Models\Asset::class)
-            <a href="{{ route('assets.create') }}" class="btn btn-primary">
-                Create New Asset
-            </a>
-        @endcan
-        
-        @canany(['assets.create.global', 'assets.create.plant.' . $currentPlant->id])
-            <a href="{{ route('assets.create', $currentPlant) }}" class="btn btn-secondary">
-                Create Asset in {{ $currentPlant->name }}
-            </a>
-        @endcanany
-        
-        <table class="table">
-            @foreach($assets as $asset)
-                <tr>
-                    <td>{{ $asset->name }}</td>
-                    <td>
-                        @can('view', $asset)
-                            <a href="{{ route('assets.show', $asset) }}">View</a>
-                        @endcan
-                        
-                        @can('update', $asset)
-                            <a href="{{ route('assets.edit', $asset) }}">Edit</a>
-                        @endcan
-                        
-                        @can('delete', $asset)
-                            <form action="{{ route('assets.destroy', $asset) }}" method="POST">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit">Delete</button>
-                            </form>
-                        @endcan
-                    </td>
-                </tr>
-            @endforeach
-        </table>
-    </div>
-@endsection
-```
-
-### 6. Event-Based Audit Logging
-
-```php
-// app/Observers/UserPermissionObserver.php
-namespace App\Observers;
-
-use App\Models\User;
-use App\Events\PermissionChanged;
-
-class UserPermissionObserver
-{
-    public function updated(User $user)
-    {
-        if ($user->wasChanged('is_super_admin')) {
-            event(new PermissionChanged($user, 'super_admin_status_changed', [
-                'old' => $user->getOriginal('is_super_admin'),
-                'new' => $user->is_super_admin
-            ]));
-        }
-    }
+interface Asset {
+    id: number;
+    name: string;
+    serial_number: string;
+    plant_id: number;
+    can: {
+        view: boolean;
+        update: boolean;
+        delete: boolean;
+    };
 }
 
-// app/Listeners/LogPermissionChange.php
-namespace App\Listeners;
-
-use App\Events\PermissionChanged;
-use App\Models\PermissionAuditLog;
-
-class LogPermissionChange
-{
-    public function handle(PermissionChanged $event)
-    {
-        PermissionAuditLog::create([
-            'event_type' => get_class($event),
-            'auditable_type' => get_class($event->model),
-            'auditable_id' => $event->model->id,
-            'user_id' => auth()->id() ?? $event->model->id,
-            'old_values' => $event->oldValues,
-            'new_values' => $event->newValues,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent()
-        ]);
-    }
+interface Props {
+    assets: {
+        data: Asset[];
+        links: any;
+    };
+    can: {
+        createAsset: boolean;
+    };
 }
-```
 
-### 7. Seeder for Default Roles
+export default function AssetsIndex({ assets, can }: Props) {
+    const { auth } = usePage().props;
+    const currentPlant = usePage().props.currentPlant;
 
-```php
-// database/seeders/RolePermissionSeeder.php
-namespace Database\Seeders;
-
-use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
-use App\Models\User;
-
-class RolePermissionSeeder extends Seeder
-{
-    public function run()
-    {
-        // Reset cached roles and permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-        
-        // Create permissions using Laravel conventions
-        $permissions = [
-            // Asset permissions
-            ['name' => 'assets.viewAny', 'resource' => 'asset', 'action' => 'viewAny'],
-            ['name' => 'assets.view', 'resource' => 'asset', 'action' => 'view'],
-            ['name' => 'assets.create', 'resource' => 'asset', 'action' => 'create'],
-            ['name' => 'assets.update', 'resource' => 'asset', 'action' => 'update'],
-            ['name' => 'assets.delete', 'resource' => 'asset', 'action' => 'delete'],
-            
-            // Work order permissions
-            ['name' => 'work-orders.viewAny', 'resource' => 'work_order', 'action' => 'viewAny'],
-            ['name' => 'work-orders.view', 'resource' => 'work_order', 'action' => 'view'],
-            ['name' => 'work-orders.create', 'resource' => 'work_order', 'action' => 'create'],
-            ['name' => 'work-orders.update', 'resource' => 'work_order', 'action' => 'update'],
-            ['name' => 'work-orders.delete', 'resource' => 'work_order', 'action' => 'delete'],
-            
-            // User management
-            ['name' => 'users.manage', 'resource' => 'user', 'action' => 'manage'],
-            ['name' => 'roles.manage', 'resource' => 'role', 'action' => 'manage'],
-        ];
-        
-        foreach ($permissions as $permission) {
-            Permission::create($permission);
+    const handleDelete = (asset: Asset) => {
+        if (confirm('Are you sure you want to delete this asset?')) {
+            router.delete(route('assets.destroy', asset.id));
         }
-        
-        // Create roles
-        $adminRole = Role::create(['name' => 'administrator', 'is_system' => true]);
-        $plantManagerRole = Role::create(['name' => 'plant_manager', 'is_system' => true]);
-        $technicianRole = Role::create(['name' => 'technician', 'is_system' => true]);
-        $viewerRole = Role::create(['name' => 'viewer', 'is_system' => true]);
-        
-        // Assign permissions to roles
-        $adminRole->givePermissionTo(Permission::all());
-        
-        $plantManagerRole->givePermissionTo([
-            'assets.viewAny', 'assets.view', 'assets.create', 'assets.update',
-            'work-orders.viewAny', 'work-orders.view', 'work-orders.create', 'work-orders.update'
-        ]);
-        
-        $technicianRole->givePermissionTo([
-            'assets.view',
-            'work-orders.view', 'work-orders.update'
-        ]);
-        
-        $viewerRole->givePermissionTo([
-            'assets.viewAny', 'assets.view',
-            'work-orders.viewAny', 'work-orders.view'
-        ]);
-        
-        // Make first user super admin if exists
-        $firstUser = User::first();
-        if ($firstUser && !$firstUser->is_super_admin) {
-            $firstUser->update(['is_super_admin' => true]);
-        }
-    }
+    };
+
+    return (
+        <AuthenticatedLayout
+            header={<h2 className="font-semibold text-xl">Assets</h2>}
+        >
+            <div className="container mx-auto py-6">
+                {can.createAsset && (
+                    <Link
+                        href={route('assets.create')}
+                        className="btn btn-primary mb-4"
+                    >
+                        Create New Asset
+                    </Link>
+                )}
+                
+                {currentPlant && auth.permissions?.includes(`assets.create.plant.${currentPlant.id}`) && (
+                    <Link
+                        href={route('assets.create', { plant: currentPlant.id })}
+                        className="btn btn-secondary mb-4 ml-2"
+                    >
+                        Create Asset in {currentPlant.name}
+                    </Link>
+                )}
+                
+                <table className="table w-full">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Serial Number</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {assets.data.map((asset) => (
+                            <tr key={asset.id}>
+                                <td>{asset.name}</td>
+                                <td>{asset.serial_number}</td>
+                                <td className="space-x-2">
+                                    {asset.can.view && (
+                                        <Link
+                                            href={route('assets.show', asset.id)}
+                                            className="text-blue-600 hover:underline"
+                                        >
+                                            View
+                                        </Link>
+                                    )}
+                                    
+                                    {asset.can.update && (
+                                        <Link
+                                            href={route('assets.edit', asset.id)}
+                                            className="text-green-600 hover:underline"
+                                        >
+                                            Edit
+                                        </Link>
+                                    )}
+                                    
+                                    {asset.can.delete && (
+                                        <button
+                                            onClick={() => handleDelete(asset)}
+                                            className="text-red-600 hover:underline"
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                
+                {/* Pagination component would go here */}
+            </div>
+        </AuthenticatedLayout>
+    );
 }
 ```
 
-### 8. API Resources with Authorization
+```tsx
+// resources/js/Hooks/usePermissions.ts
+import { usePage } from '@inertiajs/react';
+
+export function usePermissions() {
+    const { auth } = usePage().props;
+    
+    const can = (permission: string, model?: any): boolean => {
+        if (auth.user?.is_super_admin) {
+            return true;
+        }
+        
+        // Check direct permissions
+        if (auth.permissions?.includes(permission)) {
+            return true;
+        }
+        
+        // Check scoped permissions if model provided
+        if (model && model.id) {
+            const scopedPermission = `${permission}.${model.constructor.name.toLowerCase()}.${model.id}`;
+            return auth.permissions?.includes(scopedPermission) || false;
+        }
+        
+        return false;
+    };
+    
+    const canAny = (permissions: string[]): boolean => {
+        return permissions.some(permission => can(permission));
+    };
+    
+    return { can, canAny };
+}
+```
+
+```tsx
+// resources/js/Components/PermissionGuard.tsx
+import React from 'react';
+import { usePermissions } from '@/Hooks/usePermissions';
+
+interface Props {
+    permission: string | string[];
+    fallback?: React.ReactNode;
+    children: React.ReactNode;
+}
+
+export default function PermissionGuard({ permission, fallback = null, children }: Props) {
+    const { can, canAny } = usePermissions();
+    
+    const hasPermission = Array.isArray(permission) 
+        ? canAny(permission)
+        : can(permission);
+    
+    return hasPermission ? <>{children}</> : <>{fallback}</>;
+}
+
+// Usage example:
+// <PermissionGuard permission="assets.create">
+//     <CreateAssetButton />
+// </PermissionGuard>
+```
+
+### 6.1 Invitation Management React Components
+
+```tsx
+// resources/js/Pages/Invitations/Index.tsx
+import React from 'react';
+import { Link, router } from '@inertiajs/react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import PermissionGuard from '@/Components/PermissionGuard';
+import { format } from 'date-fns';
+
+interface Invitation {
+    id: number;
+    email: string;
+    invited_by: {
+        id: number;
+        name: string;
+    };
+    accepted_at: string | null;
+    revoked_at: string | null;
+    expires_at: string;
+    is_valid: boolean;
+    can: {
+        revoke: boolean;
+    };
+}
+
+interface Props {
+    invitations: {
+        data: Invitation[];
+        links: any;
+    };
+}
+
+export default function InvitationsIndex({ invitations }: Props) {
+    const handleRevoke = (invitation: Invitation) => {
+        if (confirm('Are you sure you want to revoke this invitation?')) {
+            router.post(route('invitations.revoke', invitation.id));
+        }
+    };
+
+    const handleResend = (invitation: Invitation) => {
+        router.post(route('invitations.resend', invitation.id));
+    };
+
+    const getStatusBadge = (invitation: Invitation) => {
+        if (invitation.accepted_at) {
+            return <span className="badge badge-success">Accepted</span>;
+        }
+        if (invitation.revoked_at) {
+            return <span className="badge badge-danger">Revoked</span>;
+        }
+        if (new Date(invitation.expires_at) < new Date()) {
+            return <span className="badge badge-warning">Expired</span>;
+        }
+        return <span className="badge badge-info">Pending</span>;
+    };
+
+    return (
+        <AuthenticatedLayout
+            header={
+                <div className="flex justify-between items-center">
+                    <h2 className="font-semibold text-xl">User Invitations</h2>
+                    <PermissionGuard permission="users.invite">
+                        <Link
+                            href={route('invitations.create')}
+                            className="btn btn-primary"
+                        >
+                            Invite New User
+                        </Link>
+                    </PermissionGuard>
+                </div>
+            }
+        >
+            <div className="container mx-auto py-6">
+                <table className="table w-full">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Invited By</th>
+                            <th>Status</th>
+                            <th>Expires</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {invitations.data.map((invitation) => (
+                            <tr key={invitation.id}>
+                                <td>{invitation.email}</td>
+                                <td>{invitation.invited_by.name}</td>
+                                <td>{getStatusBadge(invitation)}</td>
+                                <td>{format(new Date(invitation.expires_at), 'MMM d, yyyy h:mm a')}</td>
+                                <td className="space-x-2">
+                                    {invitation.is_valid && (
+                                        <>
+                                            {invitation.can.revoke && (
+                                                <button
+                                                    onClick={() => handleRevoke(invitation)}
+                                                    className="btn btn-sm btn-danger"
+                                                >
+                                                    Revoke
+                                                </button>
+                                            )}
+                                            
+                                            <PermissionGuard permission="users.invite">
+                                                <button
+                                                    onClick={() => handleResend(invitation)}
+                                                    className="btn btn-sm btn-secondary"
+                                                >
+                                                    Resend
+                                                </button>
+                                            </PermissionGuard>
+                                        </>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                
+                {/* Pagination links */}
+            </div>
+        </AuthenticatedLayout>
+    );
+}
+```
+
+```tsx
+// resources/js/Pages/Invitations/Create.tsx
+import React from 'react';
+import { useForm, Link } from '@inertiajs/react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import InputError from '@/Components/InputError';
+import InputLabel from '@/Components/InputLabel';
+import TextInput from '@/Components/TextInput';
+import SelectInput from '@/Components/SelectInput';
+import TextArea from '@/Components/TextArea';
+import PrimaryButton from '@/Components/PrimaryButton';
+
+interface Role {
+    id: number;
+    name: string;
+}
+
+interface Props {
+    roles: Role[];
+}
+
+export default function InvitationsCreate({ roles }: Props) {
+    const { data, setData, post, processing, errors } = useForm({
+        email: '',
+        initial_role: '',
+        message: ''
+    });
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(route('invitations.store'));
+    };
+
+    return (
+        <AuthenticatedLayout
+            header={<h2 className="font-semibold text-xl">Invite New User</h2>}
+        >
+            <div className="max-w-2xl mx-auto py-6">
+                <div className="bg-white shadow-sm rounded-lg p-6">
+                    <form onSubmit={submit}>
+                        <div className="mb-4">
+                            <InputLabel htmlFor="email" value="Email Address" />
+                            <TextInput
+                                id="email"
+                                type="email"
+                                name="email"
+                                value={data.email}
+                                className="mt-1 block w-full"
+                                autoComplete="email"
+                                isFocused={true}
+                                onChange={(e) => setData('email', e.target.value)}
+                                required
+                            />
+                            <InputError message={errors.email} className="mt-2" />
+                        </div>
+
+                        <div className="mb-4">
+                            <InputLabel htmlFor="initial_role" value="Initial Role (Optional)" />
+                            <SelectInput
+                                id="initial_role"
+                                name="initial_role"
+                                value={data.initial_role}
+                                className="mt-1 block w-full"
+                                onChange={(e) => setData('initial_role', e.target.value)}
+                            >
+                                <option value="">-- Select Role --</option>
+                                {roles.map((role) => (
+                                    <option key={role.id} value={role.name}>
+                                        {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+                                    </option>
+                                ))}
+                            </SelectInput>
+                            <InputError message={errors.initial_role} className="mt-2" />
+                        </div>
+
+                        <div className="mb-4">
+                            <InputLabel htmlFor="message" value="Personal Message (Optional)" />
+                            <TextArea
+                                id="message"
+                                name="message"
+                                value={data.message}
+                                className="mt-1 block w-full"
+                                rows={3}
+                                onChange={(e) => setData('message', e.target.value)}
+                            />
+                            <InputError message={errors.message} className="mt-2" />
+                        </div>
+
+                        <div className="flex items-center justify-end mt-6">
+                            <Link
+                                href={route('invitations.index')}
+                                className="btn btn-secondary mr-3"
+                            >
+                                Cancel
+                            </Link>
+                            <PrimaryButton disabled={processing}>
+                                Send Invitation
+                            </PrimaryButton>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </AuthenticatedLayout>
+    );
+}
+```
+
+```tsx
+// resources/js/Pages/Invitations/Accept.tsx
+import React from 'react';
+import { useForm } from '@inertiajs/react';
+import GuestLayout from '@/Layouts/GuestLayout';
+import InputError from '@/Components/InputError';
+import InputLabel from '@/Components/InputLabel';
+import TextInput from '@/Components/TextInput';
+import PrimaryButton from '@/Components/PrimaryButton';
+
+interface Props {
+    invitation: {
+        id: number;
+        email: string;
+        token: string;
+        invited_by: {
+            name: string;
+        };
+    };
+}
+
+export default function InvitationsAccept({ invitation }: Props) {
+    const { data, setData, post, processing, errors } = useForm({
+        name: '',
+        password: '',
+        password_confirmation: ''
+    });
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(route('invitations.accept', invitation.token));
+    };
+
+    return (
+        <GuestLayout>
+            <div className="mb-4 text-sm text-gray-600">
+                You have been invited by {invitation.invited_by.name} to join our system.
+                Please complete your registration below.
+            </div>
+
+            <form onSubmit={submit}>
+                <div>
+                    <InputLabel htmlFor="email" value="Email" />
+                    <TextInput
+                        id="email"
+                        type="email"
+                        name="email"
+                        value={invitation.email}
+                        className="mt-1 block w-full bg-gray-100"
+                        disabled
+                    />
+                </div>
+
+                <div className="mt-4">
+                    <InputLabel htmlFor="name" value="Name" />
+                    <TextInput
+                        id="name"
+                        type="text"
+                        name="name"
+                        value={data.name}
+                        className="mt-1 block w-full"
+                        autoComplete="name"
+                        isFocused={true}
+                        onChange={(e) => setData('name', e.target.value)}
+                        required
+                    />
+                    <InputError message={errors.name} className="mt-2" />
+                </div>
+
+                <div className="mt-4">
+                    <InputLabel htmlFor="password" value="Password" />
+                    <TextInput
+                        id="password"
+                        type="password"
+                        name="password"
+                        value={data.password}
+                        className="mt-1 block w-full"
+                        autoComplete="new-password"
+                        onChange={(e) => setData('password', e.target.value)}
+                        required
+                    />
+                    <InputError message={errors.password} className="mt-2" />
+                </div>
+
+                <div className="mt-4">
+                    <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
+                    <TextInput
+                        id="password_confirmation"
+                        type="password"
+                        name="password_confirmation"
+                        value={data.password_confirmation}
+                        className="mt-1 block w-full"
+                        autoComplete="new-password"
+                        onChange={(e) => setData('password_confirmation', e.target.value)}
+                        required
+                    />
+                    <InputError message={errors.password_confirmation} className="mt-2" />
+                </div>
+
+                <div className="flex items-center justify-end mt-4">
+                    <PrimaryButton className="ml-4" disabled={processing}>
+                        Complete Registration
+                    </PrimaryButton>
+                </div>
+            </form>
+        </GuestLayout>
+    );
+}
+```
+
+### 7. Event-Based Audit Logging
 
 ```php
-// app/Http/Resources/AssetResource.php
-namespace App\Http\Resources;
-
-use Illuminate\Http\Resources\Json\JsonResource;
-
-class AssetResource extends JsonResource
-{
-    public function toArray($request)
-    {
-        return [
-            'id' => $this->id,
-            'name' => $this->name,
-            'serial_number' => $this->serial_number,
-            'plant_id' => $this->plant_id,
-            'created_by' => $this->created_by,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-            'can' => [
-                'update' => $request->user()->can('update', $this->resource),
-                'delete' => $request->user()->can('delete', $this->resource),
-            ],
-        ];
-    }
-}
+// database/migrations/2024_01_01_000002_create_permission_audit_log.php
+Schema::create('permission_audit_logs', function (Blueprint $table) {
+    $table->id();
+    $table->string('event_type'); // Laravel event class name
+    $table->morphs('auditable');  // Polymorphic relation
+    $table->foreignId('user_id')->constrained();
+    $table->json('old_values')->nullable();
+    $table->json('new_values')->nullable();
+    $table->string('ip_address', 45)->nullable();
+    $table->string('user_agent')->nullable();
+    $table->timestamps();
+    $table->index(['auditable_type', 'auditable_id']);
+    $table->index('created_at');
+});
 ```
 
 ## Security Considerations
@@ -666,6 +1259,51 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 });
 ```
 
+### 4. Database Indexing via Migrations
+```php
+Schema::table('model_has_permissions', function (Blueprint $table) {
+    $table->index(['model_id', 'model_type']);
+});
+
+Schema::table('model_has_roles', function (Blueprint $table) {
+    $table->index(['model_id', 'model_type']);
+});
+```
+
+### 5. Invitation System Security
+```php
+// Token generation and security
+- Uses cryptographically secure random tokens (64 characters)
+- Tokens are unique and indexed for fast lookup
+- Invitations expire after 7 days by default
+- One-time use tokens (marked as accepted after use)
+
+// Email verification
+- Invitations serve as email verification
+- Users created via invitation have email_verified_at set automatically
+
+// Rate limiting for invitation endpoints
+Route::middleware(['throttle:invitations'])->group(function () {
+    Route::post('/invitations', [UserInvitationController::class, 'store']);
+});
+
+// config/rate_limiting.php
+RateLimiter::for('invitations', function (Request $request) {
+    return Limit::perMinute(5)->by($request->user()->id);
+});
+
+// Preventing invitation spam
+- Validate that email doesn't already exist in users table
+- Check for existing pending invitations
+- Audit trail of who sent each invitation
+- Ability to revoke pending invitations
+
+// Secure invitation URLs
+- Uses Laravel's signed URL feature
+- URLs expire at the same time as the invitation
+- Cannot be tampered with or extended
+```
+
 ## API Design
 
 ### Laravel API Routes
@@ -693,6 +1331,20 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Asset management with policy authorization
     Route::apiResource('assets', AssetController::class);
+    
+    // User invitation management
+    Route::prefix('invitations')->group(function () {
+        Route::get('/', [UserInvitationController::class, 'index'])
+            ->middleware('can:users.invite');
+        Route::post('/', [UserInvitationController::class, 'store'])
+            ->middleware('can:users.invite');
+        Route::get('/pending', [UserInvitationController::class, 'pending'])
+            ->middleware('can:users.invite');
+        Route::post('/{invitation}/revoke', [UserInvitationController::class, 'revoke'])
+            ->middleware('can:revoke,invitation');
+        Route::post('/{invitation}/resend', [UserInvitationController::class, 'resend'])
+            ->middleware('can:users.invite');
+    });
 });
 ```
 
@@ -815,6 +1467,93 @@ class PermissionTest extends TestCase
                 'permission' => 'assets.view'
             ]);
     }
+    
+    public function test_only_administrators_can_invite_users()
+    {
+        $admin = User::factory()->create(['is_super_admin' => false]);
+        $admin->givePermissionTo('users.invite');
+        
+        $regularUser = User::factory()->create(['is_super_admin' => false]);
+        
+        $this->actingAs($admin)
+            ->post(route('invitations.store'), [
+                'email' => 'newuser@example.com',
+                'initial_role' => 'viewer'
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+            
+        $this->actingAs($regularUser)
+            ->post(route('invitations.store'), [
+                'email' => 'another@example.com'
+            ])
+            ->assertForbidden();
+    }
+    
+    public function test_invitation_creates_user_with_correct_role()
+    {
+        $admin = User::factory()->create(['is_super_admin' => true]);
+        
+        // Create invitation
+        $this->actingAs($admin);
+        $invitation = UserInvitation::create([
+            'email' => 'newuser@example.com',
+            'invited_by' => $admin->id,
+            'initial_role' => 'technician'
+        ]);
+        
+        // Accept invitation
+        $response = $this->post(route('invitations.accept', $invitation->token), [
+            'name' => 'New User',
+            'password' => 'password123',
+            'password_confirmation' => 'password123'
+        ]);
+        
+        $response->assertRedirect(route('home'));
+        
+        // Verify user was created with correct role
+        $newUser = User::where('email', 'newuser@example.com')->first();
+        $this->assertNotNull($newUser);
+        $this->assertTrue($newUser->hasRole('technician'));
+        $this->assertNotNull($invitation->fresh()->accepted_at);
+    }
+    
+    public function test_expired_invitations_cannot_be_accepted()
+    {
+        $invitation = UserInvitation::create([
+            'email' => 'expired@example.com',
+            'invited_by' => 1,
+            'expires_at' => Carbon::now()->subDay()
+        ]);
+        
+        $response = $this->post(route('invitations.accept', $invitation->token), [
+            'name' => 'Test User',
+            'password' => 'password123',
+            'password_confirmation' => 'password123'
+        ]);
+        
+        $response->assertRedirect(route('login'))
+            ->assertSessionHas('error');
+        
+        $this->assertFalse(User::where('email', 'expired@example.com')->exists());
+    }
+    
+    public function test_public_registration_disabled_after_first_user()
+    {
+        // Ensure at least one user exists
+        User::factory()->create();
+        
+        $response = $this->get('/register');
+        $response->assertNotFound();
+        
+        $response = $this->post('/register', [
+            'name' => 'Unauthorized User',
+            'email' => 'unauthorized@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123'
+        ]);
+        $response->assertNotFound();
+    }
 }
 ```
 
@@ -881,4 +1620,8 @@ dispatch(new WarmPermissionCache($user))->onQueue('permissions');
 
 ## Conclusion
 
-This permission system fully leverages Laravel's built-in authorization capabilities while providing the flexibility and granularity required for a maintenance management system. By using Spatie's Laravel-Permission package as a foundation and extending it with custom scoping logic, we achieve a robust, performant, and Laravel-idiomatic solution that integrates seamlessly with Laravel's Gates, Policies, and middleware system. 
+This permission system fully leverages Laravel's built-in authorization capabilities while providing the flexibility and granularity required for a maintenance management system. By using Spatie's Laravel-Permission package as a foundation and extending it with custom scoping logic, we achieve a robust, performant, and Laravel-idiomatic solution that integrates seamlessly with Laravel's Gates, Policies, and middleware system.
+
+The system is built for modern frontend applications using React with Inertia.js, providing a seamless single-page application experience while maintaining Laravel's server-side rendering benefits. Permission checks are shared with the frontend through Inertia's middleware, enabling reactive UI components that respond to user permissions in real-time.
+
+The invitation-only registration system ensures controlled user access, where only system administrators can add new users via secure, time-limited email invitations. This approach maintains system security while providing a smooth onboarding experience for authorized users. The system includes comprehensive audit trails, role-based initial permissions, and the ability to manage invitations throughout their lifecycle. 

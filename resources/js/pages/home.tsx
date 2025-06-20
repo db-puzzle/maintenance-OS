@@ -23,7 +23,7 @@ export default function Dashboard() {
             title: 'Dashboard de Rotinas',
             icon: BarChart3,
             description: 'Gerencie a execução de rotinas',
-            href: '/maintenance/routine-dashboard',
+            href: '/maintenance/routines/dashboard',
         },
         hierarchy: {
             title: 'Hierarquia de Ativos',

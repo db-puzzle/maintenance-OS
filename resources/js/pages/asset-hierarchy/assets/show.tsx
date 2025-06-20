@@ -279,7 +279,8 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 },
             });
 
-            const shiftsData = response.data.shifts || [];
+            // The response is paginated, so we need to extract the data array
+            const shiftsData = response.data.shifts?.data || response.data.shifts || [];
             setShifts(shiftsData);
 
             if (shiftsData.length === 0) {

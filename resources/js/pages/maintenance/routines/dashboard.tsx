@@ -105,8 +105,8 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/maintenance/routines',
     },
     {
-        title: 'Dasboard',
-        href: '/maintenance/routine-dashboard',
+        title: 'Dashboard',
+        href: '/maintenance/routines/dashboard',
     },
 ];
 
@@ -448,7 +448,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
                 params.set('search', searchQuery);
             }
 
-            router.visit(`/maintenance/routine-dashboard?${params.toString()}`, {
+            router.visit(`/maintenance/routines/dashboard?${params.toString()}`, {
                 preserveState: true,
                 preserveScroll: true,
             });
@@ -476,7 +476,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
             params.set('search', searchQuery);
         }
 
-        router.visit(`/maintenance/routine-dashboard?${params.toString()}`, {
+        router.visit(`/maintenance/routines/dashboard?${params.toString()}`, {
             preserveState: true,
             preserveScroll: true,
         });
@@ -505,7 +505,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
                 params.set('search', newSearch.trim());
             }
 
-            router.visit(`/maintenance/routine-dashboard?${params.toString()}`, {
+            router.visit(`/maintenance/routines/dashboard?${params.toString()}`, {
                 preserveState: true,
                 preserveScroll: true,
             });

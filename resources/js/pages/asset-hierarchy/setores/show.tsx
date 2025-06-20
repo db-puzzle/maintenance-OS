@@ -1,12 +1,12 @@
 import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
+import { ColumnConfig } from '@/types/shared';
 import { router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, ArrowUpDown, Cog, Factory, Map } from 'lucide-react';
+import { Cog, Factory, Map } from 'lucide-react';
 
 import SectorFormComponent from '@/components/SectorFormComponent';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 
@@ -77,12 +77,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
         );
     };
 
-    const getSortIcon = (column: string) => {
-        if (filters.asset.sort !== column) {
-            return <ArrowUpDown className="h-4 w-4" />;
-        }
-        return filters.asset.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
-    };
+
 
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
@@ -122,114 +117,68 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             id: 'ativos',
             label: 'Ativos',
             content: (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Ativos</CardTitle>
-                        <CardDescription>Lista de ativos vinculados a este setor</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {asset.data.length > 0 ? (
-                            <div className="rounded-md">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="h-12 cursor-pointer" onClick={() => handleSort('tag')}>
-                                                <div className="flex items-center gap-1">
-                                                    TAG
-                                                    {getSortIcon('tag')}
-                                                </div>
-                                            </TableHead>
-                                            <TableHead className="h-12 cursor-pointer" onClick={() => handleSort('type')}>
-                                                <div className="flex items-center gap-1">
-                                                    Tipo
-                                                    {getSortIcon('type')}
-                                                </div>
-                                            </TableHead>
-                                            <TableHead className="h-12 cursor-pointer" onClick={() => handleSort('manufacturer')}>
-                                                <div className="flex items-center gap-1">
-                                                    Fabricante
-                                                    {getSortIcon('manufacturer')}
-                                                </div>
-                                            </TableHead>
-                                            <TableHead className="h-12 cursor-pointer" onClick={() => handleSort('year')}>
-                                                <div className="flex items-center gap-1">
-                                                    Ano
-                                                    {getSortIcon('year')}
-                                                </div>
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {asset.data.map((asset) => (
-                                            <TableRow
-                                                key={asset.id}
-                                                className="hover:bg-muted/50 h-12 cursor-pointer"
-                                                onClick={() => router.get(route('asset-hierarchy.assets.show', asset.id))}
-                                            >
-                                                <TableCell>
-                                                    <div className="font-medium">{asset.tag}</div>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">{asset.asset_type?.name ?? '-'}</TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturer?.name ?? '-'}</TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturing_year ?? '-'}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        ) : (
-                            <div className="text-muted-foreground py-6 text-center text-sm">Nenhum ativo cadastrado neste setor.</div>
-                        )}
-                        <div className="mt-4 flex justify-center">
-                            <Pagination>
-                                <PaginationContent>
-                                    <PaginationItem>
-                                        <PaginationPrevious
-                                            href={route('asset-hierarchy.setores.show', {
-                                                setor: sector.id,
-                                                asset_page: asset.current_page - 1,
-                                                tab: 'ativos',
-                                                asset_sort: filters.asset.sort,
-                                                asset_direction: filters.asset.direction,
-                                            })}
-                                            className={asset.current_page === 1 ? 'pointer-events-none opacity-50' : ''}
-                                        />
-                                    </PaginationItem>
+                <div className="mt-6 space-y-4">
+                    <EntityDataTable
+                        data={asset.data as Record<string, unknown>[]}
+                        columns={[
+                            {
+                                key: 'tag',
+                                label: 'TAG',
+                                sortable: true,
+                                width: 'w-[25%]',
+                                render: (value, row) => <div className="font-medium">{(row as any).tag}</div>,
+                            },
+                            {
+                                key: 'asset_type_name',
+                                label: 'Tipo',
+                                sortable: true,
+                                width: 'w-[25%]',
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).asset_type?.name ?? '-'}</span>,
+                            },
+                            {
+                                key: 'manufacturer_name',
+                                label: 'Fabricante',
+                                sortable: true,
+                                width: 'w-[25%]',
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).manufacturer?.name ?? '-'}</span>,
+                            },
+                            {
+                                key: 'manufacturing_year',
+                                label: 'Ano',
+                                sortable: true,
+                                width: 'w-[25%]',
+                                render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
+                            },
+                        ]}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as any).id))}
+                        onSort={(columnKey) => {
+                            const columnMap: Record<string, string> = {
+                                asset_type_name: 'type',
+                                manufacturer_name: 'manufacturer',
+                                manufacturing_year: 'year',
+                            };
+                            handleSort(columnMap[columnKey] || columnKey);
+                        }}
+                    />
 
-                                    {Array.from({ length: asset.last_page }, (_, i) => i + 1).map((page) => (
-                                        <PaginationItem key={`asset-pagination-${page}`}>
-                                            <PaginationLink
-                                                href={route('asset-hierarchy.setores.show', {
-                                                    setor: sector.id,
-                                                    asset_page: page,
-                                                    tab: 'ativos',
-                                                    asset_sort: filters.asset.sort,
-                                                    asset_direction: filters.asset.direction,
-                                                })}
-                                                isActive={page === asset.current_page}
-                                            >
-                                                {page}
-                                            </PaginationLink>
-                                        </PaginationItem>
-                                    ))}
-
-                                    <PaginationItem>
-                                        <PaginationNext
-                                            href={route('asset-hierarchy.setores.show', {
-                                                setor: sector.id,
-                                                asset_page: asset.current_page + 1,
-                                                tab: 'ativos',
-                                                asset_sort: filters.asset.sort,
-                                                asset_direction: filters.asset.direction,
-                                            })}
-                                            className={asset.current_page === asset.last_page ? 'pointer-events-none opacity-50' : ''}
-                                        />
-                                    </PaginationItem>
-                                </PaginationContent>
-                            </Pagination>
-                        </div>
-                    </CardContent>
-                </Card>
+                    <EntityPagination
+                        pagination={{
+                            current_page: asset.current_page,
+                            last_page: asset.last_page,
+                            per_page: asset.per_page,
+                            total: asset.total,
+                            from: asset.current_page > 0 ? (asset.current_page - 1) * asset.per_page + 1 : null,
+                            to: asset.current_page > 0 ? Math.min(asset.current_page * asset.per_page, asset.total) : null,
+                        }}
+                        onPageChange={(page) => router.get(route('asset-hierarchy.setores.show', {
+                            setor: sector.id,
+                            asset_page: page,
+                            tab: 'ativos',
+                            asset_sort: filters.asset.sort,
+                            asset_direction: filters.asset.direction,
+                        }))}
+                    />
+                </div>
             ),
         },
     ];

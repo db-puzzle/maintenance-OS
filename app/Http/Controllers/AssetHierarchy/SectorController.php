@@ -57,7 +57,7 @@ class SectorController extends Controller
 
         $plants = Plant::with('areas')->get();
 
-        return Inertia::render('asset-hierarchy/setores', [
+        return Inertia::render('asset-hierarchy/setores/index', [
             'sectors' => $sectors,
             'filters' => [
                 'search' => $search,
