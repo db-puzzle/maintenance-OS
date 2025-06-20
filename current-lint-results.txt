@@ -1,0 +1,214 @@
+
+> lint
+> eslint . --fix
+
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/BaseEntitySheet.tsx
+   87:8  warning  React Hook useEffect has missing dependencies: 'formConfig.initialData', 'reset', and 'setData'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  103:8  warning  React Hook useEffect has missing dependencies: 'data' and 'setData'. Either include them or remove the dependency array                              react-hooks/exhaustive-deps
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/EditRoutineSheet.tsx
+  143:29  error  'response' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/InlineRoutineForm.tsx
+  176:32  error  '_files' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/PhotoUploader.tsx
+  40:8  warning  React Hook useEffect has a missing dependency: 'previewUrl'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/RoutineList.tsx
+  180:12  warning  React Hook useEffect has missing dependencies: 'fetchRoutineFormData' and 'isNew'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/TaskEditorCard.tsx
+  126:8  warning  React Hook useEffect has a missing dependency: 'setData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/camera-capture.tsx
+  20:8  warning  React Hook useEffect has missing dependencies: 'startCamera' and 'stopCamera'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/form-lifecycle/FormVersionHistory.tsx
+  12:54  error  '_formId' is defined but never used            @typescript-eslint/no-unused-vars
+  12:81  error  '_currentVersionId' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/tasks/AddInstructionModal.tsx
+  67:8  warning  React Hook useEffect has a missing dependency: 'getDefaultInstructionByType'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/tasks/EditInstructionModal.tsx
+  25:31  error  '_' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/tasks/content/FileUploadTaskContent.tsx
+  6:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/tasks/content/MeasurementTaskContent.tsx
+   12:11   error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+   19:20   error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  173:121  error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  185:137  error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  205:51   error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  215:51   error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  225:51   error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/tasks/content/PhotoTaskContent.tsx
+  5:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/tasks/content/QuestionTaskContent.tsx
+  5:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/tasks/content/TaskContent.tsx
+  22:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/tasks/content/withSaveFunctionality.tsx
+  11:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  14:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  15:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  32:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/components/ui/main-selection-tab.tsx
+  35:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  64:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  90:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/hooks/useEntityForm.ts
+   6:14  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                @typescript-eslint/no-explicit-any
+   8:38  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                @typescript-eslint/no-explicit-any
+  11:64  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                @typescript-eslint/no-explicit-any
+  42:8   warning  React Hook useEffect has missing dependencies: 'form', 'initialData', and 'transformEntityToForm'. Either include them or remove the dependency array. If 'transformEntityToForm' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/hooks/useEntityOperations.ts
+   8:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/hooks/useSorting.ts
+   5:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  12:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/layouts/asset-hierarchy/show-layout.tsx
+  49:27  error    React Hook "useSidebar" is called conditionally. React Hooks must be called in the exact same order in every component render                   react-hooks/rules-of-hooks
+  75:8   warning  React Hook useEffect has missing dependencies: 'previousSidebarOpen' and 'sidebarControls'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/areas.tsx
+  19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/assets.tsx
+  18:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/assets/import.tsx
+   67:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  170:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  238:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/assets/show.tsx
+   63:26  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+   83:29  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  106:52  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  168:41  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  180:43  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  189:43  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  232:8   warning  React Hook useEffect has a missing dependency: 'routines'. Either include it or remove the dependency array. You can also do a functional update 'setRoutines(r => ...)' if you only need 'routines' in the 'setRoutines' call  react-hooks/exhaustive-deps
+  415:25  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  445:40  error    Unexpected any. Specify a different type                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/manufacturers.tsx
+  19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/plantas.tsx
+  19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/setores.tsx
+  20:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/setores/show.tsx
+   27:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/shifts.tsx
+   65:20  error    Unexpected any. Specify a different type                                                                                          @typescript-eslint/no-explicit-any
+  113:8   warning  React Hook useEffect has missing dependencies: 'assetCount' and 'loadAssets'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  284:44  error    Unexpected any. Specify a different type                                                                                          @typescript-eslint/no-explicit-any
+  287:50  error    Unexpected any. Specify a different type                                                                                          @typescript-eslint/no-explicit-any
+  292:51  error    Unexpected any. Specify a different type                                                                                          @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/shifts/shift-editor.tsx
+  41:11  error  An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/tipos-ativo.tsx
+  19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/tipos-ativo/show.tsx
+  31:50  error  'activeTab' is defined but never used     @typescript-eslint/no-unused-vars
+  71:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/auth/register.tsx
+  35:8  warning  React Hook useEffect has a missing dependency: 'setData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/items/bom-config.tsx
+   23:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  176:55  error  'id' is defined but never used            @typescript-eslint/no-unused-vars
+  337:28  error  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  622:47  error  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  744:37  error  'data' is defined but never used          @typescript-eslint/no-unused-vars
+  744:43  error  'filters' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/maintenance/dashboard-maintenance.tsx
+  35:12  error  'selectedPath' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  35:26  error  'setSelectedPath' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/maintenance/executions/History.tsx
+  73:17   error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  75:14   error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  76:20   error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  94:69   error  'dailyTrend' is defined but never used     @typescript-eslint/no-unused-vars
+  94:101  error  'filters' is defined but never used        @typescript-eslint/no-unused-vars
+  94:110  error  'filterOptions' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/maintenance/executions/Index.tsx
+   21:46  error  Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+   54:94  error  'sortOptions' is defined but never used               @typescript-eslint/no-unused-vars
+  243:11  error  'handleSelectAll' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/maintenance/routine-dashboard.tsx
+   84:17   error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+   86:14   error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+   87:20   error  Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+  141:99   error  'performanceMetrics' is defined but never used            @typescript-eslint/no-unused-vars
+  141:119  error  'filters' is defined but never used                       @typescript-eslint/no-unused-vars
+  141:128  error  'filterOptions' is defined but never used                 @typescript-eslint/no-unused-vars
+  173:30   error  'setColumnVisibility' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  261:11   error  'getTrendIcon' is assigned a value but never used         @typescript-eslint/no-unused-vars
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/scheduler/route-editor.tsx
+   89:11  error  An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+   93:37  error  Unexpected empty object pattern                                                                                                                                                                                                                                                                                                                                                           no-empty-pattern
+  123:51  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  229:37  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  248:13  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  273:31  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  311:39  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/types/asset-hierarchy.ts
+  135:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/types/maintenance.ts
+  64:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  77:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/types/shared.ts
+  25:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/utils/download.ts
+  23:14  error  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/utils/route.ts
+  1:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 111 problems (99 errors, 12 warnings)
+
