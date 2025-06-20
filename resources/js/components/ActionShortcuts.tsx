@@ -1,6 +1,5 @@
 import { router } from '@inertiajs/react';
-import { ChevronRight } from 'lucide-react';
-import { LucideIcon } from 'lucide-react';
+import { ChevronRight, LucideIcon } from 'lucide-react';
 
 export interface ActionItem {
     name: string;

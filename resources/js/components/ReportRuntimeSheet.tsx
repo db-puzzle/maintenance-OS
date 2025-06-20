@@ -18,7 +18,11 @@ interface ReportRuntimeSheetProps {
     assetId?: number;
     currentRuntime: number;
     showTrigger?: boolean;
-    onSuccess?: (data: { current_hours: number; last_measurement?: { hours: number; datetime: string; user_name?: string; source?: string; }; user_timezone?: string; }) => void;
+    onSuccess?: (data: {
+        current_hours: number;
+        last_measurement?: { hours: number; datetime: string; user_name?: string; source?: string };
+        user_timezone?: string;
+    }) => void;
 }
 
 const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps>(
@@ -84,7 +88,7 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                     router.reload();
                 }
             } catch (err: unknown) {
-                const error = err as { response?: { data?: { errors?: { measurement_datetime?: string[] }; message?: string; } } };
+                const error = err as { response?: { data?: { errors?: { measurement_datetime?: string[] }; message?: string } } };
                 if (error.response?.data?.errors?.measurement_datetime) {
                     setError(error.response.data.errors.measurement_datetime[0]);
                 } else {

@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { BarChart3, Boxes, ChevronRight, History, Route } from 'lucide-react';
+import { BarChart3, Boxes, ChevronRight, Route } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -19,23 +19,17 @@ export default function Dashboard() {
             description: 'Cadastro e gestão de ativos',
             href: '/asset-hierarchy/assets',
         },
+        routineDashboard: {
+            title: 'Dashboard de Rotinas',
+            icon: BarChart3,
+            description: 'Gerencie a execução de rotinas',
+            href: '/maintenance/routine-dashboard',
+        },
         hierarchy: {
             title: 'Hierarquia de Ativos',
             icon: Route,
             description: 'Estrutura e organização de ativos',
             href: '/asset-hierarchy',
-        },
-        executionHistory: {
-            title: 'Histórico de Execuções',
-            icon: History,
-            description: 'Visualize e analise execuções de rotinas',
-            href: '/maintenance/executions/history',
-        },
-        routineDashboard: {
-            title: 'Routine Dashboard',
-            icon: BarChart3,
-            description: 'Modern dashboard for routine executions',
-            href: '/maintenance/routine-dashboard',
         },
     };
 
@@ -55,9 +49,8 @@ export default function Dashboard() {
                                 <button
                                     key={key}
                                     onClick={() => card.href && router.visit(card.href)}
-                                    className={`bg-card border-border group rounded-xl border p-6 text-left transition-all duration-200 ${
-                                        hasLink ? 'hover:bg-input-focus hover:ring-ring/10 hover:border-ring hover:ring-[1px]' : ''
-                                    }`}
+                                    className={`bg-card border-border group rounded-xl border p-6 text-left transition-all duration-200 ${hasLink ? 'hover:bg-input-focus hover:ring-ring/10 hover:border-ring hover:ring-[1px]' : ''
+                                        }`}
                                     disabled={!hasLink}
                                 >
                                     <div className="mb-4 flex items-center justify-between">

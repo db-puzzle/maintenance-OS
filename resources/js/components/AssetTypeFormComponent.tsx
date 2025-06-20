@@ -37,6 +37,11 @@ export default function AssetTypeFormComponent({ assetType, initialMode = 'view'
         description: assetType?.description || '',
     });
 
+    // Create a wrapper for setData to match the expected signature
+    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+        setData(name as keyof AssetTypeFormData, value as AssetTypeFormData[keyof AssetTypeFormData]);
+    };
+
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.tipos-ativo.update', { tipos_ativo: assetType.id }), {
@@ -80,7 +85,7 @@ export default function AssetTypeFormComponent({ assetType, initialMode = 'view'
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}

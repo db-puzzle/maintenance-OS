@@ -32,7 +32,7 @@ export default function Register() {
         if (browserTimezone) {
             setData('timezone', browserTimezone);
         }
-    }, []);
+    }, [setData]);
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();

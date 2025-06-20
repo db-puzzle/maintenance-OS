@@ -16,7 +16,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { AlertTriangle, ArrowUpDown, Calendar, ChevronDownIcon, ChevronUpIcon, Clock, List, MoreVertical, Plus, Settings } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 interface Break {
@@ -70,14 +70,14 @@ interface PageProps {
 
 interface Props {
     shifts:
-        | ShiftData[]
-        | {
-              data: ShiftData[];
-              current_page: number;
-              last_page: number;
-              per_page: number;
-              total: number;
-          };
+    | ShiftData[]
+    | {
+        data: ShiftData[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
     filters?: {
         search: string;
         sort: string;
@@ -106,13 +106,7 @@ const AssetsList = ({ shiftId, assetCount }: { shiftId: number; assetCount: numb
     const [assets, setAssets] = useState<AssetData[]>([]);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        if (assetCount > 0) {
-            loadAssets();
-        }
-    }, [shiftId]);
-
-    const loadAssets = async () => {
+    const loadAssets = useCallback(async () => {
         setLoading(true);
         try {
             const response = await axios.get(route('asset-hierarchy.shifts.assets', shiftId));
@@ -123,7 +117,13 @@ const AssetsList = ({ shiftId, assetCount }: { shiftId: number; assetCount: numb
         } finally {
             setLoading(false);
         }
-    };
+    }, [shiftId]);
+
+    useEffect(() => {
+        if (assetCount > 0) {
+            loadAssets();
+        }
+    }, [assetCount, loadAssets]);
 
     return (
         <div className="p-4">
@@ -294,18 +294,18 @@ export default function Index({
                         end_time: breakTime.end_time as string,
                     })) || [],
             })) || [
-                {
-                    start_time: '07:00',
-                    end_time: '17:00',
-                    active: true,
-                    breaks: [
-                        {
-                            start_time: '12:00',
-                            end_time: '13:00',
-                        },
-                    ],
-                },
-            ], // Valor padrão se não houver turnos
+                    {
+                        start_time: '07:00',
+                        end_time: '17:00',
+                        active: true,
+                        breaks: [
+                            {
+                                start_time: '12:00',
+                                end_time: '13:00',
+                            },
+                        ],
+                    },
+                ], // Valor padrão se não houver turnos
         }));
     };
 
@@ -503,10 +503,15 @@ export default function Index({
                                                             </TabsList>
                                                         </div>
                                                         <TabsContent value="calendar">
-                                                            <ShiftCalendarView schedules={transformSchedules(shift.schedules as Record<string, unknown>[])} showAllDays={true} />
+                                                            <ShiftCalendarView
+                                                                schedules={transformSchedules(shift.schedules as Record<string, unknown>[])}
+                                                                showAllDays={true}
+                                                            />
                                                         </TabsContent>
                                                         <TabsContent value="table">
-                                                            <ShiftTableView schedules={transformSchedules(shift.schedules as Record<string, unknown>[])} />
+                                                            <ShiftTableView
+                                                                schedules={transformSchedules(shift.schedules as Record<string, unknown>[])}
+                                                            />
                                                         </TabsContent>
                                                         <TabsContent value="asset">
                                                             <AssetsList shiftId={shift.id} assetCount={shift.asset_count || 0} />

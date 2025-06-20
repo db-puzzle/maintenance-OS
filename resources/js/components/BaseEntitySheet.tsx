@@ -5,7 +5,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
-export interface BaseEntitySheetProps<TFormData extends Record<string, unknown>> {
+type FormDataType = Record<string, string | number | boolean | File | null | undefined>;
+
+export interface BaseEntitySheetProps<TFormData extends FormDataType> {
     // Entity data for edit mode
     entity?: unknown;
     // Sheet state
@@ -38,13 +40,13 @@ export interface BaseEntitySheetProps<TFormData extends Record<string, unknown>>
     // Children render prop for form fields
     children: (props: {
         data: TFormData;
-        setData: (key: keyof TFormData | TFormData, value?: unknown) => void;
+        setData: (key: keyof TFormData, value: TFormData[keyof TFormData]) => void;
         errors: Partial<Record<keyof TFormData, string>>;
         processing: boolean;
     }) => React.ReactNode;
 }
 
-export function BaseEntitySheet<TFormData extends Record<string, unknown>>({
+export function BaseEntitySheet<TFormData extends FormDataType>({
     entity,
     open: controlledOpen,
     onOpenChange,
@@ -65,14 +67,19 @@ export function BaseEntitySheet<TFormData extends Record<string, unknown>>({
 
     // Determine whether to use internal or external control
     const sheetOpen = showTrigger ? internalSheetOpen : (controlledOpen ?? false);
-    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => {}));
+    const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => { }));
 
     // Update form data when entity changes (for edit mode)
     useEffect(() => {
         if (isEditMode && entity) {
             // Allow parent to transform entity data to form data
             const entityData = Object.keys(formConfig.initialData).reduce((acc, key) => {
-                acc[key as keyof TFormData] = (entity as Record<string, unknown>)[key] ?? formConfig.initialData[key as keyof TFormData];
+                const value = (entity as Record<string, unknown>)[key];
+                if (value !== undefined && value !== null) {
+                    acc[key as keyof TFormData] = value as TFormData[keyof TFormData];
+                } else {
+                    acc[key as keyof TFormData] = formConfig.initialData[key as keyof TFormData];
+                }
                 return acc;
             }, {} as TFormData);
 
@@ -84,7 +91,7 @@ export function BaseEntitySheet<TFormData extends Record<string, unknown>>({
             // Reset to initial data for create mode
             reset();
         }
-    }, [entity, isEditMode, mode]);
+    }, [entity, isEditMode, mode, formConfig.initialData, reset, setData]);
 
     // Update form data when initialData changes in create mode
     useEffect(() => {
@@ -100,7 +107,7 @@ export function BaseEntitySheet<TFormData extends Record<string, unknown>>({
                 }
             });
         }
-    }, [formConfig.initialData, sheetOpen, isEditMode]);
+    }, [formConfig.initialData, sheetOpen, isEditMode, data, setData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -115,7 +122,8 @@ export function BaseEntitySheet<TFormData extends Record<string, unknown>>({
             : `Erro ao criar ${formConfig.entityName.toLowerCase()}`;
 
         if (isEditMode && formConfig.updateRoute) {
-            put(route(formConfig.updateRoute, (entity as Record<string, unknown>).id), {
+            const entityId = (entity as Record<string, unknown>).id as string | number;
+            put(route(formConfig.updateRoute, entityId), {
                 ...submitData,
                 onSuccess: () => {
                     toast.success(successMessage);

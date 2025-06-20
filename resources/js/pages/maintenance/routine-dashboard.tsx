@@ -15,6 +15,15 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from '@/components/ui/pagination';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { useExportManager } from '@/hooks/use-export-manager';
@@ -23,7 +32,7 @@ import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
 import {
     AlertCircle,
     BarChart3,
@@ -35,7 +44,6 @@ import {
     Eye,
     FileText,
     Minus,
-    Plus,
     Search,
     TrendingDown,
     TrendingUp,
@@ -43,15 +51,15 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { DateRange } from 'react-day-picker';
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { toast } from 'sonner';
 
-// Types from History.tsx
+// Types for dashboard
 interface Stats {
     total: number;
     completed: number;
     in_progress: number;
-    failed: number;
+    overdue: number;
     completion_rate: number;
     trend: {
         direction: 'up' | 'down' | 'stable';
@@ -93,11 +101,11 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/home',
     },
     {
-        title: 'Maintenance',
-        href: '/maintenance/dashboard',
+        title: 'Rotinas',
+        href: '/maintenance/routines',
     },
     {
-        title: 'Routine Dashboard',
+        title: 'Dasboard',
         href: '/maintenance/routine-dashboard',
     },
 ];
@@ -132,13 +140,28 @@ const chartConfig = {
         label: 'Completed',
         color: 'hsl(var(--chart-1))',
     },
-    failed: {
-        label: 'Failed',
+    overdue: {
+        label: 'Overdue',
         color: 'hsl(var(--chart-2))',
     },
 } satisfies ChartConfig;
 
-const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecutions, dailyTrend, performanceMetrics: _performanceMetrics, filters: _filters, filterOptions: _filterOptions }) => {
+const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
+    stats: rawStats,
+    recentExecutions,
+    dailyTrend,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    performanceMetrics,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    filters,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    filterOptions,
+}) => {
+    // Handle transition from 'failed' to 'overdue' in backend data
+    const stats = {
+        ...rawStats,
+        overdue: rawStats.overdue ?? (rawStats as Stats & { failed?: number }).failed ?? 0
+    };
     const [date, setDate] = useState<DateRange | undefined>(() => {
         // Initialize from URL params or use default range
         const urlParams = new URLSearchParams(window.location.search);
@@ -169,7 +192,22 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
     const [isExporting, setIsExporting] = useState(false);
     const { addExport, updateExport } = useExportManager();
 
+    // Track mobile view
+    const [isMobile, setIsMobile] = useState(false);
+
+    React.useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 640);
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     // Column visibility state
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [_columnVisibility, _setColumnVisibility] = useState<Record<string, boolean>>({
         id: true,
         status: true,
@@ -195,9 +233,10 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
             sortable: true,
             width: 'w-[120px]',
             render: (value, row) => (
-                <Badge className={cn('flex w-fit items-center', getStatusColor(row.status))}>
-                    {getStatusIcon(row.status)}
-                    {row.status.replace('_', ' ')}
+                <Badge className={cn('flex w-fit items-center gap-1', getStatusColor(row.status as string))}>
+                    <span className="hidden sm:inline">{getStatusIcon(row.status as string)}</span>
+                    <span className="hidden sm:inline">{(row.status as string).replace('_', ' ')}</span>
+                    <span className="sm:hidden">{(row.status as string).charAt(0).toUpperCase()}</span>
                 </Badge>
             ),
         },
@@ -206,14 +245,14 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
             label: 'Routine',
             sortable: true,
             width: 'w-[200px]',
-            render: (value) => value,
+            render: (value) => value as React.ReactNode,
         },
         {
             key: 'asset_tag',
             label: 'Asset',
             sortable: false,
             width: 'w-[150px]',
-            render: (value) => value || 'N/A',
+            render: (value) => (value as React.ReactNode) || 'N/A',
         },
         {
             key: 'executor_name',
@@ -223,14 +262,14 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
             render: (value, row) => (
                 <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                            {row.executor_name
+                        <AvatarFallback className="text-xs">
+                            {(row.executor_name as string)
                                 .split(' ')
                                 .map((n: string) => n[0])
                                 .join('')}
                         </AvatarFallback>
                     </Avatar>
-                    <span>{row.executor_name}</span>
+                    <span className="hidden lg:inline">{row.executor_name as React.ReactNode}</span>
                 </div>
             ),
         },
@@ -239,17 +278,18 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
             label: 'Started',
             sortable: true,
             width: 'w-[150px]',
-            render: (value) => getRelativeTime(value),
+            render: (value) => getRelativeTime(value as string),
         },
         {
             key: 'duration_minutes',
             label: 'Duration',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => formatDuration(value),
+            render: (value) => formatDuration(value as number),
         },
     ];
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _getTrendIcon = (trend: 'up' | 'down' | 'neutral') => {
         switch (trend) {
             case 'up':
@@ -270,7 +310,8 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
             case 'pending':
                 return 'bg-yellow-100 text-yellow-800';
             case 'cancelled':
-            case 'failed':
+                return 'bg-gray-100 text-gray-800';
+            case 'overdue':
                 return 'bg-red-100 text-red-800';
             default:
                 return 'bg-gray-100 text-gray-800';
@@ -283,7 +324,8 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
                 return <CheckCircle className="mr-1 h-4 w-4" />;
             case 'in_progress':
                 return <Clock className="mr-1 h-4 w-4" />;
-            case 'failed':
+            case 'overdue':
+                return <AlertCircle className="mr-1 h-4 w-4" />;
             case 'cancelled':
                 return <XCircle className="mr-1 h-4 w-4" />;
             default:
@@ -293,17 +335,20 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
 
     // Transform dailyTrend data for the chart
     const chartData =
-        dailyTrend?.map((day) => ({
-            date: day.date,
-            completed: day.completed || 0,
-            failed: day.failed || 0,
-        })) || [];
+        dailyTrend?.map((day) => {
+            const dayData = day as { date: string; completed?: number; overdue?: number; failed?: number };
+            return {
+                date: dayData.date,
+                completed: Number(dayData.completed || 0),
+                overdue: Number(dayData.overdue || dayData.failed || 0),
+            };
+        }) || [];
 
     const handleExportReport = async () => {
         setIsExporting(true);
         try {
             const executionIds = recentExecutions.slice(0, 10).map((e) => e.id);
-            const response = await fetch('/maintenance/executions/export/batch', {
+            const response = await fetch('/maintenance/routines/export/batch', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -339,7 +384,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
             // Poll for status
             const pollInterval = setInterval(async () => {
                 try {
-                    const statusResponse = await fetch(`/maintenance/executions/exports/${data.export_id}/status`, {
+                    const statusResponse = await fetch(`/maintenance/routines/exports/${data.export_id}/status`, {
                         headers: { 'X-Requested-With': 'XMLHttpRequest' },
                     });
                     const statusData = await statusResponse.json();
@@ -489,21 +534,16 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
                 <div className="border-border flex flex-col border-b px-4 py-4 md:px-6 md:py-6">
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Routine Executions</h1>
-                            <p className="text-muted-foreground">Track and analyze routine execution performance</p>
+                            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Rotinas de Manutenção</h1>
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="outline" onClick={() => router.visit('/maintenance/executions')}>
-                                <BarChart3 className="mr-2 h-4 w-4" />
-                                <span className="hidden md:block">View All</span>
+                            <Button variant="outline" onClick={() => router.visit('/maintenance/routines')} className="max-w-[36px] md:max-w-none">
+                                <BarChart3 className="h-4 w-4" />
+                                <span className="ml-2 hidden md:block">View All</span>
                             </Button>
-                            <Button variant="outline" onClick={handleExportReport} disabled={isExporting}>
-                                <Download className="mr-2 h-4 w-4" />
-                                <span className="hidden md:block">{isExporting ? 'Exporting...' : 'Export'}</span>
-                            </Button>
-                            <Button onClick={() => router.visit('/maintenance/routines/create')}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                <span className="hidden md:block">New Routine</span>
+                            <Button variant="outline" onClick={handleExportReport} disabled={isExporting} className="max-w-[36px] md:max-w-none">
+                                <Download className="h-4 w-4" />
+                                <span className="ml-2 hidden md:block">{isExporting ? 'Exporting...' : 'Export'}</span>
                             </Button>
                         </div>
                     </div>
@@ -514,39 +554,109 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
                     {/* Date Range and Filters */}
                     <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
                         <div className="flex items-center gap-2">
-                            <Popover>
-                                <PopoverTrigger asChild className="max-w-[300px]">
-                                    <Button
-                                        variant="outline"
-                                        className={cn('w-[300px] justify-start text-left font-normal', !date && 'text-muted-foreground')}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {date?.from ? (
-                                            date.to ? (
-                                                <>
-                                                    {format(date.from, 'MMM dd, y')} - {format(date.to, 'MMM dd, y')}
-                                                </>
+                            <div className={cn('grid gap-2')}>
+                                <Popover>
+                                    <PopoverTrigger asChild className="max-w-[300px]">
+                                        <Button
+                                            id="date"
+                                            variant={'outline'}
+                                            className={cn('w-full max-w-[300px] justify-start text-left font-normal md:w-[300px]', !date && 'text-muted-foreground')}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {date?.from ? (
+                                                date.to ? (
+                                                    <>
+                                                        <span className="hidden sm:inline">
+                                                            {format(date.from, 'LLL dd, y')} - {format(date.to, 'LLL dd, y')}
+                                                        </span>
+                                                        <span className="sm:hidden">
+                                                            {format(date.from, 'MMM dd')} - {format(date.to, 'MMM dd')}
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    format(date.from, 'LLL dd, y')
+                                                )
                                             ) : (
-                                                format(date.from, 'MMM dd, y')
-                                            )
-                                        ) : (
-                                            <span>Pick a date range</span>
-                                        )}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={date?.from}
-                                        selected={date}
-                                        onSelect={handleDateChange}
-                                        numberOfMonths={2}
-                                        className="rounded-md border"
-                                        weekStartsOn={0}
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                                                <span>Pick a date range</span>
+                                            )}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <div className="flex flex-col">
+                                            <div className="flex gap-2 p-3 border-b">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const range = {
+                                                            from: new Date(new Date().setDate(new Date().getDate() - 30)),
+                                                            to: new Date()
+                                                        };
+                                                        setDate(range);
+                                                        handleDateChange(range);
+                                                    }}
+                                                >
+                                                    Last 30 Days
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const range = {
+                                                            from: new Date(new Date().setDate(new Date().getDate() - 7)),
+                                                            to: new Date()
+                                                        };
+                                                        setDate(range);
+                                                        handleDateChange(range);
+                                                    }}
+                                                >
+                                                    Last 7 Days
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const lastMonth = subMonths(new Date(), 1);
+                                                        const range = {
+                                                            from: startOfMonth(lastMonth),
+                                                            to: endOfMonth(lastMonth)
+                                                        };
+                                                        setDate(range);
+                                                        handleDateChange(range);
+                                                    }}
+                                                >
+                                                    Last Month
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const lastWeek = subWeeks(new Date(), 1);
+                                                        const range = {
+                                                            from: startOfWeek(lastWeek, { weekStartsOn: 0 }),
+                                                            to: endOfWeek(lastWeek, { weekStartsOn: 0 })
+                                                        };
+                                                        setDate(range);
+                                                        handleDateChange(range);
+                                                    }}
+                                                >
+                                                    Last Week
+                                                </Button>
+                                            </div>
+                                            <Calendar
+                                                initialFocus
+                                                mode="range"
+                                                defaultMonth={date?.from}
+                                                selected={date}
+                                                onSelect={handleDateChange}
+                                                numberOfMonths={2}
+                                                className="rounded-md border-0"
+                                                weekStartsOn={0}
+                                            />
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
                         <div className="flex gap-3">
                             <DropdownMenu>
@@ -563,7 +673,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
                                         <DropdownMenuRadioItem value="All">All</DropdownMenuRadioItem>
                                         <DropdownMenuRadioItem value="Completed">Completed</DropdownMenuRadioItem>
                                         <DropdownMenuRadioItem value="In_progress">In Progress</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="Failed">Failed</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="Overdue">Overdue</DropdownMenuRadioItem>
                                     </DropdownMenuRadioGroup>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -593,13 +703,12 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
                             <p className="text-muted-foreground flex justify-between text-sm font-medium">
                                 Total Executions
                                 <span
-                                    className={`${
-                                        stats.trend.direction === 'up'
-                                            ? 'text-green-600'
-                                            : stats.trend.direction === 'down'
-                                              ? 'text-red-600'
-                                              : 'text-gray-600'
-                                    }`}
+                                    className={`${stats.trend.direction === 'up'
+                                        ? 'text-green-600'
+                                        : stats.trend.direction === 'down'
+                                            ? 'text-red-600'
+                                            : 'text-gray-600'
+                                        }`}
                                 >
                                     {stats.trend.percentage > 0 ? '+' : ''}
                                     {stats.trend.percentage}%
@@ -626,53 +735,80 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
                         <Separator orientation="vertical" className="hidden h-16! lg:block" />
                         <div className="flex flex-1 flex-col gap-2">
                             <p className="text-muted-foreground flex justify-between text-sm font-medium">
-                                Failed
-                                <span className="text-red-600">+{stats.total > 0 ? ((stats.failed / stats.total) * 100).toFixed(1) : 0}%</span>
+                                Overdue
+                                <span className="text-red-600">+{stats.total > 0 ? ((stats.overdue / stats.total) * 100).toFixed(1) : 0}%</span>
                             </p>
-                            <p className="text-xl font-semibold md:text-3xl">{stats.failed.toLocaleString()}</p>
+                            <p className="text-xl font-semibold md:text-3xl">{stats.overdue.toLocaleString()}</p>
                         </div>
                     </div>
 
                     {/* Chart */}
-                    <ChartContainer config={chartConfig} className="max-h-[280px] w-full">
-                        <AreaChart data={chartData} margin={{ left: 12, right: 12 }}>
-                            <CartesianGrid vertical={false} />
-                            <XAxis
-                                dataKey="date"
-                                tickLine={false}
-                                axisLine={false}
-                                tickMargin={8}
-                                tickFormatter={(value) => new Date(value).toLocaleDateString()}
-                            />
-                            <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                            <defs>
-                                <linearGradient id="fillCompleted" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="var(--color-completed)" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="var(--color-completed)" stopOpacity={0.1} />
-                                </linearGradient>
-                                <linearGradient id="fillFailed" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="var(--color-failed)" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="var(--color-failed)" stopOpacity={0.1} />
-                                </linearGradient>
-                            </defs>
-                            <Area
-                                dataKey="completed"
-                                type="natural"
-                                fill="url(#fillCompleted)"
-                                fillOpacity={0.4}
-                                stroke="var(--color-completed)"
-                                stackId="a"
-                            />
-                            <Area
-                                dataKey="failed"
-                                type="natural"
-                                fill="url(#fillFailed)"
-                                fillOpacity={0.4}
-                                stroke="var(--color-failed)"
-                                stackId="a"
-                            />
-                        </AreaChart>
-                    </ChartContainer>
+                    {chartData && chartData.length > 0 ? (
+                        <ChartContainer config={chartConfig} className="h-[200px] max-h-[280px] w-full sm:h-[280px]">
+                            <AreaChart
+                                data={chartData}
+                                margin={{
+                                    left: isMobile ? 0 : 12,
+                                    right: isMobile ? 0 : 12,
+                                    top: 10,
+                                    bottom: 0
+                                }}
+                            >
+                                <CartesianGrid vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={8}
+                                    interval={isMobile ? 'preserveStartEnd' : 0}
+                                    tickFormatter={(value) => {
+                                        const date = new Date(value);
+                                        return isMobile
+                                            ? date.toLocaleDateString('en-US', { day: 'numeric', month: 'numeric' })
+                                            : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                    }}
+                                />
+                                <YAxis
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={8}
+                                    width={isMobile ? 0 : 40}
+                                    hide={isMobile}
+                                />
+                                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                <defs>
+                                    <linearGradient id="fillCompleted" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--color-completed)" stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor="var(--color-completed)" stopOpacity={0.1} />
+                                    </linearGradient>
+                                    <linearGradient id="fillOverdue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--color-overdue)" stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor="var(--color-overdue)" stopOpacity={0.1} />
+                                    </linearGradient>
+                                </defs>
+                                <Area
+                                    dataKey="completed"
+                                    type="natural"
+                                    fill="url(#fillCompleted)"
+                                    fillOpacity={0.4}
+                                    stroke="var(--color-completed)"
+                                    stackId="a"
+                                />
+                                <Area
+                                    dataKey="overdue"
+                                    type="natural"
+                                    fill="url(#fillOverdue)"
+                                    fillOpacity={0.4}
+                                    stroke="var(--color-overdue)"
+                                    stackId="a"
+                                />
+                            </AreaChart>
+                        </ChartContainer>
+                    ) : (
+                        <div className="flex h-[200px] w-full items-center justify-center rounded-lg border bg-muted/10 sm:h-[280px]">
+                            <p className="text-muted-foreground">No data available for the selected period</p>
+                        </div>
+                    )}
 
                     <Separator />
 
@@ -696,30 +832,69 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
                             </div>
                         </div>
 
-                        <EntityDataTable
-                            data={filteredExecutions}
-                            columns={columns}
-                            loading={false}
-                            onRowClick={(execution) => router.visit(`/maintenance/executions/${execution.id}`)}
-                            columnVisibility={_columnVisibility}
-                            onSort={handleSort}
-                            actions={(execution) => (
-                                <EntityActionDropdown
-                                    additionalActions={[
-                                        {
-                                            label: 'View',
-                                            icon: <Eye className="h-4 w-4" />,
-                                            onClick: () => router.visit(`/maintenance/executions/${execution.id}`),
-                                        },
-                                        {
-                                            label: 'Export',
-                                            icon: <FileText className="h-4 w-4" />,
-                                            onClick: () => handleExportSingle(execution.id),
-                                        },
-                                    ]}
-                                />
-                            )}
-                        />
+                        {/* Table container with responsive wrapper */}
+                        <div className="relative overflow-hidden rounded-lg border">
+                            <div className="overflow-auto">
+                                <div className="min-w-[1000px]">
+                                    <EntityDataTable
+                                        data={filteredExecutions as unknown as Record<string, unknown>[]}
+                                        columns={columns}
+                                        loading={false}
+                                        onRowClick={(execution) => router.visit(`/maintenance/routines/executions/${execution.id}`)}
+                                        columnVisibility={_columnVisibility}
+                                        onSort={handleSort}
+                                        actions={(execution) => (
+                                            <EntityActionDropdown
+                                                additionalActions={[
+                                                    {
+                                                        label: 'View',
+                                                        icon: <Eye className="h-4 w-4" />,
+                                                        onClick: () => router.visit(`/maintenance/routines/executions/${execution.id}`),
+                                                    },
+                                                    {
+                                                        label: 'Export',
+                                                        icon: <FileText className="h-4 w-4" />,
+                                                        onClick: () => handleExportSingle(execution.id as number),
+                                                    },
+                                                ]}
+                                            />
+                                        )}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Pagination */}
+                        <div className="mt-4 flex items-center justify-end">
+                            <Pagination className="hidden justify-end md:flex">
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious href="#" />
+                                    </PaginationItem>
+                                    <PaginationItem>
+                                        <PaginationLink href="#">1</PaginationLink>
+                                    </PaginationItem>
+                                    <PaginationItem>
+                                        <PaginationLink href="#" isActive>
+                                            2
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                    <PaginationItem>
+                                        <PaginationLink href="#">3</PaginationLink>
+                                    </PaginationItem>
+                                    <PaginationItem>
+                                        <PaginationEllipsis />
+                                    </PaginationItem>
+                                    <PaginationItem>
+                                        <PaginationNext href="#" />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                            <div className="flex items-center justify-end space-x-2 md:hidden">
+                                <Button variant="outline">Previous</Button>
+                                <Button variant="outline">Next</Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

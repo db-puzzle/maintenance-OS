@@ -26,9 +26,9 @@ export default function FormExecutionGuard({ form, onExecute, onPublishAndExecut
                 description: 'Esta rotina precisa ser publicada antes de ser executada.',
                 action: onEditForm
                     ? {
-                          label: 'Editar Formulário',
-                          onClick: onEditForm,
-                      }
+                        label: 'Editar Formulário',
+                        onClick: onEditForm,
+                    }
                     : undefined,
             });
             return;
@@ -63,6 +63,7 @@ export default function FormExecutionGuard({ form, onExecute, onPublishAndExecut
 
     // Clone the child element and add onClick handler
     const childWithHandler = React.cloneElement(children, {
+        ...(children.props as any),
         onClick: handleClick,
         disabled: state === 'unpublished' || (children.props as { disabled?: boolean }).disabled,
     });

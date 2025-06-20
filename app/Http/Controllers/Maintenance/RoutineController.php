@@ -16,27 +16,7 @@ use Inertia\Inertia;
 
 class RoutineController extends Controller
 {
-    public function index()
-    {
-        $routines = Routine::with(['assets', 'form', 'routineExecutions'])->get();
 
-        return Inertia::render('Maintenance/Routines/Index', [
-            'routines' => $routines,
-        ]);
-    }
-
-    public function create()
-    {
-        $assets = Asset::all();
-        $availableForms = Form::whereDoesntHave('routine')
-            ->where('is_active', true)
-            ->get();
-
-        return Inertia::render('Maintenance/Routines/Create', [
-            'assets' => $assets,
-            'availableForms' => $availableForms,
-        ]);
-    }
 
     public function store(Request $request)
     {
@@ -55,35 +35,14 @@ class RoutineController extends Controller
         $routine = Routine::create($validated);
         $routine->assets()->attach($assetIds);
 
-        return redirect()->route('maintenance.routines.edit', $routine)
-            ->with('success', 'Rotina criada com sucesso.');
-    }
-
-    public function show(Routine $routine)
-    {
-        $routine->load(['assets', 'form', 'routineExecutions']);
-
-        return Inertia::render('Maintenance/Routines/Show', [
-            'routine' => $routine,
+        return response()->json([
+            'success' => true,
+            'message' => 'Rotina criada com sucesso.',
+            'routine' => $routine->load(['assets', 'form'])
         ]);
     }
 
-    public function edit(Routine $routine)
-    {
-        $routine->load(['assets', 'form']);
 
-        $assets = Asset::all();
-        $availableForms = Form::whereDoesntHave('routine')
-            ->where('is_active', true)
-            ->orWhere('id', $routine->form_id)
-            ->get();
-
-        return Inertia::render('Maintenance/Routines/Edit', [
-            'routine' => $routine,
-            'assets' => $assets,
-            'availableForms' => $availableForms,
-        ]);
-    }
 
     public function update(Request $request, Routine $routine)
     {
@@ -102,22 +61,29 @@ class RoutineController extends Controller
         $routine->update($validated);
         $routine->assets()->sync($assetIds);
 
-        return redirect()->back()
-            ->with('success', 'Rotina atualizada com sucesso.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Rotina atualizada com sucesso.',
+            'routine' => $routine->load(['assets', 'form'])
+        ]);
     }
 
     public function destroy(Routine $routine)
     {
         // Verificar se existem execuções associadas
         if ($routine->routineExecutions()->count() > 0) {
-            return redirect()->back()
-                ->with('error', 'Não é possível excluir uma rotina com execuções associadas.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Não é possível excluir uma rotina com execuções associadas.'
+            ], 400);
         }
 
         $routine->delete();
 
-        return redirect()->route('maintenance.routines.index')
-            ->with('success', 'Rotina excluída com sucesso.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Rotina excluída com sucesso.'
+        ]);
     }
 
     public function createExecution(Routine $routine)
@@ -128,79 +94,14 @@ class RoutineController extends Controller
         ]);
         $execution->save();
 
-        return redirect()->route('maintenance.executions.edit', $execution)
-            ->with('success', 'Nova execução da rotina criada com sucesso.');
-    }
-
-    public function executions(Routine $routine)
-    {
-        $executions = $routine->routineExecutions()->with(['executor'])->get();
-
-        return Inertia::render('Maintenance/Routines/Executions', [
-            'routine' => $routine,
-            'executions' => $executions,
+        return response()->json([
+            'success' => true,
+            'message' => 'Nova execução da rotina criada com sucesso.',
+            'execution' => $execution
         ]);
     }
 
-    public function formEditor(Routine $routine, Request $request)
-    {
-        $routine->load(['form.draftTasks.instructions', 'form.currentVersion.tasks.instructions', 'assets']);
 
-        // Se não há asset especificado, pegar o primeiro asset da rotina
-        $assetId = $request->get('asset');
-        $asset = null;
-
-        if ($assetId) {
-            $asset = Asset::find($assetId);
-        } elseif ($routine->assets->count() > 0) {
-            $asset = $routine->assets->first();
-        }
-
-        if (! $asset) {
-            return redirect()->back()
-                ->with('error', 'Não foi possível encontrar um ativo associado a esta rotina.');
-        }
-
-        // Get tasks - draft tasks if available, otherwise current version tasks
-        $tasks = collect([]);
-        if ($routine->form->draftTasks->count() > 0) {
-            $tasks = $routine->form->draftTasks;
-        } elseif ($routine->form->currentVersion) {
-            $tasks = $routine->form->currentVersion->tasks;
-        }
-
-        // Transform tasks to frontend format
-        $formattedTasks = $tasks->map(function ($task) {
-            return [
-                'id' => (string) $task->id,
-                'type' => $this->mapTaskType($task->type),
-                'description' => $task->description,
-                'isRequired' => $task->is_required,
-                'state' => 'viewing',
-                'measurement' => $task->getMeasurementConfig(),
-                'options' => $task->getOptions(),
-                'codeReaderType' => $task->getCodeReaderType(),
-                'instructionImages' => $task->instructions->where('type', 'image')->pluck('media_url')->toArray(),
-            ];
-        });
-
-        return Inertia::render('Routines/RoutineFormEditor', [
-            'routine' => [
-                'id' => $routine->id,
-                'name' => $routine->name,
-                'form' => [
-                    'id' => $routine->form->id,
-                    'tasks' => $formattedTasks,
-                    'isDraft' => $routine->form->isDraft(),
-                    'currentVersionId' => $routine->form->current_version_id,
-                ],
-            ],
-            'asset' => [
-                'id' => $asset->id,
-                'tag' => $asset->tag,
-            ],
-        ]);
-    }
 
     public function storeForm(Request $request, Routine $routine)
     {
@@ -325,15 +226,7 @@ class RoutineController extends Controller
 
     // ===== MÉTODOS PARA GERENCIAR ROTINAS NO CONTEXTO DE ATIVOS =====
 
-    public function assetRoutines(Asset $asset)
-    {
-        $routines = $asset->routines()->with(['form.currentVersion', 'routineExecutions'])->get();
 
-        return Inertia::render('asset-hierarchy/assets/routines', [
-            'asset' => $asset,
-            'routines' => $routines,
-        ]);
-    }
 
     public function storeAssetRoutine(Request $request, Asset $asset)
     {

@@ -47,6 +47,11 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
         gps_coordinates: plant?.gps_coordinates || '',
     });
 
+    // Create a wrapper for setData to match the expected signature
+    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+        setData(name as keyof PlantFormData, value as PlantFormData[keyof PlantFormData]);
+    };
+
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.plantas.update', { plant: plant.id }), {
@@ -90,7 +95,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}
@@ -105,7 +110,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}
@@ -119,7 +124,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}
@@ -133,7 +138,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}
@@ -147,7 +152,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}
@@ -161,7 +166,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}
@@ -176,7 +181,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                     <TextInput
                         form={{
                             data,
-                            setData,
+                            setData: handleSetData,
                             errors,
                             clearErrors,
                         }}

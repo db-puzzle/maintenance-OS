@@ -70,7 +70,7 @@ class ExecutionResponseController extends Controller
             ];
         });
 
-        return Inertia::render('maintenance/executions/Index', [
+        return Inertia::render('maintenance/routines/index', [
             'executions' => $executions,
             'filters' => $this->getActiveFilters($request),
             'filterOptions' => $this->getFilterOptions(),
@@ -128,7 +128,7 @@ class ExecutionResponseController extends Controller
         // Get timeline
         $timeline = $execution->timeline;
 
-        return Inertia::render('maintenance/executions/Show', [
+        return Inertia::render('maintenance/routines/show', [
             'execution' => [
                 'id' => $execution->id,
                 'routine' => [
@@ -305,7 +305,7 @@ class ExecutionResponseController extends Controller
      */
     private function getFilterOptions(): array
     {
-        // Use the same logic from ExecutionHistoryController
+        // Apply filters and sorting logic
         return [
             'assets' => \App\Models\AssetHierarchy\Asset::select('id', 'tag', 'description')
                 ->whereHas('routines.routineExecutions')

@@ -10,14 +10,14 @@ import {
     closestCenter,
     defaultDropAnimationSideEffects,
     DndContext,
+    DragEndEvent,
     DragOverlay,
+    DragStartEvent,
     KeyboardSensor,
     MeasuringStrategy,
     PointerSensor,
     useSensor,
     useSensors,
-    DragStartEvent,
-    DragEndEvent,
 } from '@dnd-kit/core';
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -213,14 +213,14 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             ...task,
             measurement: task.measurement
                 ? {
-                      ...task.measurement,
-                      name: task.measurement.name,
-                      min: task.measurement.min,
-                      target: task.measurement.target,
-                      max: task.measurement.max,
-                      unit: task.measurement.unit,
-                      category: task.measurement.category,
-                  }
+                    ...task.measurement,
+                    name: task.measurement.name,
+                    min: task.measurement.min,
+                    target: task.measurement.target,
+                    max: task.measurement.max,
+                    unit: task.measurement.unit,
+                    category: task.measurement.category,
+                }
                 : undefined,
             options: task.options?.map((option) => option) || [],
             instructionImages: task.instructionImages || [],
@@ -300,14 +300,14 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             ...task,
             measurement: task.measurement
                 ? {
-                      ...task.measurement,
-                      name: task.measurement.name,
-                      min: task.measurement.min,
-                      target: task.measurement.target,
-                      max: task.measurement.max,
-                      unit: task.measurement.unit,
-                      category: task.measurement.category,
-                  }
+                    ...task.measurement,
+                    name: task.measurement.name,
+                    min: task.measurement.min,
+                    target: task.measurement.target,
+                    max: task.measurement.max,
+                    unit: task.measurement.unit,
+                    category: task.measurement.category,
+                }
                 : undefined,
             options: task.options?.map((option) => option) || [],
             instructionImages: task.instructionImages || [],
@@ -348,9 +348,16 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                     {routine.form && (
                         <FormStatusBadge
                             form={{
-                                ...routine.form,
+                                id: routine.form.id,
                                 current_version_id: routine.form.currentVersionId ?? null,
                                 has_draft_changes: routine.form.has_draft_changes ?? routine.form.isDraft,
+                                current_version: routine.form.current_version,
+                                tasks: routine.form.tasks.map(task => ({
+                                    ...task,
+                                    id: parseInt(task.id),
+                                    name: task.description || '',
+                                    type: task.type
+                                })),
                             }}
                             size="sm"
                         />
@@ -430,7 +437,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                                         <div className="w-full sm:w-auto">
                                             <AddTaskButton
                                                 label="Nova Tarefa"
-                                                taskTypes={TaskTypes}
                                                 tasks={tasks}
                                                 currentIndex={-1}
                                                 onTaskAdded={(newTask) => {
@@ -456,10 +462,10 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                                                 TaskOperations.isEditing(task)
                                                     ? 'edit'
                                                     : TaskOperations.isPreviewing(task)
-                                                      ? 'preview'
-                                                      : TaskOperations.isResponding(task)
-                                                        ? 'respond'
-                                                        : 'preview'
+                                                        ? 'preview'
+                                                        : TaskOperations.isResponding(task)
+                                                            ? 'respond'
+                                                            : 'preview'
                                             }
                                             icon={icon}
                                             title={task.description}
@@ -499,10 +505,10 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                                                     TaskOperations.isEditing(task)
                                                         ? 'edit'
                                                         : TaskOperations.isPreviewing(task)
-                                                          ? 'preview'
-                                                          : TaskOperations.isResponding(task)
-                                                            ? 'respond'
-                                                            : 'preview'
+                                                            ? 'preview'
+                                                            : TaskOperations.isResponding(task)
+                                                                ? 'respond'
+                                                                : 'preview'
                                                 }
                                                 onUpdate={(updatedTask) => {
                                                     if (updatedTask.type === 'measurement' && updatedTask.measurement) {
@@ -533,32 +539,32 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                     >
                         {activeId
                             ? (() => {
-                                  const task = taskMethods.getById(activeId);
-                                  if (!task) return null;
+                                const task = taskMethods.getById(activeId);
+                                if (!task) return null;
 
-                                  const taskType = TaskTypes.find((t) => t.value === task.type);
-                                  const icon =
-                                      taskIcons[task.id] || (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
+                                const taskType = TaskTypes.find((t) => t.value === task.type);
+                                const icon =
+                                    taskIcons[task.id] || (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
 
-                                  return (
-                                      <TaskBaseCard
-                                          key={`overlay-${task.id}`}
-                                          id={task.id}
-                                          mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
-                                          icon={icon}
-                                          title={task.description}
-                                          isRequired={task.isRequired}
-                                          onTaskUpdate={() => {}}
-                                      >
-                                          <TaskContent
-                                              task={task}
-                                              mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
-                                              onUpdate={() => {}}
-                                              onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
-                                          />
-                                      </TaskBaseCard>
-                                  );
-                              })()
+                                return (
+                                    <TaskBaseCard
+                                        key={`overlay-${task.id}`}
+                                        id={task.id}
+                                        mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
+                                        icon={icon}
+                                        title={task.description}
+                                        isRequired={task.isRequired}
+                                        onTaskUpdate={() => { }}
+                                    >
+                                        <TaskContent
+                                            task={task}
+                                            mode={TaskOperations.isEditing(task) ? 'edit' : 'preview'}
+                                            onUpdate={() => { }}
+                                            onIconChange={(newIcon) => updateTaskIcon(task.id, newIcon)}
+                                        />
+                                    </TaskBaseCard>
+                                );
+                            })()
                             : null}
                     </DragOverlay>
                 </DndContext>

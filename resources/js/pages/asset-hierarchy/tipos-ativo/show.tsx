@@ -67,10 +67,10 @@ export default function Show({ assetType, asset }: Props) {
             label: 'Informações Gerais',
             content: (
                 <div className="py-8">
-                    <AssetTypeFormComponent 
-                        assetType={assetType as unknown as Parameters<typeof AssetTypeFormComponent>[0]['assetType']} 
-                        initialMode="view" 
-                        onSuccess={() => router.reload()} 
+                    <AssetTypeFormComponent
+                        assetType={assetType as unknown as Parameters<typeof AssetTypeFormComponent>[0]['assetType']}
+                        initialMode="view"
+                        onSuccess={() => router.reload()}
                     />
                 </div>
             ),

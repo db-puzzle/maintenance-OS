@@ -266,7 +266,7 @@
   35:12  error  'selectedPath' is assigned a value but never used     @typescript-eslint/no-unused-vars
   35:26  error  'setSelectedPath' is assigned a value but never used  @typescript-eslint/no-unused-vars
 
-/workspace/resources/js/pages/maintenance/executions/History.tsx
+/workspace/resources/js/pages/maintenance/routines/History.tsx
   73:17   error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
   75:14   error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
   76:20   error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
@@ -274,7 +274,7 @@
   94:101  error  'filters' is defined but never used        @typescript-eslint/no-unused-vars
   94:110  error  'filterOptions' is defined but never used  @typescript-eslint/no-unused-vars
 
-/workspace/resources/js/pages/maintenance/executions/Index.tsx
+/workspace/resources/js/pages/maintenance/routines/Index.tsx
    21:46  error  Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
    54:94  error  'sortOptions' is defined but never used               @typescript-eslint/no-unused-vars
   243:11  error  'handleSelectAll' is assigned a value but never used  @typescript-eslint/no-unused-vars

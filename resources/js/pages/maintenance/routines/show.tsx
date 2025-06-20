@@ -34,16 +34,12 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses,
             href: '/home',
         },
         {
-            title: 'Maintenance',
-            href: '/maintenance/dashboard',
-        },
-        {
             title: 'Executions',
-            href: '/maintenance/executions',
+            href: '/maintenance/routines',
         },
         {
             title: `#${execution.id}`,
-            href: `/maintenance/executions/${execution.id}`,
+            href: `/maintenance/routines/${execution.id}`,
         },
     ];
 
@@ -109,7 +105,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses,
         setExportError(null);
 
         try {
-            const response = await fetch(`/maintenance/executions/${execution.id}/export`, {
+            const response = await fetch(`/maintenance/routines/${execution.id}/export`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -154,7 +150,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses,
 
             const pollInterval = setInterval(async () => {
                 try {
-                    const statusResponse = await fetch(`/maintenance/executions/exports/${data.export_id}/status`, {
+                    const statusResponse = await fetch(`/maintenance/routines/exports/${data.export_id}/status`, {
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                         },

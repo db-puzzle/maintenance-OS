@@ -12,7 +12,7 @@ class RoutineExecutionPolicy
      */
     public function viewAny(User $user): bool
     {
-        // For now, allow all authenticated users to view execution history
+        // For now, allow all authenticated users to view executions
         // In a real app, you'd check for specific permissions
         return true;
     }

@@ -109,13 +109,15 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     ];
 
     // Estado para gerenciar as rotinas
-    const [routines, setRoutines] = useState<Array<{
-        id: number;
-        name: string;
-        description?: string;
-        form?: unknown;
-        [key: string]: unknown;
-    }>>(asset?.routines || []);
+    const [routines, setRoutines] = useState<
+        Array<{
+            id: number;
+            name: string;
+            description?: string;
+            form?: unknown;
+            [key: string]: unknown;
+        }>
+    >(asset?.routines || []);
 
     // Update routines when asset prop changes
     useEffect(() => {
@@ -177,48 +179,30 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     });
 
     // Handlers para rotinas
-    const handleSaveRoutine = (routine: {
-        id: number;
-        name: string;
-        description?: string;
-        form?: unknown;
-        [key: string]: unknown;
-    }) => {
+    const handleSaveRoutine = (routine: { id: number; name: string; description?: string; form?: unknown;[key: string]: unknown }) => {
         if (routine.id && routines.find((r) => r.id === routine.id)) {
             // Atualizar rotina existente
-            setRoutines(routines.map((r) => (r.id === routine.id ? routine : r)));
+            setRoutines((prevRoutines) => prevRoutines.map((r) => (r.id === routine.id ? routine : r)));
             toast.success('Rotina atualizada com sucesso!');
         } else {
             // Para novas rotinas, apenas adicionar ao estado (a criação já foi feita pelo EditRoutineSheet)
-            setRoutines([...routines, routine]);
+            setRoutines((prevRoutines) => [...prevRoutines, routine]);
             toast.success('Rotina criada com sucesso!');
         }
     };
 
-    const handleCreateSuccess = (routine: {
-        id: number;
-        name: string;
-        description?: string;
-        form?: unknown;
-        [key: string]: unknown;
-    }) => {
+    const handleCreateSuccess = (routine: { id: number; name: string; description?: string; form?: unknown;[key: string]: unknown }) => {
         // Add the new routine to the state
         if (routine && routine.id) {
-            setRoutines([...routines, routine]);
+            setRoutines((prevRoutines) => [...prevRoutines, routine]);
         }
         // The backend will redirect to the routines tab with the new routine ID
         // The redirect will trigger the useEffect to open the form editor
     };
 
-    const handleDeleteRoutine = (routine: {
-        id: number;
-        name: string;
-        description?: string;
-        form?: unknown;
-        [key: string]: unknown;
-    }) => {
+    const handleDeleteRoutine = (routine: { id: number; name: string; description?: string; form?: unknown;[key: string]: unknown }) => {
         // Remover a rotina da listagem
-        setRoutines(routines.filter((r) => r.id !== routine.id));
+        setRoutines((prevRoutines) => prevRoutines.filter((r) => r.id !== routine.id));
     };
 
     const handleNewRoutineClick = () => {
@@ -243,7 +227,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
 
                 if (newRoutine) {
                     // Add it to the state at the beginning of the array
-                    setRoutines([newRoutine, ...routines]);
+                    setRoutines((prevRoutines) => [newRoutine, ...prevRoutines]);
                 }
             }
 
@@ -259,7 +243,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 }
             }, 500);
         }
-    }, [newRoutineId, tabFromUrl, asset?.routines]);
+    }, [newRoutineId, tabFromUrl, asset?.routines, routines]);
 
     // Carregar turnos disponíveis
     useEffect(() => {
@@ -436,17 +420,18 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             const routineWithForm = response.data.routine;
 
             // Update the routine in the state with the fetched data
-            setRoutines(routines.map((r) => (r.id === routineId ? { ...r, ...routineWithForm } : r)));
+            setRoutines((prevRoutines) => prevRoutines.map((r) => (r.id === routineId ? { ...r, ...routineWithForm } : r)));
 
             // Then set the editing state
             setEditingRoutineFormId(routineId);
             // Ativar modo comprimido ao editar formulário
             setIsCompressed(true);
-        } catch (error: any) {
+        } catch (error) {
             // More specific error message
-            if (error.response?.status === 404) {
+            const axiosError = error as { response?: { status?: number } };
+            if (axiosError.response?.status === 404) {
                 toast.error('Rotina não encontrada');
-            } else if (error.response?.status === 500) {
+            } else if (axiosError.response?.status === 500) {
                 toast.error('Erro no servidor ao carregar formulário');
             } else {
                 toast.error('Erro ao carregar dados do formulário');
@@ -468,14 +453,14 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     };
 
     const handleCloseFormFiller = () => {
-        setFillingRoutineFormId(null);
+        setFillingRoutineId(null);
         setIsCompressed(false);
     };
 
-    const handleFormSaved = (formData: any) => {
+    const handleFormSaved = (formData: unknown) => {
         // Atualizar a rotina com o novo formulário
-        setRoutines(
-            routines.map((r) => {
+        setRoutines((prevRoutines) =>
+            prevRoutines.map((r) => {
                 if (r.id === editingRoutineFormId) {
                     return { ...r, form: formData };
                 }
@@ -508,308 +493,308 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         ...(isCreating
             ? []
             : [
-                  {
-                      id: 'shifts-runtime',
-                      label: 'Turnos & Horas',
-                      content: (
-                          <div className="space-y-6 py-6">
-                              <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
-                                  {/* First Column - Runtime Input */}
-                                  <div className="h-full">
-                                      <AssetRuntimeInput
-                                          assetId={asset?.id}
-                                          runtimeData={asset?.runtime_data}
-                                          onRuntimeUpdated={() => {
-                                              // Handle runtime update if needed
-                                          }}
-                                      />
-                                  </div>
+                {
+                    id: 'shifts-runtime',
+                    label: 'Turnos & Horas',
+                    content: (
+                        <div className="space-y-6 py-6">
+                            <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+                                {/* First Column - Runtime Input */}
+                                <div className="h-full">
+                                    <AssetRuntimeInput
+                                        assetId={asset?.id}
+                                        runtimeData={asset?.runtime_data}
+                                        onRuntimeUpdated={() => {
+                                            // Handle runtime update if needed
+                                        }}
+                                    />
+                                </div>
 
-                                  {/* Second Column - Shift Configuration */}
-                                  <div className="h-full">
-                                      <ShiftSelectionCard
-                                          ref={shiftSelectionRef}
-                                          shifts={shifts}
-                                          selectedShiftId={selectedShiftId}
-                                          tempSelectedShiftId={tempSelectedShiftId}
-                                          isEditingShift={isEditingShift}
-                                          loadingShifts={loadingShifts}
-                                          onEditShift={handleEditShift}
-                                          onCancelShiftEdit={handleCancelShiftEdit}
-                                          onSaveShift={handleSaveShift}
-                                          onShiftChange={handleShiftChange}
-                                          onCreateClick={handleCreateShiftClick}
-                                          onShiftUpdated={handleShiftUpdated}
-                                      />
-                                  </div>
-                              </div>
+                                {/* Second Column - Shift Configuration */}
+                                <div className="h-full">
+                                    <ShiftSelectionCard
+                                        ref={shiftSelectionRef}
+                                        shifts={shifts}
+                                        selectedShiftId={selectedShiftId}
+                                        tempSelectedShiftId={tempSelectedShiftId}
+                                        isEditingShift={isEditingShift}
+                                        loadingShifts={loadingShifts}
+                                        onEditShift={handleEditShift}
+                                        onCancelShiftEdit={handleCancelShiftEdit}
+                                        onSaveShift={handleSaveShift}
+                                        onShiftChange={handleShiftChange}
+                                        onCreateClick={handleCreateShiftClick}
+                                        onShiftUpdated={handleShiftUpdated}
+                                    />
+                                </div>
+                            </div>
 
-                              {selectedShift ? (
-                                  <div className="space-y-4">
-                                      <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'calendar' | 'table')}>
-                                          <TabsList className="flex w-[200px]">
-                                              <TabsTrigger value="calendar" className="flex flex-1 items-center gap-2">
-                                                  <Calendar className="h-4 w-4" />
-                                                  Calendário
-                                              </TabsTrigger>
-                                              <TabsTrigger value="table" className="flex flex-1 items-center gap-2">
-                                                  <Table className="h-4 w-4" />
-                                                  Tabela
-                                              </TabsTrigger>
-                                          </TabsList>
+                            {selectedShift ? (
+                                <div className="space-y-4">
+                                    <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'calendar' | 'table')}>
+                                        <TabsList className="flex w-[200px]">
+                                            <TabsTrigger value="calendar" className="flex flex-1 items-center gap-2">
+                                                <Calendar className="h-4 w-4" />
+                                                Calendário
+                                            </TabsTrigger>
+                                            <TabsTrigger value="table" className="flex flex-1 items-center gap-2">
+                                                <Table className="h-4 w-4" />
+                                                Tabela
+                                            </TabsTrigger>
+                                        </TabsList>
 
-                                          <TabsContent value="calendar" className="mt-4">
-                                              <ShiftCalendarView schedules={selectedShift.schedules} showAllDays={true} />
-                                          </TabsContent>
-                                          <TabsContent value="table" className="mt-4">
-                                              <ShiftTableView schedules={selectedShift.schedules} />
-                                          </TabsContent>
-                                      </Tabs>
-                                  </div>
-                              ) : (
-                                  <EmptyCard
-                                      icon={Clock}
-                                      title="Nenhum turno selecionado"
-                                      description="Selecione ou configure um turno de operação para visualizar os horários de trabalho do ativo."
-                                      primaryButtonText="Adicionar Turno"
-                                      primaryButtonAction={handleAddShiftClick}
-                                  />
-                              )}
+                                        <TabsContent value="calendar" className="mt-4">
+                                            <ShiftCalendarView schedules={selectedShift.schedules} showAllDays={true} />
+                                        </TabsContent>
+                                        <TabsContent value="table" className="mt-4">
+                                            <ShiftTableView schedules={selectedShift.schedules} />
+                                        </TabsContent>
+                                    </Tabs>
+                                </div>
+                            ) : (
+                                <EmptyCard
+                                    icon={Clock}
+                                    title="Nenhum turno selecionado"
+                                    description="Selecione ou configure um turno de operação para visualizar os horários de trabalho do ativo."
+                                    primaryButtonText="Adicionar Turno"
+                                    primaryButtonAction={handleAddShiftClick}
+                                />
+                            )}
 
-                              {/* CreateShiftSheet oculto para ser acionado programaticamente */}
-                              <CreateShiftSheet
-                                  isOpen={createShiftSheetOpen}
-                                  onOpenChange={setCreateShiftSheetOpen}
-                                  showTrigger={false}
-                                  onSuccess={handleShiftCreated}
-                              />
-                          </div>
-                      ),
-                  },
-                  {
-                      id: 'rotinas',
-                      label: 'Rotinas',
-                      content: (
-                          <div className="min-h-full space-y-4">
-                              {loadingFormEditor ? (
-                                  // Show loading state while fetching form data
-                                  <div className="flex min-h-[400px] items-center justify-center">
-                                      <div className="text-center">
-                                          <div className="border-primary mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2"></div>
-                                          <p className="text-muted-foreground">Carregando formulário...</p>
-                                      </div>
-                                  </div>
-                              ) : editingRoutineFormId ? (
-                                  // Mostrar o editor de formulário inline
-                                  (() => {
-                                      const routine = routines.find((r) => r.id === editingRoutineFormId);
-                                      if (!routine) return null;
+                            {/* CreateShiftSheet oculto para ser acionado programaticamente */}
+                            <CreateShiftSheet
+                                isOpen={createShiftSheetOpen}
+                                onOpenChange={setCreateShiftSheetOpen}
+                                showTrigger={false}
+                                onSuccess={handleShiftCreated}
+                            />
+                        </div>
+                    ),
+                },
+                {
+                    id: 'rotinas',
+                    label: 'Rotinas',
+                    content: (
+                        <div className="min-h-full space-y-4">
+                            {loadingFormEditor ? (
+                                // Show loading state while fetching form data
+                                <div className="flex min-h-[400px] items-center justify-center">
+                                    <div className="text-center">
+                                        <div className="border-primary mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2"></div>
+                                        <p className="text-muted-foreground">Carregando formulário...</p>
+                                    </div>
+                                </div>
+                            ) : editingRoutineFormId ? (
+                                // Mostrar o editor de formulário inline
+                                (() => {
+                                    const routine = routines.find((r) => r.id === editingRoutineFormId);
+                                    if (!routine) return null;
 
-                                      return (
-                                          <InlineRoutineFormEditor
-                                              routine={routine}
-                                              assetId={asset!.id}
-                                              onClose={handleCloseFormEditor}
-                                              onSuccess={handleFormSaved}
-                                          />
-                                      );
-                                  })()
-                              ) : fillingRoutineId ? (
-                                  // Mostrar o preenchedor de formulário inline
-                                  (() => {
-                                      const routine = routines.find((r) => r.id === fillingRoutineId);
-                                      if (!routine) return null;
+                                    return (
+                                        <InlineRoutineFormEditor
+                                            routine={routine}
+                                            assetId={asset!.id}
+                                            onClose={handleCloseFormEditor}
+                                            onSuccess={handleFormSaved}
+                                        />
+                                    );
+                                })()
+                            ) : fillingRoutineId ? (
+                                // Mostrar o preenchedor de formulário inline
+                                (() => {
+                                    const routine = routines.find((r) => r.id === fillingRoutineId);
+                                    if (!routine) return null;
 
-                                      return (
-                                          <InlineRoutineForm
-                                              routine={routine}
-                                              assetId={asset!.id}
-                                              onClose={handleCloseFormFiller}
-                                              onComplete={handleCloseFormFiller}
-                                          />
-                                      );
-                                  })()
-                              ) : routines.length === 0 ? (
-                                  <div className="flex min-h-[400px] items-center justify-center py-4">
-                                      <div className="w-full">
-                                          <EmptyCard
-                                              icon={CalendarClock}
-                                              title="Nenhuma rotina"
-                                              description="Crie rotinas de manutenção e inspeção para este ativo"
-                                              primaryButtonText="Nova rotina"
-                                              primaryButtonAction={handleNewRoutineClick}
-                                              secondaryButtonText="Ver cronograma"
-                                              secondaryButtonAction={() => {
-                                                  // Navegar para cronograma ou implementar funcionalidade futura
-                                              }}
-                                          />
-                                      </div>
-                                  </div>
-                              ) : (
-                                  <>
-                                      {/* Lista de rotinas existentes */}
+                                    return (
+                                        <InlineRoutineForm
+                                            routine={routine}
+                                            assetId={asset!.id}
+                                            onClose={handleCloseFormFiller}
+                                            onComplete={handleCloseFormFiller}
+                                        />
+                                    );
+                                })()
+                            ) : routines.length === 0 ? (
+                                <div className="flex min-h-[400px] items-center justify-center py-4">
+                                    <div className="w-full">
+                                        <EmptyCard
+                                            icon={CalendarClock}
+                                            title="Nenhuma rotina"
+                                            description="Crie rotinas de manutenção e inspeção para este ativo"
+                                            primaryButtonText="Nova rotina"
+                                            primaryButtonAction={handleNewRoutineClick}
+                                            secondaryButtonText="Ver cronograma"
+                                            secondaryButtonAction={() => {
+                                                // Navegar para cronograma ou implementar funcionalidade futura
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Lista de rotinas existentes */}
 
-                                      <div className="bg-background-muted">
-                                          <div
-                                              className={cn(
-                                                  'transition-all duration-200 ease-in-out',
-                                                  isCompressed ? 'mt-4 mb-4 px-4' : 'mt-4 mb-4 px-4',
-                                              )}
-                                          >
-                                              <div className="relative">
-                                                  <Search
-                                                      className={cn(
-                                                          'text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2',
-                                                          isCompressed ? 'h-4 w-4' : 'h-5 w-5',
-                                                      )}
-                                                  />
-                                                  <Input
-                                                      type="text"
-                                                      placeholder="Buscar rotinas..."
-                                                      value={searchTerm}
-                                                      onChange={(e) => setSearchTerm(e.target.value)}
-                                                      className={cn('bg-background max-w-sm', isCompressed ? 'h-8 pl-9' : 'pl-10')}
-                                                  />
-                                              </div>
-                                          </div>
+                                    <div className="bg-background-muted">
+                                        <div
+                                            className={cn(
+                                                'transition-all duration-200 ease-in-out',
+                                                isCompressed ? 'mt-4 mb-4 px-4' : 'mt-4 mb-4 px-4',
+                                            )}
+                                        >
+                                            <div className="relative">
+                                                <Search
+                                                    className={cn(
+                                                        'text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2',
+                                                        isCompressed ? 'h-4 w-4' : 'h-5 w-5',
+                                                    )}
+                                                />
+                                                <Input
+                                                    type="text"
+                                                    placeholder="Buscar rotinas..."
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                    className={cn('bg-background max-w-sm', isCompressed ? 'h-8 pl-9' : 'pl-10')}
+                                                />
+                                            </div>
+                                        </div>
 
-                                          <div className={cn('transition-all duration-200 ease-in-out', isCompressed ? 'px-2' : 'px-4')}>
-                                              <ul role="list" className="divide-y divide-gray-100 border-t border-b border-gray-100">
-                                                  {sortedRoutines.map((routine) => (
-                                                      <li key={routine.id}>
-                                                          <RoutineList
-                                                              routine={routine}
-                                                              onSave={handleSaveRoutine}
-                                                              onDelete={handleDeleteRoutine}
-                                                              assetId={asset?.id}
-                                                              onEditForm={() => handleEditRoutineForm(routine.id)}
-                                                              onFillForm={() => handleFillRoutineForm(routine.id)}
-                                                              isCompressed={isCompressed}
-                                                              shift={selectedShift}
-                                                              ref={(el) => {
-                                                                  if (routine.id) {
-                                                                      routineListRefs.current[routine.id] = el;
-                                                                  }
-                                                              }}
-                                                          />
-                                                      </li>
-                                                  ))}
-                                              </ul>
+                                        <div className={cn('transition-all duration-200 ease-in-out', isCompressed ? 'px-2' : 'px-4')}>
+                                            <ul role="list" className="divide-y divide-gray-100 border-t border-b border-gray-100">
+                                                {sortedRoutines.map((routine) => (
+                                                    <li key={routine.id}>
+                                                        <RoutineList
+                                                            routine={routine}
+                                                            onSave={handleSaveRoutine}
+                                                            onDelete={handleDeleteRoutine}
+                                                            assetId={asset?.id}
+                                                            onEditForm={() => handleEditRoutineForm(routine.id)}
+                                                            onFillForm={() => handleFillRoutineForm(routine.id)}
+                                                            isCompressed={isCompressed}
+                                                            shift={selectedShift}
+                                                            ref={(el) => {
+                                                                if (routine.id) {
+                                                                    routineListRefs.current[routine.id] = el;
+                                                                }
+                                                            }}
+                                                        />
+                                                    </li>
+                                                ))}
+                                            </ul>
 
-                                              {sortedRoutines.length === 0 && searchTerm && (
-                                                  <div className={cn('text-muted-foreground text-center', isCompressed ? 'py-4 text-sm' : 'py-8')}>
-                                                      Nenhuma rotina encontrada para "{searchTerm}"
-                                                  </div>
-                                              )}
-                                          </div>
+                                            {sortedRoutines.length === 0 && searchTerm && (
+                                                <div className={cn('text-muted-foreground text-center', isCompressed ? 'py-4 text-sm' : 'py-8')}>
+                                                    Nenhuma rotina encontrada para "{searchTerm}"
+                                                </div>
+                                            )}
+                                        </div>
 
-                                          {/* Botão para adicionar nova rotina quando já existem rotinas */}
-                                          <div
-                                              className={cn(
-                                                  'flex justify-center transition-all duration-200 ease-in-out',
-                                                  isCompressed ? 'py-2' : 'py-4',
-                                              )}
-                                          >
-                                              <CreateRoutineButton
-                                                  onSuccess={handleCreateSuccess}
-                                                  text="Adicionar Nova Rotina"
-                                                  variant="outline"
-                                                  assetId={asset?.id}
-                                              />
-                                          </div>
-                                      </div>
-                                  </>
-                              )}
+                                        {/* Botão para adicionar nova rotina quando já existem rotinas */}
+                                        <div
+                                            className={cn(
+                                                'flex justify-center transition-all duration-200 ease-in-out',
+                                                isCompressed ? 'py-2' : 'py-4',
+                                            )}
+                                        >
+                                            <CreateRoutineButton
+                                                onSuccess={handleCreateSuccess}
+                                                text="Adicionar Nova Rotina"
+                                                variant="outline"
+                                                assetId={asset?.id}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
 
-                              {/* CreateRoutineButton oculto para ser acionado programaticamente */}
-                              <div style={{ display: 'none' }}>
-                                  <CreateRoutineButton
-                                      ref={createRoutineButtonRef}
-                                      onSuccess={handleCreateSuccess}
-                                      text="Nova Rotina"
-                                      assetId={asset?.id}
-                                  />
-                              </div>
-                          </div>
-                      ),
-                  },
-                  {
-                      id: 'chamados',
-                      label: 'Chamados de Usuário',
-                      content: (
-                          <div className="flex min-h-[400px] items-center justify-center py-4">
-                              <div className="w-full">
-                                  <EmptyCard
-                                      icon={MessageSquare}
-                                      title="Nenhum chamado registrado"
-                                      description="Registre chamados para este ativo"
-                                      primaryButtonText="Novo chamado"
-                                      primaryButtonAction={() => {}}
-                                      secondaryButtonText="Ver histórico"
-                                      secondaryButtonAction={() => {}}
-                                  />
-                              </div>
-                          </div>
-                      ),
-                  },
-                  {
-                      id: 'ordem-serviço',
-                      label: 'Ordens de Manutenção',
-                      content: (
-                          <div className="flex min-h-[400px] items-center justify-center py-4">
-                              <div className="w-full">
-                                  <EmptyCard
-                                      icon={FileText}
-                                      title="Nenhuma ordem de serviço"
-                                      description="Registre ordens de serviço para este ativo"
-                                      primaryButtonText="Nova ordem de serviço"
-                                      primaryButtonAction={() => {}}
-                                      secondaryButtonText="Ver histórico"
-                                      secondaryButtonAction={() => {}}
-                                  />
-                              </div>
-                          </div>
-                      ),
-                  },
-                  {
-                      id: 'arquivos',
-                      label: 'Arquivos',
-                      content: (
-                          <div className="flex min-h-[400px] items-center justify-center py-4">
-                              <div className="w-full">
-                                  <EmptyCard
-                                      icon={FileText}
-                                      title="Nenhum arquivo"
-                                      description="Registre arquivos para este ativo"
-                                      primaryButtonText="Novo arquivo"
-                                      primaryButtonAction={() => {}}
-                                      secondaryButtonText="Ver histórico"
-                                      secondaryButtonAction={() => {}}
-                                  />
-                              </div>
-                          </div>
-                      ),
-                  },
-                  {
-                      id: 'historico',
-                      label: 'Histórico',
-                      content: (
-                          <div className="flex min-h-[400px] items-center justify-center py-4">
-                              <div className="w-full">
-                                  <EmptyCard
-                                      icon={MessageSquare}
-                                      title="Nenhum histórico registrado"
-                                      description="Quando houver algum histórico para este ativo, ele será exibido aqui."
-                                      primaryButtonText="Ver detalhes"
-                                      primaryButtonAction={() => {
-                                          // Implementar ação para ver detalhes do histórico ou navegar
-                                      }}
-                                  />
-                              </div>
-                          </div>
-                      ),
-                  },
-              ]),
+                            {/* CreateRoutineButton oculto para ser acionado programaticamente */}
+                            <div style={{ display: 'none' }}>
+                                <CreateRoutineButton
+                                    ref={createRoutineButtonRef}
+                                    onSuccess={handleCreateSuccess}
+                                    text="Nova Rotina"
+                                    assetId={asset?.id}
+                                />
+                            </div>
+                        </div>
+                    ),
+                },
+                {
+                    id: 'chamados',
+                    label: 'Chamados de Usuário',
+                    content: (
+                        <div className="flex min-h-[400px] items-center justify-center py-4">
+                            <div className="w-full">
+                                <EmptyCard
+                                    icon={MessageSquare}
+                                    title="Nenhum chamado registrado"
+                                    description="Registre chamados para este ativo"
+                                    primaryButtonText="Novo chamado"
+                                    primaryButtonAction={() => { }}
+                                    secondaryButtonText="Ver histórico"
+                                    secondaryButtonAction={() => { }}
+                                />
+                            </div>
+                        </div>
+                    ),
+                },
+                {
+                    id: 'ordem-serviço',
+                    label: 'Ordens de Manutenção',
+                    content: (
+                        <div className="flex min-h-[400px] items-center justify-center py-4">
+                            <div className="w-full">
+                                <EmptyCard
+                                    icon={FileText}
+                                    title="Nenhuma ordem de serviço"
+                                    description="Registre ordens de serviço para este ativo"
+                                    primaryButtonText="Nova ordem de serviço"
+                                    primaryButtonAction={() => { }}
+                                    secondaryButtonText="Ver histórico"
+                                    secondaryButtonAction={() => { }}
+                                />
+                            </div>
+                        </div>
+                    ),
+                },
+                {
+                    id: 'arquivos',
+                    label: 'Arquivos',
+                    content: (
+                        <div className="flex min-h-[400px] items-center justify-center py-4">
+                            <div className="w-full">
+                                <EmptyCard
+                                    icon={FileText}
+                                    title="Nenhum arquivo"
+                                    description="Registre arquivos para este ativo"
+                                    primaryButtonText="Novo arquivo"
+                                    primaryButtonAction={() => { }}
+                                    secondaryButtonText="Ver histórico"
+                                    secondaryButtonAction={() => { }}
+                                />
+                            </div>
+                        </div>
+                    ),
+                },
+                {
+                    id: 'historico',
+                    label: 'Histórico',
+                    content: (
+                        <div className="flex min-h-[400px] items-center justify-center py-4">
+                            <div className="w-full">
+                                <EmptyCard
+                                    icon={MessageSquare}
+                                    title="Nenhum histórico registrado"
+                                    description="Quando houver algum histórico para este ativo, ele será exibido aqui."
+                                    primaryButtonText="Ver detalhes"
+                                    primaryButtonAction={() => {
+                                        // Implementar ação para ver detalhes do histórico ou navegar
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    ),
+                },
+            ]),
     ];
 
     return (

@@ -38,11 +38,11 @@ interface Schedule {
     shifts: Shift[];
 }
 
-// This interface is currently empty but reserved for future shift editor specific props  
-interface ShiftEditorProps {
-    // Future shift editor specific props will be added here
-    [key: string]: unknown;
-}
+// This interface is currently empty but reserved for future shift editor specific props
+// interface ShiftEditorProps {
+//     // Future shift editor specific props will be added here
+//     [key: string]: unknown;
+// }
 
 interface CreateProps {
     // Props for create functionality will be added here as needed
@@ -276,13 +276,13 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                     day.key === 'Saturday' || day.key === 'Sunday'
                         ? []
                         : [
-                              {
-                                  start_time: '07:00',
-                                  end_time: '17:00',
-                                  active: true,
-                                  breaks: [{ start_time: '12:00', end_time: '13:00' }],
-                              },
-                          ],
+                            {
+                                start_time: '07:00',
+                                end_time: '17:00',
+                                active: true,
+                                breaks: [{ start_time: '12:00', end_time: '13:00' }],
+                            },
+                        ],
             })),
     });
 

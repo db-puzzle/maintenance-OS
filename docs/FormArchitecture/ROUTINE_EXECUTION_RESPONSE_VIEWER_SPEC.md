@@ -133,7 +133,7 @@ Frontend Components
 ├── pages/
 │   ├── maintenance/
 │   │   ├── executions/
-│   │   │   ├── History.tsx (Dashboard)
+│   │   │   ├── [History.tsx removed - replaced by routine-dashboard]
 │   │   │   ├── Index.tsx (List View)
 │   │   │   └── Show.tsx (Detail View)
 ├── components/
@@ -328,7 +328,7 @@ public function scopeFilterByAssets($query, array $assetIds)
 
 #### 1. Get Execution History Dashboard
 ```
-GET /api/maintenance/executions/dashboard
+GET /api/maintenance/routines/dashboard
 ```
 
 **Response:**
@@ -369,7 +369,7 @@ GET /api/maintenance/executions/dashboard
 
 #### 2. List Executions with Filtering
 ```
-GET /api/maintenance/executions
+GET /api/maintenance/routines
 ```
 
 **Query Parameters:**
@@ -432,7 +432,7 @@ GET /api/maintenance/executions
 
 #### 3. Get Execution Details
 ```
-GET /api/maintenance/executions/{id}
+GET /api/maintenance/routines/{id}
 ```
 
 **Response:**
@@ -498,7 +498,7 @@ GET /api/maintenance/executions/{id}
 
 #### 4. Export Execution to PDF
 ```
-POST /api/maintenance/executions/{id}/export
+POST /api/maintenance/routines/{id}/export
 ```
 
 **Request Body:**
@@ -531,7 +531,7 @@ POST /api/maintenance/executions/{id}/export
 
 #### 5. Batch Export Executions
 ```
-POST /api/maintenance/executions/export/batch
+POST /api/maintenance/routines/export/batch
 ```
 
 **Request Body:**
@@ -810,12 +810,12 @@ class PDFGeneratorService
 
 ```php
 // New permissions to add
-'maintenance.executions.view-history'     // View execution history dashboard
-'maintenance.executions.view-all'         // View all executions (not just own)
-'maintenance.executions.export-single'    // Export single execution
-'maintenance.executions.export-batch'     // Export multiple executions
-'maintenance.executions.delete'           // Delete executions
-'maintenance.executions.view-analytics'   // View analytics dashboard
+'maintenance.routines.view-history'     // View execution history dashboard
+'maintenance.routines.view-all'         // View all executions (not just own)
+'maintenance.routines.export-single'    // Export single execution
+'maintenance.routines.export-batch'     // Export multiple executions
+'maintenance.routines.delete'           // Delete executions
+'maintenance.routines.view-analytics'   // View analytics dashboard
 ```
 
 ### Access Control
@@ -824,18 +824,18 @@ class PDFGeneratorService
 // ExecutionPolicy.php
 public function viewAny(User $user): bool
 {
-    return $user->hasPermissionTo('maintenance.executions.view-history');
+    return $user->hasPermissionTo('maintenance.routines.view-history');
 }
 
 public function view(User $user, RoutineExecution $execution): bool
 {
-    return $user->hasPermissionTo('maintenance.executions.view-all') ||
+    return $user->hasPermissionTo('maintenance.routines.view-all') ||
            $user->id === $execution->executed_by;
 }
 
 public function export(User $user, RoutineExecution $execution): bool
 {
-    return $user->hasPermissionTo('maintenance.executions.export-single') &&
+    return $user->hasPermissionTo('maintenance.routines.export-single') &&
            $this->view($user, $execution);
 }
 ```
@@ -897,7 +897,7 @@ class ExecutionHistoryTest extends TestCase
             ->create(['status' => 'completed']);
         
         $response = $this->actingAs($this->authorizedUser)
-            ->get('/api/maintenance/executions/dashboard');
+            ->get('/api/maintenance/routines/dashboard');
         
         $response->assertOk()
             ->assertJsonPath('stats.total', 10)
@@ -942,7 +942,7 @@ describe('ExecutionFilters', () => {
 ```typescript
 // e2e/execution-history.spec.ts
 test('should export execution to PDF', async ({ page }) => {
-    await page.goto('/maintenance/executions/1234');
+    await page.goto('/maintenance/routines/1234');
     await page.click('button:has-text("Export PDF")');
     
     // Wait for download

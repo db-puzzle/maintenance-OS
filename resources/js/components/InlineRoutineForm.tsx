@@ -7,7 +7,7 @@ import { Task, TaskState, TaskTypes } from '@/types/task';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { AlertCircle, CheckCircle2, ClipboardCheck, Loader2, X } from 'lucide-react';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface RoutineData {
@@ -111,10 +111,10 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             }));
             setTasks(initialTasks);
         } catch (error: unknown) {
-            const err = error as { 
-                response?: { 
+            const err = error as {
+                response?: {
                     status?: number;
-                    data?: { 
+                    data?: {
                         errors?: Record<string, string[]>;
                         message?: string;
                         error?: string;
@@ -174,7 +174,8 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                     formData.append(`files[${index}]`, file);
                 });
                 // Remove files from response data to avoid sending as JSON
-                const { files: _, ...restData } = dataToSend;
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { files: _files, ...restData } = dataToSend;
                 // Send response as array fields instead of JSON string
                 Object.keys(restData).forEach((key) => {
                     formData.append(`response[${key}]`, String(restData[key]));
@@ -238,10 +239,10 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                 handleCompleteExecution();
             }
         } catch (error: unknown) {
-            const err = error as { 
-                response?: { 
+            const err = error as {
+                response?: {
                     status?: number;
-                    data?: { 
+                    data?: {
                         errors?: Record<string, string[]>;
                         message?: string;
                         error?: string;
@@ -287,9 +288,9 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             // Reload the page to refresh the routine list
             router.reload();
         } catch (error: unknown) {
-            const err = error as { 
-                response?: { 
-                    data?: { 
+            const err = error as {
+                response?: {
+                    data?: {
                         missing_tasks?: string[];
                         error?: string;
                     };
@@ -420,7 +421,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                                 icon={icon}
                                 title={task.description}
                                 isRequired={task.isRequired}
-                                onTaskUpdate={() => {}}
+                                onTaskUpdate={() => { }}
                             >
                                 {isCompleted && (
                                     <div className="mb-2 flex items-center gap-1 text-sm text-green-600">

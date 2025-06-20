@@ -42,6 +42,11 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
         plant_id: area?.plant?.id?.toString() || '',
     });
 
+    // Create a wrapper for setData to match the expected signature
+    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+        setData(name as keyof AreaFormData, value as AreaFormData[keyof AreaFormData]);
+    };
+
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.areas.update', { area: area.id }), {
@@ -121,7 +126,7 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}

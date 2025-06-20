@@ -42,16 +42,13 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/home',
     },
     {
-        title: 'Maintenance',
-        href: '/maintenance/dashboard',
-    },
-    {
-        title: 'Executions',
-        href: '/maintenance/executions',
+        title: 'Rotinas',
+        href: '/maintenance/routines',
     },
 ];
 
-const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, filterOptions, sortOptions: _sortOptions, currentSort }) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, filterOptions, sortOptions, currentSort }) => {
     const [selectedExecutions, setSelectedExecutions] = useState<number[]>([]);
     const [showFilters, setShowFilters] = useState(false);
     const [localFilters, setLocalFilters] = useState(filters);
@@ -127,7 +124,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
         },
         {
             key: 'routine_name',
-            label: 'Routine',
+            label: 'Rotina',
             sortable: true,
             width: 'w-[200px]',
             render: (value, row) => (
@@ -139,10 +136,10 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
         },
         {
             key: 'asset_tag',
-            label: 'Asset',
+            label: 'Ativo',
             sortable: false,
             width: 'w-[150px]',
-            render: (value, row) => (row.assets.length > 0 ? row.assets[0].tag : row.primary_asset_tag || 'N/A'),
+            render: (value, row) => (row.assets.length > 0 ? row.assets[0].tag : row.primary_asset_tag || 'N/D'),
         },
         {
             key: 'executor_name',
@@ -165,17 +162,17 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
         },
         {
             key: 'started_at',
-            label: 'Started At',
+            label: 'Iniciado em',
             sortable: true,
             width: 'w-[180px]',
             render: (value) => formatDate(value),
         },
         {
             key: 'duration',
-            label: 'Duration',
+            label: 'Duração',
             sortable: true,
             width: 'w-[100px]',
-            render: (value, row) => (row.duration_minutes ? `${row.duration_minutes}m` : 'N/A'),
+            render: (value, row) => (row.duration_minutes ? `${row.duration_minutes}m` : 'N/D'),
         },
     ];
 
@@ -240,6 +237,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
         console.log('Export single:', executionId);
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _handleSelectAll = (checked: boolean) => {
         if (checked) {
             setSelectedExecutions(data.map((e) => e.id));
@@ -275,11 +273,11 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Executions - Maintenance" />
+            <Head title="Execuções - Manutenção" />
 
             <ListLayout
-                title="Routine Executions"
-                description="View and manage all routine execution records"
+                title="Routinas"
+                description="Visualize e gerencie todos os registros de execução de rotinas"
                 searchValue={search}
                 onSearchChange={handleSearch}
                 createButtonText=""
@@ -287,11 +285,11 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                     <div className="flex items-center gap-2">
                         <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
                             <Filter className="mr-2 h-4 w-4" />
-                            Filters
+                            Filtros
                         </Button>
                         <Button variant="outline" onClick={handleExportSelected} disabled={selectedExecutions.length === 0}>
                             <Download className="mr-2 h-4 w-4" />
-                            Export Selected ({selectedExecutions.length})
+                            Exportar Selecionados ({selectedExecutions.length})
                         </Button>
                         <ColumnVisibility
                             columns={columns.map((col) => ({
@@ -307,11 +305,11 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                 }
             >
                 <div className="space-y-4">
-                    {/* Filters Panel */}
+                    {/* Painel de Filtros */}
                     {showFilters && (
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">Filters</CardTitle>
+                                <CardTitle className="text-lg">Filtros</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -322,10 +320,10 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                                             onValueChange={(value) => setLocalFilters({ ...localFilters, status: value ? [value] : [] })}
                                         >
                                             <SelectTrigger>
-                                                <SelectValue placeholder="All statuses" />
+                                                <SelectValue placeholder="Todos os status" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="">All statuses</SelectItem>
+                                                <SelectItem value="">Todos os status</SelectItem>
                                                 {filterOptions.statuses.map((status) => (
                                                     <SelectItem key={status.value} value={status.value.toString()}>
                                                         {status.label}
@@ -336,16 +334,16 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                                     </div>
 
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium">Asset</label>
+                                        <label className="mb-2 block text-sm font-medium">Ativo</label>
                                         <Select
                                             value={localFilters.asset_ids?.[0]?.toString() || ''}
                                             onValueChange={(value) => setLocalFilters({ ...localFilters, asset_ids: value ? [parseInt(value)] : [] })}
                                         >
                                             <SelectTrigger>
-                                                <SelectValue placeholder="All assets" />
+                                                <SelectValue placeholder="Todos os ativos" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="">All assets</SelectItem>
+                                                <SelectItem value="">Todos os ativos</SelectItem>
                                                 {filterOptions.assets.map((asset) => (
                                                     <SelectItem key={asset.value} value={asset.value.toString()}>
                                                         {asset.label}
@@ -356,7 +354,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                                     </div>
 
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium">Routine</label>
+                                        <label className="mb-2 block text-sm font-medium">Rotina</label>
                                         <Select
                                             value={localFilters.routine_ids?.[0]?.toString() || ''}
                                             onValueChange={(value) =>
@@ -364,10 +362,10 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                                             }
                                         >
                                             <SelectTrigger>
-                                                <SelectValue placeholder="All routines" />
+                                                <SelectValue placeholder="Todas as rotinas" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="">All routines</SelectItem>
+                                                <SelectItem value="">Todas as rotinas</SelectItem>
                                                 {filterOptions.routines.map((routine) => (
                                                     <SelectItem key={routine.value} value={routine.value.toString()}>
                                                         {routine.label}
@@ -386,10 +384,10 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                                             }
                                         >
                                             <SelectTrigger>
-                                                <SelectValue placeholder="All executors" />
+                                                <SelectValue placeholder="Todos os executores" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="">All executors</SelectItem>
+                                                <SelectItem value="">Todos os executores</SelectItem>
                                                 {filterOptions.executors.map((executor) => (
                                                     <SelectItem key={executor.value} value={executor.value.toString()}>
                                                         {executor.label}
@@ -415,9 +413,9 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                                             );
                                         }}
                                     >
-                                        Clear Filters
+                                        Limpar Filtros
                                     </Button>
-                                    <Button onClick={applyFilters}>Apply Filters</Button>
+                                    <Button onClick={applyFilters}>Aplicar Filtros</Button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -434,12 +432,12 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                             <EntityActionDropdown
                                 additionalActions={[
                                     {
-                                        label: 'View',
+                                        label: 'Visualizar',
                                         icon: <Eye className="h-4 w-4" />,
                                         onClick: () => router.visit(route('maintenance.executions.show', { id: execution.id })),
                                     },
                                     {
-                                        label: 'Export',
+                                        label: 'Exportar',
                                         icon: <FileText className="h-4 w-4" />,
                                         onClick: () => handleExportSingle(execution.id),
                                     },

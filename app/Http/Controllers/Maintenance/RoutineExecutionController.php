@@ -50,7 +50,7 @@ class RoutineExecutionController extends Controller
 
         $execution = RoutineExecution::create($validated);
 
-        return redirect()->route('maintenance.executions.show', $execution)
+        return redirect()->route('maintenance.routines.show', $execution)
             ->with('success', 'Execução de rotina criada com sucesso.');
     }
 
@@ -122,7 +122,7 @@ class RoutineExecutionController extends Controller
 
         $routineExecution->delete();
 
-        return redirect()->route('maintenance.executions.index')
+        return redirect()->route('maintenance.routines.index')
             ->with('success', 'Execução de rotina excluída com sucesso.');
     }
 
@@ -135,14 +135,14 @@ class RoutineExecutionController extends Controller
 
         $routineExecution->start();
 
-        return redirect()->route('maintenance.executions.fill', $routineExecution)
+        return redirect()->route('maintenance.routines.fill', $routineExecution)
             ->with('success', 'Execução de rotina iniciada com sucesso.');
     }
 
     public function fill(RoutineExecution $routineExecution)
     {
         if (! $routineExecution->isInProgress()) {
-            return redirect()->route('maintenance.executions.show', $routineExecution)
+            return redirect()->route('maintenance.routines.show', $routineExecution)
                 ->with('error', 'Esta execução não está em andamento.');
         }
 
@@ -171,7 +171,7 @@ class RoutineExecutionController extends Controller
 
         $routineExecution->complete();
 
-        return redirect()->route('maintenance.executions.show', $routineExecution)
+        return redirect()->route('maintenance.routines.show', $routineExecution)
             ->with('success', 'Execução de rotina concluída com sucesso.');
     }
 
@@ -184,7 +184,7 @@ class RoutineExecutionController extends Controller
 
         $routineExecution->cancel();
 
-        return redirect()->route('maintenance.executions.show', $routineExecution)
+        return redirect()->route('maintenance.routines.show', $routineExecution)
             ->with('success', 'Execução de rotina cancelada com sucesso.');
     }
 }

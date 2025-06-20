@@ -245,20 +245,7 @@ export interface PaginatedExecutions {
     to: number | null;
 }
 
-export interface ExecutionHistoryPageProps {
-    stats: ExecutionStats;
-    recentExecutions: ExecutionSummary[];
-    dailyTrend: DailyTrendData[];
-    performanceMetrics: PerformanceMetrics;
-    filters: ExecutionFilters;
-    filterOptions: {
-        assets: FilterOption[];
-        routines: FilterOption[];
-        executors: FilterOption[];
-        statuses: FilterOption[];
-        datePresets: FilterOption[];
-    };
-}
+
 
 export interface ExecutionIndexPageProps {
     executions: PaginatedExecutions;

@@ -94,31 +94,36 @@ export function EntityDependenciesDialog({ open, onOpenChange, entityName, depen
                                                 <>
                                                     <ScrollArea className="h-[140px]">
                                                         <div className="space-y-1 p-2">
-                                                            {dep.items.map((item: { id: number; name?: string; tag?: string; description?: string }) => {
-                                                                const content = (
-                                                                    <div className="flex items-center">
-                                                                        <div className="flex flex-1 items-center">
-                                                                            <div className="min-w-0 flex-1">
-                                                                                <div className="ml-2 text-sm font-medium">
-                                                                                    {item.name || item.tag || item.description || `Item ${item.id}`}
+                                                            {dep.items.map(
+                                                                (item: { id: number; name?: string; tag?: string; description?: string }) => {
+                                                                    const content = (
+                                                                        <div className="flex items-center">
+                                                                            <div className="flex flex-1 items-center">
+                                                                                <div className="min-w-0 flex-1">
+                                                                                    <div className="ml-2 text-sm font-medium">
+                                                                                        {item.name ||
+                                                                                            item.tag ||
+                                                                                            item.description ||
+                                                                                            `Item ${item.id}`}
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                );
+                                                                    );
 
-                                                                return config.route ? (
-                                                                    <Link key={item.id} href={route(config.route, item.id)} className="block">
-                                                                        <Card className="hover:bg-accent hover:text-accent-foreground cursor-pointer p-2 transition-colors">
+                                                                    return config.route ? (
+                                                                        <Link key={item.id} href={route(config.route, item.id)} className="block">
+                                                                            <Card className="hover:bg-accent hover:text-accent-foreground cursor-pointer p-2 transition-colors">
+                                                                                {content}
+                                                                            </Card>
+                                                                        </Link>
+                                                                    ) : (
+                                                                        <Card key={item.id} className="p-2">
                                                                             {content}
                                                                         </Card>
-                                                                    </Link>
-                                                                ) : (
-                                                                    <Card key={item.id} className="p-2">
-                                                                        {content}
-                                                                    </Card>
-                                                                );
-                                                            })}
+                                                                    );
+                                                                },
+                                                            )}
                                                         </div>
                                                     </ScrollArea>
                                                     {dep.items.length > 10 && (

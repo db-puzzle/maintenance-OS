@@ -173,7 +173,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     }, [items]);
 
     // Função para iniciar o arrasto com mousedown + dragstart
-    const handleItemMouseDown = (e: React.MouseEvent, _id: string) => {
+    const handleItemMouseDown = (e: React.MouseEvent) => {
         // Garantir que estamos no elemento correto
         const target = e.currentTarget as HTMLElement;
         dragItemRef.current = target;
@@ -334,7 +334,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     };
 
     // Function to handle drag end
-    const handleDragEnd = (e: React.DragEvent) => {
+    const handleDragEnd = () => {
         // Remover classes visuais de todos os elementos
         document.querySelectorAll('.droppable-area').forEach((el) => {
             el.classList.remove('border-blue-500', 'border-2', 'bg-blue-50', 'opacity-50');
@@ -618,8 +618,8 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
                             <div
                                 className="drag-handle mr-2 cursor-grab p-1 text-gray-400 hover:text-gray-600 active:cursor-grabbing"
                                 draggable="true"
-                                onMouseDown={(e) => handleItemMouseDown(e, node.id)}
-                                onDragStart={(e) => handleDragStart(node.id)}
+                                onMouseDown={(e) => handleItemMouseDown(e)}
+                                onDragStart={() => handleDragStart(node.id)}
                                 onDragEnd={handleDragEnd}
                                 title="Arraste para reposicionar"
                             >
@@ -741,7 +741,8 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     );
 });
 
-export default function BomConfig({ data: _data, filters: _filters }: Props) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function BomConfig({ data, filters }: Props) {
     const visualBomRef = React.useRef<{ handleExportBOM: () => void }>(null);
 
     const handleExport = () => {

@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Camera, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface CameraCaptureProps {
     onCapture: (file: File) => void;
@@ -14,12 +14,14 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     const [isLoading, setIsLoading] = useState(true);
     const [isMobile] = useState(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
 
-    useEffect(() => {
-        startCamera();
-        return () => stopCamera();
-    }, []);
+    const stopCamera = useCallback(() => {
+        if (stream) {
+            stream.getTracks().forEach((track) => track.stop());
+            setStream(null);
+        }
+    }, [stream]);
 
-    const startCamera = async () => {
+    const startCamera = useCallback(async () => {
         try {
             // Verifica se está usando HTTPS
             if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
@@ -79,14 +81,12 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [isMobile, videoRef]);
 
-    const stopCamera = () => {
-        if (stream) {
-            stream.getTracks().forEach((track) => track.stop());
-            setStream(null);
-        }
-    };
+    useEffect(() => {
+        startCamera();
+        return () => stopCamera();
+    }, [startCamera, stopCamera]);
 
     const takePhoto = (e: React.MouseEvent) => {
         e.preventDefault(); // Previne a propagação do evento

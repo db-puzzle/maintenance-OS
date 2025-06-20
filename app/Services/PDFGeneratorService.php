@@ -503,7 +503,7 @@ class PDFGeneratorService
 
         if ($export) {
             // Return the proper download route
-            return route('maintenance.executions.export.download', ['export' => $export->id]);
+            return route('maintenance.routines.export.download', ['export' => $export->id]);
         }
 
         // Fallback to temporary URL for other files

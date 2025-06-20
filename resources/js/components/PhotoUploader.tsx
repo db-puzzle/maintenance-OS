@@ -37,7 +37,7 @@ export default function PhotoUploader({
         if (value instanceof File && !previewUrl) {
             setPreviewUrl(URL.createObjectURL(value));
         }
-    }, [value]);
+    }, [value, previewUrl]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];

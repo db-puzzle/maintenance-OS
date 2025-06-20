@@ -123,7 +123,7 @@ export default function TaskEditorCard({
             });
             setIsChoiceBasedTask(initialTask.type === 'multiple_choice' || initialTask.type === 'multiple_select');
         }
-    }, [initialTask]);
+    }, [initialTask, setData]);
 
     const taskLabels = taskType ? TaskTypes.find((t) => t.value === taskType) : null;
 

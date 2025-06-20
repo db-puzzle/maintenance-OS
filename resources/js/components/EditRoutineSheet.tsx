@@ -25,6 +25,7 @@ interface EditRoutineSheetProps {
     routine?: Routine;
     isNew?: boolean;
     assetId?: number;
+    onSuccess?: (routine: Routine) => void;
     // Props para SheetTrigger
     triggerText?: string;
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
@@ -44,6 +45,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
     routine,
     isNew = false,
     assetId,
+    onSuccess,
     triggerText = 'Editar Rotina',
     triggerVariant = 'outline',
     showTrigger = false,
@@ -109,10 +111,21 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             }
 
             router.post(route('maintenance.assets.routines.store', assetId), data, {
-                onSuccess: () => {
+                onSuccess: (page) => {
                     toast.success('Rotina criada com sucesso!');
                     setProcessing(false);
                     setSheetOpen(false);
+                    // Call onSuccess callback if provided
+                    if (onSuccess && page.props.newRoutineId) {
+                        const newRoutine: Routine = {
+                            id: page.props.newRoutineId as number,
+                            name: data.name,
+                            trigger_hours: data.trigger_hours,
+                            status: data.status,
+                            description: data.description,
+                        };
+                        onSuccess(newRoutine);
+                    }
                     // Backend will redirect to routines tab with newRoutineId
                 },
                 onError: (errors: Record<string, string>) => {
@@ -139,7 +152,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
 
             router.put(route('maintenance.assets.routines.update', { asset: assetId, routine: routine.id }), data, {
                 onSuccess: () => {
-                    toast.success("Rotina atualizada com sucesso!");
+                    toast.success('Rotina atualizada com sucesso!');
                     setSheetOpen(false);
                     router.reload();
                 },

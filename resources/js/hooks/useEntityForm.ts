@@ -45,7 +45,7 @@ export function useEntityForm<TFormData extends FormDataType>({
             // Reset to initial data for create mode
             form.reset();
         }
-    }, [entity, isEditMode, mode]);
+    }, [entity, isEditMode, mode, form, initialData, transformEntityToForm]);
 
     return {
         ...form,

@@ -50,7 +50,7 @@ interface AffectedAsset {
 interface CreateShiftSheetProps {
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
-    onSuccess?: (shift: { id: number; name: string; timezone?: string; schedules: Schedule[]; }) => void;
+    onSuccess?: (shift: { id: number; name: string; timezone?: string; schedules: Schedule[] }) => void;
     triggerText?: string;
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
@@ -270,18 +270,30 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         day.key === 'Saturday' || day.key === 'Sunday'
                             ? []
                             : [
-                                  {
-                                      start_time: '07:00',
-                                      end_time: '17:00',
-                                      active: true,
-                                      breaks: [{ start_time: '12:00', end_time: '13:00' }],
-                                  },
-                              ],
+                                {
+                                    start_time: '07:00',
+                                    end_time: '17:00',
+                                    active: true,
+                                    breaks: [{ start_time: '12:00', end_time: '13:00' }],
+                                },
+                            ],
                 })),
             };
         };
 
-        const { data, setData, processing, errors, clearErrors } = useForm<ShiftForm & { timezone: string }>(getInitialFormData());
+        const form = useForm(getInitialFormData() as any) as any;
+        const { data, setData, processing, errors, clearErrors } = form as {
+            data: ShiftForm & { timezone: string };
+            setData: (key: string, value: any) => void;
+            processing: boolean;
+            errors: Record<string, string>;
+            clearErrors: (...fields: string[]) => void;
+        };
+
+        // Create a wrapper for setData to match the TextInput expected signature
+        const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+            setData(name, value);
+        };
 
         const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
         const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -290,7 +302,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         const [showConfirmDialog, setShowConfirmDialog] = useState(false);
         const [affectedAssets, setAffectedAssets] = useState<AffectedAsset[]>([]);
 
-        const [pendingSubmitData, setPendingSubmitData] = useState<ShiftForm & { timezone: string } | null>(null);
+        const [pendingSubmitData, setPendingSubmitData] = useState<(ShiftForm & { timezone: string }) | null>(null);
         const [updateMode, setUpdateMode] = useState<'all' | 'selected'>('all');
         const [selectedAssetIds, setSelectedAssetIds] = useState<number[]>([]);
 
@@ -699,8 +711,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                     <div className="w-full space-y-2">
                                         <TextInput
                                             form={{
-                                                data,
-                                                setData,
+                                                data: { name: data.name } as any,
+                                                setData: handleSetData,
                                                 errors,
                                                 clearErrors,
                                             }}

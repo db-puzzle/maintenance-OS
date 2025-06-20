@@ -67,7 +67,7 @@ export default function ShowLayout({
                 sidebarControls.setOpen(previousSidebarOpen);
             }
         }
-    }, [isCompressed, sidebarControls?.isMobile]);
+    }, [isCompressed, sidebarControls, previousSidebarOpen]);
 
     const handleToggleCompressed = () => {
         const newCompressed = !isCompressed;
@@ -228,17 +228,17 @@ export default function ShowLayout({
                 <div className="px-6 lg:px-8">
                     {tabs && tabs.length > 0
                         ? tabs.map((tab) => (
-                              <div
-                                  key={tab.id}
-                                  className={cn(
-                                      activeTab === tab.id ? 'block' : 'hidden',
-                                      // Add smooth vertical animation when tab becomes active
-                                      activeTab === tab.id && tabAnimationClass,
-                                  )}
-                              >
-                                  {tab.content}
-                              </div>
-                          ))
+                            <div
+                                key={tab.id}
+                                className={cn(
+                                    activeTab === tab.id ? 'block' : 'hidden',
+                                    // Add smooth vertical animation when tab becomes active
+                                    activeTab === tab.id && tabAnimationClass,
+                                )}
+                            >
+                                {tab.content}
+                            </div>
+                        ))
                         : children}
                 </div>
             </div>

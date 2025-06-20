@@ -56,6 +56,11 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
         notes: manufacturer?.notes || '',
     });
 
+    // Create a wrapper for setData to match the expected signature
+    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+        setData(name as keyof ManufacturerFormData, value as ManufacturerFormData[keyof ManufacturerFormData]);
+    };
+
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.manufacturers.update', manufacturer.id), {
@@ -99,7 +104,7 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}
@@ -114,7 +119,7 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}
@@ -182,7 +187,7 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}

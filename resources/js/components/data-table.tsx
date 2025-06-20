@@ -19,14 +19,20 @@ interface DataTableProps<TData> {
     emptyMessage?: string;
 }
 
-export function DataTable<TData>({ data, columns, columnVisibility, onRowClick, emptyMessage = 'Nenhum registro encontrado.' }: DataTableProps<TData>) {
+export function DataTable<TData>({
+    data,
+    columns,
+    columnVisibility,
+    onRowClick,
+    emptyMessage = 'Nenhum registro encontrado.',
+}: DataTableProps<TData>) {
     // Memoize the filtered columns to prevent unnecessary re-renders
     const visibleColumns = React.useMemo(() => {
         return columns.filter((column) => column.id === 'actions' || columnVisibility[column.id]);
     }, [columns, columnVisibility]);
 
     return (
-        <div className="w-full overflow-hidden rounded-lg border shadow-none">
+        <div className="w-full overflow-hidden rounded-md border">
             <Table>
                 <TableHeader className="bg-muted sticky top-0 z-10">
                     <TableRow>

@@ -64,11 +64,18 @@ class ExecutionAnalyticsService
     /**
      * Get daily trend data for charts
      */
-    public function getDailyTrend(int $days = 30): Collection
+    public function getDailyTrend(int $days = 30, array $filters = []): Collection
     {
-        $startDate = Carbon::now()->subDays($days)->startOfDay();
+        // If date filters are provided, use them; otherwise fall back to last N days
+        if (isset($filters['date_from'], $filters['date_to'])) {
+            $startDate = Carbon::parse($filters['date_from'])->startOfDay();
+            $endDate = Carbon::parse($filters['date_to'])->endOfDay();
+        } else {
+            $startDate = Carbon::now()->subDays($days)->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
 
-        $executions = RoutineExecution::where('started_at', '>=', $startDate)
+        $executions = RoutineExecution::whereBetween('started_at', [$startDate, $endDate])
             ->get()
             ->groupBy(function ($execution) {
                 return Carbon::parse($execution->started_at)->format('Y-m-d');
@@ -83,11 +90,31 @@ class ExecutionAnalyticsService
                     'completed' => $completed,
                     'failed' => $cancelled,
                 ];
-            })
-            ->sortBy('date')
-            ->values();
+            });
 
-        return $executions;
+        // Fill in missing dates with zero values
+        $period = new \DatePeriod(
+            $startDate,
+            new \DateInterval('P1D'),
+            $endDate->copy()->addDay()
+        );
+
+        $filledData = collect();
+        foreach ($period as $date) {
+            $dateStr = $date->format('Y-m-d');
+            if ($executions->has($dateStr)) {
+                $filledData->push($executions->get($dateStr));
+            } else {
+                $filledData->push([
+                    'date' => $dateStr,
+                    'count' => 0,
+                    'completed' => 0,
+                    'failed' => 0,
+                ]);
+            }
+        }
+
+        return $filledData->sortBy('date')->values();
     }
 
     /**

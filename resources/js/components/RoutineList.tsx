@@ -26,7 +26,7 @@ import {
     Trash2,
     Upload,
 } from 'lucide-react';
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 export interface Routine {
@@ -157,29 +157,22 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
         // Dados da rotina ou dados vazios para nova rotina
         const routineData = routineWithForm ||
             routine || {
-                name: '',
-                trigger_hours: 0,
-                status: 'Active' as const,
-                description: '',
-                form: undefined,
-            };
+            name: '',
+            trigger_hours: 0,
+            status: 'Active' as const,
+            description: '',
+            form: undefined,
+        };
 
         // Get form state for conditional rendering
         const formState = routineData.form
             ? getFormState({
-                  ...routineData.form,
-                  current_version_id: routineData.form.current_version_id ?? null,
-              })
+                ...routineData.form,
+                current_version_id: routineData.form.current_version_id ?? null,
+            })
             : null;
 
-        // Fetch form data when component mounts if routine has a form
-        useEffect(() => {
-            if (routine?.id && routine?.form_id && !isNew) {
-                fetchRoutineFormData();
-            }
-        }, [routine?.id, routine?.form_id]);
-
-        const fetchRoutineFormData = async () => {
+        const fetchRoutineFormData = useCallback(async () => {
             if (!routine?.id) return;
 
             setLoadingForm(true);
@@ -191,7 +184,14 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
             } finally {
                 setLoadingForm(false);
             }
-        };
+        }, [routine?.id]);
+
+        // Fetch form data when component mounts if routine has a form
+        useEffect(() => {
+            if (routine?.id && routine?.form_id && !isNew) {
+                fetchRoutineFormData();
+            }
+        }, [routine?.id, routine?.form_id, isNew, fetchRoutineFormData]);
 
         const formatTriggerHours = (hours: number) => {
             const shiftHoursPerWeek = calculateShiftHoursPerWeek(shift);
@@ -386,11 +386,10 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                 />
                             ) : (
                                 <p
-                                    className={`mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${
-                                        routineData.status === 'Active'
-                                            ? 'bg-green-50 text-green-700 ring-green-600/20'
-                                            : 'bg-gray-50 text-gray-600 ring-gray-500/10'
-                                    }`}
+                                    className={`mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${routineData.status === 'Active'
+                                        ? 'bg-green-50 text-green-700 ring-green-600/20'
+                                        : 'bg-gray-50 text-gray-600 ring-gray-500/10'
+                                        }`}
                                 >
                                     {routineData.status === 'Active' ? 'Ativo' : 'Inativo'}
                                 </p>

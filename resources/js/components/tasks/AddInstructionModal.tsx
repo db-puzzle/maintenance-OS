@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ImageInstruction, Instruction, InstructionType, Task, TaskOperations, TextInstruction, VideoInstruction } from '@/types/task';
-import { useEffect, useState } from 'react';
+import { Instruction, InstructionType, Task, TaskOperations } from '@/types/task';
+import { useCallback, useEffect, useState } from 'react';
 import { InstructionForm } from './InstructionForm';
 
 interface AddInstructionModalProps {
@@ -18,40 +18,39 @@ interface AddInstructionModalProps {
 export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructionModalProps) {
     const [instructionType, setInstructionType] = useState<InstructionType>(InstructionType.Image);
 
-    // Valores padrão para cada tipo de instrução
-    const defaultTextInstruction: TextInstruction = {
-        id: TaskOperations.generateInstructionId(task),
-        type: InstructionType.Text,
-        content: '',
-    };
-
-    const defaultImageInstruction: ImageInstruction = {
-        id: TaskOperations.generateInstructionId(task),
-        type: InstructionType.Image,
-        imageUrl: '',
-        caption: '',
-    };
-
-    const defaultVideoInstruction: VideoInstruction = {
-        id: TaskOperations.generateInstructionId(task),
-        type: InstructionType.Video,
-        videoUrl: '',
-        caption: '',
-    };
-
     // Função para obter a instrução padrão baseada no tipo
-    const getDefaultInstructionByType = (type: InstructionType): Instruction => {
+    const getDefaultInstructionByType = useCallback((type: InstructionType): Instruction => {
+        const instructionId = TaskOperations.generateInstructionId(task);
+
         switch (type) {
             case InstructionType.Text:
-                return defaultTextInstruction;
+                return {
+                    id: instructionId,
+                    type: InstructionType.Text,
+                    content: '',
+                };
             case InstructionType.Image:
-                return defaultImageInstruction;
+                return {
+                    id: instructionId,
+                    type: InstructionType.Image,
+                    imageUrl: '',
+                    caption: '',
+                };
             case InstructionType.Video:
-                return defaultVideoInstruction;
+                return {
+                    id: instructionId,
+                    type: InstructionType.Video,
+                    videoUrl: '',
+                    caption: '',
+                };
             default:
-                return defaultTextInstruction;
+                return {
+                    id: instructionId,
+                    type: InstructionType.Text,
+                    content: '',
+                };
         }
-    };
+    }, [task]);
 
     const [instruction, setInstruction] = useState<Instruction>(getDefaultInstructionByType(instructionType));
 
@@ -64,7 +63,7 @@ export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructi
             // Reinicia a instrução com os valores padrão
             setInstruction(getDefaultInstructionByType(defaultType));
         }
-    }, [open, task]);
+    }, [open, task, getDefaultInstructionByType]);
 
     // Atualiza a instrução quando o tipo muda
     const handleTypeChange = (type: InstructionType) => {
