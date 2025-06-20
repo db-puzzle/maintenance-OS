@@ -16,8 +16,6 @@ use Inertia\Inertia;
 
 class RoutineController extends Controller
 {
-
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -38,11 +36,9 @@ class RoutineController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Rotina criada com sucesso.',
-            'routine' => $routine->load(['assets', 'form'])
+            'routine' => $routine->load(['assets', 'form']),
         ]);
     }
-
-
 
     public function update(Request $request, Routine $routine)
     {
@@ -64,7 +60,7 @@ class RoutineController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Rotina atualizada com sucesso.',
-            'routine' => $routine->load(['assets', 'form'])
+            'routine' => $routine->load(['assets', 'form']),
         ]);
     }
 
@@ -74,7 +70,7 @@ class RoutineController extends Controller
         if ($routine->routineExecutions()->count() > 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Não é possível excluir uma rotina com execuções associadas.'
+                'message' => 'Não é possível excluir uma rotina com execuções associadas.',
             ], 400);
         }
 
@@ -82,7 +78,7 @@ class RoutineController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Rotina excluída com sucesso.'
+            'message' => 'Rotina excluída com sucesso.',
         ]);
     }
 
@@ -97,11 +93,9 @@ class RoutineController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Nova execução da rotina criada com sucesso.',
-            'execution' => $execution
+            'execution' => $execution,
         ]);
     }
-
-
 
     public function storeForm(Request $request, Routine $routine)
     {
@@ -225,8 +219,6 @@ class RoutineController extends Controller
     }
 
     // ===== MÉTODOS PARA GERENCIAR ROTINAS NO CONTEXTO DE ATIVOS =====
-
-
 
     public function storeAssetRoutine(Request $request, Asset $asset)
     {

@@ -281,10 +281,10 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             };
         };
 
-        const form = useForm(getInitialFormData() as any) as any;
+        const form = useForm(getInitialFormData());
         const { data, setData, processing, errors, clearErrors } = form as {
             data: ShiftForm & { timezone: string };
-            setData: (key: string, value: any) => void;
+            setData: (key: string, value: string | number | boolean | File | null | undefined) => void;
             processing: boolean;
             errors: Record<string, string>;
             clearErrors: (...fields: string[]) => void;
@@ -711,7 +711,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                     <div className="w-full space-y-2">
                                         <TextInput
                                             form={{
-                                                data: { name: data.name } as any,
+                                                data: { name: data.name },
                                                 setData: handleSetData,
                                                 errors,
                                                 clearErrors,

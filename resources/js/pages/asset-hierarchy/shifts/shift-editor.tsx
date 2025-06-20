@@ -44,10 +44,10 @@ interface Schedule {
 //     [key: string]: unknown;
 // }
 
-interface CreateProps {
+type CreateProps = {
     // Props for create functionality will be added here as needed
     [key: string]: unknown;
-}
+};
 
 interface ShiftData {
     id: number;

@@ -9,11 +9,11 @@ import { MeasurementUnitCategories, UnitCategory } from '@/types/units';
 import { useEffect, useState } from 'react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 
-// This interface extends WithSaveFunctionalityProps and is reserved for future measurement-specific props
-interface MeasurementTaskContentProps extends WithSaveFunctionalityProps {
+// This type alias extends WithSaveFunctionalityProps and is reserved for future measurement-specific props
+type MeasurementTaskContentProps = WithSaveFunctionalityProps & {
     // Future measurement-specific props will be added here
     [key: string]: unknown;
-}
+};
 
 interface MeasurementFormData {
     targetValue: string;

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\AssetHierarchy;
 
 use App\Http\Controllers\Controller;
 use App\Models\AssetHierarchy\Asset;
-use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Shift;
 use App\Traits\ShiftTimeCalculator;
 use Illuminate\Http\Request;
@@ -35,12 +34,12 @@ class ShiftController extends Controller
         $query->orderBy($sort, $direction);
 
         // For JSON requests without pagination params, return all shifts
-        if (($request->wantsJson() || $request->input('format') === 'json') && 
-            !$request->has('page') && 
-            !$request->has('per_page')) {
-            
+        if (($request->wantsJson() || $request->input('format') === 'json') &&
+            ! $request->has('page') &&
+            ! $request->has('per_page')) {
+
             $shifts = $query->get();
-            
+
             $formattedShifts = $shifts->map(function ($shift) {
                 $schedules = $shift->schedules->map(function ($schedule) {
                     return [
@@ -396,7 +395,7 @@ class ShiftController extends Controller
         $assetsQuery = $shift->assets()
             ->with(['assetType', 'plant', 'area', 'sector'])
             ->orderBy($assetsSort, $assetsDirection);
-        
+
         $assetsPaginated = $assetsQuery->paginate(10, ['*'], 'assets_page', $assetsPage);
 
         $formattedAssets = $assetsPaginated->map(function ($asset) {
@@ -653,7 +652,7 @@ class ShiftController extends Controller
                     'message' => 'Este turno não pode ser excluído porque possui ativos associados.',
                 ], 422);
             }
-            
+
             return redirect()->route('asset-hierarchy.shifts')
                 ->with('error', 'Este turno não pode ser excluído porque possui ativos associados.');
         }
@@ -703,14 +702,14 @@ class ShiftController extends Controller
             return response()->json([
                 'hasDependencies' => $hasDependencies,
                 'dependencies' => $dependencies,
-                'message' => $hasDependencies 
+                'message' => $hasDependencies
                     ? 'Este turno possui dependências e não pode ser excluído.'
                     : 'Este turno pode ser excluído com segurança.',
             ]);
         }
 
         // Se não há dependências, redirecionar para confirmação de exclusão
-        if (!$hasDependencies) {
+        if (! $hasDependencies) {
             return redirect()->route('asset-hierarchy.shifts')
                 ->with('info', "O turno {$shift->name} pode ser excluído com segurança.");
         }

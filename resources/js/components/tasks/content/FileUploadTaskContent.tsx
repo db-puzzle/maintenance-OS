@@ -3,11 +3,11 @@ import { FileText, Upload, X } from 'lucide-react';
 import { useRef } from 'react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 
-// This interface currently extends WithSaveFunctionalityProps and is reserved for future file upload specific props
-interface FileUploadTaskContentProps extends WithSaveFunctionalityProps {
+// This type alias extends WithSaveFunctionalityProps and is reserved for future file upload specific props
+type FileUploadTaskContentProps = WithSaveFunctionalityProps & {
     // Future file upload specific props will be added here
     [key: string]: unknown;
-}
+};
 
 function FileUploadTaskContent({ task, mode, response, setResponse, disabled }: FileUploadTaskContentProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);

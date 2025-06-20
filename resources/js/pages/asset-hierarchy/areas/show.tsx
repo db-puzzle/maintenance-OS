@@ -1,6 +1,5 @@
 import { type BreadcrumbItem } from '@/types';
 import { type Area, type Asset, type Plant } from '@/types/asset-hierarchy';
-import { ColumnConfig } from '@/types/shared';
 import { Head, Link, router } from '@inertiajs/react';
 import { Building2, Cog, MapPin } from 'lucide-react';
 
@@ -155,10 +154,10 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 width: 'w-[30%]',
                                 render: (value, row) => (
                                     <Link
-                                        href={route('asset-hierarchy.setores.show', (row as any).id)}
+                                        href={route('asset-hierarchy.setores.show', (row as Record<string, unknown>).id)}
                                         className="hover:text-primary font-medium"
                                     >
-                                        {(row as any).name}
+                                        {(row as Record<string, unknown>).name as string}
                                     </Link>
                                 ),
                             },
@@ -177,7 +176,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as string ?? '-'}</span>,
                             },
                         ]}
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.setores.show', (row as any).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.setores.show', (row as Record<string, unknown>).id))}
                         onSort={(columnKey) => handleSort('sectors', columnKey)}
                     />
 
@@ -216,10 +215,10 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 width: 'w-[25%]',
                                 render: (value, row) => (
                                     <Link
-                                        href={route('asset-hierarchy.assets.show', (row as any).id)}
+                                        href={route('asset-hierarchy.assets.show', (row as Record<string, unknown>).id)}
                                         className="hover:text-primary font-medium"
                                     >
-                                        {(row as any).tag}
+                                        {(row as Record<string, unknown>).tag as string}
                                     </Link>
                                 ),
                             },
@@ -228,14 +227,14 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 label: 'Tipo',
                                 sortable: true,
                                 width: 'w-[25%]',
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).asset_type?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{((row as Record<string, unknown>).asset_type as Record<string, unknown> | undefined)?.name as string ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturer_name',
                                 label: 'Fabricante',
                                 sortable: true,
                                 width: 'w-[25%]',
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).manufacturer?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{((row as Record<string, unknown>).manufacturer as Record<string, unknown> | undefined)?.name as string ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturing_year',
@@ -245,7 +244,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as any).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as Record<string, unknown>).id))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {
                                 asset_type_name: 'type',
