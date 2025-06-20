@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Task } from '@/types/task';
-import { Loader2, ChevronRight, CheckCircle2 } from 'lucide-react';
-import React, { ComponentType, useState } from 'react';
+import { CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
+import { ComponentType, useState } from 'react';
 import { TaskCardMode } from './TaskContent';
 
 export interface WithSaveFunctionalityProps {
@@ -17,18 +17,18 @@ export interface WithSaveFunctionalityProps {
     onNext?: () => void;
 }
 
-export const withSaveFunctionality = <P extends object>(
-    WrappedComponent: ComponentType<P & WithSaveFunctionalityProps>
-) => {
-    const ComponentWithSave = (props: P & {
-        task: Task;
-        mode: TaskCardMode;
-        onSave?: (responseData: any) => void;
-        showSaveButton?: boolean;
-        disabled?: boolean;
-        isLastTask?: boolean;
-        onNext?: () => void;
-    }) => {
+export const withSaveFunctionality = <P extends object>(WrappedComponent: ComponentType<P & WithSaveFunctionalityProps>) => {
+    const ComponentWithSave = (
+        props: P & {
+            task: Task;
+            mode: TaskCardMode;
+            onSave?: (responseData: any) => void;
+            showSaveButton?: boolean;
+            disabled?: boolean;
+            isLastTask?: boolean;
+            onNext?: () => void;
+        },
+    ) => {
         const [response, setResponse] = useState<any>(null);
 
         const handleSaveAndNext = () => {
@@ -46,16 +46,8 @@ export const withSaveFunctionality = <P extends object>(
                 <WrappedComponent {...props} response={response} setResponse={setResponse} />
                 {props.showSaveButton && props.mode === 'respond' && (
                     <div className="flex justify-end">
-                        <Button
-                            onClick={handleSaveAndNext}
-                            disabled={props.disabled}
-                            size="sm"
-                        >
-                            {props.disabled ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                buttonIcon
-                            )}
+                        <Button onClick={handleSaveAndNext} disabled={props.disabled} size="sm">
+                            {props.disabled ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : buttonIcon}
                             {buttonText}
                         </Button>
                     </div>
@@ -64,4 +56,4 @@ export const withSaveFunctionality = <P extends object>(
         );
     };
     return ComponentWithSave;
-}; 
+};

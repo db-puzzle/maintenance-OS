@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Forms;
 
 use App\Http\Controllers\Controller;
 use App\Models\Forms\FormExecution;
-use App\Models\Forms\TaskResponse;
 use App\Models\Forms\FormTask;
-use Illuminate\Http\Request;
+use App\Models\Forms\TaskResponse;
 use Illuminate\Http\JsonResponse;
-use Inertia\Inertia;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class TaskResponseController extends Controller
 {
@@ -21,10 +21,10 @@ class TaskResponseController extends Controller
         $responses = $formExecution->taskResponses()
             ->with(['attachments', 'formTask'])
             ->get();
-        
+
         return Inertia::render('Forms/Responses/Index', [
             'execution' => $formExecution->load('formVersion.form'),
-            'responses' => $responses
+            'responses' => $responses,
         ]);
     }
 
@@ -33,7 +33,7 @@ class TaskResponseController extends Controller
      */
     public function store(Request $request, FormExecution $formExecution)
     {
-        if (!$formExecution->isInProgress()) {
+        if (! $formExecution->isInProgress()) {
             return redirect()->back()
                 ->with('error', 'Este formulário não está em andamento.');
         }
@@ -42,32 +42,33 @@ class TaskResponseController extends Controller
             'task_id' => 'required|integer|exists:form_tasks,id',
             'response' => 'required|array',
         ]);
-        
+
         // Verify the task belongs to this form version
         $task = FormTask::where('id', $validated['task_id'])
             ->where('form_version_id', $formExecution->form_version_id)
             ->first();
-            
-        if (!$task) {
+
+        if (! $task) {
             return redirect()->back()
                 ->with('error', 'Tarefa não encontrada neste formulário.');
         }
-        
+
         DB::beginTransaction();
         try {
             // Check if a response already exists for this task
             $existingResponse = $formExecution->taskResponses()
                 ->where('form_task_id', $validated['task_id'])
                 ->first();
-                
+
             if ($existingResponse) {
                 $existingResponse->complete($validated['response']);
-                
+
                 DB::commit();
+
                 return redirect()->back()
                     ->with('success', 'Resposta atualizada com sucesso.');
             }
-            
+
             // Create a new response
             $taskResponse = $formExecution->taskResponses()->create([
                 'form_task_id' => $task->id,
@@ -75,26 +76,28 @@ class TaskResponseController extends Controller
                 'is_completed' => true,
                 'responded_at' => now(),
             ]);
-            
+
             // Check if this was the last task to be completed
             if ($formExecution->hasAllRequiredTasksCompleted()) {
                 $totalTasks = $formExecution->formVersion->tasks()->count();
                 $completedTasks = $formExecution->taskResponses()
                     ->where('is_completed', true)
                     ->count();
-                
+
                 if ($completedTasks == $totalTasks && $formExecution->isInProgress()) {
                     $formExecution->complete();
                 }
             }
-            
+
             DB::commit();
+
             return redirect()->back()
                 ->with('success', 'Resposta salva com sucesso.');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('error', 'Erro ao salvar resposta: ' . $e->getMessage());
+                ->with('error', 'Erro ao salvar resposta: '.$e->getMessage());
         }
     }
 
@@ -107,12 +110,12 @@ class TaskResponseController extends Controller
             return redirect()->route('forms.executions.show', $formExecution)
                 ->with('error', 'Esta resposta não pertence a esta execução.');
         }
-        
+
         $taskResponse->load(['attachments', 'formTask.instructions']);
-        
+
         return Inertia::render('Forms/Responses/Show', [
             'execution' => $formExecution->load('formVersion.form'),
-            'response' => $taskResponse
+            'response' => $taskResponse,
         ]);
     }
 
@@ -125,18 +128,18 @@ class TaskResponseController extends Controller
             return redirect()->back()
                 ->with('error', 'Esta resposta não pertence a esta execução.');
         }
-        
-        if (!$formExecution->isInProgress()) {
+
+        if (! $formExecution->isInProgress()) {
             return redirect()->back()
                 ->with('error', 'Não é possível atualizar respostas - formulário não está em andamento.');
         }
-        
+
         $validated = $request->validate([
             'response' => 'required|array',
         ]);
-        
+
         $taskResponse->complete($validated['response']);
-        
+
         return redirect()->back()
             ->with('success', 'Resposta atualizada com sucesso.');
     }
@@ -147,22 +150,22 @@ class TaskResponseController extends Controller
     public function validateCompletion(FormExecution $formExecution): JsonResponse
     {
         $missingRequiredTasks = [];
-        
-        if (!$formExecution->hasAllRequiredTasksCompleted()) {
+
+        if (! $formExecution->hasAllRequiredTasksCompleted()) {
             $missingRequiredTasks = $formExecution->getMissingRequiredTasks()
                 ->map(function ($task) {
                     return [
                         'id' => $task->id,
                         'description' => $task->description,
-                        'type' => $task->type
+                        'type' => $task->type,
                     ];
                 })
                 ->toArray();
         }
-        
+
         return response()->json([
             'is_valid' => count($missingRequiredTasks) === 0,
-            'missing_required_tasks' => $missingRequiredTasks
+            'missing_required_tasks' => $missingRequiredTasks,
         ]);
     }
-} 
+}

@@ -12,12 +12,12 @@ class Area extends Model
         'name',
         'description',
         'plant_id',
-        'shift_id'
+        'shift_id',
     ];
 
     protected $casts = [
         'plant_id' => 'integer',
-        'shift_id' => 'integer'
+        'shift_id' => 'integer',
     ];
 
     public function plant(): BelongsTo
@@ -53,4 +53,4 @@ class Area extends Model
             }
         });
     }
-} 
+}

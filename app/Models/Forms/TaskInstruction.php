@@ -14,15 +14,17 @@ class TaskInstruction extends Model
         'content',
         'media_url',
         'caption',
-        'position'
+        'position',
     ];
 
     protected $casts = [
-        'position' => 'integer'
+        'position' => 'integer',
     ];
 
     const TYPE_TEXT = 'text';
+
     const TYPE_IMAGE = 'image';
+
     const TYPE_VIDEO = 'video';
 
     /**
@@ -38,7 +40,7 @@ class TaskInstruction extends Model
      */
     public function getMediaUrlFullAttribute(): ?string
     {
-        if (!$this->media_url) {
+        if (! $this->media_url) {
             return null;
         }
 
@@ -72,4 +74,4 @@ class TaskInstruction extends Model
     {
         return $this->type === self::TYPE_VIDEO;
     }
-} 
+}

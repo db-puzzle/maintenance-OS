@@ -18,10 +18,10 @@ class ResponseAttachmentController extends Controller
     {
         $attachments = $taskResponse->attachments;
         $taskResponse->load('formExecution');
-        
+
         return Inertia::render('Forms/Attachments/Index', [
             'taskResponse' => $taskResponse,
-            'attachments' => $attachments
+            'attachments' => $attachments,
         ]);
     }
 
@@ -32,13 +32,13 @@ class ResponseAttachmentController extends Controller
     {
         $request->validate([
             'file' => 'required|file|max:10240', // 10MB max
-            'type' => 'required|in:' . implode(',', [ResponseAttachment::TYPE_PHOTO, ResponseAttachment::TYPE_FILE]),
+            'type' => 'required|in:'.implode(',', [ResponseAttachment::TYPE_PHOTO, ResponseAttachment::TYPE_FILE]),
             'metadata' => 'nullable|array',
         ]);
-        
+
         $file = $request->file('file');
         $path = $file->store('attachments/task_responses');
-        
+
         $attachment = $taskResponse->attachments()->create([
             'type' => $request->type,
             'file_path' => $path,
@@ -47,7 +47,7 @@ class ResponseAttachmentController extends Controller
             'file_size' => $file->getSize(),
             'metadata' => $request->metadata,
         ]);
-        
+
         return redirect()->back()->with('success', 'Anexo carregado com sucesso.');
     }
 
@@ -57,9 +57,9 @@ class ResponseAttachmentController extends Controller
     public function show(ResponseAttachment $attachment)
     {
         $attachment->load('taskResponse.formExecution');
-        
+
         return Inertia::render('Forms/Attachments/Show', [
-            'attachment' => $attachment
+            'attachment' => $attachment,
         ]);
     }
 
@@ -81,7 +81,7 @@ class ResponseAttachmentController extends Controller
     public function destroy(ResponseAttachment $attachment)
     {
         $attachment->delete();
-        
+
         return redirect()->back()->with('success', 'Anexo excluído com sucesso.');
     }
-} 
+}

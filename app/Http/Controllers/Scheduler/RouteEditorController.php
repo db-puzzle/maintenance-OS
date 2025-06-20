@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Scheduler;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class RouteEditorController extends Controller
@@ -17,4 +16,4 @@ class RouteEditorController extends Controller
     {
         return Inertia::render('scheduler/route-editor');
     }
-} 
+}

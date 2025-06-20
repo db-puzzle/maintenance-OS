@@ -18,7 +18,7 @@ class AssetTypeController extends Controller
         $assetTypes = AssetType::query()
             ->withCount('asset')
             ->when($request->search, function ($query, $search) {
-                $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
+                $query->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($search).'%']);
             })
             ->when($sort, function ($query) use ($sort, $direction) {
                 switch ($sort) {
@@ -47,7 +47,7 @@ class AssetTypeController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
-            ]
+            ],
         ]);
     }
 
@@ -58,7 +58,7 @@ class AssetTypeController extends Controller
 
     public function show(AssetType $assetType)
     {
-        if (!$assetType->exists) {
+        if (! $assetType->exists) {
             abort(404);
         }
 
@@ -69,7 +69,7 @@ class AssetTypeController extends Controller
                     'id' => $assetType->id,
                     'name' => $assetType->name,
                     'description' => $assetType->description,
-                ]
+                ],
             ]);
         }
 
@@ -87,7 +87,7 @@ class AssetTypeController extends Controller
         $allAsset = $assetQuery->all();
         $assetOffset = ($assetPage - 1) * $perPage;
         $assetItems = array_slice($allAsset, $assetOffset, $perPage);
-        
+
         $asset = new \Illuminate\Pagination\LengthAwarePaginator(
             collect($assetItems),
             count($allAsset),
@@ -124,7 +124,7 @@ class AssetTypeController extends Controller
 
     public function edit(AssetType $assetType)
     {
-        if (!$assetType->exists) {
+        if (! $assetType->exists) {
             abort(404);
         }
 
@@ -136,7 +136,7 @@ class AssetTypeController extends Controller
     public function update(Request $request, AssetType $assetType)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:asset_types,name,' . $assetType->id,
+            'name' => 'required|string|max:255|unique:asset_types,name,'.$assetType->id,
             'description' => 'nullable|string',
         ]);
 
@@ -172,9 +172,9 @@ class AssetTypeController extends Controller
             'dependencies' => [
                 'asset' => [
                     'total' => $totalAsset,
-                    'items' => $asset
-                ]
-            ]
+                    'items' => $asset,
+                ],
+            ],
         ]);
     }
-} 
+}

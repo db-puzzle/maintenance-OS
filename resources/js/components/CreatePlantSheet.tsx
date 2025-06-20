@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown } from 'lucide-react';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import TextInput from '@/components/TextInput';
@@ -12,7 +12,7 @@ import { estados } from '@/data/estados';
 import { Plant as ImportedPlant } from '@/types/entities/plant';
 
 interface PlantForm {
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
     name: string;
     street: string;
     number: string;
@@ -64,11 +64,11 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
 
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
-            const timers = timeouts.map(delay => setTimeout(focusInput, delay));
+            const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
 
             // Cleanup timeouts
             return () => {
-                timers.forEach(timer => clearTimeout(timer));
+                timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [controlledOpen, mode]);
@@ -95,8 +95,6 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
         // Adiciona o hífen após os 5 primeiros dígitos
         return cep.replace(/(\d{5})(\d{3})/, '$1-$2');
     };
-
-
 
     return (
         <BaseEntitySheet<PlantForm>
@@ -133,7 +131,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => { },
+                            clearErrors: () => {},
                         }}
                         name="name"
                         label="Nome da Planta"
@@ -150,7 +148,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                         data,
                                         setData,
                                         errors,
-                                        clearErrors: () => { },
+                                        clearErrors: () => {},
                                     }}
                                     name="street"
                                     label="Rua"
@@ -163,7 +161,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                         data,
                                         setData,
                                         errors,
-                                        clearErrors: () => { },
+                                        clearErrors: () => {},
                                     }}
                                     name="number"
                                     label="Número"
@@ -182,7 +180,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                             }
                                         },
                                         errors,
-                                        clearErrors: () => { },
+                                        clearErrors: () => {},
                                     }}
                                     name="zip_code"
                                     label="CEP"
@@ -201,7 +199,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                         data,
                                         setData,
                                         errors,
-                                        clearErrors: () => { },
+                                        clearErrors: () => {},
                                     }}
                                     name="city"
                                     label="Cidade"
@@ -214,13 +212,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                 </Label>
                                 <Popover open={open} onOpenChange={setOpen}>
                                     <PopoverTrigger asChild>
-                                        <Button
-                                            id="state"
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={open}
-                                            className="w-full justify-between"
-                                        >
+                                        <Button id="state" variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
                                             {data.state ? estados.find((estado) => estado.value === data.state)?.label : 'Selecione um estado...'}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
@@ -264,7 +256,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => { },
+                            clearErrors: () => {},
                         }}
                         name="gps_coordinates"
                         label="Coordenadas GPS"

@@ -77,4 +77,4 @@ export async function downloadFileWithFetch(url: string, filename: string): Prom
         console.error('Download error:', error);
         throw error;
     }
-} 
+}

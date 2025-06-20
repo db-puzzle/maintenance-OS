@@ -1,14 +1,14 @@
 import { type BreadcrumbItem } from '@/types';
-import { type Asset, type Area, type Plant } from '@/types/asset-hierarchy';
+import { type Area, type Asset, type Plant } from '@/types/asset-hierarchy';
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Building2, Cog, MapPin } from 'lucide-react';
 
+import AreaFormComponent from '@/components/AreaFormComponent';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import AreaFormComponent from '@/components/AreaFormComponent';
 
 interface Sector {
     id: number;
@@ -316,9 +316,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                                     </Link>
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{asset.asset_type?.name ?? '-'}</TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">
-                                                    {asset.manufacturer?.name ?? '-'}
-                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturer?.name ?? '-'}</TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{asset.manufacturing_year ?? '-'}</TableCell>
                                             </TableRow>
                                         ))}
@@ -385,12 +383,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Área ${area.name}`} />
-            <ShowLayout
-                title={area.name}
-                subtitle={subtitle}
-                editRoute={route('asset-hierarchy.areas.edit', area.id)}
-                tabs={tabs}
-            />
+            <ShowLayout title={area.name} subtitle={subtitle} editRoute={route('asset-hierarchy.areas.edit', area.id)} tabs={tabs} />
         </AppLayout>
     );
 }

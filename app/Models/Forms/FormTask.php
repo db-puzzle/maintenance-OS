@@ -3,8 +3,8 @@
 namespace App\Models\Forms;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FormTask extends Model
 {
@@ -15,21 +15,27 @@ class FormTask extends Model
         'type',
         'description',
         'is_required',
-        'configuration'
+        'configuration',
     ];
 
     protected $casts = [
         'position' => 'integer',
         'is_required' => 'boolean',
-        'configuration' => 'array'
+        'configuration' => 'array',
     ];
 
     const TYPE_QUESTION = 'question';
+
     const TYPE_MULTIPLE_CHOICE = 'multiple_choice';
+
     const TYPE_MULTIPLE_SELECT = 'multiple_select';
+
     const TYPE_MEASUREMENT = 'measurement';
+
     const TYPE_PHOTO = 'photo';
+
     const TYPE_CODE_READER = 'code_reader';
+
     const TYPE_FILE_UPLOAD = 'file_upload';
 
     /**
@@ -38,7 +44,7 @@ class FormTask extends Model
     protected static function booted()
     {
         static::updating(function ($task) {
-            if ($task->form_version_id !== null && !$task->isDirty('form_version_id')) {
+            if ($task->form_version_id !== null && ! $task->isDirty('form_version_id')) {
                 throw new \Exception('Tasks in published form versions are immutable and cannot be modified.');
             }
         });
@@ -95,8 +101,8 @@ class FormTask extends Model
      */
     public function getMeasurementConfig(): ?array
     {
-        return $this->type === self::TYPE_MEASUREMENT 
-            ? $this->configuration['measurement'] ?? null 
+        return $this->type === self::TYPE_MEASUREMENT
+            ? $this->configuration['measurement'] ?? null
             : null;
     }
 
@@ -105,8 +111,8 @@ class FormTask extends Model
      */
     public function getOptions(): array
     {
-        return in_array($this->type, [self::TYPE_MULTIPLE_CHOICE, self::TYPE_MULTIPLE_SELECT]) 
-            ? $this->configuration['options'] ?? [] 
+        return in_array($this->type, [self::TYPE_MULTIPLE_CHOICE, self::TYPE_MULTIPLE_SELECT])
+            ? $this->configuration['options'] ?? []
             : [];
     }
 
@@ -115,8 +121,8 @@ class FormTask extends Model
      */
     public function getCodeReaderType(): ?string
     {
-        return $this->type === self::TYPE_CODE_READER 
-            ? $this->configuration['codeReaderType'] ?? null 
+        return $this->type === self::TYPE_CODE_READER
+            ? $this->configuration['codeReaderType'] ?? null
             : null;
     }
-} 
+}

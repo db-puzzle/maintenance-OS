@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Forms\Form;
 use App\Models\Forms\FormExecution;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class FormExecutionController extends Controller
 {
@@ -17,22 +17,22 @@ class FormExecutionController extends Controller
     public function index(Request $request)
     {
         $query = FormExecution::with(['user', 'formVersion.form']);
-        
+
         if ($request->has('form_id')) {
-            $query->whereHas('formVersion', function($q) use ($request) {
+            $query->whereHas('formVersion', function ($q) use ($request) {
                 $q->where('form_id', $request->form_id);
             });
         }
-        
+
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
-        
+
         $executions = $query->latest('created_at')->paginate(20);
-        
+
         return Inertia::render('Forms/Executions/Index', [
             'executions' => $executions,
-            'filters' => $request->only(['form_id', 'status'])
+            'filters' => $request->only(['form_id', 'status']),
         ]);
     }
 
@@ -45,10 +45,10 @@ class FormExecutionController extends Controller
             ->whereHas('currentVersion')
             ->with('currentVersion')
             ->get();
-        
+
         return Inertia::render('Forms/Executions/Create', [
             'forms' => $forms,
-            'preselectedFormId' => $request->form_id
+            'preselectedFormId' => $request->form_id,
         ]);
     }
 
@@ -60,14 +60,14 @@ class FormExecutionController extends Controller
         $validated = $request->validate([
             'form_id' => 'required|exists:forms,id',
         ]);
-        
+
         $form = Form::with('currentVersion.tasks.instructions')->findOrFail($validated['form_id']);
-        
-        if (!$form->currentVersion) {
+
+        if (! $form->currentVersion) {
             return redirect()->back()
                 ->with('error', 'Este formulário não possui uma versão publicada.');
         }
-        
+
         DB::beginTransaction();
         try {
             $execution = FormExecution::create([
@@ -75,15 +75,16 @@ class FormExecutionController extends Controller
                 'user_id' => auth()->id(),
                 'status' => FormExecution::STATUS_PENDING,
             ]);
-            
+
             DB::commit();
-            
+
             return redirect()->route('forms.executions.show', $execution)
                 ->with('success', 'Execução do formulário iniciada.');
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
-                ->with('error', 'Erro ao iniciar execução: ' . $e->getMessage());
+                ->with('error', 'Erro ao iniciar execução: '.$e->getMessage());
         }
     }
 
@@ -93,10 +94,10 @@ class FormExecutionController extends Controller
     public function show(FormExecution $formExecution)
     {
         $formExecution->load(['user', 'formVersion.form', 'formVersion.tasks.instructions', 'taskResponses.attachments']);
-        
+
         return Inertia::render('Forms/Executions/Show', [
             'execution' => $formExecution,
-            'percentage' => $formExecution->getProgressPercentage()
+            'percentage' => $formExecution->getProgressPercentage(),
         ]);
     }
 
@@ -105,13 +106,13 @@ class FormExecutionController extends Controller
      */
     public function start(FormExecution $formExecution)
     {
-        if (!$formExecution->isPending()) {
+        if (! $formExecution->isPending()) {
             return redirect()->back()
                 ->with('error', 'Este formulário já foi iniciado.');
         }
-        
+
         $formExecution->start();
-        
+
         return redirect()->route('forms.executions.fill', $formExecution)
             ->with('success', 'Iniciando o preenchimento do formulário.');
     }
@@ -121,16 +122,16 @@ class FormExecutionController extends Controller
      */
     public function fill(FormExecution $formExecution)
     {
-        if (!$formExecution->isInProgress()) {
+        if (! $formExecution->isInProgress()) {
             return redirect()->route('forms.executions.show', $formExecution)
                 ->with('error', 'Este formulário não está em andamento.');
         }
-        
+
         $formExecution->load(['formVersion.tasks.instructions', 'taskResponses.attachments']);
-        
+
         return Inertia::render('Forms/Executions/Fill', [
             'execution' => $formExecution,
-            'percentage' => $formExecution->getProgressPercentage()
+            'percentage' => $formExecution->getProgressPercentage(),
         ]);
     }
 
@@ -139,21 +140,22 @@ class FormExecutionController extends Controller
      */
     public function complete(FormExecution $formExecution)
     {
-        if (!$formExecution->isInProgress()) {
+        if (! $formExecution->isInProgress()) {
             return redirect()->back()
                 ->with('error', 'Este formulário não está em andamento.');
         }
-        
+
         // Check if all required tasks are completed
-        if (!$formExecution->hasAllRequiredTasksCompleted()) {
+        if (! $formExecution->hasAllRequiredTasksCompleted()) {
             $missingTasks = $formExecution->getMissingRequiredTasks();
+
             return redirect()->back()
-                ->with('error', 'Existem tarefas obrigatórias não preenchidas: ' . 
+                ->with('error', 'Existem tarefas obrigatórias não preenchidas: '.
                     $missingTasks->pluck('description')->join(', '));
         }
-        
+
         $formExecution->complete();
-        
+
         return redirect()->route('forms.executions.show', $formExecution)
             ->with('success', 'Formulário concluído com sucesso.');
     }
@@ -167,9 +169,9 @@ class FormExecutionController extends Controller
             return redirect()->back()
                 ->with('error', 'Não é possível cancelar um formulário já concluído.');
         }
-        
+
         $formExecution->cancel();
-        
+
         return redirect()->route('forms.executions.index')
             ->with('success', 'Execução do formulário cancelada.');
     }
@@ -182,7 +184,7 @@ class FormExecutionController extends Controller
         return Inertia::render('Forms/Executions/Progress', [
             'execution' => $formExecution,
             'percentage' => $formExecution->getProgressPercentage(),
-            'status' => $formExecution->status
+            'status' => $formExecution->status,
         ]);
     }
-} 
+}

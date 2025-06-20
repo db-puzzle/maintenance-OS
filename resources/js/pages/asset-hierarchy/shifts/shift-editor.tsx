@@ -38,10 +38,7 @@ interface Schedule {
     shifts: Shift[];
 }
 
-
-
-interface CreateProps {
-}
+interface CreateProps {}
 
 interface ShiftData {
     id: number;
@@ -270,13 +267,13 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                     day.key === 'Saturday' || day.key === 'Sunday'
                         ? []
                         : [
-                            {
-                                start_time: '07:00',
-                                end_time: '17:00',
-                                active: true,
-                                breaks: [{ start_time: '12:00', end_time: '13:00' }],
-                            },
-                        ],
+                              {
+                                  start_time: '07:00',
+                                  end_time: '17:00',
+                                  active: true,
+                                  breaks: [{ start_time: '12:00', end_time: '13:00' }],
+                              },
+                          ],
             })),
     });
 
@@ -420,8 +417,6 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
         newSchedules[dayIndex].shifts[shiftIndex].breaks[breakIndex][field] = value;
         setData('schedules', newSchedules);
     };
-
-
 
     const applyToSelectedDays = () => {
         const sourceDay = data.schedules.find((s) => s.weekday === selectedDay);

@@ -75,7 +75,7 @@ export default function CreateSector({ plants }: Props) {
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors: () => { },
+                                    clearErrors: () => {},
                                 }}
                                 name="name"
                                 label="Nome do Setor"

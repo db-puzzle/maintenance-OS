@@ -70,7 +70,6 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
-
     *,
     ::after,
     ::before,
@@ -194,16 +193,17 @@
 
 /* Custom toast styles */
 @layer components {
-
     /* Sonner toast customization */
     [data-sonner-toast] {
         font-family: var(--font-sans) !important;
         border-radius: 0.75rem !important;
-        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+        box-shadow:
+            0 10px 15px -3px rgb(0 0 0 / 0.1),
+            0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
         border: 1px solid var(--border) !important;
     }
 
-    [data-sonner-toast][data-styled="true"] {
+    [data-sonner-toast][data-styled='true'] {
         background: var(--background) !important;
         color: var(--foreground) !important;
     }

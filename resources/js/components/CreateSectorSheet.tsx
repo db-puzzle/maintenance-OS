@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import ItemSelect from '@/components/ItemSelect';
@@ -7,7 +7,7 @@ import { type Plant } from '@/types/asset-hierarchy';
 import { Sector } from '@/types/entities/sector';
 
 interface SectorForm {
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
     name: string;
     area_id: string;
 }
@@ -66,11 +66,11 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
 
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
-            const timers = timeouts.map(delay => setTimeout(focusInput, delay));
+            const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
 
             // Cleanup timeouts
             return () => {
-                timers.forEach(timer => clearTimeout(timer));
+                timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [open, mode]);
@@ -121,7 +121,7 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => { },
+                            clearErrors: () => {},
                         }}
                         name="name"
                         label="Nome do Setor"
@@ -147,7 +147,9 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                         />
                         {(isEditMode || disableParentFields) && (
                             <p className="text-muted-foreground text-sm">
-                                {isEditMode ? 'A planta não pode ser alterada ao editar um setor.' : 'A planta foi pré-selecionada e não pode ser alterada.'}
+                                {isEditMode
+                                    ? 'A planta não pode ser alterada ao editar um setor.'
+                                    : 'A planta foi pré-selecionada e não pode ser alterada.'}
                             </p>
                         )}
                     </div>
@@ -166,7 +168,9 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                         />
                         {(isEditMode || disableParentFields) && (
                             <p className="text-muted-foreground text-sm">
-                                {isEditMode ? 'A área não pode ser alterada ao editar um setor.' : 'A área foi pré-selecionada e não pode ser alterada.'}
+                                {isEditMode
+                                    ? 'A área não pode ser alterada ao editar um setor.'
+                                    : 'A área foi pré-selecionada e não pode ser alterada.'}
                             </p>
                         )}
                     </div>

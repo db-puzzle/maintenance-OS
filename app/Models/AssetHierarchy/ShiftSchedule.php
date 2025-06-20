@@ -10,7 +10,7 @@ class ShiftSchedule extends Model
 {
     protected $fillable = [
         'shift_id',
-        'weekday'
+        'weekday',
     ];
 
     public function shift(): BelongsTo
@@ -22,4 +22,4 @@ class ShiftSchedule extends Model
     {
         return $this->hasMany(ShiftTime::class);
     }
-} 
+}

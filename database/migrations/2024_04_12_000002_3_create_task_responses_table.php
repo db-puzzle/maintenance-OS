@@ -19,7 +19,7 @@ return new class extends Migration
             $table->boolean('is_completed')->default(false);
             $table->timestamp('responded_at')->nullable();
             $table->timestamps();
-            
+
             $table->index('form_execution_id');
             $table->index('form_task_id');
             $table->index('is_completed');

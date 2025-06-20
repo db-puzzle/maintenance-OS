@@ -22,7 +22,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->json('execution_data')->nullable()->comment('Additional execution metadata');
             $table->timestamps();
-            
+
             // Índices para consultas comuns
             $table->index(['routine_id', 'status']);
             $table->index(['executed_by', 'status']);

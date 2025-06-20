@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { ColumnVisibility } from '@/components/data-table';
+import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { EntityPagination } from '@/components/shared/EntityPagination';
-import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
+import type { ExecutionFilters, FilterOption, PaginatedExecutions, SortOption } from '@/types/maintenance';
 import { ColumnConfig } from '@/types/shared';
-import { ColumnVisibility } from '@/components/data-table';
-import { useSorting } from '@/hooks/useSorting';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Filter, Download, Eye, FileText } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import type { PaginatedExecutions, ExecutionFilters, FilterOption, SortOption } from '@/types/maintenance';
+import { Head, router } from '@inertiajs/react';
+import { Download, Eye, FileText, Filter } from 'lucide-react';
+import React, { useState } from 'react';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: any) => string;
@@ -51,13 +51,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
-    executions,
-    filters,
-    filterOptions,
-    sortOptions,
-    currentSort,
-}) => {
+const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, filterOptions, sortOptions, currentSort }) => {
     const [selectedExecutions, setSelectedExecutions] = useState<number[]>([]);
     const [showFilters, setShowFilters] = useState(false);
     const [localFilters, setLocalFilters] = useState(filters);
@@ -71,7 +65,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
         additionalParams: {
             ...localFilters,
             search,
-        }
+        },
     });
 
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
@@ -139,9 +133,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
             render: (value, row) => (
                 <div>
                     <div className="font-medium">{row.routine.name}</div>
-                    {row.routine.description && (
-                        <div className="text-muted-foreground text-sm">{row.routine.description}</div>
-                    )}
+                    {row.routine.description && <div className="text-muted-foreground text-sm">{row.routine.description}</div>}
                 </div>
             ),
         },
@@ -150,11 +142,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
             label: 'Asset',
             sortable: false,
             width: 'w-[150px]',
-            render: (value, row) => (
-                row.assets.length > 0
-                    ? row.assets[0].tag
-                    : row.primary_asset_tag || 'N/A'
-            ),
+            render: (value, row) => (row.assets.length > 0 ? row.assets[0].tag : row.primary_asset_tag || 'N/A'),
         },
         {
             key: 'executor_name',
@@ -170,14 +158,8 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
             width: 'w-[120px]',
             render: (value, row) => (
                 <div className="flex items-center gap-2">
-                    <Badge className={getStatusColor(row.status)}>
-                        {row.status.replace('_', ' ')}
-                    </Badge>
-                    {row.status === 'in_progress' && (
-                        <span className="text-xs text-muted-foreground">
-                            {row.progress}%
-                        </span>
-                    )}
+                    <Badge className={getStatusColor(row.status)}>{row.status.replace('_', ' ')}</Badge>
+                    {row.status === 'in_progress' && <span className="text-muted-foreground text-xs">{row.progress}%</span>}
                 </div>
             ),
         },
@@ -193,11 +175,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
             label: 'Duration',
             sortable: true,
             width: 'w-[100px]',
-            render: (value, row) => (
-                row.duration_minutes
-                    ? `${row.duration_minutes}m`
-                    : 'N/A'
-            ),
+            render: (value, row) => (row.duration_minutes ? `${row.duration_minutes}m` : 'N/A'),
         },
     ];
 
@@ -212,35 +190,42 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
 
     const handleSearch = (value: string) => {
         setSearch(value);
-        router.get(route('maintenance.executions.index'),
+        router.get(
+            route('maintenance.executions.index'),
             { ...localFilters, search: value, sort, direction },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
     const applyFilters = () => {
-        router.get(route('maintenance.executions.index'), {
-            ...localFilters,
-            search,
-            sort,
-            direction,
-        }, {
-            preserveState: true,
-            preserveScroll: true,
-        });
+        router.get(
+            route('maintenance.executions.index'),
+            {
+                ...localFilters,
+                search,
+                sort,
+                direction,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+            },
+        );
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('maintenance.executions.index'),
+        router.get(
+            route('maintenance.executions.index'),
             { ...filters, search, sort, direction, page },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
     const handlePerPageChange = (perPage: number) => {
-        router.get(route('maintenance.executions.index'),
+        router.get(
+            route('maintenance.executions.index'),
             { ...filters, search, sort, direction, per_page: perPage, page: 1 },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
@@ -257,7 +242,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedExecutions(data.map(e => e.id));
+            setSelectedExecutions(data.map((e) => e.id));
         } else {
             setSelectedExecutions([]);
         }
@@ -267,7 +252,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
         if (checked) {
             setSelectedExecutions([...selectedExecutions, id]);
         } else {
-            setSelectedExecutions(selectedExecutions.filter(eId => eId !== id));
+            setSelectedExecutions(selectedExecutions.filter((eId) => eId !== id));
         }
     };
 
@@ -300,27 +285,20 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
                 createButtonText=""
                 actions={
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={() => setShowFilters(!showFilters)}
-                        >
-                            <Filter className="h-4 w-4 mr-2" />
+                        <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
+                            <Filter className="mr-2 h-4 w-4" />
                             Filters
                         </Button>
-                        <Button
-                            variant="outline"
-                            onClick={handleExportSelected}
-                            disabled={selectedExecutions.length === 0}
-                        >
-                            <Download className="h-4 w-4 mr-2" />
+                        <Button variant="outline" onClick={handleExportSelected} disabled={selectedExecutions.length === 0}>
+                            <Download className="mr-2 h-4 w-4" />
                             Export Selected ({selectedExecutions.length})
                         </Button>
                         <ColumnVisibility
-                            columns={columns.map(col => ({
+                            columns={columns.map((col) => ({
                                 id: col.key,
                                 header: col.label,
                                 cell: () => null,
-                                width: 'w-auto'
+                                width: 'w-auto',
                             }))}
                             columnVisibility={columnVisibility}
                             onColumnVisibilityChange={handleColumnVisibilityChange}
@@ -336,9 +314,9 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
                                 <CardTitle className="text-lg">Filters</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                                     <div>
-                                        <label className="text-sm font-medium mb-2 block">Status</label>
+                                        <label className="mb-2 block text-sm font-medium">Status</label>
                                         <Select
                                             value={localFilters.status?.[0] || ''}
                                             onValueChange={(value) => setLocalFilters({ ...localFilters, status: value ? [value] : [] })}
@@ -358,7 +336,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-medium mb-2 block">Asset</label>
+                                        <label className="mb-2 block text-sm font-medium">Asset</label>
                                         <Select
                                             value={localFilters.asset_ids?.[0]?.toString() || ''}
                                             onValueChange={(value) => setLocalFilters({ ...localFilters, asset_ids: value ? [parseInt(value)] : [] })}
@@ -378,10 +356,12 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-medium mb-2 block">Routine</label>
+                                        <label className="mb-2 block text-sm font-medium">Routine</label>
                                         <Select
                                             value={localFilters.routine_ids?.[0]?.toString() || ''}
-                                            onValueChange={(value) => setLocalFilters({ ...localFilters, routine_ids: value ? [parseInt(value)] : [] })}
+                                            onValueChange={(value) =>
+                                                setLocalFilters({ ...localFilters, routine_ids: value ? [parseInt(value)] : [] })
+                                            }
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="All routines" />
@@ -398,10 +378,12 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
                                     </div>
 
                                     <div>
-                                        <label className="text-sm font-medium mb-2 block">Executor</label>
+                                        <label className="mb-2 block text-sm font-medium">Executor</label>
                                         <Select
                                             value={localFilters.executor_ids?.[0]?.toString() || ''}
-                                            onValueChange={(value) => setLocalFilters({ ...localFilters, executor_ids: value ? [parseInt(value)] : [] })}
+                                            onValueChange={(value) =>
+                                                setLocalFilters({ ...localFilters, executor_ids: value ? [parseInt(value)] : [] })
+                                            }
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="All executors" />
@@ -418,22 +400,24 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end mt-4 gap-2">
+                                <div className="mt-4 flex justify-end gap-2">
                                     <Button
                                         variant="outline"
                                         onClick={() => {
                                             setLocalFilters({});
-                                            router.get(route('maintenance.executions.index'), {}, {
-                                                preserveState: true,
-                                                preserveScroll: true,
-                                            });
+                                            router.get(
+                                                route('maintenance.executions.index'),
+                                                {},
+                                                {
+                                                    preserveState: true,
+                                                    preserveScroll: true,
+                                                },
+                                            );
                                         }}
                                     >
                                         Clear Filters
                                     </Button>
-                                    <Button onClick={applyFilters}>
-                                        Apply Filters
-                                    </Button>
+                                    <Button onClick={applyFilters}>Apply Filters</Button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -464,15 +448,11 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({
                         )}
                     />
 
-                    <EntityPagination
-                        pagination={pagination}
-                        onPageChange={handlePageChange}
-                        onPerPageChange={handlePerPageChange}
-                    />
+                    <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
         </AppLayout>
     );
 };
 
-export default ExecutionIndex; 
+export default ExecutionIndex;

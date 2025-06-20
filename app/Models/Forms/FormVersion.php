@@ -14,13 +14,13 @@ class FormVersion extends Model
         'version_number',
         'published_at',
         'published_by',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
         'version_number' => 'integer',
         'published_at' => 'datetime',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     /**
@@ -89,4 +89,4 @@ class FormVersion extends Model
         $this->is_active = false;
         $this->saveQuietly(); // Use saveQuietly to bypass the update protection for this specific case
     }
-} 
+}

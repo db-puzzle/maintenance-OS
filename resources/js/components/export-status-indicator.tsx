@@ -1,5 +1,3 @@
-import React from 'react';
-import { FileDown, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -9,10 +7,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useExportManager } from '@/hooks/use-export-manager';
-import { cn } from '@/lib/utils';
+import { CheckCircle2, FileDown, Loader2, XCircle } from 'lucide-react';
 
 export function ExportStatusIndicator() {
     const { exports, activeExportsCount, removeExport, clearCompleted, downloadExport } = useExportManager();
@@ -49,16 +46,12 @@ export function ExportStatusIndicator() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="relative h-9 w-9"
-                >
+                <Button variant="ghost" size="icon" className="relative h-9 w-9">
                     <FileDown className="h-5 w-5" />
                     {activeExportsCount > 0 && (
                         <span className="absolute -top-1 -right-1 flex h-5 w-5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-5 w-5 bg-blue-600 text-white text-xs items-center justify-center">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
+                            <span className="relative inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs text-white">
                                 {activeExportsCount}
                             </span>
                         </span>
@@ -68,13 +61,8 @@ export function ExportStatusIndicator() {
             <DropdownMenuContent align="end" className="w-80">
                 <DropdownMenuLabel className="flex items-center justify-between">
                     <span>Export Status</span>
-                    {exports.some(e => e.status === 'completed') && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-auto p-0 text-xs"
-                            onClick={clearCompleted}
-                        >
+                    {exports.some((e) => e.status === 'completed') && (
+                        <Button variant="ghost" size="sm" className="h-auto p-0 text-xs" onClick={clearCompleted}>
                             Clear completed
                         </Button>
                     )}
@@ -82,29 +70,21 @@ export function ExportStatusIndicator() {
                 <DropdownMenuSeparator />
                 <ScrollArea className="max-h-96">
                     {exports.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                            No active exports
-                        </div>
+                        <div className="text-muted-foreground p-4 text-center text-sm">No active exports</div>
                     ) : (
                         <div className="space-y-1">
                             {exports.map((exportTask) => (
                                 <DropdownMenuItem
                                     key={exportTask.id}
-                                    className="flex items-start gap-3 p-3 cursor-default focus:bg-transparent"
+                                    className="flex cursor-default items-start gap-3 p-3 focus:bg-transparent"
                                     onSelect={(e) => e.preventDefault()}
                                 >
-                                    <div className="mt-0.5">
-                                        {getStatusIcon(exportTask.status)}
-                                    </div>
+                                    <div className="mt-0.5">{getStatusIcon(exportTask.status)}</div>
                                     <div className="flex-1 space-y-1">
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="flex-1">
-                                                <p className="text-sm font-medium leading-tight">
-                                                    {exportTask.description}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {getRelativeTime(exportTask.createdAt)}
-                                                </p>
+                                                <p className="text-sm leading-tight font-medium">{exportTask.description}</p>
+                                                <p className="text-muted-foreground text-xs">{getRelativeTime(exportTask.createdAt)}</p>
                                             </div>
                                             {exportTask.status !== 'processing' && (
                                                 <Button
@@ -128,9 +108,7 @@ export function ExportStatusIndicator() {
                                                         style={{ width: `${exportTask.progress}%` }}
                                                     />
                                                 </div>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {exportTask.progress}%
-                                                </span>
+                                                <span className="text-muted-foreground text-xs">{exportTask.progress}%</span>
                                             </div>
                                         )}
                                         {exportTask.status === 'completed' && exportTask.downloadUrl && (
@@ -145,9 +123,7 @@ export function ExportStatusIndicator() {
                                             </button>
                                         )}
                                         {exportTask.status === 'failed' && exportTask.error && (
-                                            <p className="text-xs text-red-600">
-                                                {exportTask.error}
-                                            </p>
+                                            <p className="text-xs text-red-600">{exportTask.error}</p>
                                         )}
                                     </div>
                                 </DropdownMenuItem>
@@ -158,4 +134,4 @@ export function ExportStatusIndicator() {
             </DropdownMenuContent>
         </DropdownMenu>
     );
-} 
+}

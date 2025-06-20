@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Scheduler\RouteEditorController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('scheduler')->group(function () {
     // Rota para o editor de rotas

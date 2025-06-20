@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Forms;
 
 use App\Http\Controllers\Controller;
 use App\Models\Forms\Form;
-use App\Models\Forms\FormVersion;
 use App\Models\Forms\FormTask;
+use App\Models\Forms\FormVersion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -24,7 +24,7 @@ class FormVersionController extends Controller
         return response()->json([
             'versions' => $versions,
             'current_version_id' => $form->current_version_id,
-            'has_draft_changes' => $form->isDraft()
+            'has_draft_changes' => $form->isDraft(),
         ]);
     }
 
@@ -42,7 +42,7 @@ class FormVersionController extends Controller
 
         return response()->json([
             'version' => $version,
-            'is_current' => $version->isCurrent()
+            'is_current' => $version->isCurrent(),
         ]);
     }
 
@@ -52,9 +52,9 @@ class FormVersionController extends Controller
     public function publish(Request $request, Form $form)
     {
         // Check if there are draft tasks to publish
-        if (!$form->draftTasks()->exists()) {
+        if (! $form->draftTasks()->exists()) {
             return response()->json([
-                'error' => 'No draft changes to publish'
+                'error' => 'No draft changes to publish',
             ], 422);
         }
 
@@ -63,7 +63,7 @@ class FormVersionController extends Controller
         foreach ($draftTasks as $task) {
             if (empty($task->description)) {
                 return response()->json([
-                    'error' => 'All tasks must have a description before publishing'
+                    'error' => 'All tasks must have a description before publishing',
                 ], 422);
             }
         }
@@ -86,12 +86,13 @@ class FormVersionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Form version published successfully',
-                'version' => $version
+                'version' => $version,
             ]);
         } catch (\Exception $e) {
             DB::rollback();
+
             return response()->json([
-                'error' => 'Failed to publish version: ' . $e->getMessage()
+                'error' => 'Failed to publish version: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -104,7 +105,7 @@ class FormVersionController extends Controller
         $version1 = $form->versions()->with('tasks')->find($versionId1);
         $version2 = $form->versions()->with('tasks')->find($versionId2);
 
-        if (!$version1 || !$version2) {
+        if (! $version1 || ! $version2) {
             return response()->json(['error' => 'One or both versions not found'], 404);
         }
 
@@ -114,15 +115,15 @@ class FormVersionController extends Controller
                 'id' => $version1->id,
                 'version_number' => $version1->version_number,
                 'published_at' => $version1->published_at,
-                'task_count' => $version1->tasks->count()
+                'task_count' => $version1->tasks->count(),
             ],
             'version2' => [
                 'id' => $version2->id,
                 'version_number' => $version2->version_number,
                 'published_at' => $version2->published_at,
-                'task_count' => $version2->tasks->count()
+                'task_count' => $version2->tasks->count(),
             ],
-            'changes' => $this->compareVersionTasks($version1, $version2)
+            'changes' => $this->compareVersionTasks($version1, $version2),
         ];
 
         return response()->json($comparison);
@@ -152,7 +153,7 @@ class FormVersionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Version deactivated successfully'
+            'message' => 'Version deactivated successfully',
         ]);
     }
 
@@ -164,7 +165,7 @@ class FormVersionController extends Controller
         $changes = [
             'added' => [],
             'removed' => [],
-            'modified' => []
+            'modified' => [],
         ];
 
         $v1Tasks = $v1->tasks->keyBy('position');
@@ -172,10 +173,10 @@ class FormVersionController extends Controller
 
         // Find added and modified tasks
         foreach ($v2Tasks as $position => $v2Task) {
-            if (!$v1Tasks->has($position)) {
+            if (! $v1Tasks->has($position)) {
                 $changes['added'][] = [
                     'position' => $position,
-                    'task' => $v2Task->toArray()
+                    'task' => $v2Task->toArray(),
                 ];
             } else {
                 $v1Task = $v1Tasks[$position];
@@ -183,7 +184,7 @@ class FormVersionController extends Controller
                     $changes['modified'][] = [
                         'position' => $position,
                         'old' => $v1Task->toArray(),
-                        'new' => $v2Task->toArray()
+                        'new' => $v2Task->toArray(),
                     ];
                 }
             }
@@ -191,10 +192,10 @@ class FormVersionController extends Controller
 
         // Find removed tasks
         foreach ($v1Tasks as $position => $v1Task) {
-            if (!$v2Tasks->has($position)) {
+            if (! $v2Tasks->has($position)) {
                 $changes['removed'][] = [
                     'position' => $position,
-                    'task' => $v1Task->toArray()
+                    'task' => $v1Task->toArray(),
                 ];
             }
         }
@@ -212,4 +213,4 @@ class FormVersionController extends Controller
                $t1->is_required !== $t2->is_required ||
                json_encode($t1->configuration) !== json_encode($t2->configuration);
     }
-} 
+}

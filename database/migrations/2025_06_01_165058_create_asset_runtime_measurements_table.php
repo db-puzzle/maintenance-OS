@@ -20,7 +20,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamp('measurement_datetime')->comment('When the measurement was taken');
             $table->timestamps();
-            
+
             $table->index(['asset_id', 'measurement_datetime']);
         });
     }

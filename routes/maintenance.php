@@ -1,36 +1,36 @@
 <?php
 
 use App\Http\Controllers\Maintenance\DashboardController;
-use App\Http\Controllers\Maintenance\RoutineController;
-use App\Http\Controllers\Maintenance\InlineRoutineExecutionController;
+use App\Http\Controllers\Maintenance\ExecutionExportController;
 use App\Http\Controllers\Maintenance\ExecutionHistoryController;
 use App\Http\Controllers\Maintenance\ExecutionResponseController;
-use App\Http\Controllers\Maintenance\ExecutionExportController;
+use App\Http\Controllers\Maintenance\InlineRoutineExecutionController;
+use App\Http\Controllers\Maintenance\RoutineController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenance.')->group(function () {
     // Dashboard de Manutenção
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Routine Dashboard (temporary route)
     Route::get('/routine-dashboard', function (\Illuminate\Http\Request $request) {
         $controller = app(ExecutionHistoryController::class);
-        
+
         // Extract filters directly from request
         $filters = $request->only([
             'search',
             'asset_ids',
-            'routine_ids', 
+            'routine_ids',
             'executor_ids',
             'status',
             'date_preset',
             'date_from',
             'date_to',
         ]);
-        
+
         // Handle date presets
-        if (!empty($filters['date_preset']) && $filters['date_preset'] !== 'custom') {
+        if (! empty($filters['date_preset']) && $filters['date_preset'] !== 'custom') {
             $now = now();
             switch ($filters['date_preset']) {
                 case 'today':
@@ -70,30 +70,30 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
                     break;
             }
         }
-        
+
         // Convert status to array if it's a single value
-        if (isset($filters['status']) && !is_array($filters['status'])) {
+        if (isset($filters['status']) && ! is_array($filters['status'])) {
             $filters['status'] = [$filters['status']];
         }
-        
+
         // Clean up empty arrays
         foreach (['asset_ids', 'routine_ids', 'executor_ids', 'status'] as $key) {
             if (isset($filters[$key]) && empty($filters[$key])) {
                 unset($filters[$key]);
             }
         }
-        
-        $filters = array_filter($filters, function($value) {
+
+        $filters = array_filter($filters, function ($value) {
             return $value !== null && $value !== '';
         });
-        
+
         $analyticsService = app(\App\Services\ExecutionAnalyticsService::class);
-        
+
         return Inertia::render('maintenance/routine-dashboard', [
             'stats' => $analyticsService->getDashboardStats($filters),
             'recentExecutions' => $analyticsService->getRecentExecutions(10), // Show more recent executions
             'dailyTrend' => $analyticsService->getDailyTrend(
-                isset($filters['date_from'], $filters['date_to']) 
+                isset($filters['date_from'], $filters['date_to'])
                     ? \Carbon\Carbon::parse($filters['date_to'])->diffInDays(\Carbon\Carbon::parse($filters['date_from'])) + 1
                     : 30
             ),
@@ -104,29 +104,29 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
                     ->whereHas('routines.routineExecutions')
                     ->orderBy('tag')
                     ->get()
-                    ->map(fn($asset) => [
+                    ->map(fn ($asset) => [
                         'value' => $asset->id,
                         'label' => "{$asset->tag} - {$asset->description}",
                     ]),
-                
+
                 'routines' => \App\Models\Maintenance\Routine::select('id', 'name', 'description')
                     ->whereHas('routineExecutions')
                     ->orderBy('name')
                     ->get()
-                    ->map(fn($routine) => [
+                    ->map(fn ($routine) => [
                         'value' => $routine->id,
                         'label' => $routine->name,
                     ]),
-                
+
                 'executors' => \App\Models\User::select('id', 'name')
                     ->whereHas('executedRoutines')
                     ->orderBy('name')
                     ->get()
-                    ->map(fn($user) => [
+                    ->map(fn ($user) => [
                         'value' => $user->id,
                         'label' => $user->name,
                     ]),
-                
+
                 'statuses' => [
                     ['value' => 'pending', 'label' => 'Pending'],
                     ['value' => 'in_progress', 'label' => 'In Progress'],
@@ -148,7 +148,7 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
             ],
         ]);
     })->name('routine-dashboard');
-    
+
     // Execution History and Response Viewer
     Route::prefix('executions')->name('executions.')->group(function () {
         // Dashboard and analytics
@@ -156,12 +156,12 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
         Route::get('/history/api', [ExecutionHistoryController::class, 'dashboardApi'])->name('history.api');
         Route::get('/performance-metrics', [ExecutionHistoryController::class, 'performanceMetrics'])->name('performance-metrics');
         Route::get('/filter-options', [ExecutionHistoryController::class, 'filterOptions'])->name('filter-options');
-        
+
         // List and detail views
         Route::get('/', [ExecutionResponseController::class, 'index'])->name('index');
         Route::get('/api', [ExecutionResponseController::class, 'api'])->name('api');
         Route::get('/{execution}', [ExecutionResponseController::class, 'show'])->name('show');
-        
+
         // Export functionality
         Route::post('/{execution}/export', [ExecutionExportController::class, 'exportSingle'])->name('export.single');
         Route::post('/export/batch', [ExecutionExportController::class, 'exportBatch'])->name('export.batch');
@@ -170,7 +170,7 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
         Route::get('/exports', [ExecutionExportController::class, 'userExports'])->name('export.user');
         Route::delete('/exports/{export}', [ExecutionExportController::class, 'cancel'])->name('export.cancel');
     });
-    
+
     // Rotinas
     Route::prefix('routines')->name('routines.')->group(function () {
         Route::get('/', [RoutineController::class, 'index'])->name('index');
@@ -187,22 +187,22 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
         Route::post('/{routine}/forms/publish', [RoutineController::class, 'publishForm'])->name('forms.publish');
         Route::get('/{routine}/form-data', [RoutineController::class, 'getRoutineWithFormData'])->name('form-data');
     });
-    
+
     // Rotinas no contexto de ativos específicos
     Route::prefix('assets/{asset}')->name('assets.')->group(function () {
         Route::get('/routines', [RoutineController::class, 'assetRoutines'])->name('routines.index');
         Route::post('/routines', [RoutineController::class, 'storeAssetRoutine'])->name('routines.store');
         Route::put('/routines/{routine}', [RoutineController::class, 'updateAssetRoutine'])->name('routines.update');
         Route::delete('/routines/{routine}', [RoutineController::class, 'destroyAssetRoutine'])->name('routines.destroy');
-        
+
         // Formulários de rotinas no contexto de ativos
         Route::post('/routines/{routine}/forms', [RoutineController::class, 'storeAssetRoutineForm'])->name('routines.forms.store');
         Route::post('/routines/{routine}/forms/publish', [RoutineController::class, 'publishAssetRoutineForm'])->name('routines.forms.publish');
-        
+
         // Execuções de rotinas no contexto de ativos
         Route::get('/routines/{routine}/executions', [RoutineController::class, 'assetRoutineExecutions'])->name('routines.executions');
         Route::post('/routines/{routine}/executions', [RoutineController::class, 'storeAssetRoutineExecution'])->name('routines.executions.store');
-        
+
         // Inline routine execution routes
         Route::prefix('/routines/{routine}/inline-execution')->name('routines.inline-execution.')->group(function () {
             Route::post('/start', [InlineRoutineExecutionController::class, 'startOrGetExecution'])->name('start');
@@ -212,4 +212,4 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
             Route::get('/{execution}/status', [InlineRoutineExecutionController::class, 'getExecutionStatus'])->name('status');
         });
     });
-}); 
+});

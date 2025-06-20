@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('asset_id')->constrained()->cascadeOnDelete();
             $table->foreignId('routine_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
-            
+
             $table->unique(['asset_id', 'routine_id']);
             $table->index('asset_id');
             $table->index('routine_id');
@@ -24,4 +24,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('asset_routine');
     }
-}; 
+};

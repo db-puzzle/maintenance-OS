@@ -2,34 +2,31 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Maintenance\RoutineExecution;
-use App\Models\Maintenance\Routine;
-use App\Models\Maintenance\ExecutionExport;
-use App\Models\Forms\FormExecution;
-use App\Models\Forms\Form;
-use App\Models\Forms\FormVersion;
 use App\Models\AssetHierarchy\Asset;
+use App\Models\Maintenance\ExecutionExport;
+use App\Models\Maintenance\Routine;
+use App\Models\Maintenance\RoutineExecution;
+use App\Models\User;
 use App\Services\ExecutionAnalyticsService;
-use App\Services\PDFGeneratorService;
-use App\Services\ResponseFormatterService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
-use Carbon\Carbon;
 
 class ExecutionHistoryTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     protected User $user;
+
     protected Routine $routine;
+
     protected Asset $asset;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->asset = Asset::factory()->create();
         $this->routine = Routine::factory()->create();
@@ -79,7 +76,7 @@ class ExecutionHistoryTest extends TestCase
             'status' => RoutineExecution::STATUS_CANCELLED,
         ]);
 
-        $service = new ExecutionAnalyticsService();
+        $service = new ExecutionAnalyticsService;
         $stats = $service->getDashboardStats();
 
         $this->assertEquals(8, $stats['total']);
@@ -109,7 +106,7 @@ class ExecutionHistoryTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get('/maintenance/executions?' . http_build_query([
+            ->get('/maintenance/executions?'.http_build_query([
                 'date_from' => $today->toDateString(),
                 'date_to' => $today->toDateString(),
             ]));
@@ -313,7 +310,7 @@ class ExecutionHistoryTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get('/maintenance/executions?' . http_build_query([
+            ->get('/maintenance/executions?'.http_build_query([
                 'asset_ids' => [$this->asset->id],
                 'status' => [RoutineExecution::STATUS_COMPLETED],
             ]));
@@ -341,7 +338,7 @@ class ExecutionHistoryTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get('/maintenance/executions?' . http_build_query([
+            ->get('/maintenance/executions?'.http_build_query([
                 'sort_by' => 'started_at',
                 'sort_direction' => 'asc',
             ]));
@@ -368,7 +365,7 @@ class ExecutionHistoryTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get('/maintenance/executions?' . http_build_query([
+            ->get('/maintenance/executions?'.http_build_query([
                 'search' => 'Special',
             ]));
 

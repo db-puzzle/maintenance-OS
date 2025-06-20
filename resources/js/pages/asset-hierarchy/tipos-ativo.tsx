@@ -1,19 +1,19 @@
-import { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import CreateAssetTypeSheet from '@/components/CreateAssetTypeSheet';
+import { ColumnVisibility } from '@/components/data-table';
+import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
+import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
+import { EntityPagination } from '@/components/shared/EntityPagination';
+import { useEntityOperations } from '@/hooks/useEntityOperations';
+import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { EntityPagination } from '@/components/shared/EntityPagination';
-import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
-import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
-import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
-import CreateAssetTypeSheet from '@/components/CreateAssetTypeSheet';
 import { AssetType } from '@/types/entities/asset-type';
 import { ColumnConfig } from '@/types/shared';
-import { ColumnVisibility } from '@/components/data-table';
-import { useEntityOperations } from '@/hooks/useEntityOperations';
-import { useSorting } from '@/hooks/useSorting';
+import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: any) => string;
@@ -72,8 +72,8 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
         initialDirection: filters.direction || 'asc',
         additionalParams: {
             search,
-            per_page: filters.per_page
-        }
+            per_page: filters.per_page,
+        },
     });
 
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
@@ -110,9 +110,7 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             render: (value, row) => (
                 <div>
                     <div className="font-medium">{row.name}</div>
-                    {row.description && (
-                        <div className="text-muted-foreground text-sm">{row.description}</div>
-                    )}
+                    {row.description && <div className="text-muted-foreground text-sm">{row.description}</div>}
                 </div>
             ),
         },
@@ -143,23 +141,26 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
 
     const handleSearch = (value: string) => {
         setSearch(value);
-        router.get(route('asset-hierarchy.tipos-ativo'),
+        router.get(
+            route('asset-hierarchy.tipos-ativo'),
             { search: value, sort, direction, per_page: filters.per_page },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('asset-hierarchy.tipos-ativo'),
+        router.get(
+            route('asset-hierarchy.tipos-ativo'),
             { ...filters, search, sort, direction, page },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
     const handlePerPageChange = (perPage: number) => {
-        router.get(route('asset-hierarchy.tipos-ativo'),
+        router.get(
+            route('asset-hierarchy.tipos-ativo'),
             { ...filters, search, sort, direction, per_page: perPage, page: 1 },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
@@ -177,11 +178,11 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
                 actions={
                     <div className="flex items-center gap-2">
                         <ColumnVisibility
-                            columns={columns.map(col => ({
+                            columns={columns.map((col) => ({
                                 id: col.key,
                                 header: col.label,
                                 cell: () => null,
-                                width: 'w-auto'
+                                width: 'w-auto',
                             }))}
                             columnVisibility={columnVisibility}
                             onColumnVisibilityChange={handleColumnVisibilityChange}
@@ -200,18 +201,11 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
                         sortColumn={sort}
                         sortDirection={direction}
                         actions={(assetType) => (
-                            <EntityActionDropdown
-                                onEdit={() => entityOps.handleEdit(assetType)}
-                                onDelete={() => entityOps.handleDelete(assetType)}
-                            />
+                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(assetType)} onDelete={() => entityOps.handleDelete(assetType)} />
                         )}
                     />
 
-                    <EntityPagination
-                        pagination={pagination}
-                        onPageChange={handlePageChange}
-                        onPerPageChange={handlePerPageChange}
-                    />
+                    <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
 

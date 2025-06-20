@@ -1,7 +1,7 @@
 // Type definitions
 export interface Timezone {
-    value: string;  // IANA timezone identifier
-    label: string;  // Display name
+    value: string; // IANA timezone identifier
+    label: string; // Display name
 }
 
 export interface TimezoneGroups {
@@ -10,7 +10,7 @@ export interface TimezoneGroups {
 
 // Main timezone data grouped by region
 export const TIMEZONE_GROUPS: TimezoneGroups = {
-    'Americas': [
+    Americas: [
         { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
         { value: 'America/Chicago', label: 'Central Time (US & Canada)' },
         { value: 'America/Denver', label: 'Mountain Time (US & Canada)' },
@@ -23,7 +23,7 @@ export const TIMEZONE_GROUPS: TimezoneGroups = {
         { value: 'America/Toronto', label: 'Toronto' },
         { value: 'America/Vancouver', label: 'Vancouver' },
     ],
-    'Europe': [
+    Europe: [
         { value: 'Europe/London', label: 'London' },
         { value: 'Europe/Paris', label: 'Paris' },
         { value: 'Europe/Berlin', label: 'Berlin' },
@@ -38,7 +38,7 @@ export const TIMEZONE_GROUPS: TimezoneGroups = {
         { value: 'Europe/Brussels', label: 'Brussels' },
         { value: 'Europe/Prague', label: 'Prague' },
     ],
-    'Asia': [
+    Asia: [
         { value: 'Asia/Tokyo', label: 'Tokyo' },
         { value: 'Asia/Shanghai', label: 'Beijing, Shanghai' },
         { value: 'Asia/Hong_Kong', label: 'Hong Kong' },
@@ -57,13 +57,13 @@ export const TIMEZONE_GROUPS: TimezoneGroups = {
         { value: 'Asia/Tashkent', label: 'Tashkent' },
         { value: 'Asia/Riyadh', label: 'Riyadh' },
     ],
-    'Africa': [
+    Africa: [
         { value: 'Africa/Cairo', label: 'Cairo' },
         { value: 'Africa/Johannesburg', label: 'Johannesburg' },
         { value: 'Africa/Nairobi', label: 'Nairobi' },
         { value: 'Africa/Lagos', label: 'Lagos' },
     ],
-    'Pacific': [
+    Pacific: [
         { value: 'Australia/Sydney', label: 'Sydney' },
         { value: 'Australia/Melbourne', label: 'Melbourne' },
         { value: 'Pacific/Auckland', label: 'Auckland' },
@@ -74,18 +74,19 @@ export const TIMEZONE_GROUPS: TimezoneGroups = {
         { value: 'Pacific/Guam', label: 'Guam' },
         { value: 'Pacific/Tahiti', label: 'Tahiti' },
     ],
-    'Other': [
-        { value: 'UTC', label: 'UTC' },
-    ]
+    Other: [{ value: 'UTC', label: 'UTC' }],
 };
 
 // Generate flat map for quick lookups from TIMEZONE_GROUPS
 export const TIMEZONE_DISPLAY_NAMES: Record<string, string> = Object.values(TIMEZONE_GROUPS)
     .flat()
-    .reduce((acc, timezone) => {
-        acc[timezone.value] = timezone.label;
-        return acc;
-    }, {} as Record<string, string>);
+    .reduce(
+        (acc, timezone) => {
+            acc[timezone.value] = timezone.label;
+            return acc;
+        },
+        {} as Record<string, string>,
+    );
 
 // Helper function to get timezone display name
 export const getTimezoneDisplayName = (timezone: string): string => {
@@ -99,7 +100,7 @@ export const getAllTimezones = (): Timezone[] => {
 
 // Get timezone by value
 export const getTimezoneByValue = (value: string): Timezone | undefined => {
-    return getAllTimezones().find(tz => tz.value === value);
+    return getAllTimezones().find((tz) => tz.value === value);
 };
 
 // Format current time in a specific timezone
@@ -111,10 +112,10 @@ export const getCurrentTimeInTimezone = (timezone: string): string => {
             timeZone: timezone,
             hour: '2-digit',
             minute: '2-digit',
-            hour12: true
+            hour12: true,
         });
     } catch (error) {
         console.error(`Invalid timezone: ${timezone}`, error);
         return '';
     }
-}; 
+};

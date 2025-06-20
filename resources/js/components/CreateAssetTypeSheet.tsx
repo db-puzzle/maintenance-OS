@@ -5,7 +5,7 @@ import TextInput from '@/components/TextInput';
 import { AssetType } from '@/types/entities/asset-type';
 
 interface AssetTypeForm {
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
     name: string;
     description: string;
 }
@@ -18,13 +18,7 @@ interface CreateAssetTypeSheetProps {
     onSuccess?: () => void;
 }
 
-const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
-    assetType,
-    open,
-    onOpenChange,
-    mode,
-    onSuccess,
-}) => {
+const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, open, onOpenChange, mode, onSuccess }) => {
     const nameInputRef = useRef<HTMLInputElement>(null);
 
     // Auto-focus the name input when sheet opens for creation
@@ -42,11 +36,11 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
 
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
-            const timers = timeouts.map(delay => setTimeout(focusInput, delay));
+            const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
 
             // Cleanup timeouts
             return () => {
-                timers.forEach(timer => clearTimeout(timer));
+                timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [open, mode]);
@@ -99,7 +93,7 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => { },
+                            clearErrors: () => {},
                         }}
                         name="name"
                         label="Nome"
@@ -113,7 +107,7 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => { },
+                            clearErrors: () => {},
                         }}
                         name="description"
                         label="Descrição"

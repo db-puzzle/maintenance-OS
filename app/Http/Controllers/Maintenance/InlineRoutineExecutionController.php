@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Maintenance;
 
 use App\Http\Controllers\Controller;
 use App\Models\AssetHierarchy\Asset;
-use App\Models\Maintenance\Routine;
-use App\Models\Maintenance\RoutineExecution;
 use App\Models\Forms\FormExecution;
 use App\Models\Forms\FormTask;
 use App\Models\Forms\TaskResponse;
+use App\Models\Maintenance\Routine;
+use App\Models\Maintenance\RoutineExecution;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,13 +20,13 @@ class InlineRoutineExecutionController extends Controller
     public function startOrGetExecution(Request $request, Asset $asset, Routine $routine)
     {
         // Check if routine is associated with asset
-        if (!$asset->routines()->where('routines.id', $routine->id)->exists()) {
+        if (! $asset->routines()->where('routines.id', $routine->id)->exists()) {
             return response()->json(['error' => 'Esta rotina não está associada a este ativo.'], 403);
         }
 
         // Check if routine has a published form version
         $formVersion = $routine->getFormVersionForExecution();
-        if (!$formVersion) {
+        if (! $formVersion) {
             return response()->json(['error' => 'Esta rotina não possui um formulário publicado.'], 422);
         }
 
@@ -41,7 +41,7 @@ class InlineRoutineExecutionController extends Controller
             return response()->json([
                 'execution' => $existingExecution,
                 'form_execution' => $existingExecution->formExecution,
-                'task_responses' => $existingExecution->formExecution->taskResponses
+                'task_responses' => $existingExecution->formExecution->taskResponses,
             ]);
         }
 
@@ -53,7 +53,7 @@ class InlineRoutineExecutionController extends Controller
                 'routine_id' => $routine->id,
                 'status' => RoutineExecution::STATUS_IN_PROGRESS,
                 'executed_by' => auth()->id(),
-                'started_at' => now()
+                'started_at' => now(),
             ]);
 
             // Create form execution with version reference
@@ -61,7 +61,7 @@ class InlineRoutineExecutionController extends Controller
                 'form_version_id' => $formVersion->id,
                 'user_id' => auth()->id(),
                 'status' => FormExecution::STATUS_IN_PROGRESS,
-                'started_at' => now()
+                'started_at' => now(),
             ]);
 
             // Update routine execution with form execution ID
@@ -76,11 +76,12 @@ class InlineRoutineExecutionController extends Controller
             return response()->json([
                 'execution' => $routineExecution,
                 'form_execution' => $formExecution,
-                'task_responses' => []
+                'task_responses' => [],
             ]);
         } catch (\Exception $e) {
             DB::rollback();
-            return response()->json(['error' => 'Erro ao iniciar execução: ' . $e->getMessage()], 500);
+
+            return response()->json(['error' => 'Erro ao iniciar execução: '.$e->getMessage()], 500);
         }
     }
 
@@ -97,7 +98,7 @@ class InlineRoutineExecutionController extends Controller
             ->with('formExecution.formVersion')
             ->first();
 
-        if (!$routineExecution) {
+        if (! $routineExecution) {
             return response()->json(['error' => 'Execução não encontrada ou não autorizada.'], 404);
         }
 
@@ -105,7 +106,7 @@ class InlineRoutineExecutionController extends Controller
             'task_id' => 'required|string',
             'response' => 'nullable|array',
             'files' => 'nullable|array',
-            'files.*' => 'file|max:10240' // 10MB max per file
+            'files.*' => 'file|max:10240', // 10MB max per file
         ]);
 
         DB::beginTransaction();
@@ -115,7 +116,7 @@ class InlineRoutineExecutionController extends Controller
                 ->where('form_version_id', $routineExecution->formExecution->form_version_id)
                 ->first();
 
-            if (!$formTask) {
+            if (! $formTask) {
                 throw new \Exception('Tarefa não encontrada no formulário.');
             }
 
@@ -129,7 +130,7 @@ class InlineRoutineExecutionController extends Controller
                 $existingResponse->update([
                     'response' => $validated['response'] ?? [],
                     'is_completed' => true,
-                    'responded_at' => now()
+                    'responded_at' => now(),
                 ]);
                 $taskResponse = $existingResponse;
             } else {
@@ -139,21 +140,21 @@ class InlineRoutineExecutionController extends Controller
                     'form_task_id' => $formTask->id,
                     'response' => $validated['response'] ?? [],
                     'is_completed' => true,
-                    'responded_at' => now()
+                    'responded_at' => now(),
                 ]);
             }
 
             // Handle file uploads
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    $path = $file->store('task-responses/' . $routineExecution->formExecution->id, 'public');
-                    
+                    $path = $file->store('task-responses/'.$routineExecution->formExecution->id, 'public');
+
                     $taskResponse->attachments()->create([
                         'type' => in_array($formTask->type, ['photo']) ? 'photo' : 'file',
                         'file_path' => $path,
                         'file_name' => $file->getClientOriginalName(),
                         'mime_type' => $file->getMimeType(),
-                        'file_size' => $file->getSize()
+                        'file_size' => $file->getSize(),
                     ]);
                 }
             }
@@ -177,18 +178,19 @@ class InlineRoutineExecutionController extends Controller
                     'id' => $taskResponse->id,
                     'form_task_id' => $taskResponse->form_task_id,
                     'response' => $taskResponse->response,
-                    'is_completed' => $taskResponse->is_completed
+                    'is_completed' => $taskResponse->is_completed,
                 ],
                 'progress' => [
                     'total' => $totalTasks,
                     'completed' => $completedTasks,
-                    'percentage' => $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0
+                    'percentage' => $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0,
                 ],
-                'all_tasks_completed' => $allTasksCompleted
+                'all_tasks_completed' => $allTasksCompleted,
             ]);
         } catch (\Exception $e) {
             DB::rollback();
-            return response()->json(['error' => 'Erro ao salvar resposta: ' . $e->getMessage()], 500);
+
+            return response()->json(['error' => 'Erro ao salvar resposta: '.$e->getMessage()], 500);
         }
     }
 
@@ -204,16 +206,17 @@ class InlineRoutineExecutionController extends Controller
             ->with('formExecution')
             ->first();
 
-        if (!$routineExecution) {
+        if (! $routineExecution) {
             return response()->json(['error' => 'Execução não encontrada ou não autorizada.'], 404);
         }
 
         // Check if all required tasks are completed
-        if (!$routineExecution->formExecution->hasAllRequiredTasksCompleted()) {
+        if (! $routineExecution->formExecution->hasAllRequiredTasksCompleted()) {
             $missingTasks = $routineExecution->formExecution->getMissingRequiredTasks();
+
             return response()->json([
                 'error' => 'Existem tarefas obrigatórias não preenchidas.',
-                'missing_tasks' => $missingTasks->pluck('description')->toArray()
+                'missing_tasks' => $missingTasks->pluck('description')->toArray(),
             ], 422);
         }
 
@@ -229,11 +232,12 @@ class InlineRoutineExecutionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Rotina concluída com sucesso!'
+                'message' => 'Rotina concluída com sucesso!',
             ]);
         } catch (\Exception $e) {
             DB::rollback();
-            return response()->json(['error' => 'Erro ao concluir execução: ' . $e->getMessage()], 500);
+
+            return response()->json(['error' => 'Erro ao concluir execução: '.$e->getMessage()], 500);
         }
     }
 
@@ -249,7 +253,7 @@ class InlineRoutineExecutionController extends Controller
             ->with('formExecution')
             ->first();
 
-        if (!$routineExecution) {
+        if (! $routineExecution) {
             return response()->json(['error' => 'Execução não encontrada ou não autorizada.'], 404);
         }
 
@@ -265,11 +269,12 @@ class InlineRoutineExecutionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Execução cancelada.'
+                'message' => 'Execução cancelada.',
             ]);
         } catch (\Exception $e) {
             DB::rollback();
-            return response()->json(['error' => 'Erro ao cancelar execução: ' . $e->getMessage()], 500);
+
+            return response()->json(['error' => 'Erro ao cancelar execução: '.$e->getMessage()], 500);
         }
     }
 
@@ -283,7 +288,7 @@ class InlineRoutineExecutionController extends Controller
             ->with(['formExecution.taskResponses.formTask', 'formExecution.formVersion'])
             ->first();
 
-        if (!$routineExecution) {
+        if (! $routineExecution) {
             return response()->json(['error' => 'Execução não encontrada.'], 404);
         }
 
@@ -297,10 +302,10 @@ class InlineRoutineExecutionController extends Controller
             'progress' => [
                 'total' => $totalTasks,
                 'completed' => $completedTasks,
-                'percentage' => $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0
+                'percentage' => $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0,
             ],
             'status' => $routineExecution->status,
-            'task_responses' => $routineExecution->formExecution->taskResponses
+            'task_responses' => $routineExecution->formExecution->taskResponses,
         ]);
     }
-} 
+}

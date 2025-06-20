@@ -2,17 +2,17 @@
 
 namespace App\Models\AssetHierarchy;
 
+use App\Models\Maintenance\Routine;
+use App\Traits\AssetRuntimeCalculator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Maintenance\Routine;
-use App\Traits\AssetRuntimeCalculator;
 
 class Asset extends Model
 {
     use AssetRuntimeCalculator;
-    
+
     protected $table = 'assets';
 
     protected $fillable = [
@@ -28,7 +28,7 @@ class Asset extends Model
         'area_id',
         'sector_id',
         'shift_id',
-        'photo_path'
+        'photo_path',
     ];
 
     protected $casts = [
@@ -38,7 +38,7 @@ class Asset extends Model
         'plant_id' => 'integer',
         'area_id' => 'integer',
         'sector_id' => 'integer',
-        'shift_id' => 'integer'
+        'shift_id' => 'integer',
     ];
 
     protected static function boot()
@@ -92,7 +92,7 @@ class Asset extends Model
     {
         return $this->belongsTo(Manufacturer::class);
     }
-    
+
     public function routines(): BelongsToMany
     {
         return $this->belongsToMany(Routine::class, 'asset_routine')
@@ -132,4 +132,4 @@ class Asset extends Model
             ->skip(1)
             ->first();
     }
-} 
+}

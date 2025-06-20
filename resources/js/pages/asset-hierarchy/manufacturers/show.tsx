@@ -1,11 +1,11 @@
+import ManufacturerFormComponent from '@/components/ManufacturerFormComponent';
+import EmptyCard from '@/components/ui/empty-card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Package } from 'lucide-react';
-import EmptyCard from '@/components/ui/empty-card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import ManufacturerFormComponent from '@/components/ManufacturerFormComponent';
 
 interface AssetData {
     id: number;
@@ -61,11 +61,7 @@ export default function Show({ manufacturer }: Props) {
             label: 'Informações Gerais',
             content: (
                 <div className="py-8">
-                    <ManufacturerFormComponent
-                        manufacturer={manufacturer}
-                        initialMode="view"
-                        onSuccess={() => router.reload()}
-                    />
+                    <ManufacturerFormComponent manufacturer={manufacturer} initialMode="view" onSuccess={() => router.reload()} />
                 </div>
             ),
         },
@@ -99,10 +95,7 @@ export default function Show({ manufacturer }: Props) {
                                     {manufacturer.assets?.map((asset) => (
                                         <TableRow key={asset.id}>
                                             <TableCell className="font-medium">
-                                                <Link
-                                                    href={route('asset-hierarchy.assets.show', asset.id)}
-                                                    className="text-primary hover:underline"
-                                                >
+                                                <Link href={route('asset-hierarchy.assets.show', asset.id)} className="text-primary hover:underline">
                                                     {asset.tag}
                                                 </Link>
                                             </TableCell>
@@ -110,11 +103,7 @@ export default function Show({ manufacturer }: Props) {
                                             <TableCell>{asset.serial_number || '-'}</TableCell>
                                             <TableCell>{asset.part_number || '-'}</TableCell>
                                             <TableCell>{asset.asset_type || '-'}</TableCell>
-                                            <TableCell>
-                                                {[asset.plant, asset.area, asset.sector]
-                                                    .filter(Boolean)
-                                                    .join(' > ') || '-'}
-                                            </TableCell>
+                                            <TableCell>{[asset.plant, asset.area, asset.sector].filter(Boolean).join(' > ') || '-'}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -139,4 +128,4 @@ export default function Show({ manufacturer }: Props) {
             />
         </AppLayout>
     );
-} 
+}

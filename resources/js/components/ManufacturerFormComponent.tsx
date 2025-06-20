@@ -1,12 +1,12 @@
+import InputError from '@/components/input-error';
 import TextInput from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import InputError from '@/components/input-error';
+import { Textarea } from '@/components/ui/textarea';
 import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 // Define a local form type with index signature
@@ -17,7 +17,7 @@ interface ManufacturerFormData {
     phone: string;
     country: string;
     notes: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
 }
 
 interface ManufacturerData {
@@ -37,12 +37,7 @@ interface ManufacturerFormComponentProps {
     onSuccess?: () => void;
 }
 
-export default function ManufacturerFormComponent({
-    manufacturer,
-    initialMode = 'view',
-    onCancel,
-    onSuccess
-}: ManufacturerFormComponentProps) {
+export default function ManufacturerFormComponent({ manufacturer, initialMode = 'view', onCancel, onSuccess }: ManufacturerFormComponentProps) {
     const isEditing = !!manufacturer;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
@@ -110,7 +105,7 @@ export default function ManufacturerFormComponent({
                     }}
                     name="name"
                     label="Nome do Fabricante"
-                    placeholder={isViewMode ? "Nome não informado" : "Digite o nome do fabricante"}
+                    placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome do fabricante'}
                     required={!isViewMode}
                     view={isViewMode}
                 />
@@ -125,7 +120,7 @@ export default function ManufacturerFormComponent({
                     }}
                     name="country"
                     label="País"
-                    placeholder={isViewMode ? "País não informado" : "Digite o país"}
+                    placeholder={isViewMode ? 'País não informado' : 'Digite o país'}
                     view={isViewMode}
                 />
 
@@ -133,7 +128,7 @@ export default function ManufacturerFormComponent({
                 <div className="grid gap-2">
                     <Label htmlFor="website">Website</Label>
                     {isViewMode ? (
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-muted-foreground text-sm">
                             {data.website ? (
                                 <a href={data.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                                     {data.website}
@@ -160,7 +155,7 @@ export default function ManufacturerFormComponent({
                 <div className="grid gap-2">
                     <Label htmlFor="email">E-mail</Label>
                     {isViewMode ? (
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-muted-foreground text-sm">
                             {data.email ? (
                                 <a href={`mailto:${data.email}`} className="text-primary hover:underline">
                                     {data.email}
@@ -193,7 +188,7 @@ export default function ManufacturerFormComponent({
                     }}
                     name="phone"
                     label="Telefone"
-                    placeholder={isViewMode ? "Telefone não informado" : "+55 11 99999-9999"}
+                    placeholder={isViewMode ? 'Telefone não informado' : '+55 11 99999-9999'}
                     view={isViewMode}
                 />
 
@@ -202,7 +197,7 @@ export default function ManufacturerFormComponent({
                     <div className="grid gap-2">
                         <Label htmlFor="notes">Observações</Label>
                         {isViewMode && !data.notes ? (
-                            <div className="flex min-h-[60px] w-full rounded-md border border-input bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                            <div className="border-input bg-muted/20 text-muted-foreground flex min-h-[60px] w-full rounded-md border px-3 py-2 text-sm">
                                 Sem observações
                             </div>
                         ) : (
@@ -241,4 +236,4 @@ export default function ManufacturerFormComponent({
             )}
         </div>
     );
-} 
+}

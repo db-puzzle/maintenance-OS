@@ -3,28 +3,30 @@
 namespace Tests\Unit;
 
 use App\Jobs\GenerateExecutionPDF;
-use App\Models\User;
 use App\Models\Maintenance\ExecutionExport;
-use App\Models\Maintenance\RoutineExecution;
 use App\Models\Maintenance\Routine;
+use App\Models\Maintenance\RoutineExecution;
+use App\Models\User;
 use App\Services\PDFGeneratorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
-use Tests\TestCase;
 use Mockery;
+use Tests\TestCase;
 
 class GenerateExecutionPDFTest extends TestCase
 {
     use RefreshDatabase;
 
     protected User $user;
+
     protected RoutineExecution $execution;
+
     protected ExecutionExport $export;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $routine = Routine::factory()->create();
         $this->execution = RoutineExecution::factory()->create([
@@ -136,10 +138,11 @@ class GenerateExecutionPDFTest extends TestCase
         $pdfService = Mockery::mock(PDFGeneratorService::class);
         $pdfService->shouldReceive('generateExecutionReport')
             ->once()
-            ->andReturnUsing(function() {
+            ->andReturnUsing(function () {
                 // During processing, check the status
                 $this->export->refresh();
                 $this->assertEquals(ExecutionExport::STATUS_PROCESSING, $this->export->status);
+
                 return 'exports/executions/test-report.pdf';
             });
 
@@ -168,10 +171,10 @@ class GenerateExecutionPDFTest extends TestCase
         Log::shouldReceive('error')->once();
 
         $job = new GenerateExecutionPDF($this->export);
-        
+
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('PDF generation failed');
-        
+
         $job->handle($pdfService);
 
         $this->export->refresh();
@@ -193,7 +196,7 @@ class GenerateExecutionPDFTest extends TestCase
 
         $job = new GenerateExecutionPDF($this->export);
         $exception = new \Exception('Job failed permanently');
-        
+
         $job->failed($exception);
 
         $this->export->refresh();
@@ -218,10 +221,10 @@ class GenerateExecutionPDFTest extends TestCase
         Log::shouldReceive('error')->once(); // Error log
 
         $job = new GenerateExecutionPDF($this->export);
-        
+
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('No execution ID provided for single PDF generation');
-        
+
         $job->handle($pdfService);
     }
 
@@ -242,10 +245,10 @@ class GenerateExecutionPDFTest extends TestCase
         Log::shouldReceive('error')->once(); // Error log
 
         $job = new GenerateExecutionPDF($this->export);
-        
+
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Unsupported export combination');
-        
+
         $job->handle($pdfService);
     }
 

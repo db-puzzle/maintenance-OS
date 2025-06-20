@@ -3,17 +3,15 @@
 namespace App\Http\Controllers\AssetHierarchy;
 
 use App\Http\Controllers\Controller;
-use App\Models\AssetHierarchy\Shift;
-use App\Models\AssetHierarchy\ShiftSchedule;
-use App\Models\AssetHierarchy\ShiftBreak;
+use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Plant;
+use App\Models\AssetHierarchy\Shift;
 use App\Traits\ShiftTimeCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
 use Illuminate\Validation\ValidationException;
-use App\Models\AssetHierarchy\Asset;
+use Inertia\Inertia;
 
 class ShiftController extends Controller
 {
@@ -22,7 +20,7 @@ class ShiftController extends Controller
     public function index(Request $request)
     {
         $query = Shift::with(['schedules.shiftTimes.breaks', 'assets']);
-        
+
         // For now, since there's no direct plant-shift relationship in the database,
         // we'll return all shifts. In the future, you might want to add a pivot table
         // or modify the database schema to support plant-specific shifts.
@@ -31,9 +29,9 @@ class ShiftController extends Controller
             // If you want to filter by plant in the future, you can add logic here
             // For now, we'll return all available shifts
         }
-        
+
         $shifts = $query->get();
-        
+
         $formattedShifts = $shifts->map(function ($shift) {
             $schedules = $shift->schedules->map(function ($schedule) {
                 return [
@@ -67,14 +65,14 @@ class ShiftController extends Controller
                 'schedules' => $schedules,
             ];
         })->toArray();
-        
+
         // Return JSON for AJAX requests
         if ($request->wantsJson() || $request->input('format') === 'json') {
             return response()->json([
-                'shifts' => $formattedShifts
+                'shifts' => $formattedShifts,
             ]);
         }
-        
+
         return Inertia::render('asset-hierarchy/shifts', [
             'shifts' => $formattedShifts,
         ]);
@@ -89,11 +87,13 @@ class ShiftController extends Controller
     {
         // Formata os horários para remover os segundos se necessário
         $data = $request->all();
-        
+
         foreach ($data['schedules'] as &$schedule) {
             foreach ($schedule['shifts'] as &$shiftTime) {
-                if (!$shiftTime['active']) continue;
-                
+                if (! $shiftTime['active']) {
+                    continue;
+                }
+
                 // Verifica se o horário tem segundos e remove se necessário
                 if (strlen($shiftTime['start_time']) > 5) {
                     $shiftTime['start_time'] = substr($shiftTime['start_time'], 0, 5);
@@ -101,7 +101,7 @@ class ShiftController extends Controller
                 if (strlen($shiftTime['end_time']) > 5) {
                     $shiftTime['end_time'] = substr($shiftTime['end_time'], 0, 5);
                 }
-                
+
                 foreach ($shiftTime['breaks'] as &$break) {
                     if (strlen($break['start_time']) > 5) {
                         $break['start_time'] = substr($break['start_time'], 0, 5);
@@ -132,7 +132,7 @@ class ShiftController extends Controller
 
         // Verificar sobreposição de turnos no mesmo dia
         foreach ($validated['schedules'] as $schedule) {
-            $shifts = array_filter($schedule['shifts'], fn($shift) => $shift['active']);
+            $shifts = array_filter($schedule['shifts'], fn ($shift) => $shift['active']);
 
             foreach ($shifts as $i => $shift1) {
                 foreach ($shifts as $j => $shift2) {
@@ -143,7 +143,7 @@ class ShiftController extends Controller
                         $shift2['end_time']
                     )) {
                         throw ValidationException::withMessages([
-                            'schedules' => "Existe sobreposição de turnos na {$schedule['weekday']}"
+                            'schedules' => "Existe sobreposição de turnos na {$schedule['weekday']}",
                         ]);
                     }
                 }
@@ -153,7 +153,9 @@ class ShiftController extends Controller
         // Verificar intervalos dentro do horário do turno e sobreposição
         foreach ($validated['schedules'] as $schedule) {
             foreach ($schedule['shifts'] as $shift) {
-                if (!$shift['active']) continue;
+                if (! $shift['active']) {
+                    continue;
+                }
 
                 $shiftStart = $this->timeToMinutes($shift['start_time']);
                 $shiftEnd = $this->timeToMinutes($shift['end_time']);
@@ -167,13 +169,13 @@ class ShiftController extends Controller
                     if ($shiftEnd < $shiftStart) {
                         if ($breakStart < $shiftStart && $breakEnd > $shiftStart) {
                             throw ValidationException::withMessages([
-                                'schedules' => "O intervalo {$break['start_time']} - {$break['end_time']} não está dentro do horário do turno {$shift['start_time']} - {$shift['end_time']}"
+                                'schedules' => "O intervalo {$break['start_time']} - {$break['end_time']} não está dentro do horário do turno {$shift['start_time']} - {$shift['end_time']}",
                             ]);
                         }
                     } else {
                         if ($breakStart < $shiftStart || $breakEnd > $shiftEnd) {
                             throw ValidationException::withMessages([
-                                'schedules' => "O intervalo {$break['start_time']} - {$break['end_time']} não está dentro do horário do turno {$shift['start_time']} - {$shift['end_time']}"
+                                'schedules' => "O intervalo {$break['start_time']} - {$break['end_time']} não está dentro do horário do turno {$shift['start_time']} - {$shift['end_time']}",
                             ]);
                         }
                     }
@@ -188,7 +190,7 @@ class ShiftController extends Controller
                                 $break2['end_time']
                             )) {
                                 throw ValidationException::withMessages([
-                                    'schedules' => "Existe sobreposição de intervalos no turno {$shift['start_time']} - {$shift['end_time']}"
+                                    'schedules' => "Existe sobreposição de intervalos no turno {$shift['start_time']} - {$shift['end_time']}",
                                 ]);
                             }
                         }
@@ -208,10 +210,10 @@ class ShiftController extends Controller
             return DB::transaction(function () use ($validated, $request) {
                 // Get user's timezone or use default
                 $userTimezone = auth()->user()->timezone ?? config('app.timezone', 'UTC');
-                
+
                 $shiftData = [
                     'name' => $validated['name'],
-                    'timezone' => $validated['timezone'] ?? $userTimezone
+                    'timezone' => $validated['timezone'] ?? $userTimezone,
                 ];
 
                 $shift = Shift::create($shiftData);
@@ -219,18 +221,20 @@ class ShiftController extends Controller
                 foreach ($validated['schedules'] as $scheduleData) {
                     // Cria um registro de schedule para cada dia
                     $schedule = $shift->schedules()->create([
-                        'weekday' => $scheduleData['weekday']
+                        'weekday' => $scheduleData['weekday'],
                     ]);
 
                     // Para cada turno no dia
                     foreach ($scheduleData['shifts'] as $shiftData) {
-                        if (!$shiftData['active']) continue;
+                        if (! $shiftData['active']) {
+                            continue;
+                        }
 
                         // Cria o turno associado ao schedule
                         $shiftTime = $schedule->shiftTimes()->create([
                             'start_time' => $shiftData['start_time'],
                             'end_time' => $shiftData['end_time'],
-                            'active' => $shiftData['active']
+                            'active' => $shiftData['active'],
                         ]);
 
                         // Cria os intervalos associados ao turno
@@ -238,7 +242,7 @@ class ShiftController extends Controller
                             foreach ($shiftData['breaks'] as $breakData) {
                                 $shiftTime->breaks()->create([
                                     'start_time' => $breakData['start_time'],
-                                    'end_time' => $breakData['end_time']
+                                    'end_time' => $breakData['end_time'],
                                 ]);
                             }
                         }
@@ -278,7 +282,7 @@ class ShiftController extends Controller
                     return response()->json([
                         'success' => true,
                         'shift' => $formattedShift,
-                        'message' => 'Turno criado com sucesso!'
+                        'message' => 'Turno criado com sucesso!',
                     ]);
                 }
 
@@ -297,7 +301,7 @@ class ShiftController extends Controller
     public function show(Request $request, Shift $shift)
     {
         $shift->load(['schedules.shiftTimes.breaks', 'assets']);
-        
+
         $formattedShift = [
             'id' => $shift->id,
             'name' => $shift->name,
@@ -321,16 +325,16 @@ class ShiftController extends Controller
                 ];
             })->toArray(),
         ];
-        
+
         // Return JSON for AJAX requests
         if ($request->wantsJson() || $request->input('format') === 'json') {
             return response()->json([
-                'shift' => $formattedShift
+                'shift' => $formattedShift,
             ]);
         }
-        
+
         return Inertia::render('Cadastro/Shifts/Show', [
-            'shift' => $formattedShift
+            'shift' => $formattedShift,
         ]);
     }
 
@@ -364,7 +368,7 @@ class ShiftController extends Controller
 
         return Inertia::render('asset-hierarchy/shifts/shift-editor', [
             'mode' => 'edit',
-            'shift' => $formattedShift
+            'shift' => $formattedShift,
         ]);
     }
 
@@ -376,30 +380,30 @@ class ShiftController extends Controller
             return DB::transaction(function () use ($shift, $validated, $request) {
                 // Get user's timezone or use existing shift timezone
                 $userTimezone = auth()->user()->timezone ?? $shift->timezone;
-                
+
                 $shiftData = [
                     'name' => $validated['name'],
-                    'timezone' => $validated['timezone'] ?? $userTimezone
+                    'timezone' => $validated['timezone'] ?? $userTimezone,
                 ];
-                
+
                 // Before updating the shift, create runtime measurements for all assets using this shift
                 $affectedAssets = $shift->assets()->get();
                 $user = auth()->user();
-                
+
                 foreach ($affectedAssets as $asset) {
                     // Calculate current runtime before the shift change
                     $currentRuntime = $asset->current_runtime_hours;
-                    
+
                     // Create a runtime measurement to record the current state
                     $asset->runtimeMeasurements()->create([
                         'user_id' => $user->id,
                         'reported_hours' => $currentRuntime,
                         'source' => 'shift_update',
                         'notes' => "Horímetro registrado automaticamente devido à atualização do turno '{$shift->name}'",
-                        'measurement_datetime' => now()
+                        'measurement_datetime' => now(),
                     ]);
                 }
-                
+
                 $shift->update($shiftData);
 
                 // Limpar schedules existentes
@@ -408,18 +412,20 @@ class ShiftController extends Controller
                 foreach ($validated['schedules'] as $scheduleData) {
                     // Cria um registro de schedule para cada dia
                     $schedule = $shift->schedules()->create([
-                        'weekday' => $scheduleData['weekday']
+                        'weekday' => $scheduleData['weekday'],
                     ]);
 
                     // Para cada turno no dia
                     foreach ($scheduleData['shifts'] as $shiftData) {
-                        if (!$shiftData['active']) continue;
+                        if (! $shiftData['active']) {
+                            continue;
+                        }
 
                         // Cria o turno associado ao schedule
                         $shiftTime = $schedule->shiftTimes()->create([
                             'start_time' => $shiftData['start_time'],
                             'end_time' => $shiftData['end_time'],
-                            'active' => $shiftData['active']
+                            'active' => $shiftData['active'],
                         ]);
 
                         // Cria os intervalos associados ao turno
@@ -427,7 +433,7 @@ class ShiftController extends Controller
                             foreach ($shiftData['breaks'] as $breakData) {
                                 $shiftTime->breaks()->create([
                                     'start_time' => $breakData['start_time'],
-                                    'end_time' => $breakData['end_time']
+                                    'end_time' => $breakData['end_time'],
                                 ]);
                             }
                         }
@@ -475,7 +481,7 @@ class ShiftController extends Controller
                     return response()->json([
                         'success' => true,
                         'shift' => $formattedShift,
-                        'message' => 'Turno atualizado com sucesso!'
+                        'message' => 'Turno atualizado com sucesso!',
                     ]);
                 }
 
@@ -493,6 +499,7 @@ class ShiftController extends Controller
     public function destroy(Shift $shift)
     {
         $shift->delete();
+
         return redirect()->route('asset-hierarchy.shifts')
             ->with('success', 'Turno removido com sucesso!');
     }
@@ -501,7 +508,7 @@ class ShiftController extends Controller
     {
         // Verificar se há entidades associadas ao turno
         $assetCount = $shift->assets()->count();
-        
+
         // Se não há dependências, redirecionar para confirmação de exclusão
         if ($assetCount === 0) {
             return redirect()->route('asset-hierarchy.shifts')
@@ -510,18 +517,18 @@ class ShiftController extends Controller
 
         // Se há dependências, mostrar página com detalhes das dependências
         $dependencies = [];
-        
+
         if ($assetCount > 0) {
             $dependencies['assets'] = [
                 'total' => $assetCount,
-                'message' => 'Este turno está associado a ativos'
+                'message' => 'Este turno está associado a ativos',
             ];
         }
-        
+
         return Inertia::render('asset-hierarchy/shifts/dependencies', [
             'shift' => $shift,
             'dependencies' => $dependencies,
-            'hasDependencies' => true
+            'hasDependencies' => true,
         ]);
     }
 
@@ -543,7 +550,7 @@ class ShiftController extends Controller
             $end2Minutes += 24 * 60;
         }
 
-        return !($end1Minutes <= $start2Minutes || $end2Minutes <= $start1Minutes);
+        return ! ($end1Minutes <= $start2Minutes || $end2Minutes <= $start1Minutes);
     }
 
     /**
@@ -552,6 +559,7 @@ class ShiftController extends Controller
     protected function timeToMinutes(string $time): int
     {
         $parts = explode(':', $time);
+
         return ((int) $parts[0] * 60) + (int) $parts[1];
     }
 
@@ -569,29 +577,29 @@ class ShiftController extends Controller
                     // Calculate work time
                     $start = $this->timeToMinutes($shift['start_time']);
                     $end = $this->timeToMinutes($shift['end_time']);
-                    
+
                     // Handle overnight shifts
                     if ($end < $start) {
                         $workMinutes = (24 * 60 - $start) + $end;
                     } else {
                         $workMinutes = $end - $start;
                     }
-                    
+
                     // Subtract break time
                     foreach ($shift['breaks'] as $break) {
                         $breakStart = $this->timeToMinutes($break['start_time']);
                         $breakEnd = $this->timeToMinutes($break['end_time']);
-                        
+
                         if ($breakEnd < $breakStart) {
                             $breakMinutes = (24 * 60 - $breakStart) + $breakEnd;
                         } else {
                             $breakMinutes = $breakEnd - $breakStart;
                         }
-                        
+
                         $totalBreakMinutes += $breakMinutes;
                         $workMinutes -= $breakMinutes;
                     }
-                    
+
                     $totalWorkMinutes += $workMinutes;
                 }
             }
@@ -628,7 +636,7 @@ class ShiftController extends Controller
 
         return response()->json([
             'assets' => $assets,
-            'total' => $assets->count()
+            'total' => $assets->count(),
         ]);
     }
 
@@ -639,54 +647,56 @@ class ShiftController extends Controller
     {
         try {
             $validated = $this->validateShiftData($request);
-            
+
             // Get the assets to update
             $assetIds = $request->input('asset_ids', []);
             if (empty($assetIds)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Nenhum ativo foi selecionado para atualização.'
+                    'message' => 'Nenhum ativo foi selecionado para atualização.',
                 ], 422);
             }
 
-            return DB::transaction(function () use ($shift, $validated, $request, $assetIds) {
+            return DB::transaction(function () use ($shift, $validated, $assetIds) {
                 $user = auth()->user();
-                
+
                 // Create a new shift with the updated data
-                $newShiftName = $validated['name'] . ' (Cópia)';
+                $newShiftName = $validated['name'].' (Cópia)';
                 $counter = 1;
-                
+
                 // Ensure unique name
                 while (Shift::where('name', $newShiftName)->exists()) {
                     $counter++;
-                    $newShiftName = $validated['name'] . ' (Cópia ' . $counter . ')';
+                    $newShiftName = $validated['name'].' (Cópia '.$counter.')';
                 }
-                
+
                 $newShift = Shift::create([
                     'name' => $newShiftName,
-                    'timezone' => $validated['timezone'] ?? $shift->timezone
+                    'timezone' => $validated['timezone'] ?? $shift->timezone,
                 ]);
 
                 // Copy schedules to the new shift
                 foreach ($validated['schedules'] as $scheduleData) {
                     $schedule = $newShift->schedules()->create([
-                        'weekday' => $scheduleData['weekday']
+                        'weekday' => $scheduleData['weekday'],
                     ]);
 
                     foreach ($scheduleData['shifts'] as $shiftData) {
-                        if (!$shiftData['active']) continue;
+                        if (! $shiftData['active']) {
+                            continue;
+                        }
 
                         $shiftTime = $schedule->shiftTimes()->create([
                             'start_time' => $shiftData['start_time'],
                             'end_time' => $shiftData['end_time'],
-                            'active' => $shiftData['active']
+                            'active' => $shiftData['active'],
                         ]);
 
                         if (isset($shiftData['breaks'])) {
                             foreach ($shiftData['breaks'] as $breakData) {
                                 $shiftTime->breaks()->create([
                                     'start_time' => $breakData['start_time'],
-                                    'end_time' => $breakData['end_time']
+                                    'end_time' => $breakData['end_time'],
                                 ]);
                             }
                         }
@@ -695,19 +705,19 @@ class ShiftController extends Controller
 
                 // Update only the specified assets to use the new shift
                 $affectedAssets = Asset::whereIn('id', $assetIds)->get();
-                
+
                 foreach ($affectedAssets as $asset) {
                     // Record current runtime before changing shift
                     $currentRuntime = $asset->current_runtime_hours;
-                    
+
                     $asset->runtimeMeasurements()->create([
                         'user_id' => $user->id,
                         'reported_hours' => $currentRuntime,
                         'source' => 'shift_update',
                         'notes' => "Horímetro registrado automaticamente devido à mudança do turno '{$shift->name}' para '{$newShift->name}'",
-                        'measurement_datetime' => now()
+                        'measurement_datetime' => now(),
                     ]);
-                    
+
                     // Update asset to use the new shift
                     $asset->update(['shift_id' => $newShift->id]);
                 }
@@ -746,9 +756,9 @@ class ShiftController extends Controller
                     'original_shift' => [
                         'id' => $shift->id,
                         'name' => $shift->name,
-                        'asset_count' => $shift->assets()->count()
+                        'asset_count' => $shift->assets()->count(),
                     ],
-                    'message' => "Novo turno '{$newShift->name}' criado e associado a " . count($assetIds) . " ativo(s)."
+                    'message' => "Novo turno '{$newShift->name}' criado e associado a ".count($assetIds).' ativo(s).',
                 ]);
             });
         } catch (ValidationException $e) {
@@ -757,4 +767,4 @@ class ShiftController extends Controller
             throw $e;
         }
     }
-} 
+}

@@ -2,12 +2,12 @@
 
 namespace App\Models\Forms;
 
-use App\Models\User;
 use App\Models\Maintenance\Routine;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Form extends Model
@@ -19,11 +19,11 @@ class Form extends Model
         'description',
         'current_version_id',
         'is_active',
-        'created_by'
+        'created_by',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     /**
@@ -81,6 +81,7 @@ class Form extends Model
     public function getNextVersionNumber(): int
     {
         $maxVersion = $this->versions()->max('version_number');
+
         return $maxVersion ? $maxVersion + 1 : 1;
     }
 
@@ -94,7 +95,7 @@ class Form extends Model
             'version_number' => $this->getNextVersionNumber(),
             'published_at' => now(),
             'published_by' => $userId,
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         // Copy draft tasks to the new version
@@ -105,7 +106,7 @@ class Form extends Model
             $newTask->form_version_id = $version->id;
             $newTask->form_id = null; // Remove temporary form_id reference
             $newTask->save();
-            
+
             // Copy task instructions
             foreach ($task->instructions as $instruction) {
                 $newInstruction = $instruction->replicate();
@@ -136,7 +137,7 @@ class Form extends Model
         }
 
         // If there's no current version, nothing to copy
-        if (!$this->currentVersion) {
+        if (! $this->currentVersion) {
             return false;
         }
 
@@ -161,4 +162,4 @@ class Form extends Model
 
         return true;
     }
-} 
+}

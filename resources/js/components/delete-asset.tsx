@@ -58,8 +58,8 @@ export default function DeleteAsset({ assetId, assetTag }: Props) {
             <DialogContent>
                 <DialogTitle>Você tem certeza que deseja excluir este ativo?</DialogTitle>
                 <DialogDescription>
-                    Uma vez que o ativo seja excluído, todos os seus recursos e dados serão permanentemente excluídos. Por favor, digite a TAG
-                    do ativo ({assetTag}) para confirmar que você deseja excluir permanentemente este ativo.
+                    Uma vez que o ativo seja excluído, todos os seus recursos e dados serão permanentemente excluídos. Por favor, digite a TAG do
+                    ativo ({assetTag}) para confirmar que você deseja excluir permanentemente este ativo.
                 </DialogDescription>
                 <form className="space-y-6" onSubmit={deleteAsset}>
                     <div className="grid gap-2">

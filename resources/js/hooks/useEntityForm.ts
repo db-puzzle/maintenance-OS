@@ -45,4 +45,4 @@ export function useEntityForm<TFormData extends Record<string, any>>({
         ...form,
         isEditMode,
     };
-} 
+}

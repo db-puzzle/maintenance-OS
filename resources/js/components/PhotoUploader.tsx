@@ -83,7 +83,14 @@ export default function PhotoUploader({
                     {previewUrl ? (
                         <div className="relative h-full w-full">
                             <img src={previewUrl} alt="Preview" className="h-auto w-full object-contain" />
-                            <Button type="button" variant="warning" size="sm" className="absolute top-2 right-2" onClick={handleRemovePhoto} disabled={disabled}>
+                            <Button
+                                type="button"
+                                variant="warning"
+                                size="sm"
+                                className="absolute top-2 right-2"
+                                onClick={handleRemovePhoto}
+                                disabled={disabled}
+                            >
                                 Remover
                             </Button>
                         </div>
@@ -96,7 +103,15 @@ export default function PhotoUploader({
                 </div>
                 <div className="flex gap-2">
                     <div className="relative flex-1">
-                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" id={id} disabled={disabled} />
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                            id={id}
+                            disabled={disabled}
+                        />
                         <Button type="button" variant="outline" className="w-full" asChild disabled={disabled}>
                             <label htmlFor={id} className="flex cursor-pointer items-center justify-center gap-2">
                                 <Upload className="h-4 w-4" />

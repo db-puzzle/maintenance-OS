@@ -1,5 +1,5 @@
-import { ArrowRight, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ArrowRight, GitBranch } from 'lucide-react';
 
 interface FormVersionInfoProps {
     currentVersion?: {
@@ -12,23 +12,17 @@ interface FormVersionInfoProps {
     size?: 'sm' | 'md' | 'lg';
 }
 
-export default function FormVersionInfo({
-    currentVersion,
-    draftTaskCount,
-    hasDraftChanges = false,
-    className,
-    size = 'md'
-}: FormVersionInfoProps) {
+export default function FormVersionInfo({ currentVersion, draftTaskCount, hasDraftChanges = false, className, size = 'md' }: FormVersionInfoProps) {
     const sizeClasses = {
         sm: 'text-xs',
         md: 'text-sm',
-        lg: 'text-base'
+        lg: 'text-base',
     };
 
     const iconSizes = {
         sm: 'h-3 w-3',
         md: 'h-3.5 w-3.5',
-        lg: 'h-4 w-4'
+        lg: 'h-4 w-4',
     };
 
     if (!currentVersion && !hasDraftChanges) {
@@ -74,4 +68,4 @@ export default function FormVersionInfo({
             )}
         </div>
     );
-} 
+}

@@ -1,13 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import {
-    Boxes,
-    ChevronRight,
-    Route,
-    History,
-    BarChart3,
-} from 'lucide-react';
+import { BarChart3, Boxes, ChevronRight, History, Route } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -61,8 +55,9 @@ export default function Dashboard() {
                                 <button
                                     key={key}
                                     onClick={() => card.href && router.visit(card.href)}
-                                    className={`bg-card border-border group rounded-xl border p-6 text-left transition-all duration-200 ${hasLink ? 'hover:bg-input-focus hover:ring-ring/10 hover:border-ring hover:ring-[1px]' : ''
-                                        }`}
+                                    className={`bg-card border-border group rounded-xl border p-6 text-left transition-all duration-200 ${
+                                        hasLink ? 'hover:bg-input-focus hover:ring-ring/10 hover:border-ring hover:ring-[1px]' : ''
+                                    }`}
                                     disabled={!hasLink}
                                 >
                                     <div className="mb-4 flex items-center justify-between">

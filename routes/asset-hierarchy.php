@@ -1,22 +1,20 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Controllers\AssetHierarchy\PlantsController;
 use App\Http\Controllers\AssetHierarchy\AreaController;
-use App\Http\Controllers\AssetHierarchy\SectorController;
 use App\Http\Controllers\AssetHierarchy\AssetController;
-use App\Http\Controllers\AssetHierarchy\AssetTypeController;
-use App\Http\Controllers\AssetHierarchy\AssetImportExportController;
-use App\Http\Controllers\AssetHierarchy\ShiftController;
-use App\Http\Controllers\AssetHierarchy\PlantController;
-use App\Http\Controllers\AssetHierarchy\ManufacturerController;
 use App\Http\Controllers\AssetHierarchy\AssetHierarchyController;
+use App\Http\Controllers\AssetHierarchy\AssetImportExportController;
+use App\Http\Controllers\AssetHierarchy\AssetTypeController;
+use App\Http\Controllers\AssetHierarchy\ManufacturerController;
+use App\Http\Controllers\AssetHierarchy\PlantsController;
+use App\Http\Controllers\AssetHierarchy\SectorController;
+use App\Http\Controllers\AssetHierarchy\ShiftController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Asset Hierarchy Index
     Route::get('asset-hierarchy', [AssetHierarchyController::class, 'index'])->name('asset-hierarchy.index');
-    
+
     Route::prefix('assets')->name('assets.')->group(function () {
         Route::get('/', [AssetController::class, 'index'])->name('index');
         Route::get('/criar', [AssetController::class, 'create'])->name('create');
@@ -46,7 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('asset-hierarchy/assets/{asset}', [AssetController::class, 'destroy'])->name('asset-hierarchy.assets.destroy');
     Route::get('asset-hierarchy/assets/{asset}/check-dependencies', [AssetController::class, 'checkDependencies'])->name('asset-hierarchy.assets.check-dependencies');
     Route::delete('asset-hierarchy/assets/{asset}/photo', [AssetController::class, 'removePhoto'])->name('asset-hierarchy.assets.remove-photo');
-    
+
     // Runtime routes
     Route::get('asset-hierarchy/assets/{asset}/runtime', [AssetController::class, 'getRuntimeData'])->name('asset-hierarchy.assets.runtime');
     Route::post('asset-hierarchy/assets/{asset}/runtime', [AssetController::class, 'reportRuntime'])->name('asset-hierarchy.assets.runtime.report');
@@ -108,4 +106,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('asset-hierarchy/manufacturers/{manufacturer}', [ManufacturerController::class, 'destroy'])->name('asset-hierarchy.manufacturers.destroy');
     Route::get('asset-hierarchy/manufacturers/{manufacturer}/check-dependencies', [ManufacturerController::class, 'checkDependencies'])->name('asset-hierarchy.manufacturers.check-dependencies');
     Route::get('asset-hierarchy/manufacturers/{manufacturer}/assets', [ManufacturerController::class, 'assets'])->name('asset-hierarchy.manufacturers.assets');
-}); 
+});

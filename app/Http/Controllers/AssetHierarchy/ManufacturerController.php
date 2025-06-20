@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\AssetHierarchy\Manufacturer;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 
 class ManufacturerController extends Controller
 {
@@ -77,7 +76,7 @@ class ManufacturerController extends Controller
     public function show(Manufacturer $manufacturer)
     {
         $manufacturer->loadCount('assets');
-        
+
         // If this is a JSON request (for edit functionality), return just the manufacturer data
         if (request()->expectsJson() || request()->get('format') === 'json') {
             return response()->json([
@@ -89,16 +88,16 @@ class ManufacturerController extends Controller
                     'phone' => $manufacturer->phone,
                     'country' => $manufacturer->country,
                     'notes' => $manufacturer->notes,
-                ]
+                ],
             ]);
         }
-        
+
         // Load assets if needed for the assets tab
         $manufacturer->load(['assets' => function ($query) {
             $query->with(['assetType:id,name', 'plant:id,name', 'area:id,name', 'sector:id,name'])
                 ->select('id', 'tag', 'description', 'asset_type_id', 'plant_id', 'area_id', 'sector_id', 'serial_number', 'part_number', 'manufacturer_id');
         }]);
-        
+
         // Transform assets data for the frontend
         $manufacturer->assets = $manufacturer->assets->map(function ($asset) {
             return [
@@ -113,7 +112,7 @@ class ManufacturerController extends Controller
                 'sector' => $asset->sector?->name,
             ];
         });
-        
+
         return Inertia::render('asset-hierarchy/manufacturers/show', [
             'manufacturer' => $manufacturer,
         ]);
@@ -127,7 +126,7 @@ class ManufacturerController extends Controller
     public function update(Request $request, Manufacturer $manufacturer)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:manufacturers,name,' . $manufacturer->id,
+            'name' => 'required|string|max:255|unique:manufacturers,name,'.$manufacturer->id,
             'website' => 'nullable|url|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
@@ -150,7 +149,7 @@ class ManufacturerController extends Controller
     public function destroy(Manufacturer $manufacturer)
     {
         $manufacturerName = $manufacturer->name;
-        
+
         // Check if manufacturer has associated assets
         if ($manufacturer->assets()->exists()) {
             return back()->with('error', 'Não é possível excluir um fabricante com ativos associados.');
@@ -177,9 +176,9 @@ class ManufacturerController extends Controller
             'dependencies' => [
                 'assets' => [
                     'total' => $totalAssets,
-                    'items' => $assets
-                ]
-            ]
+                    'items' => $assets,
+                ],
+            ],
         ]);
     }
 
@@ -215,7 +214,7 @@ class ManufacturerController extends Controller
     public function all(Request $request)
     {
         $manufacturers = Manufacturer::orderBy('name')->get(['id', 'name']);
-        
+
         return response()->json(['manufacturers' => $manufacturers]);
     }
-} 
+}

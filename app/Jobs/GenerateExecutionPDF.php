@@ -10,7 +10,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class GenerateExecutionPDF implements ShouldQueue
 {
@@ -36,7 +35,7 @@ class GenerateExecutionPDF implements ShouldQueue
     public function handle(PDFGeneratorService $pdfService)
     {
         try {
-            Log::info('Starting PDF generation for export ' . $this->export->id, [
+            Log::info('Starting PDF generation for export '.$this->export->id, [
                 'export_id' => $this->export->id,
                 'execution_count' => count($this->export->execution_ids),
                 'format' => $this->export->export_format,
@@ -49,7 +48,7 @@ class GenerateExecutionPDF implements ShouldQueue
             $filePath = match ($this->export->export_format) {
                 'csv' => $pdfService->generateCSVExport($this->export->execution_ids),
                 'pdf' => $this->generatePDF($pdfService),
-                default => throw new \Exception('Unsupported export format: ' . $this->export->export_format),
+                default => throw new \Exception('Unsupported export format: '.$this->export->export_format),
             };
 
             // Update export record
@@ -57,7 +56,7 @@ class GenerateExecutionPDF implements ShouldQueue
             $this->export->save();
             $this->export->markAsCompleted();
 
-            Log::info('PDF generation completed for export ' . $this->export->id, [
+            Log::info('PDF generation completed for export '.$this->export->id, [
                 'export_id' => $this->export->id,
                 'file_path' => $filePath,
             ]);
@@ -67,7 +66,7 @@ class GenerateExecutionPDF implements ShouldQueue
                 $this->sendCompletionEmail();
             }
         } catch (\Exception $e) {
-            Log::error('PDF generation failed for export ' . $this->export->id, [
+            Log::error('PDF generation failed for export '.$this->export->id, [
                 'export_id' => $this->export->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -106,9 +105,10 @@ class GenerateExecutionPDF implements ShouldQueue
     private function shouldSendEmail(): bool
     {
         $metadata = $this->export->metadata ?? [];
-        return isset($metadata['delivery']['method']) && 
+
+        return isset($metadata['delivery']['method']) &&
                $metadata['delivery']['method'] === 'email' &&
-               !empty($metadata['delivery']['email']);
+               ! empty($metadata['delivery']['email']);
     }
 
     /**
@@ -119,7 +119,7 @@ class GenerateExecutionPDF implements ShouldQueue
         $metadata = $this->export->metadata ?? [];
         $email = $metadata['delivery']['email'] ?? null;
 
-        if (!$email) {
+        if (! $email) {
             return;
         }
 
@@ -148,13 +148,13 @@ class GenerateExecutionPDF implements ShouldQueue
         $createdAt = $this->export->created_at;
         $now = now();
         $elapsedSeconds = $now->diffInSeconds($createdAt);
-        
+
         // Estimate based on execution count
         $executionCount = count($this->export->execution_ids);
         $estimatedSeconds = $this->getEstimatedDuration($executionCount);
-        
+
         $progress = min(95, round(($elapsedSeconds / $estimatedSeconds) * 100));
-        
+
         return max(5, $progress); // Always show at least 5% when processing
     }
 
@@ -166,7 +166,7 @@ class GenerateExecutionPDF implements ShouldQueue
         // Base time + time per execution
         $baseTime = 5; // 5 seconds base
         $timePerExecution = 3; // 3 seconds per execution
-        
+
         return $baseTime + ($executionCount * $timePerExecution);
     }
 

@@ -3,9 +3,8 @@
 namespace App\Services;
 
 use App\Models\Maintenance\RoutineExecution;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class ExecutionAnalyticsService
 {
@@ -15,20 +14,20 @@ class ExecutionAnalyticsService
     public function getDashboardStats(array $filters = []): array
     {
         $query = RoutineExecution::query();
-        
+
         // Apply filters if provided
         $this->applyFilters($query, $filters);
-        
+
         $total = $query->count();
         $completed = $query->where('status', RoutineExecution::STATUS_COMPLETED)->count();
         $inProgress = $query->where('status', RoutineExecution::STATUS_IN_PROGRESS)->count();
         $failed = $query->where('status', RoutineExecution::STATUS_CANCELLED)->count();
-        
+
         $completionRate = $total > 0 ? round(($completed / $total) * 100, 1) : 0;
-        
+
         // Calculate trend (compare with previous period)
         $trend = $this->calculateTrend($filters);
-        
+
         return [
             'total' => $total,
             'completed' => $completed,
@@ -68,7 +67,7 @@ class ExecutionAnalyticsService
     public function getDailyTrend(int $days = 30): Collection
     {
         $startDate = Carbon::now()->subDays($days)->startOfDay();
-        
+
         $executions = RoutineExecution::where('started_at', '>=', $startDate)
             ->get()
             ->groupBy(function ($execution) {
@@ -77,7 +76,7 @@ class ExecutionAnalyticsService
             ->map(function ($dayExecutions, $date) {
                 $completed = $dayExecutions->where('status', RoutineExecution::STATUS_COMPLETED)->count();
                 $cancelled = $dayExecutions->where('status', RoutineExecution::STATUS_CANCELLED)->count();
-                
+
                 return [
                     'date' => $date,
                     'count' => $dayExecutions->count(),
@@ -112,7 +111,7 @@ class ExecutionAnalyticsService
         }
 
         $durations = $completedExecutions
-            ->map(fn($ex) => $ex->duration_minutes)
+            ->map(fn ($ex) => $ex->duration_minutes)
             ->filter()
             ->sort()
             ->values();
@@ -143,7 +142,7 @@ class ExecutionAnalyticsService
             $totalExecutions = $allExecutions->count();
             $completedExecutions = $allExecutions->where('status', RoutineExecution::STATUS_COMPLETED);
             $completedCount = $completedExecutions->count();
-            
+
             // Calculate average duration for completed executions
             $avgDuration = null;
             if ($completedCount > 0) {
@@ -152,6 +151,7 @@ class ExecutionAnalyticsService
                         return Carbon::parse($execution->completed_at)
                             ->diffInMinutes(Carbon::parse($execution->started_at));
                     }
+
                     return 0;
                 });
                 $avgDuration = round($totalDuration / $completedCount, 1);
@@ -163,8 +163,8 @@ class ExecutionAnalyticsService
                 'asset_description' => $asset->description,
                 'total_executions' => $totalExecutions,
                 'completed_executions' => $completedCount,
-                'completion_rate' => $totalExecutions > 0 
-                    ? round(($completedCount / $totalExecutions) * 100, 1) 
+                'completion_rate' => $totalExecutions > 0
+                    ? round(($completedCount / $totalExecutions) * 100, 1)
                     : 0,
                 'avg_duration_minutes' => $avgDuration,
             ];
@@ -185,7 +185,7 @@ class ExecutionAnalyticsService
 
         // Calculate previous period based on date range
         $dateRange = $this->getDateRangeFromFilters($filters);
-        if (!$dateRange) {
+        if (! $dateRange) {
             return ['direction' => 'stable', 'percentage' => 0];
         }
 
@@ -201,7 +201,7 @@ class ExecutionAnalyticsService
         }
 
         $changePercentage = round((($currentCount - $previousCount) / $previousCount) * 100, 1);
-        
+
         return [
             'direction' => $changePercentage > 0 ? 'up' : ($changePercentage < 0 ? 'down' : 'stable'),
             'percentage' => abs($changePercentage),
@@ -217,23 +217,23 @@ class ExecutionAnalyticsService
             $query->filterByDateRange($filters['date_from'], $filters['date_to']);
         }
 
-        if (isset($filters['asset_ids']) && !empty($filters['asset_ids'])) {
+        if (isset($filters['asset_ids']) && ! empty($filters['asset_ids'])) {
             $query->filterByAssets($filters['asset_ids']);
         }
 
-        if (isset($filters['routine_ids']) && !empty($filters['routine_ids'])) {
+        if (isset($filters['routine_ids']) && ! empty($filters['routine_ids'])) {
             $query->filterByRoutines($filters['routine_ids']);
         }
 
-        if (isset($filters['executor_ids']) && !empty($filters['executor_ids'])) {
+        if (isset($filters['executor_ids']) && ! empty($filters['executor_ids'])) {
             $query->filterByExecutors($filters['executor_ids']);
         }
 
-        if (isset($filters['status']) && !empty($filters['status'])) {
+        if (isset($filters['status']) && ! empty($filters['status'])) {
             $query->filterByStatus($filters['status']);
         }
 
-        if (isset($filters['search']) && !empty($filters['search'])) {
+        if (isset($filters['search']) && ! empty($filters['search'])) {
             $query->search($filters['search']);
         }
     }
@@ -243,7 +243,7 @@ class ExecutionAnalyticsService
      */
     private function getDateRangeFromFilters(array $filters): ?array
     {
-        if (!isset($filters['date_from'], $filters['date_to'])) {
+        if (! isset($filters['date_from'], $filters['date_to'])) {
             return null;
         }
 
@@ -259,17 +259,18 @@ class ExecutionAnalyticsService
     private function getMedian(Collection $collection): float
     {
         $count = $collection->count();
-        
+
         if ($count === 0) {
             return 0;
         }
-        
+
         if ($count % 2 === 0) {
             $mid1 = $collection->get($count / 2 - 1);
             $mid2 = $collection->get($count / 2);
+
             return ($mid1 + $mid2) / 2;
         }
-        
+
         return $collection->get(intval($count / 2));
     }
 }

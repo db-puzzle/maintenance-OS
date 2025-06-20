@@ -47,4 +47,4 @@ return new class extends Migration
         Schema::dropIfExists('shift_schedules');
         Schema::dropIfExists('shifts');
     }
-}; 
+};

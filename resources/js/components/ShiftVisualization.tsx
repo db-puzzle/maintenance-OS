@@ -75,13 +75,13 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
     let totalWorkMinutes = 0;
     let totalBreakMinutes = 0;
 
-    shift.schedules.forEach(schedule => {
-        schedule.shifts.forEach(shift => {
+    shift.schedules.forEach((schedule) => {
+        schedule.shifts.forEach((shift) => {
             if (shift.active) {
                 const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
                 totalWorkMinutes += shiftDuration;
 
-                shift.breaks.forEach(breakTime => {
+                shift.breaks.forEach((breakTime) => {
                     const breakDuration = calculateDuration(breakTime.start_time, breakTime.end_time);
                     totalBreakMinutes += breakDuration;
                 });
@@ -94,13 +94,11 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
     return (
         <div className="space-y-6">
             {/* Header with summary */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900">{shift.name}</h3>
-                        {shift.plant && (
-                            <p className="text-sm text-gray-500">Planta: {shift.plant.name}</p>
-                        )}
+                        {shift.plant && <p className="text-sm text-gray-500">Planta: {shift.plant.name}</p>}
                     </div>
                     <div className="flex gap-6 text-sm">
                         <div className="text-center">
@@ -113,27 +111,27 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
                         </div>
                         <div className="text-center">
                             <p className="text-gray-500">Trabalhando</p>
-                            <p className="font-semibold text-primary-600">{formatDuration(netWorkMinutes)}</p>
+                            <p className="text-primary-600 font-semibold">{formatDuration(netWorkMinutes)}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Weekly schedule */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h4 className="text-base font-semibold text-gray-900 mb-4">Programação Semanal</h4>
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                <h4 className="mb-4 text-base font-semibold text-gray-900">Programação Semanal</h4>
                 <div className="space-y-3">
                     {weekdayOrder.map((weekday) => {
-                        const schedule = shift.schedules.find(s => s.weekday === weekday);
+                        const schedule = shift.schedules.find((s) => s.weekday === weekday);
                         if (!schedule) return null;
 
-                        const hasActiveShifts = schedule.shifts.some(s => s.active);
+                        const hasActiveShifts = schedule.shifts.some((s) => s.active);
 
                         return (
-                            <div key={weekday} className="border rounded-lg p-4">
+                            <div key={weekday} className="rounded-lg border p-4">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
-                                        <h5 className="font-medium text-gray-900 mb-2">{weekday}</h5>
+                                        <h5 className="mb-2 font-medium text-gray-900">{weekday}</h5>
                                         {schedule.shifts.length === 0 ? (
                                             <p className="text-sm text-gray-500">Sem expediente</p>
                                         ) : !hasActiveShifts ? (
@@ -182,14 +180,14 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
                                             <span className="text-gray-500">
                                                 {formatDuration(
                                                     schedule.shifts
-                                                        .filter(s => s.active)
+                                                        .filter((s) => s.active)
                                                         .reduce((total, shift) => {
                                                             const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
                                                             const breakDuration = shift.breaks.reduce((breakTotal, breakTime) => {
                                                                 return breakTotal + calculateDuration(breakTime.start_time, breakTime.end_time);
                                                             }, 0);
                                                             return total + (shiftDuration - breakDuration);
-                                                        }, 0)
+                                                        }, 0),
                                                 )}
                                             </span>
                                         )}
@@ -204,4 +202,4 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
     );
 };
 
-export default ShiftVisualization; 
+export default ShiftVisualization;

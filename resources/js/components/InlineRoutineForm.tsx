@@ -2,13 +2,13 @@ import { TaskBaseCard, TaskContent } from '@/components/tasks';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 import { Task, TaskState, TaskTypes } from '@/types/task';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { AlertCircle, CheckCircle2, ClipboardCheck, Loader2, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 interface RoutineData {
     id: number;
@@ -34,7 +34,7 @@ interface ExecutionData {
 interface TaskResponseData {
     id: number;
     form_task_id: string;
-    response: any;
+    response: Record<string, unknown>;
     is_completed: boolean;
 }
 
@@ -58,18 +58,14 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
     const taskRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
     // Initialize or get existing execution
-    useEffect(() => {
-        initializeExecution();
-    }, [routine.id]);
-
-    const initializeExecution = async () => {
+    const initializeExecution = useCallback(async () => {
         try {
             setLoading(true);
             const response = await axios.post(
                 route('maintenance.assets.routines.inline-execution.start', {
                     asset: assetId,
-                    routine: routine.id
-                })
+                    routine: routine.id,
+                }),
             );
 
             const executionData = response.data.execution;
@@ -80,10 +76,12 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
 
             // Use form version tasks if available, otherwise use routine form tasks
             const tasksToUse = formExecution?.form_version?.tasks || routine.form?.tasks || [];
-            setTasks(tasksToUse.map((task: Task) => ({
-                ...task,
-                state: TaskState.Viewing
-            })));
+            setTasks(
+                tasksToUse.map((task: Task) => ({
+                    ...task,
+                    state: TaskState.Viewing,
+                })),
+            );
 
             // Process existing responses
             const responsesMap: Record<string, TaskResponseData> = {};
@@ -98,32 +96,44 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             setProgress({
                 total,
                 completed,
-                percentage: total > 0 ? Math.round((completed / total) * 100) : 0
+                percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
             });
 
             // Find first incomplete task
-            const firstIncompleteIndex = tasksToUse.findIndex(
-                (task: Task) => !responsesMap[task.id]
-            );
+            const firstIncompleteIndex = tasksToUse.findIndex((task: Task) => !responsesMap[task.id]);
             const initialIndex = firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0;
             setCurrentTaskIndex(initialIndex);
 
             // Set the initial task to responding state
             const initialTasks = tasksToUse.map((task: Task, idx: number) => ({
                 ...task,
-                state: idx === initialIndex ? TaskState.Responding : TaskState.Viewing
+                state: idx === initialIndex ? TaskState.Responding : TaskState.Viewing,
             }));
             setTasks(initialTasks);
-        } catch (error: any) {
-            console.error('Error initializing execution:', error);
+        } catch (error: unknown) {
+            const err = error as { 
+                response?: { 
+                    status?: number;
+                    data?: { 
+                        errors?: Record<string, string[]>;
+                        message?: string;
+                        error?: string;
+                    };
+                };
+            };
+            console.error('Error initializing execution:', err);
             toast.error('Erro ao iniciar execução', {
-                description: error.response?.data?.error || 'Tente novamente'
+                description: err.response?.data?.error || 'Tente novamente',
             });
             if (onClose) onClose();
         } finally {
             setLoading(false);
         }
-    };
+    }, [assetId, routine.id, routine.form?.tasks, onClose]);
+
+    useEffect(() => {
+        initializeExecution();
+    }, [initializeExecution]);
 
     const updateTaskIcon = (taskId: string, icon: React.ReactNode) => {
         setTaskIcons((prev) => ({
@@ -136,7 +146,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
         setTimeout(() => {
             taskRefs.current[index]?.scrollIntoView({
                 behavior: 'smooth',
-                block: 'center'
+                block: 'center',
             });
         }, 100);
     };
@@ -146,7 +156,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
         setTasks(tasks.map((t) => (t.id === taskId ? updatedTask : t)));
     };
 
-    const handleTaskSave = async (taskId: string, responseData: any) => {
+    const handleTaskSave = async (taskId: string, responseData: Record<string, unknown>) => {
         if (!execution || saving) return;
 
         setSaving(true);
@@ -158,20 +168,20 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             const dataToSend = responseData || {};
 
             // Handle different response types
-            if (dataToSend.files && dataToSend.files.length > 0) {
-                dataToSend.files.forEach((file: File, index: number) => {
+            if (Array.isArray(dataToSend.files) && dataToSend.files.length > 0) {
+                (dataToSend.files as File[]).forEach((file: File, index: number) => {
                     formData.append(`files[${index}]`, file);
                 });
                 // Remove files from response data to avoid sending as JSON
-                const { files: _, ...restData } = dataToSend;
+                const { files: _files, ...restData } = dataToSend;
                 // Send response as array fields instead of JSON string
-                Object.keys(restData).forEach(key => {
-                    formData.append(`response[${key}]`, restData[key]);
+                Object.keys(restData).forEach((key) => {
+                    formData.append(`response[${key}]`, String(restData[key]));
                 });
             } else {
                 // Send response as array fields instead of JSON string
-                Object.keys(dataToSend).forEach(key => {
-                    formData.append(`response[${key}]`, dataToSend[key]);
+                Object.keys(dataToSend).forEach((key) => {
+                    formData.append(`response[${key}]`, String(dataToSend[key]));
                 });
             }
 
@@ -179,37 +189,33 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                 route('maintenance.assets.routines.inline-execution.save-task', {
                     asset: assetId,
                     routine: routine.id,
-                    execution: execution.id
+                    execution: execution.id,
                 }),
                 formData,
                 {
                     headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }
+                        'Content-Type': 'multipart/form-data',
+                    },
+                },
             );
 
             // Update task responses
             const taskResponse = response.data.task_response;
-            setTaskResponses(prev => ({
+            setTaskResponses((prev) => ({
                 ...prev,
                 [taskId]: {
                     id: taskResponse.id,
                     form_task_id: taskId,
                     response: taskResponse.response,
-                    is_completed: taskResponse.is_completed
-                }
+                    is_completed: taskResponse.is_completed,
+                },
             }));
 
             // Update progress
             setProgress(response.data.progress);
 
             // Mark task as completed visually
-            setTasks(tasks.map((t) =>
-                t.id === taskId
-                    ? { ...t, state: TaskState.Viewing, completed: true }
-                    : t
-            ));
+            setTasks(tasks.map((t) => (t.id === taskId ? { ...t, state: TaskState.Viewing, completed: true } : t)));
 
             toast.success('Tarefa salva com sucesso');
 
@@ -220,27 +226,39 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                 scrollToTask(nextIndex);
 
                 // Set next task to responding state
-                setTasks(tasks.map((t, idx) => ({
-                    ...t,
-                    state: idx === nextIndex ? TaskState.Responding : TaskState.Viewing
-                })));
+                setTasks(
+                    tasks.map((t, idx) => ({
+                        ...t,
+                        state: idx === nextIndex ? TaskState.Responding : TaskState.Viewing,
+                    })),
+                );
             } else if (response.data.all_tasks_completed) {
                 // All tasks completed, automatically complete the routine
                 handleCompleteExecution();
             }
-        } catch (error: any) {
-            console.error('Error saving task:', error);
+        } catch (error: unknown) {
+            const err = error as { 
+                response?: { 
+                    status?: number;
+                    data?: { 
+                        errors?: Record<string, string[]>;
+                        message?: string;
+                        error?: string;
+                    };
+                };
+            };
+            console.error('Error saving task:', err);
 
             // Check for validation errors
-            if (error.response?.status === 422 && error.response?.data?.errors) {
-                const errors = error.response.data.errors;
+            if (err.response?.status === 422 && err.response?.data?.errors) {
+                const errors = err.response.data.errors;
                 const errorMessages = Object.values(errors).flat().join(', ');
                 toast.error('Erro de validação', {
-                    description: errorMessages
+                    description: errorMessages,
                 });
             } else {
                 toast.error('Erro ao salvar tarefa', {
-                    description: error.response?.data?.message || error.response?.data?.error || 'Tente novamente'
+                    description: err.response?.data?.message || err.response?.data?.error || 'Tente novamente',
                 });
             }
         } finally {
@@ -257,8 +275,8 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                 route('maintenance.assets.routines.inline-execution.complete', {
                     asset: assetId,
                     routine: routine.id,
-                    execution: execution.id
-                })
+                    execution: execution.id,
+                }),
             );
 
             toast.success('Rotina concluída com sucesso!');
@@ -267,15 +285,23 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
 
             // Reload the page to refresh the routine list
             router.reload();
-        } catch (error: any) {
-            console.error('Error completing execution:', error);
-            if (error.response?.data?.missing_tasks) {
+        } catch (error: unknown) {
+            const err = error as { 
+                response?: { 
+                    data?: { 
+                        missing_tasks?: string[];
+                        error?: string;
+                    };
+                };
+            };
+            console.error('Error completing execution:', err);
+            if (err.response?.data?.missing_tasks) {
                 toast.error('Existem tarefas obrigatórias não preenchidas', {
-                    description: error.response.data.missing_tasks.join(', ')
+                    description: err.response.data.missing_tasks.join(', '),
                 });
             } else {
                 toast.error('Erro ao concluir rotina', {
-                    description: error.response?.data?.error || 'Tente novamente'
+                    description: err.response?.data?.error || 'Tente novamente',
                 });
             }
         } finally {
@@ -291,12 +317,12 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                 route('maintenance.assets.routines.inline-execution.cancel', {
                     asset: assetId,
                     routine: routine.id,
-                    execution: execution.id
-                })
+                    execution: execution.id,
+                }),
             );
             toast.info('Execução cancelada');
             if (onClose) onClose();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error canceling execution:', error);
             toast.error('Erro ao cancelar execução');
         }
@@ -305,7 +331,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
             </div>
         );
     }
@@ -314,11 +340,9 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
         return (
             <Card className="bg-muted/30">
                 <CardContent className="flex flex-col items-center justify-center px-4 py-8 text-center">
-                    <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Erro ao carregar formulário</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                        Não foi possível carregar o formulário desta rotina.
-                    </p>
+                    <AlertCircle className="text-muted-foreground mb-4 h-12 w-12" />
+                    <h3 className="mb-2 text-lg font-medium">Erro ao carregar formulário</h3>
+                    <p className="text-muted-foreground mb-4 text-sm">Não foi possível carregar o formulário desta rotina.</p>
                     <Button variant="outline" onClick={onClose}>
                         Fechar
                     </Button>
@@ -330,38 +354,29 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
     return (
         <div className="space-y-6">
             {/* Header with progress */}
-            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b pb-4 -mx-4 px-4">
-                <div className="flex items-center justify-between mb-4">
+            <div className="bg-background/95 sticky top-0 z-10 -mx-4 border-b px-4 pb-4 backdrop-blur-sm">
+                <div className="mb-4 flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-semibold">Preenchendo: {routine.name}</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             Tarefa {Math.min(currentTaskIndex + 1, tasks.length)} de {tasks.length}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleCancelExecution}
-                            disabled={saving || completing}
-                        >
-                            <X className="h-4 w-4 mr-1" />
+                        <Button variant="ghost" size="sm" onClick={handleCancelExecution} disabled={saving || completing}>
+                            <X className="mr-1 h-4 w-4" />
                             Cancelar
                         </Button>
                         {progress.percentage === 100 && (
-                            <Button
-                                size="sm"
-                                onClick={handleCompleteExecution}
-                                disabled={completing}
-                            >
+                            <Button size="sm" onClick={handleCompleteExecution} disabled={completing}>
                                 {completing ? (
                                     <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                         Concluindo...
                                     </>
                                 ) : (
                                     <>
-                                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                                        <CheckCircle2 className="mr-2 h-4 w-4" />
                                         Concluir Rotina
                                     </>
                                 )}
@@ -382,19 +397,20 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             <div className="space-y-4">
                 {tasks.map((task, index) => {
                     const taskType = TaskTypes.find((t) => t.value === task.type);
-                    const icon = taskIcons[task.id] ||
-                        (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
+                    const icon = taskIcons[task.id] || (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
                     const isCompleted = !!taskResponses[task.id];
                     const isCurrent = index === currentTaskIndex;
 
                     return (
                         <div
                             key={`task-${task.id}`}
-                            ref={(el) => { taskRefs.current[index] = el; }}
+                            ref={(el) => {
+                                taskRefs.current[index] = el;
+                            }}
                             className={cn(
-                                "transition-all duration-300",
-                                isCurrent && "ring-2 ring-primary ring-offset-2 rounded-lg",
-                                isCompleted && "opacity-75"
+                                'transition-all duration-300',
+                                isCurrent && 'ring-primary rounded-lg ring-2 ring-offset-2',
+                                isCompleted && 'opacity-75',
                             )}
                         >
                             <TaskBaseCard
@@ -403,10 +419,10 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                                 icon={icon}
                                 title={task.description}
                                 isRequired={task.isRequired}
-                                onTaskUpdate={() => { }}
+                                onTaskUpdate={() => {}}
                             >
                                 {isCompleted && (
-                                    <div className="flex items-center gap-1 text-sm text-green-600 mb-2">
+                                    <div className="mb-2 flex items-center gap-1 text-sm text-green-600">
                                         <CheckCircle2 className="h-4 w-4" />
                                         <span>Tarefa concluída</span>
                                     </div>
@@ -428,4 +444,4 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             </div>
         </div>
     );
-} 
+}

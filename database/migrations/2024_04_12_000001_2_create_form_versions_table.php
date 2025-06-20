@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('published_by')->constrained('users');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             $table->unique(['form_id', 'version_number']);
             $table->index(['form_id', 'is_active']);
             $table->index('published_at');
@@ -39,7 +39,7 @@ return new class extends Migration
         Schema::table('forms', function (Blueprint $table) {
             $table->dropForeign(['current_version_id']);
         });
-        
+
         Schema::dropIfExists('form_versions');
     }
-}; 
+};

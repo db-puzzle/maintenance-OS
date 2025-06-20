@@ -1,28 +1,20 @@
+import { TIMEZONE_GROUPS } from '@/constants/timezones';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import React, { FormEventHandler, useState } from 'react';
-import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
-import { TIMEZONE_GROUPS } from '@/constants/timezones';
 import { Check, ChevronsUpDown } from 'lucide-react';
+import React, { FormEventHandler, useState } from 'react';
 
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
-} from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -51,7 +43,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
     // Get the label for the selected timezone
     const getTimezoneLabel = (value: string) => {
         for (const zones of Object.values(TIMEZONE_GROUPS)) {
-            const zone = zones.find(z => z.value === value);
+            const zone = zones.find((z) => z.value === value);
             if (zone) return zone.label;
         }
         return value;
@@ -112,13 +104,8 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
                             <Popover open={open} onOpenChange={setOpen}>
                                 <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={open}
-                                        className="w-full justify-between"
-                                    >
-                                        {data.timezone ? getTimezoneLabel(data.timezone) : "Select timezone..."}
+                                    <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
+                                        {data.timezone ? getTimezoneLabel(data.timezone) : 'Select timezone...'}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
@@ -142,8 +129,8 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                                             >
                                                                 <Check
                                                                     className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        data.timezone === zone.value ? "opacity-100" : "opacity-0"
+                                                                        'mr-2 h-4 w-4',
+                                                                        data.timezone === zone.value ? 'opacity-100' : 'opacity-0',
                                                                     )}
                                                                 />
                                                                 {zone.label}

@@ -41,8 +41,6 @@ export function TaskInstructionList({ task, mode, onInstructionsUpdate }: TaskIn
         onInstructionsUpdate(updatedTask);
     };
 
-
-
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">

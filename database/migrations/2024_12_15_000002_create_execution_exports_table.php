@@ -22,7 +22,7 @@ return new class extends Migration
             $table->json('metadata')->nullable()->comment('Export options and additional data');
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
-            
+
             // Indexes for common queries
             $table->index(['user_id', 'status'], 'idx_execution_exports_user_status');
             $table->index('created_at', 'idx_execution_exports_created_at');

@@ -3,12 +3,12 @@ import { type Asset } from '@/types/asset-hierarchy';
 import { router } from '@inertiajs/react';
 import { Cog, Settings } from 'lucide-react';
 
+import AssetTypeFormComponent from '@/components/AssetTypeFormComponent';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import AssetTypeFormComponent from '@/components/AssetTypeFormComponent';
 
 interface Props {
     assetType: {
@@ -68,11 +68,7 @@ export default function Show({ assetType, asset, activeTab }: Props) {
             label: 'Informações Gerais',
             content: (
                 <div className="py-8">
-                    <AssetTypeFormComponent
-                        assetType={assetType as any}
-                        initialMode="view"
-                        onSuccess={() => router.reload()}
-                    />
+                    <AssetTypeFormComponent assetType={assetType as any} initialMode="view" onSuccess={() => router.reload()} />
                 </div>
             ),
         },
@@ -108,9 +104,7 @@ export default function Show({ assetType, asset, activeTab }: Props) {
                                                     <div className="font-medium">{asset.tag}</div>
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{asset.area?.name ?? '-'}</TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">
-                                                    {asset.manufacturer?.name ?? '-'}
-                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{asset.manufacturer?.name ?? '-'}</TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{asset.manufacturing_year ?? '-'}</TableCell>
                                             </TableRow>
                                         ))}
@@ -170,12 +164,7 @@ export default function Show({ assetType, asset, activeTab }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <ShowLayout
-                title={assetType.name}
-                subtitle={subtitle}
-                editRoute={route('asset-hierarchy.tipos-ativo.edit', assetType.id)}
-                tabs={tabs}
-            />
+            <ShowLayout title={assetType.name} subtitle={subtitle} editRoute={route('asset-hierarchy.tipos-ativo.edit', assetType.id)} tabs={tabs} />
         </AppLayout>
     );
 }

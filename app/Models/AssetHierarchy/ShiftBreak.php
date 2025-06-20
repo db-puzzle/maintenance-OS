@@ -10,11 +10,11 @@ class ShiftBreak extends Model
     protected $fillable = [
         'shift_time_id',
         'start_time',
-        'end_time'
+        'end_time',
     ];
 
     public function shiftTime(): BelongsTo
     {
         return $this->belongsTo(ShiftTime::class);
     }
-} 
+}

@@ -1,15 +1,7 @@
-import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import {
-    Building2,
-    MapPin,
-    Layers,
-    Package,
-    Factory,
-    Clock,
-    ChevronRight,
-} from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import { Building2, ChevronRight, Clock, Factory, Layers, MapPin, Package } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -68,8 +60,6 @@ const navigationCards: NavigationCard[] = [
     },
 ];
 
-
-
 export default function AssetHierarchyIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -81,7 +71,7 @@ export default function AssetHierarchyIndex() {
                     <h2 className="text-foreground mb-6 text-xl font-semibold">Hierarquia de Ativos</h2>
 
                     {/* Main Navigation Cards */}
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+                    <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {navigationCards.map((card) => {
                             const IconComponent = card.icon;
 
@@ -89,7 +79,7 @@ export default function AssetHierarchyIndex() {
                                 <button
                                     key={card.href}
                                     onClick={() => router.visit(card.href)}
-                                    className="bg-card border-border group rounded-xl border p-6 text-left transition-all duration-200 hover:bg-input-focus hover:ring-ring/10 hover:border-ring hover:ring-[1px]"
+                                    className="bg-card border-border group hover:bg-input-focus hover:ring-ring/10 hover:border-ring rounded-xl border p-6 text-left transition-all duration-200 hover:ring-[1px]"
                                 >
                                     <div className="mb-4 flex items-center justify-between">
                                         <div className="bg-muted text-muted-foreground rounded-lg p-3">
@@ -103,9 +93,8 @@ export default function AssetHierarchyIndex() {
                             );
                         })}
                     </div>
-
                 </div>
             </div>
         </AppLayout>
     );
-} 
+}

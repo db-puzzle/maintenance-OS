@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\AssetType;
-use App\Models\AssetHierarchy\Sector;
-use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Plant;
+use App\Models\AssetHierarchy\Sector;
 use Illuminate\Database\Seeder;
 
 class AssetSeeder extends Seeder
@@ -35,7 +35,7 @@ class AssetSeeder extends Seeder
         $areas = Area::all();
         $sectors = Sector::all();
 
-        if (!$bombType || !$motorType || !$valveType || $plants->isEmpty() || $areas->isEmpty() || $sectors->isEmpty()) {
+        if (! $bombType || ! $motorType || ! $valveType || $plants->isEmpty() || $areas->isEmpty() || $sectors->isEmpty()) {
             throw new \Exception('Tipos de ativo, plantas, áreas ou setores não encontrados. Execute os seeders anteriores primeiro.');
         }
 
@@ -66,7 +66,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2020,
             'plant_id' => $defaultPlant->id,
             'area_id' => $areaProducao->id,
-            'sector_id' => $sectorLinha1->id
+            'sector_id' => $sectorLinha1->id,
         ]);
 
         $areaManutencao = $areas->where('name', 'Manutenção')->first();
@@ -81,7 +81,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2021,
             'plant_id' => $defaultPlant->id,
             'area_id' => $areaManutencao->id,
-            'sector_id' => $sectorMecanica->id
+            'sector_id' => $sectorMecanica->id,
         ]);
 
         // Ativos apenas com área
@@ -95,7 +95,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'Emerson',
             'manufacturing_year' => 2019,
             'plant_id' => $defaultPlant->id,
-            'area_id' => $areaUtilidades->id
+            'area_id' => $areaUtilidades->id,
         ]);
 
         $validateAreaAndSector($areaUtilidades, null, $defaultPlant);
@@ -107,7 +107,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'KSB',
             'manufacturing_year' => 2022,
             'plant_id' => $defaultPlant->id,
-            'area_id' => $areaUtilidades->id
+            'area_id' => $areaUtilidades->id,
         ]);
 
         // Ativos para a planta 2
@@ -123,7 +123,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2023,
             'plant_id' => $plant2->id,
             'area_id' => $areaProducao2->id,
-            'sector_id' => $sectorLinha3->id
+            'sector_id' => $sectorLinha3->id,
         ]);
 
         // Ativos para área de qualidade
@@ -137,7 +137,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'Fisher',
             'manufacturing_year' => 2021,
             'plant_id' => $defaultPlant->id,
-            'area_id' => $areaQualidade->id
+            'area_id' => $areaQualidade->id,
         ]);
 
         // Ativos para área de logística
@@ -151,7 +151,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'Grundfos',
             'manufacturing_year' => 2020,
             'plant_id' => $defaultPlant->id,
-            'area_id' => $areaLogistica->id
+            'area_id' => $areaLogistica->id,
         ]);
 
         // Ativo para área de manutenção 2 (vazia para testes)
@@ -165,7 +165,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'WEG',
             'manufacturing_year' => 2022,
             'plant_id' => $plant2->id,
-            'area_id' => $areaManutencao2->id
+            'area_id' => $areaManutencao2->id,
         ]);
 
         // Novos ativos
@@ -180,7 +180,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2023,
             'plant_id' => $defaultPlant->id,
             'area_id' => $areaUtilidades->id,
-            'sector_id' => $sectorArComprimido->id
+            'sector_id' => $sectorArComprimido->id,
         ]);
 
         $validateAreaAndSector($areaProducao, $sectorLinha1, $defaultPlant);
@@ -193,7 +193,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2022,
             'plant_id' => $defaultPlant->id,
             'area_id' => $areaProducao->id,
-            'sector_id' => $sectorLinha1->id
+            'sector_id' => $sectorLinha1->id,
         ]);
 
         $sectorLinha2 = $sectors->where('name', 'Linha 2')->first();
@@ -207,7 +207,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2023,
             'plant_id' => $defaultPlant->id,
             'area_id' => $areaProducao->id,
-            'sector_id' => $sectorLinha2->id
+            'sector_id' => $sectorLinha2->id,
         ]);
 
         $validateAreaAndSector($areaProducao2, null, $plant2);
@@ -219,7 +219,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'Trumpf',
             'manufacturing_year' => 2022,
             'plant_id' => $plant2->id,
-            'area_id' => $areaProducao2->id
+            'area_id' => $areaProducao2->id,
         ]);
 
         $validateAreaAndSector($areaProducao2, $sectorLinha3, $plant2);
@@ -232,7 +232,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2023,
             'plant_id' => $plant2->id,
             'area_id' => $areaProducao2->id,
-            'sector_id' => $sectorLinha3->id
+            'sector_id' => $sectorLinha3->id,
         ]);
 
         $sectorArmazenamento = $sectors->where('name', 'Armazenamento')->first();
@@ -246,7 +246,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2021,
             'plant_id' => $defaultPlant->id,
             'area_id' => $areaLogistica->id,
-            'sector_id' => $sectorArmazenamento->id
+            'sector_id' => $sectorArmazenamento->id,
         ]);
 
         $validateAreaAndSector($areaQualidade, null, $defaultPlant);
@@ -258,7 +258,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'Dell',
             'manufacturing_year' => 2023,
             'plant_id' => $defaultPlant->id,
-            'area_id' => $areaQualidade->id
+            'area_id' => $areaQualidade->id,
         ]);
 
         $validateAreaAndSector($areaManutencao, $sectorMecanica, $defaultPlant);
@@ -271,7 +271,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2022,
             'plant_id' => $defaultPlant->id,
             'area_id' => $areaManutencao->id,
-            'sector_id' => $sectorMecanica->id
+            'sector_id' => $sectorMecanica->id,
         ]);
 
         $validateAreaAndSector($areaUtilidades, null, $defaultPlant);
@@ -283,7 +283,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'Cummins',
             'manufacturing_year' => 2023,
             'plant_id' => $defaultPlant->id,
-            'area_id' => $areaUtilidades->id
+            'area_id' => $areaUtilidades->id,
         ]);
 
         $validateAreaAndSector($areaUtilidades, null, $defaultPlant);
@@ -295,7 +295,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'Trane',
             'manufacturing_year' => 2022,
             'plant_id' => $defaultPlant->id,
-            'area_id' => $areaUtilidades->id
+            'area_id' => $areaUtilidades->id,
         ]);
 
         $validateAreaAndSector($areaLogistica, null, $defaultPlant);
@@ -307,7 +307,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'Otis',
             'manufacturing_year' => 2023,
             'plant_id' => $defaultPlant->id,
-            'area_id' => $areaLogistica->id
+            'area_id' => $areaLogistica->id,
         ]);
 
         $validateAreaAndSector($areaProducao, $sectorLinha1, $defaultPlant);
@@ -320,7 +320,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2022,
             'plant_id' => $defaultPlant->id,
             'area_id' => $areaProducao->id,
-            'sector_id' => $sectorLinha1->id
+            'sector_id' => $sectorLinha1->id,
         ]);
 
         $validateAreaAndSector($areaManutencao, $sectorMecanica, $defaultPlant);
@@ -333,7 +333,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2023,
             'plant_id' => $defaultPlant->id,
             'area_id' => $areaManutencao->id,
-            'sector_id' => $sectorMecanica->id
+            'sector_id' => $sectorMecanica->id,
         ]);
 
         $validateAreaAndSector($areaProducao2, null, $plant2);
@@ -345,7 +345,7 @@ class AssetSeeder extends Seeder
             'manufacturer' => 'Okuma',
             'manufacturing_year' => 2022,
             'plant_id' => $plant2->id,
-            'area_id' => $areaProducao2->id
+            'area_id' => $areaProducao2->id,
         ]);
 
         $validateAreaAndSector($areaProducao, $sectorLinha2, $defaultPlant);
@@ -358,7 +358,7 @@ class AssetSeeder extends Seeder
             'manufacturing_year' => 2023,
             'plant_id' => $defaultPlant->id,
             'area_id' => $areaProducao->id,
-            'sector_id' => $sectorLinha2->id
+            'sector_id' => $sectorLinha2->id,
         ]);
     }
-} 
+}

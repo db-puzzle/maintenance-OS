@@ -88,7 +88,7 @@ export default function EditSector({ sector, plants }: Props) {
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => { },
+                                clearErrors: () => {},
                             }}
                             name="name"
                             label="Nome do Setor"

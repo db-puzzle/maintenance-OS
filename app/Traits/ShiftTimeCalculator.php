@@ -11,16 +11,16 @@ trait ShiftTimeCalculator
      */
     protected function timeToMinutes(string $time): int
     {
-        list($hours, $minutes) = explode(':', $time);
+        [$hours, $minutes] = explode(':', $time);
         $totalMinutes = ($hours * 60) + $minutes;
-        
+
         Log::debug('Time converted to minutes', [
             'time' => $time,
             'hours' => $hours,
             'minutes' => $minutes,
-            'total_minutes' => $totalMinutes
+            'total_minutes' => $totalMinutes,
         ]);
-        
+
         return $totalMinutes;
     }
 
@@ -31,7 +31,7 @@ trait ShiftTimeCalculator
     {
         $startMinutes = $this->timeToMinutes($start);
         $endMinutes = $this->timeToMinutes($end);
-        
+
         if ($endMinutes < $startMinutes) {
             $duration = (24 * 60 - $startMinutes) + $endMinutes;
             Log::debug('Duration calculation crosses midnight', [
@@ -39,20 +39,21 @@ trait ShiftTimeCalculator
                 'end' => $end,
                 'start_minutes' => $startMinutes,
                 'end_minutes' => $endMinutes,
-                'duration' => $duration
+                'duration' => $duration,
             ]);
+
             return $duration;
         }
-        
+
         $duration = $endMinutes - $startMinutes;
         Log::debug('Duration calculation', [
             'start' => $start,
             'end' => $end,
             'start_minutes' => $startMinutes,
             'end_minutes' => $endMinutes,
-            'duration' => $duration
+            'duration' => $duration,
         ]);
-        
+
         return $duration;
     }
 
@@ -62,24 +63,25 @@ trait ShiftTimeCalculator
     protected function calculateShiftTotals(array $schedules): array
     {
         Log::debug('Calculating shift totals', [
-            'schedules_count' => count($schedules)
+            'schedules_count' => count($schedules),
         ]);
-        
+
         $totalWorkMinutes = 0;
         $totalBreakMinutes = 0;
 
         foreach ($schedules as $schedule) {
             foreach ($schedule['shifts'] as $shift) {
-                if (!$shift['active']) {
+                if (! $shift['active']) {
                     Log::debug('Skipping inactive shift', [
-                        'shift' => $shift
+                        'shift' => $shift,
                     ]);
+
                     continue;
                 }
 
                 // Calcula duração total do turno
                 $shiftDuration = $this->calculateDuration($shift['start_time'], $shift['end_time']);
-                
+
                 // Calcula duração total dos intervalos
                 $shiftBreakMinutes = 0;
                 foreach ($shift['breaks'] as $break) {
@@ -91,12 +93,12 @@ trait ShiftTimeCalculator
                 $workMinutes = $shiftDuration - $shiftBreakMinutes;
                 $totalWorkMinutes += $workMinutes;
                 $totalBreakMinutes += $shiftBreakMinutes;
-                
+
                 Log::debug('Shift calculation', [
-                    'shift_time' => $shift['start_time'] . ' - ' . $shift['end_time'],
+                    'shift_time' => $shift['start_time'].' - '.$shift['end_time'],
                     'shift_duration' => $shiftDuration,
                     'break_minutes' => $shiftBreakMinutes,
-                    'work_minutes' => $workMinutes
+                    'work_minutes' => $workMinutes,
                 ]);
             }
         }
@@ -105,15 +107,15 @@ trait ShiftTimeCalculator
             'work_hours' => floor($totalWorkMinutes / 60),
             'work_minutes' => $totalWorkMinutes % 60,
             'break_hours' => floor($totalBreakMinutes / 60),
-            'break_minutes' => $totalBreakMinutes % 60
+            'break_minutes' => $totalBreakMinutes % 60,
         ];
-        
+
         Log::debug('Shift totals calculated', [
             'total_work_minutes' => $totalWorkMinutes,
             'total_break_minutes' => $totalBreakMinutes,
-            'result' => $result
+            'result' => $result,
         ]);
-        
+
         return $result;
     }
-} 
+}

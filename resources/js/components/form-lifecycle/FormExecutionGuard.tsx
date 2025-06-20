@@ -1,32 +1,19 @@
-import React from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertCircle, Play, Upload } from 'lucide-react';
-import { getFormState, type FormData } from './FormStatusBadge';
+import React from 'react';
 import { toast } from 'sonner';
+import { getFormState, type FormData } from './FormStatusBadge';
 
 interface FormExecutionGuardProps {
     form: FormData;
     onExecute: (versionId: number) => void;
     onPublishAndExecute?: () => void;
     onEditForm?: () => void;
-    children: React.ReactElement<any>;
+    children: React.ReactElement;
 }
 
-export default function FormExecutionGuard({
-    form,
-    onExecute,
-    onPublishAndExecute,
-    onEditForm,
-    children
-}: FormExecutionGuardProps) {
+export default function FormExecutionGuard({ form, onExecute, onPublishAndExecute, onEditForm, children }: FormExecutionGuardProps) {
     const [showDialog, setShowDialog] = React.useState(false);
     const state = getFormState(form);
 
@@ -37,10 +24,12 @@ export default function FormExecutionGuard({
         if (state === 'unpublished') {
             toast.error('Formulário não publicado', {
                 description: 'Esta rotina precisa ser publicada antes de ser executada.',
-                action: onEditForm ? {
-                    label: 'Editar Formulário',
-                    onClick: onEditForm
-                } : undefined
+                action: onEditForm
+                    ? {
+                          label: 'Editar Formulário',
+                          onClick: onEditForm,
+                      }
+                    : undefined,
             });
             return;
         }
@@ -75,7 +64,7 @@ export default function FormExecutionGuard({
     // Clone the child element and add onClick handler
     const childWithHandler = React.cloneElement(children, {
         onClick: handleClick,
-        disabled: state === 'unpublished' || children.props.disabled
+        disabled: state === 'unpublished' || (children.props as { disabled?: boolean }).disabled,
     });
 
     return (
@@ -96,25 +85,15 @@ export default function FormExecutionGuard({
                     </DialogHeader>
 
                     <DialogFooter className="flex gap-2 sm:gap-0">
-                        <Button
-                            variant="outline"
-                            onClick={() => setShowDialog(false)}
-                        >
+                        <Button variant="outline" onClick={() => setShowDialog(false)}>
                             Cancelar
                         </Button>
-                        <Button
-                            variant="secondary"
-                            onClick={handleContinueWithPublished}
-                            className="flex items-center gap-2"
-                        >
+                        <Button variant="secondary" onClick={handleContinueWithPublished} className="flex items-center gap-2">
                             <Play className="h-4 w-4" />
                             Continuar com v{form.current_version?.version_number || '1.0'}
                         </Button>
                         {onPublishAndExecute && (
-                            <Button
-                                onClick={handlePublishAndExecute}
-                                className="flex items-center gap-2"
-                            >
+                            <Button onClick={handlePublishAndExecute} className="flex items-center gap-2">
                                 <Upload className="h-4 w-4" />
                                 Publicar e Executar
                             </Button>
@@ -124,4 +103,4 @@ export default function FormExecutionGuard({
             </Dialog>
         </>
     );
-} 
+}

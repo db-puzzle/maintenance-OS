@@ -2,29 +2,32 @@
 
 namespace Tests\Unit;
 
-use App\Models\User;
-use App\Models\Maintenance\RoutineExecution;
-use App\Models\Maintenance\Routine;
 use App\Models\AssetHierarchy\Asset;
+use App\Models\Maintenance\Routine;
+use App\Models\Maintenance\RoutineExecution;
+use App\Models\User;
 use App\Services\ExecutionAnalyticsService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use Carbon\Carbon;
 
 class ExecutionAnalyticsServiceTest extends TestCase
 {
     use RefreshDatabase;
 
     protected ExecutionAnalyticsService $service;
+
     protected User $user;
+
     protected Routine $routine;
+
     protected Asset $asset;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->service = new ExecutionAnalyticsService();
+
+        $this->service = new ExecutionAnalyticsService;
         $this->user = User::factory()->create();
         $this->asset = Asset::factory()->create();
         $this->routine = Routine::factory()->create();
@@ -106,7 +109,7 @@ class ExecutionAnalyticsServiceTest extends TestCase
         $trendData = $this->service->getDailyTrend(7);
 
         $this->assertNotEmpty($trendData);
-        
+
         $todayData = $trendData->firstWhere('date', $today->toDateString());
         if ($todayData) {
             $this->assertEquals(2, $todayData['count']);
@@ -189,7 +192,7 @@ class ExecutionAnalyticsServiceTest extends TestCase
         $summary = $this->service->getAssetExecutionSummary();
 
         $this->assertCount(2, $summary);
-        
+
         $asset1Summary = $summary->firstWhere('asset_id', $this->asset->id);
         $this->assertEquals(3, $asset1Summary['total_executions']);
         $this->assertEquals(3, $asset1Summary['completed_executions']);

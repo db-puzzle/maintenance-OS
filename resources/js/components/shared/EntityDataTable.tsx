@@ -1,7 +1,7 @@
-import React from 'react';
 import { DataTable, type Column } from '@/components/data-table';
 import { ColumnConfig } from '@/types/shared';
 import { ArrowUpDown } from 'lucide-react';
+import React from 'react';
 
 interface EntityDataTableProps<T> {
     data: T[];
@@ -14,7 +14,7 @@ interface EntityDataTableProps<T> {
     onSort?: (columnKey: string) => void;
 }
 
-export function EntityDataTable<T extends Record<string, any>>({
+export function EntityDataTable<T extends Record<string, unknown>>({
     data,
     columns,
     loading = false,
@@ -27,19 +27,18 @@ export function EntityDataTable<T extends Record<string, any>>({
     // Convert ColumnConfig to DataTable Column format
     const dataTableColumns: Column<T>[] = columns.map((col) => ({
         id: col.key,
-        header: col.sortable && onSort ? (
-            <div
-                className="flex cursor-pointer items-center gap-2"
-                onClick={() => onSort(col.key)}
-            >
-                {col.label}
-                <ArrowUpDown className="h-4 w-4" />
-            </div>
-        ) : col.label,
-        cell: (row: { original: T }) => {
-            return col.render
-                ? col.render(row.original[col.key], row.original)
-                : row.original[col.key];
+        header:
+            col.sortable && onSort ? (
+                <div className="flex cursor-pointer items-center gap-2" onClick={() => onSort(col.key)}>
+                    {col.label}
+                    <ArrowUpDown className="h-4 w-4" />
+                </div>
+            ) : (
+                col.label
+            ),
+        cell: (row: { original: T }): React.ReactNode => {
+            const value = col.render ? col.render(row.original[col.key], row.original) : row.original[col.key];
+            return value as React.ReactNode;
         },
         width: col.width,
     }));
@@ -68,22 +67,17 @@ export function EntityDataTable<T extends Record<string, any>>({
 
     if (loading) {
         // Return loading skeleton using the same DataTable structure
-        const skeletonData = Array(5).fill({}).map((_, index) => {
-            const item: any = { id: `skeleton-${index}` };
-            columns.forEach((col) => {
-                item[col.key] = '...';
+        const skeletonData = Array(5)
+            .fill({})
+            .map((_, index) => {
+                const item: Record<string, unknown> = { id: `skeleton-${index}` };
+                columns.forEach((col) => {
+                    item[col.key] = '...';
+                });
+                return item as T;
             });
-            return item;
-        });
 
-        return (
-            <DataTable
-                data={skeletonData}
-                columns={dataTableColumns}
-                columnVisibility={effectiveColumnVisibility}
-                emptyMessage={emptyMessage}
-            />
-        );
+        return <DataTable data={skeletonData} columns={dataTableColumns} columnVisibility={effectiveColumnVisibility} emptyMessage={emptyMessage} />;
     }
 
     return (
@@ -95,4 +89,4 @@ export function EntityDataTable<T extends Record<string, any>>({
             emptyMessage={emptyMessage}
         />
     );
-} 
+}

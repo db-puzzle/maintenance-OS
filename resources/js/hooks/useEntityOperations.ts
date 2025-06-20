@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { router } from '@inertiajs/react';
-import { toast } from 'sonner';
 import { BaseEntity, DependencyResult } from '@/types/shared';
+import { router } from '@inertiajs/react';
 import axios from 'axios';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: any) => string;
@@ -125,7 +125,7 @@ export function useEntityOperations<T extends BaseEntity>({
                     reject(errors);
                 },
                 preserveScroll: true,
-                preserveState: true
+                preserveState: true,
             });
         });
     };
@@ -180,4 +180,4 @@ export function useEntityOperations<T extends BaseEntity>({
         },
         clearEditingItem,
     };
-} 
+}

@@ -1,14 +1,14 @@
 import { type BreadcrumbItem } from '@/types';
-import { router, Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Building2, Cog, Map } from 'lucide-react';
 
 import MapComponent from '@/components/map';
+import PlantFormComponent from '@/components/PlantFormComponent';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import PlantFormComponent from '@/components/PlantFormComponent';
 
 interface Plant {
     id: number;
@@ -164,11 +164,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
             label: 'Informações Gerais',
             content: (
                 <div className="py-8">
-                    <PlantFormComponent
-                        plant={plant}
-                        initialMode="view"
-                        onSuccess={handleEditSuccess}
-                    />
+                    <PlantFormComponent plant={plant} initialMode="view" onSuccess={handleEditSuccess} />
                 </div>
             ),
         },
@@ -529,18 +525,11 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
         },
     ];
 
-
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Planta ${plant.name}`} />
 
-            <ShowLayout
-                title={plant.name}
-                subtitle={subtitle}
-                editRoute=""
-                tabs={tabs}
-            />
+            <ShowLayout title={plant.name} subtitle={subtitle} editRoute="" tabs={tabs} />
         </AppLayout>
     );
 }

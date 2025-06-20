@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('caption')->nullable()->comment('For image/video types');
             $table->integer('position');
             $table->timestamps();
-            
+
             $table->index(['form_task_id', 'position']);
         });
     }

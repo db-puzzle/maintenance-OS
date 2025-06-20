@@ -28,4 +28,4 @@ export interface PlantForm {
     zip_code: string;
     gps_coordinates: string;
     shift_id: number | null;
-} 
+}

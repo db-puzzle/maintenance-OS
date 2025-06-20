@@ -1,31 +1,24 @@
-import React, { forwardRef, useState } from 'react';
+import TimeSelect from '@/components/TimeSelect';
 import { Button } from '@/components/ui/button';
-import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from '@/components/ui/sheet';
+import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import { Clock, Calendar as CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import TimeSelect from '@/components/TimeSelect';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import React, { forwardRef, useState } from 'react';
 
 interface ReportRuntimeSheetProps {
     assetId?: number;
     currentRuntime: number;
     showTrigger?: boolean;
-    onSuccess?: (data: any) => void;
+    onSuccess?: (data: { current_hours: number; last_measurement?: { hours: number; datetime: string; user_name?: string; source?: string; }; user_timezone?: string; }) => void;
 }
 
 const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps>(
@@ -38,9 +31,7 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
 
         // Initialize with current date and time
         const [measurementDate, setMeasurementDate] = useState<Date>(new Date());
-        const [measurementTime, setMeasurementTime] = useState(
-            format(new Date(), 'HH:mm')
-        );
+        const [measurementTime, setMeasurementTime] = useState(format(new Date(), 'HH:mm'));
         const [calendarOpen, setCalendarOpen] = useState(false);
 
         const handleSubmit = async (e: React.FormEvent) => {
@@ -78,7 +69,7 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                     notes: notes || null,
                     // toISOString() always returns UTC time (with 'Z' suffix)
                     // The user selects in their local time, but we send UTC to the backend
-                    measurement_datetime: measurementDateTime.toISOString()
+                    measurement_datetime: measurementDateTime.toISOString(),
                 });
 
                 if (response.data.success) {
@@ -92,11 +83,12 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                     // Refresh the page data
                     router.reload();
                 }
-            } catch (err: any) {
-                if (err.response?.data?.errors?.measurement_datetime) {
-                    setError(err.response.data.errors.measurement_datetime[0]);
+            } catch (err: unknown) {
+                const error = err as { response?: { data?: { errors?: { measurement_datetime?: string[] }; message?: string; } } };
+                if (error.response?.data?.errors?.measurement_datetime) {
+                    setError(error.response.data.errors.measurement_datetime[0]);
                 } else {
-                    setError(err.response?.data?.message || 'Erro ao reportar horímetro');
+                    setError(error.response?.data?.message || 'Erro ao reportar horímetro');
                 }
             } finally {
                 setIsSubmitting(false);
@@ -116,16 +108,12 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                 <SheetContent>
                     <SheetHeader>
                         <SheetTitle>Reportar Horímetro</SheetTitle>
-                        <SheetDescription>
-                            Insira o valor atual do horímetro do ativo
-                        </SheetDescription>
+                        <SheetDescription>Insira o valor atual do horímetro do ativo</SheetDescription>
                     </SheetHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4 mr-4 ml-4">
+                    <form onSubmit={handleSubmit} className="mr-4 ml-4 space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="current-hours">Horímetro Atual</Label>
-                            <div className="text-sm text-muted-foreground">
-                                {currentRuntime.toFixed(1)} horas
-                            </div>
+                            <div className="text-muted-foreground text-sm">{currentRuntime.toFixed(1)} horas</div>
                         </div>
 
                         <div className="space-y-2">
@@ -148,16 +136,13 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant="outline"
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !measurementDate && "text-muted-foreground"
-                                        )}
+                                        className={cn('w-full justify-start text-left font-normal', !measurementDate && 'text-muted-foreground')}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {measurementDate ? format(measurementDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione a data"}
+                                        {measurementDate ? format(measurementDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione a data'}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 z-[100]">
+                                <PopoverContent className="z-[100] w-auto p-0">
                                     <Calendar
                                         mode="single"
                                         selected={measurementDate}
@@ -176,18 +161,11 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
 
                         {/* Time Selection */}
                         <div className="space-y-2">
-                            <TimeSelect
-                                label="Hora da Medição"
-                                value={measurementTime}
-                                onChange={setMeasurementTime}
-                            />
+                            <TimeSelect label="Hora da Medição" value={measurementTime} onChange={setMeasurementTime} />
                             {/* Show warning if date is today */}
-                            {measurementDate &&
-                                measurementDate.toDateString() === new Date().toDateString() && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Nota: A hora selecionada não pode ser no futuro
-                                    </p>
-                                )}
+                            {measurementDate && measurementDate.toDateString() === new Date().toDateString() && (
+                                <p className="text-muted-foreground text-xs">Nota: A hora selecionada não pode ser no futuro</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -201,27 +179,13 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                             />
                         </div>
 
-                        {error && (
-                            <div className="text-sm text-red-600">
-                                {error}
-                            </div>
-                        )}
+                        {error && <div className="text-sm text-red-600">{error}</div>}
 
                         <div className="flex gap-2 pt-4">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsOpen(false)}
-                                disabled={isSubmitting}
-                                className="flex-1"
-                            >
+                            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting} className="flex-1">
                                 Cancelar
                             </Button>
-                            <Button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="flex-1"
-                            >
+                            <Button type="submit" disabled={isSubmitting} className="flex-1">
                                 {isSubmitting ? 'Salvando...' : 'Salvar'}
                             </Button>
                         </div>
@@ -229,9 +193,9 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                 </SheetContent>
             </Sheet>
         );
-    }
+    },
 );
 
 ReportRuntimeSheet.displayName = 'ReportRuntimeSheet';
 
-export default ReportRuntimeSheet; 
+export default ReportRuntimeSheet;
