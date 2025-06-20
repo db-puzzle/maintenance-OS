@@ -60,7 +60,13 @@ interface Props {
         plant: Plant;
         area?: Area & { plant: Plant };
         sector?: Sector;
-        routines?: Array<any>;
+        routines?: Array<{
+            id: number;
+            name: string;
+            description?: string;
+            form?: unknown;
+            [key: string]: unknown;
+        }>;
         shift_id?: number;
         runtime_data?: {
             current_hours: number;
@@ -80,7 +86,7 @@ interface Props {
 }
 
 export default function Show({ asset, plants, assetTypes, manufacturers, isCreating = false, newRoutineId }: Props) {
-    const { url } = usePage<any>();
+    const { url } = usePage<{ flash?: { success?: string } }>();
 
     // Extrai o parâmetro tab da URL
     const urlParams = new URLSearchParams(url.split('?')[1] || '');
@@ -103,7 +109,13 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     ];
 
     // Estado para gerenciar as rotinas
-    const [routines, setRoutines] = useState<Array<any>>(asset?.routines || []);
+    const [routines, setRoutines] = useState<Array<{
+        id: number;
+        name: string;
+        description?: string;
+        form?: unknown;
+        [key: string]: unknown;
+    }>>(asset?.routines || []);
 
     // Update routines when asset prop changes
     useEffect(() => {
@@ -165,7 +177,13 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     });
 
     // Handlers para rotinas
-    const handleSaveRoutine = (routine: any) => {
+    const handleSaveRoutine = (routine: {
+        id: number;
+        name: string;
+        description?: string;
+        form?: unknown;
+        [key: string]: unknown;
+    }) => {
         if (routine.id && routines.find((r) => r.id === routine.id)) {
             // Atualizar rotina existente
             setRoutines(routines.map((r) => (r.id === routine.id ? routine : r)));
@@ -177,7 +195,13 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         }
     };
 
-    const handleCreateSuccess = (routine: any) => {
+    const handleCreateSuccess = (routine: {
+        id: number;
+        name: string;
+        description?: string;
+        form?: unknown;
+        [key: string]: unknown;
+    }) => {
         // Add the new routine to the state
         if (routine && routine.id) {
             setRoutines([...routines, routine]);
@@ -186,7 +210,13 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         // The redirect will trigger the useEffect to open the form editor
     };
 
-    const handleDeleteRoutine = (routine: any) => {
+    const handleDeleteRoutine = (routine: {
+        id: number;
+        name: string;
+        description?: string;
+        form?: unknown;
+        [key: string]: unknown;
+    }) => {
         // Remover a rotina da listagem
         setRoutines(routines.filter((r) => r.id !== routine.id));
     };
@@ -438,7 +468,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     };
 
     const handleCloseFormFiller = () => {
-        setFillingRoutineId(null);
+        setFillingRoutineFormId(null);
         setIsCompressed(false);
     };
 

@@ -1,14 +1,16 @@
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 
-export interface UseEntityFormConfig<TFormData> {
+type FormDataType = Record<string, string | number | boolean | File | null | undefined>;
+
+export interface UseEntityFormConfig<TFormData extends FormDataType> {
     initialData: TFormData;
-    entity?: any;
+    entity?: Record<string, unknown>;
     mode?: 'create' | 'edit';
-    transformEntityToForm?: (entity: any) => Partial<TFormData>;
+    transformEntityToForm?: (entity: Record<string, unknown>) => Partial<TFormData>;
 }
 
-export function useEntityForm<TFormData extends Record<string, any>>({
+export function useEntityForm<TFormData extends FormDataType>({
     initialData,
     entity,
     mode = 'create',
@@ -30,8 +32,12 @@ export function useEntityForm<TFormData extends Record<string, any>>({
             } else {
                 // Default: map entity fields to form fields
                 Object.keys(initialData).forEach((key) => {
-                    if (entity[key] !== undefined) {
-                        form.setData(key as keyof TFormData, entity[key]);
+                    if (entity[key] !== undefined && entity[key] !== null) {
+                        const value = entity[key];
+                        // Only assign if the value is a valid form data type
+                        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value instanceof File) {
+                            form.setData(key as keyof TFormData, value as TFormData[keyof TFormData]);
+                        }
                     }
                 });
             }

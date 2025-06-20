@@ -24,7 +24,7 @@ interface Props {
         };
         area_id?: number;
     };
-    plants?: any[];
+    plants?: { id: number; name: string }[];
     asset: {
         data: Asset[];
         current_page: number;
@@ -109,7 +109,12 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             label: 'Informações Gerais',
             content: (
                 <div className="py-8">
-                    <SectorFormComponent sector={sector as any} plants={plants || []} initialMode="view" onSuccess={() => router.reload()} />
+                    <SectorFormComponent 
+                        sector={sector as unknown as Parameters<typeof SectorFormComponent>[0]['sector']} 
+                        plants={plants || []} 
+                        initialMode="view" 
+                        onSuccess={() => router.reload()} 
+                    />
                 </div>
             ),
         },

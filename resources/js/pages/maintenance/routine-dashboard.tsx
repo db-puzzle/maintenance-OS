@@ -81,10 +81,10 @@ interface PerformanceMetrics {
 interface RoutineDashboardProps {
     stats: Stats;
     recentExecutions: ExecutionSummary[];
-    dailyTrend: any[];
+    dailyTrend: Record<string, unknown>[];
     performanceMetrics: PerformanceMetrics;
-    filters: any;
-    filterOptions: any;
+    filters: Record<string, unknown>;
+    filterOptions: Record<string, unknown>;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [

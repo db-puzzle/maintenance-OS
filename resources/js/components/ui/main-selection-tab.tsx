@@ -32,7 +32,7 @@ const extractTextContent = (children: React.ReactNode): string => {
 
   if (React.isValidElement(children)) {
     // If it's a React element, try to extract text from its children
-    const element = children as React.ReactElement<any>;
+    const element = children as React.ReactElement<{ children?: React.ReactNode }>;
     if (element.props && element.props.children) {
       return extractTextContent(element.props.children);
     }
@@ -53,7 +53,7 @@ function MainSelectionTabList({
   React.useEffect(() => {
     const activeTab = React.Children.toArray(children).find((child) => {
       if (React.isValidElement(child)) {
-        const childProps = child.props as any
+        const childProps = child.props as { 'data-state'?: string }
         if (childProps['data-state'] === 'active') {
           return true
         }
@@ -61,7 +61,7 @@ function MainSelectionTabList({
       return false
     })
     if (React.isValidElement(activeTab)) {
-      const activeTabProps = activeTab.props as any
+      const activeTabProps = activeTab.props as { value?: string }
       if (activeTabProps.value) {
         setSelectedTab(activeTabProps.value)
       }
@@ -87,7 +87,7 @@ function MainSelectionTabList({
         >
           {React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
-              const childProps = child.props as any
+              const childProps = child.props as { value?: string; children?: React.ReactNode }
               if (childProps.value) {
                 // Extract only text content, excluding SVG icons and other React components
                 const textContent = extractTextContent(childProps.children);

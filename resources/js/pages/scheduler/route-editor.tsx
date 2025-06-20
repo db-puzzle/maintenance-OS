@@ -116,16 +116,16 @@ export default function RouteEditor() {
 
     // Efeito para escutar eventos de movimento do mouse durante criação de conexão
     React.useEffect(() => {
-        const handleTempConnectionMouseMove = (e: any) => {
+        const handleTempConnectionMouseMove = (e: CustomEvent<{ x: number; y: number }>) => {
             if (e.detail) {
                 setTempConnectionPos({ x: e.detail.x, y: e.detail.y });
             }
         };
 
-        document.addEventListener('mousemove:temp-connection', handleTempConnectionMouseMove);
+        document.addEventListener('mousemove:temp-connection', handleTempConnectionMouseMove as EventListener);
 
         return () => {
-            document.removeEventListener('mousemove:temp-connection', handleTempConnectionMouseMove);
+            document.removeEventListener('mousemove:temp-connection', handleTempConnectionMouseMove as EventListener);
         };
     }, []);
 
@@ -222,7 +222,7 @@ export default function RouteEditor() {
     };
 
     // Iniciar arrasto de node
-    const handleNodeDragStart = (e: any, nodeId: string) => {
+    const handleNodeDragStart = (e: React.MouseEvent, nodeId: string) => {
         e.stopPropagation();
         const node = nodes.find((n) => n.id === nodeId);
         if (!node) return;
@@ -241,7 +241,7 @@ export default function RouteEditor() {
 
     // Gerenciar movimento do mouse no board
     const handleMouseMove = useCallback(
-        (e: any) => {
+        (e: React.MouseEvent) => {
             const boardRect = boardRef.current?.getBoundingClientRect();
             if (!boardRect) return;
 
@@ -266,7 +266,7 @@ export default function RouteEditor() {
     );
 
     // Gerenciar mouse up - potencialmente finalizando uma conexão
-    const handleMouseUp = (e: any) => {
+    const handleMouseUp = (e: React.MouseEvent) => {
         if (draggingNode) {
             setDraggingNode(null);
             return;
@@ -304,7 +304,7 @@ export default function RouteEditor() {
     };
 
     // Iniciar conexão entre nodes
-    const handleConnectionStart = (e: any, nodeId: string) => {
+    const handleConnectionStart = (e: React.MouseEvent, nodeId: string) => {
         e.stopPropagation();
         e.preventDefault();
 

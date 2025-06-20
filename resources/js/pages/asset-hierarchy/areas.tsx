@@ -16,7 +16,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 
 // Declare the global route function from Ziggy
-declare const route: (name: string, params?: any) => string;
+declare const route: (name: string, params?: Record<string, string | number>) => string;
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -112,33 +112,39 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
             label: 'Nome',
             sortable: true,
             width: 'w-[300px]',
-            render: (value, row) => (
-                <div>
-                    <div className="font-medium">{row.name}</div>
-                    {row.description && <div className="text-muted-foreground text-sm">{row.description}</div>}
-                </div>
-            ),
+            render: (value, row) => {
+                const area = row as unknown as Area;
+                return (
+                    <div>
+                        <div className="font-medium">{area.name}</div>
+                        {area.description && <div className="text-muted-foreground text-sm">{area.description}</div>}
+                    </div>
+                );
+            },
         },
         {
             key: 'plant',
             label: 'Planta',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.plant?.name || '-',
+            render: (value, row) => {
+                const area = row as unknown as Area;
+                return area.plant?.name || '-';
+            },
         },
         {
             key: 'sectors_count',
             label: 'Setores',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => value || 0,
+            render: (value) => (value as number) || 0,
         },
         {
             key: 'asset_count',
             label: 'Ativos',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => value || 0,
+            render: (value) => (value as number) || 0,
         },
     ];
 

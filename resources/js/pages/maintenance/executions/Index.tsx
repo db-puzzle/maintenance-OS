@@ -18,7 +18,7 @@ import { Download, Eye, FileText, Filter } from 'lucide-react';
 import React, { useState } from 'react';
 
 // Declare the global route function from Ziggy
-declare const route: (name: string, params?: any) => string;
+declare const route: (name: string, params?: Record<string, string | number>) => string;
 
 interface ExecutionIndexProps {
     executions: PaginatedExecutions;

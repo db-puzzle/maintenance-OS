@@ -22,7 +22,7 @@ export interface DependencyResult {
                 name?: string;
                 tag?: string;
                 description?: string;
-                [key: string]: any;
+                [key: string]: unknown;
             }>;
         };
     };
@@ -34,7 +34,7 @@ export interface ColumnConfig {
     sortable?: boolean;
     visible?: boolean;
     width?: string;
-    render?: (value: any, row: any) => React.ReactNode;
+    render?: (value: unknown, row: Record<string, unknown>) => React.ReactNode;
 }
 
 export interface BaseEntity {

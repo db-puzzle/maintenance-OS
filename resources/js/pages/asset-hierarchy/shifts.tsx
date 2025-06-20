@@ -62,10 +62,10 @@ interface AssetData {
 }
 
 interface PageProps {
-    [key: string]: any;
     flash?: {
         success?: string;
     };
+    [key: string]: unknown;
 }
 
 interface Props {
@@ -281,17 +281,17 @@ export default function Index({
     const data = Array.isArray(shifts) ? shifts : shifts.data;
 
     // Função para transformar os dados do backend para o formato esperado pelos componentes
-    const transformSchedules = (schedules: any[]): Schedule[] => {
+    const transformSchedules = (schedules: Record<string, unknown>[]): Schedule[] => {
         return schedules.map((schedule) => ({
-            weekday: schedule.weekday,
-            shifts: schedule.shifts?.map((shift: any) => ({
-                start_time: shift.start_time,
-                end_time: shift.end_time,
-                active: shift.active ?? true, // Mantém o valor existente ou usa true como padrão
+            weekday: schedule.weekday as string,
+            shifts: (schedule.shifts as Record<string, unknown>[])?.map((shift: Record<string, unknown>) => ({
+                start_time: shift.start_time as string,
+                end_time: shift.end_time as string,
+                active: (shift.active as boolean) ?? true, // Mantém o valor existente ou usa true como padrão
                 breaks:
-                    shift.breaks?.map((breakTime: any) => ({
-                        start_time: breakTime.start_time,
-                        end_time: breakTime.end_time,
+                    (shift.breaks as Record<string, unknown>[])?.map((breakTime: Record<string, unknown>) => ({
+                        start_time: breakTime.start_time as string,
+                        end_time: breakTime.end_time as string,
                     })) || [],
             })) || [
                 {
@@ -503,10 +503,10 @@ export default function Index({
                                                             </TabsList>
                                                         </div>
                                                         <TabsContent value="calendar">
-                                                            <ShiftCalendarView schedules={transformSchedules(shift.schedules)} showAllDays={true} />
+                                                            <ShiftCalendarView schedules={transformSchedules(shift.schedules as Record<string, unknown>[])} showAllDays={true} />
                                                         </TabsContent>
                                                         <TabsContent value="table">
-                                                            <ShiftTableView schedules={transformSchedules(shift.schedules)} />
+                                                            <ShiftTableView schedules={transformSchedules(shift.schedules as Record<string, unknown>[])} />
                                                         </TabsContent>
                                                         <TabsContent value="asset">
                                                             <AssetsList shiftId={shift.id} assetCount={shift.asset_count || 0} />

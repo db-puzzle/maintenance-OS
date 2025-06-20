@@ -61,7 +61,7 @@ export interface FormTask {
     type: string;
     description: string;
     is_required: boolean;
-    configuration: Record<string, any>;
+    configuration: Record<string, unknown>;
     instructions: TaskInstruction[];
 }
 
@@ -74,7 +74,7 @@ export interface TaskInstruction {
 
 export interface FormattedResponse {
     type: string;
-    value: any;
+    value: string | number | boolean | string[] | Record<string, unknown> | null;
     display_value: string;
     status: 'success' | 'warning' | 'incomplete' | 'error';
 

@@ -1,4 +1,4 @@
-export function route(name: string, params: Record<string, any> = {}): string {
+export function route(name: string, params: Record<string, string | number | boolean> = {}): string {
     // Converte o nome da rota em um caminho
     // Exemplo: 'asset-hierarchy.setores' -> '/asset-hierarchy/setores'
     const path = name.replace(/\./g, '/');

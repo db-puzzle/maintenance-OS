@@ -16,7 +16,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 
 // Declare the global route function from Ziggy
-declare const route: (name: string, params?: any) => string;
+declare const route: (name: string, params?: Record<string, string | number>) => string;
 
 const breadcrumbs: BreadcrumbItem[] = [
     {

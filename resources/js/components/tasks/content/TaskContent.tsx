@@ -19,7 +19,7 @@ interface TaskContentProps {
     /** Callback para alterar o ícone do card */
     onIconChange?: (icon: React.ReactNode) => void;
     /** Callback para salvar a resposta da tarefa */
-    onSave?: (responseData: any) => void;
+    onSave?: (responseData: Record<string, unknown>) => void;
     /** Se deve mostrar o botão de salvar */
     showSaveButton?: boolean;
     /** Se o componente está desabilitado */

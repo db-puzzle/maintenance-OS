@@ -8,11 +8,11 @@ export interface WithSaveFunctionalityProps {
     task: Task;
     mode: TaskCardMode;
     onUpdate?: (updatedTask: Task) => void;
-    onSave?: (responseData: any) => void;
+    onSave?: (responseData: Record<string, unknown>) => void;
     showSaveButton?: boolean;
     disabled?: boolean;
-    response: any;
-    setResponse: (response: any) => void;
+    response: Record<string, unknown> | null;
+    setResponse: (response: Record<string, unknown> | null) => void;
     isLastTask?: boolean;
     onNext?: () => void;
 }
@@ -22,17 +22,17 @@ export const withSaveFunctionality = <P extends object>(WrappedComponent: Compon
         props: P & {
             task: Task;
             mode: TaskCardMode;
-            onSave?: (responseData: any) => void;
+            onSave?: (responseData: Record<string, unknown>) => void;
             showSaveButton?: boolean;
             disabled?: boolean;
             isLastTask?: boolean;
             onNext?: () => void;
         },
     ) => {
-        const [response, setResponse] = useState<any>(null);
+        const [response, setResponse] = useState<Record<string, unknown> | null>(null);
 
         const handleSaveAndNext = () => {
-            if (props.onSave) {
+            if (props.onSave && response) {
                 props.onSave(response);
             }
             // The onNext will be called after successful save in the parent component

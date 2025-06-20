@@ -20,7 +20,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 interface Props {
     data: {
-        data: any[];
+        data: Record<string, unknown>[];
         current_page: number;
         last_page: number;
         per_page: number;

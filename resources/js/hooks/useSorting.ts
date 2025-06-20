@@ -2,14 +2,14 @@ import { router } from '@inertiajs/react';
 import { useCallback, useState } from 'react';
 
 // Declare the global route function from Ziggy
-declare const route: (name: string, params?: any) => string;
+declare const route: (name: string, params?: Record<string, string | number>) => string;
 
 // Standalone sorting hook for Inertia-based components
 export interface UseSortingProps {
     routeName: string;
     initialSort?: string;
     initialDirection?: 'asc' | 'desc';
-    additionalParams?: Record<string, any>;
+    additionalParams?: Record<string, string | number>;
 }
 
 export function useSorting({ routeName, initialSort = 'name', initialDirection = 'asc', additionalParams = {} }: UseSortingProps) {

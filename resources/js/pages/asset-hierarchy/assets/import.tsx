@@ -64,7 +64,7 @@ export default function ImportAsset() {
     const [errorMessage, setErrorMessage] = React.useState('');
     const [csvData, setCsvData] = React.useState<{
         headers: string[];
-        data: any[];
+        data: Record<string, string | number | boolean>[];
         validationErrors: string[];
         progress: number;
         totalLines: number;
@@ -167,13 +167,13 @@ export default function ImportAsset() {
             setShowFormat(false);
             setShowInstructions(true);
             setProgressValue(response.data.progress);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Erro ao processar arquivo:', error);
             setProgressValue(0);
             setShowProgress(false);
 
             // Extrai a mensagem de erro da resposta
-            const errorMessage = error.response?.data?.error || 'Erro ao processar o arquivo CSV.';
+            const errorMessage = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao processar o arquivo CSV.';
             setErrorMessage(errorMessage);
             setShowErrorDialog(true);
         } finally {
@@ -235,9 +235,10 @@ export default function ImportAsset() {
                 setCsvData(null);
                 setFieldMapping({});
             }
-        } catch (error: any) {
-            if (error.response?.data?.validationErrors) {
-                setImportErrors(error.response.data.validationErrors);
+        } catch (error: unknown) {
+            const errorObj = error as { response?: { data?: { validationErrors?: string[] } } };
+            if (errorObj.response?.data?.validationErrors) {
+                setImportErrors(errorObj.response.data.validationErrors);
                 setShowImportDialog(true);
             } else {
                 setErrorMessage('Erro ao importar os dados. Por favor, tente novamente.');

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 // Declare the global route function from Ziggy
-declare const route: (name: string, params?: any) => string;
+declare const route: (name: string, params?: Record<string, string | number>) => string;
 
 interface UseEntityOperationsProps {
     entityName: string;
@@ -31,7 +31,7 @@ interface UseEntityOperationsReturn<T> {
     handleEdit: (item: T) => Promise<void>;
     handleDelete: (item: T) => Promise<void>;
     confirmDelete: () => Promise<void>;
-    checkDependencies: () => Promise<any>;
+    checkDependencies: () => Promise<DependencyResult>;
 
     setEditSheetOpen: (open: boolean) => void;
     setDeleteDialogOpen: (open: boolean) => void;
