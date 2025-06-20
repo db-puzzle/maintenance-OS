@@ -169,11 +169,12 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
 
             // Handle different response types
             if (Array.isArray(dataToSend.files) && dataToSend.files.length > 0) {
-                (dataToSend.files as File[]).forEach((file: File, index: number) => {
+                const files = dataToSend.files as File[];
+                files.forEach((file: File, index: number) => {
                     formData.append(`files[${index}]`, file);
                 });
                 // Remove files from response data to avoid sending as JSON
-                const { files: _files, ...restData } = dataToSend;
+                const { files: _, ...restData } = dataToSend;
                 // Send response as array fields instead of JSON string
                 Object.keys(restData).forEach((key) => {
                     formData.append(`response[${key}]`, String(restData[key]));

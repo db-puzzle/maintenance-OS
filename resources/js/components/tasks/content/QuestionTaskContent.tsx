@@ -2,7 +2,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 
-interface QuestionTaskContentProps extends WithSaveFunctionalityProps {}
+// This type alias extends WithSaveFunctionalityProps and is reserved for future question task specific props
+type QuestionTaskContentProps = WithSaveFunctionalityProps;
 
 function QuestionTaskContent({ task, mode, response, setResponse, disabled }: QuestionTaskContentProps) {
     return (

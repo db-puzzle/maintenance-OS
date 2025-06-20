@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Instruction, InstructionType } from '@/types/task';
+import { Instruction } from '@/types/task';
 import { useState } from 'react';
 import { InstructionForm } from './InstructionForm';
 
@@ -22,7 +22,7 @@ export function EditInstructionModal({ open, onClose, onSave, instruction: initi
         setInstruction(updatedInstruction);
     };
 
-    const handleTypeChange = (_: InstructionType) => {
+    const handleTypeChange = () => {
         // Não implementamos troca de tipo na edição, pois exigiria
         // recriar a instrução com novos campos
     };

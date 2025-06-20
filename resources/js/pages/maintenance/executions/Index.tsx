@@ -51,7 +51,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, filterOptions, sortOptions, currentSort }) => {
+const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, filterOptions, sortOptions: _sortOptions, currentSort }) => {
     const [selectedExecutions, setSelectedExecutions] = useState<number[]>([]);
     const [showFilters, setShowFilters] = useState(false);
     const [localFilters, setLocalFilters] = useState(filters);
@@ -240,7 +240,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
         console.log('Export single:', executionId);
     };
 
-    const handleSelectAll = (checked: boolean) => {
+    const _handleSelectAll = (checked: boolean) => {
         if (checked) {
             setSelectedExecutions(data.map((e) => e.id));
         } else {

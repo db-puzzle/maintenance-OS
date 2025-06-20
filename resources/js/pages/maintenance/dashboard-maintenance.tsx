@@ -18,7 +18,6 @@ import {
     RotateCcw,
     Settings,
 } from 'lucide-react';
-import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -32,8 +31,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function DashboardMaintenance() {
-    const [selectedPath, setSelectedPath] = useState<string | null>(null);
-
     const paths: Record<string, PathItem> = {
         maintenance_plans: {
             title: 'Planos de Manutenção',

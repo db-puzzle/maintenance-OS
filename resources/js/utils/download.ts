@@ -20,7 +20,7 @@ export function downloadFile(url: string, filename?: string): void {
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
         }
-    } catch (e) {
+    } catch {
         // If URL parsing fails, assume it's a relative URL
     }
 
@@ -73,8 +73,7 @@ export async function downloadFileWithFetch(url: string, filename: string): Prom
         setTimeout(() => {
             window.URL.revokeObjectURL(objectUrl);
         }, 1000);
-    } catch (error) {
-        console.error('Download error:', error);
-        throw error;
+    } catch {
+        console.error('Erro de download');
     }
 }

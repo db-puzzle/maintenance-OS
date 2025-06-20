@@ -9,14 +9,18 @@ import { MeasurementUnitCategories, UnitCategory } from '@/types/units';
 import { useEffect, useState } from 'react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 
-interface MeasurementTaskContentProps extends WithSaveFunctionalityProps {}
+// This interface extends WithSaveFunctionalityProps and is reserved for future measurement-specific props
+interface MeasurementTaskContentProps extends WithSaveFunctionalityProps {
+    // Future measurement-specific props will be added here
+    [key: string]: unknown;
+}
 
 interface MeasurementFormData {
     targetValue: string;
     minValue: string;
     maxValue: string;
     measuredValue: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean;
 }
 
 function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, disabled }: MeasurementTaskContentProps) {
@@ -170,7 +174,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                         <div className="col-span-1 space-y-2 lg:col-span-7">
                             <ItemSelect
                                 label="Categoria"
-                                items={Object.keys(MeasurementUnitCategories).map((cat) => ({ id: cat, name: cat })) as any}
+                                items={Object.keys(MeasurementUnitCategories).map((cat) => ({ id: cat, name: cat }))}
                                 value={category}
                                 onValueChange={handleCategoryChange}
                                 createRoute=""
@@ -182,7 +186,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                         <div className="col-span-1 space-y-2 lg:col-span-7">
                             <ItemSelect
                                 label="Unidade"
-                                items={MeasurementUnitCategories[safeCategory].map((unit) => ({ id: unit.value, name: unit.label })) as any}
+                                items={MeasurementUnitCategories[safeCategory].map((unit) => ({ id: unit.value, name: unit.label }))}
                                 value={selectedUnit}
                                 onValueChange={handleUnitChange}
                                 createRoute=""
@@ -202,7 +206,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                         <div className="col-span-1 grid grid-cols-3 gap-3 lg:col-span-12 lg:gap-4">
                             <div className="col-span-1 space-y-2">
                                 <TextInput
-                                    form={form as any}
+                                    form={form}
                                     name="targetValue"
                                     label="Valor Alvo"
                                     placeholder="Sem Alvo"
@@ -212,7 +216,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
 
                             <div className="col-span-1 space-y-2">
                                 <TextInput
-                                    form={form as any}
+                                    form={form}
                                     name="minValue"
                                     label="Valor Mínimo"
                                     placeholder="Sem Min"
@@ -222,7 +226,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
 
                             <div className="col-span-1 space-y-2">
                                 <TextInput
-                                    form={form as any}
+                                    form={form}
                                     name="maxValue"
                                     label="Valor Máximo"
                                     placeholder="Sem Max"

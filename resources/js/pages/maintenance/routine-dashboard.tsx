@@ -138,7 +138,7 @@ const chartConfig = {
     },
 } satisfies ChartConfig;
 
-const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecutions, dailyTrend, performanceMetrics, filters, filterOptions }) => {
+const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecutions, dailyTrend, performanceMetrics: _performanceMetrics, filters: _filters, filterOptions: _filterOptions }) => {
     const [date, setDate] = useState<DateRange | undefined>(() => {
         // Initialize from URL params or use default range
         const urlParams = new URLSearchParams(window.location.search);
@@ -170,22 +170,14 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
     const { addExport, updateExport } = useExportManager();
 
     // Column visibility state
-    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('routineDashboardColumnsVisibility');
-            if (saved) {
-                return JSON.parse(saved);
-            }
-        }
-        return {
-            id: true,
-            status: true,
-            routine_name: true,
-            asset_tag: true,
-            executor_name: true,
-            started_at: true,
-            duration_minutes: true,
-        };
+    const [_columnVisibility, _setColumnVisibility] = useState<Record<string, boolean>>({
+        id: true,
+        status: true,
+        routine_name: true,
+        asset_tag: true,
+        executor_name: true,
+        started_at: true,
+        duration_minutes: true,
     });
 
     // Column configuration for EntityDataTable
@@ -258,8 +250,8 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
         },
     ];
 
-    const getTrendIcon = (direction: string) => {
-        switch (direction) {
+    const _getTrendIcon = (trend: 'up' | 'down' | 'neutral') => {
+        switch (trend) {
             case 'up':
                 return <TrendingUp className="h-4 w-4 text-green-600" />;
             case 'down':
@@ -709,7 +701,7 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({ stats, recentExecut
                             columns={columns}
                             loading={false}
                             onRowClick={(execution) => router.visit(`/maintenance/executions/${execution.id}`)}
-                            columnVisibility={columnVisibility}
+                            columnVisibility={_columnVisibility}
                             onSort={handleSort}
                             actions={(execution) => (
                                 <EntityActionDropdown

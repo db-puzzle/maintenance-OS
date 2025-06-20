@@ -25,10 +25,9 @@ interface Props {
         per_page: number;
         total: number;
     };
-    activeTab: string;
 }
 
-export default function Show({ assetType, asset, activeTab }: Props) {
+export default function Show({ assetType, asset }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Home',

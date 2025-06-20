@@ -2,7 +2,8 @@ import PhotoUploader from '@/components/PhotoUploader';
 import { Image } from 'lucide-react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
 
-interface PhotoTaskContentProps extends WithSaveFunctionalityProps {}
+// This type alias extends WithSaveFunctionalityProps and is reserved for future photo task specific props
+type PhotoTaskContentProps = WithSaveFunctionalityProps;
 
 function PhotoTaskContent({ task, mode, response, setResponse, disabled }: PhotoTaskContentProps) {
     const handlePhotoChange = (file: File | null) => {

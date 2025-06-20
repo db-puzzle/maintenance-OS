@@ -9,7 +9,7 @@ interface FormVersionHistoryProps {
     onClose: () => void;
 }
 
-export default function FormVersionHistory({ formId: _formId, currentVersionId: _currentVersionId, isOpen, onClose }: FormVersionHistoryProps) {
+export default function FormVersionHistory({ isOpen, onClose }: FormVersionHistoryProps) {
     // This is a placeholder component that will be implemented with full version history functionality
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>

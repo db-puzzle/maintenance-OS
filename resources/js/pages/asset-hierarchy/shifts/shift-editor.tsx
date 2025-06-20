@@ -38,7 +38,16 @@ interface Schedule {
     shifts: Shift[];
 }
 
-interface CreateProps {}
+// This interface is currently empty but reserved for future shift editor specific props  
+interface ShiftEditorProps {
+    // Future shift editor specific props will be added here
+    [key: string]: unknown;
+}
+
+interface CreateProps {
+    // Props for create functionality will be added here as needed
+    [key: string]: unknown;
+}
 
 interface ShiftData {
     id: number;

@@ -91,7 +91,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const History: React.FC<HistoryProps> = ({ stats, recentExecutions, dailyTrend, performanceMetrics, filters, filterOptions }) => {
+const History: React.FC<HistoryProps> = ({ stats, recentExecutions, dailyTrend: _dailyTrend, performanceMetrics, filters: _filters, filterOptions: _filterOptions }) => {
     const [activeTab, setActiveTab] = useState('overview');
     const [isExporting, setIsExporting] = useState(false);
     const { addExport, updateExport } = useExportManager();

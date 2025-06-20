@@ -86,11 +86,7 @@ const WORKCELL_COLORS = [
     '#fefcbf',
 ];
 
-interface Props {
-    // Tipagem das props que serão recebidas do backend
-}
-
-export default function RouteEditor({}: Props) {
+export default function RouteEditor() {
     // Estados para nodes (workcells) e edges (connections)
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);

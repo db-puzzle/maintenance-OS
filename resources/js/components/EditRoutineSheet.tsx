@@ -22,7 +22,6 @@ interface RoutineForm {
 interface EditRoutineSheetProps {
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
-    onSuccess?: (routine: Routine) => void;
     routine?: Routine;
     isNew?: boolean;
     assetId?: number;
@@ -42,7 +41,6 @@ const routineStatuses = [
 const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
     isOpen,
     onOpenChange,
-    onSuccess,
     routine,
     isNew = false,
     assetId,
@@ -140,12 +138,10 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             }
 
             router.put(route('maintenance.assets.routines.update', { asset: assetId, routine: routine.id }), data, {
-                onSuccess: (response) => {
-                    const savedRoutine: Routine = { ...routine, ...data };
-                    toast.success('Rotina atualizada com sucesso!');
-                    setProcessing(false);
+                onSuccess: () => {
+                    toast.success("Rotina atualizada com sucesso!");
                     setSheetOpen(false);
-                    onSuccess?.(savedRoutine);
+                    router.reload();
                 },
                 onError: (errors: Record<string, string>) => {
                     console.error('Erro ao atualizar rotina:', errors);

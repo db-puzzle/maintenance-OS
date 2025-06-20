@@ -173,7 +173,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     }, [items]);
 
     // Função para iniciar o arrasto com mousedown + dragstart
-    const handleItemMouseDown = (e: React.MouseEvent, id: string) => {
+    const handleItemMouseDown = (e: React.MouseEvent, _id: string) => {
         // Garantir que estamos no elemento correto
         const target = e.currentTarget as HTMLElement;
         dragItemRef.current = target;
@@ -741,7 +741,7 @@ const VisualBOMBuilder = React.forwardRef<{ handleExportBOM: () => void }, Visua
     );
 });
 
-export default function BomConfig({ data, filters }: Props) {
+export default function BomConfig({ data: _data, filters: _filters }: Props) {
     const visualBomRef = React.useRef<{ handleExportBOM: () => void }>(null);
 
     const handleExport = () => {

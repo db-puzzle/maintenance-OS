@@ -43,13 +43,8 @@ export default function ShowLayout({
     const [activeTab, setActiveTab] = useState(defaultActiveTab || (tabs && tabs.length > 0 ? tabs[0].id : ''));
     const [isCompressed, setIsCompressed] = useState(defaultCompressed);
 
-    // Try to use sidebar hook, but handle cases where it might not be available
-    let sidebarControls: ReturnType<typeof useSidebar> | null = null;
-    try {
-        sidebarControls = useSidebar();
-    } catch {
-        // ShowLayout is not within a SidebarProvider
-    }
+    // Always call the hook, but handle cases where the provider might not be available
+    const sidebarControls = useSidebar();
 
     // Store the previous sidebar state
     const [previousSidebarOpen, setPreviousSidebarOpen] = useState(() => {
