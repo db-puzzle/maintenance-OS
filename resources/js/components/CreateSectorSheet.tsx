@@ -107,8 +107,8 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                     name: '',
                     area_id: selectedAreaId || '',
                 },
-                createRoute: 'asset-hierarchy.setores.store',
-                updateRoute: 'asset-hierarchy.setores.update',
+                createRoute: 'asset-hierarchy.sectors.store',
+                updateRoute: 'asset-hierarchy.sectors.update',
                 entityName: 'Setor',
             }}
         >
@@ -121,7 +121,7 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => {},
+                            clearErrors: () => { },
                         }}
                         name="name"
                         label="Nome do Setor"

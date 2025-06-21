@@ -112,13 +112,13 @@
 /Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/manufacturers.tsx
   19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
-/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/plantas.tsx
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/plants.tsx
   19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
-/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/setores.tsx
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/sectors.tsx
   20:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
-/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/setores/show.tsx
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/sectors/show.tsx
    27:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   112:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
@@ -135,10 +135,10 @@
 - If you want a type meaning "any object", you probably want `object` instead.
 - If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
 
-/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/tipos-ativo.tsx
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/asset-types.tsx
   19:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
-/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/tipos-ativo/show.tsx
+/Users/danilobibancos/Laravel/maintenance-OS/resources/js/pages/asset-hierarchy/asset-types/show.tsx
   31:50  error  'activeTab' is defined but never used     @typescript-eslint/no-unused-vars
   71:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 

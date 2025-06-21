@@ -44,7 +44,7 @@ export default function AssetTypeFormComponent({ assetType, initialMode = 'view'
 
     const handleSave = () => {
         if (isEditing) {
-            put(route('asset-hierarchy.tipos-ativo.update', { tipos_ativo: assetType.id }), {
+            put(route('asset-hierarchy.asset-types.update', { assetType: assetType.id }), {
                 onSuccess: () => {
                     toast.success(`O tipo de ativo ${data.name} foi atualizado com sucesso!`);
                     setMode('view');

@@ -108,7 +108,7 @@ class AssetController extends Controller
 
         $asset = $query->paginate($perPage)->withQueryString();
 
-        return Inertia::render('asset-hierarchy/assets', [
+        return Inertia::render('asset-hierarchy/assets/index', [
             'asset' => $asset,
             'filters' => [
                 'search' => $search,

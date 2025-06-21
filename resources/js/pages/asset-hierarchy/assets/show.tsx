@@ -810,7 +810,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                     ) : (
                         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                             {asset?.asset_type && (
-                                <Link href={route('asset-hierarchy.tipos-ativo.show', asset.asset_type.id)} className="hover:underline">
+                                <Link href={route('asset-hierarchy.asset-types.show', asset.asset_type.id)} className="hover:underline">
                                     {asset.asset_type.name}
                                 </Link>
                             )}

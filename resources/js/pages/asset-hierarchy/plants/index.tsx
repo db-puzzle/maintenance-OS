@@ -1,4 +1,4 @@
-import CreateAssetTypeSheet from '@/components/CreateAssetTypeSheet';
+import CreatePlantSheet from '@/components/CreatePlantSheet';
 import { ColumnVisibility } from '@/components/data-table';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
@@ -10,7 +10,7 @@ import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
-import { AssetType } from '@/types/entities/asset-type';
+import { Plant } from '@/types/entities/plant';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -28,14 +28,14 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy',
     },
     {
-        title: 'Tipos de Ativo',
-        href: '/asset-hierarchy/tipos-ativo',
+        title: 'Plantas',
+        href: '/asset-hierarchy/plants',
     },
 ];
 
 interface Props {
-    assetTypes: {
-        data: AssetType[];
+    plants: {
+        data: Plant[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -51,15 +51,15 @@ interface Props {
     };
 }
 
-export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: Props) {
-    const entityOps = useEntityOperations<AssetType>({
-        entityName: 'assetType',
-        entityLabel: 'Tipo de Ativo',
+export default function Plantas({ plants: initialPlants, filters }: Props) {
+    const entityOps = useEntityOperations<Plant>({
+        entityName: 'plant',
+        entityLabel: 'Planta',
         routes: {
-            index: 'asset-hierarchy.tipos-ativo',
-            show: 'asset-hierarchy.tipos-ativo.show',
-            destroy: 'asset-hierarchy.tipos-ativo.destroy',
-            checkDependencies: 'asset-hierarchy.tipos-ativo.check-dependencies',
+            index: 'asset-hierarchy.plants',
+            show: 'asset-hierarchy.plants.show',
+            destroy: 'asset-hierarchy.plants.destroy',
+            checkDependencies: 'asset-hierarchy.plants.check-dependencies',
         },
     });
 
@@ -67,7 +67,7 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
 
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
-        routeName: 'asset-hierarchy.tipos-ativo',
+        routeName: 'asset-hierarchy.plants',
         initialSort: filters.sort || 'name',
         initialDirection: filters.direction || 'asc',
         additionalParams: {
@@ -78,27 +78,28 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
 
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
-            const savedVisibility = localStorage.getItem('assetTypesColumnsVisibility');
+            const savedVisibility = localStorage.getItem('plantsColumnsVisibility');
             if (savedVisibility) {
                 return JSON.parse(savedVisibility);
             }
         }
         return {
             name: true,
-            description: true,
+            areas_count: true,
+            sectors_count: true,
             asset_count: true,
         };
     });
 
     // Use data from server
-    const data = initialAssetTypes.data;
+    const data = initialPlants.data;
     const pagination = {
-        current_page: initialAssetTypes.current_page,
-        last_page: initialAssetTypes.last_page,
-        per_page: initialAssetTypes.per_page,
-        total: initialAssetTypes.total,
-        from: initialAssetTypes.from,
-        to: initialAssetTypes.to,
+        current_page: initialPlants.current_page,
+        last_page: initialPlants.last_page,
+        per_page: initialPlants.per_page,
+        total: initialPlants.total,
+        from: initialPlants.from,
+        to: initialPlants.to,
     };
 
     const columns: ColumnConfig[] = [
@@ -115,11 +116,18 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             ),
         },
         {
-            key: 'description',
-            label: 'Descrição',
+            key: 'areas_count',
+            label: 'Áreas',
             sortable: true,
-            width: 'w-[300px]',
-            render: (value, row) => row.description || '-',
+            width: 'w-[100px]',
+            render: (value) => value || 0,
+        },
+        {
+            key: 'sectors_count',
+            label: 'Setores',
+            sortable: true,
+            width: 'w-[100px]',
+            render: (value) => value || 0,
         },
         {
             key: 'asset_count',
@@ -136,29 +144,25 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             [columnId]: value,
         };
         setColumnVisibility(newVisibility);
-        localStorage.setItem('assetTypesColumnsVisibility', JSON.stringify(newVisibility));
+        localStorage.setItem('plantsColumnsVisibility', JSON.stringify(newVisibility));
     };
 
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
-            route('asset-hierarchy.tipos-ativo'),
+            route('asset-hierarchy.plants'),
             { search: value, sort, direction, per_page: filters.per_page },
             { preserveState: true, preserveScroll: true },
         );
     };
 
     const handlePageChange = (page: number) => {
-        router.get(
-            route('asset-hierarchy.tipos-ativo'),
-            { ...filters, search, sort, direction, page },
-            { preserveState: true, preserveScroll: true },
-        );
+        router.get(route('asset-hierarchy.plants'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
     };
 
     const handlePerPageChange = (perPage: number) => {
         router.get(
-            route('asset-hierarchy.tipos-ativo'),
+            route('asset-hierarchy.plants'),
             { ...filters, search, sort, direction, per_page: perPage, page: 1 },
             { preserveState: true, preserveScroll: true },
         );
@@ -166,11 +170,11 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Tipos de Ativo" />
+            <Head title="Plantas" />
 
             <ListLayout
-                title="Tipos de Ativo"
-                description="Gerencie os tipos de ativo do sistema"
+                title="Plantas"
+                description="Gerencie as plantas do sistema"
                 searchValue={search}
                 onSearchChange={handleSearch}
                 onCreateClick={() => entityOps.setEditSheetOpen(true)}
@@ -195,13 +199,11 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
                         data={data}
                         columns={columns}
                         loading={false}
-                        onRowClick={(assetType) => router.visit(route('asset-hierarchy.tipos-ativo.show', { id: assetType.id }))}
+                        onRowClick={(plant) => router.visit(route('asset-hierarchy.plants.show', { id: plant.id }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
-                        sortColumn={sort}
-                        sortDirection={direction}
-                        actions={(assetType) => (
-                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(assetType)} onDelete={() => entityOps.handleDelete(assetType)} />
+                        actions={(plant) => (
+                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(plant)} onDelete={() => entityOps.handleDelete(plant)} />
                         )}
                     />
 
@@ -209,17 +211,16 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
                 </div>
             </ListLayout>
 
-            <CreateAssetTypeSheet
-                assetType={entityOps.editingItem || undefined}
+            <CreatePlantSheet
+                plant={entityOps.editingItem || undefined}
                 open={entityOps.isEditSheetOpen}
                 onOpenChange={entityOps.setEditSheetOpen}
-                mode={entityOps.editingItem ? 'edit' : 'create'}
+                mode="edit"
             />
 
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
-                entityName="tipo de ativo"
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
@@ -227,7 +228,7 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}
-                entityName="tipo de ativo"
+                entityName="planta"
                 dependencies={entityOps.dependencies}
             />
         </AppLayout>

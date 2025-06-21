@@ -39,7 +39,7 @@ export default function Show({ assetType, asset }: Props) {
         },
         {
             title: 'Tipos de Ativo',
-            href: '/asset-hierarchy/tipos-ativo',
+            href: '/asset-hierarchy/asset-types',
         },
         {
             title: assetType.name,
@@ -124,7 +124,7 @@ export default function Show({ assetType, asset }: Props) {
                             from: asset.current_page > 0 ? (asset.current_page - 1) * asset.per_page + 1 : null,
                             to: asset.current_page > 0 ? Math.min(asset.current_page * asset.per_page, asset.total) : null,
                         }}
-                        onPageChange={(page) => router.get(route('asset-hierarchy.tipos-ativo.show', {
+                        onPageChange={(page) => router.get(route('asset-hierarchy.asset-types.show', {
                             assetType: assetType.id,
                             asset_page: page,
                             tab: 'ativos',
@@ -137,7 +137,7 @@ export default function Show({ assetType, asset }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <ShowLayout title={assetType.name} subtitle={subtitle} editRoute={route('asset-hierarchy.tipos-ativo.edit', assetType.id)} tabs={tabs} />
+            <ShowLayout title={assetType.name} subtitle={subtitle} editRoute={route('asset-hierarchy.asset-types.edit', assetType.id)} tabs={tabs} />
         </AppLayout>
     );
 }

@@ -55,7 +55,7 @@ class AreaController extends Controller
 
         $plants = Plant::all();
 
-        return Inertia::render('asset-hierarchy/areas', [
+        return Inertia::render('asset-hierarchy/areas/index', [
             'areas' => $areas,
             'filters' => [
                 'search' => $search,

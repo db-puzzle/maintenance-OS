@@ -154,7 +154,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 width: 'w-[30%]',
                                 render: (value, row) => (
                                     <Link
-                                        href={route('asset-hierarchy.setores.show', (row as Record<string, unknown>).id)}
+                                        href={route('asset-hierarchy.sectors.show', (row as Record<string, unknown>).id)}
                                         className="hover:text-primary font-medium"
                                     >
                                         {(row as Record<string, unknown>).name as string}
@@ -176,7 +176,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as string ?? '-'}</span>,
                             },
                         ]}
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.setores.show', (row as Record<string, unknown>).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.sectors.show', (row as Record<string, unknown>).id))}
                         onSort={(columnKey) => handleSort('sectors', columnKey)}
                     />
 

@@ -65,11 +65,18 @@ resources/js/
 │
 └── pages/
     └── asset-hierarchy/
-        ├── plantas.tsx               # Uses shared components
-        ├── areas.tsx                 # Uses shared components
-        ├── setores.tsx              # Uses shared components
-        ├── manufacturers.tsx         # Uses shared components
-        └── tipos-ativo.tsx          # Uses shared components
+        ├── plantas/
+        │   └── index.tsx            # Uses shared components
+        ├── areas/
+        │   └── index.tsx            # Uses shared components
+        ├── setores/
+        │   └── index.tsx            # Uses shared components
+        ├── manufacturers/
+        │   └── index.tsx            # Uses shared components
+        ├── asset-types/
+        │   └── index.tsx            # Uses shared components
+        └── assets/
+            └── index.tsx            # Uses shared components
 ```
 
 ### 2. Leveraging Existing Field Components
@@ -204,12 +211,12 @@ Each entity defines its endpoints:
 
 ```typescript
 const plantEndpoints: EntityEndpoints = {
-  list: 'asset-hierarchy.plantas',
-  get: 'asset-hierarchy.plantas.show',
-  create: 'asset-hierarchy.plantas.store',
-  update: 'asset-hierarchy.plantas.update',
-  delete: 'asset-hierarchy.plantas.destroy',
-  dependencies: 'asset-hierarchy.plantas.check-dependencies'
+  list: 'asset-hierarchy.plants',
+  get: 'asset-hierarchy.plants.show',
+  create: 'asset-hierarchy.plants.store',
+  update: 'asset-hierarchy.plants.update',
+  delete: 'asset-hierarchy.plants.destroy',
+  dependencies: 'asset-hierarchy.plants.check-dependencies'
 };
 ```
 

@@ -40,7 +40,7 @@ class AssetTypeController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        return Inertia::render('asset-hierarchy/tipos-ativo', [
+        return Inertia::render('asset-hierarchy/asset-types/index', [
             'assetTypes' => $assetTypes,
             'filters' => [
                 'search' => $request->search,
@@ -53,7 +53,7 @@ class AssetTypeController extends Controller
 
     public function create()
     {
-        return Inertia::render('asset-hierarchy/tipos-ativo/create');
+        return Inertia::render('asset-hierarchy/asset-types/create');
     }
 
     public function show(AssetType $assetType)
@@ -96,7 +96,7 @@ class AssetTypeController extends Controller
             ['path' => request()->url(), 'pageName' => 'asset_page']
         );
 
-        return Inertia::render('asset-hierarchy/tipos-ativo/show', [
+        return Inertia::render('asset-hierarchy/asset-types/show', [
             'assetType' => $assetType,
             'asset' => $asset,
             'activeTab' => request()->get('tab', 'informacoes'),
@@ -118,7 +118,7 @@ class AssetTypeController extends Controller
         }
 
         // Comportamento padrão para requisições normais (formulário completo)
-        return redirect()->route('asset-hierarchy.tipos-ativo')
+        return redirect()->route('asset-hierarchy.asset-types')
             ->with('success', "Tipo de ativo {$assetType->name} criado com sucesso.");
     }
 
@@ -128,7 +128,7 @@ class AssetTypeController extends Controller
             abort(404);
         }
 
-        return Inertia::render('asset-hierarchy/tipos-ativo/edit', [
+        return Inertia::render('asset-hierarchy/asset-types/edit', [
             'assetType' => $assetType,
         ]);
     }
@@ -148,7 +148,7 @@ class AssetTypeController extends Controller
         }
 
         // Comportamento padrão para requisições normais (formulário completo)
-        return redirect()->route('asset-hierarchy.tipos-ativo')
+        return redirect()->route('asset-hierarchy.asset-types')
             ->with('success', "O tipo de ativo {$assetType->name} foi atualizado com sucesso.");
     }
 

@@ -117,8 +117,8 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                     zip_code: '',
                     gps_coordinates: '',
                 },
-                createRoute: 'asset-hierarchy.plantas.store',
-                updateRoute: 'asset-hierarchy.plantas.update',
+                createRoute: 'asset-hierarchy.plants.store',
+                updateRoute: 'asset-hierarchy.plants.update',
                 entityName: 'Planta',
             }}
         >
@@ -131,7 +131,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => {},
+                            clearErrors: () => { },
                         }}
                         name="name"
                         label="Nome da Planta"
@@ -148,7 +148,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                         data,
                                         setData,
                                         errors,
-                                        clearErrors: () => {},
+                                        clearErrors: () => { },
                                     }}
                                     name="street"
                                     label="Rua"
@@ -161,7 +161,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                         data,
                                         setData,
                                         errors,
-                                        clearErrors: () => {},
+                                        clearErrors: () => { },
                                     }}
                                     name="number"
                                     label="Número"
@@ -180,7 +180,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                             }
                                         },
                                         errors,
-                                        clearErrors: () => {},
+                                        clearErrors: () => { },
                                     }}
                                     name="zip_code"
                                     label="CEP"
@@ -199,7 +199,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                         data,
                                         setData,
                                         errors,
-                                        clearErrors: () => {},
+                                        clearErrors: () => { },
                                     }}
                                     name="city"
                                     label="Cidade"
@@ -256,7 +256,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => {},
+                            clearErrors: () => { },
                         }}
                         name="gps_coordinates"
                         label="Coordenadas GPS"

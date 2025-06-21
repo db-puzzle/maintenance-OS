@@ -1,4 +1,4 @@
-import CreatePlantSheet from '@/components/CreatePlantSheet';
+import CreateSectorSheet from '@/components/CreateSectorSheet';
 import { ColumnVisibility } from '@/components/data-table';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
@@ -10,7 +10,8 @@ import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Plant } from '@/types/entities/plant';
+import { type Plant } from '@/types/asset-hierarchy';
+import { Sector } from '@/types/entities/sector';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -28,14 +29,14 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy',
     },
     {
-        title: 'Plantas',
-        href: '/asset-hierarchy/plantas',
+        title: 'Setores',
+        href: '/asset-hierarchy/sectors',
     },
 ];
 
 interface Props {
-    plants: {
-        data: Plant[];
+    sectors: {
+        data: Sector[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -49,17 +50,18 @@ interface Props {
         direction: 'asc' | 'desc';
         per_page: number;
     };
+    plants: Plant[];
 }
 
-export default function Plantas({ plants: initialPlants, filters }: Props) {
-    const entityOps = useEntityOperations<Plant>({
-        entityName: 'plant',
-        entityLabel: 'Planta',
+export default function SectorIndex({ sectors: initialSectors, filters, plants }: Props) {
+    const entityOps = useEntityOperations<Sector>({
+        entityName: 'sector',
+        entityLabel: 'Setor',
         routes: {
-            index: 'asset-hierarchy.plantas',
-            show: 'asset-hierarchy.plantas.show',
-            destroy: 'asset-hierarchy.plantas.destroy',
-            checkDependencies: 'asset-hierarchy.plantas.check-dependencies',
+            index: 'asset-hierarchy.sectors',
+            show: 'asset-hierarchy.sectors.show',
+            destroy: 'asset-hierarchy.sectors.destroy',
+            checkDependencies: 'asset-hierarchy.sectors.check-dependencies',
         },
     });
 
@@ -67,7 +69,7 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
 
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
-        routeName: 'asset-hierarchy.plantas',
+        routeName: 'asset-hierarchy.sectors',
         initialSort: filters.sort || 'name',
         initialDirection: filters.direction || 'asc',
         additionalParams: {
@@ -78,28 +80,28 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
 
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
-            const savedVisibility = localStorage.getItem('plantsColumnsVisibility');
+            const savedVisibility = localStorage.getItem('sectorsColumnsVisibility');
             if (savedVisibility) {
                 return JSON.parse(savedVisibility);
             }
         }
         return {
             name: true,
-            areas_count: true,
-            sectors_count: true,
+            plant: true,
+            area: true,
             asset_count: true,
         };
     });
 
     // Use data from server
-    const data = initialPlants.data;
+    const data = initialSectors.data;
     const pagination = {
-        current_page: initialPlants.current_page,
-        last_page: initialPlants.last_page,
-        per_page: initialPlants.per_page,
-        total: initialPlants.total,
-        from: initialPlants.from,
-        to: initialPlants.to,
+        current_page: initialSectors.current_page,
+        last_page: initialSectors.last_page,
+        per_page: initialSectors.per_page,
+        total: initialSectors.total,
+        from: initialSectors.from,
+        to: initialSectors.to,
     };
 
     const columns: ColumnConfig[] = [
@@ -116,18 +118,18 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             ),
         },
         {
-            key: 'areas_count',
-            label: 'Áreas',
+            key: 'plant',
+            label: 'Planta',
             sortable: true,
-            width: 'w-[100px]',
-            render: (value) => value || 0,
+            width: 'w-[200px]',
+            render: (value, row) => row.area?.plant?.name || '-',
         },
         {
-            key: 'sectors_count',
-            label: 'Setores',
+            key: 'area',
+            label: 'Área',
             sortable: true,
-            width: 'w-[100px]',
-            render: (value) => value || 0,
+            width: 'w-[200px]',
+            render: (value, row) => row.area?.name || '-',
         },
         {
             key: 'asset_count',
@@ -144,25 +146,25 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             [columnId]: value,
         };
         setColumnVisibility(newVisibility);
-        localStorage.setItem('plantsColumnsVisibility', JSON.stringify(newVisibility));
+        localStorage.setItem('sectorsColumnsVisibility', JSON.stringify(newVisibility));
     };
 
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
-            route('asset-hierarchy.plantas'),
+            route('asset-hierarchy.sectors'),
             { search: value, sort, direction, per_page: filters.per_page },
             { preserveState: true, preserveScroll: true },
         );
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('asset-hierarchy.plantas'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
+        router.get(route('asset-hierarchy.sectors'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
     };
 
     const handlePerPageChange = (perPage: number) => {
         router.get(
-            route('asset-hierarchy.plantas'),
+            route('asset-hierarchy.sectors'),
             { ...filters, search, sort, direction, per_page: perPage, page: 1 },
             { preserveState: true, preserveScroll: true },
         );
@@ -170,11 +172,11 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Plantas" />
+            <Head title="Setores" />
 
             <ListLayout
-                title="Plantas"
-                description="Gerencie as plantas do sistema"
+                title="Setores"
+                description="Gerencie os setores do sistema"
                 searchValue={search}
                 onSearchChange={handleSearch}
                 onCreateClick={() => entityOps.setEditSheetOpen(true)}
@@ -199,11 +201,11 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
                         data={data}
                         columns={columns}
                         loading={false}
-                        onRowClick={(plant) => router.visit(route('asset-hierarchy.plantas.show', { id: plant.id }))}
+                        onRowClick={(sector) => router.visit(route('asset-hierarchy.sectors.show', { id: sector.id }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
-                        actions={(plant) => (
-                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(plant)} onDelete={() => entityOps.handleDelete(plant)} />
+                        actions={(sector) => (
+                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(sector)} onDelete={() => entityOps.handleDelete(sector)} />
                         )}
                     />
 
@@ -211,11 +213,12 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
                 </div>
             </ListLayout>
 
-            <CreatePlantSheet
-                plant={entityOps.editingItem || undefined}
+            <CreateSectorSheet
+                sector={entityOps.editingItem || undefined}
                 open={entityOps.isEditSheetOpen}
                 onOpenChange={entityOps.setEditSheetOpen}
-                mode="edit"
+                mode={entityOps.editingItem ? 'edit' : 'create'}
+                plants={plants}
             />
 
             <EntityDeleteDialog
@@ -228,7 +231,7 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}
-                entityName="planta"
+                entityName="setor"
                 dependencies={entityOps.dependencies}
             />
         </AppLayout>

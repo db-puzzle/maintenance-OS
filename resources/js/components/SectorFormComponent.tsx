@@ -66,7 +66,7 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
 
     const handleSave = () => {
         if (isEditing) {
-            put(route('asset-hierarchy.setores.update', { setor: sector.id }), {
+            put(route('asset-hierarchy.sectors.update', { setor: sector.id }), {
                 onSuccess: () => {
                     toast.success(`O setor ${data.name} foi atualizado com sucesso!`);
                     setMode('view');
@@ -236,8 +236,8 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
                             isViewMode && !data.area_id
                                 ? 'Área não selecionada'
                                 : data.plant_id
-                                  ? 'Selecione uma área'
-                                  : 'Selecione uma planta primeiro'
+                                    ? 'Selecione uma área'
+                                    : 'Selecione uma planta primeiro'
                         }
                         error={errors.area_id}
                         disabled={!data.plant_id || isViewMode}

@@ -1,4 +1,4 @@
-import CreateSectorSheet from '@/components/CreateSectorSheet';
+import CreateAssetTypeSheet from '@/components/CreateAssetTypeSheet';
 import { ColumnVisibility } from '@/components/data-table';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
@@ -10,8 +10,7 @@ import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
-import { type Plant } from '@/types/asset-hierarchy';
-import { Sector } from '@/types/entities/sector';
+import { AssetType } from '@/types/entities/asset-type';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -29,14 +28,14 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy',
     },
     {
-        title: 'Setores',
-        href: '/asset-hierarchy/setores',
+        title: 'Tipos de Ativo',
+        href: '/asset-hierarchy/asset-types',
     },
 ];
 
 interface Props {
-    sectors: {
-        data: Sector[];
+    assetTypes: {
+        data: AssetType[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -50,18 +49,17 @@ interface Props {
         direction: 'asc' | 'desc';
         per_page: number;
     };
-    plants: Plant[];
 }
 
-export default function SectorIndex({ sectors: initialSectors, filters, plants }: Props) {
-    const entityOps = useEntityOperations<Sector>({
-        entityName: 'sector',
-        entityLabel: 'Setor',
+export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: Props) {
+    const entityOps = useEntityOperations<AssetType>({
+        entityName: 'assetType',
+        entityLabel: 'Tipo de Ativo',
         routes: {
-            index: 'asset-hierarchy.setores',
-            show: 'asset-hierarchy.setores.show',
-            destroy: 'asset-hierarchy.setores.destroy',
-            checkDependencies: 'asset-hierarchy.setores.check-dependencies',
+            index: 'asset-hierarchy.asset-types',
+            show: 'asset-hierarchy.asset-types.show',
+            destroy: 'asset-hierarchy.asset-types.destroy',
+            checkDependencies: 'asset-hierarchy.asset-types.check-dependencies',
         },
     });
 
@@ -69,7 +67,7 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
 
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
-        routeName: 'asset-hierarchy.setores',
+        routeName: 'asset-hierarchy.asset-types',
         initialSort: filters.sort || 'name',
         initialDirection: filters.direction || 'asc',
         additionalParams: {
@@ -80,28 +78,27 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
 
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
-            const savedVisibility = localStorage.getItem('sectorsColumnsVisibility');
+            const savedVisibility = localStorage.getItem('assetTypesColumnsVisibility');
             if (savedVisibility) {
                 return JSON.parse(savedVisibility);
             }
         }
         return {
             name: true,
-            plant: true,
-            area: true,
+            description: true,
             asset_count: true,
         };
     });
 
     // Use data from server
-    const data = initialSectors.data;
+    const data = initialAssetTypes.data;
     const pagination = {
-        current_page: initialSectors.current_page,
-        last_page: initialSectors.last_page,
-        per_page: initialSectors.per_page,
-        total: initialSectors.total,
-        from: initialSectors.from,
-        to: initialSectors.to,
+        current_page: initialAssetTypes.current_page,
+        last_page: initialAssetTypes.last_page,
+        per_page: initialAssetTypes.per_page,
+        total: initialAssetTypes.total,
+        from: initialAssetTypes.from,
+        to: initialAssetTypes.to,
     };
 
     const columns: ColumnConfig[] = [
@@ -118,18 +115,11 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             ),
         },
         {
-            key: 'plant',
-            label: 'Planta',
+            key: 'description',
+            label: 'Descrição',
             sortable: true,
-            width: 'w-[200px]',
-            render: (value, row) => row.area?.plant?.name || '-',
-        },
-        {
-            key: 'area',
-            label: 'Área',
-            sortable: true,
-            width: 'w-[200px]',
-            render: (value, row) => row.area?.name || '-',
+            width: 'w-[300px]',
+            render: (value, row) => row.description || '-',
         },
         {
             key: 'asset_count',
@@ -146,25 +136,29 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             [columnId]: value,
         };
         setColumnVisibility(newVisibility);
-        localStorage.setItem('sectorsColumnsVisibility', JSON.stringify(newVisibility));
+        localStorage.setItem('assetTypesColumnsVisibility', JSON.stringify(newVisibility));
     };
 
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
-            route('asset-hierarchy.setores'),
+            route('asset-hierarchy.asset-types'),
             { search: value, sort, direction, per_page: filters.per_page },
             { preserveState: true, preserveScroll: true },
         );
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('asset-hierarchy.setores'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
+        router.get(
+            route('asset-hierarchy.asset-types'),
+            { ...filters, search, sort, direction, page },
+            { preserveState: true, preserveScroll: true },
+        );
     };
 
     const handlePerPageChange = (perPage: number) => {
         router.get(
-            route('asset-hierarchy.setores'),
+            route('asset-hierarchy.asset-types'),
             { ...filters, search, sort, direction, per_page: perPage, page: 1 },
             { preserveState: true, preserveScroll: true },
         );
@@ -172,11 +166,11 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Setores" />
+            <Head title="Tipos de Ativo" />
 
             <ListLayout
-                title="Setores"
-                description="Gerencie os setores do sistema"
+                title="Tipos de Ativo"
+                description="Gerencie os tipos de ativo do sistema"
                 searchValue={search}
                 onSearchChange={handleSearch}
                 onCreateClick={() => entityOps.setEditSheetOpen(true)}
@@ -201,11 +195,13 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
                         data={data}
                         columns={columns}
                         loading={false}
-                        onRowClick={(sector) => router.visit(route('asset-hierarchy.setores.show', { id: sector.id }))}
+                        onRowClick={(assetType) => router.visit(route('asset-hierarchy.asset-types.show', { id: assetType.id }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
-                        actions={(sector) => (
-                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(sector)} onDelete={() => entityOps.handleDelete(sector)} />
+                        sortColumn={sort}
+                        sortDirection={direction}
+                        actions={(assetType) => (
+                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(assetType)} onDelete={() => entityOps.handleDelete(assetType)} />
                         )}
                     />
 
@@ -213,17 +209,17 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
                 </div>
             </ListLayout>
 
-            <CreateSectorSheet
-                sector={entityOps.editingItem || undefined}
+            <CreateAssetTypeSheet
+                assetType={entityOps.editingItem || undefined}
                 open={entityOps.isEditSheetOpen}
                 onOpenChange={entityOps.setEditSheetOpen}
                 mode={entityOps.editingItem ? 'edit' : 'create'}
-                plants={plants}
             />
 
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
+                entityName="tipo de ativo"
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
@@ -231,7 +227,7 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}
-                entityName="setor"
+                entityName="tipo de ativo"
                 dependencies={entityOps.dependencies}
             />
         </AppLayout>

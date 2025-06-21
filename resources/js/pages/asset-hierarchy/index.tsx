@@ -25,7 +25,7 @@ const navigationCards: NavigationCard[] = [
     {
         title: 'Plantas',
         description: 'Gerencie as plantas do sistema',
-        href: '/asset-hierarchy/plantas',
+        href: '/asset-hierarchy/plants',
         icon: Building2,
     },
     {
@@ -37,13 +37,13 @@ const navigationCards: NavigationCard[] = [
     {
         title: 'Setores',
         description: 'Gerencie os setores do sistema',
-        href: '/asset-hierarchy/setores',
+        href: '/asset-hierarchy/sectors',
         icon: Layers,
     },
     {
         title: 'Tipos de Ativo',
         description: 'Gerencie os tipos de ativo do sistema',
-        href: '/asset-hierarchy/tipos-ativo',
+        href: '/asset-hierarchy/asset-types',
         icon: Package,
     },
     {

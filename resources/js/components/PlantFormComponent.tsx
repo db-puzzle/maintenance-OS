@@ -54,7 +54,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
 
     const handleSave = () => {
         if (isEditing) {
-            put(route('asset-hierarchy.plantas.update', { plant: plant.id }), {
+            put(route('asset-hierarchy.plants.update', { plant: plant.id }), {
                 onSuccess: () => {
                     toast.success(`A planta ${data.name} foi atualizada com sucesso!`);
                     setMode('view');

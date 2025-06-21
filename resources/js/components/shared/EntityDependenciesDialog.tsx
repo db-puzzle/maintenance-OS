@@ -19,7 +19,7 @@ interface EntityDependenciesDialogProps {
 // Map dependency keys to icons and routes
 const dependencyConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; route?: string; label: string }> = {
     areas: { icon: MapPin, route: 'asset-hierarchy.areas.show', label: 'Áreas' },
-    sectors: { icon: Layers, route: 'asset-hierarchy.setores.show', label: 'Setores' },
+    sectors: { icon: Layers, route: 'asset-hierarchy.sectors.show', label: 'Setores' },
     assets: { icon: Package, route: 'asset-hierarchy.assets.show', label: 'Ativos' },
     asset: { icon: Package, route: 'asset-hierarchy.assets.show', label: 'Ativos' },
     routines: { icon: FileText, label: 'Rotinas' },

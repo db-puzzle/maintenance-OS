@@ -75,7 +75,7 @@ class PlantsController extends Controller
             ['path' => $request->url(), 'pageName' => 'page']
         );
 
-        return Inertia::render('asset-hierarchy/plantas', [
+        return Inertia::render('asset-hierarchy/plants/index', [
             'plants' => $plants,
             'filters' => [
                 'search' => $search,
@@ -106,7 +106,7 @@ class PlantsController extends Controller
         }
 
         // Comportamento padrão para requisições normais (formulário completo)
-        return redirect()->route('asset-hierarchy.plantas')
+        return redirect()->route('asset-hierarchy.plants')
             ->with('success', "Planta {$plant->name} criada com sucesso.");
     }
 
@@ -333,7 +333,7 @@ class PlantsController extends Controller
             ['path' => request()->url(), 'pageName' => 'asset_page']
         );
 
-        return Inertia::render('asset-hierarchy/plantas/show', [
+        return Inertia::render('asset-hierarchy/plants/show', [
             'plant' => $plant,
             'areas' => $areas,
             'sectors' => $sectors,
@@ -378,7 +378,7 @@ class PlantsController extends Controller
         }
 
         // Comportamento padrão para requisições normais (formulário completo)
-        return redirect()->route('asset-hierarchy.plantas')
+        return redirect()->route('asset-hierarchy.plants')
             ->with('success', "A planta {$plant->name} foi atualizada com sucesso.");
     }
 }

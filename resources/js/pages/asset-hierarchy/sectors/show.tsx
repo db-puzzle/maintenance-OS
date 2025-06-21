@@ -53,7 +53,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
         },
         {
             title: 'Setores',
-            href: '/asset-hierarchy/setores',
+            href: '/asset-hierarchy/sectors',
         },
         {
             title: sector.name,
@@ -65,7 +65,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
         const direction = filters.asset.sort === column && filters.asset.direction === 'asc' ? 'desc' : 'asc';
 
         router.get(
-            route('asset-hierarchy.setores.show', {
+            route('asset-hierarchy.sectors.show', {
                 setor: sector.id,
                 tab: activeTab,
                 asset_sort: column,
@@ -170,7 +170,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                             from: asset.current_page > 0 ? (asset.current_page - 1) * asset.per_page + 1 : null,
                             to: asset.current_page > 0 ? Math.min(asset.current_page * asset.per_page, asset.total) : null,
                         }}
-                        onPageChange={(page) => router.get(route('asset-hierarchy.setores.show', {
+                        onPageChange={(page) => router.get(route('asset-hierarchy.sectors.show', {
                             setor: sector.id,
                             asset_page: page,
                             tab: 'ativos',
@@ -185,7 +185,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <ShowLayout title={sector.name} subtitle={subtitle} editRoute={route('asset-hierarchy.setores.edit', sector.id)} tabs={tabs} />
+            <ShowLayout title={sector.name} subtitle={subtitle} editRoute={route('asset-hierarchy.sectors.edit', sector.id)} tabs={tabs} />
         </AppLayout>
     );
 }

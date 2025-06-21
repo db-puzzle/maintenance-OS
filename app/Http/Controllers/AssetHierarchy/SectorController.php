@@ -57,7 +57,7 @@ class SectorController extends Controller
 
         $plants = Plant::with('areas')->get();
 
-        return Inertia::render('asset-hierarchy/setores/index', [
+        return Inertia::render('asset-hierarchy/sectors/index', [
             'sectors' => $sectors,
             'filters' => [
                 'search' => $search,
@@ -73,7 +73,7 @@ class SectorController extends Controller
     {
         $plants = Plant::with('areas')->get();
 
-        return Inertia::render('asset-hierarchy/setores/create', [
+        return Inertia::render('asset-hierarchy/sectors/create', [
             'plants' => $plants,
         ]);
     }
@@ -93,7 +93,7 @@ class SectorController extends Controller
         }
 
         // Comportamento padrão para requisições normais (formulário completo)
-        return redirect()->route('asset-hierarchy.setores')
+        return redirect()->route('asset-hierarchy.sectors')
             ->with('success', "Setor {$sector->name} criado com sucesso.");
     }
 
@@ -101,7 +101,7 @@ class SectorController extends Controller
     {
         $plants = Plant::with('areas')->get();
 
-        return Inertia::render('asset-hierarchy/setores/edit', [
+        return Inertia::render('asset-hierarchy/sectors/edit', [
             'sector' => $setor->load('area.plant'),
             'plants' => $plants,
         ]);
@@ -180,7 +180,7 @@ class SectorController extends Controller
             ['path' => request()->url(), 'pageName' => 'asset_page']
         );
 
-        return Inertia::render('asset-hierarchy/setores/show', [
+        return Inertia::render('asset-hierarchy/sectors/show', [
             'sector' => $setor,
             'plants' => Plant::with('areas')->get()->map(function ($plant) {
                 return [
@@ -221,7 +221,7 @@ class SectorController extends Controller
         }
 
         // Comportamento padrão para requisições normais (formulário completo)
-        return redirect()->route('asset-hierarchy.setores')
+        return redirect()->route('asset-hierarchy.sectors')
             ->with('success', "O setor {$setor->name} foi atualizado com sucesso.");
     }
 

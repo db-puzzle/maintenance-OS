@@ -71,8 +71,8 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
                     name: '',
                     description: '',
                 },
-                createRoute: 'asset-hierarchy.tipos-ativo.store',
-                updateRoute: 'asset-hierarchy.tipos-ativo.update',
+                createRoute: 'asset-hierarchy.asset-types.store',
+                updateRoute: 'asset-hierarchy.asset-types.update',
                 entityName: 'Tipo de Ativo',
                 sheetTitle: {
                     create: 'Novo Tipo de Ativo',
@@ -93,7 +93,7 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
                             data,
                             setData,
                             errors,
-                            clearErrors: () => {},
+                            clearErrors: () => { },
                         }}
                         name="name"
                         label="Nome"
@@ -107,7 +107,7 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
                             data,
                             setData,
                             errors,
-                            clearErrors: () => {},
+                            clearErrors: () => { },
                         }}
                         name="description"
                         label="Descrição"

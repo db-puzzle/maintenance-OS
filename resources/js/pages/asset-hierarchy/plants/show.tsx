@@ -106,7 +106,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
         },
         {
             title: 'Plantas',
-            href: '/asset-hierarchy/plantas',
+            href: '/asset-hierarchy/plants',
         },
         {
             title: plant.name,
@@ -123,7 +123,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
 
         router.get(
-            route('asset-hierarchy.plantas.show', {
+            route('asset-hierarchy.plants.show', {
                 plant: plant.id,
                 tab: activeTab,
                 [`${section}_sort`]: column,
@@ -229,7 +229,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                             from: areas.current_page > 0 ? (areas.current_page - 1) * areas.per_page + 1 : null,
                             to: areas.current_page > 0 ? Math.min(areas.current_page * areas.per_page, areas.total) : null,
                         }}
-                        onPageChange={(page) => router.get(route('asset-hierarchy.plantas.show', {
+                        onPageChange={(page) => router.get(route('asset-hierarchy.plants.show', {
                             plant: plant.id,
                             areas_page: page,
                             tab: 'areas',
@@ -281,7 +281,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 render: (value) => <div className="text-center">{value as number || 0}</div>,
                             },
                         ]}
-                        onRowClick={(row) => router.get(route('asset-hierarchy.setores.show', row.id))}
+                        onRowClick={(row) => router.get(route('asset-hierarchy.sectors.show', row.id))}
                         onSort={(columnKey) => handleSort('sectors', columnKey)}
                     />
 
@@ -294,7 +294,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                             from: sectors.current_page > 0 ? (sectors.current_page - 1) * sectors.per_page + 1 : null,
                             to: sectors.current_page > 0 ? Math.min(sectors.current_page * sectors.per_page, sectors.total) : null,
                         }}
-                        onPageChange={(page) => router.get(route('asset-hierarchy.plantas.show', {
+                        onPageChange={(page) => router.get(route('asset-hierarchy.plants.show', {
                             plant: plant.id,
                             sectors_page: page,
                             tab: 'setores',
@@ -377,7 +377,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                             from: asset.current_page > 0 ? (asset.current_page - 1) * asset.per_page + 1 : null,
                             to: asset.current_page > 0 ? Math.min(asset.current_page * asset.per_page, asset.total) : null,
                         }}
-                        onPageChange={(page) => router.get(route('asset-hierarchy.plantas.show', {
+                        onPageChange={(page) => router.get(route('asset-hierarchy.plants.show', {
                             plant: plant.id,
                             asset_page: page,
                             tab: 'ativos',
