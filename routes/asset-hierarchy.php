@@ -62,7 +62,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/sectors/{setor}/check-dependencies', [SectorController::class, 'checkDependencies'])->name('asset-hierarchy.sectors.check-dependencies');
 
     Route::get('asset-hierarchy/areas', [AreaController::class, 'index'])->name('asset-hierarchy.areas');
-    Route::get('asset-hierarchy/areas/create', [AreaController::class, 'create'])->name('asset-hierarchy.areas.create');
     Route::post('asset-hierarchy/areas', [AreaController::class, 'store'])->name('asset-hierarchy.areas.store');
     Route::get('asset-hierarchy/areas/{area}', [AreaController::class, 'show'])->name('asset-hierarchy.areas.show');
     Route::get('asset-hierarchy/areas/{area}/edit', [AreaController::class, 'edit'])->name('asset-hierarchy.areas.edit');

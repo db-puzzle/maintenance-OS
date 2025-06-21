@@ -200,7 +200,7 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
                                     <p className="mt-2 text-2xl font-semibold">{shift.total_break_hours || 0}h {shift.total_break_minutes || 0}m</p>
                                 </div>
                                 <div className="rounded-lg border p-4">
-                                    <h4 className="text-sm font-medium text-muted-foreground">Horas Líquidas</h4>
+                                    <h4 className="text-sm font-medium text-muted-foreground">Horas Trabalhadas</h4>
                                     <p className="mt-2 text-2xl font-semibold text-primary">
                                         {Math.floor(((shift.total_work_hours || 0) * 60 + (shift.total_work_minutes || 0) - ((shift.total_break_hours || 0) * 60 + (shift.total_break_minutes || 0))) / 60)}h{' '}
                                         {((shift.total_work_hours || 0) * 60 + (shift.total_work_minutes || 0) - ((shift.total_break_hours || 0) * 60 + (shift.total_break_minutes || 0))) % 60}m

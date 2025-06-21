@@ -73,23 +73,6 @@ class AreaController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        $plants = Plant::all();
-
-        return Inertia::render('asset-hierarchy/areas/create', [
-            'plants' => $plants->map(function ($plant) {
-                return [
-                    'id' => $plant->id,
-                    'name' => $plant->name,
-                ];
-            })->values()->all(),
-        ]);
-    }
-
-    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
@@ -248,17 +231,6 @@ class AreaController extends Controller
                     'direction' => $assetDirection,
                 ],
             ],
-        ]);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Area $area)
-    {
-        return Inertia::render('asset-hierarchy/areas/edit', [
-            'area' => $area->load(['plant']),
-            'plants' => Plant::all(),
         ]);
     }
 
