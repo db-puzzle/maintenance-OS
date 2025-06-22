@@ -10,9 +10,18 @@ export interface UseSortingProps {
     initialSort?: string;
     initialDirection?: 'asc' | 'desc';
     additionalParams?: Record<string, string | number>;
+    sortParamName?: string;
+    directionParamName?: string;
 }
 
-export function useSorting({ routeName, initialSort = 'name', initialDirection = 'asc', additionalParams = {} }: UseSortingProps) {
+export function useSorting({
+    routeName,
+    initialSort = 'name',
+    initialDirection = 'asc',
+    additionalParams = {},
+    sortParamName = 'sort',
+    directionParamName = 'direction'
+}: UseSortingProps) {
     const [sort, setSort] = useState(initialSort);
     const [direction, setDirection] = useState<'asc' | 'desc'>(initialDirection);
 
@@ -33,13 +42,13 @@ export function useSorting({ routeName, initialSort = 'name', initialDirection =
                 route(routeName),
                 {
                     ...additionalParams,
-                    sort: newSort,
-                    direction: newDirection,
+                    [sortParamName]: newSort,
+                    [directionParamName]: newDirection,
                 },
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [sort, direction, routeName, additionalParams],
+        [sort, direction, routeName, additionalParams, sortParamName, directionParamName],
     );
 
     return {

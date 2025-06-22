@@ -17,7 +17,7 @@ interface Tab {
     content: ReactNode;
 }
 
-interface ShowLayoutProps {
+interface DashboardLayoutProps {
     title: string;
     subtitle?: string | ReactNode;
     editRoute: string;
@@ -27,9 +27,10 @@ interface ShowLayoutProps {
     defaultActiveTab?: string;
     onCompressedChange?: (compressed: boolean) => void;
     defaultCompressed?: boolean;
+    actionButtons?: ReactNode;
 }
 
-export default function ShowLayout({
+export default function DashboardLayout({
     title,
     subtitle,
     editRoute,
@@ -39,7 +40,8 @@ export default function ShowLayout({
     defaultActiveTab,
     onCompressedChange,
     defaultCompressed = false,
-}: ShowLayoutProps) {
+    actionButtons,
+}: DashboardLayoutProps) {
     const [activeTab, setActiveTab] = useState(defaultActiveTab || (tabs && tabs.length > 0 ? tabs[0].id : ''));
     const [isCompressed, setIsCompressed] = useState(defaultCompressed);
 
@@ -149,6 +151,7 @@ export default function ShowLayout({
                         </div>
                         {/* Buttons */}
                         <div className="flex items-center gap-2">
+                            {actionButtons}
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>

@@ -312,8 +312,8 @@ function AssetFormFields({
                             isViewMode && !data.area_id
                                 ? 'Área não selecionada'
                                 : data.plant_id
-                                  ? 'Selecione uma área (opcional)'
-                                  : 'Selecione uma planta primeiro'
+                                    ? 'Selecione uma área (opcional)'
+                                    : 'Selecione uma planta primeiro'
                         }
                         error={errors.area_id}
                         disabled={!data.plant_id}
@@ -338,8 +338,8 @@ function AssetFormFields({
                             isViewMode && !data.sector_id
                                 ? 'Setor não selecionado'
                                 : data.area_id
-                                  ? 'Selecione um setor (opcional)'
-                                  : 'Selecione uma área primeiro'
+                                    ? 'Selecione um setor (opcional)'
+                                    : 'Selecione uma área primeiro'
                         }
                         error={errors.sector_id}
                         disabled={!data.area_id}
@@ -452,6 +452,9 @@ export default function AssetFormComponent({
             setMode('view');
         } else if (onCancel) {
             onCancel();
+        } else {
+            // Navigate back to assets index page
+            router.visit(route('asset-hierarchy.assets'));
         }
     };
 
@@ -693,10 +696,10 @@ export default function AssetFormComponent({
                 {/* Action buttons for create mode */}
                 {!isEditing && (
                     <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-start">
-                        <Button type="submit" className="w-full sm:w-auto" disabled={processing}>
+                        <Button size="sm" type="submit" className="w-full sm:w-auto" disabled={processing}>
                             {processing ? 'Criando...' : 'Criar Ativo'}
                         </Button>
-                        <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleCancel}>
+                        <Button size="sm" type="button" variant="outline" className="w-full sm:w-auto" onClick={handleCancel}>
                             Cancelar
                         </Button>
                     </div>

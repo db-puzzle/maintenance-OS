@@ -56,15 +56,17 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
     const [search, setSearch] = useState(filters.search || '');
     const { addExport, updateExport } = useExportManager();
 
-    // Use centralized sorting hook
+    // Use centralized sorting hook with the correct parameter names
     const { sort, direction, handleSort } = useSorting({
-        routeName: 'maintenance.executions.index',
-        initialSort: currentSort.column || 'id',
+        routeName: 'maintenance.routines.index',
+        initialSort: currentSort.column || 'started_at',
         initialDirection: currentSort.direction || 'desc',
         additionalParams: {
             ...localFilters,
             search,
         },
+        sortParamName: 'sort_by',
+        directionParamName: 'sort_direction',
     });
 
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
@@ -190,20 +192,20 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
-            route('maintenance.executions.index'),
-            { ...localFilters, search: value, sort, direction },
+            route('maintenance.routines.index'),
+            { ...localFilters, search: value, sort_by: sort, sort_direction: direction },
             { preserveState: true, preserveScroll: true },
         );
     };
 
     const applyFilters = () => {
         router.get(
-            route('maintenance.executions.index'),
+            route('maintenance.routines.index'),
             {
                 ...localFilters,
                 search,
-                sort,
-                direction,
+                sort_by: sort,
+                sort_direction: direction,
             },
             {
                 preserveState: true,
@@ -214,21 +216,19 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
 
     const handlePageChange = (page: number) => {
         router.get(
-            route('maintenance.executions.index'),
-            { ...filters, search, sort, direction, page },
+            route('maintenance.routines.index'),
+            { ...filters, search, sort_by: sort, sort_direction: direction, page },
             { preserveState: true, preserveScroll: true },
         );
     };
 
     const handlePerPageChange = (perPage: number) => {
         router.get(
-            route('maintenance.executions.index'),
-            { ...filters, search, sort, direction, per_page: perPage, page: 1 },
+            route('maintenance.routines.index'),
+            { ...filters, search, sort_by: sort, sort_direction: direction, per_page: perPage, page: 1 },
             { preserveState: true, preserveScroll: true },
         );
     };
-
-
 
     const handleExportSingle = async (executionId: number) => {
         try {
@@ -327,8 +327,6 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
             toast.error(error instanceof Error ? error.message : 'An error occurred while exporting');
         }
     };
-
-
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -459,7 +457,7 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                                         onClick={() => {
                                             setLocalFilters({});
                                             router.get(
-                                                route('maintenance.executions.index'),
+                                                route('maintenance.routines.index'),
                                                 {},
                                                 {
                                                     preserveState: true,
@@ -483,6 +481,8 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                         onRowClick={(execution) => router.visit(`/maintenance/routines/executions/${execution.id}`)}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
+                        sortColumn={sort}
+                        sortDirection={direction}
                         actions={(execution) => (
                             <EntityActionDropdown
                                 additionalActions={[

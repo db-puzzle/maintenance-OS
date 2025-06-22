@@ -29,6 +29,9 @@ class RoutineController extends Controller
 
         $assetIds = $validated['asset_ids'];
         unset($validated['asset_ids']);
+        
+        // Force status to Inactive for new routines
+        $validated['status'] = 'Inactive';
 
         $routine = Routine::create($validated);
         $routine->assets()->attach($assetIds);
@@ -142,6 +145,10 @@ class RoutineController extends Controller
 
             // Update routine's active version
             $routine->active_form_version_id = $version->id;
+            
+            // Automatically activate the routine when published
+            $routine->status = 'Active';
+            
             $routine->save();
 
             DB::commit();
@@ -225,9 +232,12 @@ class RoutineController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'trigger_hours' => 'required|integer|min:1',
-            'status' => 'required|in:Active,Inactive',
+            'status' => 'nullable|in:Active,Inactive',
             'description' => 'nullable|string',
         ]);
+
+        // Force status to Inactive for new routines
+        $validated['status'] = 'Inactive';
 
         $routine = Routine::create($validated);
         $routine->assets()->attach($asset->id);
@@ -367,6 +377,10 @@ class RoutineController extends Controller
 
             // Update routine's active version
             $routine->active_form_version_id = $version->id;
+            
+            // Automatically activate the routine when published
+            $routine->status = 'Active';
+            
             $routine->save();
 
             DB::commit();

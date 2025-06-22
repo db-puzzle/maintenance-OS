@@ -2,12 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Search, CalendarClock, Upload, ClipboardCheck, FileText, Eye, Edit2, History, Info } from 'lucide-react';
+import { Search, Upload, ClipboardCheck, FileText, Eye, Edit2, History, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import EmptyCard from '@/components/ui/empty-card';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
@@ -535,10 +534,6 @@ export default function AssetRoutinesTab({
         router.visit(route('maintenance.assets.routines.executions', { asset: assetId, routine: routineId }));
     };
 
-    const handleNewRoutineClick = () => {
-        createRoutineButtonRef.current?.click();
-    };
-
     if (loadingFormEditor) {
         // Show loading state while fetching form data
         return (
@@ -581,26 +576,6 @@ export default function AssetRoutinesTab({
         );
     }
 
-    if (routines.length === 0) {
-        return (
-            <div className="flex min-h-[400px] items-center justify-center py-4">
-                <div className="w-full">
-                    <EmptyCard
-                        icon={CalendarClock}
-                        title="Nenhuma rotina"
-                        description="Crie rotinas de manutenção e inspeção para este ativo"
-                        primaryButtonText="Nova rotina"
-                        primaryButtonAction={handleNewRoutineClick}
-                        secondaryButtonText="Ver cronograma"
-                        secondaryButtonAction={() => {
-                            // Navegar para cronograma ou implementar funcionalidade futura
-                        }}
-                    />
-                </div>
-            </div>
-        );
-    }
-
     return (
         <>
             {/* Lista de rotinas existentes */}
@@ -630,7 +605,7 @@ export default function AssetRoutinesTab({
                     data={sortedRoutines}
                     columns={getRoutineColumns()}
                     loading={false}
-                    emptyMessage={searchTerm ? `Nenhuma rotina encontrada para "${searchTerm}"` : "Nenhuma rotina encontrada"}
+                    emptyMessage={searchTerm ? `Nenhuma rotina encontrada para "${searchTerm}"` : "Nenhuma rotina cadastrada. Clique em 'Nova Rotina' para começar."}
                     actions={(routine) => (
                         <div className="flex items-center justify-end gap-2">
                             {/* Preencher/Publicar button */}

@@ -55,7 +55,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
     const [data, setData] = React.useState<RoutineForm>({
         name: routine?.name || '',
         trigger_hours: routine?.trigger_hours || 0,
-        status: routine?.status || 'Active',
+        status: routine?.status || 'Inactive',
         description: routine?.description || '',
     });
 
@@ -212,7 +212,12 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                         <FileText className="h-5 w-5" />
                         {isNew ? 'Nova Rotina de Manutenção' : 'Editar Rotina'}
                     </SheetTitle>
-                    <SheetDescription>{isNew ? 'Configure uma nova rotina de manutenção' : 'Atualize os dados da rotina'}</SheetDescription>
+                    <SheetDescription>
+                        {isNew
+                            ? 'Configure uma nova rotina de manutenção. A rotina será criada como inativa e será ativada automaticamente ao publicar o formulário.'
+                            : 'Atualize os dados da rotina'
+                        }
+                    </SheetDescription>
                 </SheetHeader>
 
                 <form onSubmit={handleSubmit} className="m-4 space-y-6">
@@ -246,21 +251,23 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                         </div>
 
                         {/* Status */}
-                        <div className="space-y-2">
-                            <Label htmlFor="status">Status</Label>
-                            <Select value={data.status} onValueChange={(value) => updateData('status', value as 'Active' | 'Inactive')}>
-                                <SelectTrigger id="status">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {routineStatuses.map((status) => (
-                                        <SelectItem key={status.value} value={status.value}>
-                                            {status.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {!isNew && (
+                            <div className="space-y-2">
+                                <Label htmlFor="status">Status</Label>
+                                <Select value={data.status} onValueChange={(value) => updateData('status', value as 'Active' | 'Inactive')}>
+                                    <SelectTrigger id="status">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {routineStatuses.map((status) => (
+                                            <SelectItem key={status.value} value={status.value}>
+                                                {status.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         {/* Descrição */}
                         <div className="space-y-2">

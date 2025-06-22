@@ -112,11 +112,11 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
     });
 
     return (
-        <div className="mt-6">
+        <div className="mt-0">
             <div className="flex flex-col">
                 {/* Cabeçalho com os dias da semana */}
                 <div className="flex">
-                    <div className="flex h-10 w-20 flex-shrink-0 items-center justify-center border-r font-medium"></div>
+                    <div className="flex h-10 w-20 flex-shrink-0 items-center justify-center font-medium"></div>
                     {weekdays.map((day) => {
                         const schedule = schedules.find((s) => s.weekday === day.key);
                         if (!showAllDays && !schedule) return null;
@@ -124,11 +124,8 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                         const hasActiveShifts = schedule?.shifts.some((shift) => shift.active) ?? false;
 
                         return (
-                            <div key={day.key} className="flex h-10 flex-1 flex-col items-center justify-center border-r border-b px-2">
+                            <div key={day.key} className="flex h-10 flex-1 flex-col items-center justify-center border-b px-2">
                                 <span className="text-sm font-medium">{day.label}</span>
-                                <span className={cn('text-xs', hasActiveShifts ? 'text-green-600' : 'text-red-600')}>
-                                    {hasActiveShifts ? 'Ativo' : 'Inativo'}
-                                </span>
                             </div>
                         );
                     })}

@@ -14,7 +14,7 @@ interface CreateRoutineButtonProps {
 }
 
 const CreateRoutineButton = forwardRef<HTMLButtonElement, CreateRoutineButtonProps>(
-    ({ onSuccess, variant = 'default', size = 'default', text = 'Nova Rotina', className, assetId }, ref) => {
+    ({ onSuccess, variant = 'default', size = 'sm', text = 'Nova Rotina', className, assetId }, ref) => {
         const sheetTriggerRef = useRef<HTMLButtonElement>(null);
 
         const handleClick = () => {

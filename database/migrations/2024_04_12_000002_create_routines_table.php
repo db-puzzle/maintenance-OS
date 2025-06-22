@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->integer('trigger_hours')->comment('Hours between executions');
-            $table->string('status')->default('Active')->comment('Active, Inactive');
+            $table->string('status')->default('Inactive')->comment('Active, Inactive');
             $table->text('description')->nullable();
             $table->foreignId('form_id')->constrained();
             $table->foreignId('active_form_version_id')->nullable()->constrained('form_versions')->nullOnDelete();
