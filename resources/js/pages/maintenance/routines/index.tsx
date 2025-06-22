@@ -5,8 +5,9 @@ import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useExportManager } from '@/hooks/use-export-manager';
 import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
@@ -14,8 +15,9 @@ import { type BreadcrumbItem } from '@/types';
 import type { ExecutionFilters, FilterOption, PaginatedExecutions, SortOption } from '@/types/maintenance';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
-import { Download, Eye, FileText, Filter } from 'lucide-react';
+import { Eye, FileText, Filter } from 'lucide-react';
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
@@ -42,17 +44,17 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/home',
     },
     {
-        title: 'Rotinas',
+        title: 'Rotinas Executadas',
         href: '/maintenance/routines',
     },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, filterOptions, sortOptions, currentSort }) => {
-    const [selectedExecutions, setSelectedExecutions] = useState<number[]>([]);
     const [showFilters, setShowFilters] = useState(false);
     const [localFilters, setLocalFilters] = useState(filters);
     const [search, setSearch] = useState(filters.search || '');
+    const { addExport, updateExport } = useExportManager();
 
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
@@ -226,57 +228,114 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
         );
     };
 
-    const handleExportSelected = () => {
-        if (selectedExecutions.length === 0) return;
-        // TODO: Implement batch export functionality
-        console.log('Export selected:', selectedExecutions);
-    };
 
-    const handleExportSingle = (executionId: number) => {
-        // TODO: Implement single export functionality
-        console.log('Export single:', executionId);
-    };
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _handleSelectAll = (checked: boolean) => {
-        if (checked) {
-            setSelectedExecutions(data.map((e) => e.id));
-        } else {
-            setSelectedExecutions([]);
+    const handleExportSingle = async (executionId: number) => {
+        try {
+            const response = await fetch(`/maintenance/routines/executions/${executionId}/export`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({
+                    format: 'pdf',
+                    template: 'standard',
+                    include_images: true,
+                    compress_images: true,
+                    include_signatures: false,
+                    paper_size: 'A4',
+                    delivery: {
+                        method: 'download',
+                    },
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (data.error && data.error.includes('Chrome')) {
+                    throw new Error(
+                        'Chrome/Chromium is required for PDF generation. Please install Google Chrome: brew install --cask google-chrome',
+                    );
+                }
+                throw new Error(data.error || `Export failed: ${response.statusText}`);
+            }
+
+            // Find the execution data to get the routine name
+            const execution = executions.data.find(e => e.id === executionId);
+            const description = execution
+                ? `Execution #${executionId} - ${execution.routine.name}`
+                : `Execution #${executionId}`;
+
+            // Add to export manager
+            addExport({
+                id: data.export_id,
+                type: 'single',
+                description,
+                status: 'processing',
+                progress: 0,
+            });
+
+            // Poll for status
+            const pollInterval = setInterval(async () => {
+                try {
+                    const statusResponse = await fetch(`/maintenance/routines/exports/${data.export_id}/status`, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+                    const statusData = await statusResponse.json();
+
+                    // Update progress in export manager
+                    if (statusData.progress_percentage) {
+                        updateExport(data.export_id, {
+                            progress: statusData.progress_percentage,
+                        });
+                    }
+
+                    if (statusData.status === 'completed' && statusData.download_url) {
+                        clearInterval(pollInterval);
+
+                        // Update export manager with completion
+                        updateExport(data.export_id, {
+                            status: 'completed',
+                            downloadUrl: statusData.download_url,
+                            completedAt: new Date(),
+                        });
+                    } else if (statusData.status === 'failed') {
+                        clearInterval(pollInterval);
+
+                        // Update export manager with failure
+                        updateExport(data.export_id, {
+                            status: 'failed',
+                            error: 'The export process failed. Please try again.',
+                        });
+                    }
+                } catch (error) {
+                    console.error('Status polling error:', error);
+                }
+            }, 2000);
+
+            // Timeout after 5 minutes
+            setTimeout(() => {
+                clearInterval(pollInterval);
+            }, 300000);
+        } catch (error) {
+            console.error('Export error:', error);
+            toast.error(error instanceof Error ? error.message : 'An error occurred while exporting');
         }
     };
 
-    const handleSelectExecution = (id: number, checked: boolean) => {
-        if (checked) {
-            setSelectedExecutions([...selectedExecutions, id]);
-        } else {
-            setSelectedExecutions(selectedExecutions.filter((eId) => eId !== id));
-        }
-    };
 
-    // Extended table with selection checkboxes
-    const columnsWithSelection: ColumnConfig[] = [
-        {
-            key: '_selection',
-            label: '',
-            width: 'w-[40px]',
-            render: (value, row) => (
-                <Checkbox
-                    checked={selectedExecutions.includes(row.id)}
-                    onCheckedChange={(checked) => handleSelectExecution(row.id, checked as boolean)}
-                    onClick={(e) => e.stopPropagation()}
-                />
-            ),
-        },
-        ...columns,
-    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Execuções - Manutenção" />
 
             <ListLayout
-                title="Routinas"
+                title="Rotinas Executadas"
                 description="Visualize e gerencie todos os registros de execução de rotinas"
                 searchValue={search}
                 onSearchChange={handleSearch}
@@ -286,10 +345,6 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                         <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
                             <Filter className="mr-2 h-4 w-4" />
                             Filtros
-                        </Button>
-                        <Button variant="outline" onClick={handleExportSelected} disabled={selectedExecutions.length === 0}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Exportar Selecionados ({selectedExecutions.length})
                         </Button>
                         <ColumnVisibility
                             columns={columns.map((col) => ({
@@ -423,9 +478,9 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
 
                     <EntityDataTable
                         data={data}
-                        columns={columnsWithSelection}
+                        columns={columns}
                         loading={false}
-                        onRowClick={(execution) => router.visit(route('maintenance.executions.show', { id: execution.id }))}
+                        onRowClick={(execution) => router.visit(`/maintenance/routines/executions/${execution.id}`)}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
                         actions={(execution) => (
@@ -434,10 +489,10 @@ const ExecutionIndex: React.FC<ExecutionIndexProps> = ({ executions, filters, fi
                                     {
                                         label: 'Visualizar',
                                         icon: <Eye className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('maintenance.executions.show', { id: execution.id })),
+                                        onClick: () => router.visit(`/maintenance/routines/executions/${execution.id}`),
                                     },
                                     {
-                                        label: 'Exportar',
+                                        label: 'Exportar PDF',
                                         icon: <FileText className="h-4 w-4" />,
                                         onClick: () => handleExportSingle(execution.id),
                                     },

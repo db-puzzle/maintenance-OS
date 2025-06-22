@@ -6,8 +6,8 @@ interface EmptyCardProps {
     icon: LucideIcon;
     title: string;
     description: string;
-    primaryButtonText: string;
-    primaryButtonAction: () => void;
+    primaryButtonText?: string;
+    primaryButtonAction?: () => void;
     secondaryButtonText?: string;
     secondaryButtonAction?: () => void;
     primaryButtonClassName?: string;
@@ -43,23 +43,27 @@ export default function EmptyCard({
                             </p>
                         </div>
 
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-3 w-full">
-                            <Button
-                                className={primaryButtonClassName}
-                                onClick={primaryButtonAction}
-                            >
-                                {primaryButtonText}
-                            </Button>
-                            {secondaryButtonText && secondaryButtonAction && (
-                                <Button
-                                    variant="outline"
-                                    className={secondaryButtonClassName}
-                                    onClick={secondaryButtonAction}
-                                >
-                                    {secondaryButtonText}
-                                </Button>
-                            )}
-                        </div>
+                        {(primaryButtonText || secondaryButtonText) && (
+                            <div className="flex flex-col md:flex-row items-center justify-center gap-3 w-full">
+                                {primaryButtonText && primaryButtonAction && (
+                                    <Button
+                                        className={primaryButtonClassName}
+                                        onClick={primaryButtonAction}
+                                    >
+                                        {primaryButtonText}
+                                    </Button>
+                                )}
+                                {secondaryButtonText && secondaryButtonAction && (
+                                    <Button
+                                        variant="outline"
+                                        className={secondaryButtonClassName}
+                                        onClick={secondaryButtonAction}
+                                    >
+                                        {secondaryButtonText}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </section>
             </CardContent>

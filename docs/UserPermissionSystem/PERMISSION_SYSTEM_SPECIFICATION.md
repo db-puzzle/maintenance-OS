@@ -9,6 +9,11 @@
 6. [Implementation with Laravel](#implementation-with-laravel)
 7. [Security Considerations](#security-considerations)
 8. [API Design](#api-design)
+9. [Testing](#testing)
+10. [Performance Optimizations](#performance-optimizations)
+11. [Custom Permission Management UI](#custom-permission-management-ui)
+12. [Future Enhancements](#future-enhancements)
+13. [Conclusion](#conclusion)
 
 ## Overview
 
@@ -63,10 +68,10 @@ This document outlines a comprehensive permission system for a maintenance manag
 - Policies for model-specific actions
 - Automatic policy discovery via Laravel's conventions
 
-### 5. Scopes (Custom Implementation)
-- Extends Spatie's permission model with scope metadata
-- Stored as JSON in permission's metadata column
-- Evaluated through custom Gate callbacks
+### 5. Scopes (Naming Convention)
+- Scopes are encoded directly in the permission name (e.g., `assets.create.plant.123`)
+- No additional metadata needed - the permission name contains all information
+- Evaluated through simple string matching and hierarchy logic
 
 ### 6. User Invitations (Laravel Notifications & Signed URLs)
 - Only system administrators can invite new users
@@ -98,29 +103,35 @@ class Permission extends SpatiePermission
     protected $fillable = [
         'name',
         'guard_name',
-        'resource',
-        'action',
-        'scope_type',
-        'scope_context',
-        'conditions'
+        'display_name',
+        'description',
+        'sort_order'
     ];
 
-    protected $casts = [
-        'scope_context' => 'array',
-        'conditions' => 'array'
-    ];
+    /**
+     * Parse the permission name to extract components
+     * Example: 'assets.create.plant.123' => ['resource' => 'assets', 'action' => 'create', 'scope' => 'plant', 'scope_id' => '123']
+     */
+    public function parsePermission()
+    {
+        $parts = explode('.', $this->name);
+        
+        return [
+            'resource' => $parts[0] ?? null,
+            'action' => $parts[1] ?? null,
+            'scope' => $parts[2] ?? null,
+            'scope_id' => $parts[3] ?? null,
+        ];
+    }
 
     public function scopeForResource($query, $resource)
     {
-        return $query->where('resource', $resource);
+        return $query->where('name', 'like', $resource . '.%');
     }
 
-    public function scopeForContext($query, $contextType, $contextId = null)
+    public function scopeForAction($query, $resource, $action)
     {
-        return $query->where('scope_type', $contextType)
-                    ->when($contextId, function ($q) use ($contextId) {
-                        return $q->whereJsonContains('scope_context->id', $contextId);
-                    });
+        return $query->where('name', 'like', $resource . '.' . $action . '%');
     }
 }
 ```
@@ -250,8 +261,9 @@ public function boot()
     
     // Register permission-based gates
     Permission::get()->each(function ($permission) {
-        Gate::define($permission->name, function ($user, ...$args) use ($permission) {
-            return app(PermissionService::class)->checkPermission($user, $permission, $args);
+        Gate::define($permission->name, function ($user) use ($permission) {
+            // Permission check is handled by Spatie package
+            return $user->hasPermissionTo($permission->name);
         });
     });
 }
@@ -278,12 +290,10 @@ class AddPermissionFields extends Migration
         
         // Extend Spatie's permissions table
         Schema::table('permissions', function (Blueprint $table) {
-            $table->string('resource', 100)->nullable()->index();
-            $table->string('action', 50)->nullable()->index();
-            $table->string('scope_type', 50)->default('global')->index();
-            $table->json('scope_context')->nullable();
-            $table->json('conditions')->nullable();
-            $table->index(['resource', 'action', 'scope_type']);
+            $table->string('display_name')->nullable();
+            $table->string('description')->nullable();
+            $table->integer('sort_order')->default(0);
+            $table->index('name'); // For faster permission lookups
         });
         
         // Extend Spatie's roles table for hierarchy
@@ -350,23 +360,26 @@ Schema::create('permission_audit_logs', function (Blueprint $table) {
 ### Laravel-Friendly Permission Structure
 
 ```php
-// Permission naming convention following Laravel's policy methods
+// Permission naming convention following dot notation
 $permission = Permission::create([
-    'name' => 'assets.create.plant.123', // dot notation for easy parsing
-    'resource' => 'asset',
-    'action' => 'create',
-    'scope_type' => 'plant',
-    'scope_context' => ['plant_id' => 123],
+    'name' => 'assets.create.plant.123', // dot notation: resource.action.scope.id
+    'display_name' => 'Create Assets in Plant Springfield',
+    'description' => 'Allows creating new assets in the Springfield plant',
     'guard_name' => 'web'
 ]);
 
-// Alternative: Using Laravel's ability syntax
+// Global permission (no scope)
 $permission = Permission::create([
-    'name' => 'create-asset-in-plant-123',
-    'resource' => 'asset',
-    'action' => 'create',
-    'scope_type' => 'plant',
-    'scope_context' => ['plant_id' => 123]
+    'name' => 'assets.create',
+    'display_name' => 'Create Assets (Global)',
+    'description' => 'Allows creating assets in any location'
+]);
+
+// Ownership-based permission
+$permission = Permission::create([
+    'name' => 'assets.update.owned',
+    'display_name' => 'Update Own Assets',
+    'description' => 'Allows updating only assets created by the user'
 ]);
 ```
 
@@ -398,25 +411,33 @@ class AssetPolicy
     
     public function view(User $user, Asset $asset)
     {
+        // Check hierarchical permissions: plant -> area -> sector -> asset
         return $user->can("assets.view.plant.{$asset->plant_id}")
-            || $user->can('assets.view.global')
-            || $user->id === $asset->created_by;
+            || $user->can("assets.view.area.{$asset->area_id}")
+            || $user->can("assets.view.sector.{$asset->sector_id}")
+            || $user->can("assets.view.{$asset->id}")
+            || $user->can('assets.view')  // Global permission
+            || ($user->can('assets.view.owned') && $user->id === $asset->created_by);
     }
     
     public function create(User $user, Plant $plant = null)
     {
         if ($plant) {
             return $user->can("assets.create.plant.{$plant->id}")
-                || $user->can('assets.create.global');
+                || $user->can('assets.create');  // Global permission
         }
         
-        return $user->can('assets.create.global');
+        return $user->can('assets.create');  // Global permission
     }
     
     public function update(User $user, Asset $asset)
     {
+        // Check hierarchical permissions
         return $user->can("assets.update.plant.{$asset->plant_id}")
-            || $user->can('assets.update.global')
+            || $user->can("assets.update.area.{$asset->area_id}")
+            || $user->can("assets.update.sector.{$asset->sector_id}")
+            || $user->can("assets.update.{$asset->id}")
+            || $user->can('assets.update')  // Global permission
             || ($user->can('assets.update.owned') && $user->id === $asset->created_by);
     }
 }
@@ -458,7 +479,137 @@ class PermissionServiceProvider extends ServiceProvider
 }
 ```
 
-### 2. Inertia.js Middleware Configuration
+### 2. Permission Hierarchy Service
+
+```php
+// app/Services/PermissionHierarchyService.php
+namespace App\Services;
+
+use App\Models\User;
+use App\Models\Asset;
+use App\Models\Sector;
+use App\Models\Area;
+
+class PermissionHierarchyService
+{
+    /**
+     * Check if user has permission considering hierarchy
+     */
+    public function checkHierarchicalPermission(User $user, string $basePermission, $model = null): bool
+    {
+        // Super admin always has access
+        if ($user->is_super_admin) {
+            return true;
+        }
+
+        // Check global permission first
+        if ($user->can($basePermission)) {
+            return true;
+        }
+
+        // If no model provided, only global permission matters
+        if (!$model) {
+            return false;
+        }
+
+        // Check model-specific permissions based on hierarchy
+        return $this->checkModelPermissions($user, $basePermission, $model);
+    }
+
+    private function checkModelPermissions(User $user, string $basePermission, $model): bool
+    {
+        // For assets, check full hierarchy: asset -> sector -> area -> plant
+        if ($model instanceof Asset) {
+            return $user->can("{$basePermission}.{$model->id}")
+                || $user->can("{$basePermission}.sector.{$model->sector_id}")
+                || $user->can("{$basePermission}.area.{$model->area_id}")
+                || $user->can("{$basePermission}.plant.{$model->plant_id}")
+                || ($this->isOwnershipPermission($basePermission) && $model->created_by === $user->id);
+        }
+
+        // For sectors, check: sector -> area -> plant
+        if ($model instanceof Sector) {
+            return $user->can("{$basePermission}.{$model->id}")
+                || $user->can("{$basePermission}.area.{$model->area_id}")
+                || $user->can("{$basePermission}.plant.{$model->area->plant_id}");
+        }
+
+        // For areas, check: area -> plant
+        if ($model instanceof Area) {
+            return $user->can("{$basePermission}.{$model->id}")
+                || $user->can("{$basePermission}.plant.{$model->plant_id}");
+        }
+
+        // For other models, just check specific permission
+        return $user->can("{$basePermission}.{$model->id}");
+    }
+
+    private function isOwnershipPermission(string $permission): bool
+    {
+        return str_contains($permission, '.owned');
+    }
+
+    /**
+     * Get all entities user has access to for a given permission
+     */
+    public function getAccessibleEntities(User $user, string $resource, string $action): array
+    {
+        $basePermission = "{$resource}.{$action}";
+        
+        // Super admin or global permission = access to all
+        if ($user->is_super_admin || $user->can($basePermission)) {
+            return ['all' => true];
+        }
+
+        $accessible = [
+            'plants' => [],
+            'areas' => [],
+            'sectors' => [],
+            'assets' => [],
+            'owned_only' => false
+        ];
+
+        // Check all user permissions
+        foreach ($user->getAllPermissions() as $permission) {
+            if (!str_starts_with($permission->name, $basePermission)) {
+                continue;
+            }
+
+            $parts = explode('.', $permission->name);
+            
+            // Handle ownership permission
+            if (end($parts) === 'owned') {
+                $accessible['owned_only'] = true;
+                continue;
+            }
+
+            // Handle scoped permissions
+            if (count($parts) >= 4) {
+                $scope = $parts[2];
+                $id = $parts[3];
+                
+                switch ($scope) {
+                    case 'plant':
+                        $accessible['plants'][] = $id;
+                        break;
+                    case 'area':
+                        $accessible['areas'][] = $id;
+                        break;
+                    case 'sector':
+                        $accessible['sectors'][] = $id;
+                        break;
+                    default:
+                        $accessible['assets'][] = $id;
+                }
+            }
+        }
+
+        return $accessible;
+    }
+}
+```
+
+### 3. Inertia.js Middleware Configuration
 
 ```php
 // app/Http/Middleware/HandleInertiaRequests.php
@@ -646,11 +797,29 @@ class AssetController extends Controller
     public function index(Request $request)
     {
         // Automatically authorized by policy
+        $hierarchyService = app(PermissionHierarchyService::class);
+        $accessible = $hierarchyService->getAccessibleEntities($request->user(), 'assets', 'viewAny');
+        
         $assets = Asset::query()
-            ->when(!$request->user()->can('assets.viewAny.global'), function ($query) use ($request) {
-                // Scope to user's permitted plants
-                $plantIds = $request->user()->getPermittedPlantIds('assets.viewAny');
-                $query->whereIn('plant_id', $plantIds);
+            ->when($accessible !== ['all' => true], function ($query) use ($accessible, $request) {
+                $query->where(function ($q) use ($accessible, $request) {
+                    // Add conditions based on accessible entities
+                    if (!empty($accessible['plants'])) {
+                        $q->orWhereIn('plant_id', $accessible['plants']);
+                    }
+                    if (!empty($accessible['areas'])) {
+                        $q->orWhereIn('area_id', $accessible['areas']);
+                    }
+                    if (!empty($accessible['sectors'])) {
+                        $q->orWhereIn('sector_id', $accessible['sectors']);
+                    }
+                    if (!empty($accessible['assets'])) {
+                        $q->orWhereIn('id', $accessible['assets']);
+                    }
+                    if ($accessible['owned_only']) {
+                        $q->orWhere('created_by', $request->user()->id);
+                    }
+                });
             })
             ->paginate();
             
@@ -1599,6 +1768,14 @@ Schema::table('model_has_roles', function (Blueprint $table) {
 });
 ```
 
+## Custom Permission Management UI
+
+For the complete UI implementation for custom permission management, including the Permission Management Dashboard, Permission Creation/Edit Form, Role Management Component, Permission Matrix Component, and the Permission Audit Log System, please refer to:
+
+**[Custom Permission Management UI Documentation](./CUSTOM_PERMISSION_MANAGEMENT_UI.md)**
+
+This separate document provides detailed React/TypeScript implementations for all UI components, supporting services, and controllers needed for a comprehensive permission management interface.
+
 ## Future Enhancements
 
 ### 1. Laravel Sanctum Token Abilities
@@ -1618,10 +1795,45 @@ dispatch(new WarmPermissionCache($user))->onQueue('permissions');
 - Role and permission assignment tools
 - Audit log viewer
 
+### 4. Real-time Audit Log Monitoring
+- WebSocket integration for live audit log updates
+- Alert system for critical permission changes
+- Dashboard for monitoring permission usage patterns
+
+### 5. Advanced Analytics
+- Permission usage statistics
+- User activity heat maps
+- Anomaly detection for unusual permission patterns
+
+## Key Simplifications from JSON Approach
+
+### What Changed
+1. **Removed JSON columns** (`scope_context` and `conditions`) from the permissions table
+2. **Permission names contain all scope information** - no need for separate metadata
+3. **Simple string parsing** replaces complex JSON queries
+4. **Hierarchical checking** is handled by a dedicated service class
+5. **Better performance** with standard string indexes instead of JSON queries
+
+### Benefits
+- **Simpler database schema** - only standard columns, no JSON
+- **Better query performance** - can use standard indexes on permission names
+- **Easier to understand** - permission names are self-documenting
+- **More maintainable** - all logic is in code, not in database JSON
+- **Laravel-native** - works perfectly with Spatie package without complex extensions
+
+### Migration Path
+If you have an existing system using the JSON approach:
+1. Create the new `PermissionHierarchyService`
+2. Update your policies to use the hierarchy service
+3. Migrate existing permissions by converting JSON data to structured permission names
+4. Remove JSON columns from the database
+
 ## Conclusion
 
-This permission system fully leverages Laravel's built-in authorization capabilities while providing the flexibility and granularity required for a maintenance management system. By using Spatie's Laravel-Permission package as a foundation and extending it with custom scoping logic, we achieve a robust, performant, and Laravel-idiomatic solution that integrates seamlessly with Laravel's Gates, Policies, and middleware system.
+This simplified permission system fully leverages Laravel's built-in authorization capabilities while providing the flexibility and granularity required for a maintenance management system. By using Spatie's Laravel-Permission package with a clear naming convention instead of JSON metadata, we achieve a robust, performant, and Laravel-idiomatic solution.
+
+The hierarchical permission structure is encoded directly in the permission names (e.g., `assets.create.plant.123`), making the system self-documenting and easy to understand. The `PermissionHierarchyService` handles the complexity of checking permissions through the hierarchy, while keeping the database schema simple and performant.
 
 The system is built for modern frontend applications using React with Inertia.js, providing a seamless single-page application experience while maintaining Laravel's server-side rendering benefits. Permission checks are shared with the frontend through Inertia's middleware, enabling reactive UI components that respond to user permissions in real-time.
 
-The invitation-only registration system ensures controlled user access, where only system administrators can add new users via secure, time-limited email invitations. This approach maintains system security while providing a smooth onboarding experience for authorized users. The system includes comprehensive audit trails, role-based initial permissions, and the ability to manage invitations throughout their lifecycle. 
+The invitation-only registration system ensures controlled user access, where only system administrators can add new users via secure, time-limited email invitations. This approach maintains system security while providing a smooth onboarding experience for authorized users. 

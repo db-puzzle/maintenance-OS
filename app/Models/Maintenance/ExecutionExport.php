@@ -103,6 +103,14 @@ class ExecutionExport extends Model
     }
 
     /**
+     * Check if export is pending
+     */
+    public function isPending(): bool
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
+
+    /**
      * Check if export has failed
      */
     public function hasFailed(): bool

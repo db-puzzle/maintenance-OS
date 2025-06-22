@@ -216,9 +216,8 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                                         routine: routine.id,
                                         page,
                                     })}
-                                    className={`rounded px-3 py-1 ${
-                                        page === executions.current_page ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
-                                    }`}
+                                    className={`rounded px-3 py-1 ${page === executions.current_page ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+                                        }`}
                                 >
                                     {page}
                                 </Link>

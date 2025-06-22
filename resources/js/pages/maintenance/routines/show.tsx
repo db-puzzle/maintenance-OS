@@ -1,16 +1,20 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useExportManager } from '@/hooks/use-export-manager';
-import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import type { RoutineExecution, TaskResponse } from '@/types/maintenance';
-import { Head } from '@inertiajs/react';
-import { AlertCircle, Calendar, Camera, CheckCircle2, ChevronRight, Clock, Download, FileText, ListChecks, Ruler, User } from 'lucide-react';
+import { Head, router, Link } from '@inertiajs/react';
+import { Calendar, Clock, FileText, User, Wrench } from 'lucide-react';
 import React, { useState } from 'react';
+
+import AppLayout from '@/layouts/app-layout';
+import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
+import RoutineExecutionFormComponent from '@/components/RoutineExecutionFormComponent';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Download, AlertCircle, CheckCircle2, ChevronRight, Camera, ListChecks, Ruler } from 'lucide-react';
+import { useExportManager } from '@/hooks/use-export-manager';
 import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
+import Timeline from '@/components/Timeline';
 
 interface ExecutionShowProps {
     execution: RoutineExecution;
@@ -19,7 +23,6 @@ interface ExecutionShowProps {
 }
 
 const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses, canExport }) => {
-    const [activeTab, setActiveTab] = useState('responses');
     const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set(taskResponses.map((tr) => tr.id)));
     const [isExporting, setIsExporting] = useState(false);
     const [exportStatus, setExportStatus] = useState<'idle' | 'processing' | 'ready'>('idle');
@@ -34,7 +37,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses,
             href: '/home',
         },
         {
-            title: 'Executions',
+            title: 'Rotinas Executadas',
             href: '/maintenance/routines',
         },
         {
@@ -105,7 +108,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses,
         setExportError(null);
 
         try {
-            const response = await fetch(`/maintenance/routines/${execution.id}/export`, {
+            const response = await fetch(`/maintenance/routines/executions/${execution.id}/export`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -174,8 +177,6 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses,
                             downloadUrl: statusData.download_url,
                             completedAt: new Date(),
                         });
-
-                        // No longer auto-download - user will click the toast or dropdown to download
 
                         setTimeout(() => {
                             setExportStatus('idle');
@@ -336,194 +337,156 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses,
         }
     };
 
-    return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Execution #${execution.id} - Maintenance`} />
+    const subtitle = (
+        <span className="text-muted-foreground flex items-center gap-4 text-sm">
+            {execution.assets && execution.assets.length > 0 && (
+                <>
+                    <Link
+                        href={route('asset-hierarchy.assets.show', execution.assets[0].id)}
+                        className="text-primary hover:underline"
+                    >
+                        {execution.assets[0].tag}
+                    </Link>
+                    <span className="text-muted-foreground">•</span>
+                </>
+            )}
+            <span className="flex items-center gap-1">
+                <Wrench className="h-4 w-4" />
+                <span>{execution.routine.name}</span>
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <Badge className={getStatusColor(execution.status)}>
+                {execution.status.replace('_', ' ')}
+            </Badge>
+        </span>
+    );
 
-            <div className="flex h-full flex-1 flex-col gap-6 rounded-xl p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-foreground text-2xl font-semibold">Execution #{execution.id}</h1>
-                        <p className="text-muted-foreground">
-                            {execution.routine.name} • {execution.assets[0]?.tag || execution.primary_asset_tag}
-                        </p>
-                    </div>
-                    <div className="flex gap-3">
-                        {canExport && (
-                            <>
-                                <Button onClick={handleExport} disabled={isExporting}>
-                                    <Download className="mr-2 h-4 w-4" />
-                                    {isExporting ? 'Exporting...' : 'Export PDF'}
-                                </Button>
-                                {exportError && <p className="self-center text-sm text-red-600">{exportError}</p>}
-                            </>
-                        )}
-                    </div>
+    // Common progress bar component to show at the top of all tabs
+    const progressBar = execution.status === 'in_progress' && (
+        <div className="mb-6">
+            <div className="mb-2 flex items-center justify-between">
+                <span className="text-muted-foreground text-sm">Progresso da Execução</span>
+                <span className="text-sm font-medium">{execution.progress}%</span>
+            </div>
+            <Progress value={execution.progress} className="h-2" />
+        </div>
+    );
+
+    const tabs = [
+        {
+            id: 'informacoes',
+            label: 'Informações Gerais',
+            content: (
+                <div className="py-8">
+                    <RoutineExecutionFormComponent
+                        execution={execution}
+                        canExport={canExport}
+                        onExport={handleExport}
+                        isExporting={isExporting}
+                        exportError={exportError}
+                    />
                 </div>
-
-                {/* Summary Card */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Execution Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                            <div className="space-y-1">
-                                <div className="text-muted-foreground flex items-center gap-2">
-                                    <User className="h-4 w-4" />
-                                    <span className="text-sm">Executor</span>
-                                </div>
-                                <p className="font-medium">{execution.executor.name}</p>
-                            </div>
-
-                            <div className="space-y-1">
-                                <div className="text-muted-foreground flex items-center gap-2">
-                                    <Calendar className="h-4 w-4" />
-                                    <span className="text-sm">Started At</span>
-                                </div>
-                                <p className="font-medium">{formatDate(execution.started_at)}</p>
-                            </div>
-
-                            <div className="space-y-1">
-                                <div className="text-muted-foreground flex items-center gap-2">
-                                    <Clock className="h-4 w-4" />
-                                    <span className="text-sm">Duration</span>
-                                </div>
-                                <p className="font-medium">{execution.duration_minutes ? `${execution.duration_minutes} minutes` : 'In Progress'}</p>
-                            </div>
-
-                            <div className="space-y-1">
-                                <div className="text-muted-foreground flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4" />
-                                    <span className="text-sm">Status</span>
-                                </div>
-                                <Badge className={getStatusColor(execution.status)}>{execution.status.replace('_', ' ')}</Badge>
-                            </div>
+            ),
+        },
+        {
+            id: 'responses',
+            label: 'Task Responses',
+            content: (
+                <div className="space-y-4 py-6">
+                    {progressBar}
+                    <div className="mb-4 flex items-center justify-between">
+                        <h3 className="text-lg font-medium">Task Responses ({taskResponses.length})</h3>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => setExpandedTasks(new Set(taskResponses.map((tr) => tr.id)))}>
+                                Expand All
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setExpandedTasks(new Set())}>
+                                Collapse All
+                            </Button>
                         </div>
+                    </div>
 
-                        {execution.status === 'in_progress' && (
-                            <div className="mt-6">
-                                <div className="mb-2 flex items-center justify-between">
-                                    <span className="text-muted-foreground text-sm">Progress</span>
-                                    <span className="text-sm font-medium">{execution.progress}%</span>
-                                </div>
-                                <Progress value={execution.progress} />
-                            </div>
-                        )}
-
-                        {execution.notes && (
-                            <div className="mt-6">
-                                <h4 className="mb-2 font-medium">Notes</h4>
-                                <p className="text-muted-foreground text-sm">{execution.notes}</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Tabs */}
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-                    <TabsList>
-                        <TabsTrigger value="responses">Task Responses ({taskResponses.length})</TabsTrigger>
-                        <TabsTrigger value="timeline">Timeline</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="responses" className="space-y-4">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-medium">Task Responses</h3>
-                            <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => setExpandedTasks(new Set(taskResponses.map((tr) => tr.id)))}>
-                                    Expand All
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => setExpandedTasks(new Set())}>
-                                    Collapse All
-                                </Button>
-                            </div>
-                        </div>
-
-                        {taskResponses.map((response, index) => (
-                            <Card key={response.id}>
-                                <CardHeader className="cursor-pointer" onClick={() => toggleTaskExpanded(response.id)}>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-muted-foreground text-sm font-medium">{index + 1}.</span>
-                                                {getTaskTypeIcon(response.task.type)}
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base">{response.task.description}</CardTitle>
-                                                {response.task.is_required && (
-                                                    <Badge variant="secondary" className="mt-1">
-                                                        Required
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        </div>
+                    {taskResponses.map((response, index) => (
+                        <Card key={response.id}>
+                            <CardHeader className="cursor-pointer" onClick={() => toggleTaskExpanded(response.id)}>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
                                         <div className="flex items-center gap-2">
-                                            {getResponseStatusIcon(response.response.status)}
-                                            <ChevronRight
-                                                className={`h-4 w-4 transition-transform ${expandedTasks.has(response.id) ? 'rotate-90' : ''}`}
-                                            />
+                                            <span className="text-muted-foreground text-sm font-medium">{index + 1}.</span>
+                                            {getTaskTypeIcon(response.task.type)}
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-base">{response.task.description}</CardTitle>
+                                            {response.task.is_required && (
+                                                <Badge variant="secondary" className="mt-1">
+                                                    Required
+                                                </Badge>
+                                            )}
                                         </div>
                                     </div>
-                                </CardHeader>
-
-                                {expandedTasks.has(response.id) && (
-                                    <CardContent>
-                                        {response.task.instructions.length > 0 && (
-                                            <div className="bg-muted/50 mb-4 rounded-lg p-3">
-                                                <p className="mb-2 text-sm font-medium">Instructions:</p>
-                                                {response.task.instructions.map((instruction) => (
-                                                    <p key={instruction.id} className="text-muted-foreground text-sm">
-                                                        {instruction.content}
-                                                    </p>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium">Response:</p>
-                                            {renderTaskResponse(response)}
-                                        </div>
-
-                                        {response.responded_at && (
-                                            <p className="text-muted-foreground mt-4 text-xs">Responded at: {formatDate(response.responded_at)}</p>
-                                        )}
-                                    </CardContent>
-                                )}
-                            </Card>
-                        ))}
-                    </TabsContent>
-
-                    <TabsContent value="timeline" className="space-y-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Execution Timeline</CardTitle>
-                                <CardDescription>Complete history of execution events</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {execution.timeline.map((event, index) => (
-                                        <div key={index} className="flex gap-4">
-                                            <div className="flex flex-col items-center">
-                                                <div className="bg-primary h-3 w-3 rounded-full" />
-                                                {index < execution.timeline.length - 1 && <div className="bg-border h-16 w-0.5" />}
-                                            </div>
-                                            <div className="flex-1 pb-8">
-                                                <p className="font-medium">{event.description}</p>
-                                                <p className="text-muted-foreground text-sm">
-                                                    {formatDate(event.timestamp)}
-                                                    {event.user && ` • ${event.user}`}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
+                                    <div className="flex items-center gap-2">
+                                        {getResponseStatusIcon(response.response.status)}
+                                        <ChevronRight
+                                            className={`h-4 w-4 transition-transform ${expandedTasks.has(response.id) ? 'rotate-90' : ''}`}
+                                        />
+                                    </div>
                                 </div>
-                            </CardContent>
+                            </CardHeader>
+
+                            {expandedTasks.has(response.id) && (
+                                <CardContent>
+                                    {response.task.instructions.length > 0 && (
+                                        <div className="bg-muted/50 mb-4 rounded-lg p-3">
+                                            <p className="mb-2 text-sm font-medium">Instructions:</p>
+                                            {response.task.instructions.map((instruction) => (
+                                                <p key={instruction.id} className="text-muted-foreground text-sm">
+                                                    {instruction.content}
+                                                </p>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <p className="text-sm font-medium">Response:</p>
+                                        {renderTaskResponse(response)}
+                                    </div>
+
+                                    {response.responded_at && (
+                                        <p className="text-muted-foreground mt-4 text-xs">Responded at: {formatDate(response.responded_at)}</p>
+                                    )}
+                                </CardContent>
+                            )}
                         </Card>
-                    </TabsContent>
-                </Tabs>
-            </div>
+                    ))}
+                </div>
+            ),
+        },
+        {
+            id: 'timeline',
+            label: 'Timeline',
+            content: (
+                <Timeline
+                    events={execution.timeline}
+                    title="Execution Timeline"
+                    subtitle="Complete history of execution events"
+                    formatDate={formatDate}
+                    className="py-0"
+                />
+            ),
+        },
+    ];
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`Execution ID ${execution.id} - Maintenance`} />
+
+            <ShowLayout
+                title={`Execução de Rotina #${execution.id}`}
+                subtitle={subtitle}
+                editRoute=""
+                tabs={tabs}
+                showEditButton={false}
+            />
         </AppLayout>
     );
 };

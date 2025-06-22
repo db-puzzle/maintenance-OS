@@ -340,6 +340,7 @@ class ShiftController extends Controller
                 $formattedShift = [
                     'id' => $shift->id,
                     'name' => $shift->name,
+                    'timezone' => $shift->timezone,
                     'asset_count' => $shift->assets->count(),
                     'schedules' => $shift->schedules->map(function ($schedule) {
                         return [
@@ -491,6 +492,7 @@ class ShiftController extends Controller
         $formattedShift = [
             'id' => $shift->id,
             'name' => $shift->name,
+            'timezone' => $shift->timezone,
             'asset_count' => $shift->assets->count(),
             'schedules' => $shift->schedules->map(function ($schedule) {
                 return [
@@ -593,6 +595,7 @@ class ShiftController extends Controller
                 $formattedShift = [
                     'id' => $shift->id,
                     'name' => $shift->name,
+                    'timezone' => $shift->timezone,
                     'asset_count' => $shift->assets->count(),
                     'schedules' => $shift->schedules->map(function ($schedule) {
                         return [
@@ -929,6 +932,7 @@ class ShiftController extends Controller
                 $formattedShift = [
                     'id' => $newShift->id,
                     'name' => $newShift->name,
+                    'timezone' => $newShift->timezone,
                     'asset_count' => $newShift->assets->count(),
                     'schedules' => $newShift->schedules->map(function ($schedule) {
                         return [

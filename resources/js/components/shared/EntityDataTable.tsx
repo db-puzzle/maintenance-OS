@@ -72,7 +72,10 @@ export function EntityDataTable<T extends Record<string, unknown>>({
             .map((_, index) => {
                 const item: Record<string, unknown> = { id: `skeleton-${index}` };
                 columns.forEach((col) => {
-                    item[col.key] = '...';
+                    // Don't override the id column
+                    if (col.key !== 'id') {
+                        item[col.key] = '...';
+                    }
                 });
                 return item as T;
             });

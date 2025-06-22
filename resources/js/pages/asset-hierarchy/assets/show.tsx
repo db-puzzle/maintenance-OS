@@ -1,24 +1,20 @@
 import AssetFormComponent from '@/components/AssetFormComponent';
 import AssetRuntimeInput from '@/components/AssetRuntimeInput';
-import CreateRoutineButton from '@/components/CreateRoutineButton';
+import AssetRoutinesTab from '@/components/AssetRoutinesTab';
 import CreateShiftSheet from '@/components/CreateShiftSheet';
-import InlineRoutineForm from '@/components/InlineRoutineForm';
-import InlineRoutineFormEditor from '@/components/InlineRoutineFormEditor';
-import RoutineList from '@/components/RoutineList';
+import ExecutionHistory from '@/components/ExecutionHistory';
 import ShiftCalendarView from '@/components/ShiftCalendarView';
 import ShiftSelectionCard, { ShiftSelectionCardRef } from '@/components/ShiftSelectionCard';
 import ShiftTableView from '@/components/ShiftTableView';
 import EmptyCard from '@/components/ui/empty-card';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Area, type Asset, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Calendar, CalendarClock, Clock, FileText, MessageSquare, Search, Table } from 'lucide-react';
+import { Calendar, Clock, FileText, MessageSquare, Table } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -65,6 +61,9 @@ interface Props {
             name: string;
             description?: string;
             form?: unknown;
+            form_id?: number;
+            trigger_hours?: number;
+            status?: 'Active' | 'Inactive';
             [key: string]: unknown;
         }>;
         shift_id?: number;
@@ -115,6 +114,9 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             name: string;
             description?: string;
             form?: unknown;
+            form_id?: number;
+            trigger_hours?: number;
+            status?: 'Active' | 'Inactive';
             [key: string]: unknown;
         }>
     >(asset?.routines || []);
@@ -126,26 +128,36 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         }
     }, [asset?.routines]);
 
-    // Estado para controlar qual rotina está sendo editada
-    const [editingRoutineFormId, setEditingRoutineFormId] = useState<number | null>(null);
+    // Fetch complete form data for routines when on the routines tab
+    useEffect(() => {
+        const fetchRoutinesWithFormData = async () => {
+            // Remove the tab check for now to ensure data is loaded
+            if (!asset?.routines) return;
+
+            const routinesWithFormData = await Promise.all(
+                asset.routines.map(async (routine) => {
+                    // Always fetch form data if routine has a form_id
+                    if (routine.form_id) {
+                        try {
+                            const response = await axios.get(route('maintenance.routines.form-data', routine.id));
+                            return response.data.routine;
+                        } catch (error) {
+                            console.error(`Error fetching form data for routine ${routine.id}:`, error);
+                            return routine;
+                        }
+                    }
+                    return routine;
+                })
+            );
+
+            setRoutines(routinesWithFormData);
+        };
+
+        fetchRoutinesWithFormData();
+    }, [asset?.routines]); // Remove tabFromUrl dependency
 
     // Estado para controlar o modo comprimido
     const [isCompressed, setIsCompressed] = useState(false);
-
-    // Estado para busca de rotinas
-    const [searchTerm, setSearchTerm] = useState('');
-
-    // Estado para rastrear a rotina recém-criada (apenas para ordenação)
-    const [newlyCreatedRoutineId, setNewlyCreatedRoutineId] = useState<number | null>(null);
-
-    // Estado para controlar o preenchimento da rotina
-    const [fillingRoutineId, setFillingRoutineId] = useState<number | null>(null);
-
-    // Estado para controlar o carregamento do formulário
-    const [loadingFormEditor, setLoadingFormEditor] = useState(false);
-
-    // Refs para os componentes RoutineList
-    const routineListRefs = useRef<{ [key: number]: { focusAddTasksButton: () => void } | null }>({});
 
     // Estados para turnos
     const [shifts, setShifts] = useState<Shift[]>([]);
@@ -159,91 +171,13 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     const [isEditingShift, setIsEditingShift] = useState(false);
     const [tempSelectedShiftId, setTempSelectedShiftId] = useState<string>('');
 
-    // Referência para o CreateRoutineButton
-    const createRoutineButtonRef = useRef<HTMLButtonElement>(null);
+    // Referência para o ShiftSelectionCard
     const shiftSelectionRef = useRef<ShiftSelectionCardRef>(null);
-
-    // Filtrar rotinas baseado no termo de busca
-    const filteredRoutines = routines.filter(
-        (routine) =>
-            routine.name.toLowerCase().includes(searchTerm.toLowerCase()) || routine.description?.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-
-    // Ordenar rotinas para colocar a recém-criada no topo
-    const sortedRoutines = [...filteredRoutines].sort((a, b) => {
-        // Se uma das rotinas é a recém-criada, ela vai para o topo
-        if (a.id === newlyCreatedRoutineId) return -1;
-        if (b.id === newlyCreatedRoutineId) return 1;
-        // Caso contrário, manter a ordem original
-        return 0;
-    });
-
-    // Handlers para rotinas
-    const handleSaveRoutine = (routine: { id: number; name: string; description?: string; form?: unknown;[key: string]: unknown }) => {
-        if (routine.id && routines.find((r) => r.id === routine.id)) {
-            // Atualizar rotina existente
-            setRoutines((prevRoutines) => prevRoutines.map((r) => (r.id === routine.id ? routine : r)));
-            toast.success('Rotina atualizada com sucesso!');
-        } else {
-            // Para novas rotinas, apenas adicionar ao estado (a criação já foi feita pelo EditRoutineSheet)
-            setRoutines((prevRoutines) => [...prevRoutines, routine]);
-            toast.success('Rotina criada com sucesso!');
-        }
-    };
-
-    const handleCreateSuccess = (routine: { id: number; name: string; description?: string; form?: unknown;[key: string]: unknown }) => {
-        // Add the new routine to the state
-        if (routine && routine.id) {
-            setRoutines((prevRoutines) => [...prevRoutines, routine]);
-        }
-        // The backend will redirect to the routines tab with the new routine ID
-        // The redirect will trigger the useEffect to open the form editor
-    };
-
-    const handleDeleteRoutine = (routine: { id: number; name: string; description?: string; form?: unknown;[key: string]: unknown }) => {
-        // Remover a rotina da listagem
-        setRoutines((prevRoutines) => prevRoutines.filter((r) => r.id !== routine.id));
-    };
-
-    const handleNewRoutineClick = () => {
-        createRoutineButtonRef.current?.click();
-    };
 
     const handleAssetCreated = () => {
         // This will be called after successful asset creation
         // The AssetFormComponent will handle the redirect
     };
-
-    // Check for new routine from flash data
-    useEffect(() => {
-        if (newRoutineId && tabFromUrl === 'rotinas') {
-            // Check if the routine exists in the current state
-            const routineExists = routines.some((r) => r.id === newRoutineId);
-
-            if (!routineExists) {
-                // If the routine doesn't exist in state, it means we need to find it
-                // It should be in the asset's routines that were loaded from the backend
-                const newRoutine = asset?.routines?.find((r) => r.id === newRoutineId);
-
-                if (newRoutine) {
-                    // Add it to the state at the beginning of the array
-                    setRoutines((prevRoutines) => [newRoutine, ...prevRoutines]);
-                }
-            }
-
-            // Set the newly created routine ID for sorting
-            setNewlyCreatedRoutineId(newRoutineId);
-
-            // Small delay to ensure the UI is ready and the RoutineList component is mounted
-            setTimeout(() => {
-                // Focus the "Adicionar Tarefas" button for the new routine
-                const routineListRef = routineListRefs.current[newRoutineId];
-                if (routineListRef) {
-                    routineListRef.focusAddTasksButton();
-                }
-            }, 500);
-        }
-    }, [newRoutineId, tabFromUrl, asset?.routines, routines]);
 
     // Carregar turnos disponíveis
     useEffect(() => {
@@ -411,69 +345,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         shiftSelectionRef.current?.triggerEditWithFocus();
     };
 
-    const handleEditRoutineForm = async (routineId: number) => {
-        // First, fetch the complete routine data with form
-        setLoadingFormEditor(true);
-        try {
-            const url = route('maintenance.routines.form-data', routineId);
-
-            const response = await axios.get(url);
-            const routineWithForm = response.data.routine;
-
-            // Update the routine in the state with the fetched data
-            setRoutines((prevRoutines) => prevRoutines.map((r) => (r.id === routineId ? { ...r, ...routineWithForm } : r)));
-
-            // Then set the editing state
-            setEditingRoutineFormId(routineId);
-            // Ativar modo comprimido ao editar formulário
-            setIsCompressed(true);
-        } catch (error) {
-            // More specific error message
-            const axiosError = error as { response?: { status?: number } };
-            if (axiosError.response?.status === 404) {
-                toast.error('Rotina não encontrada');
-            } else if (axiosError.response?.status === 500) {
-                toast.error('Erro no servidor ao carregar formulário');
-            } else {
-                toast.error('Erro ao carregar dados do formulário');
-            }
-        } finally {
-            setLoadingFormEditor(false);
-        }
-    };
-
-    const handleFillRoutineForm = (routineId: number) => {
-        setFillingRoutineId(routineId);
-        setIsCompressed(true);
-    };
-
-    const handleCloseFormEditor = () => {
-        setEditingRoutineFormId(null);
-        // Desativar modo comprimido ao fechar editor
-        setIsCompressed(false);
-    };
-
-    const handleCloseFormFiller = () => {
-        setFillingRoutineId(null);
-        setIsCompressed(false);
-    };
-
-    const handleFormSaved = (formData: unknown) => {
-        // Atualizar a rotina com o novo formulário
-        setRoutines((prevRoutines) =>
-            prevRoutines.map((r) => {
-                if (r.id === editingRoutineFormId) {
-                    return { ...r, form: formData };
-                }
-                return r;
-            }),
-        );
-        setEditingRoutineFormId(null);
-        toast.success('Formulário da rotina atualizado com sucesso!');
-        // Desativar modo comprimido ao fechar editor
-        setIsCompressed(false);
-    };
-
     const tabs = [
         {
             id: 'informacoes',
@@ -575,149 +446,19 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 {
                     id: 'rotinas',
                     label: 'Rotinas',
-                    content: (
-                        <div className="min-h-full space-y-4">
-                            {loadingFormEditor ? (
-                                // Show loading state while fetching form data
-                                <div className="flex min-h-[400px] items-center justify-center">
-                                    <div className="text-center">
-                                        <div className="border-primary mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2"></div>
-                                        <p className="text-muted-foreground">Carregando formulário...</p>
-                                    </div>
-                                </div>
-                            ) : editingRoutineFormId ? (
-                                // Mostrar o editor de formulário inline
-                                (() => {
-                                    const routine = routines.find((r) => r.id === editingRoutineFormId);
-                                    if (!routine) return null;
-
-                                    return (
-                                        <InlineRoutineFormEditor
-                                            routine={routine}
-                                            assetId={asset!.id}
-                                            onClose={handleCloseFormEditor}
-                                            onSuccess={handleFormSaved}
-                                        />
-                                    );
-                                })()
-                            ) : fillingRoutineId ? (
-                                // Mostrar o preenchedor de formulário inline
-                                (() => {
-                                    const routine = routines.find((r) => r.id === fillingRoutineId);
-                                    if (!routine) return null;
-
-                                    return (
-                                        <InlineRoutineForm
-                                            routine={routine}
-                                            assetId={asset!.id}
-                                            onClose={handleCloseFormFiller}
-                                            onComplete={handleCloseFormFiller}
-                                        />
-                                    );
-                                })()
-                            ) : routines.length === 0 ? (
-                                <div className="flex min-h-[400px] items-center justify-center py-4">
-                                    <div className="w-full">
-                                        <EmptyCard
-                                            icon={CalendarClock}
-                                            title="Nenhuma rotina"
-                                            description="Crie rotinas de manutenção e inspeção para este ativo"
-                                            primaryButtonText="Nova rotina"
-                                            primaryButtonAction={handleNewRoutineClick}
-                                            secondaryButtonText="Ver cronograma"
-                                            secondaryButtonAction={() => {
-                                                // Navegar para cronograma ou implementar funcionalidade futura
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    {/* Lista de rotinas existentes */}
-
-                                    <div className="bg-background-muted">
-                                        <div
-                                            className={cn(
-                                                'transition-all duration-200 ease-in-out',
-                                                isCompressed ? 'mt-4 mb-4 px-4' : 'mt-4 mb-4 px-4',
-                                            )}
-                                        >
-                                            <div className="relative">
-                                                <Search
-                                                    className={cn(
-                                                        'text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2',
-                                                        isCompressed ? 'h-4 w-4' : 'h-5 w-5',
-                                                    )}
-                                                />
-                                                <Input
-                                                    type="text"
-                                                    placeholder="Buscar rotinas..."
-                                                    value={searchTerm}
-                                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                                    className={cn('bg-background max-w-sm', isCompressed ? 'h-8 pl-9' : 'pl-10')}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className={cn('transition-all duration-200 ease-in-out', isCompressed ? 'px-2' : 'px-4')}>
-                                            <ul role="list" className="divide-y divide-gray-100 border-t border-b border-gray-100">
-                                                {sortedRoutines.map((routine) => (
-                                                    <li key={routine.id}>
-                                                        <RoutineList
-                                                            routine={routine}
-                                                            onSave={handleSaveRoutine}
-                                                            onDelete={handleDeleteRoutine}
-                                                            assetId={asset?.id}
-                                                            onEditForm={() => handleEditRoutineForm(routine.id)}
-                                                            onFillForm={() => handleFillRoutineForm(routine.id)}
-                                                            isCompressed={isCompressed}
-                                                            shift={selectedShift}
-                                                            ref={(el) => {
-                                                                if (routine.id) {
-                                                                    routineListRefs.current[routine.id] = el;
-                                                                }
-                                                            }}
-                                                        />
-                                                    </li>
-                                                ))}
-                                            </ul>
-
-                                            {sortedRoutines.length === 0 && searchTerm && (
-                                                <div className={cn('text-muted-foreground text-center', isCompressed ? 'py-4 text-sm' : 'py-8')}>
-                                                    Nenhuma rotina encontrada para "{searchTerm}"
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Botão para adicionar nova rotina quando já existem rotinas */}
-                                        <div
-                                            className={cn(
-                                                'flex justify-center transition-all duration-200 ease-in-out',
-                                                isCompressed ? 'py-2' : 'py-4',
-                                            )}
-                                        >
-                                            <CreateRoutineButton
-                                                onSuccess={handleCreateSuccess}
-                                                text="Adicionar Nova Rotina"
-                                                variant="outline"
-                                                assetId={asset?.id}
-                                            />
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            {/* CreateRoutineButton oculto para ser acionado programaticamente */}
-                            <div style={{ display: 'none' }}>
-                                <CreateRoutineButton
-                                    ref={createRoutineButtonRef}
-                                    onSuccess={handleCreateSuccess}
-                                    text="Nova Rotina"
-                                    assetId={asset?.id}
+                    content: (() => {
+                        return (
+                            <div className="min-h-full space-y-4">
+                                <AssetRoutinesTab
+                                    assetId={asset!.id}
+                                    routines={routines}
+                                    selectedShift={selectedShift}
+                                    onRoutinesUpdate={setRoutines}
+                                    newRoutineId={newRoutineId}
                                 />
                             </div>
-                        </div>
-                    ),
+                        );
+                    })(),
                 },
                 {
                     id: 'chamados',
@@ -780,18 +521,8 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                     id: 'historico',
                     label: 'Histórico',
                     content: (
-                        <div className="flex min-h-[400px] items-center justify-center py-4">
-                            <div className="w-full">
-                                <EmptyCard
-                                    icon={MessageSquare}
-                                    title="Nenhum histórico registrado"
-                                    description="Quando houver algum histórico para este ativo, ele será exibido aqui."
-                                    primaryButtonText="Ver detalhes"
-                                    primaryButtonAction={() => {
-                                        // Implementar ação para ver detalhes do histórico ou navegar
-                                    }}
-                                />
-                            </div>
+                        <div className="space-y-6 py-6">
+                            <ExecutionHistory assetId={asset?.id} />
                         </div>
                     ),
                 },

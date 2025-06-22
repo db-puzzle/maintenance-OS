@@ -153,7 +153,6 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
 
         // Export functionality
         Route::post('/executions/{execution}/export', [ExecutionExportController::class, 'exportSingle'])->name('executions.export.single');
-        Route::post('/export/batch', [ExecutionExportController::class, 'exportBatch'])->name('export.batch');
         Route::get('/exports/{export}/status', [ExecutionExportController::class, 'exportStatus'])->name('export.status');
         Route::get('/exports/{export}/download', [ExecutionExportController::class, 'download'])->name('export.download');
         Route::get('/exports', [ExecutionExportController::class, 'userExports'])->name('export.user');
@@ -166,7 +165,7 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
         Route::post('/{routine}/executions', [RoutineController::class, 'createExecution'])->name('executions.create');
         Route::post('/{routine}/forms', [RoutineController::class, 'storeForm'])->name('forms.store');
         Route::post('/{routine}/forms/publish', [RoutineController::class, 'publishForm'])->name('forms.publish');
-        Route::get('/{routine}/form-data', [RoutineController::class, 'getRoutineWithFormData'])->name('form-data');
+        Route::get('/{routine}/form-data', [RoutineController::class, 'getFormData'])->name('form-data');
     });
 
     // Rotinas no contexto de ativos específicos
@@ -175,6 +174,9 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
         Route::post('/routines', [RoutineController::class, 'storeAssetRoutine'])->name('routines.store');
         Route::put('/routines/{routine}', [RoutineController::class, 'updateAssetRoutine'])->name('routines.update');
         Route::delete('/routines/{routine}', [RoutineController::class, 'destroyAssetRoutine'])->name('routines.destroy');
+
+        // Get execution history for an asset
+        Route::get('/execution-history', [RoutineController::class, 'getAssetExecutionHistory'])->name('execution-history');
 
         // Formulários de rotinas no contexto de ativos
         Route::post('/routines/{routine}/forms', [RoutineController::class, 'storeAssetRoutineForm'])->name('routines.forms.store');

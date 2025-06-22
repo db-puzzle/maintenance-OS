@@ -65,38 +65,6 @@ class GenerateExecutionPDFTest extends TestCase
     }
 
     /** @test */
-    public function it_processes_batch_pdf_export_successfully()
-    {
-        $execution2 = RoutineExecution::factory()->create([
-            'routine_id' => $this->execution->routine_id,
-            'executed_by' => $this->user->id,
-        ]);
-
-        $this->export = ExecutionExport::factory()->create([
-            'user_id' => $this->user->id,
-            'export_type' => ExecutionExport::TYPE_BATCH,
-            'export_format' => ExecutionExport::FORMAT_PDF,
-            'execution_ids' => [$this->execution->id, $execution2->id],
-            'status' => ExecutionExport::STATUS_PENDING,
-        ]);
-
-        // Mock the PDF service
-        $pdfService = Mockery::mock(PDFGeneratorService::class);
-        $pdfService->shouldReceive('generateBatchReport')
-            ->once()
-            ->with([$this->execution->id, $execution2->id], Mockery::any())
-            ->andReturn('exports/executions/batch-report.pdf');
-
-        $job = new GenerateExecutionPDF($this->export);
-        $job->handle($pdfService);
-
-        $this->export->refresh();
-
-        $this->assertEquals(ExecutionExport::STATUS_COMPLETED, $this->export->status);
-        $this->assertEquals('exports/executions/batch-report.pdf', $this->export->file_path);
-    }
-
-    /** @test */
     public function it_processes_csv_export_successfully()
     {
         $this->export = ExecutionExport::factory()->create([

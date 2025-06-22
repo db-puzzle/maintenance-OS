@@ -551,7 +551,7 @@ class RoutineController extends Controller
     }
 
     public function getFormData(Routine $routine)
-    {
+    {        
         // Check if routine has a form
         if (! $routine->form) {
             return response()->json(['error' => 'Routine has no associated form'], 404);
@@ -595,6 +595,7 @@ class RoutineController extends Controller
             }
         } elseif ($routine->form->currentVersion) {
             $tasks = $routine->form->currentVersion->tasks;
+        } else {
         }
 
         // Transform tasks to frontend format
@@ -616,7 +617,7 @@ class RoutineController extends Controller
         // Get last execution data
         $lastExecution = $routine->routineExecutions->first();
 
-        return response()->json([
+        $responseData = [
             'routine' => [
                 'id' => $routine->id,
                 'name' => $routine->name,
@@ -642,6 +643,106 @@ class RoutineController extends Controller
                     ] : null,
                     'last_execution' => $lastExecution,
                 ],
+            ],
+        ];
+
+        return response()->json($responseData);
+    }
+
+    /**
+     * Get execution history for a specific asset
+     */
+    public function getAssetExecutionHistory(Request $request, Asset $asset)
+    {
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+        $sort = $request->input('sort', 'started_at');
+        $direction = $request->input('direction', 'desc');
+
+        // Get executions for this asset
+        $executionsQuery = RoutineExecution::query()
+            ->whereHas('routine.assets', function ($query) use ($asset) {
+                $query->where('assets.id', $asset->id);
+            })
+            ->with(['routine', 'executor', 'formExecution.formVersion']);
+
+        // Apply sorting
+        switch ($sort) {
+            case 'routine_name':
+                $executionsQuery->join('routines', 'routine_executions.routine_id', '=', 'routines.id')
+                    ->orderBy('routines.name', $direction)
+                    ->select('routine_executions.*');
+                break;
+            case 'executor_name':
+                $executionsQuery->join('users', 'routine_executions.executed_by', '=', 'users.id')
+                    ->orderBy('users.name', $direction)
+                    ->select('routine_executions.*');
+                break;
+            default:
+                $executionsQuery->orderBy($sort, $direction);
+        }
+
+        // Paginate results
+        $executions = $executionsQuery->paginate($perPage, ['*'], 'page', $page);
+
+        // Transform execution data for frontend
+        $executionData = $executions->map(function ($execution) {
+            // Add safety checks for relationships
+            $routineData = null;
+            $executorData = null;
+            $formVersionData = null;
+            
+            if ($execution->routine) {
+                $routineData = [
+                    'id' => $execution->routine->id,
+                    'name' => $execution->routine->name,
+                    'description' => $execution->routine->description,
+                ];
+            }
+            
+            if ($execution->executor) {
+                $executorData = [
+                    'id' => $execution->executor->id,
+                    'name' => $execution->executor->name,
+                ];
+            }
+            
+            if ($execution->formExecution && $execution->formExecution->formVersion) {
+                $formVersionData = [
+                    'id' => $execution->formExecution->formVersion->id,
+                    'version_number' => $execution->formExecution->formVersion->version_number,
+                    'published_at' => $execution->formExecution->formVersion->published_at,
+                ];
+            }
+            
+            return [
+                'id' => $execution->id,
+                'routine' => $routineData,
+                'executor' => $executorData,
+                'form_version' => $formVersionData,
+                'status' => $execution->status,
+                'started_at' => $execution->started_at,
+                'completed_at' => $execution->completed_at,
+                'duration_minutes' => $execution->duration_minutes,
+                'progress' => $execution->progress_percentage,
+                'task_summary' => $execution->task_summary,
+            ];
+        });
+
+        return response()->json([
+            'executions' => [
+                'data' => $executionData,
+                'current_page' => $executions->currentPage(),
+                'last_page' => $executions->lastPage(),
+                'per_page' => $executions->perPage(),
+                'total' => $executions->total(),
+                'from' => $executions->firstItem(),
+                'to' => $executions->lastItem(),
+            ],
+            'filters' => [
+                'sort' => $sort,
+                'direction' => $direction,
+                'per_page' => $perPage,
             ],
         ]);
     }

@@ -1,6 +1,6 @@
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { Calendar, Cog, Map, Table } from 'lucide-react';
+import { Calendar, Cog, Map, Table, Pencil } from 'lucide-react';
 
 import CreateShiftSheet from '@/components/CreateShiftSheet';
 import ShiftCalendarView from '@/components/ShiftCalendarView';
@@ -168,29 +168,9 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
             label: 'Informações Gerais',
             content: (
                 <div className="py-8">
-                    <div className="flex justify-end mb-6">
-                        <Button onClick={() => setIsEditSheetOpen(true)} variant="outline">
-                            Editar Turno
-                        </Button>
-                    </div>
-
                     <div className="space-y-6">
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                            <div>
-                                <h4 className="text-sm font-medium text-muted-foreground">Nome do Turno</h4>
-                                <p className="mt-1 text-lg font-medium">{shift.name}</p>
-                            </div>
-                            {shift.timezone && (
-                                <div>
-                                    <h4 className="text-sm font-medium text-muted-foreground">Fuso Horário</h4>
-                                    <p className="mt-1 text-lg">{shift.timezone}</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mt-8">
-                            <h3 className="text-lg font-semibold mb-4">Resumo Semanal</h3>
-                            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+                        <div className="">
+                            <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
                                 <div className="rounded-lg border p-4">
                                     <h4 className="text-sm font-medium text-muted-foreground">Horas de Trabalho</h4>
                                     <p className="mt-2 text-2xl font-semibold">{shift.total_work_hours || 0}h {shift.total_work_minutes || 0}m</p>
@@ -206,38 +186,44 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
                                         {((shift.total_work_hours || 0) * 60 + (shift.total_work_minutes || 0) - ((shift.total_break_hours || 0) * 60 + (shift.total_break_minutes || 0))) % 60}m
                                     </p>
                                 </div>
-                                <div className="rounded-lg border p-4">
-                                    <h4 className="text-sm font-medium text-muted-foreground">Ativos Associados</h4>
-                                    <p className="mt-2 text-2xl font-semibold">{shift.asset_count}</p>
-                                </div>
                             </div>
                         </div>
 
                         <div className="mt-8">
                             <h3 className="text-lg font-semibold mb-4">Horários de Trabalho</h3>
                             <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'calendar' | 'table')}>
-                                <TabsList className="mb-4">
-                                    <TabsTrigger value="calendar" className="flex items-center gap-2">
+                                <TabsList className="flex w-[200px]">
+                                    <TabsTrigger value="calendar" className="flex flex-1 items-center gap-2">
                                         <Calendar className="h-4 w-4" />
                                         Calendário
                                     </TabsTrigger>
-                                    <TabsTrigger value="table" className="flex items-center gap-2">
+                                    <TabsTrigger value="table" className="flex flex-1 items-center gap-2">
                                         <Table className="h-4 w-4" />
                                         Tabela
                                     </TabsTrigger>
                                 </TabsList>
 
-                                <TabsContent value="calendar" className="mt-0">
-                                    <div className="rounded-lg border p-6">
-                                        <ShiftCalendarView schedules={shift.schedules} showAllDays={true} />
-                                    </div>
+                                <TabsContent value="calendar" className="mt-2">
+                                    {shift.timezone && (
+                                        <p className="text-muted-foreground text-sm mb-4">Fuso Horário: {shift.timezone}</p>
+                                    )}
+                                    <ShiftCalendarView schedules={shift.schedules} showAllDays={true} />
                                 </TabsContent>
-                                <TabsContent value="table" className="mt-0">
-                                    <div className="rounded-lg border p-6">
-                                        <ShiftTableView schedules={shift.schedules} />
-                                    </div>
+                                <TabsContent value="table" className="mt-2">
+                                    {shift.timezone && (
+                                        <p className="text-muted-foreground text-sm mb-4">Fuso Horário: {shift.timezone}</p>
+                                    )}
+                                    <ShiftTableView schedules={shift.schedules} />
                                 </TabsContent>
                             </Tabs>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex justify-end gap-2">
+                            <Button onClick={() => setIsEditSheetOpen(true)} variant="default">
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                            </Button>
                         </div>
                     </div>
                 </div>

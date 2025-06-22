@@ -345,80 +345,8 @@ const RoutineDashboard: React.FC<RoutineDashboardProps> = ({
         }) || [];
 
     const handleExportReport = async () => {
-        setIsExporting(true);
-        try {
-            const executionIds = recentExecutions.slice(0, 10).map((e) => e.id);
-            const response = await fetch('/maintenance/routines/export/batch', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify({
-                    execution_ids: executionIds,
-                    format: 'pdf',
-                    template: 'summary',
-                    grouping: 'by_asset',
-                    include_cover_page: true,
-                    include_index: true,
-                    separate_files: false,
-                    include_images: true,
-                    compress_images: true,
-                    paper_size: 'A4',
-                    delivery: { method: 'download' },
-                }),
-            });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Export failed');
-
-            addExport({
-                id: data.export_id,
-                type: 'batch',
-                description: `Dashboard Report - ${executionIds.length} executions`,
-                status: 'processing',
-                progress: 0,
-            });
-
-            // Poll for status
-            const pollInterval = setInterval(async () => {
-                try {
-                    const statusResponse = await fetch(`/maintenance/routines/exports/${data.export_id}/status`, {
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    });
-                    const statusData = await statusResponse.json();
-
-                    if (statusData.progress_percentage) {
-                        updateExport(data.export_id, { progress: statusData.progress_percentage });
-                    }
-
-                    if (statusData.status === 'completed' && statusData.download_url) {
-                        clearInterval(pollInterval);
-                        updateExport(data.export_id, {
-                            status: 'completed',
-                            downloadUrl: statusData.download_url,
-                            completedAt: new Date(),
-                        });
-                    } else if (statusData.status === 'failed') {
-                        clearInterval(pollInterval);
-                        updateExport(data.export_id, {
-                            status: 'failed',
-                            error: 'Export failed. Please try again.',
-                        });
-                    }
-                } catch (error) {
-                    console.error('Status polling error:', error);
-                }
-            }, 2000);
-
-            setTimeout(() => clearInterval(pollInterval), 300000);
-        } catch (error) {
-            console.error('Export error:', error);
-            toast.error(error instanceof Error ? error.message : 'Failed to start export');
-        } finally {
-            setIsExporting(false);
-        }
+        // Batch export functionality has been removed
+        toast.error('Batch export is no longer available. Please export individual executions.');
     };
 
     const handleExportSingle = (executionId: number) => {

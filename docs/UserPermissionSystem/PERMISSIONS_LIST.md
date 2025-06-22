@@ -516,7 +516,10 @@ These groupings are suggested for organizing permissions in the user interface w
 4. **Super Administrator Management**
    - The first user to sign up automatically becomes a Super Administrator
    - Super Administrators can grant the same privileges to other users via `users.grant-super-admin`
-   - All Super Admin privilege grants are tracked in an audit table
-   - Super Administrators can also revoke Super Admin privileges from others (except the first user)
+   - Super Administrators can revoke Super Admin privileges from other users via `users.revoke-super-admin`
+   - All Super Admin privilege grants and revocations are tracked in an audit table
    - Multiple Super Administrators can exist simultaneously
-   - System maintains at least one Super Administrator at all times 
+   - System enforces at least one Super Administrator at all times:
+     - Revocation attempts that would leave zero Super Admins are rejected with an error
+     - The system counts active Super Admins before allowing revocation
+     - This protection applies to all Super Admins (including the first user) 

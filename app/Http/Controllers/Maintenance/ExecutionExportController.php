@@ -9,6 +9,7 @@ use App\Models\Maintenance\RoutineExecution;
 use App\Services\PDFGeneratorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ExecutionExportController extends Controller
@@ -47,62 +48,6 @@ class ExecutionExportController extends Controller
             'export_id' => $export->id,
             'status' => 'processing',
             'estimated_time_seconds' => $this->pdfService->getEstimatedGenerationTime(1, $validated['format']),
-            'download_url' => null,
-        ]);
-    }
-
-    /**
-     * Export multiple executions
-     */
-    public function exportBatch(Request $request)
-    {
-        // $this->authorize('viewAny', RoutineExecution::class);
-
-        $validated = $this->validateBatchExportRequest($request);
-
-        // Validate execution IDs and permissions
-        $executionIds = $validated['execution_ids'];
-        $executions = RoutineExecution::whereIn('id', $executionIds)->get();
-
-        if ($executions->count() !== count($executionIds)) {
-            return response()->json([
-                'error' => 'Some execution IDs are invalid or not found.',
-            ], 422);
-        }
-
-        // Check permissions for each execution - disabled for now
-        // foreach ($executions as $execution) {
-        //     if (!$request->user()->can('view', $execution)) {
-        //         return response()->json([
-        //             'error' => 'You do not have permission to export all selected executions.'
-        //         ], 403);
-        //     }
-        // }
-
-        // Create export record
-        $export = ExecutionExport::create([
-            'user_id' => $request->user()->id,
-            'export_type' => ExecutionExport::TYPE_BATCH,
-            'export_format' => $validated['format'],
-            'execution_ids' => $executionIds,
-            'metadata' => $validated,
-        ]);
-
-        // For small exports, process immediately; for larger ones, queue
-        if ($this->shouldProcessImmediately($validated['format'], count($executionIds))) {
-            return $this->processExportImmediately($export);
-        }
-
-        // Queue the export job
-        GenerateExecutionPDF::dispatch($export);
-
-        return response()->json([
-            'export_id' => $export->id,
-            'status' => 'processing',
-            'estimated_time_seconds' => $this->pdfService->getEstimatedGenerationTime(
-                count($executionIds),
-                $validated['format']
-            ),
             'download_url' => null,
         ]);
     }
@@ -160,17 +105,43 @@ class ExecutionExportController extends Controller
             return response()->json(['error' => 'Export file not found'], 404);
         }
 
-        // Generate a descriptive filename
-        $exportType = $export->export_type === 'single' ? 'execution' : 'batch';
-        $date = $export->created_at->format('Y-m-d_His');
-        $executionCount = count($export->execution_ids);
-
-        if ($export->export_type === 'single' && $executionCount === 1) {
-            // For single exports, try to include execution ID
-            $fileName = "execution_{$export->execution_ids[0]}_{$date}.pdf";
-        } else {
-            // For batch exports
-            $fileName = "export_{$exportType}_{$executionCount}_executions_{$date}.pdf";
+        // Always use the specified filename format
+        try {
+            $execution = RoutineExecution::with(['routine', 'routine.assets'])->find($export->execution_ids[0]);
+            
+            if ($execution && $execution->routine) {
+                // Get asset tag (primary asset or first asset)
+                $assetTag = $execution->routine->assets->first()?->tag ?? $execution->primary_asset_tag ?? 'NoAsset';
+                
+                // Get routine name and sanitize it
+                $routineName = $execution->routine->name;
+                
+                // Sanitize filename components - use Laravel's Str::slug for better handling of special characters
+                // This will convert accented characters to their ASCII equivalents
+                $assetTag = Str::slug($assetTag, '_');
+                $routineName = Str::slug($routineName, '_');
+                
+                // Convert to uppercase
+                $assetTag = strtoupper($assetTag);
+                $routineName = strtoupper($routineName);
+                
+                // Get execution ID
+                $executionId = $execution->id;
+                
+                // Get execution date/time
+                $executionDateTime = $execution->started_at 
+                    ? \Carbon\Carbon::parse($execution->started_at)->format('Y-m-d_His')
+                    : $export->created_at->format('Y-m-d_His');
+                
+                // Build filename: AssetTag_RoutineName_ExecutionID_ExecutionDateTime.pdf
+                $fileName = "{$assetTag}_{$routineName}_ID{$executionId}_{$executionDateTime}.pdf";
+            } else {
+                // Fallback if execution not found or incomplete
+                $fileName = "execution_{$export->execution_ids[0]}_{$export->created_at->format('Y-m-d_His')}.pdf";
+            }
+        } catch (\Exception $e) {
+            // Fallback on any error
+            $fileName = "execution_{$export->execution_ids[0]}_{$export->created_at->format('Y-m-d_His')}.pdf";
         }
 
         $mimeType = 'application/pdf';
@@ -252,34 +223,7 @@ class ExecutionExportController extends Controller
             'delivery.email' => ['nullable', 'email', 'required_if:delivery.method,email'],
         ];
 
-        if ($type === 'batch') {
-            $rules = array_merge($rules, [
-                'grouping' => ['nullable', Rule::in(['none', 'by_asset', 'by_routine'])],
-                'include_cover_page' => ['boolean'],
-                'include_index' => ['boolean'],
-                'separate_files' => ['boolean'],
-            ]);
-        }
-
         return Validator::make($request->all(), $rules)->validate();
-    }
-
-    /**
-     * Validate batch export request
-     */
-    private function validateBatchExportRequest(Request $request): array
-    {
-        $validated = $this->validateExportRequest($request, 'batch');
-
-        // Additional validation for batch exports
-        $batchRules = [
-            'execution_ids' => ['required', 'array', 'min:1', 'max:100'],
-            'execution_ids.*' => ['integer', 'exists:routine_executions,id'],
-        ];
-
-        $batchValidated = Validator::make($request->all(), $batchRules)->validate();
-
-        return array_merge($validated, $batchValidated);
     }
 
     /**
@@ -290,8 +234,8 @@ class ExecutionExportController extends Controller
         // Never process PDFs immediately as they require Browsershot/Chrome
         // and can timeout in web requests
         return match ($format) {
-            'csv' => $executionCount <= 50,
-            'excel' => $executionCount <= 25,
+            'csv' => true,  // Single CSV exports can be processed immediately
+            'excel' => true,  // Single Excel exports can be processed immediately
             'pdf' => false, // Always queue PDF exports
             default => false,
         };

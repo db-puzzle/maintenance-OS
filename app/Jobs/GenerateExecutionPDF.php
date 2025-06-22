@@ -35,13 +35,6 @@ class GenerateExecutionPDF implements ShouldQueue
     public function handle(PDFGeneratorService $pdfService)
     {
         try {
-            Log::info('Starting PDF generation for export '.$this->export->id, [
-                'export_id' => $this->export->id,
-                'execution_count' => count($this->export->execution_ids),
-                'format' => $this->export->export_format,
-                'type' => $this->export->export_type,
-            ]);
-
             $this->export->markAsProcessing();
 
             // Generate the export based on format
@@ -55,11 +48,6 @@ class GenerateExecutionPDF implements ShouldQueue
             $this->export->file_path = $filePath;
             $this->export->save();
             $this->export->markAsCompleted();
-
-            Log::info('PDF generation completed for export '.$this->export->id, [
-                'export_id' => $this->export->id,
-                'file_path' => $filePath,
-            ]);
 
             // Send email notification if requested
             if ($this->shouldSendEmail()) {
