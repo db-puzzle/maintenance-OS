@@ -58,7 +58,7 @@ class UserInvitationController extends Controller
             return $invitation;
         });
 
-        return Inertia::render('Invitations/Index', [
+        return Inertia::render('invitations/index', [
             'invitations' => $invitations,
             'filters' => $request->only(['status', 'search']),
             'stats' => [
@@ -75,7 +75,7 @@ class UserInvitationController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Invitations/Create', [
+        return Inertia::render('invitations/create', [
             'roles' => Role::orderBy('name')->get(['id', 'name', 'is_system'])
         ]);
     }
@@ -136,7 +136,7 @@ class UserInvitationController extends Controller
                 ->with('error', 'This invitation is no longer valid.');
         }
 
-        return Inertia::render('Invitations/Accept', [
+        return Inertia::render('invitations/accept', [
             'invitation' => [
                 'id' => $invitation->id,
                 'email' => $invitation->email,

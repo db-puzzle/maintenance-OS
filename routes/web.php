@@ -17,10 +17,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('home');
     })->name('home');
 
-    // User Invitations (public routes for accepting invitations)
-    Route::get('/invitations/{token}', [UserInvitationController::class, 'show'])->name('invitations.show')->withoutMiddleware(['auth', 'verified']);
-    Route::post('/invitations/{token}/accept', [UserInvitationController::class, 'accept'])->name('invitations.accept')->withoutMiddleware(['auth', 'verified']);
-
     // User Invitations (authenticated routes)
     Route::prefix('invitations')->group(function () {
         Route::get('/', [UserInvitationController::class, 'index'])->name('invitations.index');
@@ -30,6 +26,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{invitation}/resend', [UserInvitationController::class, 'resend'])->name('invitations.resend');
         Route::get('/pending', [UserInvitationController::class, 'pending'])->name('invitations.pending');
     });
+
+    // User Invitations (public routes for accepting invitations - must come after specific routes)
+    Route::get('/invitations/{token}', [UserInvitationController::class, 'show'])->name('invitations.show')->withoutMiddleware(['auth', 'verified']);
+    Route::post('/invitations/{token}/accept', [UserInvitationController::class, 'accept'])->name('invitations.accept')->withoutMiddleware(['auth', 'verified']);
 
     // Permission Management (Admin only)
     Route::middleware('can:users.manage-permissions')->group(function () {

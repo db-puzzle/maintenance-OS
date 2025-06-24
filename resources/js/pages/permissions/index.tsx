@@ -121,7 +121,7 @@ export default function PermissionsIndex({ permissions, roles, resources, action
                 </div>
             </div>
 
-            <div className="container mx-auto py-6">
+            <div className="container mx-auto py-6 px-6">
                 <Tabs defaultValue="permissions" className="w-full">
                     <TabsList>
                         <TabsTrigger value="permissions">Permissions</TabsTrigger>

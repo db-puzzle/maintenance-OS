@@ -112,11 +112,15 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
     }
 
     const applyFilters = () => {
-        router.get(route('audit-logs.index'), {
+        const cleanedFilters = {
             ...localFilters,
+            event_type: localFilters.event_type === 'all' ? '' : localFilters.event_type,
+            user_id: localFilters.user_id === 'all' ? '' : localFilters.user_id,
             date_from: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
             date_to: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
-        }, {
+        };
+
+        router.get(route('audit-logs.index'), cleanedFilters, {
             preserveState: true,
             preserveScroll: true
         });
@@ -160,165 +164,154 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                 </div>
             </div>
 
-            <div className="container mx-auto py-6 space-y-6">
+            <div className="container mx-auto py-6 px-6 space-y-6">
                 {/* Filters */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Filters</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                <Input
-                                    type="text"
-                                    placeholder="Search logs..."
-                                    value={localFilters.search}
-                                    onChange={(e) => setLocalFilters({ ...localFilters, search: e.target.value })}
-                                    className="pl-10"
-                                />
-                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                            type="text"
+                            placeholder="Search logs..."
+                            value={localFilters.search}
+                            onChange={(e) => setLocalFilters({ ...localFilters, search: e.target.value })}
+                            className="pl-10"
+                        />
+                    </div>
 
-                            <Select
-                                value={localFilters.event_type}
-                                onValueChange={(value) => setLocalFilters({ ...localFilters, event_type: value })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="All Events" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="">All Events</SelectItem>
-                                    {eventTypes.map(type => (
-                                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                    <Select
+                        value={localFilters.event_type}
+                        onValueChange={(value) => setLocalFilters({ ...localFilters, event_type: value })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="All Events" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Events</SelectItem>
+                            {eventTypes.map(type => (
+                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
-                            <Select
-                                value={localFilters.user_id}
-                                onValueChange={(value) => setLocalFilters({ ...localFilters, user_id: value })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="All Users" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="">All Users</SelectItem>
-                                    {users.map(user => (
-                                        <SelectItem key={user.id} value={user.id.toString()}>
-                                            {user.name} ({user.email})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                    <Select
+                        value={localFilters.user_id}
+                        onValueChange={(value) => setLocalFilters({ ...localFilters, user_id: value })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="All Users" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Users</SelectItem>
+                            {users.map(user => (
+                                <SelectItem key={user.id} value={user.id.toString()}>
+                                    {user.name} ({user.email})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className={cn(
-                                        "justify-start text-left font-normal",
-                                        !dateRange.from && "text-muted-foreground"
-                                    )}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dateRange.from ? (
-                                            dateRange.to ? (
-                                                <>
-                                                    {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d")}
-                                                </>
-                                            ) : (
-                                                format(dateRange.from, "PPP")
-                                            )
-                                        ) : (
-                                            <span>Pick a date range</span>
-                                        )}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        mode="range"
-                                        selected={dateRange as any}
-                                        onSelect={setDateRange as any}
-                                        numberOfMonths={2}
-                                    />
-                                </PopoverContent>
-                            </Popover>
-
-                            <Button onClick={applyFilters}>
-                                <Filter className="w-4 h-4 mr-2" />
-                                Apply Filters
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" className={cn(
+                                "justify-start text-left font-normal",
+                                !dateRange.from && "text-muted-foreground"
+                            )}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateRange.from ? (
+                                    dateRange.to ? (
+                                        <>
+                                            {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d")}
+                                        </>
+                                    ) : (
+                                        format(dateRange.from, "PPP")
+                                    )
+                                ) : (
+                                    <span>Pick a date range</span>
+                                )}
                             </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="range"
+                                selected={dateRange as any}
+                                onSelect={setDateRange as any}
+                                numberOfMonths={2}
+                            />
+                        </PopoverContent>
+                    </Popover>
+
+                    <Button onClick={applyFilters}>
+                        <Filter className="w-4 h-4 mr-2" />
+                        Apply Filters
+                    </Button>
+                </div>
 
                 {/* Logs Table */}
-                <Card>
-                    <CardContent className="p-0">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Event</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>User</TableHead>
-                                    <TableHead>IP Address</TableHead>
-                                    <TableHead>Time</TableHead>
-                                    <TableHead>Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {logs.data.map((log) => (
-                                    <TableRow key={log.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                {getEventIcon(log.event_type)}
-                                                <Badge variant={getEventBadgeVariant(log.event_type)}>
-                                                    {log.event_action}
-                                                </Badge>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div>
-                                                <p className="font-medium">{log.description}</p>
-                                                {log.impersonator && (
-                                                    <p className="text-xs text-orange-600">
-                                                        Impersonated by {log.impersonator.name}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="text-sm">
-                                                <p className="font-medium">{log.user.name}</p>
-                                                <p className="text-gray-500">{log.user.email}</p>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <code className="text-xs">{log.ip_address}</code>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="text-sm">
-                                                <p>{format(new Date(log.created_at), 'MMM d, yyyy')}</p>
-                                                <p className="text-gray-500">
-                                                    {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                                                </p>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => {
-                                                    setSelectedLog(log);
-                                                    setShowDetails(true);
-                                                }}
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Event</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>User</TableHead>
+                            <TableHead>IP Address</TableHead>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {logs.data.map((log) => (
+                            <TableRow key={log.id}>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        {getEventIcon(log.event_type)}
+                                        <Badge variant={getEventBadgeVariant(log.event_type)}>
+                                            {log.event_action}
+                                        </Badge>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div>
+                                        <p className="font-medium">{log.description}</p>
+                                        {log.impersonator && (
+                                            <p className="text-xs text-orange-600">
+                                                Impersonated by {log.impersonator.name}
+                                            </p>
+                                        )}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="text-sm">
+                                        <p className="font-medium">{log.user.name}</p>
+                                        <p className="text-gray-500">{log.user.email}</p>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <code className="text-xs">{log.ip_address}</code>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="text-sm">
+                                        <p>{format(new Date(log.created_at), 'MMM d, yyyy')}</p>
+                                        <p className="text-gray-500">
+                                            {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                                        </p>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            setSelectedLog(log);
+                                            setShowDetails(true);
+                                        }}
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </div>
 
             {/* Log Details Dialog */}
