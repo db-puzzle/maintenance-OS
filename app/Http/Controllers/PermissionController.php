@@ -13,7 +13,7 @@ class PermissionController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('can:users.manage-permissions');
+        // Permission check is handled by the authorize method in each action
     }
 
     /**
@@ -21,6 +21,31 @@ class PermissionController extends Controller
      */
     public function index(Request $request)
     {
+        $user = $request->user();
+        
+        // Debug logging
+        \Log::info('Permission check debug:', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'is_super_admin' => $user->is_super_admin,
+            'is_super_admin_raw' => $user->getAttributes()['is_super_admin'] ?? 'not set',
+            'can_result' => $user->can('users.manage-permissions'),
+            'permissions_count' => $user->permissions()->count(),
+            'roles_count' => $user->roles()->count(),
+            'roles' => $user->roles()->pluck('name')->toArray(),
+            'direct_permissions' => $user->permissions()->pluck('name')->toArray(),
+        ]);
+        
+        // Check permission (super admin bypass is handled in User model)
+        if (!$user->can('users.manage-permissions')) {
+            \Log::error('Permission denied for user', [
+                'user_id' => $user->id,
+                'permission' => 'users.manage-permissions',
+                'is_super_admin' => $user->is_super_admin,
+            ]);
+            abort(403, 'Unauthorized. You need the users.manage-permissions permission.');
+        }
+        
         $query = Permission::query();
 
         // Apply filters

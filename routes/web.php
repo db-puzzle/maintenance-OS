@@ -31,13 +31,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/pending', [UserInvitationController::class, 'pending'])->name('invitations.pending');
     });
 
-    // Permission Management (Admin only)
-    Route::middleware('can:users.manage-permissions')->group(function () {
-        Route::resource('permissions', PermissionController::class);
-        Route::post('permissions/sync-matrix', [PermissionController::class, 'syncMatrix'])->name('permissions.sync-matrix');
-        Route::post('permissions/check', [PermissionController::class, 'check'])->name('permissions.check');
-        Route::post('permissions/check-bulk', [PermissionController::class, 'checkBulk'])->name('permissions.check-bulk');
-    });
+    // Permission Management (Admin only - checked in controller)
+    Route::resource('permissions', PermissionController::class);
+    Route::post('permissions/sync-matrix', [PermissionController::class, 'syncMatrix'])->name('permissions.sync-matrix');
+    Route::post('permissions/check', [PermissionController::class, 'check'])->name('permissions.check');
+    Route::post('permissions/check-bulk', [PermissionController::class, 'checkBulk'])->name('permissions.check-bulk');
 
     // Role Management
     Route::resource('roles', RoleController::class);

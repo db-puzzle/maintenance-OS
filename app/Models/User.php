@@ -13,7 +13,10 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles {
+        HasRoles::hasPermissionTo as traitHasPermissionTo;
+        HasRoles::hasRole as traitHasRole;
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -154,7 +157,7 @@ class User extends Authenticatable
     /**
      * Grant super admin privileges
      */
-    public function grantSuperAdmin(User $grantedBy, string $reason = null): SuperAdminGrant
+    public function grantSuperAdmin(User $grantedBy, ?string $reason = null): SuperAdminGrant
     {
         $this->update(['is_super_admin' => true]);
 
@@ -184,7 +187,7 @@ class User extends Authenticatable
     /**
      * Revoke super admin privileges
      */
-    public function revokeSuperAdmin(User $revokedBy, string $reason = null): void
+    public function revokeSuperAdmin(User $revokedBy, ?string $reason = null): void
     {
         // Ensure we don't leave the system without any super admins
         $superAdminCount = static::where('is_super_admin', true)->count();
@@ -262,27 +265,40 @@ class User extends Authenticatable
     }
 
     /**
-     * Override hasPermissionTo to include super admin bypass
+     * Check if the model has the given permission.
+     * Overrides the trait method to add super admin bypass
      */
     public function hasPermissionTo($permission, $guardName = null): bool
     {
+        \Log::info('hasPermissionTo called', [
+            'user_id' => $this->id,
+            'permission' => $permission,
+            'is_super_admin' => $this->is_super_admin,
+            'is_super_admin_type' => gettype($this->is_super_admin),
+        ]);
+        
         if ($this->is_super_admin) {
+            \Log::info('Super admin bypass activated');
             return true;
         }
 
-        return parent::hasPermissionTo($permission, $guardName);
+        // Call the trait's original method using the alias
+        $result = $this->traitHasPermissionTo($permission, $guardName);
+        \Log::info('Trait permission check result', ['result' => $result]);
+        return $result;
     }
 
     /**
      * Override hasRole to include super admin bypass for role checking
      */
-    public function hasRole($roles, string $guard = null): bool 
+    public function hasRole($roles, ?string $guard = null): bool 
     {
         if ($this->is_super_admin) {
             return true;
         }
 
-        return parent::hasRole($roles, $guard);
+        // Call the trait's original method using the alias
+        return $this->traitHasRole($roles, $guard);
     }
 
     /**
