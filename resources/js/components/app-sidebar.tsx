@@ -4,8 +4,9 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ChartGantt, ClipboardList, LayoutGrid } from 'lucide-react';
+import { ChartGantt, ClipboardList, LayoutGrid, Shield, Settings } from 'lucide-react';
 import AppLogo from './app-logo';
+import PermissionGuard from './PermissionGuard';
 
 interface NavGroup {
     title: string;
@@ -57,6 +58,29 @@ const sistemaNavItems: NavGroup = {
                 {
                     title: 'Importar Ativos',
                     href: '/asset-hierarchy/assets/importar',
+                },
+            ],
+        },
+        {
+            title: 'Segurança',
+            href: '#',
+            icon: Shield,
+            items: [
+                {
+                    title: 'Permissões',
+                    href: '/permissions',
+                },
+                {
+                    title: 'Funções',
+                    href: '/roles',
+                },
+                {
+                    title: 'Convites',
+                    href: '/invitations',
+                },
+                {
+                    title: 'Logs de Auditoria',
+                    href: '/audit-logs',
                 },
             ],
         },

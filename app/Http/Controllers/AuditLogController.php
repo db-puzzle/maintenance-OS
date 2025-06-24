@@ -59,7 +59,7 @@ class AuditLogController extends Controller
         $eventTypes = PermissionAuditLog::distinct()->pluck('event_type');
         $users = User::select('id', 'name', 'email')->orderBy('name')->get();
 
-        return Inertia::render('AuditLogs/Index', [
+        return Inertia::render('audit-logs/index', [
             'logs' => $logs,
             'filters' => $request->only(['search', 'event_type', 'user_id', 'date_from', 'date_to']),
             'eventTypes' => $eventTypes,

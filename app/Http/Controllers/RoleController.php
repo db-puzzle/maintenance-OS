@@ -227,7 +227,14 @@ class RoleController extends Controller
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
-            ->groupBy('resource');
+            ->map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'name' => $permission->name,
+                    'resource' => explode('.', $permission->name)[0] ?? 'unknown',
+                    'action' => explode('.', $permission->name)[1] ?? 'unknown',
+                ];
+            });
 
         return response()->json([
             'permissions' => $permissions

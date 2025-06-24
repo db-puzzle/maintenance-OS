@@ -67,13 +67,18 @@ class PermissionController extends Controller
         $actions = $allPermissions->map(fn($p) => $p->action)->filter()->unique()->sort()->values();
         $scopeTypes = ['global', 'plant', 'area', 'sector', 'asset', 'owned'];
 
-        return Inertia::render('Permissions/Index', [
+        // Get roles with counts
+        $roles = Role::withCount(['permissions', 'users'])
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('permissions/index', [
             'permissions' => $permissions,
-            'roles' => Role::orderBy('name')->get(['id', 'name', 'is_system']),
+            'roles' => $roles,
             'filters' => $request->only(['search', 'resource', 'action', 'scope_type']),
             'resources' => $resources,
             'actions' => $actions,
-            'scopeTypes' => $scopeTypes,
+            'scopes' => $scopeTypes,
         ]);
     }
 
