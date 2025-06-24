@@ -25,12 +25,15 @@ return new class extends Migration
             $table->bigIncrements('id'); // permission id
             $table->string('name');       // For MyISAM use string('name', 225); // (or 166 for InnoDB with Redundant/Compact row format)
             $table->string('guard_name'); // For MyISAM use string('guard_name', 25);
+            $table->string('display_name')->nullable();
+            $table->text('description')->nullable();
+            $table->integer('sort_order')->default(0);
             $table->timestamps();
 
             $table->unique(['name', 'guard_name']);
         });
 
-        Schema::create($tableNames['roles'], static function (Blueprint $table) use ($teams, $columnNames) {
+        Schema::create($tableNames['roles'], static function (Blueprint $table) use ($teams, $columnNames, $tableNames) {
             // $table->engine('InnoDB');
             $table->bigIncrements('id'); // role id
             if ($teams || config('permission.testing')) { // permission.testing is a fix for sqlite testing
@@ -39,12 +42,15 @@ return new class extends Migration
             }
             $table->string('name');       // For MyISAM use string('name', 225); // (or 166 for InnoDB with Redundant/Compact row format)
             $table->string('guard_name'); // For MyISAM use string('guard_name', 25);
+            $table->unsignedBigInteger('parent_role_id')->nullable();
+            $table->boolean('is_system')->default(false);
             $table->timestamps();
             if ($teams || config('permission.testing')) {
                 $table->unique([$columnNames['team_foreign_key'], 'name', 'guard_name']);
             } else {
                 $table->unique(['name', 'guard_name']);
             }
+            $table->foreign('parent_role_id')->references('id')->on($tableNames['roles']);
         });
 
         Schema::create($tableNames['model_has_permissions'], static function (Blueprint $table) use ($tableNames, $columnNames, $pivotPermission, $teams) {
@@ -111,6 +117,59 @@ return new class extends Migration
             $table->primary([$pivotPermission, $pivotRole], 'role_has_permissions_permission_id_role_id_primary');
         });
 
+        // Super admin grants tracking
+        Schema::create('super_admin_grants', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('granted_to')->constrained('users');
+            $table->foreignId('granted_by')->constrained('users');
+            $table->timestamp('granted_at');
+            $table->timestamp('revoked_at')->nullable();
+            $table->foreignId('revoked_by')->nullable()->constrained('users');
+            $table->text('reason')->nullable();
+            $table->timestamps();
+            $table->index(['granted_to', 'revoked_at']);
+        });
+        
+        // User invitations
+        Schema::create('user_invitations', function (Blueprint $table) {
+            $table->id();
+            $table->string('email')->index();
+            $table->string('token', 64)->unique();
+            $table->foreignId('invited_by')->constrained('users');
+            $table->string('initial_role')->nullable();
+            $table->json('initial_permissions')->nullable();
+            $table->text('message')->nullable();
+            $table->timestamp('expires_at');
+            $table->timestamp('accepted_at')->nullable();
+            $table->foreignId('accepted_by')->nullable()->constrained('users');
+            $table->timestamp('revoked_at')->nullable();
+            $table->foreignId('revoked_by')->nullable()->constrained('users');
+            $table->string('revocation_reason')->nullable();
+            $table->timestamps();
+            $table->index(['email', 'expires_at']);
+            $table->index('expires_at');
+        });
+
+        // Permission audit logs
+        Schema::create('permission_audit_logs', function (Blueprint $table) {
+            $table->id();
+            $table->string('event_type');
+            $table->string('event_action', 50)->index();
+            $table->morphs('auditable');
+            $table->foreignId('user_id')->constrained();
+            $table->foreignId('impersonator_id')->nullable()->constrained('users');
+            $table->json('old_values')->nullable();
+            $table->json('new_values')->nullable();
+            $table->json('metadata')->nullable();
+            $table->string('ip_address', 45)->nullable();
+            $table->string('user_agent')->nullable();
+            $table->string('session_id', 100)->nullable();
+            $table->timestamps();
+            $table->index(['event_type', 'event_action']);
+            $table->index(['user_id', 'created_at']);
+            $table->index('created_at');
+        });
+
         app('cache')
             ->store(config('permission.cache.store') != 'default' ? config('permission.cache.store') : null)
             ->forget(config('permission.cache.key'));
@@ -127,6 +186,9 @@ return new class extends Migration
             throw new \Exception('Error: config/permission.php not found and defaults could not be merged. Please publish the package configuration before proceeding, or drop the tables manually.');
         }
 
+        Schema::dropIfExists('permission_audit_logs');
+        Schema::dropIfExists('user_invitations');
+        Schema::dropIfExists('super_admin_grants');
         Schema::drop($tableNames['role_has_permissions']);
         Schema::drop($tableNames['model_has_roles']);
         Schema::drop($tableNames['model_has_permissions']);

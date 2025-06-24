@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('timezone', 50)->default('UTC');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->boolean('is_super_admin')->default(false)->index();
             $table->rememberToken();
             $table->timestamps();
         });

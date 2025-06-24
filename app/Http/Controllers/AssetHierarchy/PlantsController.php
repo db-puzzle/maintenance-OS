@@ -11,6 +11,7 @@ class PlantsController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('asset-hierarchy.plants.view');
         $perPage = $request->input('per_page', 8);
         $search = $request->input('search');
         $sort = $request->input('sort', 'name');
@@ -88,6 +89,7 @@ class PlantsController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('asset-hierarchy.plants.create');
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'street' => 'nullable|string|max:255',
@@ -112,6 +114,7 @@ class PlantsController extends Controller
 
     public function destroy(Plant $plant)
     {
+        $this->authorize('asset-hierarchy.plants.delete');
         $plantName = $plant->name;
         $plant->delete();
 
@@ -152,6 +155,7 @@ class PlantsController extends Controller
 
     public function show(Plant $plant)
     {
+        $this->authorize('asset-hierarchy.plants.view');
         // Check if JSON response is requested
         if (request()->input('format') === 'json' || request()->wantsJson()) {
             return response()->json([
@@ -360,6 +364,7 @@ class PlantsController extends Controller
 
     public function update(Request $request, Plant $plant)
     {
+        $this->authorize('asset-hierarchy.plants.update');
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'street' => 'nullable|string|max:255',

@@ -219,20 +219,15 @@ class User extends Authenticatable
 
     /**
      * Check if user can perform action considering super admin bypass
+     * Override parent to add super admin bypass
      */
-    public function canAny(array $permissions): bool
+    public function canAny($abilities, $arguments = []): bool
     {
         if ($this->is_super_admin) {
             return true;
         }
 
-        foreach ($permissions as $permission) {
-            if ($this->can($permission)) {
-                return true;
-            }
-        }
-
-        return false;
+        return parent::canAny($abilities, $arguments);
     }
 
     /**
