@@ -71,10 +71,6 @@ const sistemaNavItems: NavGroup = {
                     href: '/permissions',
                 },
                 {
-                    title: 'Funções',
-                    href: '/roles',
-                },
-                {
                     title: 'Convites',
                     href: '/invitations',
                 },
