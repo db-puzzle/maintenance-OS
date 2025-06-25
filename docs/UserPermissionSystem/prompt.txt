@@ -1,0 +1,23 @@
+Lets modify the V2 permission system specifications in the the following way:
+
+1) All resource permissions are scoped to specific entities of Plant, Area, Sector.
+1a) Permission inheritance: Sectors inherit from the Area from which they belong. And Areas inherit from the Plant to which they belong.
+
+2) The only global scope that remains is the plant.create as Plant Manager role can create new plants.
+2a) When a plant manager creates a new plant that user is automatically assigned permission for that entity.
+2b) Area Manager role has area.create permission but that permission is restrictied to the specific Plant entity which they are assigned to.
+
+3) Shifts, Asset Types, or Manufacturers entities that are shared between Plants, Areas, Sector (via Assets) must be validated before update or deletion:
+3a) User can only update the shared entity if all associated Assets are in Plant, Areas or Sectors to which the user has permissions
+3b) If the validation fails the system should provide only the option to create a copy and apply to the assets with permission
+3c) UI: Use the Shift check modal as a model for this update validation / copy to new entity and apply.
+
+4) Combine Super Administrator with Administrator while preserving system integrity.
+4a) Preserve service-layer checks to maintain at least one administrator
+4b) Only Adminstrators can assign Adminstrator role
+4c) Ensure critical permissions stay with the administrator role
+4d) Use audit logging for administrator role assignments
+
+5) Remove all Form permissions as they are controlled by Routines (and other models in the future like Quality Inspections) which already have permissions.
+
+6) Remove permissions to Reports. Reports should inherit permissions from Routine execution.

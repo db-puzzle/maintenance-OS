@@ -282,10 +282,11 @@ function AssetFormFields({
                             clearErrors('plant_id');
                         }}
                         onCreateClick={handleCreatePlantClick}
-                        placeholder={isViewMode && !data.plant_id ? 'Planta não selecionada' : 'Selecione uma planta (opcional)'}
+                        placeholder={isViewMode && !data.plant_id ? 'Planta não selecionada' : 'Selecione uma planta'}
                         error={errors.plant_id}
-                        canClear={!isViewMode}
+                        canClear={false}
                         view={isViewMode}
+                        required={!isViewMode}
                     />
                 </div>
 

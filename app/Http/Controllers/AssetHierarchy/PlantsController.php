@@ -127,13 +127,9 @@ class PlantsController extends Controller
         $totalAreas = $plant->areas()->count();
 
         $asset = $plant->asset()
-            ->whereNull('area_id')
-            ->whereNull('sector_id')
             ->take(5)
             ->get(['id', 'tag']);
         $totalAsset = $plant->asset()
-            ->whereNull('area_id')
-            ->whereNull('sector_id')
             ->count();
 
         $canDelete = $totalAreas === 0 && $totalAsset === 0;

@@ -6,7 +6,6 @@ use App\Models\Maintenance\Routine;
 use App\Traits\AssetRuntimeCalculator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Asset extends Model
@@ -93,10 +92,9 @@ class Asset extends Model
         return $this->belongsTo(Manufacturer::class);
     }
 
-    public function routines(): BelongsToMany
+    public function routines(): HasMany
     {
-        return $this->belongsToMany(Routine::class, 'asset_routine')
-            ->withTimestamps();
+        return $this->hasMany(Routine::class);
     }
 
     /**

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Permission;
 use App\Models\Role;
+use Illuminate\Support\Facades\DB;
 
 class RoleSeeder extends Seeder
 {
@@ -13,48 +14,34 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create system roles with default permissions
-        $roles = [
+        // Create Administrator role first with guaranteed ID = 1
+        // This ID is used for permission bypass checks
+        $administratorRole = Role::firstOrCreate(
+            ['id' => 1],
             [
                 'name' => 'Administrator',
                 'is_system' => true,
-                'permissions' => [
-                    // User Management (except super admin privileges)
-                    'users.viewAny', 'users.view', 'users.invite', 'users.update', 'users.delete',
-                    'users.manage-permissions', 'users.manage-roles',
-                    
-                    // Invitations
-                    'invitations.viewAny', 'invitations.view', 'invitations.create', 'invitations.revoke', 'invitations.resend',
-                    
-                    // Roles
-                    'roles.viewAny', 'roles.view', 'roles.create', 'roles.update', 'roles.delete', 'roles.assign',
-                    
-                    // All plant/area/sector/asset permissions
-                    'plants.viewAny', 'plants.view', 'plants.create', 'plants.update', 'plants.delete', 'plants.manage-shifts',
-                    'areas.viewAny', 'areas.view', 'areas.create', 'areas.update', 'areas.delete',
-                    'sectors.viewAny', 'sectors.view', 'sectors.create', 'sectors.update', 'sectors.delete',
-                    'assets.viewAny', 'assets.view', 'assets.create', 'assets.update', 'assets.delete',
-                    'assets.import', 'assets.export', 'assets.manage-qr',
-                    'asset-types.viewAny', 'asset-types.view', 'asset-types.create', 'asset-types.update', 'asset-types.delete',
-                    'manufacturers.viewAny', 'manufacturers.view', 'manufacturers.create', 'manufacturers.update', 'manufacturers.delete',
-                    
-                    // Forms and routines
-                    'forms.viewAny', 'forms.view', 'forms.create', 'forms.update', 'forms.delete',
-                    'forms.publish', 'forms.archive', 'forms.versions.create', 'forms.versions.view', 'forms.versions.restore',
-                    'routines.viewAny', 'routines.view', 'routines.create', 'routines.update', 'routines.delete',
-                    'routines.assign', 'routines.schedule',
-                    'routine-executions.viewAny', 'routine-executions.view', 'routine-executions.create',
-                    'routine-executions.update', 'routine-executions.complete', 'routine-executions.approve',
-                    'routine-executions.reject', 'routine-executions.export',
-                    
-                    // Reports
-                    'reports.view', 'reports.create', 'reports.export', 'reports.schedule',
-                    'reports.maintenance.view', 'reports.assets.view', 'reports.compliance.view', 'reports.performance.view',
-                    
-                    // Shifts
-                    'shifts.viewAny', 'shifts.view', 'shifts.create', 'shifts.update', 'shifts.delete',
-                ]
-            ],
+                'guard_name' => 'web'
+            ]
+        );
+        
+        // If we just created the Administrator role with ID 1, we need to reset the sequence
+        // to prevent conflicts with future inserts
+        if ($administratorRole->wasRecentlyCreated) {
+            // Get the current max ID
+            $maxId = Role::max('id') ?? 0;
+            
+            // Reset the sequence to start after the max ID
+            DB::statement("SELECT setval(pg_get_serial_sequence('roles', 'id'), ?)", [$maxId]);
+        }
+        
+        // Administrator doesn't need individual permissions due to bypass mechanism
+        // The bypass is implemented in Gate::before() callback
+        
+        $this->command->info("Administrator role created/verified with ID = 1 (bypass enabled)");
+        
+        // Create other system roles with default permissions
+        $roles = [
             [
                 'name' => 'Plant Manager',
                 'is_system' => true,
@@ -173,14 +160,17 @@ class RoleSeeder extends Seeder
             // Create role
             $role = Role::firstOrCreate(
                 ['name' => $roleData['name']],
-                ['is_system' => $roleData['is_system']]
+                [
+                    'is_system' => $roleData['is_system'],
+                    'guard_name' => 'web'
+                ]
             );
 
             // Assign permissions
             $permissions = Permission::whereIn('name', $roleData['permissions'])->get();
             $role->syncPermissions($permissions);
 
-            $this->command->info("Role '{$role->name}' created with " . count($permissions) . " permissions.");
+            $this->command->info("Role '{$role->name}' created/updated with " . count($permissions) . " permissions.");
         }
 
         $this->command->info('System roles created successfully.');

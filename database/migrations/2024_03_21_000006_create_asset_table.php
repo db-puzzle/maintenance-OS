@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('manufacturer')->nullable();
             $table->integer('manufacturing_year')->nullable();
-            $table->foreignId('plant_id')->nullable()->constrained()->onDelete('restrict');
+            $table->foreignId('plant_id')->constrained()->onDelete('restrict');
             $table->foreignId('area_id')->nullable()->constrained()->onDelete('restrict');
             $table->foreignId('sector_id')->nullable()->constrained()->onDelete('restrict');
             $table->string('photo_path')->nullable();

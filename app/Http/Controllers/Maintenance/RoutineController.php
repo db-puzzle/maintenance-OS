@@ -23,23 +23,18 @@ class RoutineController extends Controller
             'trigger_hours' => 'required|integer|min:0',
             'status' => 'required|in:Active,Inactive',
             'description' => 'nullable|string',
-            'asset_ids' => 'required|array|min:1',
-            'asset_ids.*' => 'exists:assets,id',
+            'asset_id' => 'required|exists:assets,id',
         ]);
-
-        $assetIds = $validated['asset_ids'];
-        unset($validated['asset_ids']);
         
         // Force status to Inactive for new routines
         $validated['status'] = 'Inactive';
 
         $routine = Routine::create($validated);
-        $routine->assets()->attach($assetIds);
 
         return response()->json([
             'success' => true,
             'message' => 'Rotina criada com sucesso.',
-            'routine' => $routine->load(['assets', 'form']),
+            'routine' => $routine->load(['asset', 'form']),
         ]);
     }
 
@@ -50,20 +45,15 @@ class RoutineController extends Controller
             'trigger_hours' => 'required|integer|min:0',
             'status' => 'required|in:Active,Inactive',
             'description' => 'nullable|string',
-            'asset_ids' => 'required|array|min:1',
-            'asset_ids.*' => 'exists:assets,id',
+            'asset_id' => 'required|exists:assets,id',
         ]);
 
-        $assetIds = $validated['asset_ids'];
-        unset($validated['asset_ids']);
-
         $routine->update($validated);
-        $routine->assets()->sync($assetIds);
 
         return response()->json([
             'success' => true,
             'message' => 'Rotina atualizada com sucesso.',
-            'routine' => $routine->load(['assets', 'form']),
+            'routine' => $routine->load(['asset', 'form']),
         ]);
     }
 
@@ -238,9 +228,9 @@ class RoutineController extends Controller
 
         // Force status to Inactive for new routines
         $validated['status'] = 'Inactive';
+        $validated['asset_id'] = $asset->id;
 
         $routine = Routine::create($validated);
-        $routine->assets()->attach($asset->id);
 
         // The Routine model should automatically create a form in the creating event
         // But let's ensure it has one
@@ -258,7 +248,7 @@ class RoutineController extends Controller
         }
 
         // Load the relationships - form is newly created so it won't have tasks yet
-        $routine->load(['assets', 'form']);
+        $routine->load(['asset', 'form']);
 
         // Return to the same page with the new routine data
         return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset->id, 'tab' => 'rotinas'])
@@ -270,10 +260,10 @@ class RoutineController extends Controller
 
     public function updateAssetRoutine(Request $request, Asset $asset, Routine $routine)
     {
-        // Verificar se a rotina está associada ao ativo
-        if (! $asset->routines()->where('routines.id', $routine->id)->exists()) {
+        // Verificar se a rotina pertence ao ativo
+        if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
-                ->with('error', 'Esta rotina não está associada a este ativo.');
+                ->with('error', 'Esta rotina não pertence a este ativo.');
         }
 
         $validated = $request->validate([
@@ -291,25 +281,19 @@ class RoutineController extends Controller
 
     public function destroyAssetRoutine(Asset $asset, Routine $routine)
     {
-        // Verificar se a rotina está associada ao ativo
-        if (! $asset->routines()->where('routines.id', $routine->id)->exists()) {
+        // Verificar se a rotina pertence ao ativo
+        if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
-                ->with('error', 'Esta rotina não está associada a este ativo.');
+                ->with('error', 'Esta rotina não pertence a este ativo.');
         }
 
         $routineName = $routine->name;
 
-        // Se a rotina está associada apenas a este ativo, excluir completamente
-        if ($routine->assets()->count() === 1) {
-            // Excluir execuções da rotina
-            $routine->routineExecutions()->delete();
+        // Excluir execuções da rotina
+        $routine->routineExecutions()->delete();
 
-            // Excluir a rotina (o formulário será excluído automaticamente pelo model event)
-            $routine->delete();
-        } else {
-            // Apenas desassociar do ativo
-            $asset->routines()->detach($routine->id);
-        }
+        // Excluir a rotina (o formulário será excluído automaticamente pelo model event)
+        $routine->delete();
 
         return redirect()->back()
             ->with('success', "Rotina '{$routineName}' removida do ativo com sucesso.");
@@ -317,10 +301,10 @@ class RoutineController extends Controller
 
     public function storeAssetRoutineForm(Request $request, Asset $asset, Routine $routine)
     {
-        // Verificar se a rotina está associada ao ativo
-        if (! $asset->routines()->where('routines.id', $routine->id)->exists()) {
+        // Verificar se a rotina pertence ao ativo
+        if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
-                ->with('error', 'Esta rotina não está associada a este ativo.');
+                ->with('error', 'Esta rotina não pertence a este ativo.');
         }
 
         $validated = $request->validate([
@@ -358,10 +342,10 @@ class RoutineController extends Controller
 
     public function publishAssetRoutineForm(Request $request, Asset $asset, Routine $routine)
     {
-        // Verificar se a rotina está associada ao ativo
-        if (! $asset->routines()->where('routines.id', $routine->id)->exists()) {
+        // Verificar se a rotina pertence ao ativo
+        if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
-                ->with('error', 'Esta rotina não está associada a este ativo.');
+                ->with('error', 'Esta rotina não pertence a este ativo.');
         }
 
         // Check if there are draft tasks to publish
@@ -397,10 +381,10 @@ class RoutineController extends Controller
 
     public function assetRoutineExecutions(Asset $asset, Routine $routine)
     {
-        // Verificar se a rotina está associada ao ativo
-        if (! $asset->routines()->where('routines.id', $routine->id)->exists()) {
+        // Verificar se a rotina pertence ao ativo
+        if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
-                ->with('error', 'Esta rotina não está associada a este ativo.');
+                ->with('error', 'Esta rotina não pertence a este ativo.');
         }
 
         $executions = RoutineExecution::where('routine_id', $routine->id)
@@ -417,10 +401,10 @@ class RoutineController extends Controller
 
     public function storeAssetRoutineExecution(Request $request, Asset $asset, Routine $routine)
     {
-        // Verificar se a rotina está associada ao ativo
-        if (! $asset->routines()->where('routines.id', $routine->id)->exists()) {
+        // Verificar se a rotina pertence ao ativo
+        if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
-                ->with('error', 'Esta rotina não está associada a este ativo.');
+                ->with('error', 'Esta rotina não pertence a este ativo.');
         }
 
         $validated = $request->validate([
@@ -675,8 +659,8 @@ class RoutineController extends Controller
 
         // Get executions for this asset
         $executionsQuery = RoutineExecution::query()
-            ->whereHas('routine.assets', function ($query) use ($asset) {
-                $query->where('assets.id', $asset->id);
+            ->whereHas('routine', function ($query) use ($asset) {
+                $query->where('asset_id', $asset->id);
             })
             ->with(['routine', 'executor', 'formExecution.formVersion']);
 

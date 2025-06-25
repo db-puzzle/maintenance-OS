@@ -7,12 +7,12 @@ use App\Models\Forms\Form;
 use App\Models\Forms\FormVersion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Routine extends Model
 {
     protected $fillable = [
+        'asset_id',
         'name',
         'trigger_hours',
         'status',
@@ -23,6 +23,7 @@ class Routine extends Model
 
     protected $casts = [
         'trigger_hours' => 'integer',
+        'asset_id' => 'integer',
     ];
 
     protected static function booted()
@@ -58,10 +59,9 @@ class Routine extends Model
         });
     }
 
-    public function assets(): BelongsToMany
+    public function asset(): BelongsTo
     {
-        return $this->belongsToMany(Asset::class, 'asset_routine')
-            ->withTimestamps();
+        return $this->belongsTo(Asset::class);
     }
 
     public function form(): BelongsTo

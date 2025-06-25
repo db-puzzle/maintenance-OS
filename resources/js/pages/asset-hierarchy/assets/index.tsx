@@ -110,72 +110,99 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             label: 'TAG',
             sortable: true,
             width: 'w-[300px]',
-            render: (value, row) => (
-                <div>
-                    <div className="font-medium">{row.tag}</div>
-                    {row.description && (
-                        <div className="text-muted-foreground text-sm">
-                            {row.description.length > 40 ? `${row.description.substring(0, 40)}...` : row.description}
-                        </div>
-                    )}
-                </div>
-            ),
+            render: (value, row) => {
+                const asset = row as unknown as Asset;
+                return (
+                    <div>
+                        <div className="font-medium">{asset.tag}</div>
+                        {asset.description && (
+                            <div className="text-muted-foreground text-sm">
+                                {asset.description.length > 40 ? `${asset.description.substring(0, 40)}...` : asset.description}
+                            </div>
+                        )}
+                    </div>
+                );
+            },
         },
         {
             key: 'serial_number',
             label: 'Número Serial',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.serial_number ?? '-',
+            render: (value, row) => {
+                const asset = row as unknown as Asset;
+                return asset.serial_number ?? '-';
+            },
         },
         {
             key: 'part_number',
             label: 'Part Number',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.part_number ?? '-',
+            render: (value, row) => {
+                const asset = row as unknown as Asset;
+                return asset.part_number ?? '-';
+            },
         },
         {
             key: 'routines_count',
             label: 'Rotinas',
             sortable: true,
             width: 'w-[100px]',
-            render: (value, row) => row.routines_count ?? 0,
+            render: (value, row) => {
+                const asset = row as unknown as Asset;
+                return asset.routines_count ?? 0;
+            },
         },
         {
             key: 'asset_type',
             label: 'Tipo',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.asset_type?.name ?? '-',
+            render: (value, row) => {
+                const asset = row as unknown as Asset;
+                return asset.asset_type?.name ?? '-';
+            },
         },
         {
             key: 'plant',
             label: 'Planta',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.plant?.name ?? row.area?.plant?.name ?? row.sector?.area?.plant?.name ?? '-',
+            render: (value, row) => {
+                const asset = row as unknown as Asset;
+                return asset.plant?.name ?? '-';
+            },
         },
         {
             key: 'area',
             label: 'Área',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.area?.name ?? row.sector?.area?.name ?? '-',
+            render: (value, row) => {
+                const asset = row as unknown as Asset;
+                return asset.area?.name ?? asset.sector?.area?.name ?? '-';
+            },
         },
         {
             key: 'sector',
             label: 'Setor',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.sector?.name ?? '-',
+            render: (value, row) => {
+                const asset = row as unknown as Asset;
+                return asset.sector?.name ?? '-';
+            },
         },
         {
             key: 'shift',
             label: 'Turno',
             sortable: true,
             width: 'w-[150px]',
-            render: (value, row) => row.shift?.name ?? '-',
+            render: (value, row) => {
+                const asset = row as unknown as Asset;
+                return asset.shift?.name ?? '-';
+            },
         },
         {
             key: 'manufacturer',
@@ -183,9 +210,10 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             sortable: true,
             width: 'w-[200px]',
             render: (value, row) => {
-                const manufacturer = row.manufacturer;
+                const asset = row as unknown as Asset;
+                const manufacturer = asset.manufacturer;
                 if (typeof manufacturer === 'object' && manufacturer !== null) {
-                    return manufacturer.name;
+                    return (manufacturer as any).name;
                 }
                 return manufacturer ?? '-';
             },
@@ -195,7 +223,10 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             label: 'Ano',
             sortable: true,
             width: 'w-[100px]',
-            render: (value, row) => row.manufacturing_year ?? '-',
+            render: (value, row) => {
+                const asset = row as unknown as Asset;
+                return asset.manufacturing_year ?? '-';
+            },
         },
     ];
 
@@ -257,20 +288,24 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data as unknown as Record<string, unknown>[]}
                         columns={columns}
                         loading={false}
-                        onRowClick={(asset) => router.visit(route('asset-hierarchy.assets.show', { asset: asset.id }))}
+                        onRowClick={(row) => {
+                            const asset = row as unknown as Asset;
+                            router.visit(route('asset-hierarchy.assets.show', { asset: asset.id }));
+                        }}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
-                        sortColumn={sort}
-                        sortDirection={direction}
-                        actions={(asset) => (
-                            <EntityActionDropdown
-                                onEdit={() => router.visit(route('asset-hierarchy.assets.show', { asset: asset.id, tab: 'informacoes' }))}
-                                onDelete={() => entityOps.handleDelete(asset)}
-                            />
-                        )}
+                        actions={(row) => {
+                            const asset = row as unknown as Asset;
+                            return (
+                                <EntityActionDropdown
+                                    onEdit={() => router.visit(route('asset-hierarchy.assets.show', { asset: asset.id, tab: 'informacoes' }))}
+                                    onDelete={() => entityOps.handleDelete(asset)}
+                                />
+                            );
+                        }}
                     />
 
                     <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
@@ -280,8 +315,7 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
-                entityName="ativo"
-                entityLabel={entityOps.deletingItem?.tag || ''}
+                entityLabel={`o ativo ${entityOps.deletingItem?.tag || ''}`}
                 onConfirm={entityOps.confirmDelete}
             />
 

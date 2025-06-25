@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('routines', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('asset_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->integer('trigger_hours')->comment('Hours between executions');
             $table->string('status')->default('Inactive')->comment('Active, Inactive');
@@ -24,6 +25,7 @@ return new class extends Migration
             $table->index(['status', 'trigger_hours']);
             $table->index('form_id');
             $table->index('active_form_version_id');
+            $table->index('asset_id');
         });
     }
 
