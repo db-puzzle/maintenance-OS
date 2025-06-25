@@ -28,9 +28,18 @@ return new class extends Migration
             $table->string('display_name')->nullable();
             $table->text('description')->nullable();
             $table->integer('sort_order')->default(0);
+            
+            // V2 additions
+            $table->string('entity_type', 50)->nullable(); // 'plant', 'area', 'sector', 'asset', 'system'
+            $table->unsignedBigInteger('entity_id')->nullable(); // ID of the entity this permission is scoped to
+            $table->boolean('is_dynamic')->default(false); // Whether this permission was dynamically created
+            $table->json('metadata')->nullable(); // Additional metadata for the permission
+            
             $table->timestamps();
 
             $table->unique(['name', 'guard_name']);
+            $table->index(['entity_type', 'entity_id']);
+            $table->index('is_dynamic');
         });
 
         Schema::create($tableNames['roles'], static function (Blueprint $table) use ($teams, $columnNames, $tableNames) {
@@ -44,6 +53,7 @@ return new class extends Migration
             $table->string('guard_name'); // For MyISAM use string('guard_name', 25);
             $table->unsignedBigInteger('parent_role_id')->nullable();
             $table->boolean('is_system')->default(false);
+            $table->boolean('is_administrator')->default(false); // V2: Mark Administrator role
             $table->timestamps();
             if ($teams || config('permission.testing')) {
                 $table->unique([$columnNames['team_foreign_key'], 'name', 'guard_name']);
@@ -116,19 +126,6 @@ return new class extends Migration
 
             $table->primary([$pivotPermission, $pivotRole], 'role_has_permissions_permission_id_role_id_primary');
         });
-
-        // Super admin grants tracking
-        Schema::create('super_admin_grants', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('granted_to')->constrained('users');
-            $table->foreignId('granted_by')->constrained('users');
-            $table->timestamp('granted_at');
-            $table->timestamp('revoked_at')->nullable();
-            $table->foreignId('revoked_by')->nullable()->constrained('users');
-            $table->text('reason')->nullable();
-            $table->timestamps();
-            $table->index(['granted_to', 'revoked_at']);
-        });
         
         // User invitations
         Schema::create('user_invitations', function (Blueprint $table) {
@@ -188,7 +185,6 @@ return new class extends Migration
 
         Schema::dropIfExists('permission_audit_logs');
         Schema::dropIfExists('user_invitations');
-        Schema::dropIfExists('super_admin_grants');
         Schema::drop($tableNames['role_has_permissions']);
         Schema::drop($tableNames['model_has_roles']);
         Schema::drop($tableNames['model_has_permissions']);

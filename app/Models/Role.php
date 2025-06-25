@@ -10,12 +10,19 @@ class Role extends SpatieRole
         'name',
         'guard_name',
         'parent_role_id',
-        'is_system'
+        'is_system',
+        'is_administrator'
     ];
 
     protected $casts = [
         'is_system' => 'boolean',
+        'is_administrator' => 'boolean',
     ];
+
+    /**
+     * Administrator role ID constant for consistency
+     */
+    const ADMINISTRATOR_ROLE_ID = 1;
 
     /**
      * Parent role relationship
@@ -72,6 +79,14 @@ class Role extends SpatieRole
     }
 
     /**
+     * Check if this is the Administrator role
+     */
+    public function isAdministrator(): bool
+    {
+        return $this->is_administrator;
+    }
+
+    /**
      * Get permissions count
      */
     public function getPermissionsCountAttribute(): int
@@ -104,11 +119,33 @@ class Role extends SpatieRole
     }
 
     /**
+     * Scope to get the Administrator role
+     */
+    public function scopeAdministrator($query)
+    {
+        return $query->where('is_administrator', true);
+    }
+
+    /**
      * Check if role can be deleted
      */
     public function canBeDeleted(): bool
     {
+        // Administrator role can never be deleted
+        if ($this->is_administrator) {
+            return false;
+        }
+        
         return !$this->is_system && $this->users()->count() === 0;
+    }
+
+    /**
+     * Check if role can be modified
+     */
+    public function canBeModified(): bool
+    {
+        // Administrator role permissions cannot be modified
+        return !$this->is_administrator;
     }
 
     /**
@@ -116,6 +153,11 @@ class Role extends SpatieRole
      */
     public function getAllEffectivePermissions()
     {
+        // Administrator role has all permissions implicitly
+        if ($this->is_administrator) {
+            return Permission::all();
+        }
+        
         $permissions = $this->permissions;
         
         // Add permissions from parent roles
@@ -124,5 +166,27 @@ class Role extends SpatieRole
         }
         
         return $permissions->unique('id');
+    }
+
+    /**
+     * Get the Administrator role
+     */
+    public static function getAdministratorRole(): ?self
+    {
+        return self::where('is_administrator', true)->first();
+    }
+
+    /**
+     * Ensure at least one Administrator exists
+     */
+    public static function ensureAdministratorExists(): bool
+    {
+        $adminRole = self::getAdministratorRole();
+        
+        if (!$adminRole) {
+            return false;
+        }
+        
+        return $adminRole->users()->exists();
     }
 }

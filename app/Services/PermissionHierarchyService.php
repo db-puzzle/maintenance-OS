@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\Permission;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Area;
@@ -12,20 +13,21 @@ class PermissionHierarchyService
 {
     /**
      * Check if user has permission considering hierarchy
+     * V2: All permissions are entity-scoped except system permissions
      */
     public function checkHierarchicalPermission(User $user, string $basePermission, $model = null): bool
     {
-        // Super admin always has access
-        if ($user->is_super_admin) {
+        // Administrator always has access
+        if ($user->isAdministrator()) {
             return true;
         }
 
-        // Check global permission first
-        if ($user->can($basePermission)) {
-            return true;
+        // Check system-level permissions (only system.* permissions are global in V2)
+        if (str_starts_with($basePermission, 'system.')) {
+            return $user->can($basePermission);
         }
 
-        // If no model provided, only global permission matters
+        // V2: All other permissions MUST be entity-scoped
         if (!$model) {
             return false;
         }
@@ -66,7 +68,7 @@ class PermissionHierarchyService
             return $user->can("{$basePermission}.{$model->id}");
         }
 
-        // For other models, just check specific permission
+        // For other models (shifts, asset types, manufacturers), check specific permission
         return $user->can("{$basePermission}.{$model->id}");
     }
 
@@ -80,16 +82,18 @@ class PermissionHierarchyService
 
     /**
      * Get all entities user has access to for a given permission
+     * V2: No global permissions except system.*
      */
     public function getAccessibleEntities(User $user, string $resource, string $action): array
     {
         $basePermission = "{$resource}.{$action}";
         
-        // Super admin or global permission = access to all
-        if ($user->is_super_admin || $user->can($basePermission)) {
+        // Administrator has access to all
+        if ($user->isAdministrator()) {
             return ['all' => true];
         }
 
+        // V2: No global permissions for resources
         $accessible = [
             'plants' => [],
             'areas' => [],
@@ -128,8 +132,14 @@ class PermissionHierarchyService
                         $accessible['sectors'][] = (int) $id;
                         break;
                     default:
-                        $accessible['assets'][] = (int) $id;
+                        // Direct entity permissions (e.g., assets.view.123)
+                        if (count($parts) === 3 && is_numeric($parts[2])) {
+                            $accessible['assets'][] = (int) $parts[2];
+                        }
                 }
+            } elseif (count($parts) === 3 && is_numeric($parts[2])) {
+                // Direct entity permissions (e.g., plants.view.123)
+                $accessible[$resource][] = (int) $parts[2];
             }
         }
 
@@ -144,7 +154,7 @@ class PermissionHierarchyService
         $accessible = $this->getAccessibleEntities($user, $resource, $action);
         
         if ($accessible === ['all' => true] || $accessible['all'] ?? false) {
-            return $query; // No restrictions
+            return $query; // No restrictions (Administrator)
         }
 
         return $query->where(function ($q) use ($accessible, $user) {
@@ -189,12 +199,18 @@ class PermissionHierarchyService
 
     /**
      * Check if user can create in specific context
+     * V2: Must have entity-specific creation permission
      */
     public function canCreateInContext(User $user, string $resource, $parentModel = null): bool
     {
         $basePermission = "{$resource}.create";
         
-        if ($user->is_super_admin || $user->can($basePermission)) {
+        if ($user->isAdministrator()) {
+            return true;
+        }
+
+        // System-level creation (only for plants)
+        if ($resource === 'plants' && $user->can('system.create-plants')) {
             return true;
         }
 
@@ -223,10 +239,11 @@ class PermissionHierarchyService
 
     /**
      * Get user's accessible plants
+     * V2: Must have specific plant permissions
      */
     public function getAccessiblePlants(User $user, string $action = 'view'): \Illuminate\Database\Eloquent\Collection
     {
-        if ($user->is_super_admin || $user->can("plants.{$action}")) {
+        if ($user->isAdministrator()) {
             return Plant::all();
         }
 
@@ -241,10 +258,11 @@ class PermissionHierarchyService
 
     /**
      * Get user's accessible areas for a plant
+     * V2: Must have specific area or plant permissions
      */
     public function getAccessibleAreas(User $user, Plant $plant = null, string $action = 'view'): \Illuminate\Database\Eloquent\Collection
     {
-        if ($user->is_super_admin || $user->can("areas.{$action}")) {
+        if ($user->isAdministrator()) {
             return $plant ? $plant->areas : Area::all();
         }
 
@@ -252,11 +270,15 @@ class PermissionHierarchyService
         
         $query = $plant ? $plant->areas() : Area::query();
         
+        // Direct area permissions
         if (!empty($accessible['areas'])) {
             $query->whereIn('id', $accessible['areas']);
-        } elseif (!empty($accessible['plants'])) {
+        } 
+        // Plant-level permissions grant access to all areas
+        elseif (!empty($accessible['plants'])) {
             $query->whereIn('plant_id', $accessible['plants']);
-        } else {
+        } 
+        else {
             return collect();
         }
 
@@ -265,10 +287,11 @@ class PermissionHierarchyService
 
     /**
      * Get user's accessible sectors for an area
+     * V2: Must have specific sector, area, or plant permissions
      */
     public function getAccessibleSectors(User $user, Area $area = null, string $action = 'view'): \Illuminate\Database\Eloquent\Collection
     {
-        if ($user->is_super_admin || $user->can("sectors.{$action}")) {
+        if ($user->isAdministrator()) {
             return $area ? $area->sectors : Sector::all();
         }
 
@@ -276,15 +299,21 @@ class PermissionHierarchyService
         
         $query = $area ? $area->sectors() : Sector::query();
         
+        // Direct sector permissions
         if (!empty($accessible['sectors'])) {
             $query->whereIn('id', $accessible['sectors']);
-        } elseif (!empty($accessible['areas'])) {
+        } 
+        // Area-level permissions grant access to all sectors
+        elseif (!empty($accessible['areas'])) {
             $query->whereIn('area_id', $accessible['areas']);
-        } elseif (!empty($accessible['plants'])) {
+        } 
+        // Plant-level permissions grant access to all sectors
+        elseif (!empty($accessible['plants'])) {
             $query->whereHas('area', function ($q) use ($accessible) {
                 $q->whereIn('plant_id', $accessible['plants']);
             });
-        } else {
+        } 
+        else {
             return collect();
         }
 
@@ -293,12 +322,13 @@ class PermissionHierarchyService
 
     /**
      * Get user's accessible assets
+     * V2: Must have specific asset, sector, area, or plant permissions
      */
     public function getAccessibleAssets(User $user, $parentModel = null, string $action = 'view'): \Illuminate\Database\Eloquent\Builder
     {
         $query = Asset::query();
 
-        if ($user->is_super_admin || $user->can("assets.{$action}")) {
+        if ($user->isAdministrator()) {
             if ($parentModel instanceof Sector) {
                 return $query->where('sector_id', $parentModel->id);
             } elseif ($parentModel instanceof Area) {
@@ -314,10 +344,11 @@ class PermissionHierarchyService
 
     /**
      * Check if user has any access to a resource
+     * V2: Must have specific permissions
      */
     public function hasAnyAccess(User $user, string $resource): bool
     {
-        if ($user->is_super_admin) {
+        if ($user->isAdministrator()) {
             return true;
         }
 
@@ -326,5 +357,32 @@ class PermissionHierarchyService
         return $permissions->contains(function ($permission) use ($resource) {
             return str_starts_with($permission->name, $resource . '.');
         });
+    }
+
+    /**
+     * Validate shared entity update
+     * V2: Check if user has permissions for all affected entities
+     */
+    public function validateSharedEntityUpdate(User $user, $sharedEntity, string $entityType): array
+    {
+        if ($user->isAdministrator()) {
+            return ['allowed' => true, 'affected_assets' => []];
+        }
+
+        // Get all assets using this shared entity
+        $affectedAssets = Asset::where("{$entityType}_id", $sharedEntity->id)->get();
+        
+        $unauthorizedAssets = [];
+        foreach ($affectedAssets as $asset) {
+            if (!$this->checkHierarchicalPermission($user, 'assets.update', $asset)) {
+                $unauthorizedAssets[] = $asset;
+            }
+        }
+
+        return [
+            'allowed' => empty($unauthorizedAssets),
+            'affected_assets' => $affectedAssets,
+            'unauthorized_assets' => $unauthorizedAssets
+        ];
     }
 }

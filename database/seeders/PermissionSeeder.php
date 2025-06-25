@@ -4,75 +4,200 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Permission;
-use App\Models\Role;
+use Illuminate\Support\Facades\DB;
 
 class PermissionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * V2: Only seed system-level permissions. All entity-specific permissions are created dynamically.
      */
     public function run(): void
     {
-        // Define only system-level permissions that are NOT dynamically generated
-        // Entity-specific permissions (e.g., plants.view.123) are created when entities are created
-        $permissions = [
-            // User Management
-            ['name' => 'users.viewAny', 'display_name' => 'View Users List', 'description' => 'View user list'],
-            ['name' => 'users.view', 'display_name' => 'View User Details', 'description' => 'View user details'],
-            ['name' => 'users.update', 'display_name' => 'Update Any User', 'description' => 'Update any user'],
-            ['name' => 'users.update.owned', 'display_name' => 'Update Own Profile', 'description' => 'Update own profile only'],
-            ['name' => 'users.delete', 'display_name' => 'Delete Users', 'description' => 'Delete users'],
-            ['name' => 'users.impersonate', 'display_name' => 'Impersonate Users', 'description' => 'Login as another user'],
-            ['name' => 'users.manage-permissions', 'display_name' => 'Manage User Permissions', 'description' => 'Assign/revoke permissions (respects scope)'],
-            ['name' => 'users.manage-roles', 'display_name' => 'Manage User Roles', 'description' => 'Assign/revoke roles'],
-            
-            // Note: users.invite.plant.[id], users.invite.area.[id], users.invite.sector.[id] are created dynamically
+        DB::transaction(function () {
+            // System-level permissions (the only global permissions in V2)
+            $systemPermissions = [
+                [
+                    'name' => 'system.create-plants',
+                    'display_name' => 'Create Plants',
+                    'description' => 'Ability to create new plants in the system',
+                    'entity_type' => 'system',
+                    'sort_order' => 1
+                ],
+                [
+                    'name' => 'system.bulk-import-assets',
+                    'display_name' => 'Bulk Import Assets',
+                    'description' => 'Ability to bulk import assets (respects entity permissions)',
+                    'entity_type' => 'system',
+                    'sort_order' => 2
+                ],
+                [
+                    'name' => 'system.bulk-export-assets',
+                    'display_name' => 'Bulk Export Assets',
+                    'description' => 'Ability to bulk export assets (respects entity permissions)',
+                    'entity_type' => 'system',
+                    'sort_order' => 3
+                ],
+                [
+                    'name' => 'system.settings.view',
+                    'display_name' => 'View System Settings',
+                    'description' => 'View system configuration and settings',
+                    'entity_type' => 'system',
+                    'sort_order' => 4
+                ],
+                [
+                    'name' => 'system.settings.update',
+                    'display_name' => 'Update System Settings',
+                    'description' => 'Modify system configuration and settings',
+                    'entity_type' => 'system',
+                    'sort_order' => 5
+                ],
+                [
+                    'name' => 'system.audit.view',
+                    'display_name' => 'View Audit Trails',
+                    'description' => 'View system audit logs and trails',
+                    'entity_type' => 'system',
+                    'sort_order' => 6
+                ]
+            ];
 
-            // Invitation Management
-            ['name' => 'invitations.viewAny', 'display_name' => 'View All Invitations', 'description' => 'View all invitations'],
-            ['name' => 'invitations.view', 'display_name' => 'View Invitation Details', 'description' => 'View invitation details'],
-            ['name' => 'invitations.revoke', 'display_name' => 'Revoke Invitations', 'description' => 'Revoke pending invitations'],
-            ['name' => 'invitations.resend', 'display_name' => 'Resend Invitations', 'description' => 'Resend invitation emails'],
+            // User management permissions (not entity-scoped)
+            $userPermissions = [
+                [
+                    'name' => 'users.viewAny',
+                    'display_name' => 'View User List',
+                    'description' => 'View list of all users',
+                    'sort_order' => 10
+                ],
+                [
+                    'name' => 'users.view',
+                    'display_name' => 'View User Details',
+                    'description' => 'View detailed user information',
+                    'sort_order' => 11
+                ],
+                [
+                    'name' => 'users.update',
+                    'display_name' => 'Update Users',
+                    'description' => 'Update any user information',
+                    'sort_order' => 12
+                ],
+                [
+                    'name' => 'users.update.owned',
+                    'display_name' => 'Update Own Profile',
+                    'description' => 'Update own user profile only',
+                    'sort_order' => 13
+                ],
+                [
+                    'name' => 'users.delete',
+                    'display_name' => 'Delete Users',
+                    'description' => 'Delete user accounts',
+                    'sort_order' => 14
+                ],
+                [
+                    'name' => 'users.impersonate',
+                    'display_name' => 'Impersonate Users',
+                    'description' => 'Login as another user',
+                    'sort_order' => 15
+                ],
+                [
+                    'name' => 'users.manage-permissions',
+                    'display_name' => 'Manage User Permissions',
+                    'description' => 'Assign/revoke permissions (respects scope)',
+                    'sort_order' => 16
+                ],
+                [
+                    'name' => 'users.manage-roles',
+                    'display_name' => 'Manage User Roles',
+                    'description' => 'Assign/revoke roles to users',
+                    'sort_order' => 17
+                ]
+            ];
 
-            // Role Management
-            ['name' => 'roles.viewAny', 'display_name' => 'View Roles List', 'description' => 'View role list'],
-            ['name' => 'roles.view', 'display_name' => 'View Role Details', 'description' => 'View role details'],
-            ['name' => 'roles.create', 'display_name' => 'Create Custom Roles', 'description' => 'Create custom roles'],
-            ['name' => 'roles.update', 'display_name' => 'Update Role Permissions', 'description' => 'Update role permissions'],
-            ['name' => 'roles.delete', 'display_name' => 'Delete Custom Roles', 'description' => 'Delete custom roles (not system roles)'],
-            ['name' => 'roles.assign', 'display_name' => 'Assign Roles', 'description' => 'Assign roles to users'],
+            // Invitation management permissions
+            $invitationPermissions = [
+                [
+                    'name' => 'invitations.viewAny',
+                    'display_name' => 'View All Invitations',
+                    'description' => 'View all user invitations',
+                    'sort_order' => 20
+                ],
+                [
+                    'name' => 'invitations.view',
+                    'display_name' => 'View Invitation Details',
+                    'description' => 'View invitation details',
+                    'sort_order' => 21
+                ],
+                [
+                    'name' => 'invitations.revoke',
+                    'display_name' => 'Revoke Invitations',
+                    'description' => 'Revoke pending invitations',
+                    'sort_order' => 22
+                ],
+                [
+                    'name' => 'invitations.resend',
+                    'display_name' => 'Resend Invitations',
+                    'description' => 'Resend invitation emails',
+                    'sort_order' => 23
+                ]
+            ];
 
-            // Plants - Only the global create permission
-            ['name' => 'system.create-plants', 'display_name' => 'Create Plants', 'description' => 'Ability to create new plants (system-wide)'],
-            
-            // Note: All other plant, area, sector, asset permissions are created dynamically when entities are created
+            // Role management permissions
+            $rolePermissions = [
+                [
+                    'name' => 'roles.viewAny',
+                    'display_name' => 'View Role List',
+                    'description' => 'View list of all roles',
+                    'sort_order' => 30
+                ],
+                [
+                    'name' => 'roles.view',
+                    'display_name' => 'View Role Details',
+                    'description' => 'View role details and permissions',
+                    'sort_order' => 31
+                ],
+                [
+                    'name' => 'roles.create',
+                    'display_name' => 'Create Roles',
+                    'description' => 'Create custom roles',
+                    'sort_order' => 32
+                ],
+                [
+                    'name' => 'roles.update',
+                    'display_name' => 'Update Roles',
+                    'description' => 'Update role permissions',
+                    'sort_order' => 33
+                ],
+                [
+                    'name' => 'roles.delete',
+                    'display_name' => 'Delete Roles',
+                    'description' => 'Delete custom roles (not system roles)',
+                    'sort_order' => 34
+                ],
+                [
+                    'name' => 'roles.assign',
+                    'display_name' => 'Assign Roles',
+                    'description' => 'Assign roles to users',
+                    'sort_order' => 35
+                ]
+            ];
 
-            // System Administration
-            ['name' => 'system.settings.view', 'display_name' => 'View System Settings', 'description' => 'View system settings'],
-            ['name' => 'system.settings.update', 'display_name' => 'Update System Settings', 'description' => 'Update system settings'],
-            ['name' => 'system.audit.view', 'display_name' => 'View Audit Trails', 'description' => 'View audit trails'],
-            ['name' => 'system.backup.create', 'display_name' => 'Create System Backups', 'description' => 'Create system backups'],
-            ['name' => 'system.backup.restore', 'display_name' => 'Restore From Backups', 'description' => 'Restore from backups'],
-            ['name' => 'system.maintenance-mode', 'display_name' => 'Maintenance Mode', 'description' => 'Enable/disable maintenance mode'],
-            
-            // Bulk Operations (NEW IN V2)
-            ['name' => 'system.bulk-import-assets', 'display_name' => 'Bulk Import Assets', 'description' => 'Bulk import assets (respects entity permissions)'],
-            ['name' => 'system.bulk-export-assets', 'display_name' => 'Bulk Export Assets', 'description' => 'Bulk export assets (respects entity permissions)'],
-            
-            // Special Reports (NEW IN V2)
-            ['name' => 'system.dashboard.view', 'display_name' => 'View Executive Dashboards', 'description' => 'View executive dashboards (cross-functional data)'],
-            ['name' => 'system.compliance.view', 'display_name' => 'View Compliance Reports', 'description' => 'View compliance reports (regulatory requirements)'],
-        ];
-
-        // Create permissions
-        foreach ($permissions as $index => $permissionData) {
-            Permission::firstOrCreate(
-                ['name' => $permissionData['name']],
-                array_merge($permissionData, ['sort_order' => $index])
+            // Create all permissions
+            $allPermissions = array_merge(
+                $systemPermissions,
+                $userPermissions,
+                $invitationPermissions,
+                $rolePermissions
             );
-        }
 
-        $this->command->info('System-level permissions created successfully.');
-        $this->command->info('Entity-specific permissions will be created automatically when plants, areas, sectors, and assets are created.');
+            foreach ($allPermissions as $permissionData) {
+                Permission::firstOrCreate(
+                    ['name' => $permissionData['name'], 'guard_name' => 'web'],
+                    array_merge($permissionData, [
+                        'guard_name' => 'web',
+                        'is_dynamic' => false
+                    ])
+                );
+            }
+        });
     }
 }

@@ -3,165 +3,112 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Permission;
 use Illuminate\Support\Facades\DB;
 
 class RoleSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * V2: Create system roles with Administrator as the combined super admin role
      */
     public function run(): void
     {
-        // Create Administrator role first with guaranteed ID = 1
-        // This ID is used for permission bypass checks
-        $administratorRole = Role::firstOrCreate(
-            ['id' => 1],
-            [
-                'name' => 'Administrator',
-                'is_system' => true,
-                'guard_name' => 'web'
-            ]
-        );
-        
-        // If we just created the Administrator role with ID 1, we need to reset the sequence
-        // to prevent conflicts with future inserts
-        if ($administratorRole->wasRecentlyCreated) {
-            // Get the current max ID
-            $maxId = Role::max('id') ?? 0;
-            
-            // Reset the sequence to start after the max ID
-            DB::statement("SELECT setval(pg_get_serial_sequence('roles', 'id'), ?)", [$maxId]);
-        }
-        
-        // Administrator doesn't need individual permissions due to bypass mechanism
-        // The bypass is implemented in Gate::before() callback with wildcard permissions
-        
-        $this->command->info("Administrator role created/verified with ID = 1 (wildcard permissions enabled)");
-        
-        // Create other system roles with default system-level permissions only
-        // Entity-specific permissions are assigned when users are associated with entities
-        $roles = [
-            [
-                'name' => 'Plant Manager',
-                'is_system' => true,
-                'permissions' => [
-                    // Default system-level permissions
-                    'system.create-plants',
-                    'system.bulk-import-assets',
-                    'system.bulk-export-assets',
-                    
-                    // User management (limited)
-                    'users.viewAny',
-                    'users.view',
-                    'users.update.owned',
-                    
-                    // Role viewing only
-                    'roles.viewAny',
-                    'roles.view',
-                    
-                    // Invitation management
-                    'invitations.viewAny',
-                    'invitations.view',
-                    'invitations.resend',
-                    
-                    // System dashboards
-                    'system.dashboard.view',
-                    
-                    // Note: Entity-specific permissions like plants.view.123, users.invite.plant.123, etc. 
-                    // are assigned when the Plant Manager is associated with a specific plant
-                ]
-            ],
-            [
-                'name' => 'Area Manager',
-                'is_system' => true,
-                'permissions' => [
-                    // User management (limited)
-                    'users.viewAny',
-                    'users.view',
-                    'users.update.owned',
-                    
-                    // Invitation viewing
-                    'invitations.viewAny',
-                    'invitations.view',
-                    
-                    // System dashboards
-                    'system.dashboard.view',
-                    
-                    // Note: Entity-specific permissions like areas.view.456, users.invite.area.456, etc.
-                    // are assigned when the Area Manager is associated with a specific area
-                ]
-            ],
-            [
-                'name' => 'Sector Manager',
-                'is_system' => true,
-                'permissions' => [
-                    // User management (limited)
-                    'users.viewAny',
-                    'users.view',
-                    'users.update.owned',
-                    
-                    // Invitation viewing
-                    'invitations.view',
-                    
-                    // Note: Entity-specific permissions like sectors.view.789, users.invite.sector.789, etc.
-                    // are assigned when the Sector Manager is associated with a specific sector
-                ]
-            ],
-            [
-                'name' => 'Maintenance Supervisor',
-                'is_system' => true,
-                'permissions' => [
-                    // Own profile only
-                    'users.update.owned',
-                    
-                    // Note: Entity-specific permissions like assets.execute-routines.area.456
-                    // are assigned when the Maintenance Supervisor is associated with specific areas
-                ]
-            ],
-            [
-                'name' => 'Technician',
-                'is_system' => true,
-                'permissions' => [
-                    // Own profile only
-                    'users.update.owned',
-                    
-                    // Note: Entity-specific permissions like assets.execute-routines.999
-                    // are assigned when the Technician is associated with specific assets
-                ]
-            ],
-            [
-                'name' => 'Viewer',
-                'is_system' => true,
-                'permissions' => [
-                    // Own profile only
-                    'users.update.owned',
-                    
-                    // Note: Entity-specific permissions like plants.view.123, assets.viewAny.plant.123
-                    // are assigned when the Viewer is given access to specific entities
-                ]
-            ]
-        ];
-
-        foreach ($roles as $roleData) {
-            // Create role
-            $role = Role::firstOrCreate(
-                ['name' => $roleData['name']],
+        DB::transaction(function () {
+            // Create Administrator role (combined Super Admin + Admin)
+            $administrator = Role::firstOrCreate(
+                ['name' => 'Administrator', 'guard_name' => 'web'],
                 [
-                    'is_system' => $roleData['is_system'],
-                    'guard_name' => 'web'
+                    'is_system' => true,
+                    'is_administrator' => true
                 ]
             );
 
-            // Assign permissions
-            $permissions = Permission::whereIn('name', $roleData['permissions'])->get();
-            $role->syncPermissions($permissions);
+            // Administrator has wildcard permissions - we still record them for auditability
+            // But the hasPermissionTo() method will always return true for administrators
+            $administrator->syncPermissions(Permission::all());
 
-            $this->command->info("Role '{$role->name}' created/updated with " . count($permissions) . " default permissions.");
-        }
+            // Create other system roles
+            $plantManager = Role::firstOrCreate(
+                ['name' => 'Plant Manager', 'guard_name' => 'web'],
+                ['is_system' => true]
+            );
 
-        $this->command->info('System roles created successfully.');
-        $this->command->info('Entity-specific permissions will be assigned when users are associated with plants, areas, or sectors.');
+            // Plant Manager gets system-level permissions by default
+            $plantManagerPermissions = [
+                'system.create-plants',
+                'system.bulk-import-assets',
+                'system.bulk-export-assets',
+                'users.viewAny',
+                'users.view',
+                'roles.viewAny',
+                'roles.view'
+            ];
+            $plantManager->syncPermissions($plantManagerPermissions);
+
+            $areaManager = Role::firstOrCreate(
+                ['name' => 'Area Manager', 'guard_name' => 'web'],
+                ['is_system' => true]
+            );
+            
+            // Area Manager gets limited permissions by default
+            $areaManagerPermissions = [
+                'users.viewAny',
+                'users.view',
+                'users.update.owned'
+            ];
+            $areaManager->syncPermissions($areaManagerPermissions);
+
+            $sectorManager = Role::firstOrCreate(
+                ['name' => 'Sector Manager', 'guard_name' => 'web'],
+                ['is_system' => true]
+            );
+            
+            // Sector Manager gets limited permissions by default
+            $sectorManagerPermissions = [
+                'users.viewAny',
+                'users.view',
+                'users.update.owned'
+            ];
+            $sectorManager->syncPermissions($sectorManagerPermissions);
+
+            $maintenanceSupervisor = Role::firstOrCreate(
+                ['name' => 'Maintenance Supervisor', 'guard_name' => 'web'],
+                ['is_system' => true]
+            );
+            
+            // Maintenance Supervisor gets basic permissions
+            $maintenanceSupervisorPermissions = [
+                'users.update.owned'
+            ];
+            $maintenanceSupervisor->syncPermissions($maintenanceSupervisorPermissions);
+
+            $technician = Role::firstOrCreate(
+                ['name' => 'Technician', 'guard_name' => 'web'],
+                ['is_system' => true]
+            );
+            
+            // Technician gets minimal permissions
+            $technicianPermissions = [
+                'users.update.owned'
+            ];
+            $technician->syncPermissions($technicianPermissions);
+
+            $viewer = Role::firstOrCreate(
+                ['name' => 'Viewer', 'guard_name' => 'web'],
+                ['is_system' => true]
+            );
+            
+            // Viewer gets minimal permissions
+            $viewerPermissions = [
+                'users.update.owned'
+            ];
+            $viewer->syncPermissions($viewerPermissions);
+
+            $this->command->info('System roles created successfully.');
+            $this->command->info('Administrator role has wildcard permissions.');
+            $this->command->info('Entity-specific permissions will be assigned when users are assigned to specific entities.');
+        });
     }
 }

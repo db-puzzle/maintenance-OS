@@ -25,7 +25,6 @@ class User extends Authenticatable
         'email',
         'password',
         'timezone',
-        'is_super_admin',
     ];
 
     /**
@@ -48,7 +47,6 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'is_super_admin' => 'boolean',
         ];
     }
 
@@ -90,13 +88,21 @@ class User extends Authenticatable
     protected static function booted()
     {
         static::creating(function ($user) {
-            // First user automatically becomes super admin
+            // First user automatically becomes administrator
             if (static::count() === 0) {
-                $user->is_super_admin = true;
+                // We'll assign the Administrator role after creation
             }
         });
 
         static::created(function ($user) {
+            // First user gets Administrator role
+            if (static::count() === 1) {
+                $adminRole = Role::getAdministratorRole();
+                if ($adminRole) {
+                    $user->assignRole($adminRole);
+                }
+            }
+            
             // Log user creation
             if (auth()->check()) {
                 \App\Services\AuditLogService::log(
@@ -109,22 +115,6 @@ class User extends Authenticatable
                 );
             }
         });
-    }
-
-    /**
-     * Super admin grants relationship
-     */
-    public function superAdminGrants()
-    {
-        return $this->hasMany(SuperAdminGrant::class, 'granted_to');
-    }
-
-    /**
-     * Super admin grants given relationship
-     */
-    public function superAdminGrantsGiven()
-    {
-        return $this->hasMany(SuperAdminGrant::class, 'granted_by');
     }
 
     /**
@@ -144,71 +134,60 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is super admin
+     * Check if user is administrator
      */
-    public function isSuperAdmin(): bool
+    public function isAdministrator(): bool
     {
-        return $this->is_super_admin;
+        return $this->hasRole(Role::getAdministratorRole());
     }
 
     /**
-     * Grant super admin privileges
+     * Grant administrator privileges
      */
-    public function grantSuperAdmin(User $grantedBy, string $reason = null): SuperAdminGrant
+    public function grantAdministrator(User $grantedBy, string $reason = null): void
     {
-        $this->update(['is_super_admin' => true]);
-
-        $grant = SuperAdminGrant::create([
-            'granted_to' => $this->id,
-            'granted_by' => $grantedBy->id,
-            'granted_at' => now(),
-            'reason' => $reason,
-        ]);
+        $adminRole = Role::getAdministratorRole();
+        if (!$adminRole) {
+            throw new \Exception('Administrator role not found');
+        }
+        
+        $this->assignRole($adminRole);
 
         \App\Services\AuditLogService::log(
-            'user.super_admin.granted',
+            'user.administrator.granted',
             'granted',
             $this,
-            ['is_super_admin' => false],
-            ['is_super_admin' => true],
+            ['is_administrator' => false],
+            ['is_administrator' => true],
             [
                 'granted_by' => $grantedBy->name,
                 'reason' => $reason,
                 'user' => $this->name
             ]
         );
-
-        return $grant;
     }
 
     /**
-     * Revoke super admin privileges
+     * Revoke administrator privileges
      */
-    public function revokeSuperAdmin(User $revokedBy, string $reason = null): void
+    public function revokeAdministrator(User $revokedBy, string $reason = null): void
     {
-        // Ensure we don't leave the system without any super admins
-        $superAdminCount = static::where('is_super_admin', true)->count();
-        if ($superAdminCount <= 1) {
-            throw new \Exception('Cannot revoke super admin privileges. At least one super administrator must remain.');
+        // Ensure we don't leave the system without any administrators
+        if (!Role::ensureAdministratorExists()) {
+            throw new \Exception('Cannot revoke administrator privileges. At least one administrator must remain.');
         }
 
-        $this->update(['is_super_admin' => false]);
-
-        // Mark existing grants as revoked
-        $this->superAdminGrants()
-            ->whereNull('revoked_at')
-            ->update([
-                'revoked_at' => now(),
-                'revoked_by' => $revokedBy->id,
-                'revocation_reason' => $reason,
-            ]);
+        $adminRole = Role::getAdministratorRole();
+        if ($adminRole) {
+            $this->removeRole($adminRole);
+        }
 
         \App\Services\AuditLogService::log(
-            'user.super_admin.revoked',
+            'user.administrator.revoked',
             'revoked',
             $this,
-            ['is_super_admin' => true],
-            ['is_super_admin' => false],
+            ['is_administrator' => true],
+            ['is_administrator' => false],
             [
                 'revoked_by' => $revokedBy->name,
                 'reason' => $reason,
@@ -218,12 +197,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user can perform action considering super admin bypass
-     * Override parent to add super admin bypass
+     * Check if user can perform action considering administrator bypass
+     * Override parent to add administrator bypass with wildcard permissions
      */
     public function canAny($abilities, $arguments = []): bool
     {
-        if ($this->is_super_admin) {
+        if ($this->isAdministrator()) {
             return true;
         }
 
@@ -235,7 +214,7 @@ class User extends Authenticatable
      */
     public function getAllEffectivePermissions()
     {
-        if ($this->is_super_admin) {
+        if ($this->isAdministrator()) {
             return \App\Models\Permission::all();
         }
 
@@ -253,7 +232,7 @@ class User extends Authenticatable
      */
     public function hasHierarchicalPermission(string $permission, $model = null): bool
     {
-        if ($this->is_super_admin) {
+        if ($this->isAdministrator()) {
             return true;
         }
 
@@ -262,11 +241,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Override hasPermissionTo to include super admin bypass
+     * Override hasPermissionTo to include administrator bypass with wildcard
      */
     public function hasPermissionTo($permission, $guardName = null): bool
     {
-        if ($this->is_super_admin) {
+        // Administrator has wildcard permissions - fast return
+        if ($this->isAdministrator()) {
             return true;
         }
 
@@ -274,12 +254,22 @@ class User extends Authenticatable
     }
 
     /**
-     * Override hasRole to include super admin bypass for role checking
+     * Override hasRole to include administrator bypass for role checking
      */
     public function hasRole($roles, string $guard = null): bool 
     {
-        if ($this->is_super_admin) {
-            return true;
+        // Check if any of the roles is the Administrator role
+        $adminRole = Role::getAdministratorRole();
+        if ($adminRole) {
+            if (is_string($roles) && $roles === $adminRole->name) {
+                return parent::hasRole($roles, $guard);
+            }
+            if (is_array($roles) && in_array($adminRole->name, $roles)) {
+                return parent::hasRole($roles, $guard);
+            }
+            if ($roles instanceof Role && $roles->is_administrator) {
+                return parent::hasRole($roles, $guard);
+            }
         }
 
         return parent::hasRole($roles, $guard);
@@ -290,11 +280,50 @@ class User extends Authenticatable
      */
     public function getAccessibleEntities(string $resource, string $action): array
     {
-        if ($this->is_super_admin) {
+        if ($this->isAdministrator()) {
             return ['all' => true];
         }
 
         $hierarchyService = app(\App\Services\PermissionHierarchyService::class);
         return $hierarchyService->getAccessibleEntities($this, $resource, $action);
+    }
+
+    /**
+     * Check if user has invitation permission for an entity
+     */
+    public function canInviteToEntity(string $entityType, int $entityId): bool
+    {
+        if ($this->isAdministrator()) {
+            return true;
+        }
+
+        return $this->hasPermissionTo("users.invite.{$entityType}.{$entityId}");
+    }
+
+    /**
+     * Get all entities user can invite to
+     */
+    public function getInvitableEntities(): array
+    {
+        if ($this->isAdministrator()) {
+            return ['all' => true];
+        }
+
+        $invitable = [
+            'plants' => [],
+            'areas' => [],
+            'sectors' => []
+        ];
+
+        foreach ($this->getAllEffectivePermissions() as $permission) {
+            if (str_starts_with($permission->name, 'users.invite.')) {
+                $parsed = $permission->parsePermission();
+                if ($parsed['scope'] && $parsed['scope_id']) {
+                    $invitable[$parsed['scope'] . 's'][] = (int) $parsed['scope_id'];
+                }
+            }
+        }
+
+        return $invitable;
     }
 }
