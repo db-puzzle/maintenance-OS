@@ -206,7 +206,14 @@ class User extends Authenticatable
             return true;
         }
 
-        return parent::canAny($abilities, $arguments);
+        // Use Laravel's default Gate functionality
+        foreach ((array) $abilities as $ability) {
+            if ($this->can($ability, $arguments)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -240,40 +247,9 @@ class User extends Authenticatable
         return $hierarchyService->checkHierarchicalPermission($this, $permission, $model);
     }
 
-    /**
-     * Override hasPermissionTo to include administrator bypass with wildcard
-     */
-    public function hasPermissionTo($permission, $guardName = null): bool
-    {
-        // Administrator has wildcard permissions - fast return
-        if ($this->isAdministrator()) {
-            return true;
-        }
 
-        return parent::hasPermissionTo($permission, $guardName);
-    }
 
-    /**
-     * Override hasRole to include administrator bypass for role checking
-     */
-    public function hasRole($roles, string $guard = null): bool 
-    {
-        // Check if any of the roles is the Administrator role
-        $adminRole = Role::getAdministratorRole();
-        if ($adminRole) {
-            if (is_string($roles) && $roles === $adminRole->name) {
-                return parent::hasRole($roles, $guard);
-            }
-            if (is_array($roles) && in_array($adminRole->name, $roles)) {
-                return parent::hasRole($roles, $guard);
-            }
-            if ($roles instanceof Role && $roles->is_administrator) {
-                return parent::hasRole($roles, $guard);
-            }
-        }
 
-        return parent::hasRole($roles, $guard);
-    }
 
     /**
      * Get accessible entities for a permission

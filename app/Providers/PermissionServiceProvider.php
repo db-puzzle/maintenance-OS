@@ -5,9 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use App\Models\Permission as CustomPermission;
-use App\Models\Role as CustomRole;
+use App\Models\Role;
 
 class PermissionServiceProvider extends ServiceProvider
 {
@@ -17,8 +16,8 @@ class PermissionServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Use custom models
-        $this->app->bind(Permission::class, CustomPermission::class);
-        $this->app->bind(Role::class, CustomRole::class);
+        $this->app->bind(\Spatie\Permission\Models\Permission::class, CustomPermission::class);
+        $this->app->bind(\Spatie\Permission\Models\Role::class, Role::class);
 
         // Register permission hierarchy service
         $this->app->singleton(\App\Services\PermissionHierarchyService::class);
@@ -106,16 +105,56 @@ class PermissionServiceProvider extends ServiceProvider
      */
     private function ensureAdministratorExists(): void
     {
-        if (!Role::ensureAdministratorExists()) {
-            // If no administrators exist, make the first user an administrator
-            $firstUser = \App\Models\User::first();
-            if ($firstUser) {
-                $adminRole = Role::getAdministratorRole();
-                if ($adminRole && !$firstUser->hasRole($adminRole)) {
-                    $firstUser->assignRole($adminRole);
-                    \Log::warning('No administrators found. Assigned Administrator role to first user: ' . $firstUser->email);
+        try {
+            // Check if roles table exists and has the required columns
+            if (!$this->tablesExist()) {
+                return;
+            }
+
+            if (!Role::ensureAdministratorExists()) {
+                // If no administrators exist, make the first user an administrator
+                $firstUser = \App\Models\User::first();
+                if ($firstUser) {
+                    $adminRole = Role::getAdministratorRole();
+                    if ($adminRole && !$firstUser->hasRole($adminRole)) {
+                        $firstUser->assignRole($adminRole);
+                        \Log::warning('No administrators found. Assigned Administrator role to first user: ' . $firstUser->email);
+                    }
                 }
             }
+        } catch (\Exception $e) {
+            // During migrations or if tables don't exist yet, silently fail
+            // This prevents the service provider from breaking during setup
+            \Log::debug('Could not ensure administrator exists: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Check if the required database tables exist
+     */
+    private function tablesExist(): bool
+    {
+        try {
+            $tableNames = config('permission.table_names');
+            if (empty($tableNames)) {
+                return false;
+            }
+
+            $connection = \DB::connection();
+            
+            // Check if roles table exists
+            if (!$connection->getSchemaBuilder()->hasTable($tableNames['roles'])) {
+                return false;
+            }
+
+            // Check if the is_administrator column exists
+            if (!$connection->getSchemaBuilder()->hasColumn($tableNames['roles'], 'is_administrator')) {
+                return false;
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            return false;
         }
     }
 }
