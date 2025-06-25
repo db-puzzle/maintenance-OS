@@ -36,70 +36,88 @@ class RoleSeeder extends Seeder
         }
         
         // Administrator doesn't need individual permissions due to bypass mechanism
-        // The bypass is implemented in Gate::before() callback
+        // The bypass is implemented in Gate::before() callback with wildcard permissions
         
-        $this->command->info("Administrator role created/verified with ID = 1 (bypass enabled)");
+        $this->command->info("Administrator role created/verified with ID = 1 (wildcard permissions enabled)");
         
-        // Create other system roles with default permissions
+        // Create other system roles with default system-level permissions only
+        // Entity-specific permissions are assigned when users are associated with entities
         $roles = [
             [
                 'name' => 'Plant Manager',
                 'is_system' => true,
                 'permissions' => [
-                    // Users (limited)
-                    'users.viewAny', 'users.view', 'users.invite',
+                    // Default system-level permissions
+                    'system.create-plants',
+                    'system.bulk-import-assets',
+                    'system.bulk-export-assets',
                     
-                    // Plant hierarchy (view only for others, manage for assigned plants via scoped permissions)
-                    'plants.viewAny', 'plants.view',
-                    'areas.viewAny', 'areas.view', 'areas.create', 'areas.update',
-                    'sectors.viewAny', 'sectors.view', 'sectors.create', 'sectors.update',
-                    'assets.viewAny', 'assets.view', 'assets.create', 'assets.update', 'assets.export',
-                    'asset-types.viewAny', 'asset-types.view',
-                    'manufacturers.viewAny', 'manufacturers.view',
+                    // User management (limited)
+                    'users.viewAny',
+                    'users.view',
+                    'users.update.owned',
                     
-                    // Forms and routines
-                    'forms.viewAny', 'forms.view', 'forms.create', 'forms.update',
-                    'forms.publish', 'forms.versions.view',
-                    'routines.viewAny', 'routines.view', 'routines.create', 'routines.update',
-                    'routines.assign', 'routines.schedule',
-                    'routine-executions.viewAny', 'routine-executions.view', 'routine-executions.approve',
-                    'routine-executions.reject', 'routine-executions.export',
+                    // Role viewing only
+                    'roles.viewAny',
+                    'roles.view',
                     
-                    // Reports
-                    'reports.view', 'reports.create', 'reports.export',
-                    'reports.maintenance.view', 'reports.assets.view', 'reports.performance.view',
+                    // Invitation management
+                    'invitations.viewAny',
+                    'invitations.view',
+                    'invitations.resend',
                     
-                    // Shifts for plant
-                    'shifts.viewAny', 'shifts.view', 'shifts.create', 'shifts.update',
+                    // System dashboards
+                    'system.dashboard.view',
+                    
+                    // Note: Entity-specific permissions like plants.view.123, users.invite.plant.123, etc. 
+                    // are assigned when the Plant Manager is associated with a specific plant
                 ]
             ],
             [
-                'name' => 'Area Supervisor',
+                'name' => 'Area Manager',
                 'is_system' => true,
                 'permissions' => [
-                    // Limited user view
-                    'users.viewAny', 'users.view',
+                    // User management (limited)
+                    'users.viewAny',
+                    'users.view',
+                    'users.update.owned',
                     
-                    // Plant hierarchy (view only for others, manage for assigned areas via scoped permissions)
-                    'plants.viewAny', 'plants.view',
-                    'areas.viewAny', 'areas.view',
-                    'sectors.viewAny', 'sectors.view', 'sectors.create', 'sectors.update',
-                    'assets.viewAny', 'assets.view', 'assets.create', 'assets.update',
-                    'asset-types.viewAny', 'asset-types.view',
-                    'manufacturers.viewAny', 'manufacturers.view',
+                    // Invitation viewing
+                    'invitations.viewAny',
+                    'invitations.view',
                     
-                    // Forms and routines
-                    'forms.viewAny', 'forms.view',
-                    'routines.viewAny', 'routines.view', 'routines.assign',
-                    'routine-executions.viewAny', 'routine-executions.view', 'routine-executions.approve',
-                    'routine-executions.export',
+                    // System dashboards
+                    'system.dashboard.view',
                     
-                    // Reports
-                    'reports.view', 'reports.export',
-                    'reports.maintenance.view', 'reports.assets.view',
+                    // Note: Entity-specific permissions like areas.view.456, users.invite.area.456, etc.
+                    // are assigned when the Area Manager is associated with a specific area
+                ]
+            ],
+            [
+                'name' => 'Sector Manager',
+                'is_system' => true,
+                'permissions' => [
+                    // User management (limited)
+                    'users.viewAny',
+                    'users.view',
+                    'users.update.owned',
                     
-                    // Shifts
-                    'shifts.viewAny', 'shifts.view',
+                    // Invitation viewing
+                    'invitations.view',
+                    
+                    // Note: Entity-specific permissions like sectors.view.789, users.invite.sector.789, etc.
+                    // are assigned when the Sector Manager is associated with a specific sector
+                ]
+            ],
+            [
+                'name' => 'Maintenance Supervisor',
+                'is_system' => true,
+                'permissions' => [
+                    // Own profile only
+                    'users.update.owned',
+                    
+                    // Note: Entity-specific permissions like assets.execute-routines.area.456
+                    // are assigned when the Maintenance Supervisor is associated with specific areas
                 ]
             ],
             [
@@ -109,28 +127,8 @@ class RoleSeeder extends Seeder
                     // Own profile only
                     'users.update.owned',
                     
-                    // View access to hierarchy
-                    'plants.viewAny', 'plants.view',
-                    'areas.viewAny', 'areas.view',
-                    'sectors.viewAny', 'sectors.view',
-                    'assets.viewAny', 'assets.view',
-                    'asset-types.viewAny', 'asset-types.view',
-                    'manufacturers.viewAny', 'manufacturers.view',
-                    
-                    // Forms (view only)
-                    'forms.viewAny', 'forms.view',
-                    
-                    // Routines (view only)
-                    'routines.viewAny', 'routines.view',
-                    
-                    // Routine executions (assigned only)
-                    'routine-executions.view.assigned', 'routine-executions.complete.assigned',
-                    
-                    // Basic reports
-                    'reports.view',
-                    
-                    // Shifts (view only)
-                    'shifts.viewAny', 'shifts.view',
+                    // Note: Entity-specific permissions like assets.execute-routines.999
+                    // are assigned when the Technician is associated with specific assets
                 ]
             ],
             [
@@ -140,18 +138,8 @@ class RoleSeeder extends Seeder
                     // Own profile only
                     'users.update.owned',
                     
-                    // Read-only access to everything
-                    'plants.viewAny', 'plants.view',
-                    'areas.viewAny', 'areas.view',
-                    'sectors.viewAny', 'sectors.view',
-                    'assets.viewAny', 'assets.view',
-                    'asset-types.viewAny', 'asset-types.view',
-                    'manufacturers.viewAny', 'manufacturers.view',
-                    'forms.viewAny', 'forms.view', 'forms.versions.view',
-                    'routines.viewAny', 'routines.view',
-                    'routine-executions.viewAny', 'routine-executions.view',
-                    'reports.view',
-                    'shifts.viewAny', 'shifts.view',
+                    // Note: Entity-specific permissions like plants.view.123, assets.viewAny.plant.123
+                    // are assigned when the Viewer is given access to specific entities
                 ]
             ]
         ];
@@ -170,9 +158,10 @@ class RoleSeeder extends Seeder
             $permissions = Permission::whereIn('name', $roleData['permissions'])->get();
             $role->syncPermissions($permissions);
 
-            $this->command->info("Role '{$role->name}' created/updated with " . count($permissions) . " permissions.");
+            $this->command->info("Role '{$role->name}' created/updated with " . count($permissions) . " default permissions.");
         }
 
         $this->command->info('System roles created successfully.');
+        $this->command->info('Entity-specific permissions will be assigned when users are associated with plants, areas, or sectors.');
     }
 }

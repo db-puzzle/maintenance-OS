@@ -12,9 +12,12 @@ This document defines all permissions in the maintenance OS system V2, their gra
 - **Routine permissions consolidated**: Routines and routine executions are now part of asset permissions
 - **Report permissions simplified**: Reports are implicit with view permissions; export requires explicit permission
 - **Shared entity validation**: Shifts, Asset Types, and Manufacturers require validation before updates
+- **User invitation as permission**: Inviting users is now a separate permission, not tied to roles
+- **Bulk operations permissions**: System-level permissions for bulk import/export operations
 
 ## Permission Naming Convention
 - Format: `resource.action[.scope[.id]]`
+- Action verbs: `view`, `create`, `update`, `delete`, `manage`, `execute-routines`, `export`, `import`, `invite`
 - Examples:
   - `system.create-plants` - The ONLY global permission (create new plants)
   - `plants.view.123` - Permission to view specific plant with ID 123
@@ -91,7 +94,7 @@ roles:
 #### 3.1 Plants
 ```yaml
 plants:
-  # System-level permission (THE ONLY GLOBAL PERMISSION)
+  # System-level permission (THE ONLY GLOBAL PERMISSION FOR PLANTS)
   - system.create-plants         # Ability to create new plants
   
   # Entity-specific permissions only (DYNAMIC - created when plant is created)
@@ -174,15 +177,15 @@ assets:
   # Asset-specific permissions (DYNAMIC - created when asset is created)
   # When Asset ID 999 is created:
   - assets.view.999              # View specific asset 999 (includes its routines & executions)
+  - assets.update.999            # Update specific asset 999 (but not its routines)
   - assets.manage.999            # Full management of asset 999 (includes routine CRUD)
   - assets.execute-routines.999  # Execute routines for asset 999
-  - assets.manage-qr.999         # Generate/manage QR code for asset 999
   
   # Notes on consolidated permissions:
   # - assets.view.* includes viewing the asset's routines and execution history
-  # - assets.manage.* includes full CRUD operations on the asset's routines
+  # - assets.update.* allows updating the asset but NOT its routines
+  # - assets.manage.* includes full CRUD operations on the asset AND its routines
   # - assets.execute-routines.* allows starting, completing, and approving routine executions
-  # - assets.export.* includes exporting routine execution data and reports
 ```
 
 #### 3.5 Asset Types (Shared Entity - Requires Validation)
@@ -214,38 +217,6 @@ manufacturers:
 # Access to forms is determined by access to the resource that uses them
 ```
 
-#### 4.2 Routines - CONSOLIDATED INTO ASSETS IN V2
-```yaml
-# ALL ROUTINE PERMISSIONS REMOVED
-# Routines are now managed through asset permissions:
-# - assets.view.* - View routines for the asset
-# - assets.manage.* - Create/update/delete routines for the asset
-# - assets.execute-routines.* - Execute routines
-# - assets.export.* - Export routine data and reports
-```
-
-#### 4.3 Routine Executions - CONSOLIDATED INTO ASSETS IN V2
-```yaml
-# ALL ROUTINE EXECUTION PERMISSIONS REMOVED
-# Routine executions are now managed through asset permissions:
-# - assets.view.* - View execution history
-# - assets.execute-routines.* - Start, complete, and approve executions
-# - assets.export.* - Export execution data and reports
-```
-
-### 5. Reporting & Analytics - SIMPLIFIED IN V2
-```yaml
-# Report access is now implicit with view permissions:
-# - If you can view assets, you can view asset reports (including routine reports)
-# - If you can viewAny assets, you can view aggregate reports
-# - Export permissions control the ability to download/export data and reports
-
-# Special dashboard and compliance reports that span multiple resources:
-system:
-  - system.dashboard.view        # View executive dashboards (cross-functional data)
-  - system.compliance.view       # View compliance reports (regulatory requirements)
-```
-
 ### 6. System Administration
 ```yaml
 system:
@@ -253,9 +224,6 @@ system:
   - system.settings.view         # View system settings
   - system.settings.update       # Update system settings
   - system.audit.view           # View audit trails
-  - system.backup.create        # Create system backups
-  - system.backup.restore       # Restore from backups
-  - system.maintenance-mode     # Enable/disable maintenance mode
   
   # Bulk operations (NEW IN V2)
   - system.bulk-import-assets   # Bulk import assets (respects entity permissions)
@@ -357,6 +325,16 @@ Automatically generated permissions:
   - assets.export.sector.789
 ```
 
+### When Asset "CNC Machine #1" (ID: 999) is created in Sector 789:
+```yaml
+Automatically generated permissions:
+  # Asset-specific
+  - assets.view.999
+  - assets.update.999
+  - assets.manage.999
+  - assets.execute-routines.999
+```
+
 ## Permission Inheritance Matrix (V2)
 
 ### Hierarchical Inheritance (Cascading)
@@ -409,6 +387,7 @@ Administrator:
   - Default: All permissions (implicit)
   - Special: System ensures at least one always exists
   - Special: Only Administrators can assign Administrator role
+  - Special: Wildcard permissions (`*`) for efficient permission checks
   - Editable: No (system protected)
   - Deletable: No (system protected)
 
@@ -547,6 +526,7 @@ Examples:
 ```
 User manages routines → System checks asset management permissions →
   If has assets.manage.*: Can create/update/delete routines
+  If has assets.update.*: Can update asset info but NOT routines
   If has assets.view.*: Can only view routines
   
 User executes routine → System checks execution permissions →
@@ -554,7 +534,21 @@ User executes routine → System checks execution permissions →
   If lacks permission: Execution denied
 ```
 
-### 9. Migration Considerations
+### 9. Bulk Operations Workflow
+```
+User initiates bulk import → System checks system.bulk-import-assets permission →
+  If has permission: Validate target entity permissions →
+    For each asset: Check assets.create.* permission for target sector →
+    Import only assets where user has create permission
+  If Administrator: Skip entity permission checks, import all
+  
+User initiates bulk export → System checks system.bulk-export-assets permission →
+  If has permission: Filter assets by view permissions →
+    Export only assets where user has assets.view.* permission
+  If Administrator: Export all requested assets
+```
+
+### 10. Migration Considerations
 - Merge Super Administrator users into Administrator role
 - Convert all global permissions to entity-specific
 - Remove all form-related permissions
@@ -565,7 +559,7 @@ User executes routine → System checks execution permissions →
 - Add export permissions where report export was previously allowed
 - Generate permissions for all existing entities
 - Provide bulk permission assignment tools
-- Complete audit trail of migration process 
+- Complete audit trail of migration process
 
 ### Permission-Based Invitation Examples
 
