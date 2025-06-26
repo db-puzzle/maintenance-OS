@@ -15,13 +15,23 @@ return new class extends Migration
         Schema::table('routine_executions', function (Blueprint $table) {
             $table->index('created_at', 'idx_routine_executions_created_at');
             $table->index(['executed_by', 'created_at'], 'idx_routine_executions_executor_date');
-            $table->fullText('notes', 'idx_routine_executions_notes_fulltext');
+            
+            // Only create fulltext indexes for MySQL/MariaDB, not SQLite
+            $connection = config('database.default');
+            if (in_array($connection, ['mysql', 'mariadb'])) {
+                $table->fullText('notes', 'idx_routine_executions_notes_fulltext');
+            }
         });
 
         // Add indexes for performance on task_responses
         Schema::table('task_responses', function (Blueprint $table) {
             $table->index(['form_execution_id', 'is_completed'], 'idx_task_responses_execution_completed');
-            $table->fullText('response', 'idx_task_responses_response_fulltext');
+            
+            // Only create fulltext indexes for MySQL/MariaDB, not SQLite
+            $connection = config('database.default');
+            if (in_array($connection, ['mysql', 'mariadb'])) {
+                $table->fullText('response', 'idx_task_responses_response_fulltext');
+            }
         });
     }
 
@@ -33,12 +43,22 @@ return new class extends Migration
         Schema::table('routine_executions', function (Blueprint $table) {
             $table->dropIndex('idx_routine_executions_created_at');
             $table->dropIndex('idx_routine_executions_executor_date');
-            $table->dropFullText('idx_routine_executions_notes_fulltext');
+            
+            // Only drop fulltext indexes if they exist (MySQL/MariaDB)
+            $connection = config('database.default');
+            if (in_array($connection, ['mysql', 'mariadb'])) {
+                $table->dropFullText('idx_routine_executions_notes_fulltext');
+            }
         });
 
         Schema::table('task_responses', function (Blueprint $table) {
             $table->dropIndex('idx_task_responses_execution_completed');
-            $table->dropFullText('idx_task_responses_response_fulltext');
+            
+            // Only drop fulltext indexes if they exist (MySQL/MariaDB)
+            $connection = config('database.default');
+            if (in_array($connection, ['mysql', 'mariadb'])) {
+                $table->dropFullText('idx_task_responses_response_fulltext');
+            }
         });
     }
 };

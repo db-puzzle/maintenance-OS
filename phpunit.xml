@@ -19,6 +19,7 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:fYLq8Z7KRkrXuxsfwV4977i+9doPgQCnnPD7/gQ0rFE="/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
@@ -29,5 +30,7 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="VITE_PLUGIN_VERSION" value="1"/>
+        <env name="ASSET_URL" value="http://localhost"/>
     </php>
 </phpunit>

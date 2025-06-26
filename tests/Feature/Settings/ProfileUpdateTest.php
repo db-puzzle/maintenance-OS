@@ -22,6 +22,7 @@ test('profile information can be updated', function () {
         ->patch('/settings/profile', [
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'timezone' => 'America/New_York',
         ]);
 
     $response
@@ -32,6 +33,7 @@ test('profile information can be updated', function () {
 
     expect($user->name)->toBe('Test User');
     expect($user->email)->toBe('test@example.com');
+    expect($user->timezone)->toBe('America/New_York');
     expect($user->email_verified_at)->toBeNull();
 });
 
@@ -43,6 +45,7 @@ test('email verification status is unchanged when the email address is unchanged
         ->patch('/settings/profile', [
             'name' => 'Test User',
             'email' => $user->email,
+            'timezone' => $user->timezone ?? 'UTC',
         ]);
 
     $response
