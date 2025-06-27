@@ -9,7 +9,8 @@
 /vendor
 .env
 .env.backup
-.env.production
+.env.production.
+.env.testing
 .phpactor.json
 .phpunit.result.cache
 docker-compose.override.yml

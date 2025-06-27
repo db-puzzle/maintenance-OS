@@ -41,7 +41,7 @@ interface AuditLog {
     id: number;
     event_type: string;
     event_action: string;
-    description: string;
+    event_description: string;
     user: {
         id: number;
         name: string;
@@ -53,7 +53,7 @@ interface AuditLog {
     };
     auditable_type: string;
     auditable_id: number;
-    changes: Record<string, { old: any; new: any }>;
+    changed_fields: Record<string, { old: any; new: any }>;
     metadata: Record<string, any>;
     ip_address: string;
     created_at: string;
@@ -95,8 +95,8 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
         { title: 'Audit Logs', href: '/audit-logs' },
     ];
 
-    // Only allow super admins
-    if (!auth.user?.is_super_admin) {
+    // Only allow administrators
+    if (!auth.user?.roles?.some((role: any) => role.name === 'Administrator')) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
                 <Head title="Audit Logs - Access Denied" />
@@ -104,7 +104,7 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                     <div className="text-center">
                         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold">Access Denied</h3>
-                        <p className="text-gray-500">Only super administrators can view audit logs.</p>
+                        <p className="text-gray-500">Only administrators can view audit logs.</p>
                     </div>
                 </div>
             </AppLayout>
@@ -271,7 +271,7 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                                 </TableCell>
                                 <TableCell>
                                     <div>
-                                        <p className="font-medium">{log.description}</p>
+                                        <p className="font-medium">{log.event_description}</p>
                                         {log.impersonator && (
                                             <p className="text-xs text-orange-600">
                                                 Impersonated by {log.impersonator.name}
@@ -316,7 +316,7 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
 
             {/* Log Details Dialog */}
             <Dialog open={showDetails} onOpenChange={setShowDetails}>
-                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Audit Log Details</DialogTitle>
                     </DialogHeader>
@@ -360,11 +360,11 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                                 </div>
                             )}
 
-                            {Object.keys(selectedLog.changes).length > 0 && (
+                            {Object.keys(selectedLog.changed_fields).length > 0 && (
                                 <div>
                                     <h4 className="font-medium mb-2">Changes</h4>
                                     <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                                        {Object.entries(selectedLog.changes).map(([field, change]) => (
+                                        {Object.entries(selectedLog.changed_fields).map(([field, change]: [string, { old: any; new: any }]) => (
                                             <div key={field} className="flex items-start gap-4">
                                                 <span className="font-medium text-sm w-32">{field}:</span>
                                                 <div className="flex-1 text-sm">

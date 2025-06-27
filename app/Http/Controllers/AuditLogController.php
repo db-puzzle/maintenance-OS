@@ -13,10 +13,10 @@ class AuditLogController extends Controller
     {
         $this->middleware('auth');
         
-        // Only super admins can access audit logs
+        // Only administrators can access audit logs
         $this->middleware(function ($request, $next) {
-            if (!$request->user()->is_super_admin) {
-                abort(403, 'Access denied. Super administrator privileges required.');
+            if (!$request->user()->isAdministrator()) {
+                abort(403, 'Access denied. Administrator privileges required.');
             }
             return $next($request);
         });
@@ -51,7 +51,7 @@ class AuditLogController extends Controller
 
         // Add computed attributes
         $logs->getCollection()->transform(function ($log) {
-            $log->append(['description', 'changes']);
+            $log->append(['event_description', 'changed_fields']);
             return $log;
         });
 
@@ -115,7 +115,7 @@ class AuditLogController extends Controller
                 $log->created_at->format('H:i:s'),
                 $log->event_type,
                 $log->event_action,
-                $log->description,
+                $log->event_description,
                 $log->user->name,
                 $log->impersonator?->name ?? '',
                 $log->ip_address,
@@ -155,7 +155,7 @@ class AuditLogController extends Controller
     public function show(PermissionAuditLog $auditLog)
     {
         $auditLog->load(['user', 'impersonator', 'auditable']);
-        $auditLog->append(['description', 'changes']);
+        $auditLog->append(['event_description', 'changed_fields']);
 
         return response()->json($auditLog);
     }
@@ -190,7 +190,7 @@ class AuditLogController extends Controller
                 ->limit(10)
                 ->get()
                 ->map(function ($log) {
-                    $log->append('description');
+                    $log->append('event_description');
                     return $log;
                 })
         ];

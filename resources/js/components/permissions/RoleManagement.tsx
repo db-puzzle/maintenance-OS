@@ -3,8 +3,7 @@ import { Link, router } from '@inertiajs/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
+import { ViewPermissionsDialog } from './ViewPermissionsDialog';
 import { Edit, Trash2, Shield, Users, ChevronRight } from 'lucide-react';
 import PermissionGuard from '@/components/PermissionGuard';
 import { toast } from 'sonner';
@@ -53,28 +52,19 @@ export default function RoleManagement({ roles }: Props) {
     };
 
     const viewPermissions = async (role: Role) => {
+        setSelectedRole(role);
+        setShowPermissionDialog(true);
         setLoadingPermissions(true);
+
         try {
             const response = await fetch(route('roles.permissions', role.id));
             const data = await response.json();
             setSelectedRole({ ...role, permissions: data.permissions });
-            setShowPermissionDialog(true);
         } catch (error) {
             toast.error('Failed to load role permissions');
         } finally {
             setLoadingPermissions(false);
         }
-    };
-
-    // Group permissions by resource
-    const groupPermissionsByResource = (permissions: Permission[]) => {
-        return permissions.reduce((acc, perm) => {
-            const parts = perm.name.split('.');
-            const resource = parts[0] || 'unknown';
-            if (!acc[resource]) acc[resource] = [];
-            acc[resource].push(perm);
-            return acc;
-        }, {} as Record<string, Permission[]>);
     };
 
     return (
@@ -154,37 +144,13 @@ export default function RoleManagement({ roles }: Props) {
                 </PermissionGuard>
             </div>
 
-            {/* Permission Dialog */}
-            <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Permissions for {selectedRole?.name}</DialogTitle>
-                        <DialogDescription>
-                            View and manage permissions assigned to this role
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {selectedRole?.permissions && (
-                        <div className="space-y-4 mt-4">
-                            {Object.entries(groupPermissionsByResource(selectedRole.permissions)).map(([resource, perms]) => (
-                                <div key={resource}>
-                                    <h4 className="font-medium mb-2 capitalize">{resource.replace(/-/g, ' ')}</h4>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {perms.map(perm => (
-                                            <div key={perm.id} className="flex items-center space-x-2">
-                                                <Checkbox checked disabled />
-                                                <label className="text-sm">
-                                                    {perm.name}
-                                                </label>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
+            {/* Modern Permission Dialog */}
+            <ViewPermissionsDialog
+                open={showPermissionDialog}
+                onOpenChange={setShowPermissionDialog}
+                role={selectedRole}
+                loading={loadingPermissions}
+            />
         </>
     );
 } 

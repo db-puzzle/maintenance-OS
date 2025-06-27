@@ -2,11 +2,14 @@
 
 namespace App\Models\AssetHierarchy;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AssetType extends Model
 {
+    use HasFactory;
+
     protected $table = 'asset_types';
 
     protected $fillable = [

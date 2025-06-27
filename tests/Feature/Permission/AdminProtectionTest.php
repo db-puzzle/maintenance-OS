@@ -15,26 +15,16 @@ function createSystemAdminUser(): User
 // Helper function to create test user safely
 function createTestUser(array $attributes = []): User
 {
-    // Ensure system admin exists first
-    if (User::count() === 0) {
-        createSystemAdminUser();
-    }
-    
     $user = User::factory()->create($attributes);
     
-    // Double-check this user is not the first user
+    // Double-check this user is not the first user (admin protection verification)
     expect($user->id)->toBeGreaterThan(1, 'Created user should not be the first user (admin)');
     
     return $user;
 }
 
-beforeEach(function () {
-    // IMPORTANT: Always create the first system admin user
-    // This prevents test users from accidentally becoming admins
-    if (User::count() === 0) {
-        createSystemAdminUser();
-    }
-});
+// Note: System admin creation is now handled globally in TestCase.php
+// This ensures ALL tests have admin protection, not just this file
 
 test('it prevents test users from accidentally becoming admin', function () {
     // The system admin should already exist from beforeEach()
@@ -61,6 +51,7 @@ test('it ensures system admin is always first user', function () {
     expect($firstUser)->not->toBeNull();
     expect($firstUser->email)->toBe('system@admin.com');
     expect($firstUser->name)->toBe('System Administrator');
+    expect($firstUser->isAdministrator())->toBeTrue();
 });
 
 test('multiple test users are never admin by accident', function () {
@@ -75,6 +66,7 @@ test('multiple test users are never admin by accident', function () {
     // Verify none of them are the first user
     foreach ($users as $user) {
         expect($user->id)->toBeGreaterThan(1);
+        expect($user->isAdministrator())->toBeFalse();
     }
     
     // We should have 6 users total (1 system admin + 5 test users)
@@ -91,4 +83,74 @@ test('it is safe to use factory directly after setup', function () {
     // But using createTestUser is still recommended for clarity
     $safeUser = createTestUser(['email' => 'safe@example.com']);
     expect($safeUser->id)->toBeGreaterThan(1);
+});
+
+test('it verifies admin protection system creates and validates properly', function () {
+    // The test setup already verifies admin protection in TestCase.php
+    // Here we verify the system is working as expected
+    
+    // Should start with only 1 user (admin) after the protection sequence
+    expect(User::count())->toBe(1);
+    
+    // Get the first user
+    $firstUser = User::find(1);
+    
+    // Verify first user is the system admin and has administrator privileges
+    expect($firstUser)->not->toBeNull();
+    expect($firstUser->email)->toBe('system@admin.com');
+    expect($firstUser->isAdministrator())->toBeTrue();
+    
+    // Create 5 test users to demonstrate protection
+    $testUsers = [];
+    for ($i = 1; $i <= 5; $i++) {
+        $testUsers[] = User::factory()->create([
+            'email' => "demo.user{$i}@example.com",
+            'name' => "Demo User {$i}"
+        ]);
+    }
+    
+    // Verify we now have 6 users
+    expect(User::count())->toBe(6);
+    
+    // Verify none of the new users are administrators
+    foreach ($testUsers as $user) {
+        expect($user->id)->toBeGreaterThan(1);
+        expect($user->isAdministrator())->toBeFalse();
+    }
+    
+    // Clean up the test users
+    User::where('id', '>', 1)->delete();
+    
+    // Verify only the admin user remains
+    expect(User::count())->toBe(1);
+    expect(User::first()->isAdministrator())->toBeTrue();
+});
+
+test('new users created are not administrators', function () {
+    // Create a regular user
+    $regularUser = User::factory()->create([
+        'email' => 'regular@example.com',
+        'name' => 'Regular User'
+    ]);
+    
+    // Verify the user is not an administrator
+    expect($regularUser->isAdministrator())->toBeFalse();
+    
+    // Create another user with different attributes
+    $anotherUser = User::factory()->create([
+        'email' => 'another@example.com',
+        'name' => 'Another User',
+        'password' => bcrypt('password123')
+    ]);
+    
+    // Verify this user is also not an administrator
+    expect($anotherUser->isAdministrator())->toBeFalse();
+    
+    // Verify only the first user (system admin) is an administrator
+    $systemAdmin = User::find(1);
+    expect($systemAdmin->isAdministrator())->toBeTrue();
+    expect($systemAdmin->email)->toBe('system@admin.com');
+    
+    // Verify we have 3 users total (1 admin + 2 regular users)
+    expect(User::count())->toBe(3);
 }); 

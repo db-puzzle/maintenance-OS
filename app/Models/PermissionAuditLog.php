@@ -124,9 +124,25 @@ class PermissionAuditLog extends Model
     /**
      * Scope for user
      */
-    public function scopeByUser($query, $userId)
+    public function scopeForUser($query, $userId)
     {
         return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope for search
+     */
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where(function($q) use ($search) {
+            $q->where('event_type', 'like', "%{$search}%")
+              ->orWhere('event_action', 'like', "%{$search}%")
+              ->orWhereJsonContains('metadata', $search)
+              ->orWhereHas('user', function($userQuery) use ($search) {
+                  $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+              });
+        });
     }
 
     /**
@@ -134,7 +150,17 @@ class PermissionAuditLog extends Model
      */
     public function scopeDateRange($query, $startDate, $endDate)
     {
-        return $query->whereBetween('created_at', [$startDate, $endDate]);
+        if ($startDate && $endDate) {
+            // Include the full day for both start and end dates
+            return $query->where('created_at', '>=', $startDate . ' 00:00:00')
+                         ->where('created_at', '<=', $endDate . ' 23:59:59');
+        } elseif ($startDate) {
+            return $query->where('created_at', '>=', $startDate . ' 00:00:00');
+        } elseif ($endDate) {
+            return $query->where('created_at', '<=', $endDate . ' 23:59:59');
+        }
+        
+        return $query;
     }
 
     /**
@@ -143,6 +169,14 @@ class PermissionAuditLog extends Model
     public function getEventDescriptionAttribute(): string
     {
         return self::EVENT_TYPES[$this->event_type] ?? $this->event_type;
+    }
+
+    /**
+     * Get description attribute (alias for event_description)
+     */
+    public function getDescriptionAttribute(): string
+    {
+        return $this->event_description;
     }
 
     /**

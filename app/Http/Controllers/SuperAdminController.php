@@ -21,8 +21,8 @@ class SuperAdminController extends Controller
      */
     public function grant(Request $request, User $user)
     {
-        if ($user->is_super_admin) {
-            return back()->with('error', 'User is already a super administrator.');
+        if ($user->isAdministrator()) {
+            return back()->with('error', 'User is already an administrator.');
         }
 
         $validated = $request->validate([
@@ -31,12 +31,12 @@ class SuperAdminController extends Controller
 
         try {
             DB::transaction(function () use ($user, $request, $validated) {
-                $user->grantSuperAdmin($request->user(), $validated['reason'] ?? null);
+                $user->grantAdministrator($request->user(), $validated['reason'] ?? null);
             });
 
-            return back()->with('success', "Super admin privileges granted to {$user->name}.");
+            return back()->with('success', "Administrator privileges granted to {$user->name}.");
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to grant super admin privileges: ' . $e->getMessage());
+            return back()->with('error', 'Failed to grant administrator privileges: ' . $e->getMessage());
         }
     }
 
@@ -45,8 +45,8 @@ class SuperAdminController extends Controller
      */
     public function revoke(Request $request, User $user)
     {
-        if (!$user->is_super_admin) {
-            return back()->with('error', 'User is not a super administrator.');
+        if (!$user->isAdministrator()) {
+            return back()->with('error', 'User is not an administrator.');
         }
 
         $validated = $request->validate([
@@ -55,12 +55,12 @@ class SuperAdminController extends Controller
 
         try {
             DB::transaction(function () use ($user, $request, $validated) {
-                $user->revokeSuperAdmin($request->user(), $validated['reason'] ?? null);
+                $user->revokeAdministrator($request->user(), $validated['reason'] ?? null);
             });
 
-            return back()->with('success', "Super admin privileges revoked from {$user->name}.");
+            return back()->with('success', "Administrator privileges revoked from {$user->name}.");
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to revoke super admin privileges: ' . $e->getMessage());
+            return back()->with('error', 'Failed to revoke administrator privileges: ' . $e->getMessage());
         }
     }
 
@@ -81,8 +81,10 @@ class SuperAdminController extends Controller
      */
     public function current()
     {
-        $superAdmins = User::where('is_super_admin', true)
-            ->with('superAdminGrants')
+        $superAdmins = User::whereHas('roles', function ($query) {
+                $query->where('name', 'Administrator');
+            })
+            ->with('roles')
             ->get();
 
         return response()->json($superAdmins);

@@ -8,9 +8,16 @@ interface EntityPaginationProps {
     onPageChange: (page: number) => void;
     onPerPageChange?: (perPage: number) => void;
     perPageOptions?: number[];
+    compact?: boolean;
 }
 
-export function EntityPagination({ pagination, onPageChange, onPerPageChange, perPageOptions = [10, 20, 30, 50, 100] }: EntityPaginationProps) {
+export function EntityPagination({
+    pagination,
+    onPageChange,
+    onPerPageChange,
+    perPageOptions = [10, 20, 30, 50, 100],
+    compact = false
+}: EntityPaginationProps) {
     const { current_page, last_page, per_page, total } = pagination;
 
     // Ensure per_page is a valid option, default to 10 if not
@@ -46,10 +53,12 @@ export function EntityPagination({ pagination, onPageChange, onPerPageChange, pe
                 </div>
 
                 <div className="flex items-center space-x-2">
-                    <Button variant="outline" className="hidden h-8 w-8 p-0 lg:flex" onClick={() => onPageChange(1)} disabled={current_page === 1}>
-                        <span className="sr-only">Ir para primeira página</span>
-                        <ChevronsLeft className="h-4 w-4" />
-                    </Button>
+                    {!compact && (
+                        <Button variant="outline" className="hidden h-8 w-8 p-0 lg:flex" onClick={() => onPageChange(1)} disabled={current_page === 1}>
+                            <span className="sr-only">Ir para primeira página</span>
+                            <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+                    )}
                     <Button variant="outline" className="h-8 w-8 p-0" onClick={() => onPageChange(current_page - 1)} disabled={current_page === 1}>
                         <span className="sr-only">Ir para página anterior</span>
                         <ChevronLeft className="h-4 w-4" />
@@ -63,15 +72,17 @@ export function EntityPagination({ pagination, onPageChange, onPerPageChange, pe
                         <span className="sr-only">Ir para próxima página</span>
                         <ChevronRight className="h-4 w-4" />
                     </Button>
-                    <Button
-                        variant="outline"
-                        className="hidden h-8 w-8 p-0 lg:flex"
-                        onClick={() => onPageChange(last_page)}
-                        disabled={current_page >= last_page}
-                    >
-                        <span className="sr-only">Ir para última página</span>
-                        <ChevronsRight className="h-4 w-4" />
-                    </Button>
+                    {!compact && (
+                        <Button
+                            variant="outline"
+                            className="hidden h-8 w-8 p-0 lg:flex"
+                            onClick={() => onPageChange(last_page)}
+                            disabled={current_page >= last_page}
+                        >
+                            <span className="sr-only">Ir para última página</span>
+                            <ChevronsRight className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
             </div>
         </div>

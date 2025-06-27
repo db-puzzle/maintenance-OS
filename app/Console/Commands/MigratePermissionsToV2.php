@@ -104,7 +104,7 @@ class MigratePermissionsToV2 extends Command
     {
         $this->info('Step 1: Migrating Administrator role...');
         
-        // Find users with is_super_admin flag
+        // Find users with is_super_admin flag (legacy)
         $superAdmins = User::where('is_super_admin', true)->get();
         
         // Get or create Administrator role

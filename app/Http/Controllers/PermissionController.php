@@ -21,64 +21,145 @@ class PermissionController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Permission::query();
-
-        // Apply filters
-        if ($request->filled('search')) {
-            $query->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('display_name', 'like', "%{$request->search}%")
-                  ->orWhere('description', 'like', "%{$request->search}%");
-        }
-
-        if ($request->filled('resource')) {
-            $query->forResource($request->resource);
-        }
-
-        if ($request->filled('action')) {
-            $parts = explode('.', $request->action);
-            if (count($parts) >= 2) {
-                $query->forAction($parts[0], $parts[1]);
-            }
-        }
-
-        if ($request->filled('scope_type')) {
-            if ($request->scope_type === 'global') {
-                $query->global();
-            } else {
-                $query->where('name', 'like', "%.{$request->scope_type}.%");
-            }
-        }
-
-        $permissions = $query->with(['roles', 'users'])
+        // Get all permissions for the permission matrix
+        $permissions = Permission::query()
             ->orderBy('sort_order')
-            ->orderBy('name')
-            ->paginate(50)
-            ->withQueryString();
-
-        // Add computed attributes
-        $permissions->getCollection()->transform(function ($permission) {
-            $permission->append(['resource', 'action', 'scope_type', 'roles_count', 'users_count']);
-            return $permission;
-        });
-
-        // Get filter options
-        $allPermissions = Permission::all();
-        $resources = $allPermissions->map(fn($p) => $p->resource)->filter()->unique()->sort()->values();
-        $actions = $allPermissions->map(fn($p) => $p->action)->filter()->unique()->sort()->values();
-        $scopeTypes = ['global', 'plant', 'area', 'sector', 'asset', 'owned'];
-
-        // Get roles with counts
-        $roles = Role::withCount(['permissions', 'users'])
             ->orderBy('name')
             ->get();
 
+        // Collect all entity IDs by type to avoid N+1 queries
+        $entityIds = [
+            'plant' => [],
+            'area' => [],
+            'sector' => [],
+            'asset' => [],
+        ];
+        
+        foreach ($permissions as $permission) {
+            $parsed = $permission->parsePermission();
+            $parts = explode('.', $permission->name);
+            
+            // Handle scoped permissions (e.g., areas.create.plant.1)
+            if ($parsed['scope'] && $parsed['scope_id'] && isset($entityIds[$parsed['scope']])) {
+                $entityIds[$parsed['scope']][] = $parsed['scope_id'];
+            }
+            
+            // Handle direct entity permissions (e.g., areas.view.1)
+            if (count($parts) === 3 && is_numeric($parts[2])) {
+                $resource = $parsed['resource'];
+                $entityType = match($resource) {
+                    'plants' => 'plant',
+                    'areas' => 'area',
+                    'sectors' => 'sector',
+                    'assets' => 'asset',
+                    default => null
+                };
+                
+                if ($entityType && isset($entityIds[$entityType])) {
+                    $entityIds[$entityType][] = $parts[2];
+                }
+            }
+        }
+        
+        // Preload all entities
+        $entities = [
+            'plant' => \App\Models\AssetHierarchy\Plant::whereIn('id', array_unique($entityIds['plant']))->pluck('name', 'id'),
+            'area' => \App\Models\AssetHierarchy\Area::whereIn('id', array_unique($entityIds['area']))->pluck('name', 'id'),
+            'sector' => \App\Models\AssetHierarchy\Sector::whereIn('id', array_unique($entityIds['sector']))->pluck('name', 'id'),
+            'asset' => \App\Models\AssetHierarchy\Asset::whereIn('id', array_unique($entityIds['asset']))->pluck('tag', 'id'),
+        ];
+        
+        // Add computed attributes
+        $permissions->transform(function ($permission) use ($entities) {
+            $permission->append(['resource', 'action', 'scope_type']);
+            
+            // Add scope entity name if it's a scoped permission
+            $parsed = $permission->parsePermission();
+            $parts = explode('.', $permission->name);
+            
+            // Check if this is a direct entity permission (resource.action.entityId)
+            if (count($parts) === 3 && is_numeric($parts[2])) {
+                // This is a direct entity permission like areas.view.1
+                $entityId = $parts[2];
+                $resource = $parsed['resource'];
+                
+                // Determine entity type from resource name
+                $entityType = match($resource) {
+                    'plants' => 'plant',
+                    'areas' => 'area',
+                    'sectors' => 'sector',
+                    'assets' => 'asset',
+                    default => null
+                };
+                
+                if ($entityType && isset($entities[$entityType][$entityId])) {
+                    $permission->scope_entity_name = $entities[$entityType][$entityId];
+                    // Override the scope_type to show the entity type
+                    $permission->scope_type = $entityType;
+                    // Also set scope for frontend consistency
+                    $permission->scope = $entityType;
+                }
+            } elseif ($parsed['scope'] && $parsed['scope_id']) {
+                // This is a scoped permission like areas.create.plant.1
+                $entityName = null;
+                
+                switch ($parsed['scope']) {
+                    case 'plant':
+                        $entityName = $entities['plant'][$parsed['scope_id']] ?? "Plant #{$parsed['scope_id']}";
+                        break;
+                    case 'area':
+                        $entityName = $entities['area'][$parsed['scope_id']] ?? "Area #{$parsed['scope_id']}";
+                        break;
+                    case 'sector':
+                        $entityName = $entities['sector'][$parsed['scope_id']] ?? "Sector #{$parsed['scope_id']}";
+                        break;
+                    case 'asset':
+                        $entityName = $entities['asset'][$parsed['scope_id']] ?? "Asset #{$parsed['scope_id']}";
+                        break;
+                }
+                
+                $permission->scope_entity_name = $entityName;
+            }
+            
+            return $permission;
+        });
+
+        // Get roles with counts and permissions
+        $roles = Role::withCount(['permissions', 'users'])
+            ->with('permissions:id,name')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($role) {
+                // Transform the role to include permissions as an array of IDs
+                $permissionIds = $role->permissions->pluck('id')->toArray();
+                
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'is_system' => $role->is_system,
+                    'permissions_count' => $role->permissions_count,
+                    'users_count' => $role->users_count,
+                    'permissions' => $permissionIds
+                ];
+            });
+
         return Inertia::render('permissions/index', [
-            'permissions' => $permissions,
+            'permissions' => [
+                'data' => $permissions,
+                // These are kept for backward compatibility with the permission matrix component
+                'current_page' => 1,
+                'last_page' => 1,
+                'per_page' => $permissions->count(),
+                'total' => $permissions->count(),
+                'from' => $permissions->count() > 0 ? 1 : null,
+                'to' => $permissions->count() > 0 ? $permissions->count() : null,
+            ],
             'roles' => $roles,
-            'filters' => $request->only(['search', 'resource', 'action', 'scope_type']),
-            'resources' => $resources,
-            'actions' => $actions,
-            'scopes' => $scopeTypes,
+            // Empty arrays for backward compatibility
+            'filters' => [],
+            'resources' => [],
+            'actions' => [],
+            'scopes' => [],
         ]);
     }
 
@@ -266,7 +347,7 @@ class PermissionController extends Controller
             'allowed' => $allowed,
             'permission' => $validated['permission'],
             'user_id' => $user->id,
-            'is_super_admin' => $user->is_super_admin
+            'is_administrator' => $user->isAdministrator()
         ]);
     }
 
@@ -290,7 +371,7 @@ class PermissionController extends Controller
         return response()->json([
             'results' => $results,
             'user_id' => $user->id,
-            'is_super_admin' => $user->is_super_admin
+            'is_administrator' => $user->isAdministrator()
         ]);
     }
 }

@@ -18,7 +18,7 @@ interface Permission {
 interface Role {
     id: number;
     name: string;
-    permissions?: number[];
+    permissions?: number[];  // Array of permission IDs
 }
 
 interface Props {
@@ -56,7 +56,8 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
         roles.forEach(role => {
             newMatrix[role.id] = {};
             permissions.forEach(perm => {
-                newMatrix[role.id][perm.id] = role.permissions?.includes(perm.id) || false;
+                const hasPermission = role.permissions?.includes(perm.id) || false;
+                newMatrix[role.id][perm.id] = hasPermission;
             });
         });
 
@@ -164,15 +165,18 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
                                                         )}
                                                     </div>
                                                 </td>
-                                                {roles.map(role => (
-                                                    <td key={role.id} className="text-center p-2 border-b">
-                                                        <Checkbox
-                                                            checked={matrix[role.id]?.[permission.id] || false}
-                                                            onCheckedChange={() => handleToggle(role.id, permission.id)}
-                                                            disabled={loading}
-                                                        />
-                                                    </td>
-                                                ))}
+                                                {roles.map(role => {
+                                                    const isChecked = matrix[role.id]?.[permission.id] || false;
+                                                    return (
+                                                        <td key={role.id} className="text-center p-2 border-b">
+                                                            <Checkbox
+                                                                checked={isChecked}
+                                                                onCheckedChange={() => handleToggle(role.id, permission.id)}
+                                                                disabled={loading}
+                                                            />
+                                                        </td>
+                                                    );
+                                                })}
                                             </tr>
                                         );
                                     })}

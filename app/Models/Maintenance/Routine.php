@@ -5,12 +5,15 @@ namespace App\Models\Maintenance;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\Forms\Form;
 use App\Models\Forms\FormVersion;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Routine extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'asset_id',
         'name',

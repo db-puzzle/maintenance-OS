@@ -48,7 +48,9 @@ class HandleInertiaRequests extends Middleware
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
-                    'is_super_admin' => $request->user()->is_super_admin,
+                    'roles' => $request->user()->roles->map(function ($role) {
+                        return ['id' => $role->id, 'name' => $role->name];
+                    }),
                 ] : null,
                 'permissions' => $request->user() ? $request->user()->getAllEffectivePermissions()->pluck('name') : [],
                 'roles' => $request->user() ? $request->user()->getRoleNames() : [],

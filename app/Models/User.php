@@ -144,7 +144,7 @@ class User extends Authenticatable
     /**
      * Grant administrator privileges
      */
-    public function grantAdministrator(User $grantedBy, string $reason = null): void
+    public function grantAdministrator(User $grantedBy, ?string $reason = null): void
     {
         $adminRole = Role::getAdministratorRole();
         if (!$adminRole) {
@@ -170,7 +170,7 @@ class User extends Authenticatable
     /**
      * Revoke administrator privileges
      */
-    public function revokeAdministrator(User $revokedBy, string $reason = null): void
+    public function revokeAdministrator(User $revokedBy, ?string $reason = null): void
     {
         // Ensure we don't leave the system without any administrators
         if (!Role::ensureAdministratorExists()) {

@@ -6,11 +6,14 @@ use App\Models\AssetHierarchy\Asset;
 use App\Models\Forms\FormExecution;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RoutineExecution extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'routine_id',
         'form_execution_id',

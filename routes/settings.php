@@ -13,6 +13,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('settings/timezone', [ProfileController::class, 'updateTimezone'])->name('profile.update.timezone');
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::get('settings/permissions', [ProfileController::class, 'permissions'])->name('settings.permissions');
+
     Route::get('settings/password', [PasswordController::class, 'edit'])->name('password.edit');
     Route::put('settings/password', [PasswordController::class, 'update'])->name('password.update');
 

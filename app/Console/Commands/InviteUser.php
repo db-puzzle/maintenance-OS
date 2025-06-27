@@ -62,11 +62,13 @@ class InviteUser extends Command
             return 1;
         }
 
-        // Get the first super admin user to be the inviter
-        $inviter = User::where('is_super_admin', true)->first();
+        // Get the first administrator user to be the inviter
+        $inviter = User::whereHas('roles', function ($query) {
+            $query->where('name', 'Administrator');
+        })->first();
 
         if (!$inviter) {
-            $this->error('No super admin found. Cannot send invitation.');
+            $this->error('No administrator found. Cannot send invitation.');
             return 1;
         }
 

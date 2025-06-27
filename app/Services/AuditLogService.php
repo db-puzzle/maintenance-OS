@@ -92,8 +92,8 @@ class AuditLogService
             'reason' => $reason,
         ];
 
-        $oldValues = $action === 'granted' ? ['is_super_admin' => false] : ['is_super_admin' => true];
-        $newValues = $action === 'granted' ? ['is_super_admin' => true] : ['is_super_admin' => false];
+        $oldValues = $action === 'granted' ? ['is_administrator' => false] : ['is_administrator' => true];
+        $newValues = $action === 'granted' ? ['is_administrator' => true] : ['is_administrator' => false];
 
         self::log("user.super_admin.{$action}", $action, $user, $oldValues, $newValues, $metadata);
     }
@@ -148,7 +148,7 @@ class AuditLogService
         $metadata = array_merge([
             'user' => $user->name,
             'email' => $user->email,
-            'is_super_admin' => $user->is_super_admin,
+            'is_administrator' => $user->isAdministrator(),
         ], $additionalData);
 
         self::log("user.{$action}", $action, $user, $oldValues, $newValues, $metadata);

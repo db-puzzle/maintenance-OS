@@ -14,8 +14,8 @@ export default function PermissionGuard({ permission, fallback = null, children 
         return <>{fallback}</>;
     }
 
-    // Super admins have all permissions
-    if (auth.user.is_super_admin) {
+    // Administrators have all permissions
+    if (auth.user.roles?.some((role: any) => role.name === 'Administrator')) {
         return <>{children}</>;
     }
 

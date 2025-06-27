@@ -365,8 +365,8 @@ class UserInvitation extends Model
         $user = auth()->user();
         
         return [
-            'revoke' => $user && ($user->is_super_admin || $user->can('invitations.revoke')),
-            'resend' => $user && ($user->is_super_admin || $user->can('users.invite')),
+            'revoke' => $user && ($user->isAdministrator() || $user->can('invitations.revoke')),
+            'resend' => $user && ($user->isAdministrator() || $user->can('users.invite')),
         ];
     }
 }

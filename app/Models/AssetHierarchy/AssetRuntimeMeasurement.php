@@ -3,11 +3,14 @@
 namespace App\Models\AssetHierarchy;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AssetRuntimeMeasurement extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'asset_id',
         'user_id',
