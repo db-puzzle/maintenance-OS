@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -106,86 +105,82 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle>Permission Matrix</CardTitle>
-                    {hasChanges && (
-                        <Button
-                            onClick={handleSave}
-                            disabled={loading}
-                            size="sm"
-                        >
-                            {loading ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                                <Save className="w-4 h-4 mr-2" />
-                            )}
-                            Save Changes
-                        </Button>
-                    )}
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                        <thead>
-                            <tr>
-                                <th className="text-left p-2 border-b sticky left-0 bg-white z-10">
-                                    Resource / Action
+        <>
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">Permission Matrix</h2>
+                {hasChanges && (
+                    <Button
+                        onClick={handleSave}
+                        disabled={loading}
+                        size="sm"
+                    >
+                        {loading ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                            <Save className="w-4 h-4 mr-2" />
+                        )}
+                        Save Changes
+                    </Button>
+                )}
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                    <thead>
+                        <tr>
+                            <th className="text-left p-2 border-b sticky left-0 bg-white z-10">
+                                Resource / Action
+                            </th>
+                            {roles.map(role => (
+                                <th key={role.id} className="text-center p-2 border-b min-w-[120px]">
+                                    <div className="font-medium">{role.name}</div>
                                 </th>
-                                {roles.map(role => (
-                                    <th key={role.id} className="text-center p-2 border-b min-w-[120px]">
-                                        <div className="font-medium">{role.name}</div>
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Object.entries(groupedPermissions).map(([resource, perms]) => (
-                                <React.Fragment key={resource}>
-                                    <tr>
-                                        <td colSpan={roles.length + 1} className="bg-gray-50 p-2 font-medium">
-                                            <Badge variant="outline" className="capitalize">
-                                                {resource.replace(/-/g, ' ')}
-                                            </Badge>
-                                        </td>
-                                    </tr>
-                                    {perms.map(permission => {
-                                        const parsed = parsePermission(permission);
-                                        return (
-                                            <tr key={permission.id} className="hover:bg-gray-50">
-                                                <td className="p-2 border-b sticky left-0 bg-white z-10">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-sm font-medium">{parsed.action}</span>
-                                                        {permission.display_name && (
-                                                            <span className="text-xs text-gray-500">
-                                                                {permission.display_name}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                {roles.map(role => {
-                                                    const isChecked = matrix[role.id]?.[permission.id] || false;
-                                                    return (
-                                                        <td key={role.id} className="text-center p-2 border-b">
-                                                            <Checkbox
-                                                                checked={isChecked}
-                                                                onCheckedChange={() => handleToggle(role.id, permission.id)}
-                                                                disabled={loading}
-                                                            />
-                                                        </td>
-                                                    );
-                                                })}
-                                            </tr>
-                                        );
-                                    })}
-                                </React.Fragment>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
-            </CardContent>
-        </Card>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Object.entries(groupedPermissions).map(([resource, perms]) => (
+                            <React.Fragment key={resource}>
+                                <tr>
+                                    <td colSpan={roles.length + 1} className="bg-gray-50 p-2 font-medium">
+                                        <Badge variant="outline" className="capitalize">
+                                            {resource.replace(/-/g, ' ')}
+                                        </Badge>
+                                    </td>
+                                </tr>
+                                {perms.map(permission => {
+                                    const parsed = parsePermission(permission);
+                                    return (
+                                        <tr key={permission.id} className="hover:bg-gray-50">
+                                            <td className="p-2 border-b sticky left-0 bg-white z-10">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium">{parsed.action}</span>
+                                                    {permission.display_name && (
+                                                        <span className="text-xs text-gray-500">
+                                                            {permission.display_name}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            {roles.map(role => {
+                                                const isChecked = matrix[role.id]?.[permission.id] || false;
+                                                return (
+                                                    <td key={role.id} className="text-center p-2 border-b">
+                                                        <Checkbox
+                                                            checked={isChecked}
+                                                            onCheckedChange={() => handleToggle(role.id, permission.id)}
+                                                            disabled={loading}
+                                                        />
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
+                            </React.Fragment>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </>
     );
 } 
