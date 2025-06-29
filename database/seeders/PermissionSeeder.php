@@ -76,40 +76,52 @@ class PermissionSeeder extends Seeder
                     'sort_order' => 11
                 ],
                 [
+                    'name' => 'users.create',
+                    'display_name' => 'Create Users',
+                    'description' => 'Create new user accounts',
+                    'sort_order' => 12
+                ],
+                [
                     'name' => 'users.update',
                     'display_name' => 'Update Users',
                     'description' => 'Update any user information',
-                    'sort_order' => 12
+                    'sort_order' => 13
                 ],
                 [
                     'name' => 'users.update.owned',
                     'display_name' => 'Update Own Profile',
                     'description' => 'Update own user profile only',
-                    'sort_order' => 13
+                    'sort_order' => 14
                 ],
                 [
                     'name' => 'users.delete',
                     'display_name' => 'Delete Users',
                     'description' => 'Delete user accounts',
-                    'sort_order' => 14
+                    'sort_order' => 15
                 ],
                 [
                     'name' => 'users.impersonate',
                     'display_name' => 'Impersonate Users',
                     'description' => 'Login as another user',
-                    'sort_order' => 15
+                    'sort_order' => 16
                 ],
                 [
                     'name' => 'users.manage-permissions',
                     'display_name' => 'Manage User Permissions',
                     'description' => 'Assign/revoke permissions (respects scope)',
-                    'sort_order' => 16
+                    'sort_order' => 17
                 ],
                 [
                     'name' => 'users.manage-roles',
                     'display_name' => 'Manage User Roles',
                     'description' => 'Assign/revoke roles to users',
-                    'sort_order' => 17
+                    'sort_order' => 18
+                ],
+                [
+                    'name' => 'permissions.grant',
+                    'display_name' => 'Grant Permissions',
+                    'description' => 'Grant permissions to users (respects scope)',
+                    'sort_order' => 19
                 ]
             ];
 

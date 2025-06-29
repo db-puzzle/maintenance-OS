@@ -49,7 +49,7 @@ class FormVersion extends Model
      */
     public function publisher(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'published_by');
+        return $this->belongsTo(User::class, 'published_by')->withTrashed();
     }
 
     /**

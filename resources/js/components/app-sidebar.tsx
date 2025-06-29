@@ -67,6 +67,10 @@ const sistemaNavItems: NavGroup = {
             icon: Shield,
             items: [
                 {
+                    title: 'Usuários',
+                    href: '/users',
+                },
+                {
                     title: 'Permissões',
                     href: '/permissions',
                 },

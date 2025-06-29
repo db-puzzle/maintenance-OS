@@ -15,14 +15,69 @@ class AreaController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Area::class);
         $perPage = $request->input('per_page', 8);
         $search = $request->input('search');
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
 
+        $user = auth()->user();
         $query = Area::query()
             ->with(['plant'])
             ->withCount(['asset', 'sectors']);
+
+        // Filter areas based on user permissions (unless administrator)
+        if (!$user->isAdministrator()) {
+            $query->where(function ($q) use ($user) {
+                // Get all user permissions
+                $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+                
+                // Extract area IDs and plant IDs from permissions
+                $areaIds = [];
+                $plantIds = [];
+                
+                foreach ($permissions as $permission) {
+                    // Direct area permissions (areas.view.123)
+                    if (preg_match('/^areas\.view\.(\d+)$/', $permission, $matches)) {
+                        $areaIds[] = $matches[1];
+                    }
+                    // Plant permissions that grant area access
+                    elseif (preg_match('/^plants\.(view|update|delete|manage-shifts)\.(\d+)$/', $permission, $matches)) {
+                        $plantIds[] = $matches[2];
+                    }
+                    // Plant-scoped permissions
+                    elseif (preg_match('/\.plant\.(\d+)$/', $permission, $matches)) {
+                        $plantIds[] = $matches[1];
+                    }
+                    // Sector-scoped permissions - need to find the area
+                    elseif (preg_match('/^sectors\.\w+\.(\d+)$/', $permission, $matches)) {
+                        $sector = \App\Models\AssetHierarchy\Sector::find($matches[1]);
+                        if ($sector) {
+                            $areaIds[] = $sector->area_id;
+                        }
+                    }
+                }
+                
+                // Remove duplicates
+                $areaIds = array_unique($areaIds);
+                $plantIds = array_unique($plantIds);
+                
+                // Build query conditions
+                if (!empty($areaIds) || !empty($plantIds)) {
+                    $q->where(function ($subQuery) use ($areaIds, $plantIds) {
+                        if (!empty($areaIds)) {
+                            $subQuery->orWhereIn('id', $areaIds);
+                        }
+                        if (!empty($plantIds)) {
+                            $subQuery->orWhereIn('plant_id', $plantIds);
+                        }
+                    });
+                } else {
+                    // User has no area permissions, show nothing
+                    $q->whereRaw('1 = 0');
+                }
+            });
+        }
 
         if ($search) {
             $search = strtolower($search);
@@ -53,7 +108,30 @@ class AreaController extends Controller
 
         $areas = $query->paginate($perPage)->withQueryString();
 
-        $plants = Plant::all();
+        // Get plants that the user can access
+        $plantsQuery = Plant::query();
+        if (!$user->isAdministrator()) {
+            $plantIds = [];
+            $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+            
+            foreach ($permissions as $permission) {
+                // Extract plant IDs from various permission types
+                if (preg_match('/^plants\.\w+\.(\d+)$/', $permission, $matches)) {
+                    $plantIds[] = $matches[1];
+                } elseif (preg_match('/\.plant\.(\d+)$/', $permission, $matches)) {
+                    $plantIds[] = $matches[1];
+                }
+            }
+            
+            $plantIds = array_unique($plantIds);
+            if (!empty($plantIds)) {
+                $plantsQuery->whereIn('id', $plantIds);
+            } else {
+                $plantsQuery->whereRaw('1 = 0');
+            }
+        }
+        
+        $plants = $plantsQuery->get();
 
         return Inertia::render('asset-hierarchy/areas/index', [
             'areas' => $areas,
@@ -77,10 +155,19 @@ class AreaController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Area::class);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'plant_id' => 'required|exists:plants,id',
         ]);
+
+        // Additional check: user must have update permission on the specific plant
+        $plant = Plant::findOrFail($validated['plant_id']);
+        $user = auth()->user();
+        
+        if (!$user->isAdministrator() && !$user->can("plants.update.{$plant->id}")) {
+            abort(403, 'You do not have permission to create areas in this plant.');
+        }
 
         $area = Area::create($validated);
 
@@ -99,6 +186,7 @@ class AreaController extends Controller
      */
     public function show(Area $area)
     {
+        $this->authorize('view', $area);
         // Check if JSON response is requested
         if (request()->input('format') === 'json' || request()->wantsJson()) {
             return response()->json([
@@ -239,6 +327,7 @@ class AreaController extends Controller
      */
     public function update(Request $request, Area $area)
     {
+        $this->authorize('update', $area);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'plant_id' => 'required|exists:plants,id',
@@ -261,6 +350,7 @@ class AreaController extends Controller
      */
     public function destroy(Area $area)
     {
+        $this->authorize('delete', $area);
         $areaName = $area->name;
         $area->delete();
 

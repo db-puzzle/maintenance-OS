@@ -21,10 +21,17 @@ interface Role {
 }
 
 interface Props {
-    permissions: Permission[];
+    permissions: Permission[];  // Only global permissions are passed here
     roles: Role[];
 }
 
+/**
+ * Permission Matrix Component
+ * 
+ * This component displays a matrix for managing role permissions.
+ * It only shows global permissions (not entity-scoped permissions).
+ * Entity-specific permissions should be managed through the entity's detail page.
+ */
 export default function PermissionMatrix({ permissions, roles }: Props) {
     const [matrix, setMatrix] = useState<Record<string, Record<string, boolean>>>({});
     const [loading, setLoading] = useState(false);
@@ -107,7 +114,12 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
     return (
         <>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Permission Matrix</h2>
+                <div>
+                    <h2 className="text-2xl font-bold">Permission Matrix</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Manage global permissions for each role. Entity-specific permissions are managed on individual entity pages.
+                    </p>
+                </div>
                 {hasChanges && (
                     <Button
                         onClick={handleSave}

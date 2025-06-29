@@ -253,7 +253,7 @@ class PermissionHierarchyService
             return Plant::whereIn('id', $accessible['plants'])->get();
         }
 
-        return collect();
+        return Plant::whereRaw('1 = 0')->get(); // Return empty Eloquent collection
     }
 
     /**
@@ -279,7 +279,7 @@ class PermissionHierarchyService
             $query->whereIn('plant_id', $accessible['plants']);
         } 
         else {
-            return collect();
+            return Area::whereRaw('1 = 0')->get(); // Return empty Eloquent collection
         }
 
         return $query->get();
@@ -314,7 +314,7 @@ class PermissionHierarchyService
             });
         } 
         else {
-            return collect();
+            return Sector::whereRaw('1 = 0')->get(); // Return empty Eloquent collection
         }
 
         return $query->get();
@@ -384,5 +384,188 @@ class PermissionHierarchyService
             'affected_assets' => $affectedAssets,
             'unauthorized_assets' => $unauthorizedAssets
         ];
+    }
+
+    /**
+     * Get user's permissions organized by hierarchy
+     */
+    public function getUserPermissionHierarchy(User $user): array
+    {
+        $hierarchy = [];
+        $permissions = $user->permissions;
+        
+        // Group permissions by entity
+        $plantPermissions = [];
+        $areaPermissions = [];
+        $sectorPermissions = [];
+        $assetPermissions = [];
+        $otherPermissions = [];
+        
+        foreach ($permissions as $permission) {
+            $parts = explode('.', $permission->name);
+            
+            // Plant permissions
+            if (preg_match('/\.plant\.(\d+)$/', $permission->name, $matches)) {
+                $plantId = $matches[1];
+                if (!isset($plantPermissions[$plantId])) {
+                    $plantPermissions[$plantId] = [];
+                }
+                $plantPermissions[$plantId][] = $permission->name;
+            }
+            // Area permissions
+            elseif (preg_match('/\.area\.(\d+)$/', $permission->name, $matches)) {
+                $areaId = $matches[1];
+                if (!isset($areaPermissions[$areaId])) {
+                    $areaPermissions[$areaId] = [];
+                }
+                $areaPermissions[$areaId][] = $permission->name;
+            }
+            // Sector permissions
+            elseif (preg_match('/\.sector\.(\d+)$/', $permission->name, $matches)) {
+                $sectorId = $matches[1];
+                if (!isset($sectorPermissions[$sectorId])) {
+                    $sectorPermissions[$sectorId] = [];
+                }
+                $sectorPermissions[$sectorId][] = $permission->name;
+            }
+            // Direct entity permissions
+            elseif (preg_match('/^(\w+)\.(\w+)\.(\d+)$/', $permission->name, $matches)) {
+                $resource = $matches[1];
+                $entityId = $matches[3];
+                
+                if ($resource === 'assets') {
+                    if (!isset($assetPermissions[$entityId])) {
+                        $assetPermissions[$entityId] = [];
+                    }
+                    $assetPermissions[$entityId][] = $permission->name;
+                } else {
+                    $otherPermissions[] = $permission->name;
+                }
+            }
+            else {
+                $otherPermissions[] = $permission->name;
+            }
+        }
+        
+        // Build hierarchy
+        foreach ($plantPermissions as $plantId => $perms) {
+            $plant = Plant::find($plantId);
+            if (!$plant) continue;
+            
+            $plantNode = [
+                'id' => $plant->id,
+                'name' => $plant->name,
+                'type' => 'plant',
+                'permissions' => $perms,
+                'children' => []
+            ];
+            
+            // Add areas under this plant
+            foreach ($plant->areas as $area) {
+                $areaPerms = $areaPermissions[$area->id] ?? [];
+                if (empty($areaPerms) && empty($sectorPermissions)) continue;
+                
+                $areaNode = [
+                    'id' => $area->id,
+                    'name' => $area->name,
+                    'type' => 'area',
+                    'permissions' => $areaPerms,
+                    'children' => []
+                ];
+                
+                // Add sectors under this area
+                foreach ($area->sectors as $sector) {
+                    $sectorPerms = $sectorPermissions[$sector->id] ?? [];
+                    if (!empty($sectorPerms)) {
+                        $areaNode['children'][] = [
+                            'id' => $sector->id,
+                            'name' => $sector->name,
+                            'type' => 'sector',
+                            'permissions' => $sectorPerms,
+                            'children' => []
+                        ];
+                    }
+                }
+                
+                if (!empty($areaPerms) || !empty($areaNode['children'])) {
+                    $plantNode['children'][] = $areaNode;
+                }
+            }
+            
+            $hierarchy[] = $plantNode;
+        }
+        
+        // Add standalone areas (not under accessible plants)
+        $processedAreas = [];
+        foreach ($areaPermissions as $areaId => $perms) {
+            $area = Area::find($areaId);
+            if (!$area || isset($plantPermissions[$area->plant_id])) continue;
+            
+            $areaNode = [
+                'id' => $area->id,
+                'name' => $area->name . ' (' . $area->plant->name . ')',
+                'type' => 'area',
+                'permissions' => $perms,
+                'children' => []
+            ];
+            
+            // Add sectors under this area
+            foreach ($area->sectors as $sector) {
+                $sectorPerms = $sectorPermissions[$sector->id] ?? [];
+                if (!empty($sectorPerms)) {
+                    $areaNode['children'][] = [
+                        'id' => $sector->id,
+                        'name' => $sector->name,
+                        'type' => 'sector',
+                        'permissions' => $sectorPerms,
+                        'children' => []
+                    ];
+                }
+            }
+            
+            $hierarchy[] = $areaNode;
+        }
+        
+        // Add standalone sectors (not under accessible areas)
+        foreach ($sectorPermissions as $sectorId => $perms) {
+            $sector = Sector::find($sectorId);
+            if (!$sector) continue;
+            
+            // Check if already added under area
+            $alreadyAdded = false;
+            foreach ($hierarchy as $node) {
+                if ($node['type'] === 'area' || ($node['type'] === 'plant' && !empty($node['children']))) {
+                    foreach ($node['children'] as $child) {
+                        if ($child['type'] === 'sector' && $child['id'] == $sectorId) {
+                            $alreadyAdded = true;
+                            break 2;
+                        }
+                    }
+                }
+            }
+            
+            if (!$alreadyAdded) {
+                $hierarchy[] = [
+                    'id' => $sector->id,
+                    'name' => $sector->name . ' (' . $sector->area->name . ' - ' . $sector->area->plant->name . ')',
+                    'type' => 'sector',
+                    'permissions' => $perms,
+                    'children' => []
+                ];
+            }
+        }
+        
+        // Add other permissions as a separate node if any
+        if (!empty($otherPermissions)) {
+            $hierarchy[] = [
+                'id' => 0,
+                'name' => 'Other Permissions',
+                'type' => 'other',
+                'permissions' => $otherPermissions,
+                'children' => []
+            ];
+        }
+        
+        return $hierarchy;
     }
 }

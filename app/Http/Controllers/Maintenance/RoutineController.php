@@ -26,6 +26,10 @@ class RoutineController extends Controller
             'asset_id' => 'required|exists:assets,id',
         ]);
         
+        // Check if user can manage the asset (which includes managing its routines)
+        $asset = Asset::findOrFail($validated['asset_id']);
+        $this->authorize('manage', $asset);
+        
         // Force status to Inactive for new routines
         $validated['status'] = 'Inactive';
 
@@ -40,6 +44,9 @@ class RoutineController extends Controller
 
     public function update(Request $request, Routine $routine)
     {
+        // Check if user can manage the asset (which includes managing its routines)
+        $this->authorize('manage', $routine->asset);
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'trigger_hours' => 'required|integer|min:0',
@@ -59,6 +66,9 @@ class RoutineController extends Controller
 
     public function destroy(Routine $routine)
     {
+        // Check if user can manage the asset (which includes managing its routines)
+        $this->authorize('manage', $routine->asset);
+        
         // Verificar se existem execuções associadas
         if ($routine->routineExecutions()->count() > 0) {
             return response()->json([
@@ -77,6 +87,9 @@ class RoutineController extends Controller
 
     public function createExecution(Routine $routine)
     {
+        // Check if user can execute routines for this asset
+        $this->authorize('execute-routines', $routine->asset);
+        
         $execution = new RoutineExecution([
             'routine_id' => $routine->id,
             'status' => RoutineExecution::STATUS_PENDING,
@@ -92,6 +105,9 @@ class RoutineController extends Controller
 
     public function storeForm(Request $request, Routine $routine)
     {
+        // Check if user can manage the asset (which includes managing its routines)
+        $this->authorize('manage', $routine->asset);
+        
         $validated = $request->validate([
             'tasks' => 'required|string', // JSON string of tasks
         ]);
@@ -122,6 +138,9 @@ class RoutineController extends Controller
 
     public function publishForm(Request $request, Routine $routine)
     {
+        // Check if user can manage the asset (which includes managing its routines)
+        $this->authorize('manage', $routine->asset);
+        
         // Check if there are draft tasks to publish
         if (! $routine->form->draftTasks()->exists()) {
             return redirect()->back()
@@ -219,6 +238,9 @@ class RoutineController extends Controller
 
     public function storeAssetRoutine(Request $request, Asset $asset)
     {
+        // Check if user can manage the asset (which includes managing its routines)
+        $this->authorize('manage', $asset);
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'trigger_hours' => 'required|integer|min:1',
@@ -260,6 +282,9 @@ class RoutineController extends Controller
 
     public function updateAssetRoutine(Request $request, Asset $asset, Routine $routine)
     {
+        // Check if user can manage the asset (which includes managing its routines)
+        $this->authorize('manage', $asset);
+        
         // Verificar se a rotina pertence ao ativo
         if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
@@ -281,6 +306,9 @@ class RoutineController extends Controller
 
     public function destroyAssetRoutine(Asset $asset, Routine $routine)
     {
+        // Check if user can manage the asset (which includes managing its routines)
+        $this->authorize('manage', $asset);
+        
         // Verificar se a rotina pertence ao ativo
         if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
@@ -301,6 +329,9 @@ class RoutineController extends Controller
 
     public function storeAssetRoutineForm(Request $request, Asset $asset, Routine $routine)
     {
+        // Check if user can manage the asset (which includes managing its routines)
+        $this->authorize('manage', $asset);
+        
         // Verificar se a rotina pertence ao ativo
         if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
@@ -342,6 +373,9 @@ class RoutineController extends Controller
 
     public function publishAssetRoutineForm(Request $request, Asset $asset, Routine $routine)
     {
+        // Check if user can manage the asset (which includes managing its routines)
+        $this->authorize('manage', $asset);
+        
         // Verificar se a rotina pertence ao ativo
         if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
@@ -381,6 +415,9 @@ class RoutineController extends Controller
 
     public function assetRoutineExecutions(Asset $asset, Routine $routine)
     {
+        // Check if user can view the asset (which includes viewing its routines)
+        $this->authorize('view', $asset);
+        
         // Verificar se a rotina pertence ao ativo
         if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
@@ -401,6 +438,9 @@ class RoutineController extends Controller
 
     public function storeAssetRoutineExecution(Request $request, Asset $asset, Routine $routine)
     {
+        // Check if user can execute routines for this asset
+        $this->authorize('execute-routines', $asset);
+        
         // Verificar se a rotina pertence ao ativo
         if ($routine->asset_id !== $asset->id) {
             return redirect()->back()
@@ -495,6 +535,9 @@ class RoutineController extends Controller
      */
     public function getRoutineWithFormData(Routine $routine)
     {
+        // Check if user can view the asset (which includes viewing its routines)
+        $this->authorize('view', $routine->asset);
+        
         // Check if routine has a form
         if (! $routine->form) {
             return response()->json(['error' => 'Routine has no associated form'], 404);
@@ -549,7 +592,10 @@ class RoutineController extends Controller
     }
 
     public function getFormData(Routine $routine)
-    {        
+    {
+        // Check if user can view the asset (which includes viewing its routines)
+        $this->authorize('view', $routine->asset);
+        
         // Check if routine has a form
         if (! $routine->form) {
             return response()->json(['error' => 'Routine has no associated form'], 404);
@@ -652,6 +698,9 @@ class RoutineController extends Controller
      */
     public function getAssetExecutionHistory(Request $request, Asset $asset)
     {
+        // Check if user can view the asset (which includes viewing its routine executions)
+        $this->authorize('view', $asset);
+        
         $perPage = $request->input('per_page', 10);
         $page = $request->input('page', 1);
         $sort = $request->input('sort', 'started_at');

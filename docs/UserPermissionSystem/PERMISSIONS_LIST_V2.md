@@ -8,7 +8,7 @@ This document defines all permissions in the maintenance OS system V2, their gra
 - **Dynamic permission generation**: Permissions are created automatically when entities are created
 - **No global resource permissions**: Users cannot have blanket access (except `system.create-plants`)
 - **Combined Administrator role**: Super Administrator and Administrator are now one role
-- **Form permissions removed**: Forms inherit permissions from their parent resources (Routines, etc.)
+- **Form permissions removed**: Forms are part of routines, which are part of assets - access is inherited from asset permissions
 - **Routine permissions consolidated**: Routines and routine executions are now part of asset permissions
 - **Report permissions simplified**: Reports are implicit with view permissions; export requires explicit permission
 - **Shared entity validation**: Shifts, Asset Types, and Manufacturers require validation before updates
@@ -213,8 +213,11 @@ manufacturers:
 #### 4.1 Forms - REMOVED IN V2
 ```yaml
 # ALL FORM PERMISSIONS REMOVED
-# Forms inherit permissions from their parent resources (Routines, Quality Inspections, etc.)
-# Access to forms is determined by access to the resource that uses them
+# Forms are part of routines, which are part of assets
+# Access to forms is determined by access to the asset and its routines
+# - assets.view.* includes viewing the asset's routines and their forms
+# - assets.manage.* includes creating/updating routine forms
+# - assets.execute-routines.* includes executing routine forms
 ```
 
 ### 6. System Administration

@@ -72,7 +72,7 @@ class SectorObserver
             Permission::deleteEntityPermissions('sector', $sector->id);
             
             // Also delete permissions for child assets
-            foreach ($sector->assets as $asset) {
+            foreach ($sector->asset as $asset) {
                 Permission::deleteEntityPermissions('asset', $asset->id);
             }
             

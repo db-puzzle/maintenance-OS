@@ -70,16 +70,6 @@ abstract class TestCase extends BaseTestCase
                 'password' => bcrypt('system-admin-password')
             ]);
             
-            // Create 5 additional non-admin users to verify admin protection
-            $testUsers = [];
-            for ($i = 1; $i <= 5; $i++) {
-                $testUsers[] = \App\Models\User::factory()->create([
-                    'email' => "test.user{$i}@example.com",
-                    'name' => "Test User {$i}",
-                    'password' => bcrypt("test-user-{$i}")
-                ]);
-            }
-            
             // Verify first user is admin
             if (!$adminUser->isAdministrator()) {
                 // Debug output
@@ -93,21 +83,6 @@ abstract class TestCase extends BaseTestCase
                 ]);
                 
                 throw new \Exception('Critical: First user is not an administrator!');
-            }
-            
-            // Verify none of the test users are admins
-            foreach ($testUsers as $testUser) {
-                if ($testUser->isAdministrator()) {
-                    throw new \Exception('Critical: Test user became administrator!');
-                }
-            }
-            
-            // Delete the test users after verification
-            \App\Models\User::where('id', '>', 1)->delete();
-            
-            // Verify only admin remains
-            if (\App\Models\User::count() !== 1) {
-                throw new \Exception('Critical: Expected only 1 admin user, found ' . \App\Models\User::count());
             }
         }
     }

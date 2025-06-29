@@ -17,6 +17,7 @@ class PermissionAuditLog extends Model
         'auditable_type',
         'auditable_id',
         'user_id',
+        'affected_user_id',
         'impersonator_id',
         'old_values',
         'new_values',
@@ -45,6 +46,9 @@ class PermissionAuditLog extends Model
         'permissions.revoked' => 'Permission Revoked',
         'permissions.cleanup' => 'Permissions Cleanup',
         'permissions.migrated' => 'Permissions Migrated to V2',
+        'permissions.copied' => 'Permissions Copied',
+        'permission.granted' => 'Permission Granted',
+        'permission.revoked' => 'Permission Revoked',
         
         // Role events
         'role.created' => 'Role Created',
@@ -59,6 +63,7 @@ class PermissionAuditLog extends Model
         'user.deleted' => 'User Deleted',
         'user.administrator.granted' => 'Administrator Role Granted',
         'user.administrator.revoked' => 'Administrator Role Revoked',
+        'user.created_with_role' => 'User Created with Role',
         
         // Entity events
         'plant.created' => 'Plant Created',
@@ -94,7 +99,15 @@ class PermissionAuditLog extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
+    }
+
+    /**
+     * Get the affected user for user-related actions.
+     */
+    public function affectedUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'affected_user_id')->withTrashed();
     }
 
     /**
@@ -102,7 +115,7 @@ class PermissionAuditLog extends Model
      */
     public function impersonator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'impersonator_id');
+        return $this->belongsTo(User::class, 'impersonator_id')->withTrashed();
     }
 
     /**
@@ -177,6 +190,22 @@ class PermissionAuditLog extends Model
     public function getDescriptionAttribute(): string
     {
         return $this->event_description;
+    }
+
+    /**
+     * Get action attribute (alias for event_type)
+     */
+    public function getActionAttribute(): string
+    {
+        return $this->event_type;
+    }
+
+    /**
+     * Get details attribute (alias for metadata)
+     */
+    public function getDetailsAttribute()
+    {
+        return $this->metadata;
     }
 
     /**

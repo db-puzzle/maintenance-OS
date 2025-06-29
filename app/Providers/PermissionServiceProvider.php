@@ -135,20 +135,15 @@ class PermissionServiceProvider extends ServiceProvider
     private function tablesExist(): bool
     {
         try {
-            $tableNames = config('permission.table_names');
-            if (empty($tableNames)) {
-                return false;
-            }
-
             $connection = \DB::connection();
             
             // Check if roles table exists
-            if (!$connection->getSchemaBuilder()->hasTable($tableNames['roles'])) {
+            if (!$connection->getSchemaBuilder()->hasTable('roles')) {
                 return false;
             }
 
             // Check if the is_administrator column exists
-            if (!$connection->getSchemaBuilder()->hasColumn($tableNames['roles'], 'is_administrator')) {
+            if (!$connection->getSchemaBuilder()->hasColumn('roles', 'is_administrator')) {
                 return false;
             }
 

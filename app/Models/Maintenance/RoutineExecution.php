@@ -51,7 +51,7 @@ class RoutineExecution extends Model
 
     public function executor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'executed_by');
+        return $this->belongsTo(User::class, 'executed_by')->withTrashed();
     }
 
     public function start(): void

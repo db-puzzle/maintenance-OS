@@ -261,6 +261,14 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        // Check if this is the last administrator
+        $adminProtectionService = app(\App\Services\AdministratorProtectionService::class);
+        $protectionCheck = $adminProtectionService->canPerformOperation($user, 'delete');
+        
+        if (!$protectionCheck['allowed']) {
+            return back()->with('error', $protectionCheck['message']);
+        }
+
         Auth::logout();
 
         $user->delete();

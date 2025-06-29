@@ -11,7 +11,9 @@ class Role extends SpatieRole
         'guard_name',
         'parent_role_id',
         'is_system',
-        'is_administrator'
+        'is_administrator',
+        'display_name',
+        'description'
     ];
 
     protected $casts = [

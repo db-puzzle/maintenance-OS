@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Models\Permission;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Area;
@@ -11,6 +12,13 @@ use Illuminate\Support\Facades\DB;
 
 class PermissionValidationService
 {
+    protected PermissionHierarchyService $permissionHierarchyService;
+    
+    public function __construct(PermissionHierarchyService $permissionHierarchyService)
+    {
+        $this->permissionHierarchyService = $permissionHierarchyService;
+    }
+
     /**
      * Validate permission name format
      */
@@ -274,5 +282,156 @@ class PermissionValidationService
         $name = trim($name, '.');
         
         return $name;
+    }
+
+    /**
+     * Validate permission grant request
+     */
+    public function validateGrant(User $granter, User $target, array $permissions): array
+    {
+        $errors = [];
+        $valid = [];
+
+        foreach ($permissions as $permission) {
+            if ($this->canGrantPermission($granter, $permission)) {
+                $valid[] = $permission;
+            } else {
+                $errors[] = "Cannot grant {$permission}: Outside your scope";
+            }
+        }
+
+        return [
+            'valid' => $valid,
+            'errors' => $errors
+        ];
+    }
+
+    /**
+     * Validate permission revoke request
+     */
+    public function validateRevoke(User $revoker, User $target, array $permissions): array
+    {
+        $errors = [];
+        $valid = [];
+
+        foreach ($permissions as $permission) {
+            if ($this->canRevokePermission($revoker, $permission)) {
+                $valid[] = $permission;
+            } else {
+                $errors[] = "Cannot revoke {$permission}: Outside your scope";
+            }
+        }
+
+        return [
+            'valid' => $valid,
+            'errors' => $errors
+        ];
+    }
+
+    /**
+     * Check if user can grant specific permission
+     */
+    private function canGrantPermission(User $granter, string $permission): bool
+    {
+        if ($granter->isAdministrator()) {
+            return true;
+        }
+
+        // Parse permission and check against granter's scope
+        return $this->isPermissionWithinScope($granter, $permission);
+    }
+
+    /**
+     * Check if user can revoke specific permission
+     */
+    private function canRevokePermission(User $revoker, string $permission): bool
+    {
+        if ($revoker->isAdministrator()) {
+            return true;
+        }
+
+        // Parse permission and check against revoker's scope
+        return $this->isPermissionWithinScope($revoker, $permission);
+    }
+
+    /**
+     * Check if permission is within user's scope
+     */
+    private function isPermissionWithinScope(User $user, string $permissionName): bool
+    {
+        // Extract entity type and ID from permission name
+        if (preg_match('/\.plant\.(\d+)/', $permissionName, $matches)) {
+            $plantId = (int) $matches[1];
+            $accessiblePlants = $this->permissionHierarchyService->getAccessiblePlants($user);
+            return $accessiblePlants->pluck('id')->contains($plantId);
+        }
+        
+        if (preg_match('/\.area\.(\d+)/', $permissionName, $matches)) {
+            $areaId = (int) $matches[1];
+            $accessibleAreas = $this->permissionHierarchyService->getAccessibleAreas($user);
+            return $accessibleAreas->pluck('id')->contains($areaId);
+        }
+        
+        if (preg_match('/\.sector\.(\d+)/', $permissionName, $matches)) {
+            $sectorId = (int) $matches[1];
+            $accessibleSectors = $this->permissionHierarchyService->getAccessibleSectors($user);
+            return $accessibleSectors->pluck('id')->contains($sectorId);
+        }
+        
+        // For asset-specific permissions
+        if (preg_match('/assets\..*\.(\d+)$/', $permissionName, $matches)) {
+            $assetId = (int) $matches[1];
+            $asset = \App\Models\AssetHierarchy\Asset::find($assetId);
+            
+            if (!$asset) {
+                return false;
+            }
+            
+            // Check if user has access to asset's sector
+            if ($asset->sector) {
+                $accessibleSectors = $this->permissionHierarchyService->getAccessibleSectors($user);
+                return $accessibleSectors->pluck('id')->contains($asset->sector_id);
+            }
+        }
+        
+        // System-level permissions can only be granted by administrators
+        if (!preg_match('/\.(plant|area|sector|asset)\./', $permissionName)) {
+            return false;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Validate bulk permission operations
+     */
+    public function validateBulkOperation(User $operator, array $grants, array $revokes): array
+    {
+        $grantValidation = $this->validateGrant($operator, $operator, $grants);
+        $revokeValidation = $this->validateRevoke($operator, $operator, $revokes);
+        
+        return [
+            'grants' => $grantValidation,
+            'revokes' => $revokeValidation,
+            'hasErrors' => !empty($grantValidation['errors']) || !empty($revokeValidation['errors'])
+        ];
+    }
+
+    /**
+     * Check if permission exists and is valid
+     */
+    public function permissionExists(string $permissionName): bool
+    {
+        return Permission::where('name', $permissionName)->exists();
+    }
+
+    /**
+     * Validate permission format
+     */
+    public function isValidPermissionFormat(string $permissionName): bool
+    {
+        // Pattern: resource.action or resource.action.scope.id
+        $pattern = '/^[a-z\-]+\.[a-z\-]+(\.(plant|area|sector|asset)\.\d+)?$/';
+        return preg_match($pattern, $permissionName);
     }
 }

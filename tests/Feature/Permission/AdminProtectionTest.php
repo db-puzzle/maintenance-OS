@@ -119,7 +119,7 @@ test('it verifies admin protection system creates and validates properly', funct
     }
     
     // Clean up the test users
-    User::where('id', '>', 1)->delete();
+    User::where('id', '>', 1)->forceDelete();
     
     // Verify only the admin user remains
     expect(User::count())->toBe(1);

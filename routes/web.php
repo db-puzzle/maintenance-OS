@@ -66,9 +66,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-require __DIR__.'/settings.php';
-require __DIR__.'/auth.php';
+// Asset Hierarchy
 require __DIR__.'/asset-hierarchy.php';
+
+// Maintenance
 require __DIR__.'/maintenance.php';
+
+// Settings
+require __DIR__.'/settings.php';
+
+// Scheduler
 require __DIR__.'/scheduler.php';
-require __DIR__.'/item.php';
+
+// Users
+require __DIR__.'/users.php';
+
+require __DIR__.'/auth.php';

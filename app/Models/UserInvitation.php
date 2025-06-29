@@ -73,7 +73,7 @@ class UserInvitation extends Model
      */
     public function inviter(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'invited_by');
+        return $this->belongsTo(User::class, 'invited_by')->withTrashed();
     }
 
     /**
@@ -81,7 +81,7 @@ class UserInvitation extends Model
      */
     public function acceptedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'accepted_by');
+        return $this->belongsTo(User::class, 'accepted_by')->withTrashed();
     }
 
     /**
@@ -89,7 +89,7 @@ class UserInvitation extends Model
      */
     public function revokedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'revoked_by');
+        return $this->belongsTo(User::class, 'revoked_by')->withTrashed();
     }
 
     /**

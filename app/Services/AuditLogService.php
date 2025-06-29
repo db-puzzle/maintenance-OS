@@ -36,6 +36,33 @@ class AuditLogService
     }
 
     /**
+     * Log a simple event with details
+     */
+    public static function logSimple(string $action, array $details = []): PermissionAuditLog
+    {
+        $affectedUserId = $details['affected_user_id'] ?? null;
+        unset($details['affected_user_id']);
+
+        return PermissionAuditLog::create([
+            'event_type' => $action,
+            'event_action' => $action,
+            'auditable_type' => null,
+            'auditable_id' => null,
+            'user_id' => $details['user_id'] ?? Auth::id(),
+            'affected_user_id' => $affectedUserId,
+            'impersonator_id' => session('impersonator_id'),
+            'old_values' => [],
+            'new_values' => [],
+            'metadata' => $details,
+            'ip_address' => Request::ip(),
+            'user_agent' => Request::userAgent(),
+            'session_id' => session()->getId()
+        ]);
+    }
+
+
+
+    /**
      * Log permission-related changes
      */
     public static function logPermissionChange(

@@ -11,17 +11,63 @@ class PlantsController extends Controller
 {
     public function index(Request $request)
     {
-        $this->authorize('asset-hierarchy.plants.view');
+        $this->authorize('viewAny', Plant::class);
         $perPage = $request->input('per_page', 8);
         $search = $request->input('search');
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
 
+        $user = auth()->user();
         $query = Plant::query()
             ->withCount(['areas', 'asset'])
             ->with(['areas' => function ($query) {
                 $query->withCount(['sectors', 'asset']);
             }]);
+
+        // Filter plants based on user permissions (unless administrator)
+        if (!$user->isAdministrator()) {
+            $query->where(function ($q) use ($user) {
+                // Get all user permissions
+                $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+                
+                // Extract plant IDs from permissions
+                $plantIds = [];
+                
+                foreach ($permissions as $permission) {
+                    // Direct plant permissions (plants.view.123)
+                    if (preg_match('/^plants\.view\.(\d+)$/', $permission, $matches)) {
+                        $plantIds[] = $matches[1];
+                    }
+                    // Plant-scoped permissions (*.plant.123)
+                    elseif (preg_match('/\.plant\.(\d+)$/', $permission, $matches)) {
+                        $plantIds[] = $matches[1];
+                    }
+                    // Area-scoped permissions - need to find the plant
+                    elseif (preg_match('/^areas\.\w+\.(\d+)$/', $permission, $matches)) {
+                        $area = \App\Models\AssetHierarchy\Area::find($matches[1]);
+                        if ($area) {
+                            $plantIds[] = $area->plant_id;
+                        }
+                    }
+                    // Sector-scoped permissions - need to find the plant through area
+                    elseif (preg_match('/^sectors\.\w+\.(\d+)$/', $permission, $matches)) {
+                        $sector = \App\Models\AssetHierarchy\Sector::with('area')->find($matches[1]);
+                        if ($sector && $sector->area) {
+                            $plantIds[] = $sector->area->plant_id;
+                        }
+                    }
+                }
+                
+                // Remove duplicates and filter query
+                $plantIds = array_unique($plantIds);
+                if (!empty($plantIds)) {
+                    $q->whereIn('id', $plantIds);
+                } else {
+                    // User has no plant permissions, show nothing
+                    $q->whereRaw('1 = 0');
+                }
+            });
+        }
 
         if ($search) {
             $search = strtolower($search);
@@ -89,7 +135,7 @@ class PlantsController extends Controller
 
     public function store(Request $request)
     {
-        $this->authorize('asset-hierarchy.plants.create');
+        $this->authorize('create', Plant::class);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'street' => 'nullable|string|max:255',
@@ -114,7 +160,7 @@ class PlantsController extends Controller
 
     public function destroy(Plant $plant)
     {
-        $this->authorize('asset-hierarchy.plants.delete');
+        $this->authorize('delete', $plant);
         $plantName = $plant->name;
         $plant->delete();
 
@@ -151,7 +197,7 @@ class PlantsController extends Controller
 
     public function show(Plant $plant)
     {
-        $this->authorize('asset-hierarchy.plants.view');
+        $this->authorize('view', $plant);
         // Check if JSON response is requested
         if (request()->input('format') === 'json' || request()->wantsJson()) {
             return response()->json([
@@ -360,7 +406,7 @@ class PlantsController extends Controller
 
     public function update(Request $request, Plant $plant)
     {
-        $this->authorize('asset-hierarchy.plants.update');
+        $this->authorize('update', $plant);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'street' => 'nullable|string|max:255',

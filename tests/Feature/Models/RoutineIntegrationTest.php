@@ -22,8 +22,11 @@ class RoutineIntegrationTest extends TestCase
     {
         parent::setUp();
         
-        // Create and authenticate a user for all tests
-        $this->user = User::factory()->create();
+        // Create a non-admin user for testing
+        $this->user = User::factory()->create([
+            'email' => 'test@example.com',
+            'name' => 'Test User'
+        ]);
         $this->actingAs($this->user);
     }
 

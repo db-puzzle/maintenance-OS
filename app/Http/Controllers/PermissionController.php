@@ -21,8 +21,23 @@ class PermissionController extends Controller
      */
     public function index(Request $request)
     {
-        // Get all permissions for the permission matrix
-        $permissions = Permission::query()
+        // Get permissions based on the view type
+        $query = Permission::query();
+        
+        // Check if this is for the permission matrix (when roles are requested)
+        $isMatrixView = $request->has('matrix') || $request->is('permissions');
+        
+        if ($isMatrixView) {
+            // For permission matrix, only show global permissions
+            // Global permissions are those that don't have entity-specific scopes
+            $query->where(function($q) {
+                // Exclude permissions with entity IDs (e.g., areas.view.1, assets.create.plant.1)
+                $q->whereRaw("name !~ '\\.(plant|area|sector|asset)\\.[0-9]+$'")
+                  ->whereRaw("name !~ '^(areas|plants|sectors|assets)\\.[^.]+\\.[0-9]+$'");
+            });
+        }
+        
+        $permissions = $query
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();

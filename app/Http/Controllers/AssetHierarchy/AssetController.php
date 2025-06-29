@@ -20,11 +20,15 @@ class AssetController extends Controller
 {
     public function index(Request $request)
     {
+        // Check if user can view any assets
+        $this->authorize('viewAny', Asset::class);
+
         $perPage = $request->input('per_page', 8);
         $search = $request->input('search');
         $sort = $request->input('sort', 'tag');
         $direction = $request->input('direction', 'asc');
 
+        $user = Auth::user();
         $query = Asset::query()
             ->with([
                 'assetType:id,name',
@@ -35,6 +39,57 @@ class AssetController extends Controller
                 'shift:id,name',
             ])
             ->withCount('routines');
+
+        // Filter assets based on user permissions (unless administrator)
+        if (!$user->isAdministrator()) {
+            $query->where(function ($q) use ($user) {
+                // Get all user permissions
+                $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+                
+                // Extract entity IDs from permissions
+                $assetIds = [];
+                $sectorIds = [];
+                $areaIds = [];
+                $plantIds = [];
+                
+                foreach ($permissions as $permission) {
+                    // Direct asset permissions
+                    if (preg_match('/^assets\.(view|viewAny|manage|execute-routines)\.(\d+)$/', $permission, $matches)) {
+                        $assetIds[] = $matches[2];
+                    }
+                    // Sector-scoped permissions
+                    elseif (preg_match('/^assets\.(viewAny|manage|execute-routines)\.sector\.(\d+)$/', $permission, $matches)) {
+                        $sectorIds[] = $matches[2];
+                    }
+                    // Area-scoped permissions
+                    elseif (preg_match('/^assets\.(viewAny|manage|execute-routines)\.area\.(\d+)$/', $permission, $matches)) {
+                        $areaIds[] = $matches[2];
+                    }
+                    // Plant-scoped permissions
+                    elseif (preg_match('/^assets\.(viewAny|manage|execute-routines)\.plant\.(\d+)$/', $permission, $matches)) {
+                        $plantIds[] = $matches[2];
+                    }
+                }
+                
+                // Build query conditions
+                if (!empty($assetIds)) {
+                    $q->orWhereIn('id', $assetIds);
+                }
+                if (!empty($sectorIds)) {
+                    $q->orWhereIn('sector_id', $sectorIds);
+                }
+                if (!empty($areaIds)) {
+                    $q->orWhereHas('sector', function ($sq) use ($areaIds) {
+                        $sq->whereIn('area_id', $areaIds);
+                    });
+                }
+                if (!empty($plantIds)) {
+                    $q->orWhereHas('sector.area', function ($sq) use ($plantIds) {
+                        $sq->whereIn('plant_id', $plantIds);
+                    });
+                }
+            });
+        }
 
         if ($search) {
             $search = strtolower($search);
@@ -119,14 +174,34 @@ class AssetController extends Controller
         ]);
     }
 
-    public function createNew()
+    public function createNew() //Open the asset creation page
     {
+        // Check if user can create assets (they need at least one create permission)
+        // This is used only to determine if the user can actually open the asset creation page
+        $user = Auth::user();
+        if (!$user->isAdministrator()) {
+            $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+            $hasCreatePermission = false;
+            
+            foreach ($permissions as $permission) {
+                if (str_starts_with($permission, 'assets.create.') || str_starts_with($permission, 'assets.manage.')) {
+                    $hasCreatePermission = true;
+                    break;
+                }
+            }
+            
+            if (!$hasCreatePermission) {
+                abort(403, 'You do not have permission to create assets.');
+            }
+        }
+        
         // Redirect to the show page with the "new" parameter and informacoes tab
         return redirect()->route('asset-hierarchy.assets.show', ['asset' => 'new', 'tab' => 'informacoes']);
     }
 
     public function store(Request $request)
     {
+        // First validate the request
         $validated = $request->validate([
             'tag' => 'required|string|max:255',
             'serial_number' => 'nullable|string|max:255',
@@ -142,6 +217,13 @@ class AssetController extends Controller
             'shift_id' => 'nullable|exists:shifts,id',
             'photo' => 'nullable|image|max:2048',
         ]);
+
+        // Check if user has permission to create assets in the specified location
+        $this->authorize('create', [Asset::class, [
+            'sector_id' => $validated['sector_id'] ?? null,
+            'area_id' => $validated['area_id'] ?? null,
+            'plant_id' => $validated['plant_id'] ?? null,
+        ]]);
 
         // Valida se a área pertence à planta quando ambas são fornecidas
         if (! empty($validated['area_id']) && ! empty($validated['plant_id'])) {
@@ -178,6 +260,9 @@ class AssetController extends Controller
 
     public function edit(Asset $asset)
     {
+        // Check if user can update this asset
+        $this->authorize('update', $asset);
+        
         // Redirect to the show page with the informacoes tab
         return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset->id, 'tab' => 'informacoes']);
     }
@@ -196,7 +281,12 @@ class AssetController extends Controller
         }
 
         // Otherwise, it's an existing asset
-        $loadedAsset = Asset::findOrFail($asset)->load([
+        $loadedAsset = Asset::findOrFail($asset);
+        
+        // Check if user can view this asset
+        $this->authorize('view', $loadedAsset);
+        
+        $loadedAsset->load([
             'assetType',
             'manufacturer',
             'plant',
@@ -245,6 +335,9 @@ class AssetController extends Controller
 
     public function update(Request $request, Asset $asset)
     {
+        // Check if user can update this asset
+        $this->authorize('update', $asset);
+        
         try {
             // Verifica se os dados estão vindo corretamente
             if (empty($request->all()) && empty($request->allFiles())) {
@@ -397,6 +490,9 @@ class AssetController extends Controller
 
     public function destroy(Asset $asset)
     {
+        // Check if user can delete this asset
+        $this->authorize('delete', $asset);
+        
         $assetTag = $asset->tag;
 
         if ($asset->photo_path) {
@@ -411,6 +507,9 @@ class AssetController extends Controller
 
     public function removePhoto(Asset $asset)
     {
+        // Check if user can update this asset
+        $this->authorize('update', $asset);
+        
         if ($asset->photo_path) {
             Storage::disk('public')->delete($asset->photo_path);
             $asset->update(['photo_path' => null]);
@@ -426,6 +525,9 @@ class AssetController extends Controller
      */
     public function getRuntimeData(Asset $asset)
     {
+        // Check if user can view this asset
+        $this->authorize('view', $asset);
+        
         $asset->load('latestRuntimeMeasurement.user', 'shift');
 
         // Get the authenticated user for timezone conversion
@@ -452,6 +554,9 @@ class AssetController extends Controller
      */
     public function reportRuntime(Request $request, Asset $asset)
     {
+        // Check if user can execute routines (which includes reporting runtime)
+        $this->authorize('executeRoutines', $asset);
+        
         $validated = $request->validate([
             'reported_hours' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:500',
@@ -518,6 +623,9 @@ class AssetController extends Controller
      */
     public function getRuntimeHistory(Request $request, Asset $asset)
     {
+        // Check if user can view this asset
+        $this->authorize('view', $asset);
+        
         $perPage = $request->input('per_page', 10);
 
         $measurements = $asset->runtimeMeasurements()
@@ -532,6 +640,9 @@ class AssetController extends Controller
      */
     public function getRuntimeCalculationDetails(Asset $asset)
     {
+        // Check if user can view this asset
+        $this->authorize('view', $asset);
+        
         $asset->load('shift', 'latestRuntimeMeasurement');
 
         return response()->json([
@@ -549,6 +660,9 @@ class AssetController extends Controller
      */
     public function getRuntimeBreakdown(Asset $asset)
     {
+        // Check if user can view this asset
+        $this->authorize('view', $asset);
+        
         $asset->load('shift.schedules.shiftTimes.breaks', 'latestRuntimeMeasurement');
 
         return response()->json([
@@ -562,6 +676,9 @@ class AssetController extends Controller
      */
     public function checkDependencies(Asset $asset)
     {
+        // Check if user can view this asset
+        $this->authorize('view', $asset);
+        
         // For now, assets don't have dependencies that prevent deletion
         // In the future, you might want to check for:
         // - Maintenance records

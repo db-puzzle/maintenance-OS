@@ -40,7 +40,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/assets/{asset}', [AssetController::class, 'show'])->name('asset-hierarchy.assets.show');
     Route::get('asset-hierarchy/assets/{asset}/edit', [AssetController::class, 'edit'])->name('asset-hierarchy.assets.edit');
     Route::put('asset-hierarchy/assets/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.assets.update');
-    Route::patch('asset-hierarchy/assets/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.assets.update');
     Route::delete('asset-hierarchy/assets/{asset}', [AssetController::class, 'destroy'])->name('asset-hierarchy.assets.destroy');
     Route::get('asset-hierarchy/assets/{asset}/check-dependencies', [AssetController::class, 'checkDependencies'])->name('asset-hierarchy.assets.check-dependencies');
     Route::delete('asset-hierarchy/assets/{asset}/photo', [AssetController::class, 'removePhoto'])->name('asset-hierarchy.assets.remove-photo');

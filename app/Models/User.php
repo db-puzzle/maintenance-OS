@@ -6,6 +6,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -13,7 +14,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -95,8 +96,8 @@ class User extends Authenticatable
         });
 
         static::created(function ($user) {
-            // First user gets Administrator role
-            if (static::count() === 1) {
+            // First user gets Administrator role (excluding soft-deleted users)
+            if (static::withoutTrashed()->count() === 1) {
                 $adminRole = Role::getAdministratorRole();
                 if ($adminRole) {
                     $user->assignRole($adminRole);
@@ -138,7 +139,8 @@ class User extends Authenticatable
      */
     public function isAdministrator(): bool
     {
-        return $this->hasRole(Role::getAdministratorRole());
+        $adminRole = Role::getAdministratorRole();
+        return $adminRole ? $this->hasRole($adminRole) : false;
     }
 
     /**
@@ -172,9 +174,12 @@ class User extends Authenticatable
      */
     public function revokeAdministrator(User $revokedBy, ?string $reason = null): void
     {
-        // Ensure we don't leave the system without any administrators
-        if (!Role::ensureAdministratorExists()) {
-            throw new \Exception('Cannot revoke administrator privileges. At least one administrator must remain.');
+        // Check if this would leave the system without administrators
+        $adminProtectionService = app(\App\Services\AdministratorProtectionService::class);
+        $protectionCheck = $adminProtectionService->canPerformOperation($this, 'revokePermission');
+        
+        if (!$protectionCheck['allowed']) {
+            throw new \Exception($protectionCheck['message']);
         }
 
         $adminRole = Role::getAdministratorRole();
@@ -194,6 +199,20 @@ class User extends Authenticatable
                 'user' => $this->name
             ]
         );
+    }
+
+    /**
+     * Check if user can perform action considering administrator bypass
+     * Override parent to add administrator bypass
+     */
+    public function can($ability, $arguments = []): bool
+    {
+        if ($this->isAdministrator()) {
+            return true;
+        }
+
+        // Use parent's can method for normal permission checking
+        return parent::can($ability, $arguments);
     }
 
     /**
