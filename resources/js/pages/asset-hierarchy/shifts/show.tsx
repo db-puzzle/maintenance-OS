@@ -1,19 +1,17 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import ShiftCalendarView from '@/components/ShiftCalendarView';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Calendar, Cog, Map, Table, Pencil } from 'lucide-react';
 
 import CreateShiftSheet from '@/components/CreateShiftSheet';
-import ShiftCalendarView from '@/components/ShiftCalendarView';
 import ShiftTableView from '@/components/ShiftTableView';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
-import { useSorting } from '@/hooks/useSorting';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 
 interface Break {
     start_time: string;
@@ -104,7 +102,7 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
         },
     ];
 
-    const handleEditSuccess = (updatedShift: { id: number; name: string; timezone?: string; schedules: Schedule[] }) => {
+    const handleEditSuccess = () => {
         // Reload the page to refresh the data
         router.reload();
         setIsEditSheetOpen(false);

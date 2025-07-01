@@ -1,20 +1,23 @@
-import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
-import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import { Shield, Users, Key, CheckCircle, Search, ArrowUpDown } from 'lucide-react';
 import React, { useState } from 'react';
-
-import HeadingSmall from '@/components/heading-small';
+import { Head, router } from '@inertiajs/react';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { Separator } from '@/components/ui/separator';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Trash2, User, UserPlus, Shield, Search, Filter, Users, Key, ArrowUpDown } from 'lucide-react';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
+import { toast } from 'sonner';
+import { type BreadcrumbItem } from '@/types';
+import HeadingSmall from '@/components/heading-small';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { ColumnConfig } from '@/types/shared';
-import { DataTable, type Column } from '@/components/data-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -300,30 +303,6 @@ export default function Permissions({ userRoles, userPermissions, isAdministrato
             },
             { preserveState: true, preserveScroll: true }
         );
-    };
-
-    const getActionBadgeVariant = (action: string) => {
-        switch (action) {
-            case 'create':
-                return 'default';
-            case 'read':
-            case 'view':
-                return 'secondary';
-            case 'update':
-            case 'edit':
-                return 'outline';
-            case 'delete':
-                return 'destructive';
-            default:
-                return 'secondary';
-        }
-    };
-
-    const getScopeBadgeVariant = (scope: string | null) => {
-        if (!scope || scope === 'global' || scope === 'all') return 'default';
-        if (scope.includes('plant')) return 'secondary';
-        if (scope.includes('area')) return 'outline';
-        return 'secondary';
     };
 
     const formatResourceName = (resource: string) => {

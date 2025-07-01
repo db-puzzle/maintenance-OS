@@ -1,16 +1,15 @@
-import { type BreadcrumbItem } from '@/types';
-import type { RoutineExecution, TaskResponse } from '@/types/maintenance';
-import { Head, router, Link } from '@inertiajs/react';
-import { Calendar, Clock, FileText, User, Wrench } from 'lucide-react';
 import React, { useState } from 'react';
-
+import { Head, Link } from '@inertiajs/react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CheckCircle, XCircle, Clock as ClockIcon, MapPin, Settings, ChevronRight, FileText } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import RoutineExecutionFormComponent from '@/components/RoutineExecutionFormComponent';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Download, AlertCircle, CheckCircle2, ChevronRight, Camera, ListChecks, Ruler } from 'lucide-react';
+import { type BreadcrumbItem } from '@/types';
+import type { RoutineExecution, TaskResponse } from '@/types/maintenance';
 import { useExportManager } from '@/hooks/use-export-manager';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
@@ -74,29 +73,29 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses,
     const getResponseStatusIcon = (status: string) => {
         switch (status) {
             case 'success':
-                return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+                return <CheckCircle className="h-5 w-5 text-green-600" />;
             case 'warning':
-                return <AlertCircle className="h-5 w-5 text-yellow-600" />;
+                return <XCircle className="h-5 w-5 text-yellow-600" />;
             case 'error':
-                return <AlertCircle className="h-5 w-5 text-red-600" />;
+                return <XCircle className="h-5 w-5 text-red-600" />;
             default:
-                return <AlertCircle className="h-5 w-5 text-gray-400" />;
+                return <XCircle className="h-5 w-5 text-gray-400" />;
         }
     };
 
-    const getTaskTypeIcon = (type: string) => {
-        switch (type) {
-            case 'measurement':
-                return <Ruler className="h-4 w-4" />;
-            case 'photo':
-                return <Camera className="h-4 w-4" />;
-            case 'multiple_choice':
-            case 'multiple_select':
-                return <ListChecks className="h-4 w-4" />;
-            default:
-                return <FileText className="h-4 w-4" />;
-        }
-    };
+          const getTaskTypeIcon = (type: string) => {
+          switch (type) {
+              case 'measurement':
+                  return <Settings className="h-4 w-4" />;
+              case 'photo':
+                  return <Settings className="h-4 w-4" />;
+              case 'multiple_choice':
+              case 'multiple_select':
+                  return <CheckCircle className="h-4 w-4" />;
+              default:
+                  return <FileText className="h-4 w-4" />;
+          }
+      };
 
     const formatDate = (dateString: string | null) => {
         if (!dateString) return 'N/A';
@@ -312,7 +311,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses,
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
                                     >
-                                        <FileText className="h-4 w-4" />
+                                        <MapPin className="h-4 w-4" />
                                         {file.filename}
                                     </a>
                                 ))}
@@ -351,7 +350,7 @@ const ExecutionShow: React.FC<ExecutionShowProps> = ({ execution, taskResponses,
                 </>
             )}
             <span className="flex items-center gap-1">
-                <Wrench className="h-4 w-4" />
+                <Settings className="h-4 w-4" />
                 <span>{execution.routine.name}</span>
             </span>
             <span className="text-muted-foreground">•</span>

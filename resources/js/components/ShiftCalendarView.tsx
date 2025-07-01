@@ -1,4 +1,3 @@
-import { cn } from '@/lib/utils';
 import React from 'react';
 
 interface Break {
@@ -120,8 +119,6 @@ const ShiftCalendarView: React.FC<ShiftTimelineProps> = ({ schedules, showAllDay
                     {weekdays.map((day) => {
                         const schedule = schedules.find((s) => s.weekday === day.key);
                         if (!showAllDays && !schedule) return null;
-
-                        const hasActiveShifts = schedule?.shifts.some((shift) => shift.active) ?? false;
 
                         return (
                             <div key={day.key} className="flex h-10 flex-1 flex-col items-center justify-center border-b px-2">

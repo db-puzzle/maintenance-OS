@@ -11,7 +11,6 @@ import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
-import { Clock } from 'lucide-react';
 import { useState } from 'react';
 
 interface Break {
@@ -190,12 +189,12 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
         );
     };
 
-    const handleShiftCreated = (shift: ShiftData) => {
+    const handleShiftCreated = () => {
         // Refresh the page to show the new shift
         router.reload();
     };
 
-    const handleShiftUpdated = (shift: ShiftData) => {
+    const handleShiftUpdated = () => {
         // Refresh the page to show the updated shift
         router.reload();
     };

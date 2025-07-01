@@ -51,7 +51,6 @@ import {
 import React, { useState } from 'react';
 import { DateRange } from 'react-day-picker';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
-import { toast } from 'sonner';
 
 // Types for dashboard
 interface Stats {

@@ -60,7 +60,7 @@ export default function RoleManagement({ roles }: Props) {
             const response = await fetch(route('roles.permissions', role.id));
             const data = await response.json();
             setSelectedRole({ ...role, permissions: data.permissions });
-        } catch (error) {
+        } catch {
             toast.error('Failed to load role permissions');
         } finally {
             setLoadingPermissions(false);

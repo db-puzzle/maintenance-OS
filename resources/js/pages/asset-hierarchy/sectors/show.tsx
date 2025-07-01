@@ -1,6 +1,6 @@
+import React, { useState } from 'react';
 import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
-import { ColumnConfig } from '@/types/shared';
 import { router } from '@inertiajs/react';
 import { Cog, Factory, Map } from 'lucide-react';
 
@@ -76,8 +76,6 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             { preserveState: true },
         );
     };
-
-
 
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">

@@ -19,6 +19,7 @@ import EditRoutineSheet from '@/components/EditRoutineSheet';
 import InlineRoutineFormEditor from '@/components/InlineRoutineFormEditor';
 import InlineRoutineForm from '@/components/InlineRoutineForm';
 import { Clock, CalendarRange } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface Shift {
     id: number;
@@ -78,9 +79,6 @@ export default function AssetRoutinesTab({
 
     // Estado para controlar qual rotina está sendo editada
     const [editingRoutineFormId, setEditingRoutineFormId] = useState<number | null>(null);
-
-    // Estado para controlar o modo comprimido
-    const [isCompressed, setIsCompressed] = useState(false);
 
     // Estado para busca de rotinas
     const [searchTerm, setSearchTerm] = useState('');
@@ -230,7 +228,7 @@ export default function AssetRoutinesTab({
             label: 'Nome',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => (
+            render: (value) => (
                 <div className="font-medium">{String(value || 'Sem nome')}</div>
             ),
         },
@@ -253,7 +251,7 @@ export default function AssetRoutinesTab({
             label: 'Periodicidade',
             sortable: true,
             width: 'w-[180px]',
-            render: (value, row) => {
+            render: (value) => {
                 const { hoursText, workDaysText } = formatTriggerHours(value as number | undefined);
                 return (
                     <div className="space-y-1">
@@ -277,6 +275,7 @@ export default function AssetRoutinesTab({
             sortable: false,
             width: 'w-[120px]',
             render: (value, row) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const form = (row as any).form;
 
                 if (!form || !form.tasks || form.tasks.length === 0) {
@@ -295,6 +294,7 @@ export default function AssetRoutinesTab({
             sortable: false,
             width: 'w-[100px]',
             render: (value, row) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const form = (row as any).form;
 
                 if (!form) {
@@ -318,7 +318,7 @@ export default function AssetRoutinesTab({
             sortable: false,
             width: 'w-[150px]',
             render: (value, row) => {
-                const form = (row as any).form;
+                const form = (row as Record<string, unknown>).form;
                 if (!form) {
                     return (
                         <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-500/10">
@@ -341,18 +341,33 @@ export default function AssetRoutinesTab({
         {
             key: 'status',
             label: 'Status',
-            sortable: true,
+            sortable: false,
             width: 'w-[100px]',
-            render: (value) => (
-                <span
-                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${value === 'Active'
-                        ? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20'
-                        : 'bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-500/10'
-                        }`}
-                >
-                    {value === 'Active' ? 'Ativo' : 'Inativo'}
-                </span>
-            ),
+            render: (value) => {
+                const status = value as string;
+                if (status === 'completed') {
+                    return <Badge variant="default">Concluída</Badge>;
+                } else if (status === 'in_progress') {
+                    return <Badge variant="secondary">Em Andamento</Badge>;
+                } else {
+                    return <Badge variant="outline">Pendente</Badge>;
+                }
+            },
+        },
+        {
+            key: 'actions',
+            label: 'Ações',
+            sortable: false,
+            width: 'w-[100px]',
+            render: () => {
+                return (
+                    <div className="flex gap-1">
+                        <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                        </Button>
+                    </div>
+                );
+            },
         },
     ];
 
@@ -380,8 +395,6 @@ export default function AssetRoutinesTab({
 
             // Then set the editing state
             setEditingRoutineFormId(routineId);
-            // Ativar modo comprimido ao editar formulário
-            setIsCompressed(true);
         } catch (error) {
             // More specific error message
             const axiosError = error as { response?: { status?: number } };
@@ -399,18 +412,14 @@ export default function AssetRoutinesTab({
 
     const handleFillRoutineForm = (routineId: number) => {
         setFillingRoutineId(routineId);
-        setIsCompressed(true);
     };
 
     const handleCloseFormEditor = () => {
         setEditingRoutineFormId(null);
-        // Desativar modo comprimido ao fechar editor
-        setIsCompressed(false);
     };
 
     const handleCloseFormFiller = () => {
         setFillingRoutineId(null);
-        setIsCompressed(false);
     };
 
     const handleFormSaved = (formData: unknown) => {
@@ -425,8 +434,6 @@ export default function AssetRoutinesTab({
         );
         setEditingRoutineFormId(null);
         toast.success('Formulário da rotina atualizado com sucesso!');
-        // Desativar modo comprimido ao fechar editor
-        setIsCompressed(false);
     };
 
     const handleEditRoutine = (routine: any) => {

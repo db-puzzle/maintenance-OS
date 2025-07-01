@@ -1,17 +1,17 @@
+import React, { useState } from 'react';
+import AreasManagementComponent from '@/components/AreasManagementComponent';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import MapComponent from '@/components/map';
+import PlantFormComponent from '@/components/PlantFormComponent';
+import AppLayout from '@/layouts/app-layout';
+import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Building2, Cog, Map } from 'lucide-react';
-
-import MapComponent from '@/components/map';
-import PlantFormComponent from '@/components/PlantFormComponent';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import AppLayout from '@/layouts/app-layout';
-import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { EntityPagination } from '@/components/shared/EntityPagination';
-import { useSorting } from '@/hooks/useSorting';
 
 interface Plant {
     id: number;
@@ -135,12 +135,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
         );
     };
 
-    const getSortIcon = (section: 'areas' | 'sectors' | 'asset', column: string) => {
-        if (filters[section].sort !== column) {
-            return <ArrowUpDown className="h-4 w-4" />;
-        }
-        return filters[section].direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
-    };
+
 
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">

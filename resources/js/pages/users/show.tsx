@@ -1,4 +1,5 @@
-import { Head, Link, router } from '@inertiajs/react';
+import React from 'react';
+import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,11 +17,11 @@ import {
     MapPin,
     Hash,
     Eye,
-    Trash2
 } from 'lucide-react';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { format } from 'date-fns';
 
 interface User {
     id: number;

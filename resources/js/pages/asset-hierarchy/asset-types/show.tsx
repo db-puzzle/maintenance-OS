@@ -1,6 +1,6 @@
+import React, { useState } from 'react';
 import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
-import { ColumnConfig } from '@/types/shared';
 import { router } from '@inertiajs/react';
 import { Cog, Settings } from 'lucide-react';
 

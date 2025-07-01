@@ -1,8 +1,7 @@
+import React from 'react';
 import TextInput from '@/components/TextInput';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Download, CheckCircle2 } from 'lucide-react';
+import { Download } from 'lucide-react';
 import type { RoutineExecution } from '@/types/maintenance';
 
 interface RoutineExecutionFormData {

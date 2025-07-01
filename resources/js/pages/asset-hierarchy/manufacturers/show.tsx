@@ -1,11 +1,15 @@
+import React, { useState } from 'react';
 import ManufacturerFormComponent from '@/components/ManufacturerFormComponent';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
-import { ColumnConfig } from '@/types/shared';
-import { Head, Link, router } from '@inertiajs/react';
+import { type Asset } from '@/types/asset-hierarchy';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Head, router } from '@inertiajs/react';
 
 interface AssetData {
     id: number;
