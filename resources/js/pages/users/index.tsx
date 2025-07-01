@@ -362,6 +362,7 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
 
                     {/* Users Table */}
                     <EntityDataTable
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         data={ users.data as any}
                         columns={columns}
                         loading={false}

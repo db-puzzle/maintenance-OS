@@ -124,6 +124,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 label: 'TAG',
                                 sortable: true,
                                 width: 'w-[25%]',
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 render: (value, row) => <div className="font-medium">{ (row as any).tag}</div>,
                             },
                             {
@@ -131,6 +132,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 label: 'Tipo',
                                 sortable: true,
                                 width: 'w-[25%]',
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).asset_type?.name ?? '-'}</span>,
                             },
                             {
@@ -138,6 +140,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 label: 'Fabricante',
                                 sortable: true,
                                 width: 'w-[25%]',
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).manufacturer?.name ?? '-'}</span>,
                             },
                             {
@@ -148,6 +151,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show',  (row as any).id))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {

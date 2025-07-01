@@ -88,6 +88,7 @@ export default function Show({ assetType, asset }: Props) {
                                 label: 'TAG',
                                 sortable: false,
                                 width: 'w-[25%]',
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 render: (value, row) => <div className="font-medium">{ (row as any).tag}</div>,
                             },
                             {
@@ -95,6 +96,7 @@ export default function Show({ assetType, asset }: Props) {
                                 label: 'Área',
                                 sortable: false,
                                 width: 'w-[25%]',
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).area?.name ?? '-'}</span>,
                             },
                             {
@@ -102,6 +104,7 @@ export default function Show({ assetType, asset }: Props) {
                                 label: 'Fabricante',
                                 sortable: false,
                                 width: 'w-[25%]',
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).manufacturer?.name ?? '-'}</span>,
                             },
                             {
@@ -112,6 +115,7 @@ export default function Show({ assetType, asset }: Props) {
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show',  (row as any).id))}
                     />
 
