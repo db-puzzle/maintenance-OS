@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { Calendar, ClipboardCheck, Eye, FileText, Shield } from 'lucide-react';
@@ -71,13 +71,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
     });
     const { addExport, updateExport } = useExportManager();
 
-    useEffect(() => {
-        if (assetId) {
-            fetchExecutions();
-        }
-    }, [assetId, filters]);
-
-    const fetchExecutions = async () => {
+    const fetchExecutions = useCallback(async () => {
         if (!assetId) return;
 
         setLoading(true);
@@ -98,7 +92,13 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [assetId, executions.current_page, filters.per_page, filters.sort, filters.direction]);
+
+    useEffect(() => {
+        if (assetId) {
+            fetchExecutions();
+        }
+    }, [assetId, fetchExecutions]);
 
     const handleSort = (column: string) => {
         const newDirection = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';

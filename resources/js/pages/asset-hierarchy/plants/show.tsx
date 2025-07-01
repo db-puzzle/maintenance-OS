@@ -1,17 +1,14 @@
-import React, { useState } from 'react';
-import AreasManagementComponent from '@/components/AreasManagementComponent';
+import React from 'react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import MapComponent from '@/components/map';
 import PlantFormComponent from '@/components/PlantFormComponent';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, ArrowUpDown, Building2, Cog, Map } from 'lucide-react';
+import { Building2, Cog, Map } from 'lucide-react';
 
 interface Plant {
     id: number;

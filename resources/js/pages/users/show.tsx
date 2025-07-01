@@ -21,7 +21,7 @@ import {
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { format } from 'date-fns';
+
 
 interface User {
     id: number;
@@ -46,7 +46,7 @@ interface ActivityLog {
     action: string;
     user: { id: number; name: string };
     created_at: string;
-    details: any;
+    details: Record<string, unknown> | null;
 }
 
 interface Props {

@@ -290,15 +290,19 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             };
         };
 
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
         const { data, setData, processing, errors, clearErrors } = useForm(getInitialFormData() as any);
 
         // Create a wrapper for setData to match the TextInput expected signature
         const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
             setData(name as any, value);
         };
 
         // Update the schedules
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
         const updateSchedules = (newSchedules: any) => {
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
             setData('schedules' as any, newSchedules);
         };
 
@@ -355,6 +359,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         }, [effectiveOpen]);
 
         const addShift = (dayIndex: number) => {
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
             const newSchedules = [...(data as any).schedules];
             const existingShifts = newSchedules[dayIndex].shifts;
 
@@ -414,10 +419,12 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
 
         const removeShift = (dayIndex: number, shiftIndex: number) => {
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
             const newSchedules = (data as any).schedules.map((day: any, idx: number) => {
                 if (idx === dayIndex) {
                     return {
                         ...day,
+                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                         shifts: day.shifts.filter((_: any, index: number) => index !== shiftIndex),
                     };
                 }
@@ -428,6 +435,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
 
         const addBreak = (dayIndex: number, shiftIndex: number) => {
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
             const newSchedules = [...(data as any).schedules];
             const shift = newSchedules[dayIndex].shifts[shiftIndex];
 
@@ -461,14 +469,17 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
 
         const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
             const newSchedules = (data as any).schedules.map((day: any, idx: number) => {
                 if (idx === dayIndex) {
                     return {
                         ...day,
+                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                         shifts: day.shifts.map((shift: any, sIdx: number) => {
                             if (sIdx === shiftIndex) {
                                 return {
                                     ...shift,
+                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                     breaks: shift.breaks.filter((_: any, bIdx: number) => bIdx !== breakIndex),
                                 };
                             }
@@ -483,6 +494,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
 
         const updateBreak = (dayIndex: number, shiftIndex: number, breakIndex: number, field: keyof Break, value: string) => {
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
             const newSchedules = [...(data as any).schedules];
             newSchedules[dayIndex].shifts[shiftIndex].breaks[breakIndex][field] = value;
             updateSchedules(newSchedules);

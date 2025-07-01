@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { type BreadcrumbItem } from '@/types';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
-import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
+
 import { ColumnConfig } from '@/types/shared';
 
 // Declare the global route function from Ziggy
@@ -45,8 +45,8 @@ interface DeletedUser {
 interface Props {
     deletedUsers: {
         data: DeletedUser[];
-        links?: any;
-        meta?: any;
+        links?: Record<string, unknown>;
+        meta?: Record<string, unknown>;
     };
     filters: {
         search?: string;
@@ -145,13 +145,14 @@ export default function DeletedUsers({ deletedUsers, filters }: Props) {
     ];
 
     // Prepare pagination data
-    const pagination = deletedUsers.meta ? {
-        current_page: deletedUsers.meta.current_page,
-        last_page: deletedUsers.meta.last_page,
-        per_page: deletedUsers.meta.per_page,
-        total: deletedUsers.meta.total,
-        from: deletedUsers.meta.from,
-        to: deletedUsers.meta.to,
+    const meta = deletedUsers.meta as Record<string, number> | undefined;
+    const pagination = meta ? {
+        current_page: meta.current_page || 1,
+        last_page: meta.last_page || 1,
+        per_page: meta.per_page || 10,
+        total: meta.total || 0,
+        from: meta.from || null,
+        to: meta.to || null,
     } : {
         current_page: 1,
         last_page: 1,
@@ -187,11 +188,11 @@ export default function DeletedUsers({ deletedUsers, filters }: Props) {
                 <div className="space-y-4">
                     {/* Deleted Users Table */}
                     <EntityDataTable
-                        data={deletedUsers.data as any}
+                        data={deletedUsers.data as unknown as Record<string, unknown>[]}
                         columns={columns}
                         loading={false}
                         emptyMessage="Nenhum usuário excluído encontrado"
-                        actions={(user: any) => {
+                        actions={(user: unknown) => {
                             const deletedUser = user as DeletedUser;
                             return (
                                 <div className="flex justify-end gap-2">

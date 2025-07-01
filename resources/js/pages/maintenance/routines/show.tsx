@@ -3,8 +3,8 @@ import { Head, Link } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Clock as ClockIcon, MapPin, Settings, ChevronRight, FileText } from 'lucide-react';
+
+import { CheckCircle, XCircle, MapPin, Settings, ChevronRight, FileText } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import RoutineExecutionFormComponent from '@/components/RoutineExecutionFormComponent';

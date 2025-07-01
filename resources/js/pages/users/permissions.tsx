@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import {
     Dialog,
     DialogContent,
@@ -38,11 +38,7 @@ import {
     Search,
     ChevronRight,
     ChevronDown,
-    AlertCircle,
-    Copy,
-    History,
-    Download,
-    Upload
+    Copy
 } from 'lucide-react';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
@@ -92,7 +88,6 @@ interface Props {
 export default function UserPermissions({
     user,
     permissionHierarchy,
-    grantablePermissions,
     permissionHistory,
     roles: initialRoles,
     users: initialUsers,
@@ -107,9 +102,7 @@ export default function UserPermissions({
     const [showRoleDialog, setShowRoleDialog] = useState(false);
     const [showCopyDialog, setShowCopyDialog] = useState(false);
     const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
-    const [roles, setRoles] = useState<Array<{ id: number; name: string }>>(initialRoles || []);
-    const [entities, setEntities] = useState<{ plants: any[], areas: any[], sectors: any[] }>({ plants: [], areas: [], sectors: [] });
-    const [users, setUsers] = useState<User[]>(initialUsers || []);
+    const [entities, setEntities] = useState<{ plants: Record<string, unknown>[], areas: Record<string, unknown>[], sectors: Record<string, unknown>[] }>({ plants: [], areas: [], sectors: [] });
 
     const { data: roleData, setData: setRoleData, post: postRole, processing: processingRole } = useForm({
         role_id: '',
@@ -177,11 +170,7 @@ export default function UserPermissions({
         }
     };
 
-    const handleBulkRevoke = (permissions: string[]) => {
-        if (confirm(`Are you sure you want to revoke ${permissions.length} permissions?`)) {
-            router.post(`/users/${user.id}/permissions/revoke`, { permissions });
-        }
-    };
+
 
     const handleRoleApplication = (e: React.FormEvent) => {
         e.preventDefault();
@@ -335,7 +324,7 @@ export default function UserPermissions({
                                                         <SelectValue placeholder="Select a role" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {roles?.map((role) => (
+                                                        {initialRoles?.map((role) => (
                                                             <SelectItem key={role.id} value={role.id.toString()}>
                                                                 {role.name}
                                                             </SelectItem>
@@ -374,9 +363,9 @@ export default function UserPermissions({
                                                         <SelectContent>
                                                             {(roleData.entity_type === 'Plant' ? entities.plants :
                                                                 roleData.entity_type === 'Area' ? entities.areas :
-                                                                    entities.sectors)?.map((entity: any) => (
-                                                                        <SelectItem key={entity.id} value={entity.id.toString()}>
-                                                                            {entity.name}
+                                                                    entities.sectors)?.map((entity: Record<string, unknown>) => (
+                                                                        <SelectItem key={String(entity.id)} value={String(entity.id)}>
+                                                                            {String(entity.name)}
                                                                         </SelectItem>
                                                                     ))}
                                                         </SelectContent>
@@ -433,7 +422,7 @@ export default function UserPermissions({
                                                         <SelectValue placeholder="Select user to copy from" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {users?.filter(u => u.id !== user.id).map((u) => (
+                                                        {initialUsers?.filter(u => u.id !== user.id).map((u) => (
                                                             <SelectItem key={u.id} value={u.id.toString()}>
                                                                 {u.name} ({u.permissions?.length || 0} permissions)
                                                             </SelectItem>

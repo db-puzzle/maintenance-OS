@@ -3,7 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import {
     Select,
     SelectContent,
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, UserPlus, Shield, Eye, Edit, Key, Trash2 } from 'lucide-react';
+import { Eye, Key, Trash2 } from 'lucide-react';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';

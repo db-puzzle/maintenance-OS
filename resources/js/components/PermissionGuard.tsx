@@ -1,6 +1,15 @@
 import React from 'react';
 import { usePage } from '@inertiajs/react';
 
+interface AuthUser {
+    roles?: Array<{ name: string }>;
+}
+
+interface AuthProps {
+    user: AuthUser | null;
+    permissions?: string[];
+}
+
 interface Props {
     permission: string | string[];
     fallback?: React.ReactNode;
@@ -8,14 +17,15 @@ interface Props {
 }
 
 export default function PermissionGuard({ permission, fallback = null, children }: Props) {
-    const { auth } = usePage().props as any;
+    const page = usePage();
+    const auth = (page.props as Record<string, unknown>).auth as AuthProps | undefined;
 
-    if (!auth.user) {
+    if (!auth || !auth.user) {
         return <>{fallback}</>;
     }
 
     // Administrators have all permissions
-    if (auth.user.roles?.some((role: any) => role.name === 'Administrator')) {
+    if (auth.user.roles?.some((role) => role.name === 'Administrator')) {
         return <>{children}</>;
     }
 

@@ -1,18 +1,12 @@
 import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, User, UserPlus, Shield, Search, Filter, Users, Key, ArrowUpDown } from 'lucide-react';
+import { Shield, Search, Users, Key, ArrowUpDown } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { toast } from 'sonner';
 import { type BreadcrumbItem } from '@/types';
 import HeadingSmall from '@/components/heading-small';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -73,7 +67,7 @@ interface Props {
     };
 }
 
-export default function Permissions({ userRoles, userPermissions, isAdministrator, permissions, resources, actions, scopes, filters }: Props) {
+export default function Permissions({ userRoles, isAdministrator, permissions, resources, actions, scopes, filters }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [selectedResource, setSelectedResource] = useState(filters.resource || 'all');
     const [selectedAction, setSelectedAction] = useState(filters.action || 'all');
@@ -178,7 +172,7 @@ export default function Permissions({ userRoles, userPermissions, isAdministrato
     ];
 
     // Custom table component with centered headers for specific columns
-    const PermissionsTable = ({ data, loading }: { data: Permission[]; loading: boolean }) => {
+    const PermissionsTable = ({ data }: { data: Permission[]; loading?: boolean }) => {
         const visibleColumns = columns;
 
         return (
@@ -305,12 +299,7 @@ export default function Permissions({ userRoles, userPermissions, isAdministrato
         );
     };
 
-    const formatResourceName = (resource: string) => {
-        return resource
-            .split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-    };
+
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
