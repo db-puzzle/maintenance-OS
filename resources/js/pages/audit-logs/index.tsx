@@ -52,8 +52,8 @@ interface AuditLog {
     };
     auditable_type: string;
     auditable_id: number;
-    changed_fields: Record<string, { old: any; new: any }>;
-    metadata: Record<string, any>;
+    changed_fields: Record<string, { old: unknown; new: unknown }>;
+    metadata: Record<string, unknown>;
     ip_address: string;
     created_at: string;
 }
@@ -61,7 +61,7 @@ interface AuditLog {
 interface Props {
     logs: {
         data: AuditLog[];
-        links: any;
+        links: Record<string, unknown>[];
         current_page: number;
         last_page: number;
         per_page: number;
@@ -79,7 +79,7 @@ interface Props {
 }
 
 export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Props) {
-    const { auth } = usePage().props as any;
+    const { auth } = usePage().props as Record<string, unknown>;
     const [localFilters, setLocalFilters] = useState(filters);
     const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
     const [showDetails, setShowDetails] = useState(false);
@@ -95,7 +95,9 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
     ];
 
     // Only allow administrators
-    if (!auth.user?.roles?.some((role: any) => role.name === 'Administrator')) {
+    const authUser = (auth as Record<string, unknown>).user as Record<string, unknown> | undefined;
+    const userRoles = authUser?.roles as Array<{ name: string }> | undefined;
+    if (!userRoles?.some((role) => role.name === 'Administrator')) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
                 <Head title="Audit Logs - Access Denied" />
@@ -129,7 +131,7 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
         window.location.href = route('audit-logs.export', localFilters);
     };
 
-    const getEventBadgeVariant = (eventType: string): any => {
+    const getEventBadgeVariant = (eventType: string) => {
         if (eventType.includes('created')) return 'default';
         if (eventType.includes('updated')) return 'secondary';
         if (eventType.includes('deleted')) return 'destructive';
@@ -232,7 +234,9 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                         <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                                 mode="range"
+                                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                 selected={dateRange as any}
+                                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                 onSelect={setDateRange as any}
                                 numberOfMonths={2}
                             />
@@ -363,7 +367,7 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                                 <div>
                                     <h4 className="font-medium mb-2">Changes</h4>
                                     <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                                        {Object.entries(selectedLog.changed_fields).map(([field, change]: [string, { old: any; new: any }]) => (
+                                        {Object.entries(selectedLog.changed_fields).map(([field, change]: [string, { old: unknown; new: unknown }]) => (
                                             <div key={field} className="flex items-start gap-4">
                                                 <span className="font-medium text-sm w-32">{field}:</span>
                                                 <div className="flex-1 text-sm">

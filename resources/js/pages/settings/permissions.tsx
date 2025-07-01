@@ -246,7 +246,7 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
 
     // Handle filter changes
     const handleFilterChange = (filterType: string, value: string) => {
-        const newFilters: any = {
+        const newFilters: Record<string, string | undefined> = {
             search: searchTerm,
             resource: selectedResource === 'all' ? undefined : selectedResource,
             action: selectedAction === 'all' ? undefined : selectedAction,

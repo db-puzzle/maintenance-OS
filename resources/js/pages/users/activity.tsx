@@ -35,15 +35,15 @@ interface ActivityLog {
     user: User;
     affectedUser?: User;
     created_at: string;
-    details: any;
+    details: Record<string, unknown>;
 }
 
 interface Props {
     user: User;
     activities: {
         data: ActivityLog[];
-        links: any;
-        meta: any;
+        links: Record<string, unknown>[];
+        meta: Record<string, unknown>;
     };
     filters: {
         action?: string;
@@ -69,7 +69,7 @@ export default function UserActivity({ user, activities, filters, availableActio
     };
 
     const applyFilters = () => {
-        const params: any = {};
+        const params: Record<string, string> = {};
         if (localFilters.action) params.action = localFilters.action;
         if (localFilters.date_from) params.date_from = localFilters.date_from;
         if (localFilters.date_to) params.date_to = localFilters.date_to;
@@ -110,7 +110,7 @@ export default function UserActivity({ user, activities, filters, availableActio
         return 'bg-gray-100 text-gray-800';
     };
 
-    const formatDetails = (details: any) => {
+    const formatDetails = (details: Record<string, unknown>) => {
         if (!details || typeof details !== 'object') return null;
 
         const entries = Object.entries(details).filter(([key]) =>
@@ -284,20 +284,20 @@ export default function UserActivity({ user, activities, filters, availableActio
                 </Card>
 
                 {/* Pagination */}
-                {activities.meta.last_page > 1 && (
+                {((activities.meta as Record<string, unknown>).last_page as number) > 1 && (
                     <div className="flex items-center justify-between">
                         <p className="text-sm text-muted-foreground">
-                            Showing {activities.meta.from} to {activities.meta.to} of {activities.meta.total} activities
+                            Showing {String((activities.meta as Record<string, unknown>).from)} to {String((activities.meta as Record<string, unknown>).to)} of {String((activities.meta as Record<string, unknown>).total)} activities
                         </p>
                         <div className="flex gap-2">
-                            {activities.links.map((link: any, index: number) => (
+                            {activities.links.map((link: Record<string, unknown>, index: number) => (
                                 <Button
                                     key={index}
                                     variant={link.active ? 'default' : 'outline'}
                                     size="sm"
                                     disabled={!link.url}
-                                    onClick={() => link.url && router.get(link.url)}
-                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                    onClick={() => link.url && router.get(String(link.url))}
+                                    dangerouslySetInnerHTML={{ __html: String(link.label) }}
                                 />
                             ))}
                         </div>
