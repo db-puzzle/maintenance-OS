@@ -3,7 +3,9 @@
 namespace App\Models\AssetHierarchy;
 
 use App\Models\Maintenance\Routine;
+use App\Models\WorkOrders\WorkOrder;
 use App\Traits\AssetRuntimeCalculator;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -98,6 +100,26 @@ class Asset extends Model
         return $this->hasMany(Routine::class);
     }
 
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
+
+    public function openWorkOrders(): HasMany
+    {
+        return $this->workOrders()->open();
+    }
+
+    public function preventiveWorkOrders(): HasMany
+    {
+        return $this->workOrders()->preventive();
+    }
+
+    public function correctiveWorkOrders(): HasMany
+    {
+        return $this->workOrders()->corrective();
+    }
+
     /**
      * Get the runtime measurements for the asset.
      */
@@ -130,5 +152,68 @@ class Asset extends Model
         return $this->runtimeMeasurements()
             ->skip(1)
             ->first();
+    }
+
+    /**
+     * Get maintenance metrics for the asset
+     */
+    public function getMaintenanceMetrics(Carbon $startDate, Carbon $endDate)
+    {
+        $workOrders = $this->workOrders()
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get();
+
+        return [
+            'total_work_orders' => $workOrders->count(),
+            'preventive_count' => $workOrders->where('work_order_category', 'preventive')->count(),
+            'corrective_count' => $workOrders->where('work_order_category', 'corrective')->count(),
+            'total_downtime_hours' => $workOrders->sum('actual_hours'),
+            'total_cost' => $workOrders->sum('actual_total_cost'),
+            'mtbf' => $this->calculateMTBF($startDate, $endDate),
+            'mttr' => $this->calculateMTTR($startDate, $endDate),
+        ];
+    }
+
+    /**
+     * Calculate Mean Time Between Failures
+     */
+    private function calculateMTBF(Carbon $startDate, Carbon $endDate): float
+    {
+        $failures = $this->workOrders()
+            ->corrective()
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+            
+        if ($failures === 0) {
+            return 0;
+        }
+        
+        $totalHours = $startDate->diffInHours($endDate);
+        $downtimeHours = $this->workOrders()
+            ->corrective()
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->sum('actual_hours');
+            
+        $uptimeHours = $totalHours - $downtimeHours;
+        
+        return round($uptimeHours / $failures, 2);
+    }
+
+    /**
+     * Calculate Mean Time To Repair
+     */
+    private function calculateMTTR(Carbon $startDate, Carbon $endDate): float
+    {
+        $correctiveWorkOrders = $this->workOrders()
+            ->corrective()
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereNotNull('actual_hours')
+            ->get();
+            
+        if ($correctiveWorkOrders->isEmpty()) {
+            return 0;
+        }
+        
+        return round($correctiveWorkOrders->avg('actual_hours'), 2);
     }
 }

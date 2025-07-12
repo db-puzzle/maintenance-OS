@@ -2,6 +2,8 @@
 
 namespace App\Models\Forms;
 
+use App\Models\User;
+use App\Models\WorkOrders\WorkOrderExecution;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,33 +11,39 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TaskResponse extends Model
 {
     protected $fillable = [
-        'form_execution_id',
         'form_task_id',
+        'work_order_execution_id',
+        'user_id',
         'response',
-        'is_completed',
-        'responded_at',
+        'response_data',
     ];
 
     protected $casts = [
-        'response' => 'array',
-        'is_completed' => 'boolean',
-        'responded_at' => 'datetime',
+        'response_data' => 'array',
     ];
 
     /**
-     * Get the form execution that owns this task response
+     * Get the work order execution that owns this task response
      */
-    public function formExecution(): BelongsTo
+    public function workOrderExecution(): BelongsTo
     {
-        return $this->belongsTo(FormExecution::class);
+        return $this->belongsTo(WorkOrderExecution::class);
     }
 
     /**
      * Get the form task this response is for
      */
-    public function formTask(): BelongsTo
+    public function task(): BelongsTo
     {
-        return $this->belongsTo(FormTask::class);
+        return $this->belongsTo(FormTask::class, 'form_task_id');
+    }
+
+    /**
+     * Get the user who provided this response
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**
@@ -47,23 +55,11 @@ class TaskResponse extends Model
     }
 
     /**
-     * Set the response and mark as completed
-     */
-    public function complete(array $responseData): void
-    {
-        $this->update([
-            'response' => $responseData,
-            'is_completed' => true,
-            'responded_at' => now(),
-        ]);
-    }
-
-    /**
      * Get the task type from the related task
      */
     public function getTaskType(): string
     {
-        return $this->formTask->type ?? '';
+        return $this->task->type ?? '';
     }
 
     /**
@@ -71,7 +67,7 @@ class TaskResponse extends Model
      */
     public function getTaskDescription(): string
     {
-        return $this->formTask->description ?? '';
+        return $this->task->description ?? '';
     }
 
     /**
@@ -79,7 +75,7 @@ class TaskResponse extends Model
      */
     public function getTaskConfiguration(): array
     {
-        return $this->formTask->configuration ?? [];
+        return $this->task->configuration ?? [];
     }
 
     /**
@@ -87,7 +83,7 @@ class TaskResponse extends Model
      */
     public function isRequired(): bool
     {
-        return $this->formTask->is_required ?? false;
+        return $this->task->is_required ?? false;
     }
 
     /**
@@ -104,5 +100,13 @@ class TaskResponse extends Model
     public function isFileUploadTask(): bool
     {
         return $this->getTaskType() === FormTask::TYPE_FILE_UPLOAD;
+    }
+
+    /**
+     * Check if response is provided
+     */
+    public function isCompleted(): bool
+    {
+        return $this->response !== null;
     }
 }

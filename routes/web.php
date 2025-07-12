@@ -72,6 +72,9 @@ require __DIR__.'/asset-hierarchy.php';
 // Maintenance
 require __DIR__.'/maintenance.php';
 
+// Work Orders
+require __DIR__.'/work-orders.php';
+
 // Settings
 require __DIR__.'/settings.php';
 

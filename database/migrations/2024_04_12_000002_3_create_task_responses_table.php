@@ -13,17 +13,15 @@ return new class extends Migration
     {
         Schema::create('task_responses', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('form_execution_id')->constrained()->onDelete('cascade');
-            $table->foreignId('form_task_id')->constrained()->onDelete('cascade');
-            $table->json('response')->nullable()->comment('User response data');
-            $table->boolean('is_completed')->default(false);
-            $table->timestamp('responded_at')->nullable();
+            $table->foreignId('form_task_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('work_order_execution_id')->constrained()->cascadeOnDelete(); // Changed from form_execution_id
+            $table->foreignId('user_id')->constrained();
+            $table->text('response')->nullable();
+            $table->json('response_data')->nullable()->comment('Structured data for specific response types');
             $table->timestamps();
 
-            $table->index('form_execution_id');
-            $table->index('form_task_id');
-            $table->index('is_completed');
-            $table->unique(['form_execution_id', 'form_task_id']);
+            $table->index(['work_order_execution_id', 'form_task_id']);
+            $table->index('user_id');
         });
     }
 

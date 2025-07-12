@@ -20,6 +20,12 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->foreignId('form_id')->constrained();
             $table->foreignId('active_form_version_id')->nullable()->constrained('form_versions')->nullOnDelete();
+            
+            // Add new fields for work order generation
+            $table->integer('advance_generation_hours')->default(168)->comment('Generate WO this many hours in advance');
+            $table->boolean('auto_approve_work_orders')->default(true);
+            $table->string('default_priority')->default('normal');
+            
             $table->timestamps();
 
             $table->index(['status', 'trigger_hours']);

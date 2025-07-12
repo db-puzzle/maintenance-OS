@@ -5,11 +5,9 @@ namespace App\Http\Controllers\Maintenance;
 use App\Http\Controllers\Controller;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\Forms\Form;
-use App\Models\Forms\FormExecution;
-use App\Models\Forms\FormResponse;
 use App\Models\Forms\FormTask;
 use App\Models\Maintenance\Routine;
-use App\Models\Maintenance\RoutineExecution;
+use App\Models\WorkOrders\WorkOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -24,6 +22,9 @@ class RoutineController extends Controller
             'status' => 'required|in:Active,Inactive',
             'description' => 'nullable|string',
             'asset_id' => 'required|exists:assets,id',
+            'advance_generation_hours' => 'nullable|integer|min:0',
+            'auto_approve_work_orders' => 'nullable|boolean',
+            'default_priority' => 'nullable|in:emergency,urgent,high,normal,low',
         ]);
         
         // Check if user can manage the asset (which includes managing its routines)
@@ -32,6 +33,11 @@ class RoutineController extends Controller
         
         // Force status to Inactive for new routines
         $validated['status'] = 'Inactive';
+        
+        // Set defaults
+        $validated['advance_generation_hours'] = $validated['advance_generation_hours'] ?? 168;
+        $validated['auto_approve_work_orders'] = $validated['auto_approve_work_orders'] ?? true;
+        $validated['default_priority'] = $validated['default_priority'] ?? 'normal';
 
         $routine = Routine::create($validated);
 
@@ -53,6 +59,9 @@ class RoutineController extends Controller
             'status' => 'required|in:Active,Inactive',
             'description' => 'nullable|string',
             'asset_id' => 'required|exists:assets,id',
+            'advance_generation_hours' => 'nullable|integer|min:0',
+            'auto_approve_work_orders' => 'nullable|boolean',
+            'default_priority' => 'nullable|in:emergency,urgent,high,normal,low',
         ]);
 
         $routine->update($validated);
@@ -69,11 +78,11 @@ class RoutineController extends Controller
         // Check if user can manage the asset (which includes managing its routines)
         $this->authorize('manage', $routine->asset);
         
-        // Verificar se existem execuções associadas
-        if ($routine->routineExecutions()->count() > 0) {
+        // Check if there are work orders associated
+        if ($routine->workOrders()->count() > 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Não é possível excluir uma rotina com execuções associadas.',
+                'message' => 'Não é possível excluir uma rotina com ordens de serviço associadas.',
             ], 400);
         }
 
@@ -85,55 +94,38 @@ class RoutineController extends Controller
         ]);
     }
 
-    public function createExecution(Routine $routine)
-    {
-        // Check if user can execute routines for this asset
-        $this->authorize('execute-routines', $routine->asset);
-        
-        $execution = new RoutineExecution([
-            'routine_id' => $routine->id,
-            'status' => RoutineExecution::STATUS_PENDING,
-        ]);
-        $execution->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Nova execução da rotina criada com sucesso.',
-            'execution' => $execution,
-        ]);
-    }
-
     public function storeForm(Request $request, Routine $routine)
     {
         // Check if user can manage the asset (which includes managing its routines)
         $this->authorize('manage', $routine->asset);
         
         $validated = $request->validate([
-            'tasks' => 'required|string', // JSON string of tasks
+            'tasks' => 'required|array',
+            'tasks.*.type' => 'required|string',
+            'tasks.*.description' => 'nullable|string',
+            'tasks.*.isRequired' => 'nullable|boolean',
+            'tasks.*.options' => 'nullable|array',
+            'tasks.*.measurement' => 'nullable|array',
+            'tasks.*.codeReaderType' => 'nullable|string',
+            'tasks.*.instructionImages' => 'nullable|array',
         ]);
 
-        $tasksData = json_decode($validated['tasks'], true);
+        DB::transaction(function () use ($validated, $routine) {
+            $form = $routine->form;
 
-        DB::beginTransaction();
-        try {
-            // Remove existing draft tasks
-            $routine->form->draftTasks()->delete();
+            // Delete existing draft tasks
+            $form->draftTasks()->delete();
 
             // Create new draft tasks
-            foreach ($tasksData as $index => $taskData) {
-                $this->createFormTask($routine->form, $taskData, $index);
+            foreach ($validated['tasks'] as $index => $taskData) {
+                $this->createFormTask($form, $taskData, $index);
             }
+        });
 
-            DB::commit();
-
-            return redirect()->back()
-                ->with('success', 'Rascunho do formulário salvo com sucesso. Publique para torná-lo disponível.');
-        } catch (\Exception $e) {
-            DB::rollback();
-
-            return redirect()->back()
-                ->with('error', 'Erro ao salvar formulário: '.$e->getMessage());
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Formulário salvo com sucesso.',
+        ]);
     }
 
     public function publishForm(Request $request, Routine $routine)
@@ -141,32 +133,24 @@ class RoutineController extends Controller
         // Check if user can manage the asset (which includes managing its routines)
         $this->authorize('manage', $routine->asset);
         
-        // Check if there are draft tasks to publish
-        if (! $routine->form->draftTasks()->exists()) {
-            return redirect()->back()
-                ->with('error', 'Não há alterações para publicar.');
-        }
-
-        DB::beginTransaction();
         try {
-            // Publish the form
-            $version = $routine->form->publish(auth()->id());
+            DB::transaction(function () use ($routine) {
+                $form = $routine->form;
 
-            // Update routine's active version
-            $routine->active_form_version_id = $version->id;
-            
-            // Automatically activate the routine when published
-            $routine->status = 'Active';
-            
-            $routine->save();
+                // Publish the form
+                $version = $form->publish(auth()->id());
 
-            DB::commit();
+                // Update routine's active form version
+                $routine->update([
+                    'active_form_version_id' => $version->id,
+                ]);
+            });
 
-            return redirect()->back()
-                ->with('success', 'Formulário publicado com sucesso! Versão '.$version->getVersionLabel().' está agora ativa.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Formulário publicado com sucesso.',
+            ]);
         } catch (\Exception $e) {
-            DB::rollback();
-
             return redirect()->back()
                 ->with('error', 'Erro ao publicar formulário: '.$e->getMessage());
         }
@@ -191,7 +175,7 @@ class RoutineController extends Controller
     {
         $configuration = [];
 
-        // Adicionar configuração específica baseada no tipo
+        // Add specific configuration based on type
         switch ($taskData['type']) {
             case 'measurement':
                 if (isset($taskData['measurement'])) {
@@ -222,7 +206,7 @@ class RoutineController extends Controller
             'configuration' => $configuration,
         ]);
 
-        // Criar instruções se existirem
+        // Create instructions if they exist
         if (isset($taskData['instructionImages']) && is_array($taskData['instructionImages'])) {
             foreach ($taskData['instructionImages'] as $index => $imagePath) {
                 $task->instructions()->create([
@@ -234,7 +218,7 @@ class RoutineController extends Controller
         }
     }
 
-    // ===== MÉTODOS PARA GERENCIAR ROTINAS NO CONTEXTO DE ATIVOS =====
+    // ===== METHODS FOR MANAGING ROUTINES IN THE CONTEXT OF ASSETS =====
 
     public function storeAssetRoutine(Request $request, Asset $asset)
     {
@@ -246,38 +230,29 @@ class RoutineController extends Controller
             'trigger_hours' => 'required|integer|min:1',
             'status' => 'nullable|in:Active,Inactive',
             'description' => 'nullable|string',
+            'advance_generation_hours' => 'nullable|integer|min:0',
+            'auto_approve_work_orders' => 'nullable|boolean',
+            'default_priority' => 'nullable|in:emergency,urgent,high,normal,low',
         ]);
 
         // Force status to Inactive for new routines
-        $validated['status'] = 'Inactive';
-        $validated['asset_id'] = $asset->id;
+        $validated['status'] = $validated['status'] ?? 'Inactive';
+        
+        // Set defaults
+        $validated['advance_generation_hours'] = $validated['advance_generation_hours'] ?? 168;
+        $validated['auto_approve_work_orders'] = $validated['auto_approve_work_orders'] ?? true;
+        $validated['default_priority'] = $validated['default_priority'] ?? 'normal';
 
-        $routine = Routine::create($validated);
+        $routine = $asset->routines()->create($validated);
 
-        // The Routine model should automatically create a form in the creating event
-        // But let's ensure it has one
-        if (! $routine->form_id) {
-            // Create the form for the routine
-            $form = Form::create([
-                'name' => $routine->name.' - Formulário',
-                'description' => 'Formulário para a rotina '.$routine->name,
-                'is_active' => true,
-                'created_by' => auth()->id(),
-            ]);
-
-            $routine->form_id = $form->id;
-            $routine->save();
-        }
-
-        // Load the relationships - form is newly created so it won't have tasks yet
+        // Load relationships
         $routine->load(['asset', 'form']);
 
-        // Return to the same page with the new routine data
-        return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset->id, 'tab' => 'rotinas'])
-            ->with([
-                'success' => 'Rotina criada com sucesso.',
-                'newRoutineId' => $routine->id,
-            ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Rotina criada com sucesso.',
+            'routine' => $routine,
+        ]);
     }
 
     public function updateAssetRoutine(Request $request, Asset $asset, Routine $routine)
@@ -285,23 +260,28 @@ class RoutineController extends Controller
         // Check if user can manage the asset (which includes managing its routines)
         $this->authorize('manage', $asset);
         
-        // Verificar se a rotina pertence ao ativo
+        // Verify routine belongs to asset
         if ($routine->asset_id !== $asset->id) {
-            return redirect()->back()
-                ->with('error', 'Esta rotina não pertence a este ativo.');
+            abort(404);
         }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'trigger_hours' => 'required|integer|min:1',
-            'status' => 'required|in:Active,Inactive',
+            'status' => 'nullable|in:Active,Inactive',
             'description' => 'nullable|string',
+            'advance_generation_hours' => 'nullable|integer|min:0',
+            'auto_approve_work_orders' => 'nullable|boolean',
+            'default_priority' => 'nullable|in:emergency,urgent,high,normal,low',
         ]);
 
         $routine->update($validated);
 
-        return redirect()->back()
-            ->with('success', 'Rotina atualizada com sucesso.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Rotina atualizada com sucesso.',
+            'routine' => $routine->load(['asset', 'form']),
+        ]);
     }
 
     public function destroyAssetRoutine(Asset $asset, Routine $routine)
@@ -309,22 +289,25 @@ class RoutineController extends Controller
         // Check if user can manage the asset (which includes managing its routines)
         $this->authorize('manage', $asset);
         
-        // Verificar se a rotina pertence ao ativo
+        // Verify routine belongs to asset
         if ($routine->asset_id !== $asset->id) {
-            return redirect()->back()
-                ->with('error', 'Esta rotina não pertence a este ativo.');
+            abort(404);
         }
 
-        $routineName = $routine->name;
+        // Check if there are work orders associated
+        if ($routine->workOrders()->count() > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Não é possível excluir uma rotina com ordens de serviço associadas.',
+            ], 400);
+        }
 
-        // Excluir execuções da rotina
-        $routine->routineExecutions()->delete();
-
-        // Excluir a rotina (o formulário será excluído automaticamente pelo model event)
         $routine->delete();
 
-        return redirect()->back()
-            ->with('success', "Rotina '{$routineName}' removida do ativo com sucesso.");
+        return response()->json([
+            'success' => true,
+            'message' => 'Rotina excluída com sucesso.',
+        ]);
     }
 
     public function storeAssetRoutineForm(Request $request, Asset $asset, Routine $routine)
@@ -332,43 +315,38 @@ class RoutineController extends Controller
         // Check if user can manage the asset (which includes managing its routines)
         $this->authorize('manage', $asset);
         
-        // Verificar se a rotina pertence ao ativo
+        // Verify routine belongs to asset
         if ($routine->asset_id !== $asset->id) {
-            return redirect()->back()
-                ->with('error', 'Esta rotina não pertence a este ativo.');
+            abort(404);
         }
 
         $validated = $request->validate([
-            'tasks' => 'required|string', // JSON string of tasks
+            'tasks' => 'required|array',
+            'tasks.*.type' => 'required|string',
+            'tasks.*.description' => 'nullable|string',
+            'tasks.*.isRequired' => 'nullable|boolean',
+            'tasks.*.options' => 'nullable|array',
+            'tasks.*.measurement' => 'nullable|array',
+            'tasks.*.codeReaderType' => 'nullable|string',
+            'tasks.*.instructionImages' => 'nullable|array',
         ]);
 
-        $tasksData = json_decode($validated['tasks'], true);
+        DB::transaction(function () use ($validated, $routine) {
+            $form = $routine->form;
 
-        DB::beginTransaction();
-        try {
-            // Check if form exists
-            if (! $routine->form) {
-                throw new \Exception('Routine has no associated form');
-            }
-
-            // Remove existing draft tasks
-            $routine->form->draftTasks()->delete();
+            // Delete existing draft tasks
+            $form->draftTasks()->delete();
 
             // Create new draft tasks
-            foreach ($tasksData as $index => $taskData) {
-                $this->createFormTask($routine->form, $taskData, $index + 1); // Position starts at 1, not 0
+            foreach ($validated['tasks'] as $index => $taskData) {
+                $this->createFormTask($form, $taskData, $index);
             }
+        });
 
-            DB::commit();
-
-            return redirect()->back()
-                ->with('success', 'Rascunho do formulário salvo com sucesso. Publique para torná-lo disponível.');
-        } catch (\Exception $e) {
-            DB::rollback();
-
-            return redirect()->back()
-                ->with('error', 'Erro ao salvar formulário: '.$e->getMessage());
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Formulário salvo com sucesso.',
+        ]);
     }
 
     public function publishAssetRoutineForm(Request $request, Asset $asset, Routine $routine)
@@ -376,421 +354,167 @@ class RoutineController extends Controller
         // Check if user can manage the asset (which includes managing its routines)
         $this->authorize('manage', $asset);
         
-        // Verificar se a rotina pertence ao ativo
+        // Verify routine belongs to asset
         if ($routine->asset_id !== $asset->id) {
-            return redirect()->back()
-                ->with('error', 'Esta rotina não pertence a este ativo.');
+            abort(404);
         }
 
-        // Check if there are draft tasks to publish
-        if (! $routine->form->draftTasks()->exists()) {
-            return redirect()->back()
-                ->with('error', 'Não há alterações para publicar.');
-        }
-
-        DB::beginTransaction();
         try {
-            // Publish the form
-            $version = $routine->form->publish(auth()->id());
+            DB::transaction(function () use ($routine) {
+                $form = $routine->form;
 
-            // Update routine's active version
-            $routine->active_form_version_id = $version->id;
-            
-            // Automatically activate the routine when published
-            $routine->status = 'Active';
-            
-            $routine->save();
+                // Publish the form
+                $version = $form->publish(auth()->id());
 
-            DB::commit();
+                // Update routine's active form version
+                $routine->update([
+                    'active_form_version_id' => $version->id,
+                ]);
+            });
 
-            return redirect()->back()
-                ->with('success', 'Formulário publicado com sucesso! Versão '.$version->getVersionLabel().' está agora ativa.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Formulário publicado com sucesso.',
+            ]);
         } catch (\Exception $e) {
-            DB::rollback();
-
             return redirect()->back()
                 ->with('error', 'Erro ao publicar formulário: '.$e->getMessage());
         }
     }
 
-    public function assetRoutineExecutions(Asset $asset, Routine $routine)
-    {
-        // Check if user can view the asset (which includes viewing its routines)
-        $this->authorize('view', $asset);
-        
-        // Verificar se a rotina pertence ao ativo
-        if ($routine->asset_id !== $asset->id) {
-            return redirect()->back()
-                ->with('error', 'Esta rotina não pertence a este ativo.');
-        }
-
-        $executions = RoutineExecution::where('routine_id', $routine->id)
-            ->with(['executedBy:id,name', 'formExecution.responses.task'])
-            ->orderBy('executed_at', 'desc')
-            ->paginate(15);
-
-        return Inertia::render('asset-hierarchy/assets/routine-executions', [
-            'asset' => $asset,
-            'routine' => $routine->load('form'),
-            'executions' => $executions,
-        ]);
-    }
-
-    public function storeAssetRoutineExecution(Request $request, Asset $asset, Routine $routine)
-    {
-        // Check if user can execute routines for this asset
-        $this->authorize('execute-routines', $asset);
-        
-        // Verificar se a rotina pertence ao ativo
-        if ($routine->asset_id !== $asset->id) {
-            return redirect()->back()
-                ->with('error', 'Esta rotina não pertence a este ativo.');
-        }
-
-        $validated = $request->validate([
-            'responses' => 'required|array',
-            'responses.*.task_id' => 'required|exists:form_tasks,id',
-            'responses.*.value' => 'nullable',
-            'responses.*.measurement' => 'nullable|array',
-            'responses.*.measurement.value' => 'nullable|numeric',
-            'responses.*.files' => 'nullable|array',
-            'responses.*.files.*' => 'file|max:10240', // 10MB max per file
-        ]);
-
-        // Criar execução da rotina
-        $routineExecution = RoutineExecution::create([
-            'routine_id' => $routine->id,
-            'status' => RoutineExecution::STATUS_COMPLETED,
-            'executed_by' => auth()->id(),
-            'executed_at' => now(),
-        ]);
-
-        // Criar execução do formulário
-        $formExecution = FormExecution::create([
-            'form_id' => $routine->form_id,
-            'asset_id' => $asset->id,
-            'routine_execution_id' => $routineExecution->id,
-            'executed_by' => auth()->id(),
-            'started_at' => now(),
-            'completed_at' => now(),
-        ]);
-
-        // Processar cada resposta
-        foreach ($validated['responses'] as $response) {
-            $formTask = FormTask::find($response['task_id']);
-
-            $responseData = [
-                'form_execution_id' => $formExecution->id,
-                'form_task_id' => $response['task_id'],
-                'type' => $formTask->type,
-            ];
-
-            // Processar valor baseado no tipo
-            switch ($formTask->type) {
-                case 'measurement':
-                    if (isset($response['measurement']['value'])) {
-                        $responseData['value'] = json_encode($response['measurement']);
-                    }
-                    break;
-
-                case 'multiple_select':
-                    if (isset($response['value']) && is_array($response['value'])) {
-                        $responseData['value'] = json_encode($response['value']);
-                    }
-                    break;
-
-                case 'photo':
-                case 'file_upload':
-                    // Arquivos serão processados separadamente
-                    break;
-
-                default:
-                    $responseData['value'] = $response['value'] ?? null;
-            }
-
-            $formResponse = FormResponse::create($responseData);
-
-            // Processar arquivos se existirem
-            if (isset($response['files']) && is_array($response['files'])) {
-                foreach ($response['files'] as $file) {
-                    $path = $file->store('form-responses/'.$formExecution->id, 'public');
-
-                    $formResponse->attachments()->create([
-                        'file_name' => $file->getClientOriginalName(),
-                        'file_path' => $path,
-                        'file_size' => $file->getSize(),
-                        'mime_type' => $file->getMimeType(),
-                        'uploaded_by' => auth()->id(),
-                    ]);
-                }
-            }
-        }
-
-        return redirect()->route('asset-hierarchy.assets.show', ['asset' => $asset->id, 'tab' => 'rotinas'])
-            ->with('success', 'Formulário preenchido com sucesso.');
-    }
-
-    /**
-     * Get routine details with form data for API/AJAX requests
-     */
     public function getRoutineWithFormData(Routine $routine)
     {
-        // Check if user can view the asset (which includes viewing its routines)
-        $this->authorize('view', $routine->asset);
+        // Check if user can execute routines for this asset
+        $this->authorize('execute-routines', $routine->asset);
         
-        // Check if routine has a form
-        if (! $routine->form) {
-            return response()->json(['error' => 'Routine has no associated form'], 404);
+        $currentVersion = $routine->getFormVersionForExecution();
+        $tasks = [];
+
+        if ($currentVersion) {
+            // Get tasks with instructions
+            $tasks = $currentVersion->tasks()->with('instructions')->get()->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'type' => $this->mapTaskType($task->type),
+                    'description' => $task->description,
+                    'isRequired' => $task->is_required,
+                    'instructionImages' => $task->instructions->map(function ($instruction) {
+                        return $instruction->media_url;
+                    })->toArray(),
+                    'configuration' => $task->configuration,
+                ];
+            })->toArray();
         }
 
-        $routine->load(['form.draftTasks.instructions', 'form.currentVersion.tasks.instructions']);
-
-        // Get tasks - draft tasks if available, otherwise current version tasks
-        $tasks = collect([]);
-        if ($routine->form->draftTasks->count() > 0) {
-            $tasks = $routine->form->draftTasks;
-        } elseif ($routine->form->currentVersion) {
-            $tasks = $routine->form->currentVersion->tasks;
-        }
-
-        // Transform tasks to frontend format
-        $formattedTasks = $tasks->map(function ($task) {
-            return [
-                'id' => (string) $task->id,
-                'type' => $this->mapTaskType($task->type),
-                'description' => $task->description,
-                'isRequired' => $task->is_required,
-                'state' => 'viewing',
-                'measurement' => $task->getMeasurementConfig(),
-                'options' => $task->getOptions(),
-                'codeReaderType' => $task->getCodeReaderType(),
-                'instructionImages' => $task->instructions->where('type', 'image')->pluck('media_url')->toArray(),
-            ];
-        });
-
-        return response()->json([
+        return [
             'routine' => [
                 'id' => $routine->id,
                 'name' => $routine->name,
                 'description' => $routine->description,
                 'trigger_hours' => $routine->trigger_hours,
-                'status' => $routine->status,
-                'form' => [
-                    'id' => $routine->form->id,
-                    'tasks' => $formattedTasks,
-                    'is_draft' => $routine->form->isDraft(),
-                    'current_version_id' => $routine->form->current_version_id,
-                    'has_draft_changes' => $routine->form->draftTasks()->exists(),
-                    'current_version' => $routine->form->currentVersion ? [
-                        'id' => $routine->form->currentVersion->id,
-                        'version_number' => $routine->form->currentVersion->version_number,
-                        'published_at' => $routine->form->currentVersion->published_at,
-                    ] : null,
-                ],
             ],
-        ]);
+            'form' => [
+                'id' => $routine->form->id,
+                'name' => $routine->form->name,
+                'currentVersionId' => $currentVersion?->id,
+                'versionNumber' => $currentVersion?->version_number,
+            ],
+            'tasks' => $tasks,
+        ];
     }
 
     public function getFormData(Routine $routine)
     {
-        // Check if user can view the asset (which includes viewing its routines)
-        $this->authorize('view', $routine->asset);
+        // Check if user can manage the asset (which includes managing its routines)
+        $this->authorize('manage', $routine->asset);
         
-        // Check if routine has a form
-        if (! $routine->form) {
-            return response()->json(['error' => 'Routine has no associated form'], 404);
-        }
-
-        $routine->load([
-            'form.draftTasks.instructions',
-            'form.currentVersion.tasks.instructions',
-            'form.currentVersion.publisher',
-            'routineExecutions' => function ($query) {
-                $query->where('status', RoutineExecution::STATUS_COMPLETED)
-                    ->orderBy('completed_at', 'desc')
-                    ->limit(1)
-                    ->with('executor:id,name');
-            },
-        ]);
-
-        // If form is published and has no draft tasks, create draft from current version
-        if ($routine->form->current_version_id && ! $routine->form->draftTasks()->exists()) {
-            $routine->form->createDraftFromCurrentVersion();
-            // Reload draft tasks after creation
-            $routine->form->load('draftTasks.instructions');
-        }
-
-        // Get tasks - draft tasks if available, otherwise current version tasks
-        $tasks = collect([]);
-        $draftUpdatedAt = null;
-        $draftUpdatedBy = null;
-
-        if ($routine->form->draftTasks->count() > 0) {
-            $tasks = $routine->form->draftTasks;
-            // Get the most recent draft task update
-            $latestDraftTask = $routine->form->draftTasks()
-                ->orderBy('updated_at', 'desc')
-                ->first();
-            if ($latestDraftTask) {
-                $draftUpdatedAt = $latestDraftTask->updated_at;
-                // For now, we'll use the current user as the editor
-                // In a real implementation, you might want to track who last edited each task
-                $draftUpdatedBy = auth()->user();
-            }
-        } elseif ($routine->form->currentVersion) {
-            $tasks = $routine->form->currentVersion->tasks;
+        $form = $routine->form;
+        
+        // Check if there are draft tasks or use current version
+        if ($form->draftTasks()->exists()) {
+            // Return draft tasks
+            $tasks = $form->draftTasks()->with('instructions')->get();
+        } elseif ($form->currentVersion) {
+            // Return tasks from current version
+            $tasks = $form->currentVersion->tasks()->with('instructions')->get();
         } else {
+            $tasks = collect();
         }
 
-        // Transform tasks to frontend format
         $formattedTasks = $tasks->map(function ($task) {
-            return [
-                'id' => (string) $task->id,
+            $formatted = [
+                'id' => $task->id,
                 'type' => $this->mapTaskType($task->type),
                 'description' => $task->description,
                 'isRequired' => $task->is_required,
-                'state' => 'viewing',
-                'measurement' => $task->getMeasurementConfig(),
-                'options' => $task->getOptions(),
-                'codeReaderType' => $task->getCodeReaderType(),
-                'instructionImages' => $task->instructions->where('type', 'image')->pluck('media_url')->toArray(),
-                'form_version_id' => $task->form_version_id,
+                'instructionImages' => $task->instructions->map(function ($instruction) {
+                    return $instruction->media_url;
+                })->toArray(),
             ];
-        });
 
-        // Get last execution data
-        $lastExecution = $routine->routineExecutions->first();
-
-        $responseData = [
-            'routine' => [
-                'id' => $routine->id,
-                'name' => $routine->name,
-                'description' => $routine->description,
-                'trigger_hours' => $routine->trigger_hours,
-                'status' => $routine->status,
-                'form' => [
-                    'id' => $routine->form->id,
-                    'tasks' => $formattedTasks,
-                    'is_draft' => $routine->form->isDraft(),
-                    'current_version_id' => $routine->form->current_version_id,
-                    'has_draft_changes' => $routine->form->draftTasks()->exists(),
-                    'draft_updated_at' => $draftUpdatedAt,
-                    'draft_updated_by' => $draftUpdatedBy,
-                    'current_version' => $routine->form->currentVersion ? [
-                        'id' => $routine->form->currentVersion->id,
-                        'version_number' => $routine->form->currentVersion->version_number,
-                        'published_at' => $routine->form->currentVersion->published_at,
-                        'published_by' => $routine->form->currentVersion->publisher ? [
-                            'id' => $routine->form->currentVersion->publisher->id,
-                            'name' => $routine->form->currentVersion->publisher->name,
-                        ] : null,
-                    ] : null,
-                    'last_execution' => $lastExecution,
-                ],
-            ],
-        ];
-
-        return response()->json($responseData);
-    }
-
-    /**
-     * Get execution history for a specific asset
-     */
-    public function getAssetExecutionHistory(Request $request, Asset $asset)
-    {
-        // Check if user can view the asset (which includes viewing its routine executions)
-        $this->authorize('view', $asset);
-        
-        $perPage = $request->input('per_page', 10);
-        $page = $request->input('page', 1);
-        $sort = $request->input('sort', 'started_at');
-        $direction = $request->input('direction', 'desc');
-
-        // Get executions for this asset
-        $executionsQuery = RoutineExecution::query()
-            ->whereHas('routine', function ($query) use ($asset) {
-                $query->where('asset_id', $asset->id);
-            })
-            ->with(['routine', 'executor', 'formExecution.formVersion']);
-
-        // Apply sorting
-        switch ($sort) {
-            case 'routine_name':
-                $executionsQuery->join('routines', 'routine_executions.routine_id', '=', 'routines.id')
-                    ->orderBy('routines.name', $direction)
-                    ->select('routine_executions.*');
-                break;
-            case 'executor_name':
-                $executionsQuery->join('users', 'routine_executions.executed_by', '=', 'users.id')
-                    ->orderBy('users.name', $direction)
-                    ->select('routine_executions.*');
-                break;
-            default:
-                $executionsQuery->orderBy($sort, $direction);
-        }
-
-        // Paginate results
-        $executions = $executionsQuery->paginate($perPage, ['*'], 'page', $page);
-
-        // Transform execution data for frontend
-        $executionData = $executions->map(function ($execution) {
-            // Add safety checks for relationships
-            $routineData = null;
-            $executorData = null;
-            $formVersionData = null;
-            
-            if ($execution->routine) {
-                $routineData = [
-                    'id' => $execution->routine->id,
-                    'name' => $execution->routine->name,
-                    'description' => $execution->routine->description,
-                ];
+            // Add configuration data based on type
+            if ($task->type === 'measurement' && isset($task->configuration['measurement'])) {
+                $formatted['measurement'] = $task->configuration['measurement'];
+            } elseif (in_array($task->type, ['multiple_choice', 'multiple_select']) && isset($task->configuration['options'])) {
+                $formatted['options'] = $task->configuration['options'];
+            } elseif ($task->type === 'code_reader' && isset($task->configuration['codeReaderType'])) {
+                $formatted['codeReaderType'] = $task->configuration['codeReaderType'];
             }
-            
-            if ($execution->executor) {
-                $executorData = [
-                    'id' => $execution->executor->id,
-                    'name' => $execution->executor->name,
-                ];
-            }
-            
-            if ($execution->formExecution && $execution->formExecution->formVersion) {
-                $formVersionData = [
-                    'id' => $execution->formExecution->formVersion->id,
-                    'version_number' => $execution->formExecution->formVersion->version_number,
-                    'published_at' => $execution->formExecution->formVersion->published_at,
-                ];
-            }
-            
-            return [
-                'id' => $execution->id,
-                'routine' => $routineData,
-                'executor' => $executorData,
-                'form_version' => $formVersionData,
-                'status' => $execution->status,
-                'started_at' => $execution->started_at,
-                'completed_at' => $execution->completed_at,
-                'duration_minutes' => $execution->duration_minutes,
-                'progress' => $execution->progress_percentage,
-                'task_summary' => $execution->task_summary,
-            ];
-        });
+
+            return $formatted;
+        })->toArray();
 
         return response()->json([
-            'executions' => [
-                'data' => $executionData,
-                'current_page' => $executions->currentPage(),
-                'last_page' => $executions->lastPage(),
-                'per_page' => $executions->perPage(),
-                'total' => $executions->total(),
-                'from' => $executions->firstItem(),
-                'to' => $executions->lastItem(),
+            'success' => true,
+            'data' => [
+                'form' => [
+                    'id' => $form->id,
+                    'name' => $form->name,
+                    'currentVersionId' => $form->currentVersion?->id,
+                    'versionNumber' => $form->currentVersion?->version_number,
+                    'isDraft' => $form->isDraft(),
+                ],
+                'tasks' => $formattedTasks,
             ],
-            'filters' => [
-                'sort' => $sort,
-                'direction' => $direction,
-                'per_page' => $perPage,
-            ],
+        ]);
+    }
+
+    public function getAssetWorkOrderHistory(Request $request, Asset $asset)
+    {
+        // Check if user can view the asset
+        $this->authorize('view', $asset);
+        
+        $query = WorkOrder::where('asset_id', $asset->id)
+            ->with(['type', 'execution', 'requestedBy'])
+            ->orderBy('created_at', 'desc');
+
+        // Apply filters
+        if ($request->filled('routine_id')) {
+            $query->where('source_type', 'routine')
+                ->where('source_id', $request->routine_id);
+        }
+
+        if ($request->filled('category')) {
+            $query->where('work_order_category', $request->category);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $workOrders = $query->paginate(20);
+
+        return response()->json([
+            'success' => true,
+            'data' => $workOrders,
         ]);
     }
 }

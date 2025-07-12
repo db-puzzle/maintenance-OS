@@ -4,6 +4,7 @@ namespace App\Models\Forms;
 
 use App\Models\Maintenance\Routine;
 use App\Models\User;
+use App\Models\WorkOrders\WorkOrder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,6 +34,14 @@ class Form extends Model
     public function routine(): HasOne
     {
         return $this->hasOne(Routine::class);
+    }
+
+    /**
+     * Get the work orders that use this form
+     */
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
     }
 
     /**
@@ -74,6 +83,16 @@ class Form extends Model
     public function isDraft(): bool
     {
         return $this->current_version_id === null || $this->draftTasks()->exists();
+    }
+
+    /**
+     * Check if form is used in active routines
+     */
+    public function isUsedInActiveRoutines(): bool
+    {
+        return $this->routine()
+            ->where('status', 'Active')
+            ->exists();
     }
 
     /**
