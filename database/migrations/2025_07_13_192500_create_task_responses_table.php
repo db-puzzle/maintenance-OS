@@ -14,14 +14,16 @@ return new class extends Migration
         Schema::create('task_responses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('form_task_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('work_order_execution_id')->constrained()->cascadeOnDelete(); // Changed from form_execution_id
+            $table->foreignId('work_order_execution_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained();
             $table->text('response')->nullable();
             $table->json('response_data')->nullable()->comment('Structured data for specific response types');
+            $table->timestamp('completed_at')->nullable();
             $table->timestamps();
 
             $table->index(['work_order_execution_id', 'form_task_id']);
             $table->index('user_id');
+            $table->index('completed_at');
         });
     }
 

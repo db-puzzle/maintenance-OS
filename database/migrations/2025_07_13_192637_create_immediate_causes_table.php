@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('failure_modes', function (Blueprint $table) {
+        Schema::create('immediate_causes', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('code', 20)->unique();
@@ -19,6 +19,9 @@ return new class extends Migration
             $table->string('category', 50)->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            
+            $table->index('is_active');
+            $table->index('category');
         });
     }
 
@@ -27,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('failure_modes');
+        Schema::dropIfExists('immediate_causes');
     }
 };

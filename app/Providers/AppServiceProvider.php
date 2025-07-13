@@ -8,10 +8,12 @@ use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Sector;
 use App\Models\AssetHierarchy\Asset;
+use App\Models\WorkOrders\WorkOrder;
 use App\Observers\PlantObserver;
 use App\Observers\AreaObserver;
 use App\Observers\SectorObserver;
 use App\Observers\AssetObserver;
+use App\Observers\WorkOrderObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -35,5 +37,8 @@ class AppServiceProvider extends ServiceProvider
         Area::observe(AreaObserver::class);
         Sector::observe(SectorObserver::class);
         Asset::observe(AssetObserver::class);
+        
+        // Register work order observer
+        WorkOrder::observe(WorkOrderObserver::class);
     }
 }

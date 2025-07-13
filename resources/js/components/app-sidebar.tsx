@@ -26,6 +26,10 @@ const gerenciamentoNavItems: NavGroup = {
             icon: ChartGantt,
             items: [
                 {
+                    title: 'Ordens de Serviço',
+                    href: '/maintenance/work-orders',
+                },
+                {
                     title: 'Ativos',
                     href: '/asset-hierarchy/assets',
                 },

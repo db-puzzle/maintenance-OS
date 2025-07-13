@@ -4,16 +4,18 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\WorkOrders\WorkOrder;
-use Illuminate\Auth\Access\Response;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class WorkOrderPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any work orders.
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('work-orders.view');
+        return $user->can('work-orders.view');
     }
 
     /**
@@ -21,7 +23,27 @@ class WorkOrderPolicy
      */
     public function view(User $user, WorkOrder $workOrder): bool
     {
-        return $user->hasPermissionTo('work-orders.view');
+        // Check if user has general permission
+        if ($user->can('work-orders.view')) {
+            return true;
+        }
+
+        // Check if user has plant-specific permission
+        if ($workOrder->plant_id && $user->can("work-orders.view.plant.{$workOrder->plant_id}")) {
+            return true;
+        }
+
+        // Check if user is assigned to the work order
+        if ($workOrder->assigned_to === $user->id) {
+            return true;
+        }
+
+        // Check if user created the work order
+        if ($workOrder->created_by === $user->id) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -29,7 +51,7 @@ class WorkOrderPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('work-orders.create');
+        return $user->can('work-orders.create');
     }
 
     /**
@@ -37,18 +59,27 @@ class WorkOrderPolicy
      */
     public function update(User $user, WorkOrder $workOrder): bool
     {
-        if (!$user->hasPermissionTo('work-orders.update')) {
+        // Cannot update completed or cancelled work orders
+        if (in_array($workOrder->status, ['completed', 'cancelled'])) {
             return false;
         }
 
-        // Only allow updates to certain statuses
-        $editableStatuses = [
-            WorkOrder::STATUS_REQUESTED,
-            WorkOrder::STATUS_APPROVED,
-            WorkOrder::STATUS_PLANNED,
-        ];
+        // Check if user has general permission
+        if ($user->can('work-orders.update')) {
+            return true;
+        }
 
-        return in_array($workOrder->status, $editableStatuses);
+        // Check if user has plant-specific permission
+        if ($workOrder->plant_id && $user->can("work-orders.update.plant.{$workOrder->plant_id}")) {
+            return true;
+        }
+
+        // Assigned user can update certain fields
+        if ($workOrder->assigned_to === $user->id && $workOrder->status === 'in_progress') {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -56,54 +87,72 @@ class WorkOrderPolicy
      */
     public function delete(User $user, WorkOrder $workOrder): bool
     {
-        if (!$user->hasPermissionTo('work-orders.delete')) {
+        // Can only delete pending work orders
+        if ($workOrder->status !== 'pending') {
             return false;
         }
 
-        // Only allow deletion of requested or cancelled work orders
-        return in_array($workOrder->status, [
-            WorkOrder::STATUS_REQUESTED,
-            WorkOrder::STATUS_CANCELLED,
-        ]);
+        // Check if user has general permission
+        if ($user->can('work-orders.delete')) {
+            return true;
+        }
+
+        // Check if user has plant-specific permission
+        if ($workOrder->plant_id && $user->can("work-orders.delete.plant.{$workOrder->plant_id}")) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Determine whether the user can approve work orders.
+     * Determine whether the user can approve the work order.
      */
     public function approve(User $user, WorkOrder $workOrder): bool
     {
-        if (!$user->hasPermissionTo('work-orders.approve')) {
+        // Can only approve pending work orders
+        if ($workOrder->status !== 'pending') {
             return false;
         }
 
-        return $workOrder->status === WorkOrder::STATUS_REQUESTED;
+        // Check if user has general permission
+        if ($user->can('work-orders.approve')) {
+            return true;
+        }
+
+        // Check if user has plant-specific permission
+        if ($workOrder->plant_id && $user->can("work-orders.approve.plant.{$workOrder->plant_id}")) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Determine whether the user can plan work orders.
+     * Determine whether the user can start the work order.
      */
-    public function plan(User $user, WorkOrder $workOrder): bool
+    public function start(User $user, WorkOrder $workOrder): bool
     {
-        if (!$user->hasPermissionTo('work-orders.plan')) {
+        // Can only start approved work orders
+        if ($workOrder->status !== 'approved') {
             return false;
         }
 
-        return $workOrder->status === WorkOrder::STATUS_APPROVED;
-    }
+        // Must be assigned to start
+        if ($workOrder->assigned_to !== $user->id) {
+            // Unless user has execution permission
+            if ($user->can('work-orders.execute')) {
+                return true;
+            }
 
-    /**
-     * Determine whether the user can schedule work orders.
-     */
-    public function schedule(User $user, WorkOrder $workOrder): bool
-    {
-        if (!$user->hasPermissionTo('work-orders.schedule')) {
+            if ($workOrder->plant_id && $user->can("work-orders.execute.plant.{$workOrder->plant_id}")) {
+                return true;
+            }
+
             return false;
         }
 
-        return in_array($workOrder->status, [
-            WorkOrder::STATUS_PLANNED,
-            WorkOrder::STATUS_READY,
-        ]);
+        return true;
     }
 
     /**
@@ -111,42 +160,79 @@ class WorkOrderPolicy
      */
     public function execute(User $user, WorkOrder $workOrder): bool
     {
-        if (!$user->hasPermissionTo('work-orders.execute')) {
+        // Must be in progress
+        if ($workOrder->status !== 'in_progress') {
             return false;
         }
 
-        // Check if user is assigned to the work order
-        if ($workOrder->assigned_technician_id && $workOrder->assigned_technician_id !== $user->id) {
-            return false;
+        // Check if user is the executor
+        if ($workOrder->execution && $workOrder->execution->executed_by === $user->id) {
+            return true;
         }
 
-        return in_array($workOrder->status, [
-            WorkOrder::STATUS_SCHEDULED,
-            WorkOrder::STATUS_IN_PROGRESS,
-        ]);
+        // Check permissions
+        if ($user->can('work-orders.execute')) {
+            return true;
+        }
+
+        if ($workOrder->plant_id && $user->can("work-orders.execute.plant.{$workOrder->plant_id}")) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Determine whether the user can verify the work order.
+     * Determine whether the user can complete the work order.
      */
-    public function verify(User $user, WorkOrder $workOrder): bool
+    public function complete(User $user, WorkOrder $workOrder): bool
     {
-        if (!$user->hasPermissionTo('work-orders.verify')) {
+        // Must be in progress
+        if ($workOrder->status !== 'in_progress') {
             return false;
         }
 
-        return $workOrder->status === WorkOrder::STATUS_COMPLETED;
+        // Check if user is the executor
+        if ($workOrder->execution && $workOrder->execution->executed_by === $user->id) {
+            return true;
+        }
+
+        // Check permissions
+        if ($user->can('work-orders.complete')) {
+            return true;
+        }
+
+        if ($workOrder->plant_id && $user->can("work-orders.complete.plant.{$workOrder->plant_id}")) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Determine whether the user can close the work order.
+     * Determine whether the user can cancel the work order.
      */
-    public function close(User $user, WorkOrder $workOrder): bool
+    public function cancel(User $user, WorkOrder $workOrder): bool
     {
-        if (!$user->hasPermissionTo('work-orders.close')) {
+        // Cannot cancel completed work orders
+        if ($workOrder->status === 'completed') {
             return false;
         }
 
-        return $workOrder->status === WorkOrder::STATUS_VERIFIED;
+        // Check permissions
+        if ($user->can('work-orders.cancel')) {
+            return true;
+        }
+
+        if ($workOrder->plant_id && $user->can("work-orders.cancel.plant.{$workOrder->plant_id}")) {
+            return true;
+        }
+
+        // Creator can cancel pending work orders
+        if ($workOrder->status === 'pending' && $workOrder->created_by === $user->id) {
+            return true;
+        }
+
+        return false;
     }
 }

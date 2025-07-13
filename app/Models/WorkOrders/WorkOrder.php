@@ -305,12 +305,22 @@ class WorkOrder extends Model
     {
         $year = date('Y');
         $month = date('m');
+        $prefix = "WO-{$year}-{$month}-";
         
-        $lastNumber = static::whereYear('created_at', $year)
+        // Get the latest work order for this month
+        $latestWorkOrder = static::whereYear('created_at', $year)
             ->whereMonth('created_at', $month)
-            ->max(DB::raw("CAST(SUBSTRING_INDEX(work_order_number, '-', -1) AS UNSIGNED)"));
+            ->where('work_order_number', 'like', $prefix . '%')
+            ->orderBy('work_order_number', 'desc')
+            ->first();
         
-        $nextNumber = ($lastNumber ?? 0) + 1;
+        if ($latestWorkOrder) {
+            // Extract the number from the last work order
+            $lastNumber = (int) substr($latestWorkOrder->work_order_number, -5);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
         
         return sprintf('WO-%s-%s-%05d', $year, $month, $nextNumber);
     }

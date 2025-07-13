@@ -16,10 +16,12 @@ class TaskResponse extends Model
         'user_id',
         'response',
         'response_data',
+        'completed_at',
     ];
 
     protected $casts = [
         'response_data' => 'array',
+        'completed_at' => 'datetime',
     ];
 
     /**
@@ -107,6 +109,6 @@ class TaskResponse extends Model
      */
     public function isCompleted(): bool
     {
-        return $this->response !== null;
+        return $this->completed_at !== null;
     }
 }

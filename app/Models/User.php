@@ -84,6 +84,38 @@ class User extends Authenticatable
     }
 
     /**
+     * Get work orders created by this user
+     */
+    public function createdWorkOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class, 'created_by');
+    }
+
+    /**
+     * Get work orders assigned to this user
+     */
+    public function assignedWorkOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class, 'assigned_to');
+    }
+
+    /**
+     * Get work orders approved by this user
+     */
+    public function approvedWorkOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class, 'approved_by');
+    }
+
+    /**
+     * Get work order executions performed by this user
+     */
+    public function workOrderExecutions(): HasMany
+    {
+        return $this->hasMany(WorkOrderExecution::class, 'executed_by');
+    }
+
+    /**
      * Boot the model
      */
     protected static function booted()

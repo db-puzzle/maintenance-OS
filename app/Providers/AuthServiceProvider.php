@@ -6,10 +6,12 @@ use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
+use App\Models\WorkOrders\WorkOrder;
 use App\Policies\AreaPolicy;
 use App\Policies\AssetPolicy;
 use App\Policies\PlantPolicy;
 use App\Policies\SectorPolicy;
+use App\Policies\WorkOrderPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -24,6 +26,7 @@ class AuthServiceProvider extends ServiceProvider
         Asset::class => AssetPolicy::class,
         Plant::class => PlantPolicy::class,
         Sector::class => SectorPolicy::class,
+        WorkOrder::class => WorkOrderPolicy::class,
     ];
 
     /**

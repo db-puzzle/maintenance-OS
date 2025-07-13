@@ -3,179 +3,211 @@
 namespace App\Http\Controllers\WorkOrders;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\WorkOrderExecutionResource;
 use App\Models\WorkOrders\WorkOrder;
 use App\Models\WorkOrders\WorkOrderExecution;
-use App\Services\WorkOrders\WorkOrderExecutionService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class WorkOrderExecutionController extends Controller
 {
-    public function __construct(
-        private WorkOrderExecutionService $service
-    ) {
+    /**
+     * Start the execution of a work order
+     */
+    public function start(Request $request, WorkOrder $workOrder)
+    {
+        $this->authorize('start', $workOrder);
+
+        if (!$workOrder->canBeStarted()) {
+            return back()->with('error', 'Esta ordem de serviço não pode ser iniciada.');
+        }
+
+        // Create work order execution
+        $execution = WorkOrderExecution::create([
+            'work_order_id' => $workOrder->id,
+            'executed_by' => auth()->id(),
+            'started_at' => now(),
+            'status' => 'in_progress',
+        ]);
+
+        // Update work order status
+        $workOrder->updateStatus('in_progress');
+
+        return redirect()->route('work-orders.execute', $workOrder)
+            ->with('success', 'Execução da ordem de serviço iniciada.');
     }
 
     /**
-     * Show execution interface
+     * Show the execution interface
      */
-    public function show(WorkOrder $workOrder)
+    public function execute(WorkOrder $workOrder)
     {
-        Gate::authorize('execute', $workOrder);
-        
+        $this->authorize('execute', $workOrder);
+
+        if ($workOrder->status !== 'in_progress') {
+            return redirect()->route('work-orders.show', $workOrder)
+                ->with('error', 'Esta ordem de serviço não está em execução.');
+        }
+
         $workOrder->load([
-            'asset',
-            'type',
-            'form',
-            'formVersion.tasks.instructions',
-            'execution.taskResponses.attachments',
+            'workOrderType',
+            'asset.plant',
+            'form.currentVersion.tasks.instructions',
+            'execution.taskResponses',
         ]);
-        
-        // Start execution if not started
-        if (!$workOrder->execution) {
-            $execution = $this->service->startExecution($workOrder, auth()->user());
-        } else {
-            $execution = $workOrder->execution;
-        }
-        
-        return Inertia::render('WorkOrders/Execute', [
+
+        return Inertia::render('work-orders/execute', [
             'workOrder' => $workOrder,
-            'execution' => new WorkOrderExecutionResource($execution),
-            'statistics' => $this->service->getExecutionStats($execution),
+            'execution' => $workOrder->execution,
+            'formVersion' => $workOrder->form?->getFormVersionForExecution(),
         ]);
     }
 
     /**
-     * Start execution
+     * Pause the execution
      */
-    public function start(WorkOrder $workOrder)
+    public function pause(Request $request, WorkOrder $workOrder)
     {
-        Gate::authorize('execute', $workOrder);
-        
-        $execution = $this->service->startExecution($workOrder, auth()->user());
-        
-        if (request()->wantsJson()) {
-            return new WorkOrderExecutionResource($execution);
+        $this->authorize('execute', $workOrder);
+
+        if (!$workOrder->execution || !$workOrder->execution->started_at) {
+            return back()->with('error', 'Execução não encontrada.');
         }
-        
-        return redirect()->route('work-orders.execution.show', $workOrder)
-            ->with('success', 'Work order execution started.');
+
+        $workOrder->execution->pause();
+
+        return back()->with('success', 'Execução pausada.');
     }
 
     /**
-     * Submit task response
+     * Resume the execution
      */
-    public function submitTask(Request $request, WorkOrderExecution $execution)
+    public function resume(Request $request, WorkOrder $workOrder)
     {
-        Gate::authorize('execute', $execution->workOrder);
-        
-        $validated = $request->validate([
-            'task_id' => 'required|exists:form_tasks,id',
-            'response' => 'required',
-            'response_data' => 'nullable|array',
-        ]);
-        
-        $this->service->submitTaskResponse(
-            $execution,
-            $validated['task_id'],
-            $validated['response'],
-            $validated['response_data'] ?? null
-        );
-        
-        if ($request->wantsJson()) {
-            return response()->json([
-                'message' => 'Task response submitted successfully.',
-                'statistics' => $this->service->getExecutionStats($execution),
-            ]);
+        $this->authorize('execute', $workOrder);
+
+        if (!$workOrder->execution || !$workOrder->execution->isPaused()) {
+            return back()->with('error', 'Execução não está pausada.');
         }
-        
-        return back()->with('success', 'Task response submitted.');
+
+        $workOrder->execution->resume();
+
+        return back()->with('success', 'Execução retomada.');
     }
 
     /**
-     * Pause execution
+     * Complete the execution
      */
-    public function pause(WorkOrderExecution $execution)
+    public function complete(Request $request, WorkOrder $workOrder)
     {
-        Gate::authorize('execute', $execution->workOrder);
-        
-        $this->service->pauseExecution($execution);
-        
-        if (request()->wantsJson()) {
-            return new WorkOrderExecutionResource($execution->fresh());
-        }
-        
-        return back()->with('success', 'Execution paused.');
-    }
+        $this->authorize('complete', $workOrder);
 
-    /**
-     * Resume execution
-     */
-    public function resume(WorkOrderExecution $execution)
-    {
-        Gate::authorize('execute', $execution->workOrder);
-        
-        $this->service->resumeExecution($execution);
-        
-        if (request()->wantsJson()) {
-            return new WorkOrderExecutionResource($execution->fresh());
-        }
-        
-        return back()->with('success', 'Execution resumed.');
-    }
-
-    /**
-     * Complete execution
-     */
-    public function complete(Request $request, WorkOrderExecution $execution)
-    {
-        Gate::authorize('execute', $execution->workOrder);
-        
         $validated = $request->validate([
             'work_performed' => 'required|string',
             'observations' => 'nullable|string',
             'recommendations' => 'nullable|string',
-            'follow_up_required' => 'boolean',
-            'follow_up_description' => 'required_if:follow_up_required,true|string',
-            'safety_checks_completed' => 'boolean',
-            'quality_checks_completed' => 'boolean',
-            'area_cleaned' => 'boolean',
-            'tools_returned' => 'boolean',
+            'follow_up_required' => 'required|boolean',
+            'safety_checks_completed' => 'required|boolean',
+            'quality_checks_completed' => 'required|boolean',
+            'tools_returned' => 'required|boolean',
+            'area_cleaned' => 'required|boolean',
+            'actual_hours' => 'nullable|numeric|min:0',
+            'actual_cost' => 'nullable|numeric|min:0',
         ]);
-        
-        try {
-            $this->service->completeExecution($execution, $validated);
-            
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'message' => 'Work order completed successfully.',
-                    'work_order' => $execution->workOrder->fresh(),
-                ]);
-            }
-            
-            return redirect()->route('work-orders.show', $execution->workOrder)
-                ->with('success', 'Work order completed successfully.');
-        } catch (\Exception $e) {
-            if ($request->wantsJson()) {
-                return response()->json(['message' => $e->getMessage()], 422);
-            }
-            
-            return back()->with('error', $e->getMessage());
+
+        if (!$workOrder->execution) {
+            return back()->with('error', 'Execução não encontrada.');
         }
+
+        // Check if all required tasks are completed
+        if ($workOrder->form_id && !$this->areAllRequiredTasksCompleted($workOrder)) {
+            return back()->with('error', 'Todas as tarefas obrigatórias devem ser concluídas.');
+        }
+
+        // Update execution
+        $workOrder->execution->update([
+            'work_performed' => $validated['work_performed'],
+            'observations' => $validated['observations'],
+            'recommendations' => $validated['recommendations'],
+            'follow_up_required' => $validated['follow_up_required'],
+            'safety_checks_completed' => $validated['safety_checks_completed'],
+            'quality_checks_completed' => $validated['quality_checks_completed'],
+            'tools_returned' => $validated['tools_returned'],
+            'area_cleaned' => $validated['area_cleaned'],
+        ]);
+
+        // Complete the execution
+        $workOrder->execution->complete();
+
+        // Update work order with actual values
+        $workOrder->update([
+            'actual_hours' => $validated['actual_hours'] ?? $workOrder->execution->actual_execution_time / 60,
+            'actual_cost' => $validated['actual_cost'],
+        ]);
+
+        // Update execution status
+        $workOrder->execution->update(['status' => 'completed']);
+
+        return redirect()->route('work-orders.show', $workOrder)
+            ->with('success', 'Ordem de serviço concluída com sucesso.');
     }
 
     /**
-     * Get execution progress
+     * Cancel the execution
      */
-    public function progress(WorkOrderExecution $execution)
+    public function cancel(Request $request, WorkOrder $workOrder)
     {
-        Gate::authorize('view', $execution->workOrder);
-        
-        return response()->json([
-            'statistics' => $this->service->getExecutionStats($execution),
-            'execution' => new WorkOrderExecutionResource($execution),
+        $this->authorize('execute', $workOrder);
+
+        $validated = $request->validate([
+            'cancellation_reason' => 'required|string',
         ]);
+
+        if (!$workOrder->execution) {
+            return back()->with('error', 'Execução não encontrada.');
+        }
+
+        // Update execution with cancellation reason
+        $workOrder->execution->update([
+            'observations' => 'Cancelado: ' . $validated['cancellation_reason'],
+        ]);
+
+        // Delete the execution
+        $workOrder->execution->delete();
+
+        // Update work order status back to approved
+        $workOrder->updateStatus('approved', 'Execução cancelada: ' . $validated['cancellation_reason']);
+
+        return redirect()->route('work-orders.show', $workOrder)
+            ->with('success', 'Execução cancelada.');
+    }
+
+    /**
+     * Check if all required tasks are completed
+     */
+    private function areAllRequiredTasksCompleted(WorkOrder $workOrder): bool
+    {
+        if (!$workOrder->form || !$workOrder->execution) {
+            return true;
+        }
+
+        $formVersion = $workOrder->form->getFormVersionForExecution();
+        if (!$formVersion) {
+            return true;
+        }
+
+        $requiredTasks = $formVersion->tasks()
+            ->where('is_required', true)
+            ->pluck('id');
+
+        if ($requiredTasks->isEmpty()) {
+            return true;
+        }
+
+        $completedRequiredTasks = $workOrder->execution->taskResponses()
+            ->whereIn('form_task_id', $requiredTasks)
+            ->whereNotNull('completed_at')
+            ->count();
+
+        return $requiredTasks->count() === $completedRequiredTasks;
     }
 }

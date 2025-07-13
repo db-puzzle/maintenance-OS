@@ -2,73 +2,86 @@
 
 namespace App\Http\Requests\WorkOrders;
 
-use App\Models\WorkOrders\WorkOrder;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateWorkOrderRequest extends FormRequest
 {
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
-        return true; // Authorization handled in controller
+        return $this->user()->can('update', $this->route('work_order'));
     }
 
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         $workOrder = $this->route('work_order');
         
         // Only allow certain fields to be updated based on status
-        $allowedFields = $this->getAllowedFieldsByStatus($workOrder);
-        
         $rules = [];
         
-        if (in_array('title', $allowedFields)) {
-            $rules['title'] = 'sometimes|required|string|max:255';
-        }
-        
-        if (in_array('description', $allowedFields)) {
-            $rules['description'] = 'nullable|string';
-        }
-        
-        if (in_array('priority', $allowedFields)) {
-            $rules['priority'] = 'sometimes|required|in:emergency,urgent,high,normal,low';
-        }
-        
-        if (in_array('requested_due_date', $allowedFields)) {
-            $rules['requested_due_date'] = 'nullable|date|after:today';
-        }
-        
-        if (in_array('custom_tasks', $allowedFields)) {
-            $rules['custom_tasks'] = 'nullable|array';
-            $rules['custom_tasks.*.description'] = 'required_with:custom_tasks|string';
-            $rules['custom_tasks.*.type'] = 'required_with:custom_tasks|string';
-            $rules['custom_tasks.*.is_required'] = 'required_with:custom_tasks|boolean';
-        }
-        
-        if (in_array('external_reference', $allowedFields)) {
-            $rules['external_reference'] = 'nullable|string|max:255';
+        if (in_array($workOrder->status, ['pending', 'approved'])) {
+            $rules = [
+                'work_order_type_id' => 'sometimes|exists:work_order_types,id',
+                'title' => 'sometimes|string|max:255',
+                'description' => 'nullable|string',
+                'priority' => 'sometimes|in:critical,high,medium,low',
+                'asset_id' => 'nullable|exists:assets,id',
+                'plant_id' => 'sometimes|exists:plants,id',
+                'form_id' => 'nullable|exists:forms,id',
+                'assigned_to' => 'nullable|exists:users,id',
+                'scheduled_start_date' => 'nullable|date',
+                'scheduled_end_date' => 'nullable|date|after_or_equal:scheduled_start_date',
+                'estimated_hours' => 'nullable|numeric|min:0|max:9999',
+                'estimated_cost' => 'nullable|numeric|min:0|max:999999.99',
+                'notes' => 'nullable|string|max:5000',
+            ];
+        } elseif ($workOrder->status === 'in_progress') {
+            // Limited updates during execution
+            $rules = [
+                'notes' => 'nullable|string|max:5000',
+                'estimated_hours' => 'nullable|numeric|min:0|max:9999',
+            ];
         }
         
         return $rules;
     }
 
-    protected function getAllowedFieldsByStatus(WorkOrder $workOrder): array
+    /**
+     * Get custom attributes for validator errors.
+     */
+    public function attributes(): array
     {
-        switch ($workOrder->status) {
-            case WorkOrder::STATUS_REQUESTED:
-                return ['title', 'description', 'priority', 'requested_due_date', 'custom_tasks', 'external_reference'];
-            case WorkOrder::STATUS_APPROVED:
-            case WorkOrder::STATUS_PLANNED:
-                return ['priority', 'requested_due_date', 'external_reference'];
-            default:
-                return ['external_reference']; // Very limited updates once work has started
-        }
+        return [
+            'work_order_type_id' => 'tipo de ordem',
+            'title' => 'título',
+            'description' => 'descrição',
+            'priority' => 'prioridade',
+            'asset_id' => 'ativo',
+            'plant_id' => 'planta',
+            'form_id' => 'formulário',
+            'assigned_to' => 'responsável',
+            'scheduled_start_date' => 'data de início programada',
+            'scheduled_end_date' => 'data de término programada',
+            'estimated_hours' => 'horas estimadas',
+            'estimated_cost' => 'custo estimado',
+            'notes' => 'observações',
+        ];
     }
 
+    /**
+     * Get custom error messages.
+     */
     public function messages(): array
     {
         return [
-            'requested_due_date.after' => 'The due date must be in the future.',
+            'scheduled_end_date.after_or_equal' => 'A data de término deve ser posterior ou igual à data de início.',
         ];
     }
 }

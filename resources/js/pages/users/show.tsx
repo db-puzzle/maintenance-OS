@@ -1,10 +1,9 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import ShowLayout from '@/layouts/show-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -21,6 +20,8 @@ import {
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import EmptyCard from '@/components/ui/empty-card';
+import { type BreadcrumbItem } from '@/types';
 
 
 interface User {
@@ -180,25 +181,93 @@ export default function UserShow({
         }
     };
 
-    return (
-        <AppLayout>
-            <Head title={`User - ${user.name}`} />
+    // Define breadcrumbs
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Home',
+            href: '/home',
+        },
+        {
+            title: 'Users',
+            href: '/users',
+        },
+        {
+            title: user.name,
+            href: '#',
+        },
+    ];
 
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
+    const tabs = [
+        {
+            id: 'info',
+            label: 'User Information',
+            content: (
+                <div className="space-y-6 py-6">
+                    {/* User Info Section */}
                     <div className="flex items-center gap-4">
                         <Avatar className="h-16 w-16">
                             <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} />
                             <AvatarFallback>{initials}</AvatarFallback>
                         </Avatar>
                         <div>
-                            <h2 className="text-3xl font-bold tracking-tight">{user.name}</h2>
+                            <h3 className="text-2xl font-semibold">{user.name}</h3>
                             <p className="text-muted-foreground">{user.email}</p>
                         </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <Separator />
+
+                    {/* Roles Section */}
+                    <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-muted-foreground">Roles</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {user.roles.length > 0 ? (
+                                user.roles.map((role) => (
+                                    <Badge
+                                        key={role.id}
+                                        className={getRoleBadgeColor(role.name)}
+                                    >
+                                        {role.name}
+                                    </Badge>
+                                ))
+                            ) : (
+                                <span className="text-sm text-muted-foreground">No roles assigned</span>
+                            )}
+                        </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Account Details */}
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Total Permissions</p>
+                            <p className="text-2xl font-bold">{user.permissions.length}</p>
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Account Status</p>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                Active
+                            </Badge>
+                        </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Timestamps */}
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Created</p>
+                            <p className="text-sm">{new Date(user.created_at).toLocaleString()}</p>
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+                            <p className="text-sm">{new Date(user.updated_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pt-4">
                         {canEditUser && (
                             <Button variant="outline" asChild>
                                 <Link href={`/users/${user.id}/edit`}>
@@ -217,129 +286,98 @@ export default function UserShow({
                         )}
                     </div>
                 </div>
+            ),
+        },
+        {
+            id: 'permissions',
+            label: 'Permissions',
+            icon: <Shield className="h-4 w-4" />,
+            content: (
+                <div className="space-y-6 py-6">
+                    <div className="space-y-2">
+                        <h3 className="text-lg font-semibold">Permission Hierarchy</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Permissions organized by entity hierarchy
+                        </p>
+                    </div>
 
-                {/* User Info Card */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>User Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Roles</p>
-                                <div className="flex flex-wrap gap-2 mt-1">
-                                    {user.roles.length > 0 ? (
-                                        user.roles.map((role) => (
-                                            <Badge
-                                                key={role.id}
-                                                className={getRoleBadgeColor(role.name)}
-                                            >
-                                                {role.name}
-                                            </Badge>
-                                        ))
-                                    ) : (
-                                        <span className="text-sm text-muted-foreground">No roles assigned</span>
-                                    )}
+                    <Separator />
+
+                    {permissionHierarchy.length > 0 ? (
+                        <div className="space-y-4">
+                            {permissionHierarchy.map((node) => renderPermissionNode(node))}
+                        </div>
+                    ) : (
+                        <EmptyCard
+                            icon={Shield}
+                            title="No permissions assigned"
+                            description="This user has not been assigned any permissions yet"
+                            primaryButtonText="Manage Permissions"
+                            primaryButtonAction={() => window.location.href = `/users/${user.id}/permissions`}
+                        />
+                    )}
+                </div>
+            ),
+        },
+        {
+            id: 'activity',
+            label: 'Activity',
+            icon: <Activity className="h-4 w-4" />,
+            content: (
+                <div className="space-y-6 py-6">
+                    <div className="space-y-2">
+                        <h3 className="text-lg font-semibold">Recent Activity</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Permission changes and user actions
+                        </p>
+                    </div>
+
+                    <Separator />
+
+                    {activityLogs.length > 0 ? (
+                        <div className="space-y-4">
+                            {activityLogs.map((log) => (
+                                <div key={log.id} className="flex items-start gap-3 pb-4 border-b last:border-0">
+                                    <div className="flex-1 space-y-1">
+                                        <p className="text-sm">
+                                            <span className="font-medium">{log.user.name}</span>{' '}
+                                            <span className="text-muted-foreground">{log.action}</span>
+                                        </p>
+                                        {log.details && (
+                                            <p className="text-xs text-muted-foreground">
+                                                {JSON.stringify(log.details)}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {formatActivityTime(log.created_at)}
+                                    </p>
                                 </div>
-                            </div>
-
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Total Permissions</p>
-                                <p className="text-2xl font-bold">{user.permissions.length}</p>
-                            </div>
+                            ))}
                         </div>
+                    ) : (
+                        <EmptyCard
+                            icon={Activity}
+                            title="No recent activity"
+                            description="There is no activity to display for this user"
+                        />
+                    )}
+                </div>
+            ),
+        },
+    ];
 
-                        <Separator />
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`User - ${user.name}`} />
 
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Created</p>
-                                <p className="text-sm">{new Date(user.created_at).toLocaleString()}</p>
-                            </div>
-
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
-                                <p className="text-sm">{new Date(user.updated_at).toLocaleString()}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Tabs */}
-                <Tabs defaultValue="permissions" className="space-y-4">
-                    <TabsList>
-                        <TabsTrigger value="permissions">
-                            <Shield className="mr-2 h-4 w-4" />
-                            Permissions
-                        </TabsTrigger>
-                        <TabsTrigger value="activity">
-                            <Activity className="mr-2 h-4 w-4" />
-                            Activity
-                        </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="permissions" className="space-y-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Permission Hierarchy</CardTitle>
-                                <CardDescription>
-                                    Permissions organized by entity hierarchy
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {permissionHierarchy.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {permissionHierarchy.map((node) => renderPermissionNode(node))}
-                                    </div>
-                                ) : (
-                                    <p className="text-center text-muted-foreground py-8">
-                                        No permissions assigned
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="activity" className="space-y-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Recent Activity</CardTitle>
-                                <CardDescription>
-                                    Permission changes and user actions
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {activityLogs.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {activityLogs.map((log) => (
-                                            <div key={log.id} className="flex items-start gap-3 pb-4 border-b last:border-0">
-                                                <div className="flex-1 space-y-1">
-                                                    <p className="text-sm">
-                                                        <span className="font-medium">{log.user.name}</span>{' '}
-                                                        <span className="text-muted-foreground">{log.action}</span>
-                                                    </p>
-                                                    {log.details && (
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {JSON.stringify(log.details)}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {formatActivityTime(log.created_at)}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-center text-muted-foreground py-8">
-                                        No recent activity
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
-            </div>
+            <ShowLayout
+                title={user.name}
+                subtitle={user.email}
+                editRoute={canEditUser ? route('users.edit', user.id) : ''}
+                tabs={tabs}
+                defaultActiveTab="info"
+            />
         </AppLayout>
     );
 } 

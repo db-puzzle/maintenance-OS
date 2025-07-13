@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             WorkOrderTypeSeeder::class,
-            FailureAnalysisSeeder::class,
+            FailureClassificationSeeder::class,
         ]);
     }
 }
