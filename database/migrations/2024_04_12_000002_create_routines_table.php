@@ -28,9 +28,8 @@ return new class extends Migration
             $table->foreignId('active_form_version_id')->nullable()->constrained('form_versions')->nullOnDelete();
             
             // Work order generation settings
-            $table->integer('advance_generation_hours')->default(24)->comment('Generate WO this many hours in advance');
+            $table->integer('advance_generation_days')->default(24)->comment('Generate WO this many hours in advance');
             $table->boolean('auto_approve_work_orders')->default(false)->comment('Requires work-orders.approve permission');
-            $table->string('default_priority')->default('normal');
             $table->integer('priority_score')->default(50)->comment('Priority score 0-100');
             
             // Execution tracking

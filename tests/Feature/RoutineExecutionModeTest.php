@@ -48,7 +48,7 @@ class RoutineExecutionModeTest extends TestCase
             'execution_mode' => 'automatic',
             'trigger_type' => 'runtime_hours',
             'trigger_runtime_hours' => 500,
-            'advance_generation_hours' => 50,
+            'advance_generation_days' => 50,
             'is_active' => true,
         ]);
         
@@ -246,7 +246,7 @@ class RoutineExecutionModeTest extends TestCase
             'execution_mode' => 'automatic',
             'trigger_type' => 'calendar_days',
             'trigger_calendar_days' => 30,
-            'advance_generation_hours' => 48,
+            'advance_generation_days' => 48,
             'last_execution_completed_at' => now()->subDays(29),
             'is_active' => true,
         ]);

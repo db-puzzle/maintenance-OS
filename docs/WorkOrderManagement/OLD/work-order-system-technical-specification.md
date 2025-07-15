@@ -72,7 +72,7 @@ Schema::create('routines', function (Blueprint $table) {
     $table->foreignId('active_form_version_id')->nullable()->constrained('form_versions')->nullOnDelete();
     
     // Add new fields for work order generation
-    $table->integer('advance_generation_hours')->default(168)->comment('Generate WO this many hours in advance');
+    $table->integer('advance_generation_days')->default(168)->comment('Generate WO this many hours in advance');
     $table->boolean('auto_approve_work_orders')->default(true);
     $table->string('default_priority')->default('normal');
     
@@ -926,13 +926,13 @@ class Routine extends Model
 {
     protected $fillable = [
         'asset_id', 'name', 'trigger_hours', 'status', 'description',
-        'form_id', 'active_form_version_id', 'advance_generation_hours',
+        'form_id', 'active_form_version_id', 'advance_generation_days',
         'auto_approve_work_orders', 'default_priority'
     ];
 
     protected $casts = [
         'trigger_hours' => 'integer',
-        'advance_generation_hours' => 'integer',
+        'advance_generation_days' => 'integer',
         'auto_approve_work_orders' => 'boolean',
     ];
 
@@ -1025,7 +1025,7 @@ class Routine extends Model
 
         // Check if due within advance generation window
         $nextDue = $this->getNextDueDate();
-        $generateBy = $nextDue->copy()->subHours($this->advance_generation_hours);
+        $generateBy = $nextDue->copy()->subHours($this->advance_generation_days);
         
         return now()->greaterThanOrEqualTo($generateBy);
     }

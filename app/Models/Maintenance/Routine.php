@@ -28,9 +28,8 @@ class Routine extends Model
         'description',
         'form_id',
         'active_form_version_id',
-        'advance_generation_hours',
+        'advance_generation_days',
         'auto_approve_work_orders',
-        'default_priority',
         'priority_score',
         'last_execution_runtime_hours',
         'last_execution_completed_at',
@@ -42,13 +41,15 @@ class Routine extends Model
     protected $casts = [
         'trigger_runtime_hours' => 'integer',
         'trigger_calendar_days' => 'integer',
-        'advance_generation_hours' => 'integer',
+        'advance_generation_days' => 'integer',
         'auto_approve_work_orders' => 'boolean',
         'last_execution_runtime_hours' => 'decimal:2',
         'last_execution_completed_at' => 'datetime',
         'priority_score' => 'integer',
         'is_active' => 'boolean',
     ];
+
+    protected $appends = ['next_execution_date'];
 
     // Relationships
     public function asset(): BelongsTo
@@ -193,7 +194,7 @@ class Routine extends Model
         $hoursUntilDue = $this->calculateHoursUntilDue();
         
         return $hoursUntilDue !== null 
-            && $hoursUntilDue <= ($this->advance_generation_hours ?? 24) 
+            && $hoursUntilDue <= ($this->advance_generation_days ?? 24) 
             && $hoursUntilDue >= 0;
     }
 
@@ -224,7 +225,7 @@ class Routine extends Model
             'description' => $this->generateWorkOrderDescription(),
             'work_order_type_id' => $this->getWorkOrderTypeId(),
             'asset_id' => $this->asset_id,
-            'priority' => $this->default_priority ?? 'normal',
+            'priority' => $this->getPriorityFromScore(),
             'priority_score' => $this->priority_score ?? 50,
             'source_type' => 'routine',
             'source_id' => $this->id,
@@ -336,6 +337,174 @@ class Routine extends Model
             ->toIso8601String();
     }
 
+    /**
+     * Get the next execution date based on trigger type
+     * For runtime hours, it estimates based on shift schedule
+     * For calendar days, it calculates from last execution
+     */
+    public function getNextExecutionDateAttribute(): ?Carbon
+    {
+        if ($this->trigger_type === 'calendar_days') {
+            // For calendar-based routines
+            if (!$this->last_execution_completed_at) {
+                return null; // Cannot calculate without last execution date
+            }
+            return $this->last_execution_completed_at->addDays($this->trigger_calendar_days);
+        } elseif ($this->trigger_type === 'runtime_hours') {
+            // For runtime-based routines
+            if (!$this->last_execution_runtime_hours && !$this->last_execution_completed_at) {
+                return null; // Cannot calculate without last execution data
+            }
+            
+            // If we only have last_execution_completed_at but not runtime, estimate runtime
+            if (!$this->last_execution_runtime_hours && $this->last_execution_completed_at) {
+                // Estimate runtime hours since last execution based on shift
+                if ($this->asset && $this->asset->shift) {
+                    $hoursPerWeek = $this->calculateAssetWeeklyRuntime();
+                    if ($hoursPerWeek > 0) {
+                        $hoursPerDay = $hoursPerWeek / 7;
+                        $daysSinceLastExecution = $this->last_execution_completed_at->diffInDays(now());
+                        $estimatedRuntimeSinceLastExecution = $daysSinceLastExecution * $hoursPerDay;
+                        $remainingRuntimeHours = max(0, $this->trigger_runtime_hours - $estimatedRuntimeSinceLastExecution);
+                        
+                        if ($remainingRuntimeHours <= 0) {
+                            return now();
+                        }
+                        
+                        $daysUntilDue = $remainingRuntimeHours / $hoursPerDay;
+                        return now()->addDays(ceil($daysUntilDue));
+                    }
+                }
+                // Fallback without shift data
+                return null;
+            }
+            
+            // Calculate remaining runtime hours
+            // Ensure asset is loaded with necessary relationships
+            if (!$this->relationLoaded('asset') || !$this->asset) {
+                $this->load('asset.latestRuntimeMeasurement');
+            }
+            
+            $currentRuntime = $this->asset->current_runtime_hours ?? 0;
+            $runtimeSinceLastExecution = $currentRuntime - $this->last_execution_runtime_hours;
+            $remainingRuntimeHours = max(0, $this->trigger_runtime_hours - $runtimeSinceLastExecution);
+            
+            // Log for debugging
+            Log::info('Runtime calculation for routine ' . $this->id, [
+                'current_runtime' => $currentRuntime,
+                'last_execution_runtime' => $this->last_execution_runtime_hours,
+                'runtime_since_last' => $runtimeSinceLastExecution,
+                'trigger_hours' => $this->trigger_runtime_hours,
+                'remaining_hours' => $remainingRuntimeHours,
+            ]);
+            
+            // If already due, return now
+            if ($remainingRuntimeHours <= 0) {
+                return now();
+            }
+            
+            // Estimate based on asset's shift schedule
+            if ($this->asset && $this->asset->shift) {
+                $hoursPerWeek = $this->calculateAssetWeeklyRuntime();
+                if ($hoursPerWeek > 0) {
+                    $hoursPerDay = $hoursPerWeek / 7;
+                    $daysUntilDue = $remainingRuntimeHours / $hoursPerDay;
+                    return now()->addDays(ceil($daysUntilDue));
+                }
+            }
+            
+            // Fallback: assume 8 hours per day if no shift data
+            $daysUntilDue = $remainingRuntimeHours / 8;
+            return now()->addDays(ceil($daysUntilDue));
+        }
+        
+        return null;
+    }
+
+    /**
+     * Calculate weekly runtime hours for the asset
+     */
+    private function calculateAssetWeeklyRuntime(): float
+    {
+        if (!$this->asset || !$this->asset->shift) {
+            return 0;
+        }
+        
+        // Load shift schedules if not already loaded
+        if (!$this->asset->shift->relationLoaded('schedules')) {
+            $this->asset->shift->load('schedules.shiftTimes.breaks');
+        }
+        
+        $schedules = $this->asset->shift->schedules;
+        if (!$schedules || $schedules->isEmpty()) {
+            return 0;
+        }
+        
+        $totalMinutes = 0;
+        
+        foreach ($schedules as $schedule) {
+            // Load shiftTimes if not already loaded
+            if (!$schedule->relationLoaded('shiftTimes')) {
+                $schedule->load('shiftTimes.breaks');
+            }
+            
+            $shiftTimes = $schedule->shiftTimes;
+            if (!$shiftTimes || $shiftTimes->isEmpty()) {
+                continue;
+            }
+            
+            foreach ($shiftTimes as $shiftTime) {
+                if (isset($shiftTime->active) && $shiftTime->active) {
+                    if (!isset($shiftTime->start_time) || !isset($shiftTime->end_time)) {
+                        continue;
+                    }
+                    
+                    try {
+                        $startTime = Carbon::createFromTimeString($shiftTime->start_time);
+                        $endTime = Carbon::createFromTimeString($shiftTime->end_time);
+                        
+                        // Handle shifts that cross midnight
+                        if ($endTime->lt($startTime)) {
+                            $endTime->addDay();
+                        }
+                        
+                        $shiftMinutes = $startTime->diffInMinutes($endTime);
+                        
+                        // Subtract break time if breaks exist
+                        if (isset($shiftTime->breaks) && is_iterable($shiftTime->breaks)) {
+                            foreach ($shiftTime->breaks as $break) {
+                                if (!isset($break->start_time) || !isset($break->end_time)) {
+                                    continue;
+                                }
+                                
+                                try {
+                                    $breakStart = Carbon::createFromTimeString($break->start_time);
+                                    $breakEnd = Carbon::createFromTimeString($break->end_time);
+                                    
+                                    if ($breakEnd->lt($breakStart)) {
+                                        $breakEnd->addDay();
+                                    }
+                                    
+                                    $shiftMinutes -= $breakStart->diffInMinutes($breakEnd);
+                                } catch (\Exception $e) {
+                                    // Skip invalid break times
+                                    continue;
+                                }
+                            }
+                        }
+                        
+                        $totalMinutes += max(0, $shiftMinutes); // Ensure non-negative
+                    } catch (\Exception $e) {
+                        // Skip invalid shift times
+                        continue;
+                    }
+                }
+            }
+        }
+        
+        return $totalMinutes / 60; // Convert to hours
+    }
+
     // Boot method to handle form creation
     protected static function boot()
     {
@@ -354,6 +523,28 @@ class Routine extends Model
                 $routine->form_id = $form->id;
             }
         });
+    }
+
+    /**
+     * Convert priority score to priority string
+     *
+     * @return string
+     */
+    public function getPriorityFromScore(): string
+    {
+        $score = $this->priority_score ?? 50;
+        
+        if ($score >= 90) {
+            return 'emergency';
+        } elseif ($score >= 75) {
+            return 'urgent';
+        } elseif ($score >= 60) {
+            return 'high';
+        } elseif ($score >= 30) {
+            return 'normal';
+        } else {
+            return 'low';
+        }
     }
 }
 

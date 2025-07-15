@@ -119,7 +119,7 @@ class MaintenanceWorkOrderService extends BaseWorkOrderService
             'description' => $routine->description ?? "Executar rotina de manutenção preventiva conforme procedimento padrão.",
             'work_order_type_id' => $workOrderType->id,
             'work_order_category' => 'preventive',
-            'priority' => $routine->default_priority ?? 'normal',
+            'priority' => $routine->getPriorityFromScore(),
             'asset_id' => $routine->asset_id,
             'form_id' => $routine->form_id,
             'form_version_id' => $routine->active_form_version_id,

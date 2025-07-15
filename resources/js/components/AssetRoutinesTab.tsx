@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Search, Upload, FileText, Edit2, History, Info, Clock, Hand, Plus, Eye } from 'lucide-react';
+import { Search, Upload, FileText, Edit2, History, Info, Clock, Hand, Plus, Eye, AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -19,6 +19,7 @@ import InlineRoutineFormEditor from '@/components/InlineRoutineFormEditor';
 import { CalendarRange } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Task } from '@/types/task';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Shift {
     id: number;
@@ -50,13 +51,13 @@ interface Routine {
     trigger_runtime_hours?: number;
     trigger_calendar_days?: number;
     execution_mode: 'automatic' | 'manual';
-    advance_generation_hours?: number;
+    advance_generation_days?: number;
     auto_approve_work_orders?: boolean;
-    default_priority?: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
     priority_score?: number;
     last_execution_runtime_hours?: number;
     last_execution_completed_at?: string;
     last_execution_form_version_id?: number;
+    next_execution_date?: string;
     form?: {
         id: number;
         tasks: Task[];
@@ -89,7 +90,8 @@ export default function AssetRoutinesTab({
     assetId,
     routines: initialRoutines,
     selectedShift,
-    newRoutineId
+    newRoutineId,
+    userPermissions = []
 }: AssetRoutinesTabProps) {
 
     // Estado para gerenciar as rotinas
@@ -139,6 +141,18 @@ export default function AssetRoutinesTab({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [routineToEditInSheet, setRoutineToEditInSheet] = useState<any>(null);
 
+    // Estado para controlar o diálogo de nova rotina
+    const [showNewRoutineDialog, setShowNewRoutineDialog] = useState(false);
+    const [newRoutineForTasks, setNewRoutineForTasks] = useState<Routine | null>(null);
+    const [shownDialogForRoutineIds, setShownDialogForRoutineIds] = useState<Set<number>>(new Set());
+
+    // Estado para controlar o modal de última execução
+    const [showLastExecutionDialog, setShowLastExecutionDialog] = useState(false);
+    const [routineForLastExecution, setRoutineForLastExecution] = useState<Routine | null>(null);
+    const [lastExecutionDate, setLastExecutionDate] = useState('');
+    const [lastExecutionRuntime, setLastExecutionRuntime] = useState('');
+    const [isUpdatingLastExecution, setIsUpdatingLastExecution] = useState(false);
+
     // Create a stable default routine object
     const defaultRoutine = {
         name: '',
@@ -153,10 +167,19 @@ export default function AssetRoutinesTab({
 
     // Check for new routine
     useEffect(() => {
-
-        if (newRoutineId) {
+        if (newRoutineId && !shownDialogForRoutineIds.has(newRoutineId)) {
             // Set the newly created routine ID for sorting
             setNewlyCreatedRoutineId(newRoutineId);
+
+            // Find the newly created routine in the routines array
+            const newRoutine = routines.find(r => r.id === newRoutineId);
+            if (newRoutine) {
+                // Show dialog asking if user wants to add tasks
+                setNewRoutineForTasks(newRoutine);
+                setShowNewRoutineDialog(true);
+                // Mark this routine ID as having shown the dialog
+                setShownDialogForRoutineIds(prev => new Set(prev).add(newRoutineId));
+            }
 
             // Small delay to ensure the UI is ready
             setTimeout(() => {
@@ -167,7 +190,7 @@ export default function AssetRoutinesTab({
                 }
             }, 500);
         }
-    }, [newRoutineId]);
+    }, [newRoutineId, routines, shownDialogForRoutineIds]);
 
     // Filtrar rotinas baseado no termo de busca
     const filteredRoutines = routines.filter(
@@ -275,15 +298,13 @@ export default function AssetRoutinesTab({
             render: (value) => {
                 const executionMode = value as 'automatic' | 'manual';
                 return (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
                         {executionMode === 'automatic' ? (
                             <>
-                                <Clock className="h-4 w-4 text-primary" />
                                 <span className="text-sm font-medium">Automático</span>
                             </>
                         ) : (
                             <>
-                                <Hand className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-sm font-medium">Manual</span>
                             </>
                         )}
@@ -298,24 +319,20 @@ export default function AssetRoutinesTab({
             width: 'w-[180px]',
             render: (value, row) => {
                 const routine = row as Routine;
-                const triggerIcon = routine.trigger_type === 'runtime_hours' ? '⏱️' : '📅';
                 const triggerValue = routine.trigger_type === 'runtime_hours'
                     ? routine.trigger_runtime_hours
                     : routine.trigger_calendar_days;
-                const triggerUnit = routine.trigger_type === 'runtime_hours' ? 'h' : 'd';
+                const triggerUnit = routine.trigger_type === 'runtime_hours' ? 'horas operação' : 'dias calendário';
 
                 return (
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-sm">
+                    <div className="space-y-1 text-center">
+                        <div className="flex items-center justify-center gap-1 text-sm">
                             {routine.trigger_type === 'runtime_hours' ? (
                                 <Clock className="h-3 w-3" />
                             ) : (
                                 <CalendarRange className="h-3 w-3" />
                             )}
-                            <span>{triggerValue}{triggerUnit} {triggerIcon}</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                            {routine.trigger_type === 'runtime_hours' ? 'Horas de operação' : 'Dias calendário'}
+                            <span>{triggerValue} {triggerUnit}</span>
                         </div>
                     </div>
                 );
@@ -329,11 +346,11 @@ export default function AssetRoutinesTab({
             render: (value, row) => {
                 const routine = row as Routine;
                 if (!routine.last_execution_completed_at) {
-                    return <span className="text-muted-foreground text-sm">Nunca executada</span>;
+                    return <div className="text-center"><span className="text-muted-foreground text-sm">Nunca executada</span></div>;
                 }
 
                 return (
-                    <div className="space-y-1">
+                    <div className="space-y-1 text-center">
                         <div className="text-sm">
                             {new Date(routine.last_execution_completed_at).toLocaleDateString('pt-BR')}
                         </div>
@@ -347,6 +364,101 @@ export default function AssetRoutinesTab({
             },
         },
         {
+            key: 'next_execution',
+            label: 'Próxima Execução',
+            sortable: true,
+            width: 'w-[220px]',
+            render: (value, row) => {
+                const routine = row as Routine;
+                if (!routine.next_execution_date) {
+                    // If no last execution, show a message prompting to set it
+                    if (!routine.last_execution_completed_at) {
+                        return (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border bg-amber-50 border-amber-200 cursor-default">
+                                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                            <div className="text-left">
+                                                <div className="text-sm font-medium text-amber-600">
+                                                    Definir execução
+                                                </div>
+                                                <div className="text-xs text-amber-600/80">
+                                                    Necessário para cálculo
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <div className="text-sm">
+                                            Use "Definir Última Execução" no menu de ações para informar quando esta rotina foi executada pela última vez
+                                        </div>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        );
+                    }
+                    return <div className="text-center"><span className="text-muted-foreground text-sm">-</span></div>;
+                }
+
+                const nextDate = new Date(routine.next_execution_date);
+                const now = new Date();
+                const isOverdue = nextDate < now;
+                const daysUntilDue = Math.ceil((nextDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+                // Determine status icon and color
+                let StatusIcon = CheckCircle;
+                let statusColor = 'text-green-600';
+                let bgColor = 'bg-green-50';
+                let borderColor = 'border-green-200';
+
+                if (isOverdue) {
+                    StatusIcon = AlertCircle;
+                    statusColor = 'text-red-600';
+                    bgColor = 'bg-red-50';
+                    borderColor = 'border-red-200';
+                } else if (daysUntilDue <= 7) {
+                    StatusIcon = AlertTriangle;
+                    statusColor = 'text-amber-600';
+                    bgColor = 'bg-amber-50';
+                    borderColor = 'border-amber-200';
+                }
+
+                return (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border ${bgColor} ${borderColor} cursor-default`}>
+                                    <StatusIcon className={`h-4 w-4 ${statusColor}`} />
+                                    <div className="text-left">
+                                        <div className={`text-sm font-medium ${statusColor}`}>
+                                            {nextDate.toLocaleDateString('pt-BR')}
+                                        </div>
+                                        <div className={`text-xs ${isOverdue ? statusColor : 'text-muted-foreground'}`}>
+                                            {isOverdue
+                                                ? `Vencida há ${Math.abs(daysUntilDue)} dia${Math.abs(daysUntilDue) !== 1 ? 's' : ''}`
+                                                : daysUntilDue === 0
+                                                    ? 'Vence hoje'
+                                                    : `Em ${daysUntilDue} dia${daysUntilDue !== 1 ? 's' : ''}`
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <div className="text-sm">
+                                    {routine.trigger_type === 'runtime_hours'
+                                        ? 'Estimativa baseada nas horas de operação e turno do ativo'
+                                        : 'Baseado em dias calendário desde a última execução'
+                                    }
+                                </div>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                );
+            },
+        },
+        {
             key: 'tasks_count',
             label: 'Tarefas',
             sortable: false,
@@ -356,12 +468,14 @@ export default function AssetRoutinesTab({
                 const form = (row as any).form;
 
                 if (!form || !form.tasks || form.tasks.length === 0) {
-                    return <span className="text-sm text-muted-foreground">-</span>;
+                    return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
                 }
                 return (
-                    <span className="text-sm">
-                        {form.tasks.length} tarefa{form.tasks.length !== 1 ? 's' : ''}
-                    </span>
+                    <div className="text-center">
+                        <span className="text-sm">
+                            {form.tasks.length} tarefa{form.tasks.length !== 1 ? 's' : ''}
+                        </span>
+                    </div>
                 );
             },
         },
@@ -375,44 +489,50 @@ export default function AssetRoutinesTab({
                 const form = (row as any).form;
 
                 if (!form) {
-                    return <span className="text-sm text-muted-foreground">-</span>;
+                    return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
                 }
 
                 if (form.current_version) {
                     return (
-                        <span className="text-sm font-medium">
-                            v{form.current_version.version_number}
-                        </span>
+                        <div className="text-center">
+                            <span className="text-sm font-medium">
+                                v{form.current_version.version_number}
+                            </span>
+                        </div>
                     );
                 }
 
-                return <span className="text-sm text-muted-foreground">-</span>;
+                return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
             },
         },
         {
             key: 'form_status',
-            label: 'Status do Formulário',
+            label: 'Formulário',
             sortable: false,
             width: 'w-[150px]',
             render: (value, row) => {
                 const form = (row as Record<string, unknown>).form;
                 if (!form) {
                     return (
-                        <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-500/10">
-                            Sem formulário
-                        </span>
+                        <div className="text-center">
+                            <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                                Sem formulário
+                            </span>
+                        </div>
                     );
                 }
 
                 return (
-                    <FormStatusBadge
-                        form={{
-                            id: (form as any).id || 0,
-                            ...form,
-                            current_version_id: (form as any).current_version_id ?? null,
-                        }}
-                        size="sm"
-                    />
+                    <div className="text-center">
+                        <FormStatusBadge
+                            form={{
+                                id: (form as any).id || 0,
+                                ...form,
+                                current_version_id: (form as any).current_version_id ?? null,
+                            }}
+                            size="sm"
+                        />
+                    </div>
                 );
             },
         },
@@ -424,6 +544,9 @@ export default function AssetRoutinesTab({
         // Add the new routine to the state
         if (routine && routine.id) {
             setRoutines((prevRoutines) => [...prevRoutines, routine]);
+            // Show dialog asking if user wants to add tasks
+            setNewRoutineForTasks(routine);
+            setShowNewRoutineDialog(true);
         }
     };
 
@@ -583,12 +706,24 @@ export default function AssetRoutinesTab({
         setRoutineToDelete(null);
     };
 
-    const isConfirmationValid = confirmationText === 'EXCLUIR';
-
-    const handleViewExecutions = (routineId: number) => {
-        // Navigate to work orders filtered by this routine
-        router.visit(`/maintenance/work-orders?source_type=routine&source_id=${routineId}&asset_id=${assetId}`);
+    const handleAddTasksToNewRoutine = () => {
+        if (newRoutineForTasks?.id) {
+            // Set the newly created routine ID for sorting
+            setNewlyCreatedRoutineId(newRoutineForTasks.id);
+            // Edit the form to add tasks
+            handleEditRoutineForm(newRoutineForTasks.id);
+        }
+        setShowNewRoutineDialog(false);
+        setNewRoutineForTasks(null);
     };
+
+    const handleSkipAddingTasks = () => {
+        setShowNewRoutineDialog(false);
+        setNewRoutineForTasks(null);
+        toast.success('Rotina criada com sucesso! Você pode adicionar tarefas mais tarde.');
+    };
+
+    const isConfirmationValid = confirmationText === 'EXCLUIR';
 
     const handleCreateWorkOrder = async (routineId: number) => {
         try {
@@ -615,6 +750,61 @@ export default function AssetRoutinesTab({
         }
         // You might want to add more logic here based on current runtime vs trigger hours
         return true;
+    };
+
+    const handleSetLastExecution = (routine: Routine) => {
+        setRoutineForLastExecution(routine);
+        // Set default date to today
+        setLastExecutionDate(new Date().toISOString().split('T')[0]);
+        // Set default runtime to current asset runtime if available
+        setLastExecutionRuntime('');
+        setShowLastExecutionDialog(true);
+    };
+
+    const confirmUpdateLastExecution = async () => {
+        if (!routineForLastExecution || !lastExecutionDate) return;
+
+        setIsUpdatingLastExecution(true);
+        try {
+            const response = await axios.post(
+                route('maintenance.routines.update-last-execution', { routine: routineForLastExecution.id }),
+                {
+                    last_execution_date: lastExecutionDate,
+                    runtime_hours: routineForLastExecution.trigger_type === 'runtime_hours' && lastExecutionRuntime
+                        ? parseFloat(lastExecutionRuntime)
+                        : undefined,
+                }
+            );
+
+            if (response.data.success) {
+                toast.success(response.data.message);
+
+                // Update the routine in the state with the new data
+                setRoutines((prevRoutines) =>
+                    prevRoutines.map((r) => {
+                        if (r.id === routineForLastExecution.id) {
+                            return {
+                                ...r,
+                                last_execution_completed_at: response.data.routine.last_execution_completed_at,
+                                last_execution_runtime_hours: response.data.routine.last_execution_runtime_hours,
+                                next_execution_date: response.data.routine.next_execution_date,
+                            };
+                        }
+                        return r;
+                    })
+                );
+
+                // Close dialog and reset state
+                setShowLastExecutionDialog(false);
+                setRoutineForLastExecution(null);
+                setLastExecutionDate('');
+                setLastExecutionRuntime('');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || 'Erro ao atualizar data da última execução');
+        } finally {
+            setIsUpdatingLastExecution(false);
+        }
     };
 
     if (loadingFormEditor) {
@@ -667,6 +857,7 @@ export default function AssetRoutinesTab({
                         text="Nova Rotina"
                         variant="default"
                         assetId={assetId}
+                        userPermissions={userPermissions}
                     />
                 </div>
 
@@ -677,71 +868,95 @@ export default function AssetRoutinesTab({
                     loading={false}
                     emptyMessage={searchTerm ? `Nenhuma rotina encontrada para "${searchTerm}"` : "Nenhuma rotina cadastrada. Clique em 'Nova Rotina' para começar."}
                     actions={(routine) => (
-                        <div className="flex items-center justify-end gap-2">
-                            {/* Main action button */}
-                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            {routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 ? (
-                                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                getFormState(routine.form as any) === 'unpublished' ? (
-                                    <Button
-                                        size="sm"
-                                        variant="default"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handlePublishForm(routine.id);
-                                        }}
-                                    >
-                                        <Upload className="mr-1 h-4 w-4" />
-                                        Publicar
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        size="sm"
-                                        variant="default"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCreateWorkOrder(routine.id);
-                                        }}
-                                    >
-                                        <Plus className="mr-1 h-4 w-4" />
-                                        Criar Ordem de Serviço
-                                    </Button>
-                                )
-                            ) : (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditFormClick(routine);
-                                    }}
-                                    data-routine-id={routine.id}
-                                    ref={routine.id === newlyCreatedRoutineId ? addTasksButtonRef : undefined}
-                                >
-                                    <FileText className="mr-1 h-4 w-4" />
-                                    Adicionar Tarefas
-                                </Button>
-                            )}
-
+                        <div className="flex items-center justify-center gap-2">
                             {/* Actions dropdown */}
                             <EntityActionDropdown
-                                onEdit={() => handleEditRoutine(routine)}
+                                onEdit={undefined}
                                 onDelete={() => handleDeleteClick(routine)}
                                 additionalActions={[
+                                    // Publicar - Primary action for unpublished routines with tasks
                                     /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                     ...(routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 && getFormState(routine.form as any) === 'unpublished' ? [{
                                         label: 'Publicar',
-                                        icon: <Upload className="h-4 w-4" />,
+                                        icon: (
+                                            <div className="relative">
+                                                <Upload className="h-4 w-4 text-primary" />
+                                                <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                            </div>
+                                        ),
                                         onClick: () => handlePublishForm(routine.id),
+                                        className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                     }] : []),
+                                    // Separator after Publicar (if shown)
+                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                                    ...(routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 && getFormState(routine.form as any) === 'unpublished' ? [{
+                                        label: 'separator',
+                                        icon: null,
+                                        onClick: () => { },
+                                    }] : []),
+                                    // Create Work Order - Primary action at the top with emphasis
+                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                                    ...(routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 && getFormState(routine.form as any) !== 'unpublished' ? [{
+                                        label: 'Criar Ordem de Serviço',
+                                        icon: (
+                                            <div className="relative">
+                                                <Plus className="h-4 w-4 text-primary" />
+                                                <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                            </div>
+                                        ),
+                                        onClick: () => handleCreateWorkOrder(routine.id),
+                                        className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
+                                    }] : []),
+                                    // Separator after Create Work Order
+                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                                    ...(routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 && getFormState(routine.form as any) !== 'unpublished' ? [{
+                                        label: 'separator',
+                                        icon: null,
+                                        onClick: () => { },
+                                    }] : []),
+                                    // Add/Edit Tasks - Second primary action with prominence
                                     {
                                         /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                         label: routine.form && (routine.form as any).has_draft_changes ? 'Editar Tarefas' :
                                             /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                             routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 ? 'Editar Tarefas' :
                                                 'Adicionar Tarefas',
-                                        icon: <FileText className="h-4 w-4" />,
+                                        icon: (
+                                            <div className="relative">
+                                                <FileText className="h-4 w-4 text-primary" />
+                                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                                {(!routine.form || !(routine.form as any).tasks || (routine.form as any).tasks.length === 0) && (
+                                                    <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                                )}
+                                            </div>
+                                        ),
                                         onClick: () => handleEditFormClick(routine),
+                                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                                        className: (!routine.form || !(routine.form as any).tasks || (routine.form as any).tasks.length === 0)
+                                            ? 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
+                                            : undefined
+                                    },
+                                    // Separator after Add Tasks (only when showing "Adicionar Tarefas")
+                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                                    ...(!routine.form || !(routine.form as any).tasks || (routine.form as any).tasks.length === 0 ? [{
+                                        label: 'separator',
+                                        icon: null,
+                                        onClick: () => { },
+                                    }] : []),
+                                    // Set Last Execution - Important for tracking routine history
+                                    {
+                                        label: 'Definir Última Execução',
+                                        icon: <CalendarRange className="h-4 w-4" />,
+                                        onClick: () => handleSetLastExecution(routine),
+                                        className: !routine.last_execution_completed_at
+                                            ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
+                                            : undefined
+                                    },
+                                    // Edit Routine - Now positioned after primary actions
+                                    {
+                                        label: 'Editar Rotina',
+                                        icon: <Edit2 className="h-4 w-4" />,
+                                        onClick: () => handleEditRoutine(routine),
                                     },
                                     /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                     ...(routine.form && (routine.form as any).has_draft_changes && (routine.form as any).current_version_id ? [{
@@ -787,6 +1002,7 @@ export default function AssetRoutinesTab({
                 onSuccess={handleEditRoutineSuccess}
                 isOpen={editSheetOpen}
                 onOpenChange={handleSheetOpenChange}
+                userPermissions={userPermissions}
             />
 
             {/* Modal de Confirmação de Exclusão */}
@@ -823,7 +1039,7 @@ export default function AssetRoutinesTab({
             </Dialog>
 
             {/* Modal de Histórico de Versões */}
-            {selectedRoutineForHistory && (
+            {showVersionHistory && selectedRoutineForHistory && (
                 <FormVersionHistory
                     routineId={selectedRoutineForHistory}
                     isOpen={showVersionHistory}
@@ -834,30 +1050,47 @@ export default function AssetRoutinesTab({
                 />
             )}
 
-            {/* Modal de Aviso de Nova Versão */}
+            {/* Modal de aviso de nova versão */}
             <Dialog open={showNewVersionDialog} onOpenChange={setShowNewVersionDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Info className="h-5 w-5 text-blue-500" />
-                            Nova versão será criada
-                        </DialogTitle>
+                        <DialogTitle>Criar nova versão do formulário</DialogTitle>
                         <DialogDescription>
-                            Este formulário está publicado na versão{' '}
-                            <strong>v{routines.find(r => r.id === routineToEdit)?.form?.current_version?.version_number || '1.0'}</strong>.
-                            Ao editar as tarefas, uma cópia de rascunho será criada. As alterações não afetarão a versão atual até que você publique uma nova versão.
+                            <span className="flex items-start gap-2">
+                                <Info className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+                                <span className="text-sm">
+                                    Ao editar um formulário publicado, uma nova versão será criada. A versão atual continuará disponível
+                                    para consulta e execuções já iniciadas.
+                                </span>
+                            </span>
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3">
-                        <p className="text-sm text-blue-800">
-                            <strong>Nota:</strong> A versão atual continuará sendo executada até que você publique as alterações como uma nova versão.
-                        </p>
-                    </div>
                     <DialogFooter>
-                        <Button variant="secondary" onClick={() => setShowNewVersionDialog(false)}>
-                            Cancelar
+                        <DialogClose asChild>
+                            <Button variant="outline">Cancelar</Button>
+                        </DialogClose>
+                        <Button onClick={confirmEditForm}>Continuar e criar nova versão</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal para adicionar tarefas à nova rotina */}
+            <Dialog open={showNewRoutineDialog} onOpenChange={setShowNewRoutineDialog}>
+                <DialogContent className="gap-4">
+                    <DialogHeader className="gap-4">
+                        <DialogTitle>Rotina criada com sucesso!</DialogTitle>
+                        <DialogDescription>
+                            Deseja adicionar tarefas a esta rotina agora? As tarefas definem as atividades que serão executadas durante a manutenção.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex gap-2 sm:gap-2">
+                        <Button variant="outline" onClick={handleSkipAddingTasks}>
+                            Adicionar mais tarde
                         </Button>
-                        <Button onClick={confirmEditForm}>Continuar Editando</Button>
+                        <Button onClick={handleAddTasksToNewRoutine}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Adicionar tarefas agora
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -869,8 +1102,73 @@ export default function AssetRoutinesTab({
                     onSuccess={handleCreateSuccess}
                     text="Nova Rotina"
                     assetId={assetId}
+                    userPermissions={userPermissions}
                 />
             </div>
+
+            {/* Modal para definir última execução */}
+            <Dialog open={showLastExecutionDialog} onOpenChange={setShowLastExecutionDialog}>
+                <DialogContent className="gap-4">
+                    <DialogHeader className="gap-2">
+                        <DialogTitle>Definir Última Execução</DialogTitle>
+                        <DialogDescription>
+                            Informe quando esta rotina foi executada pela última vez. Esta informação é necessária para calcular a próxima execução.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="last-execution-date">Data da Última Execução *</Label>
+                            <Input
+                                id="last-execution-date"
+                                type="date"
+                                value={lastExecutionDate}
+                                onChange={(e) => setLastExecutionDate(e.target.value)}
+                                max={new Date().toISOString().split('T')[0]}
+                                required
+                            />
+                        </div>
+                        {routineForLastExecution?.trigger_type === 'runtime_hours' && (
+                            <div className="space-y-2">
+                                <Label htmlFor="runtime-hours">
+                                    Horímetro no Momento da Execução (opcional)
+                                </Label>
+                                <Input
+                                    id="runtime-hours"
+                                    type="number"
+                                    value={lastExecutionRuntime}
+                                    onChange={(e) => setLastExecutionRuntime(e.target.value)}
+                                    placeholder="Ex: 1500.5"
+                                    step="0.1"
+                                    min="0"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Se não informado, será usado o horímetro atual do ativo
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter className="flex gap-2 sm:gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowLastExecutionDialog(false);
+                                setRoutineForLastExecution(null);
+                                setLastExecutionDate('');
+                                setLastExecutionRuntime('');
+                            }}
+                            disabled={isUpdatingLastExecution}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={confirmUpdateLastExecution}
+                            disabled={!lastExecutionDate || isUpdatingLastExecution}
+                        >
+                            {isUpdatingLastExecution ? 'Atualizando...' : 'Confirmar'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 } 

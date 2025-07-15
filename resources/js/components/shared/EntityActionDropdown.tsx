@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Edit, MoreHorizontal, Trash } from 'lucide-react';
 import React, { useState } from 'react';
 
@@ -10,6 +10,7 @@ interface EntityActionDropdownProps {
         label: string;
         icon?: React.ReactNode;
         onClick: () => void;
+        className?: string;
     }>;
 }
 
@@ -38,12 +39,21 @@ export function EntityActionDropdown({ onEdit, onDelete, additionalActions = [] 
                         Editar
                     </DropdownMenuItem>
                 )}
-                {additionalActions.map((action, index) => (
-                    <DropdownMenuItem key={index} onClick={() => handleAction(action.onClick)}>
-                        {action.icon && <span className="mr-2">{action.icon}</span>}
-                        {action.label}
-                    </DropdownMenuItem>
-                ))}
+                {additionalActions.map((action, index) => {
+                    if (action.label === 'separator') {
+                        return <DropdownMenuSeparator key={index} />;
+                    }
+                    return (
+                        <DropdownMenuItem
+                            key={index}
+                            onClick={() => handleAction(action.onClick)}
+                            className={action.className}
+                        >
+                            {action.icon && <span className="mr-2">{action.icon}</span>}
+                            {action.label}
+                        </DropdownMenuItem>
+                    );
+                })}
                 {onDelete && (
                     <DropdownMenuItem onClick={() => handleAction(onDelete)} className="text-destructive focus:text-destructive">
                         <Trash className="mr-2 h-4 w-4" />

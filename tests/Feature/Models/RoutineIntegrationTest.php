@@ -154,7 +154,7 @@ class RoutineIntegrationTest extends TestCase
     {
         $routine = Routine::factory()->runtimeBased()->create([
             'trigger_runtime_hours' => 500,
-            'advance_generation_hours' => 50,
+            'advance_generation_days' => 50,
             'last_execution_runtime_hours' => 1000,
         ]);
         

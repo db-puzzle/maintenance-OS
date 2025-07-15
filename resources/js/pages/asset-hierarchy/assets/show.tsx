@@ -66,9 +66,8 @@ interface Props {
             trigger_runtime_hours?: number;
             trigger_calendar_days?: number;
             execution_mode: 'automatic' | 'manual';
-            advance_generation_hours?: number;
+            advance_generation_days?: number;
             auto_approve_work_orders?: boolean;
-            default_priority?: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
             priority_score?: number;
             last_execution_runtime_hours?: number;
             last_execution_completed_at?: string;
@@ -135,9 +134,8 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             trigger_runtime_hours?: number;
             trigger_calendar_days?: number;
             execution_mode: 'automatic' | 'manual';
-            advance_generation_hours?: number;
+            advance_generation_days?: number;
             auto_approve_work_orders?: boolean;
-            default_priority?: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
             priority_score?: number;
             last_execution_runtime_hours?: number;
             last_execution_completed_at?: string;

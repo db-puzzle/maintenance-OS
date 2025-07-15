@@ -1,8 +1,27 @@
 import EditRoutineSheet from '@/components/EditRoutineSheet';
-import { Routine } from '@/components/RoutineList';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { forwardRef, useRef } from 'react';
+
+// Import Routine type to match EditRoutineSheet
+interface Routine {
+    id?: number;
+    name: string;
+    trigger_type: 'runtime_hours' | 'calendar_days';
+    trigger_runtime_hours?: number;
+    trigger_calendar_days?: number;
+    execution_mode: 'automatic' | 'manual';
+    description?: string;
+    form_id?: number;
+    asset_id?: number;
+    advance_generation_days: number;
+    auto_approve_work_orders: boolean;
+    priority_score: number;
+    last_execution_runtime_hours?: number;
+    last_execution_completed_at?: string;
+    last_execution_form_version_id?: number;
+    [key: string]: unknown;
+}
 
 interface CreateRoutineButtonProps {
     onSuccess?: (routine: Routine) => void;
@@ -11,10 +30,11 @@ interface CreateRoutineButtonProps {
     text?: string;
     className?: string;
     assetId?: number;
+    userPermissions?: string[];
 }
 
 const CreateRoutineButton = forwardRef<HTMLButtonElement, CreateRoutineButtonProps>(
-    ({ onSuccess, variant = 'default', size = 'sm', text = 'Nova Rotina', className, assetId }, ref) => {
+    ({ onSuccess, variant = 'default', size = 'sm', text = 'Nova Rotina', className, assetId, userPermissions = [] }, ref) => {
         const sheetTriggerRef = useRef<HTMLButtonElement>(null);
 
         const handleClick = () => {
@@ -44,6 +64,7 @@ const CreateRoutineButton = forwardRef<HTMLButtonElement, CreateRoutineButtonPro
                         isNew={true}
                         assetId={assetId}
                         onSuccess={handleSheetSuccess}
+                        userPermissions={userPermissions}
                     />
                 </div>
             </>

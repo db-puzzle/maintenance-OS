@@ -82,7 +82,7 @@ class GenerateWorkOrdersFromRoutines extends Command
         foreach ($routines as $routine) {
             $hoursUntilDue = $routine->calculateHoursUntilDue();
             
-            if ($hoursUntilDue !== null && $hoursUntilDue <= ($routine->advance_generation_hours ?? 24) && $hoursUntilDue >= 0) {
+            if ($hoursUntilDue !== null && $hoursUntilDue <= ($routine->advance_generation_days ?? 24) && $hoursUntilDue >= 0) {
                 if ($routine->hasOpenWorkOrder()) {
                     $openWO = $routine->getOpenWorkOrder();
                     $this->warn("- Skipped {$routine->name}: Open WO #{$openWO->work_order_number} (Status: {$openWO->status})");

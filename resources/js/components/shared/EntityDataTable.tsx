@@ -24,30 +24,41 @@ export function EntityDataTable<T extends Record<string, unknown>>({
     columnVisibility = {},
     onSort,
 }: EntityDataTableProps<T>) {
+    // Columns that should have centered headers
+    const centeredHeaderColumns = ['execution_mode', 'trigger_info', 'last_execution', 'tasks_count', 'version', 'form_status'];
+
     // Convert ColumnConfig to DataTable Column format
-    const dataTableColumns: Column<T>[] = columns.map((col) => ({
-        id: col.key,
-        header:
-            col.sortable && onSort ? (
-                <div className="flex cursor-pointer items-center gap-2" onClick={() => onSort(col.key)}>
-                    {col.label}
-                    <ArrowUpDown className="h-4 w-4" />
-                </div>
-            ) : (
-                col.label
-            ),
-        cell: (row: { original: T }): React.ReactNode => {
-            const value = col.render ? col.render(row.original[col.key], row.original) : row.original[col.key];
-            return value as React.ReactNode;
-        },
-        width: col.width,
-    }));
+    const dataTableColumns: Column<T>[] = columns.map((col) => {
+        const shouldCenterHeader = centeredHeaderColumns.includes(col.key);
+
+        return {
+            id: col.key,
+            header:
+                col.sortable && onSort ? (
+                    <div className={`flex cursor-pointer items-center gap-2 ${shouldCenterHeader ? 'justify-center' : ''}`} onClick={() => onSort(col.key)}>
+                        {col.label}
+                        <ArrowUpDown className="h-4 w-4" />
+                    </div>
+                ) : (
+                    shouldCenterHeader ? (
+                        <div className="text-center">{col.label}</div>
+                    ) : (
+                        col.label
+                    )
+                ),
+            cell: (row: { original: T }): React.ReactNode => {
+                const value = col.render ? col.render(row.original[col.key], row.original) : row.original[col.key];
+                return value as React.ReactNode;
+            },
+            width: col.width,
+        };
+    });
 
     // Add actions column if provided
     if (actions) {
         dataTableColumns.push({
             id: 'actions',
-            header: 'Ações',
+            header: <div className="text-center">Ações</div>,
             cell: (row: { original: T }) => actions(row.original),
             width: 'w-[80px]',
         });

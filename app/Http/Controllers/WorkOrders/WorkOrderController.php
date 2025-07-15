@@ -17,7 +17,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use App\Models\WorkOrders\WorkOrderPart;
 use App\Models\Team;
-use App\Models\Part;
+use App\Models\Part; 
 use App\Models\Skill;
 use App\Models\Certification;
 use App\Http\Requests\WorkOrders\StoreWorkOrderRequest;
@@ -298,6 +298,30 @@ class WorkOrderController extends Controller
 
         $users = User::orderBy('name')->get(['id', 'name']);
 
+        // Get data for planning tab
+        $technicians = User::whereHas('roles', function ($query) {
+            $query->whereIn('name', ['Technician', 'Maintenance Supervisor']);
+        })->orderBy('name')->get(['id', 'name', 'email']);
+
+        $teams = Team::where('is_active', true)->orderBy('name')->get();
+
+        $parts = Part::select('id', 'part_number', 'name', 'unit_cost', 'available_quantity')
+            ->where('active', true)
+            ->orderBy('part_number')
+            ->get();
+
+        $skills = Skill::where('active', true)->pluck('name')->toArray();
+        $certifications = Certification::where('active', true)->pluck('name')->toArray();
+
+        // Get user's approval threshold
+        $approvalThreshold = null;
+        if (auth()->user()->can('approve', $workOrder)) {
+            $approvalThreshold = [
+                'maxCost' => $this->getUserApprovalCostLimit(auth()->user()),
+                'maxPriority' => $this->getUserApprovalPriorityLimit(auth()->user()),
+            ];
+        }
+
         return Inertia::render('work-orders/show', [
             'workOrder' => $workOrder,
             'users' => $users,
@@ -310,6 +334,12 @@ class WorkOrderController extends Controller
             'canValidate' => auth()->user()->can('validate', $workOrder),
             'canStart' => auth()->user()->can('start', $workOrder),
             'canComplete' => auth()->user()->can('complete', $workOrder),
+            'approvalThreshold' => $approvalThreshold,
+            'technicians' => $technicians,
+            'teams' => $teams,
+            'parts' => $parts,
+            'skills' => $skills,
+            'certifications' => $certifications,
         ]);
     }
 
@@ -587,11 +617,11 @@ class WorkOrderController extends Controller
      */
     private function getUserApprovalCostLimit($user)
     {
-        if ($user->hasRole('administrator')) {
+        if ($user->hasRole('Administrator')) {
             return PHP_INT_MAX;
-        } elseif ($user->hasRole('plant_manager')) {
+        } elseif ($user->hasRole('Plant Manager')) {
             return 50000;
-        } elseif ($user->hasRole('maintenance_supervisor')) {
+        } elseif ($user->hasRole('Maintenance Supervisor')) {
             return 5000;
         }
         return 0;
@@ -602,11 +632,11 @@ class WorkOrderController extends Controller
      */
     private function getUserApprovalPriorityLimit($user)
     {
-        if ($user->hasRole('administrator')) {
+        if ($user->hasRole('Administrator')) {
             return 'emergency';
-        } elseif ($user->hasRole('plant_manager')) {
+        } elseif ($user->hasRole('Plant Manager')) {
             return 'high';
-        } elseif ($user->hasRole('maintenance_supervisor')) {
+        } elseif ($user->hasRole('Maintenance Supervisor')) {
             return 'normal';
         }
         return 'low';

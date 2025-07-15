@@ -156,7 +156,7 @@ class TestWorkOrderSystem extends Command
                 'name' => 'Test Routine - 100h',
                 'trigger_hours' => 100,
                 'execution_mode' => 'automatic',
-                'advance_generation_hours' => 24,
+                'advance_generation_days' => 24,
                 'auto_approve_work_orders' => true,
                 'default_priority' => 'normal',
                 'last_execution_runtime_hours' => 80, // 80 hours ago

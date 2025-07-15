@@ -297,8 +297,9 @@ class AssetController extends Controller
             'routines.form.currentVersion.tasks',
             'routines.form.draftTasks',
             'routines.lastExecutionFormVersion',
+            'routines.asset.shift.schedules.shiftTimes.breaks',
             'latestRuntimeMeasurement.user',
-            'shift',
+            'shift.schedules.shiftTimes.breaks',
         ]);
 
         // Include shift_id and runtime data in the response
@@ -315,13 +316,13 @@ class AssetController extends Controller
                 'trigger_runtime_hours' => $routine->trigger_runtime_hours,
                 'trigger_calendar_days' => $routine->trigger_calendar_days,
                 'execution_mode' => $routine->execution_mode,
-                'advance_generation_hours' => $routine->advance_generation_hours,
+                'advance_generation_days' => $routine->advance_generation_days,
                 'auto_approve_work_orders' => $routine->auto_approve_work_orders,
-                'default_priority' => $routine->default_priority,
                 'priority_score' => $routine->priority_score,
                 'last_execution_runtime_hours' => $routine->last_execution_runtime_hours,
                 'last_execution_completed_at' => $routine->last_execution_completed_at,
                 'last_execution_form_version_id' => $routine->last_execution_form_version_id,
+                'next_execution_date' => $routine->next_execution_date?->toIso8601String(),
                 'lastExecutionFormVersion' => $routine->lastExecutionFormVersion ? [
                     'id' => $routine->lastExecutionFormVersion->id,
                     'version_number' => $routine->lastExecutionFormVersion->version_number,
@@ -394,10 +395,6 @@ class AssetController extends Controller
             'plants' => Plant::with('areas.sectors')->get(),
             'isCreating' => false,
             'newRoutineId' => $newRoutineId,
-            'auth' => [
-                'user' => Auth::user(),
-                'permissions' => Auth::user()->getAllPermissions()->pluck('name')->toArray(),
-            ],
         ]);
     }
 

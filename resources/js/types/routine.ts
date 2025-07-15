@@ -13,13 +13,13 @@ export interface Routine {
     description?: string;
     form_id: number;
     active_form_version_id?: number;
-    advance_generation_hours: number;
+    advance_generation_days: number;
     auto_approve_work_orders: boolean;
-    default_priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
     priority_score: number;
     last_execution_runtime_hours?: number;
     last_execution_completed_at?: string;
     last_execution_form_version_id?: number;
+    next_execution_date?: string;
     is_active: boolean;
     created_by?: number;
     created_at: string;

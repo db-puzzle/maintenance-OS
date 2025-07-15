@@ -144,8 +144,8 @@ class WorkOrderGenerationService
         }
         
         $hoursUntilDue = $routine->calculateHoursUntilDue();
-        if ($hoursUntilDue !== null && $hoursUntilDue > $routine->advance_generation_hours) {
-            $reasons[] = "Not yet due: {$hoursUntilDue} hours until due (advance window: {$routine->advance_generation_hours}h)";
+        if ($hoursUntilDue !== null && $hoursUntilDue > $routine->advance_generation_days) {
+            $reasons[] = "Not yet due: {$hoursUntilDue} hours until due (advance window: {$routine->advance_generation_days}h)";
         }
         
         if (empty($reasons)) {

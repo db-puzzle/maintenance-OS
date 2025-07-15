@@ -214,7 +214,7 @@ CREATE TABLE routines (
     trigger_runtime_hours INTEGER NULL,
     trigger_calendar_cays INTEGER NULL,
     execution_mode ENUM('automatic', 'manual') NOT NULL,
-    advance_generation_hours INTEGER DEFAULT 24,
+    advance_generation_days INTEGER DEFAULT 24,
     auto_approve_work_orders BOOLEAN DEFAULT FALSE,
     priority VARCHAR(50) DEFAULT 'normal',
     priority_score INTEGER DEFAULT 50,
@@ -313,7 +313,7 @@ Work Orders automatically created from Routines based on execution mode:
 - `trigger_type`: 'runtime_hours' or 'calendar_days'
 - `trigger_runtime_hours`: Number of runtime hours between executions (when trigger_type = 'runtime_hours')
 - `trigger_calendar_cays`: Number of calendar days between executions (when trigger_type = 'calendar_days')
-- `advance_generation_hours`: Number of hours before due date to generate work order (default: 24)
+- `advance_generation_days`: Number of hours before due date to generate work order (default: 24)
 - `auto_approve_work_orders`: Boolean to automatically approve generated work orders (default: false) - **Requires 'work-orders.approve' permission to set**
 - `last_execution_runtime_hours`: Last recorded runtime hours (for runtime-based)
 - `last_execution_completed_at`: Last execution completion timestamp (for both types)
@@ -647,7 +647,7 @@ class GenerateWorkOrdersFromRoutines extends Command
         $skippedCount = 0;
         foreach ($runtimeRoutines->merge($calendarRoutines) as $routine) {
             $hoursUntilDue = $routine->calculateHoursUntilDue();
-            if ($hoursUntilDue !== null && $hoursUntilDue <= ($routine->advance_generation_hours ?? 24) && $hoursUntilDue > 0) {
+            if ($hoursUntilDue !== null && $hoursUntilDue <= ($routine->advance_generation_days ?? 24) && $hoursUntilDue > 0) {
                 if ($routine->hasOpenWorkOrder()) {
                     $openWO = $routine->getOpenWorkOrder();
                     $this->warn("- Skipped {$routine->name}: Open WO #{$openWO->work_order_number} (Status: {$openWO->status})");

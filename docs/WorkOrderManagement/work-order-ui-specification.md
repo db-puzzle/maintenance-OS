@@ -346,185 +346,209 @@ When an open work order exists from the routine:
 - **Reject**: Transitions to `rejected` status (terminal)
 - **Request More Info**: Returns to requester with comments
 
-### 4. Work Order Management (Unified Interface) (`/maintenance/work-orders/{id}`)
+### 4. Work Order Planning (`/maintenance/work-orders/{id}/planning`)
 
-**Purpose**: Central hub for all work order operations through a tabbed interface, eliminating the need for separate pages for planning, execution, and validation.
+**Purpose**: Detailed planning phase after approval, before scheduling
 
-**Architecture Pattern**: Similar to Asset management where shifts/routines are managed through tabs, all work order state transitions and operations are handled within this single interface.
+**Access**: Only for work orders in `approved` or `planned` status
+
+**Layout**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Planning: WO-2024-001 - Manutenção Bomba P1                │
+│ Status: Approved → Planning                                  │
+├─────────────────────────────────────────────────────────────┤
+│ Resource Planning:                                           │
+│ ┌─────────────────────────────────────────────────────────┐│
+│ │ Estimated Hours*    [4.0] hours                         ││
+│ │ Labor Cost/Hour     R$ [150.00]                         ││
+│ │ Estimated Labor     R$ 600.00 (calculated)             ││
+│ │                                                         ││
+│ │ Downtime Required   [✓] Yes                            ││
+│ │ Safety Requirements [+ Add requirement]                 ││
+│ │ • LOTO required                                         ││
+│ │ • Confined space permit                                ││
+│ │                                                         ││
+│ │ Required Skills     [+ Add skill]                       ││
+│ │ • Pump maintenance certified                           ││
+│ │ • Hydraulic systems                                    ││
+│ │                                                         ││
+│ │ Required Certs      [+ Add certification]              ││
+│ │ • NR-10 Electrical safety                              ││
+│ └─────────────────────────────────────────────────────────┘│
+│                                                              │
+│ Parts Planning:                                              │
+│ ┌─────────────────────────────────────────────────────────┐│
+│ │ [+ Add Part]                                            ││
+│ ├─────────────────────────────────────────────────────────┤│
+│ │ Part Name          Part #      Qty    Unit Cost  Total ││
+│ ├─────────────────────────────────────────────────────────┤│
+│ │ Mechanical Seal    MS-2340     1      R$ 450.00  450.00││
+│ │ O-Ring Set         OR-125      2      R$ 25.00   50.00 ││
+│ │ Bearing            6205-2RS    2      R$ 180.00  360.00││
+│ ├─────────────────────────────────────────────────────────┤│
+│ │ Estimated Parts Cost:                      R$ 860.00    ││
+│ └─────────────────────────────────────────────────────────┘│
+│                                                              │
+│ Schedule Planning:                                           │
+│ ┌─────────────────────────────────────────────────────────┐│
+│ │ Scheduled Start     [📅 2024-01-25 08:00]              ││
+│ │ Scheduled End       [📅 2024-01-25 12:00]              ││
+│ │ Assigned Team       [Mechanical Team ▼]                ││
+│ │ Lead Technician     [João Silva ▼]                     ││
+│ │ Support Tech        [Maria Santos ▼]                   ││
+│ └─────────────────────────────────────────────────────────┘│
+│                                                              │
+│ Total Estimated Cost: R$ 1,460.00                           │
+│                                                              │
+│ [Cancel]                    [Save Draft] [Complete Planning] │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Planning Actions**:
+1. Define resource requirements
+2. Estimate time and costs
+3. Plan parts and materials
+4. Set safety requirements
+5. Define skill requirements
+6. Schedule work window
+7. Assign team/technicians
+
+**Parts Management**:
+- Add parts with quantities and costs
+- Check inventory availability
+- Reserve parts (optional)
+- Calculate total parts cost
+- Track part status: `planned`, `reserved`, `issued`, `used`, `returned`
+
+**Validations**:
+- All required fields filled
+- Scheduled end after scheduled start
+- Assigned technician has required skills
+- Parts availability warnings
+- Total cost calculation accuracy
+
+**Status Transitions**:
+- `approved` → `planned` (after saving)
+- `planned` → `ready_to_schedule` (when fully planned with dates)
+
+### 4. Work Order Details (`/maintenance/work-orders/{id}`)
+
+**Purpose**: Comprehensive view of work order with all related information and actions
 
 **Layout**:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ WO-2024-001 - Manutenção Preventiva Bomba P1               │
-│ Status: Approved | Priority: Critical | Created: 15/01/2024 │
+│ Status: In Progress | Priority: Critical | 75% Complete     │
 ├─────────────────────────────────────────────────────────────┤
-│ [Details] [Planning] [Execution] [History] [Parts] [Analysis]│
+│ [Tabs: Details | Execution | History | Parts | Analysis]    │
 ├─────────────────────────────────────────────────────────────┤
-│ Tab Content Area                                             │
-│ (Content changes based on selected tab and WO status)       │
+│ Details Tab:                                                 │
+│ ┌─────────────────────┬─────────────────────────────────┐  │
+│ │ Asset Information   │ Schedule & Assignment           │  │
+│ ├─────────────────────┼─────────────────────────────────┤  │
+│ │ Plant: Plant 1      │ Created: 2024-01-15 08:00      │  │
+│ │ Area: Area A        │ Planned: 2024-01-20 08:00      │  │
+│ │ Asset: PUMP-001     │ Started: 2024-01-20 08:15      │  │
+│ │ Type: Bomba         │ Due: 2024-01-20 12:00          │  │
+│ │                     │ Assigned: João Silva            │  │
+│ │ Source: Routine     │ Form Version: v2.1              │  │
+│ │ Routine: Pump-500h  │                                 │  │
+│ └─────────────────────┴─────────────────────────────────┘  │
+│                                                              │
+│ Description:                                                 │
+│ ┌─────────────────────────────────────────────────────────┐│
+│ │ Realizar manutenção preventiva conforme checklist       ││
+│ │ padrão. Verificar vibração, temperatura e vazamentos.    ││
+│ └─────────────────────────────────────────────────────────┘│
+│                                                              │
+│ Action Buttons:                                              │
+│ [Edit] [Execute] [Assign] [Print] [Export] [Cancel]         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Tab Visibility Rules**:
-- **Details**: Always visible
-- **Planning**: Visible when status is `approved`, `planned`, or `scheduled`
-- **Execution**: Visible when status is `scheduled`, `in_progress`, `completed`
-- **History**: Always visible
-- **Parts**: Always visible
-- **Analysis**: Visible for corrective work orders or when failure occurred
-- **Validation**: Visible when status is `completed`
-
-**Key Features**:
-1. **Context-Aware Actions**: Action buttons change based on current status and user permissions
-2. **Tab State Preservation**: Each tab maintains its state while navigating
-3. **Real-time Updates**: Status changes reflect immediately across all tabs
-4. **Permission-Based UI**: Tabs and actions are shown/hidden based on user roles
-
-#### 4.1 Details Tab
-
-**Purpose**: Overview of work order information with status-appropriate actions
-
-**Content**:
-- Work order header information
-- Asset/hierarchy details
-- Schedule and assignment
-- Description and requirements
+**Information Displayed**:
+- Complete work order details
+- Current status and progress
+- Asset hierarchy information
+- Schedule and assignment details
 - Source information (if from routine)
-- Planning summary (if planned)
-- Action buttons based on status
+- Form version being used
+- Related documents and forms
+- Execution history
+- Parts used
+- Failure analysis (if applicable)
 
-**Actions by Status**:
-- `requested`: [Approve/Reject] (if has permission)
-- `approved`: [Start Planning]
-- `planned`: [Edit Planning] [Schedule]
-- `scheduled`: [Start Execution]
-- `in_progress`: [View Execution]
-- `completed`: [Validate] (if has permission)
+**User Actions**:
+- Edit work order (if permitted)
+- Start/resume execution
+- Reassign technician
+- Update status
+- Add comments/notes
+- Attach documents/photos
+- Print work order
+- Export to PDF
+- Cancel work order (with reason)
 
-#### 4.2 Planning Tab
+**Validations**:
+- Status-based action availability
+- Permission checks for each action
+- Cannot edit if in execution
+- Cannot cancel if completed
 
-**Purpose**: Resource planning and scheduling integrated within the main interface
+### 4. Work Order Execution (`/maintenance/work-orders/{id}/execute`)
 
-**Access**: Enabled when work order status is `approved`, `planned`, or `scheduled`
+**Purpose**: Guide technicians through work order execution with direct task response collection
 
-**Content Structure**:
-```tsx
-// Three main sections in the planning tab:
-1. Resource Planning
-   - Estimated hours and labor costs
-   - Safety requirements
-   - Required skills and certifications
-   - Downtime planning
-
-2. Parts Planning
-   - Parts list with quantities
-   - Cost calculations
-   - Inventory availability
-   - Part reservation
-
-3. Schedule Planning
-   - Start/end date selection
-   - Team/technician assignment
-   - Shift coordination
-   - Calendar integration
-```
-
-**Planning Mode States**:
-- **View Mode**: Default state showing current planning data
-- **Edit Mode**: Activated by "Edit Planning" button
-- **Draft State**: Auto-saves progress, allows partial completion
-
-**Action Flow**:
-1. Click "Start Planning" or "Edit Planning" button
-2. Tab enters edit mode with form fields enabled
-3. User fills/modifies planning information
-4. "Save Draft" preserves current state
-5. "Complete Planning" validates and transitions status
-
-**Key Differences from Standalone Planning Page**:
-- No navigation away from work order context
-- Maintains visibility of other work order information
-- Seamless transition between viewing and editing
-- Can reference details tab information while planning
-
-#### 4.3 Execution Tab
-
-**Purpose**: Guide technicians through work execution without leaving the work order context
-
-**Access**: Enabled when status is `scheduled`, `in_progress`, or `completed`
-
-**Execution States**:
-- **Ready**: Scheduled but not started
-- **Active**: Execution in progress
-- **Paused**: Temporarily halted
-- **Completed**: All tasks done, awaiting validation
-
-**Content Layout**:
+**Layout**:
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Execution Progress                                           │
+│ Executing: WO-2024-001                    [Pause] [Cancel]  │
 │ Started: 08:15 | Elapsed: 02:45 | Progress: 75%            │
 ├─────────────────────────────────────────────────────────────┤
-│ [Start] / [Resume] / [Pause] / [Complete]                  │
-├─────────────────────────────────────────────────────────────┤
-│ Task Checklist                                               │
-│ (Direct task responses, no FormExecution)                   │
-├─────────────────────────────────────────────────────────────┤
-│ Parts Used                                                   │
-│ (Track actual vs planned)                                    │
-├─────────────────────────────────────────────────────────────┤
-│ Execution Notes                                              │
+│ Task Checklist (6/8 completed):                             │
+│ ┌─────────────────────────────────────────────────────────┐│
+│ │ ✓ 1. Desligar equipamento e aplicar LOTO               ││
+│ │ ✓ 2. Verificar pressão de sucção: [125 psi]            ││
+│ │ ✓ 3. Medir vibração no mancal: [2.5 mm/s]              ││
+│ │ ✓ 4. Verificar temperatura: [45°C]                     ││
+│ │ ✓ 5. Inspecionar acoplamento: [OK ▼]                   ││
+│ │ ✓ 6. Verificar vazamentos: [Nenhum ▼]                  ││
+│ │ ○ 7. Trocar óleo lubrificante                          ││
+│ │   └─ [📷] [📎] [Add note...]                           ││
+│ │ ○ 8. Religar e testar operação                         ││
+│ └─────────────────────────────────────────────────────────┘│
+│                                                              │
+│ Parts Used:                                                  │
+│ ┌─────────────────────────────────────────────────────────┐│
+│ │ [+ Add Part]                                            ││
+│ │ • Óleo ISO VG 46 - 2L (Planned)                       ││
+│ │ • Filtro de óleo - 1 un (Planned)                     ││
+│ │ • Graxa - 200g (Unplanned) [+ Add]                    ││
+│ └─────────────────────────────────────────────────────────┘│
+│                                                              │
+│ Work Summary:                                                │
+│ [_________________________________________________________] │
+│                                                              │
+│ [Save Progress]                    [Complete Work Order →]   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **Key Features**:
-- Timer with pause/resume capability
-- Direct task response collection
-- Real-time progress updates
+- Direct task response collection (no FormExecution intermediary)
+- Real-time progress tracking
+- Inline measurement entry
+- Parts tracking (planned vs actual)
 - Photo/document attachment per task
-- Parts usage tracking with variance
+- Auto-save functionality
 
-#### 4.4 History Tab
-
-**Purpose**: Complete audit trail of all work order activities
-
-**Content**:
-- Status transitions timeline
-- User actions log
-- Planning changes history
-- Execution timeline
-- Comments and notes thread
-
-#### 4.5 Parts Tab
-
-**Purpose**: Comprehensive parts management view
-
-**Sections**:
-1. **Planned Parts**: From planning phase
-2. **Used Parts**: Actual consumption
-3. **Variance Analysis**: Planned vs actual
-4. **Cost Summary**: Financial impact
-
-#### 4.6 Analysis Tab
-
-**Purpose**: Failure analysis and root cause documentation
-
-**Visibility**: 
-- Always visible for corrective work orders
-- Visible for other types if failure occurred during execution
-
-#### 4.7 Validation Tab
-
-**Purpose**: Quality validation integrated within work order interface
-
-**Access**: Visible when status is `completed` and user has validation permission
-
-**Content**:
-- Execution summary review
-- Task completion verification
-- Measurement validation
-- Parts usage review
-- Validation decision interface
+**Completion Process**:
+1. All required tasks must be completed
+2. Work summary documentation
+3. Safety checklist confirmation
+4. Update routine tracking (if applicable)
+5. Status transitions to "Completed"
 
 ### 5. Work Order List with Filters (`/maintenance/work-orders`)
 
@@ -1293,7 +1317,7 @@ const RoutineIntegrationAlert = ({ workOrder }: { workOrder: WorkOrder }) => {
             </div>
           )}
           <div className="text-sm text-muted-foreground">
-            Geração antecipada: {routine?.advance_generation_hours || 24} horas
+            Geração antecipada: {routine?.advance_generation_days || 24} horas
           </div>
         </div>
       </AlertDescription>
@@ -1742,7 +1766,7 @@ export interface WorkOrder {
     execution_mode: 'automatic' | 'manual';
     last_execution_completed_at?: string;
     last_execution_runtime_hours?: number;
-    advance_generation_hours: number;
+    advance_generation_days: number;
     auto_approve_work_orders: boolean;
   };
   
@@ -1829,7 +1853,7 @@ export interface Routine {
   trigger_runtime_hours?: number;
   trigger_calendar_cays?: number;
   execution_mode: 'automatic' | 'manual';
-  advance_generation_hours: number;
+  advance_generation_days: number;
   auto_approve_work_orders: boolean;
   priority: string;
   priority_score: number;
@@ -2190,7 +2214,7 @@ export function RoutineForm({ routine, permissions }: { routine?: Routine; permi
     trigger_runtime_hours: routine?.trigger_runtime_hours || null,
     trigger_calendar_cays: routine?.trigger_calendar_cays || null,
     execution_mode: routine?.execution_mode || 'manual',
-    advance_generation_hours: routine?.advance_generation_hours || 24,
+    advance_generation_days: routine?.advance_generation_days || 24,
     auto_approve_work_orders: routine?.auto_approve_work_orders || false,
     priority: routine?.priority || 'normal',
     priority_score: routine?.priority_score || 50,
@@ -2275,23 +2299,23 @@ export function RoutineForm({ routine, permissions }: { routine?: Routine; permi
         
         {form.data.execution_mode === 'automatic' && (
           <div>
-            <Label htmlFor="advance_generation_hours">
+            <Label htmlFor="advance_generation_days">
               Advance Generation Hours*
             </Label>
             <Input
-              id="advance_generation_hours"
+              id="advance_generation_days"
               type="number"
               min={1}
               max={168}
-              value={form.data.advance_generation_hours}
-              onChange={(e) => form.setData('advance_generation_hours', parseInt(e.target.value))}
-              className={form.errors.advance_generation_hours ? 'border-red-500' : ''}
+              value={form.data.advance_generation_days}
+              onChange={(e) => form.setData('advance_generation_days', parseInt(e.target.value))}
+              className={form.errors.advance_generation_days ? 'border-red-500' : ''}
             />
             <p className="text-sm text-muted-foreground mt-1">
               Generate work order this many hours before it's due (1-168 hours)
             </p>
-            {form.errors.advance_generation_hours && (
-              <p className="text-sm text-red-500 mt-1">{form.errors.advance_generation_hours}</p>
+            {form.errors.advance_generation_days && (
+              <p className="text-sm text-red-500 mt-1">{form.errors.advance_generation_days}</p>
             )}
           </div>
         )}

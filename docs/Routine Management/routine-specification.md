@@ -41,7 +41,7 @@ In Automatic execution mode, the system continuously monitors asset runtime and 
 **Process Flow:**
 1. System monitors asset runtime continuously
 2. System tracks the runtime hours at the time of last routine execution completion
-3. When `(current_runtime - last_execution_runtime) >= (trigger_hours - advance_generation_hours)`, the system checks if a Work Order should be generated
+3. When `(current_runtime - last_execution_runtime) >= (trigger_hours - advance_generation_days)`, the system checks if a Work Order should be generated
 4. If no active Work Order exists for the routine, a new one is created automatically
 5. Work Order status depends on the `auto_approve_work_orders` setting:
    - If true: Work Order is created with "Approved" status
@@ -93,7 +93,7 @@ ADD COLUMN last_execution_completed_at TIMESTAMP NULL DEFAULT NULL;
 
 -- Add advance generation and auto-approval settings
 ALTER TABLE routines
-ADD COLUMN advance_generation_hours INT DEFAULT 24 COMMENT 'Hours before due to generate WO',
+ADD COLUMN advance_generation_days INT DEFAULT 24 COMMENT 'Hours before due to generate WO',
 ADD COLUMN auto_approve_work_orders BOOLEAN DEFAULT FALSE COMMENT 'Auto-approve generated WOs';
 
 -- Add indexes for efficient queries
@@ -117,9 +117,8 @@ class Routine extends Model
         'description',
         'form_id',
         'active_form_version_id',
-        'advance_generation_hours',      // Generate WO this many hours before due
+        'advance_generation_days',      // Generate WO this many hours before due
         'auto_approve_work_orders',      // Auto-approve generated WOs (requires permission)
-        'default_priority',
         'last_execution_runtime_hours',  // Runtime at last completion
         'last_execution_completed_at',   // Timestamp of last completion
         'priority_score'                 // Priority score (0-100)
@@ -128,7 +127,7 @@ class Routine extends Model
     protected $casts = [
         'trigger_runtime_hours' => 'integer',
         'trigger_calendar_days' => 'integer',
-        'advance_generation_hours' => 'integer',
+        'advance_generation_days' => 'integer',
         'auto_approve_work_orders' => 'boolean',
         'last_execution_runtime_hours' => 'decimal:2',
         'last_execution_completed_at' => 'datetime',
@@ -154,7 +153,7 @@ Work Orders created from Routines maintain a strong relationship through:
    - Falls back to the Form's current version if not specified
 
 3. **Configuration Inheritance**
-   - Priority: Inherits from Routine's `default_priority`
+   - Priority: Determined by Routine's `priority_score` (0-100)
    - Title: Uses Routine name
    - Description: Uses Routine description
    - Asset: Links to the same asset as the Routine
@@ -331,7 +330,7 @@ class Routine extends Model
         $hoursUntilDue = $this->calculateHoursUntilDue();
         
         return $hoursUntilDue !== null 
-            && $hoursUntilDue <= ($this->advance_generation_hours ?? 24) 
+            && $hoursUntilDue <= ($this->advance_generation_days ?? 24) 
             && $hoursUntilDue > 0;
     }
     
@@ -584,7 +583,7 @@ When creating work orders from manual routines:
    - Title: routine.name
    - Description: routine.description
    - Form: routine.form_id
-   - Priority: routine.default_priority
+   - Priority: Calculated from routine.priority_score
 
 2. **Add Routine Context**
    ```tsx
@@ -673,15 +672,15 @@ When creating work orders from manual routines:
 ```php
 protected $fillable = [
     'asset_id', 'name', 'trigger_hours', 'execution_mode', 'description',
-    'form_id', 'active_form_version_id', 'advance_generation_hours',
-    'auto_approve_work_orders', 'default_priority',
+    'form_id', 'active_form_version_id', 'advance_generation_days',
+    'auto_approve_work_orders', 'priority_score',
     'last_execution_runtime_hours', 'last_execution_completed_at',
     'last_execution_form_version_id'
 ];
 
 protected $casts = [
     'trigger_hours' => 'integer',
-    'advance_generation_hours' => 'integer',
+    'advance_generation_days' => 'integer',
     'auto_approve_work_orders' => 'boolean',
     'last_execution_runtime_hours' => 'decimal:2',
     'last_execution_completed_at' => 'datetime',
@@ -709,7 +708,7 @@ public function generateWorkOrder(): WorkOrder
         'title' => $this->generateWorkOrderTitle(),
         'description' => $this->generateWorkOrderDescription(),
         'asset_id' => $this->asset_id,
-        'priority' => $this->default_priority ?? 'normal',
+        'priority' => $this->getPriorityFromScore(),
         'priority_score' => $this->priority_score ?? 50,
         'source_type' => 'routine',
         'source_id' => $this->id,
@@ -1049,7 +1048,7 @@ public function boot()
    - Consider environmental factors when choosing trigger type
 
 3. **Configuration Recommendations**
-   - Set appropriate `advance_generation_hours` for automatic routines
+   - Set appropriate `advance_generation_days` for automatic routines
    - Configure `auto_approve_work_orders` only for well-established routines
    - Only users with 'work-orders.approve' permission can enable auto-approval
    - Regular review of manual routines to prevent overdue maintenance
@@ -1087,9 +1086,8 @@ Schema::create('routines', function (Blueprint $table) {
     $table->foreignId('active_form_version_id')->nullable()->constrained('form_versions')->nullOnDelete();
     
     // Work order generation settings
-    $table->integer('advance_generation_hours')->default(24)->comment('Generate WO this many hours in advance');
+    $table->integer('advance_generation_days')->default(24)->comment('Generate WO this many hours in advance');
     $table->boolean('auto_approve_work_orders')->default(false)->comment('Requires work-orders.approve permission');
-    $table->string('default_priority')->default('normal');
     $table->integer('priority_score')->default(50)->comment('Priority score 0-100');
     
     // Execution tracking
@@ -1204,7 +1202,7 @@ export interface Routine {
     trigger_runtime_hours?: number;
     trigger_calendar_days?: number;
     execution_mode: 'automatic' | 'manual';
-    advance_generation_hours: number;
+    advance_generation_days: number;
     auto_approve_work_orders: boolean;
     // ... other fields
 }

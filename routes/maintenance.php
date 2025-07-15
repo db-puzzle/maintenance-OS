@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
         Route::get('/{routine}/version-history', [RoutineController::class, 'getVersionHistory'])->name('version-history');
         Route::get('/{routine}/version/{versionId}', [RoutineController::class, 'viewSpecificVersion'])->name('view-version');
         Route::post('/{routine}/generate-work-order', [RoutineController::class, 'generateWorkOrder'])->name('generate-work-order');
+        Route::post('/{routine}/update-last-execution', [RoutineController::class, 'updateLastExecution'])->name('update-last-execution');
     });
 
     // Asset-related maintenance routes

@@ -47,10 +47,9 @@ class RoutineFactory extends Factory
             'description' => $this->faker->paragraph(),
             'form_id' => null, // Will be created automatically in the model's creating event
             'active_form_version_id' => null,
-            'advance_generation_hours' => $this->faker->randomElement([12, 24, 48, 72, 168]),
+            'advance_generation_days' => $this->faker->randomElement([12, 24, 48, 72, 168, 180]),
             'auto_approve_work_orders' => false,
-            'default_priority' => 'normal',
-            'priority_score' => 50,
+            'priority_score' => $this->faker->numberBetween(0, 100),
             'is_active' => true,
             'created_by' => User::factory(),
         ];

@@ -70,7 +70,7 @@ export interface WorkOrder {
         execution_mode: 'automatic' | 'manual';
         last_execution_completed_at?: string;
         last_execution_runtime_hours?: number;
-        advance_generation_hours: number;
+        advance_generation_days: number;
         auto_approve_work_orders: boolean;
     };
 

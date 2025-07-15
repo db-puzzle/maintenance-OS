@@ -85,6 +85,7 @@ interface RoutineListProps {
     onFillForm?: () => void;
     isCompressed?: boolean;
     shift?: Shift | null;
+    userPermissions?: string[];
 }
 
 // Helper function to calculate shift work hours per week
@@ -132,7 +133,7 @@ const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => 
 };
 
 const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListProps>(
-    ({ routine, onSave, onDelete, isNew = false, assetId, onEditForm, onFillForm, isCompressed = false, shift }, ref) => {
+    ({ routine, onSave, onDelete, isNew = false, assetId, onEditForm, onFillForm, isCompressed = false, shift, userPermissions = [] }, ref) => {
         // Referência para o trigger do sheet
         const editSheetTriggerRef = useRef<HTMLButtonElement>(null);
         const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -360,6 +361,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                             onSuccess={handleSheetSuccess}
                             isOpen={isSheetOpen}
                             onOpenChange={handleSheetOpenChange}
+                            userPermissions={userPermissions}
                         />
                     </div>
                 </>
@@ -696,6 +698,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         onSuccess={handleSheetSuccess}
                         isOpen={isSheetOpen}
                         onOpenChange={handleSheetOpenChange}
+                        userPermissions={userPermissions}
                     />
                 </div>
 

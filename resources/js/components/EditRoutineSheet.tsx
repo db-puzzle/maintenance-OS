@@ -5,13 +5,14 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
+
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { FileText, Save, X, Clock, Hand, Calendar, AlertTriangle, Lock, Info } from 'lucide-react';
+import StateButton from '@/components/StateButton';
 
 // Updated Routine interface to match the specifications
 interface Routine {
@@ -24,9 +25,8 @@ interface Routine {
     description?: string;
     form_id?: number;
     asset_id?: number;
-    advance_generation_hours: number;
+    advance_generation_days: number;
     auto_approve_work_orders: boolean;
-    default_priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
     priority_score: number;
     last_execution_runtime_hours?: number;
     last_execution_completed_at?: string;
@@ -42,9 +42,8 @@ interface RoutineForm {
     trigger_calendar_days: number | null;
     execution_mode: 'automatic' | 'manual';
     description: string;
-    advance_generation_hours: number;
+    advance_generation_days: number;
     auto_approve_work_orders: boolean;
-    default_priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
     priority_score: number;
 }
 
@@ -94,9 +93,8 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
         trigger_calendar_days: routine?.trigger_calendar_days || null,
         execution_mode: routine?.execution_mode || 'automatic',
         description: routine?.description || '',
-        advance_generation_hours: routine?.advance_generation_hours || 24,
+        advance_generation_days: routine?.advance_generation_days || 30,
         auto_approve_work_orders: routine?.auto_approve_work_orders || false,
-        default_priority: routine?.default_priority || 'normal',
         priority_score: routine?.priority_score || 50,
     });
 
@@ -123,9 +121,8 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                     trigger_calendar_days: routine.trigger_calendar_days || null,
                     execution_mode: routine.execution_mode || 'automatic',
                     description: routine.description || '',
-                    advance_generation_hours: routine.advance_generation_hours || 24,
+                    advance_generation_days: routine.advance_generation_days || 30,
                     auto_approve_work_orders: routine.auto_approve_work_orders || false,
-                    default_priority: routine.default_priority || 'normal',
                     priority_score: routine.priority_score || 50,
                 };
 
@@ -137,15 +134,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 return newData;
             });
         }
-    }, [routine?.id, routine?.name, routine?.trigger_type, routine?.trigger_runtime_hours, routine?.trigger_calendar_days, routine?.execution_mode, routine?.description, routine?.advance_generation_hours, routine?.auto_approve_work_orders, routine?.default_priority, routine?.priority_score]);
-
-    // Update priority score when priority changes
-    React.useEffect(() => {
-        const selectedPriority = PRIORITY_OPTIONS.find(p => p.value === data.default_priority);
-        if (selectedPriority && data.priority_score !== selectedPriority.score) {
-            setData(prev => ({ ...prev, priority_score: selectedPriority.score }));
-        }
-    }, [data.default_priority]);
+    }, [routine?.id, routine?.name, routine?.trigger_type, routine?.trigger_runtime_hours, routine?.trigger_calendar_days, routine?.execution_mode, routine?.description, routine?.advance_generation_days, routine?.auto_approve_work_orders, routine?.priority_score]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -173,8 +162,8 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             }
         }
 
-        if (data.advance_generation_hours < 1 || data.advance_generation_hours > 168) {
-            newErrors.advance_generation_hours = 'Horas de antecedência deve estar entre 1 e 168 horas';
+        if (data.advance_generation_days < 1 || data.advance_generation_days > 180) {
+            newErrors.advance_generation_days = 'Dias de antecedência deve estar entre 1 e 180 horas';
         }
 
         if (data.priority_score < 0 || data.priority_score > 100) {
@@ -198,13 +187,17 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
 
         const method = isNew ? 'post' : 'put';
 
-        const payload = {
+        const payload: any = {
             ...data,
             asset_id: assetId || routine?.asset_id,
-            // Clear unused trigger field based on type
-            trigger_runtime_hours: data.trigger_type === 'runtime_hours' ? data.trigger_runtime_hours : null,
-            trigger_calendar_days: data.trigger_type === 'calendar_days' ? data.trigger_calendar_days : null,
         };
+
+        // Only include the relevant trigger field based on trigger type
+        if (data.trigger_type === 'runtime_hours') {
+            delete payload.trigger_calendar_days;
+        } else {
+            delete payload.trigger_runtime_hours;
+        }
 
         router[method](url, payload, {
             preserveScroll: true,
@@ -222,9 +215,8 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                         trigger_calendar_days: null,
                         execution_mode: 'automatic',
                         description: '',
-                        advance_generation_hours: 24,
+                        advance_generation_days: 30,
                         auto_approve_work_orders: false,
-                        default_priority: 'normal',
                         priority_score: 50,
                     });
                 }
@@ -256,9 +248,8 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 trigger_calendar_days: routine.trigger_calendar_days || null,
                 execution_mode: routine.execution_mode || 'automatic',
                 description: routine.description || '',
-                advance_generation_hours: routine.advance_generation_hours || 24,
+                advance_generation_days: routine.advance_generation_days || 30,
                 auto_approve_work_orders: routine.auto_approve_work_orders || false,
-                default_priority: routine.default_priority || 'normal',
                 priority_score: routine.priority_score || 50,
             });
         } else {
@@ -269,9 +260,8 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 trigger_calendar_days: null,
                 execution_mode: 'automatic',
                 description: '',
-                advance_generation_hours: 24,
+                advance_generation_days: 30,
                 auto_approve_work_orders: false,
-                default_priority: 'normal',
                 priority_score: 50,
             });
         }
@@ -297,11 +287,9 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                     </SheetDescription>
                 </SheetHeader>
 
-                <div className="space-y-6 py-4 px-4">
+                <div className="space-y-6 px-4">
                     {/* Basic Information */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Informações Básicas</h3>
-
                         <div className="space-y-2">
                             <Label htmlFor="name">Nome da Rotina*</Label>
                             <Input
@@ -329,225 +317,179 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
 
                     {/* Trigger Configuration */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Configuração do Trigger</h3>
+                        <h3 className="text-lg font-medium">Trigger de Execução</h3>
 
                         <div className="space-y-3">
-                            <Label>Tipo de Trigger*</Label>
-                            <RadioGroup
-                                value={data.trigger_type}
-                                onValueChange={(value: 'runtime_hours' | 'calendar_days') => updateData('trigger_type', value)}
-                                disabled={processing}
-                            >
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="runtime_hours" id="runtime_hours" />
-                                    <Label htmlFor="runtime_hours" className="flex items-center gap-2 cursor-pointer">
-                                        <Clock className="h-4 w-4" />
-                                        <div>
-                                            <div className="font-medium">Horas de Operação ⏱️</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                Baseado nas horas de funcionamento do ativo
-                                            </div>
+                            <div className="space-y-3">
+                                <StateButton
+                                    icon={Clock}
+                                    title="Horas de Operação"
+                                    description="Baseado nas horas de funcionamento do ativo"
+                                    selected={data.trigger_type === 'runtime_hours'}
+                                    onClick={() => updateData('trigger_type', 'runtime_hours')}
+                                    disabled={processing}
+                                />
+                                {data.trigger_type === 'runtime_hours' && (
+                                    <div className="border-l border-gray-200">
+                                        <div className="ml-6 space-y-2">
+                                            <Label htmlFor="trigger_runtime_hours">Intervalo de Horas *</Label>
+                                            <Input
+                                                id="trigger_runtime_hours"
+                                                type="number"
+                                                min={1}
+                                                max={10000}
+                                                value={data.trigger_runtime_hours || ''}
+                                                onChange={(e) => updateData('trigger_runtime_hours', parseInt(e.target.value) || null)}
+                                                onFocus={(e) => e.target.select()}
+                                                onWheel={(e) => e.preventDefault()}
+                                                placeholder="Ex: 500"
+                                                disabled={processing}
+                                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
+                                            <p className="text-sm text-muted-foreground">
+                                                Executada após essa quantidade de horas de operação (1-10.000 horas)
+                                            </p>
+                                            {errors.trigger_runtime_hours && <p className="text-sm text-destructive">{errors.trigger_runtime_hours}</p>}
                                         </div>
-                                    </Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="calendar_days" id="calendar_days" />
-                                    <Label htmlFor="calendar_days" className="flex items-center gap-2 cursor-pointer">
-                                        <Calendar className="h-4 w-4" />
-                                        <div>
-                                            <div className="font-medium">Dias Calendário 📅</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                Baseado em dias corridos (calendário)
-                                            </div>
-                                        </div>
-                                    </Label>
-                                </div>
-                            </RadioGroup>
+                                    </div>
+                                )}
+
+                                <StateButton
+                                    icon={Calendar}
+                                    title="Dias Calendário"
+                                    description="Baseado em dias corridos (calendário)"
+                                    selected={data.trigger_type === 'calendar_days'}
+                                    onClick={() => updateData('trigger_type', 'calendar_days')}
+                                    disabled={processing}
+                                />
+                            </div>
                             {errors.trigger_type && <p className="text-sm text-destructive">{errors.trigger_type}</p>}
                         </div>
 
-                        {data.trigger_type === 'runtime_hours' && (
-                            <div className="space-y-2">
-                                <Label htmlFor="trigger_runtime_hours">Intervalo de Horas*</Label>
-                                <Input
-                                    id="trigger_runtime_hours"
-                                    type="number"
-                                    min={1}
-                                    max={10000}
-                                    value={data.trigger_runtime_hours || ''}
-                                    onChange={(e) => updateData('trigger_runtime_hours', parseInt(e.target.value) || null)}
-                                    onFocus={(e) => e.target.select()}
-                                    placeholder="Ex: 500"
-                                    disabled={processing}
-                                />
-                                <p className="text-sm text-muted-foreground">
-                                    Manutenção será devido após essa quantidade de horas de operação (1-10.000 horas)
-                                </p>
-                                {errors.trigger_runtime_hours && <p className="text-sm text-destructive">{errors.trigger_runtime_hours}</p>}
-                            </div>
-                        )}
-
                         {data.trigger_type === 'calendar_days' && (
-                            <div className="space-y-2">
-                                <Label htmlFor="trigger_calendar_days">Intervalo de Dias*</Label>
-                                <Input
-                                    id="trigger_calendar_days"
-                                    type="number"
-                                    min={1}
-                                    max={365}
-                                    value={data.trigger_calendar_days || ''}
-                                    onChange={(e) => updateData('trigger_calendar_days', parseInt(e.target.value) || null)}
-                                    onFocus={(e) => e.target.select()}
-                                    placeholder="Ex: 30"
-                                    disabled={processing}
-                                />
-                                <p className="text-sm text-muted-foreground">
-                                    Manutenção será devido após essa quantidade de dias (1-365 dias)
-                                </p>
-                                {errors.trigger_calendar_days && <p className="text-sm text-destructive">{errors.trigger_calendar_days}</p>}
+                            <div className="border-l border-gray-200">
+                                <div className="ml-6 space-y-2">
+                                    <Label htmlFor="trigger_calendar_days">Intervalo de Dias *</Label>
+                                    <Input
+                                        id="trigger_calendar_days"
+                                        type="number"
+                                        min={1}
+                                        max={365}
+                                        value={data.trigger_calendar_days || ''}
+                                        onChange={(e) => updateData('trigger_calendar_days', parseInt(e.target.value) || null)}
+                                        onFocus={(e) => e.target.select()}
+                                        onWheel={(e) => e.preventDefault()}
+                                        placeholder="Ex: 30"
+                                        disabled={processing}
+                                        className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        Executada após essa quantidade de dias (1-365 dias)
+                                    </p>
+                                    {errors.trigger_calendar_days && <p className="text-sm text-destructive">{errors.trigger_calendar_days}</p>}
+                                </div>
                             </div>
                         )}
                     </div>
 
                     {/* Execution Mode */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Modo de Execução</h3>
+                        <h3 className="text-lg font-medium">Criação de Ordens</h3>
 
                         <div className="space-y-3">
-                            <Label>Modo de Execução*</Label>
-                            <RadioGroup
-                                value={data.execution_mode}
-                                onValueChange={(value: 'automatic' | 'manual') => updateData('execution_mode', value)}
-                                disabled={processing}
-                            >
-                                <div className="flex items-start space-x-2">
-                                    <RadioGroupItem value="automatic" id="automatic" className="mt-1" />
-                                    <Label htmlFor="automatic" className="flex items-start gap-3 cursor-pointer">
-                                        <Clock className="h-5 w-5 mt-0.5 shrink-0" />
-                                        <div>
-                                            <div className="font-medium">Automático</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                Sistema gera ordens automaticamente baseado no gatilho configurado
-                                            </div>
-                                        </div>
-                                    </Label>
-                                </div>
-                                <div className="flex items-start space-x-2">
-                                    <RadioGroupItem value="manual" id="manual" className="mt-1" />
-                                    <Label htmlFor="manual" className="flex items-start gap-3 cursor-pointer">
-                                        <Hand className="h-5 w-5 mt-0.5 shrink-0" />
-                                        <div>
-                                            <div className="font-medium">Manual</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                Usuário cria ordens quando necessário
-                                            </div>
-                                        </div>
-                                    </Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-                    </div>
-
-                    {/* Work Order Generation Settings */}
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Configurações de Geração de Ordens</h3>
-
-                        {data.execution_mode === 'automatic' && (
-                            <div className="space-y-2">
-                                <Label htmlFor="advance_generation_hours">Horas de Antecedência*</Label>
-                                <Input
-                                    id="advance_generation_hours"
-                                    type="number"
-                                    min={1}
-                                    max={168}
-                                    value={data.advance_generation_hours}
-                                    onChange={(e) => updateData('advance_generation_hours', parseInt(e.target.value) || 24)}
+                            <div className="space-y-3">
+                                <StateButton
+                                    icon={Clock}
+                                    title="Automática"
+                                    description="Sistema gera ordens automaticamente baseado no gatilho configurado"
+                                    selected={data.execution_mode === 'automatic'}
+                                    onClick={() => updateData('execution_mode', 'automatic')}
                                     disabled={processing}
+                                    iconSize="md"
                                 />
-                                <p className="text-sm text-muted-foreground">
-                                    Gerar ordem de serviço essa quantidade de horas antes do vencimento (1-168 horas)
-                                </p>
-                                {errors.advance_generation_hours && <p className="text-sm text-destructive">{errors.advance_generation_hours}</p>}
-                            </div>
-                        )}
+                                {data.execution_mode === 'automatic' && (
+                                    <div className="border-l border-gray-200">
+                                        <div className="ml-6 space-y-2">
+                                            <Label htmlFor="advance_generation_days">Dias de Antecedência *</Label>
+                                            <Input
+                                                id="advance_generation_days"
+                                                type="number"
+                                                min={1}
+                                                max={180}
+                                                value={data.advance_generation_days}
+                                                onChange={(e) => updateData('advance_generation_days', parseInt(e.target.value) || 30)}
+                                                onWheel={(e) => e.preventDefault()}
+                                                disabled={processing}
+                                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
+                                            <p className="text-sm text-muted-foreground">
+                                                Gerar ordem de serviço essa quantidade de dias antes do vencimento (1-180 dias)
+                                            </p>
+                                            {errors.advance_generation_days && <p className="text-sm text-destructive">{errors.advance_generation_days}</p>}
 
-                        <div className="space-y-3">
-                            <div className="flex items-start space-x-3">
-                                <Checkbox
-                                    id="auto_approve_work_orders"
-                                    checked={data.auto_approve_work_orders}
-                                    onCheckedChange={(checked) => {
-                                        if (canApproveWorkOrders) {
-                                            updateData('auto_approve_work_orders', checked);
-                                        }
-                                    }}
-                                    disabled={!canApproveWorkOrders || processing}
-                                    className={!canApproveWorkOrders ? 'opacity-50 cursor-not-allowed' : ''}
-                                />
-                                <div className="space-y-1 flex-1">
-                                    <Label
-                                        htmlFor="auto_approve_work_orders"
-                                        className={`cursor-pointer ${!canApproveWorkOrders ? 'opacity-50' : ''}`}
-                                    >
-                                        Aprovar automaticamente as ordens geradas
-                                    </Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        {canApproveWorkOrders
-                                            ? 'Ordens criadas desta rotina pularão o processo de aprovação'
-                                            : 'Requer permissão de aprovação de ordens de serviço'}
-                                    </p>
-                                    {!canApproveWorkOrders && (
-                                        <div className="flex items-center gap-1 text-sm text-amber-600">
-                                            <Lock className="h-3 w-3" />
-                                            <span>Você precisa da permissão 'work-orders.approve' para habilitar esta opção</span>
+                                            {/* Automatic Approval Switch */}
+                                            <div className="flex items-center justify-between mt-4 space-y-2">
+                                                <div className="space-y-0.5 flex-1 ">
+                                                    <Label
+                                                        htmlFor="auto_approve_work_orders"
+                                                        className={`${!canApproveWorkOrders ? 'opacity-90' : ''}`}
+                                                    >
+                                                        Aprovar automaticamente as ordens geradas
+                                                    </Label>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Ordens criadas desta rotina pularão o processo de aprovação
+                                                    </p>
+                                                    {!canApproveWorkOrders && (
+                                                        <div className="flex items-center gap-1 text-sm text-amber-600">
+                                                            <Lock className="h-3 w-3" />
+                                                            <span>Você precisa da permissão 'work-orders.approve' para habilitar esta opção</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <Switch
+                                                    id="auto_approve_work_orders"
+                                                    checked={data.auto_approve_work_orders}
+                                                    onCheckedChange={(checked: boolean) => {
+                                                        if (canApproveWorkOrders) {
+                                                            updateData('auto_approve_work_orders', checked);
+                                                        }
+                                                    }}
+                                                    disabled={!canApproveWorkOrders || processing}
+                                                    className={!canApproveWorkOrders ? 'opacity-50 cursor-not-allowed' : ''}
+                                                />
+                                            </div>
+
+                                            {errors.auto_approve_work_orders && (
+                                                <Alert variant="destructive" className="mt-2">
+                                                    <AlertDescription>
+                                                        {errors.auto_approve_work_orders}
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
+
+                                <StateButton
+                                    icon={Hand}
+                                    title="Manual"
+                                    description="Usuário cria ordens quando necessário"
+                                    selected={data.execution_mode === 'manual'}
+                                    onClick={() => updateData('execution_mode', 'manual')}
+                                    disabled={processing}
+                                    iconSize="md"
+                                />
                             </div>
-
-                            {data.auto_approve_work_orders && canApproveWorkOrders && (
-                                <Alert>
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertDescription>
-                                        As ordens serão automaticamente aprovadas e prontas para planejamento.
-                                        Certifique-se de que esta rotina foi devidamente revisada antes de habilitar esta opção.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-
-                            {errors.auto_approve_work_orders && (
-                                <Alert variant="destructive">
-                                    <AlertDescription>
-                                        {errors.auto_approve_work_orders}
-                                    </AlertDescription>
-                                </Alert>
-                            )}
                         </div>
                     </div>
+
+
 
                     {/* Priority Configuration */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Configuração de Prioridade</h3>
+                        <h3 className="text-lg font-medium">Prioridade</h3>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="default_priority">Prioridade Padrão*</Label>
-                            <Select
-                                value={data.default_priority}
-                                onValueChange={(value: 'emergency' | 'urgent' | 'high' | 'normal' | 'low') => updateData('default_priority', value)}
-                                disabled={processing}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {PRIORITY_OPTIONS.map((priority) => (
-                                        <SelectItem key={priority.value} value={priority.value}>
-                                            {priority.label} (Score: {priority.score})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+
 
                         <div className="space-y-2">
                             <Label htmlFor="priority_score">Pontuação de Prioridade (0-100)*</Label>
@@ -558,7 +500,9 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                 max={100}
                                 value={data.priority_score}
                                 onChange={(e) => updateData('priority_score', parseInt(e.target.value) || 0)}
+                                onWheel={(e) => e.preventDefault()}
                                 disabled={processing}
+                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <p className="text-sm text-muted-foreground">
                                 Pontuação numérica para ordenação automática de prioridades
@@ -567,37 +511,17 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                         </div>
                     </div>
 
-                    {/* Execution History */}
-                    {routine && !isNew && (
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-medium">Histórico de Execução</h3>
-                            <div className="p-4 bg-gray-50 rounded-lg">
-                                {routine.last_execution_completed_at ? (
-                                    <div className="space-y-1 text-sm">
-                                        <div><strong>Última Execução:</strong> {new Date(routine.last_execution_completed_at).toLocaleString('pt-BR')}</div>
-                                        {routine.trigger_type === 'runtime_hours' && routine.last_execution_runtime_hours && (
-                                            <div><strong>Horas na Última Execução:</strong> {routine.last_execution_runtime_hours}h</div>
-                                        )}
-                                        {routine.trigger_type === 'calendar_days' && (
-                                            <div><strong>Dias Desde a Última:</strong> {Math.floor((Date.now() - new Date(routine.last_execution_completed_at).getTime()) / (1000 * 60 * 60 * 24))} dias</div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">Nenhuma execução registrada ainda</p>
-                                )}
-                            </div>
-                        </div>
-                    )}
+
                 </div>
 
                 <SheetFooter className="px-6">
-                    <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
-                        <X className="mr-2 h-4 w-4" />
-                        Cancelar
-                    </Button>
                     <Button type="submit" disabled={processing}>
                         <Save className="mr-2 h-4 w-4" />
                         {processing ? 'Salvando...' : 'Salvar'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
+                        <X className="mr-2 h-4 w-4" />
+                        Cancelar
                     </Button>
                 </SheetFooter>
             </form>

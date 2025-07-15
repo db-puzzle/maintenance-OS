@@ -83,9 +83,8 @@ class RoutineTest extends ModelTestCase
             'description',
             'form_id',
             'active_form_version_id',
-            'advance_generation_hours',
+            'advance_generation_days',
             'auto_approve_work_orders',
-            'default_priority',
             'priority_score',
             'last_execution_runtime_hours',
             'last_execution_completed_at',
@@ -111,7 +110,7 @@ class RoutineTest extends ModelTestCase
         
         $this->assertEquals('integer', $casts['trigger_runtime_hours']);
         $this->assertEquals('integer', $casts['trigger_calendar_days']);
-        $this->assertEquals('integer', $casts['advance_generation_hours']);
+        $this->assertEquals('integer', $casts['advance_generation_days']);
         $this->assertEquals('boolean', $casts['auto_approve_work_orders']);
         $this->assertEquals('decimal:2', $casts['last_execution_runtime_hours']);
         $this->assertArrayHasKey('last_execution_completed_at', $casts);

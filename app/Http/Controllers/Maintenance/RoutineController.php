@@ -13,6 +13,7 @@ use App\Services\WorkOrders\MaintenanceWorkOrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class RoutineController extends Controller
 {
@@ -26,7 +27,7 @@ class RoutineController extends Controller
             'execution_mode' => 'required|in:automatic,manual',
             'description' => 'nullable|string',
             'asset_id' => 'required|exists:assets,id',
-            'advance_generation_hours' => 'nullable|integer|min:1|max:168',
+            'advance_generation_days' => 'nullable|integer|min:1|max:180',
             'auto_approve_work_orders' => [
                 'nullable',
                 'boolean',
@@ -36,7 +37,6 @@ class RoutineController extends Controller
                     }
                 },
             ],
-            'default_priority' => 'nullable|in:emergency,urgent,high,normal,low',
             'priority_score' => 'nullable|integer|min:0|max:100',
         ]);
         
@@ -45,9 +45,8 @@ class RoutineController extends Controller
         $this->authorize('manage', $asset);
         
         // Set defaults
-        $validated['advance_generation_hours'] = $validated['advance_generation_hours'] ?? 24;
+        $validated['advance_generation_days'] = $validated['advance_generation_days'] ?? 24;
         $validated['auto_approve_work_orders'] = $validated['auto_approve_work_orders'] ?? false;
-        $validated['default_priority'] = $validated['default_priority'] ?? 'normal';
         $validated['priority_score'] = $validated['priority_score'] ?? 50;
         $validated['is_active'] = true;
         $validated['created_by'] = auth()->id();
@@ -69,7 +68,7 @@ class RoutineController extends Controller
             'trigger_calendar_days' => 'required_if:trigger_type,calendar_days|nullable|integer|min:1|max:365',
             'execution_mode' => 'required|in:automatic,manual',
             'description' => 'nullable|string',
-            'advance_generation_hours' => 'nullable|integer|min:1|max:168',
+            'advance_generation_days' => 'nullable|integer|min:1|max:180',
             'auto_approve_work_orders' => [
                 'nullable',
                 'boolean',
@@ -79,7 +78,6 @@ class RoutineController extends Controller
                     }
                 },
             ],
-            'default_priority' => 'nullable|in:emergency,urgent,high,normal,low',
             'priority_score' => 'nullable|integer|min:0|max:100',
             'is_active' => 'nullable|boolean',
         ]);
@@ -88,8 +86,17 @@ class RoutineController extends Controller
         $this->authorize('manage', $routine->asset);
         
         // Set defaults for nullable fields
-        $validated['advance_generation_hours'] = $validated['advance_generation_hours'] ?? $routine->advance_generation_hours;
+        $validated['advance_generation_days'] = $validated['advance_generation_days'] ?? $routine->advance_generation_days;
         $validated['priority_score'] = $validated['priority_score'] ?? $routine->priority_score;
+        
+        // Handle trigger fields based on trigger type
+        if ($validated['trigger_type'] === 'runtime_hours') {
+            // Clear calendar days when switching to runtime hours
+            $validated['trigger_calendar_days'] = null;
+        } elseif ($validated['trigger_type'] === 'calendar_days') {
+            // Clear runtime hours when switching to calendar days
+            $validated['trigger_runtime_hours'] = null;
+        }
         
         $routine->update($validated);
         
@@ -395,7 +402,7 @@ class RoutineController extends Controller
         
         // Get all published versions
         $versions = $form->versions()
-            ->with('publishedBy')
+            ->with('publisher')
             ->withCount('tasks')
             ->orderBy('version_number', 'desc')
             ->get()
@@ -404,9 +411,9 @@ class RoutineController extends Controller
                     'id' => $version->id,
                     'version_number' => $version->version_number,
                     'published_at' => $version->published_at,
-                    'published_by' => $version->publishedBy ? [
-                        'id' => $version->publishedBy->id,
-                        'name' => $version->publishedBy->name,
+                    'published_by' => $version->publisher ? [
+                        'id' => $version->publisher->id,
+                        'name' => $version->publisher->name,
                     ] : null,
                     'tasks_count' => $version->tasks_count,
                     'is_current' => $version->id === $form->current_version_id,
@@ -561,5 +568,89 @@ class RoutineController extends Controller
     public function generateWorkOrder(Request $request, Routine $routine)
     {
         return $this->createWorkOrder($request, $routine->asset, $routine);
+    }
+
+    /**
+     * Update the last execution date for a routine
+     */
+    public function updateLastExecution(Request $request, Routine $routine)
+    {
+        // Check if user can manage the asset
+        $this->authorize('manage', $routine->asset);
+
+        $validated = $request->validate([
+            'last_execution_date' => 'required|date|before_or_equal:today',
+            'runtime_hours' => 'nullable|numeric|min:0|max:999999',
+        ]);
+
+        try {
+            $lastExecutionDate = Carbon::parse($validated['last_execution_date']);
+            
+            // Update the routine
+            $updateData = [
+                'last_execution_completed_at' => $lastExecutionDate,
+            ];
+
+            // For runtime-based routines, also update runtime hours
+            if ($routine->trigger_type === 'runtime_hours') {
+                // Load asset with runtime measurement if needed
+                if (!$routine->relationLoaded('asset')) {
+                    $routine->load('asset.latestRuntimeMeasurement');
+                }
+                
+                if (isset($validated['runtime_hours']) && $validated['runtime_hours'] !== null) {
+                    // Use provided runtime hours
+                    $updateData['last_execution_runtime_hours'] = $validated['runtime_hours'];
+                } else {
+                    // Use current asset runtime hours if not provided
+                    $currentRuntime = $routine->asset->current_runtime_hours ?? 0;
+                    $updateData['last_execution_runtime_hours'] = $currentRuntime;
+                    
+                    \Log::info('Using current asset runtime for routine ' . $routine->id, [
+                        'current_runtime' => $currentRuntime,
+                        'asset_id' => $routine->asset_id,
+                    ]);
+                }
+            }
+
+            $routine->update($updateData);
+            
+            // Refresh the model to clear any cached accessors
+            $routine->refresh();
+            
+            // Reload routine with relationships to get updated next_execution_date
+            $routine->load([
+                'form.currentVersion.tasks',
+                'form.draftTasks',
+                'lastExecutionFormVersion',
+                'asset',
+                'asset.shift.schedules.shiftTimes.breaks',
+            ]);
+            
+            // Clear the accessor cache by accessing it fresh
+            $routine->setAppends(['next_execution_date']);
+            
+            // Get a fresh instance of the routine to ensure accessors are recalculated
+            $freshRoutine = Routine::with([
+                'asset.latestRuntimeMeasurement',
+                'asset.shift.schedules.shiftTimes.breaks',
+            ])->find($routine->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data da última execução atualizada com sucesso.',
+                'routine' => [
+                    'id' => $freshRoutine->id,
+                    'last_execution_completed_at' => $freshRoutine->last_execution_completed_at?->toIso8601String(),
+                    'last_execution_runtime_hours' => $freshRoutine->last_execution_runtime_hours,
+                    'next_execution_date' => $freshRoutine->next_execution_date?->toIso8601String(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erro ao atualizar data da última execução.',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 }

@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { FileText, History, Calendar, User, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -62,6 +62,9 @@ export default function FormVersionHistory({ routineId, isOpen, onClose }: FormV
                         <History className="h-5 w-5" />
                         Histórico de Versões
                     </DialogTitle>
+                    <DialogDescription>
+                        Clique em uma versão para visualizar suas tarefas
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="flex-1 overflow-y-auto">
@@ -80,15 +83,14 @@ export default function FormVersionHistory({ routineId, isOpen, onClose }: FormV
                     ) : (
                         <div className="space-y-3">
                             {versions.map((version) => (
-                                <Button
+                                <button
                                     key={version.id}
-                                    variant="outline"
-                                    className="w-full p-4 h-auto flex flex-col items-start gap-2 hover:bg-gray-50"
+                                    className="w-full p-3 text-left border rounded-md bg-white hover:bg-gray-50 focus-visible:border-ring focus-visible:ring-ring/10 focus-visible:ring-[3px] focus-visible:bg-input-focus transition-[color,box-shadow] outline-none"
                                     onClick={() => handleViewVersion(version.id)}
                                 >
-                                    <div className="w-full flex items-start justify-between">
+                                    <div className="w-full flex items-start justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-semibold text-base">
+                                            <h3 className="font-semibold text-sm">
                                                 Versão {version.version_number}
                                             </h3>
                                             {version.is_current && (
@@ -103,7 +105,7 @@ export default function FormVersionHistory({ routineId, isOpen, onClose }: FormV
                                         </Badge>
                                     </div>
 
-                                    <div className="w-full flex items-center gap-4 text-sm text-gray-600">
+                                    <div className="w-full flex items-center gap-4 text-xs text-gray-600">
                                         <div className="flex items-center gap-1">
                                             <Calendar className="h-3 w-3" />
                                             <span>
@@ -117,7 +119,7 @@ export default function FormVersionHistory({ routineId, isOpen, onClose }: FormV
                                             </div>
                                         )}
                                     </div>
-                                </Button>
+                                </button>
                             ))}
                         </div>
                     )}
