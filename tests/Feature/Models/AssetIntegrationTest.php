@@ -139,9 +139,15 @@ class AssetIntegrationTest extends TestCase
         
         $this->assertCount(3, $asset->routines);
         
-        // Verify each routine has correct trigger hours
-        $triggerHours = $asset->routines->pluck('trigger_hours')->sort()->values();
-        $this->assertEquals([24, 168, 720], $triggerHours->toArray());
+        // Verify runtime-based routines have correct trigger hours
+        $runtimeRoutines = $asset->routines->where('trigger_type', 'runtime_hours');
+        $triggerHours = $runtimeRoutines->pluck('trigger_runtime_hours')->sort()->values();
+        $this->assertEquals([24, 168], $triggerHours->toArray());
+        
+        // Verify calendar-based routine has correct trigger days
+        $calendarRoutines = $asset->routines->where('trigger_type', 'calendar_days');
+        $this->assertCount(1, $calendarRoutines);
+        $this->assertEquals(30, $calendarRoutines->first()->trigger_calendar_days);
         
         // Verify each routine has an associated form
         foreach ($asset->routines as $routine) {

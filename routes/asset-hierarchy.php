@@ -37,9 +37,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/assets/exportar', [AssetImportExportController::class, 'export'])->name('asset-hierarchy.assets.export');
     Route::post('asset-hierarchy/assets/exportar', [AssetImportExportController::class, 'exportData'])->name('asset-hierarchy.assets.export.data');
     Route::get('asset-hierarchy/assets/exportar/{filename}', [AssetImportExportController::class, 'downloadExport'])->name('asset-hierarchy.assets.export.download');
-    Route::get('asset-hierarchy/assets/{asset}', [AssetController::class, 'show'])->name('asset-hierarchy.assets.show');
     Route::get('asset-hierarchy/assets/{asset}/edit', [AssetController::class, 'edit'])->name('asset-hierarchy.assets.edit');
     Route::put('asset-hierarchy/assets/{asset}', [AssetController::class, 'update'])->name('asset-hierarchy.assets.update');
+    Route::patch('asset-hierarchy/assets/{asset}', [AssetController::class, 'update']);
     Route::delete('asset-hierarchy/assets/{asset}', [AssetController::class, 'destroy'])->name('asset-hierarchy.assets.destroy');
     Route::get('asset-hierarchy/assets/{asset}/check-dependencies', [AssetController::class, 'checkDependencies'])->name('asset-hierarchy.assets.check-dependencies');
     Route::delete('asset-hierarchy/assets/{asset}/photo', [AssetController::class, 'removePhoto'])->name('asset-hierarchy.assets.remove-photo');
@@ -50,6 +50,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/assets/{asset}/runtime/history', [AssetController::class, 'getRuntimeHistory'])->name('asset-hierarchy.assets.runtime.history');
     Route::get('asset-hierarchy/assets/{asset}/runtime/calculation-details', [AssetController::class, 'getRuntimeCalculationDetails'])->name('asset-hierarchy.assets.runtime.calculation-details');
     Route::get('asset-hierarchy/assets/{asset}/runtime/breakdown', [AssetController::class, 'getRuntimeBreakdown'])->name('asset-hierarchy.assets.runtime.breakdown');
+    
+    // Work order history route
+    Route::get('asset-hierarchy/assets/{asset}/work-order-history', [AssetController::class, 'getWorkOrderHistory'])->name('asset-hierarchy.assets.work-order-history');
+
+    // General asset route (must come after all specific routes)
+    Route::get('asset-hierarchy/assets/{asset}', [AssetController::class, 'show'])->name('asset-hierarchy.assets.show');
 
     Route::get('asset-hierarchy/sectors', [SectorController::class, 'index'])->name('asset-hierarchy.sectors');
     Route::get('asset-hierarchy/sectors/create', [SectorController::class, 'create'])->name('asset-hierarchy.sectors.create');

@@ -227,8 +227,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
         }));
 
         router.post(
-            route('maintenance.assets.routines.forms.store', {
-                asset: assetId,
+            route('maintenance.routines.forms.store', {
                 routine: routine.id,
             }),
             {
@@ -257,8 +256,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
         setPublishing(true);
 
         router.post(
-            route('maintenance.assets.routines.forms.publish', {
-                asset: assetId,
+            route('maintenance.routines.forms.publish', {
                 routine: routine.id,
             }),
             {},
@@ -314,8 +312,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
         }));
 
         router.post(
-            route('maintenance.assets.routines.forms.store', {
-                asset: assetId,
+            route('maintenance.routines.forms.store', {
                 routine: routine.id,
             }),
             {
@@ -352,7 +349,7 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                                 current_version_id: routine.form.currentVersionId ?? null,
                                 has_draft_changes: routine.form.has_draft_changes ?? routine.form.isDraft,
                                 current_version: routine.form.current_version,
-                                tasks: routine.form.tasks.map(task => ({
+                                tasks: (routine.form.tasks || []).map(task => ({
                                     ...task,
                                     id: parseInt(task.id),
                                     name: task.description || '',

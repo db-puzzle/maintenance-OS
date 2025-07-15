@@ -11,11 +11,31 @@ use App\Models\Forms\Form;
 use App\Models\User;
 use App\Models\WorkOrders\WorkOrder;
 use App\Models\WorkOrders\WorkOrderType;
+use App\Services\WorkOrders\MaintenanceWorkOrderService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
+use App\Models\WorkOrders\WorkOrderPart;
+use App\Models\Team;
+use App\Models\Part;
+use App\Models\Skill;
+use App\Models\Certification;
+use App\Http\Requests\WorkOrders\StoreWorkOrderRequest;
+use App\Http\Requests\WorkOrders\UpdateWorkOrderRequest;
+use App\Http\Requests\WorkOrders\ApproveWorkOrderRequest;
+use App\Http\Requests\WorkOrders\RejectWorkOrderRequest;
+use App\Http\Requests\WorkOrders\PlanWorkOrderRequest;
+use Carbon\Carbon;
 
 class WorkOrderController extends Controller
 {
+    protected MaintenanceWorkOrderService $maintenanceService;
+    
+    public function __construct(MaintenanceWorkOrderService $maintenanceService)
+    {
+        $this->maintenanceService = $maintenanceService;
+    }
+    
     /**
      * Display a listing of work orders
      */
@@ -23,6 +43,8 @@ class WorkOrderController extends Controller
     {
         $this->authorize('viewAny', WorkOrder::class);
 
+        // Determine discipline from route prefix
+        $discipline = str_contains($request->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
         $perPage = $request->input('per_page', 10);
         $search = $request->input('search');
         $status = $request->input('status');
@@ -32,15 +54,29 @@ class WorkOrderController extends Controller
         $plantId = $request->input('plant_id');
         $sort = $request->input('sort', 'created_at');
         $direction = $request->input('direction', 'desc');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
 
-        $query = WorkOrder::with([
-            'type',
-            'asset.plant',
-            'asset.area',
-            'asset.sector',
-            'assignedTechnician',
-            'requestedBy',
-        ]);
+        // Set default date range if not provided
+        if (!$dateFrom || !$dateTo) {
+            $dateFrom = now()->subDays(30)->format('Y-m-d');
+            $dateTo = now()->format('Y-m-d');
+        }
+
+        $query = WorkOrder::where('discipline', $discipline)
+            ->with([
+                'type',
+                'asset.plant',
+                'asset.area',
+                'asset.sector',
+                'assignedTechnician',
+                'requestedBy',
+            ]);
+
+        // Apply date filter
+        if ($dateFrom && $dateTo) {
+            $query->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+        }
 
         // Apply filters
         if ($search) {
@@ -77,83 +113,87 @@ class WorkOrderController extends Controller
         }
 
         // Apply sorting
-        if ($sort === 'type') {
-            $query->join('work_order_types', 'work_orders.work_order_type_id', '=', 'work_order_types.id')
-                ->orderBy('work_order_types.name', $direction)
+        if ($sort === 'asset') {
+            $query->leftJoin('assets', 'work_orders.asset_id', '=', 'assets.id')
+                ->orderBy('assets.tag', $direction)
                 ->select('work_orders.*');
-        } elseif ($sort === 'assigned_to') {
-            $query->leftJoin('users', 'work_orders.assigned_to', '=', 'users.id')
+        } elseif ($sort === 'technician') {
+            $query->leftJoin('users', 'work_orders.assigned_technician_id', '=', 'users.id')
                 ->orderBy('users.name', $direction)
                 ->select('work_orders.*');
         } else {
             $query->orderBy($sort, $direction);
         }
 
-        $workOrders = $query->paginate($perPage);
+        $workOrdersPaginated = $query->paginate($perPage)->withQueryString();
+        
+        // Transform paginated data to match React component expectations
+        $workOrders = [
+            'data' => $workOrdersPaginated->items(),
+            'meta' => [
+                'current_page' => $workOrdersPaginated->currentPage(),
+                'last_page' => $workOrdersPaginated->lastPage(),
+                'per_page' => $workOrdersPaginated->perPage(),
+                'total' => $workOrdersPaginated->total(),
+                'from' => $workOrdersPaginated->firstItem(),
+                'to' => $workOrdersPaginated->lastItem(),
+            ]
+        ];
+
+        // Get stats for the period
+        $stats = [
+            'open' => WorkOrder::where('discipline', $discipline)
+                ->open()
+                ->count(),
+            'in_progress' => WorkOrder::where('discipline', $discipline)
+                ->where('status', WorkOrder::STATUS_IN_PROGRESS)
+                ->count(),
+            'overdue' => WorkOrder::where('discipline', $discipline)
+                ->overdue()
+                ->count(),
+            'completed_this_month' => WorkOrder::where('discipline', $discipline)
+                ->whereBetween('created_at', [now()->startOfMonth(), now()])
+                ->whereIn('status', [WorkOrder::STATUS_COMPLETED, WorkOrder::STATUS_VERIFIED, WorkOrder::STATUS_CLOSED])
+                ->count(),
+        ];
+
+        // Get category stats
+        $categoryStats = WorkOrder::where('discipline', $discipline)
+            ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->selectRaw('work_order_category, count(*) as count')
+            ->groupBy('work_order_category')
+            ->pluck('count', 'work_order_category')
+            ->toArray();
+
+        // Calculate trends
+        $stats['trend'] = $this->calculateTrend($stats);
+        $dailyTrend = $this->getDailyTrend($dateFrom, $dateTo, $discipline);
 
         // Get filter options
-        $statuses = [
-            'pending' => 'Pendente',
-            'approved' => 'Aprovada',
-            'rejected' => 'Rejeitada',
-            'in_progress' => 'Em Andamento',
-            'completed' => 'Concluída',
-            'cancelled' => 'Cancelada',
-        ];
-
-        $priorities = [
-            'critical' => 'Crítica',
-            'high' => 'Alta',
-            'medium' => 'Média',
-            'low' => 'Baixa',
-        ];
-
-        $categories = [
-            'preventive' => 'Preventiva',
-            'corrective' => 'Corretiva',
-            'inspection' => 'Inspeção',
-            'project' => 'Projeto',
-        ];
-
-        $users = User::orderBy('name')->get(['id', 'name']);
         $plants = Plant::orderBy('name')->get(['id', 'name']);
-
-        // Calculate stats
-        $stats = [
-            'open' => WorkOrder::whereIn('status', ['requested', 'approved', 'planned', 'scheduled'])->count(),
-            'in_progress' => WorkOrder::where('status', 'in_progress')->count(),
-            'overdue' => WorkOrder::where('status', '!=', 'completed')
-                ->where('status', '!=', 'verified')
-                ->where('status', '!=', 'closed')
-                ->where('status', '!=', 'cancelled')
-                ->where('requested_due_date', '<', now())
-                ->count(),
-            'completed_this_month' => WorkOrder::where('status', 'completed')
-                ->whereMonth('actual_end_date', now()->month)
-                ->whereYear('actual_end_date', now()->year)
-                ->count(),
-        ];
-
-        // Get work order types
-        $workOrderTypes = WorkOrderType::where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        $technicians = User::whereHas('roles', function ($q) {
+            $q->whereIn('name', ['Technician', 'Maintenance Supervisor']);
+        })->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('work-orders/index', [
-            'workOrders' => [
-                'data' => $workOrders->items(),
-                'meta' => [
-                    'current_page' => $workOrders->currentPage(),
-                    'last_page' => $workOrders->lastPage(),
-                    'per_page' => $workOrders->perPage(),
-                    'total' => $workOrders->total(),
-                    'from' => $workOrders->firstItem(),
-                    'to' => $workOrders->lastItem(),
-                ],
-            ],
+            'workOrders' => $workOrders,
             'stats' => $stats,
-            'workOrderTypes' => $workOrderTypes,
+            'dailyTrend' => $dailyTrend,
+            'categoryStats' => $categoryStats,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'category' => $category,
+                'priority' => $priority,
+                'assigned_to' => $assignedTo,
+                'plant_id' => $plantId,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'per_page' => $perPage,
+            ],
             'plants' => $plants,
+            'technicians' => $technicians,
+            'discipline' => $discipline,
             'canCreate' => auth()->user()->can('create', WorkOrder::class),
         ]);
     }
@@ -161,92 +201,73 @@ class WorkOrderController extends Controller
     /**
      * Show the form for creating a new work order
      */
-    public function create()
+    public function create(Request $request)
     {
         $this->authorize('create', WorkOrder::class);
 
+        // Determine discipline from route prefix
+        $discipline = str_contains($request->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
+        $source = $request->input('source', 'manual');
+        $sourceId = $request->input('source_id');
+        
+        // Get data based on discipline
+        if ($discipline === 'maintenance') {
+            $plants = Plant::orderBy('name')->get();
+            $areas = Area::with('plant')->orderBy('name')->get();
+            $sectors = Sector::with('area')->orderBy('name')->get();
+            $assets = Asset::with(['plant', 'area', 'sector'])->orderBy('tag')->get();
+        } else {
+            $plants = [];
+            $areas = [];
+            $sectors = [];
+            $assets = [];
+            // For quality discipline, we would load instruments instead
+        }
+        
         $workOrderTypes = WorkOrderType::active()->orderBy('name')->get();
-        $assets = Asset::with(['plant', 'area', 'sector'])->orderBy('tag')->get();
-        $plants = Plant::orderBy('name')->get();
-        $areas = Area::with('plant')->orderBy('name')->get();
-        $sectors = Sector::with('area')->orderBy('name')->get();
         $forms = Form::where('is_active', true)->orderBy('name')->get();
-        $users = User::orderBy('name')->get(['id', 'name']);
-
-        // Transform workOrderTypes to include only necessary fields
-        $workOrderTypesFormatted = $workOrderTypes->map(function ($type) {
-            return [
-                'id' => $type->id,
-                'name' => $type->name,
-                'category' => $type->category,
-                'icon' => $type->icon, // Keep as string, will be handled on frontend
-            ];
-        });
+        $teams = Team::where('is_active', true)->orderBy('name')->get();
+        $technicians = User::whereHas('roles', function ($q) {
+            $q->whereIn('name', ['Technician', 'Maintenance Supervisor']);
+        })->orderBy('name')->get();
+        $skills = Skill::where('active', true)->orderBy('name')->get();
+        $certifications = Certification::where('active', true)->orderBy('name')->get();
 
         return Inertia::render('work-orders/create', [
-            'workOrderTypes' => $workOrderTypesFormatted,
-            'assets' => $assets,
             'plants' => $plants,
             'areas' => $areas,
             'sectors' => $sectors,
+            'assets' => $assets,
+            'workOrderTypes' => $workOrderTypes,
             'forms' => $forms,
-            'users' => $users,
-            'priorities' => [
-                'critical' => 'Crítica',
-                'high' => 'Alta',
-                'medium' => 'Média',
-                'low' => 'Baixa',
-            ],
+            'teams' => $teams,
+            'technicians' => $technicians,
+            'skills' => $skills,
+            'certifications' => $certifications,
+            'source' => $source,
+            'sourceId' => $sourceId,
+            'discipline' => $discipline,
         ]);
     }
 
     /**
      * Store a newly created work order
      */
-    public function store(Request $request)
+    public function store(StoreWorkOrderRequest $request)
     {
-        $this->authorize('create', WorkOrder::class);
-
-        try {
-            $validated = $request->validate([
-                'work_order_type_id' => 'required|exists:work_order_types,id',
-                'work_order_category' => 'required|in:corrective,preventive,inspection,project',
-                'title' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'priority' => 'required|in:emergency,urgent,high,normal,low',
-                'priority_score' => 'required|integer|min:0|max:100',
-                'asset_id' => 'required|exists:assets,id',
-                'form_id' => 'nullable|exists:forms,id',
-                'requested_due_date' => 'nullable|date',
-                'downtime_required' => 'boolean',
-                'source_type' => 'required|in:manual,routine,sensor,inspection_finding',
-                'external_reference' => 'nullable|string|max:255',
-                'warranty_claim' => 'boolean',
-                'tags' => 'nullable|array',
-                'tags.*' => 'string|max:50',
-            ]);
-
-            // Add the requesting user
-            $validated['requested_by'] = auth()->id();
-            
-            // Remove fields that aren't in the work_orders table
-            $workOrderData = collect($validated)->except(['tags'])->toArray();
-
-            $workOrder = WorkOrder::create($workOrderData);
-
-            // Handle tags if provided
-            if (!empty($validated['tags'])) {
-                // TODO: Implement tag handling if needed
-            }
-
-            return redirect()->route('work-orders.show', $workOrder)
-                ->with('success', 'Ordem de serviço criada com sucesso.');
-                
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            throw $e;
-        }
+        // Determine discipline from route prefix
+        $discipline = str_contains($request->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
+        
+        $service = match($discipline) {
+            'maintenance' => $this->maintenanceService,
+            // 'quality' => $this->qualityService, // Future implementation
+            default => throw new \InvalidArgumentException('Invalid discipline')
+        };
+        
+        $workOrder = $service->create($request->validated());
+        
+        return redirect()->route("{$discipline}.work-orders.show", $workOrder)
+            ->with('success', 'Ordem de serviço criada com sucesso.');
     }
 
     /**
@@ -280,9 +301,13 @@ class WorkOrderController extends Controller
         return Inertia::render('work-orders/show', [
             'workOrder' => $workOrder,
             'users' => $users,
+            'discipline' => $workOrder->discipline,
             'canEdit' => auth()->user()->can('update', $workOrder),
             'canDelete' => auth()->user()->can('delete', $workOrder),
             'canApprove' => auth()->user()->can('approve', $workOrder),
+            'canPlan' => auth()->user()->can('plan', $workOrder),
+            'canExecute' => auth()->user()->can('execute', $workOrder),
+            'canValidate' => auth()->user()->can('validate', $workOrder),
             'canStart' => auth()->user()->can('start', $workOrder),
             'canComplete' => auth()->user()->can('complete', $workOrder),
         ]);
@@ -303,7 +328,7 @@ class WorkOrderController extends Controller
         $forms = Form::where('is_active', true)->orderBy('name')->get();
         $users = User::orderBy('name')->get(['id', 'name']);
 
-        return Inertia::render('work-orders/edit', [
+        return Inertia::render('work-orders/create', [
             'workOrder' => $workOrder->load(['type', 'asset.plant', 'asset.area', 'asset.sector', 'form', 'assignedTechnician']),
             'workOrderTypes' => $workOrderTypes,
             'assets' => $assets,
@@ -324,25 +349,11 @@ class WorkOrderController extends Controller
     /**
      * Update the specified work order
      */
-    public function update(Request $request, WorkOrder $workOrder)
+    public function update(UpdateWorkOrderRequest $request, WorkOrder $workOrder)
     {
         $this->authorize('update', $workOrder);
 
-        $validated = $request->validate([
-            'work_order_type_id' => 'required|exists:work_order_types,id',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'priority' => 'required|in:critical,high,medium,low',
-            'asset_id' => 'nullable|exists:assets,id',
-            'plant_id' => 'required|exists:plants,id',
-            'form_id' => 'nullable|exists:forms,id',
-            'assigned_to' => 'nullable|exists:users,id',
-            'scheduled_start_date' => 'nullable|date',
-            'scheduled_end_date' => 'nullable|date|after_or_equal:scheduled_start_date',
-            'estimated_hours' => 'nullable|numeric|min:0',
-            'estimated_cost' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $workOrder->update($validated);
 
@@ -366,13 +377,9 @@ class WorkOrderController extends Controller
     /**
      * Approve the work order
      */
-    public function approve(Request $request, WorkOrder $workOrder)
+    public function approve(ApproveWorkOrderRequest $request, WorkOrder $workOrder)
     {
-        $this->authorize('approve', $workOrder);
-
-        $validated = $request->validate([
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $success = $workOrder->transitionTo(WorkOrder::STATUS_APPROVED, auth()->user(), $validated['notes'] ?? null);
 
@@ -386,13 +393,9 @@ class WorkOrderController extends Controller
     /**
      * Reject the work order
      */
-    public function reject(Request $request, WorkOrder $workOrder)
+    public function reject(RejectWorkOrderRequest $request, WorkOrder $workOrder)
     {
-        $this->authorize('approve', $workOrder);
-
-        $validated = $request->validate([
-            'rejection_reason' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
         $success = $workOrder->transitionTo(WorkOrder::STATUS_REJECTED, auth()->user(), $validated['rejection_reason']);
 
@@ -421,5 +424,268 @@ class WorkOrderController extends Controller
         }
 
         return back()->with('success', 'Ordem de serviço cancelada com sucesso.');
+    }
+
+    /**
+     * Show the approval form for the work order
+     */
+    public function showApproval(WorkOrder $workOrder)
+    {
+        $this->authorize('approve', $workOrder);
+
+        $workOrder->load([
+            'type',
+            'asset.plant',
+            'asset.area',
+            'asset.sector',
+            'requestedBy',
+        ]);
+
+        // Get user's approval threshold based on role
+        $user = auth()->user();
+        $approvalThreshold = [
+            'maxCost' => $this->getUserApprovalCostLimit($user),
+            'maxPriority' => $this->getUserApprovalPriorityLimit($user),
+        ];
+
+        return Inertia::render('work-orders/approve', [
+            'workOrder' => $workOrder,
+            'canApprove' => $user->can('approve', $workOrder),
+            'approvalThreshold' => $approvalThreshold,
+        ]);
+    }
+
+    /**
+     * Show the planning form for the work order
+     */
+    public function showPlanning(WorkOrder $workOrder)
+    {
+        $this->authorize('plan', $workOrder);
+
+        if (!in_array($workOrder->status, [WorkOrder::STATUS_APPROVED, WorkOrder::STATUS_PLANNED])) {
+            return redirect()->route('work-orders.show', $workOrder)
+                ->with('error', 'Esta ordem de serviço não está em status apropriado para planejamento.');
+        }
+
+        $workOrder->load([
+            'type',
+            'asset.plant',
+            'asset.area',
+            'asset.sector',
+            'parts',
+            'assignedTechnician',
+            'assignedTeam',
+        ]);
+
+        // Get available technicians with required skills
+        $technicians = User::whereHas('roles', function ($query) {
+            $query->where('name', 'technician');
+        })->get();
+
+        // Get teams
+        $teams = Team::active()->get();
+
+        // Get available parts
+        $parts = Part::select('id', 'part_number', 'name', 'unit_cost', 'available_quantity')
+            ->where('active', true)
+            ->get();
+
+        // Get skills and certifications lists
+        $skills = Skill::pluck('name')->toArray();
+        $certifications = Certification::pluck('name')->toArray();
+
+        return Inertia::render('work-orders/planning', [
+            'workOrder' => $workOrder,
+            'technicians' => $technicians,
+            'teams' => $teams,
+            'parts' => $parts,
+            'skills' => $skills,
+            'certifications' => $certifications,
+            'canPlan' => auth()->user()->can('plan', $workOrder),
+        ]);
+    }
+
+    /**
+     * Save planning data for the work order
+     */
+    public function savePlanning(PlanWorkOrderRequest $request, WorkOrder $workOrder)
+    {
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($workOrder, $validated) {
+            // Update work order planning fields
+            $workOrder->update([
+                'estimated_hours' => $validated['estimated_hours'] ?? null,
+                'estimated_labor_cost' => $validated['estimated_labor_cost'] ?? null,
+                'estimated_parts_cost' => $this->calculatePartsCost($validated['parts'] ?? []),
+                'estimated_total_cost' => ($validated['estimated_labor_cost'] ?? 0) + $this->calculatePartsCost($validated['parts'] ?? []),
+                'downtime_required' => $validated['downtime_required'] ?? false,
+                'safety_requirements' => $validated['safety_requirements'] ?? [],
+                'required_skills' => $validated['required_skills'] ?? [],
+                'required_certifications' => $validated['required_certifications'] ?? [],
+                'scheduled_start_date' => $validated['scheduled_start_date'] ?? null,
+                'scheduled_end_date' => $validated['scheduled_end_date'] ?? null,
+                'assigned_team_id' => $validated['assigned_team_id'] ?? null,
+                'assigned_technician_id' => $validated['assigned_technician_id'] ?? null,
+                'planned_by' => auth()->id(),
+                'planned_at' => now(),
+            ]);
+
+            // Update or create parts
+            if (isset($validated['parts'])) {
+                // Remove existing parts
+                $workOrder->parts()->delete();
+
+                // Add new parts
+                foreach ($validated['parts'] as $part) {
+                    $workOrder->parts()->create([
+                        'part_id' => $part['part_id'] ?? null,
+                        'part_number' => $part['part_number'] ?? null,
+                        'part_name' => $part['part_name'],
+                        'estimated_quantity' => $part['estimated_quantity'],
+                        'unit_cost' => $part['unit_cost'],
+                        'total_cost' => $part['estimated_quantity'] * $part['unit_cost'],
+                        'status' => WorkOrderPart::STATUS_PLANNED,
+                    ]);
+                }
+            }
+
+            // Update status to planned if not already
+            if ($workOrder->status === WorkOrder::STATUS_APPROVED) {
+                $workOrder->transitionTo(WorkOrder::STATUS_PLANNED, auth()->user());
+            }
+        });
+
+        return redirect()->route('work-orders.planning', $workOrder)
+            ->with('success', 'Planejamento salvo com sucesso.');
+    }
+
+    /**
+     * Complete planning and transition to ready to schedule
+     */
+    public function completePlanning(Request $request, WorkOrder $workOrder)
+    {
+        $this->authorize('plan', $workOrder);
+
+        // Validate that all required planning fields are filled
+        if (!$workOrder->estimated_hours || !$workOrder->scheduled_start_date || !$workOrder->scheduled_end_date) {
+            return back()->with('error', 'Por favor, preencha todos os campos obrigatórios do planejamento.');
+        }
+
+        $success = $workOrder->transitionTo(WorkOrder::STATUS_READY_TO_SCHEDULE, auth()->user());
+
+        if (!$success) {
+            return back()->with('error', 'Não foi possível concluir o planejamento. Status inválido.');
+        }
+
+        return redirect()->route('work-orders.show', $workOrder)
+            ->with('success', 'Planejamento concluído. Ordem de serviço pronta para agendamento.');
+    }
+
+    /**
+     * Get user's approval cost limit based on role
+     */
+    private function getUserApprovalCostLimit($user)
+    {
+        if ($user->hasRole('administrator')) {
+            return PHP_INT_MAX;
+        } elseif ($user->hasRole('plant_manager')) {
+            return 50000;
+        } elseif ($user->hasRole('maintenance_supervisor')) {
+            return 5000;
+        }
+        return 0;
+    }
+
+    /**
+     * Get user's approval priority limit based on role
+     */
+    private function getUserApprovalPriorityLimit($user)
+    {
+        if ($user->hasRole('administrator')) {
+            return 'emergency';
+        } elseif ($user->hasRole('plant_manager')) {
+            return 'high';
+        } elseif ($user->hasRole('maintenance_supervisor')) {
+            return 'normal';
+        }
+        return 'low';
+    }
+
+    /**
+     * Calculate total cost of parts
+     */
+    private function calculatePartsCost($parts)
+    {
+        return collect($parts)->sum(function ($part) {
+            return ($part['estimated_quantity'] ?? 0) * ($part['unit_cost'] ?? 0);
+        });
+    }
+
+    /**
+     * Calculate trend for stats
+     */
+    private function calculateTrend($stats)
+    {
+        // Calculate trend based on last week's data
+        $lastWeek = WorkOrder::whereIn('status', ['requested', 'approved', 'planned', 'scheduled'])
+            ->whereBetween('created_at', [now()->subDays(14), now()->subDays(7)])
+            ->count();
+        
+        $thisWeek = $stats['open'];
+        
+        if ($lastWeek == 0) {
+            return [
+                'direction' => 'stable',
+                'percentage' => 0
+            ];
+        }
+        
+        $percentageChange = (($thisWeek - $lastWeek) / $lastWeek) * 100;
+        
+        return [
+            'direction' => $percentageChange > 0 ? 'up' : ($percentageChange < 0 ? 'down' : 'stable'),
+            'percentage' => round(abs($percentageChange), 1)
+        ];
+    }
+
+    /**
+     * Get daily trend data for the chart
+     */
+    private function getDailyTrend($dateFrom, $dateTo, $discipline)
+    {
+        $dailyTrend = [];
+        $startDate = Carbon::parse($dateFrom);
+        $endDate = Carbon::parse($dateTo);
+
+        while ($startDate->lte($endDate)) {
+            $date = $startDate->format('Y-m-d');
+            
+            // Count completed work orders for this specific date
+            $completed = WorkOrder::where('discipline', $discipline)
+                ->where('status', 'completed')
+                ->whereDate('actual_end_date', $date)
+                ->count();
+            
+            // Count overdue work orders as of this date
+            $overdue = WorkOrder::where('discipline', $discipline)
+                ->where('status', '!=', 'completed')
+                ->where('status', '!=', 'verified')
+                ->where('status', '!=', 'closed')
+                ->where('status', '!=', 'cancelled')
+                ->where('requested_due_date', '<', Carbon::parse($date)->endOfDay())
+                ->whereDate('created_at', '<=', $date)
+                ->count();
+            
+            $dailyTrend[] = [
+                'date' => $date,
+                'completed' => $completed,
+                'overdue' => $overdue,
+            ];
+            
+            $startDate->addDay();
+        }
+        
+        return $dailyTrend;
     }
 }

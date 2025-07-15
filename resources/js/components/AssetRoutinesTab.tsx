@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Search, Upload, ClipboardCheck, FileText, Eye, Edit2, History, Info } from 'lucide-react';
+import { Search, Upload, FileText, Edit2, History, Info, Clock, Hand, Plus, Eye } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,14 +12,13 @@ import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { ColumnConfig } from '@/types/shared';
 import FormStatusBadge, { getFormState } from '@/components/form-lifecycle/FormStatusBadge';
-import { FormExecutionGuard } from '@/components/form-lifecycle';
 import { FormVersionHistory } from '@/components/form-lifecycle';
 import CreateRoutineButton from '@/components/CreateRoutineButton';
 import EditRoutineSheet from '@/components/EditRoutineSheet';
 import InlineRoutineFormEditor from '@/components/InlineRoutineFormEditor';
-import InlineRoutineForm from '@/components/InlineRoutineForm';
-import { Clock, CalendarRange } from 'lucide-react';
+import { CalendarRange } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Task } from '@/types/task';
 
 interface Shift {
     id: number;
@@ -46,10 +45,35 @@ interface Routine {
     id: number;
     name: string;
     description?: string;
-    form?: unknown;
     form_id?: number;
-    trigger_hours?: number;
-    status?: 'Active' | 'Inactive';
+    trigger_type: 'runtime_hours' | 'calendar_days';
+    trigger_runtime_hours?: number;
+    trigger_calendar_days?: number;
+    execution_mode: 'automatic' | 'manual';
+    advance_generation_hours?: number;
+    auto_approve_work_orders?: boolean;
+    default_priority?: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
+    priority_score?: number;
+    last_execution_runtime_hours?: number;
+    last_execution_completed_at?: string;
+    last_execution_form_version_id?: number;
+    form?: {
+        id: number;
+        tasks: Task[];
+        isDraft?: boolean;
+        currentVersionId?: number | null;
+        current_version_id?: number | null;
+        has_draft_changes?: boolean;
+        current_version?: {
+            id?: number;
+            version_number: string;
+            published_at?: string;
+        };
+    };
+    lastExecutionFormVersion?: {
+        id: number;
+        version_number: number;
+    };
     [key: string]: unknown;
 }
 
@@ -57,24 +81,28 @@ interface AssetRoutinesTabProps {
     assetId: number;
     routines: Routine[];
     selectedShift?: Shift | null;
-    onRoutinesUpdate?: (routines: Routine[]) => void;
     newRoutineId?: number;
+    userPermissions?: string[];
 }
 
 export default function AssetRoutinesTab({
     assetId,
     routines: initialRoutines,
     selectedShift,
-    onRoutinesUpdate,
     newRoutineId
 }: AssetRoutinesTabProps) {
 
     // Estado para gerenciar as rotinas
-    const [routines, setRoutines] = useState<Routine[]>(initialRoutines);
+    const [routines, setRoutines] = useState<Routine[]>(() => {
+        // Validate initial routines to ensure they have required properties
+        return (initialRoutines || []).filter(r => r && r.id && r.name);
+    });
 
     // Update routines when prop changes
     useEffect(() => {
-        setRoutines(initialRoutines);
+        // Validate routines before setting them
+        const validRoutines = (initialRoutines || []).filter(r => r && r.id && r.name);
+        setRoutines(validRoutines);
     }, [initialRoutines]);
 
     // Estado para controlar qual rotina está sendo editada
@@ -86,8 +114,7 @@ export default function AssetRoutinesTab({
     // Estado para rastrear a rotina recém-criada (apenas para ordenação)
     const [newlyCreatedRoutineId, setNewlyCreatedRoutineId] = useState<number | null>(null);
 
-    // Estado para controlar o preenchimento da rotina
-    const [fillingRoutineId, setFillingRoutineId] = useState<number | null>(null);
+
 
     // Estado para controlar o carregamento do formulário
     const [loadingFormEditor, setLoadingFormEditor] = useState(false);
@@ -112,14 +139,17 @@ export default function AssetRoutinesTab({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [routineToEditInSheet, setRoutineToEditInSheet] = useState<any>(null);
 
+    // Create a stable default routine object
+    const defaultRoutine = {
+        name: '',
+        trigger_hours: 0,
+        status: 'Active' as const,
+        description: '',
+    };
+
     // Refs
     const createRoutineButtonRef = useRef<HTMLButtonElement>(null);
     const addTasksButtonRef = useRef<HTMLButtonElement>(null);
-
-    // Notify parent component when routines change
-    useEffect(() => {
-        onRoutinesUpdate?.(routines);
-    }, [routines, onRoutinesUpdate]);
 
     // Check for new routine
     useEffect(() => {
@@ -141,9 +171,12 @@ export default function AssetRoutinesTab({
 
     // Filtrar rotinas baseado no termo de busca
     const filteredRoutines = routines.filter(
-        (routine) =>
-            routine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            routine.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+        (routine) => {
+            if (!routine || !routine.name) return false;
+            const nameMatch = routine.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const descriptionMatch = routine.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+            return nameMatch || descriptionMatch;
+        }
     );
 
     // Ordenar rotinas para colocar a recém-criada no topo
@@ -235,36 +268,78 @@ export default function AssetRoutinesTab({
             ),
         },
         {
-            key: 'description',
-            label: 'Descrição',
-            sortable: false,
-            width: 'w-[250px]',
-            render: (value) => (
-                <div
-                    className="text-sm text-muted-foreground max-w-[250px] line-clamp-2 whitespace-normal"
-                    title={String(value || '-')}
-                >
-                    {String(value || '-')}
-                </div>
-            ),
+            key: 'execution_mode',
+            label: 'Modo de Execução',
+            sortable: true,
+            width: 'w-[150px]',
+            render: (value) => {
+                const executionMode = value as 'automatic' | 'manual';
+                return (
+                    <div className="flex items-center gap-2">
+                        {executionMode === 'automatic' ? (
+                            <>
+                                <Clock className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-medium">Automático</span>
+                            </>
+                        ) : (
+                            <>
+                                <Hand className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">Manual</span>
+                            </>
+                        )}
+                    </div>
+                );
+            },
         },
         {
-            key: 'trigger_hours',
-            label: 'Periodicidade',
+            key: 'trigger_info',
+            label: 'Trigger',
             sortable: true,
             width: 'w-[180px]',
-            render: (value) => {
-                const { hoursText, workDaysText } = formatTriggerHours(value as number | undefined);
+            render: (value, row) => {
+                const routine = row as Routine;
+                const triggerIcon = routine.trigger_type === 'runtime_hours' ? '⏱️' : '📅';
+                const triggerValue = routine.trigger_type === 'runtime_hours'
+                    ? routine.trigger_runtime_hours
+                    : routine.trigger_calendar_days;
+                const triggerUnit = routine.trigger_type === 'runtime_hours' ? 'h' : 'd';
+
                 return (
                     <div className="space-y-1">
                         <div className="flex items-center gap-1 text-sm">
-                            <Clock className="h-3 w-3" />
-                            {hoursText}
-                        </div>
-                        {workDaysText && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            {routine.trigger_type === 'runtime_hours' ? (
+                                <Clock className="h-3 w-3" />
+                            ) : (
                                 <CalendarRange className="h-3 w-3" />
-                                {workDaysText}
+                            )}
+                            <span>{triggerValue}{triggerUnit} {triggerIcon}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            {routine.trigger_type === 'runtime_hours' ? 'Horas de operação' : 'Dias calendário'}
+                        </div>
+                    </div>
+                );
+            },
+        },
+        {
+            key: 'last_execution',
+            label: 'Última Execução',
+            sortable: true,
+            width: 'w-[200px]',
+            render: (value, row) => {
+                const routine = row as Routine;
+                if (!routine.last_execution_completed_at) {
+                    return <span className="text-muted-foreground text-sm">Nunca executada</span>;
+                }
+
+                return (
+                    <div className="space-y-1">
+                        <div className="text-sm">
+                            {new Date(routine.last_execution_completed_at).toLocaleDateString('pt-BR')}
+                        </div>
+                        {routine.last_execution_form_version_id && routine.lastExecutionFormVersion && (
+                            <div className="text-xs text-muted-foreground">
+                                Versão: v{routine.lastExecutionFormVersion.version_number}
                             </div>
                         )}
                     </div>
@@ -332,42 +407,12 @@ export default function AssetRoutinesTab({
                 return (
                     <FormStatusBadge
                         form={{
+                            id: (form as any).id || 0,
                             ...form,
-                            current_version_id: form.current_version_id ?? null,
+                            current_version_id: (form as any).current_version_id ?? null,
                         }}
                         size="sm"
                     />
-                );
-            },
-        },
-        {
-            key: 'status',
-            label: 'Status',
-            sortable: false,
-            width: 'w-[100px]',
-            render: (value) => {
-                const status = value as string;
-                if (status === 'completed') {
-                    return <Badge variant="default">Concluída</Badge>;
-                } else if (status === 'in_progress') {
-                    return <Badge variant="secondary">Em Andamento</Badge>;
-                } else {
-                    return <Badge variant="outline">Pendente</Badge>;
-                }
-            },
-        },
-        {
-            key: 'actions',
-            label: 'Ações',
-            sortable: false,
-            width: 'w-[100px]',
-            render: () => {
-                return (
-                    <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                        </Button>
-                    </div>
                 );
             },
         },
@@ -413,16 +458,8 @@ export default function AssetRoutinesTab({
         }
     };
 
-    const handleFillRoutineForm = (routineId: number) => {
-        setFillingRoutineId(routineId);
-    };
-
     const handleCloseFormEditor = () => {
         setEditingRoutineFormId(null);
-    };
-
-    const handleCloseFormFiller = () => {
-        setFillingRoutineId(null);
     };
 
     const handleFormSaved = (formData: unknown) => {
@@ -430,7 +467,7 @@ export default function AssetRoutinesTab({
         setRoutines((prevRoutines) =>
             prevRoutines.map((r) => {
                 if (r.id === editingRoutineFormId) {
-                    return { ...r, form: formData };
+                    return { ...r, form: formData as Routine['form'] };
                 }
                 return r;
             }),
@@ -471,19 +508,22 @@ export default function AssetRoutinesTab({
     };
 
     const handlePublishForm = async (routineId: number) => {
-        try {
-            await axios.post(
-                route('maintenance.assets.routines.forms.publish', {
-                    asset: assetId,
-                    routine: routineId,
-                }),
-            );
-            toast.success('Formulário publicado com sucesso!');
-            // Reload routines to reflect the change
-            router.reload();
-        } catch {
-            toast.error('Erro ao publicar formulário');
-        }
+        router.post(
+            route('maintenance.routines.forms.publish', {
+                routine: routineId,
+            }),
+            {},
+            {
+                onSuccess: () => {
+                    toast.success('Formulário publicado com sucesso!');
+                    // Reload routines to reflect the change
+                    router.reload();
+                },
+                onError: () => {
+                    toast.error('Erro ao publicar formulário');
+                },
+            }
+        );
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -520,7 +560,7 @@ export default function AssetRoutinesTab({
         if (!routineToDelete?.id) return;
 
         setIsDeleting(true);
-        router.delete(route('maintenance.assets.routines.destroy', { asset: assetId, routine: routineToDelete.id }), {
+        router.delete(route('maintenance.routines.destroy', { routine: routineToDelete.id }), {
             onSuccess: () => {
                 toast.success('Rotina excluída com sucesso!');
                 setShowDeleteDialog(false);
@@ -546,7 +586,35 @@ export default function AssetRoutinesTab({
     const isConfirmationValid = confirmationText === 'EXCLUIR';
 
     const handleViewExecutions = (routineId: number) => {
-        router.visit(route('maintenance.assets.routines.executions', { asset: assetId, routine: routineId }));
+        // Navigate to work orders filtered by this routine
+        router.visit(`/maintenance/work-orders?source_type=routine&source_id=${routineId}&asset_id=${assetId}`);
+    };
+
+    const handleCreateWorkOrder = async (routineId: number) => {
+        try {
+            const response = await axios.post(route('maintenance.assets.routines.create-work-order', {
+                asset: assetId,
+                routine: routineId
+            }));
+
+            if (response.data.success) {
+                toast.success('Ordem de serviço criada com sucesso!');
+                if (response.data.redirect) {
+                    router.visit(response.data.redirect);
+                }
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || 'Erro ao criar ordem de serviço');
+        }
+    };
+
+    const isRoutineDue = (routine: Routine): boolean => {
+        // This is a simplified check - ideally this would come from the backend
+        if (!routine.last_execution_runtime_hours) {
+            return true; // Never executed, so it's due
+        }
+        // You might want to add more logic here based on current runtime vs trigger hours
+        return true;
     };
 
     if (loadingFormEditor) {
@@ -576,20 +644,7 @@ export default function AssetRoutinesTab({
         );
     }
 
-    if (fillingRoutineId) {
-        // Mostrar o preenchedor de formulário inline
-        const routine = routines.find((r) => r.id === fillingRoutineId);
-        if (!routine) return null;
 
-        return (
-            <InlineRoutineForm
-                routine={routine}
-                assetId={assetId}
-                onClose={handleCloseFormFiller}
-                onComplete={handleCloseFormFiller}
-            />
-        );
-    }
 
     return (
         <>
@@ -623,7 +678,7 @@ export default function AssetRoutinesTab({
                     emptyMessage={searchTerm ? `Nenhuma rotina encontrada para "${searchTerm}"` : "Nenhuma rotina cadastrada. Clique em 'Nova Rotina' para começar."}
                     actions={(routine) => (
                         <div className="flex items-center justify-end gap-2">
-                            {/* Preencher/Publicar button */}
+                            {/* Main action button */}
                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                             {routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 ? (
                                 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
@@ -640,39 +695,18 @@ export default function AssetRoutinesTab({
                                         Publicar
                                     </Button>
                                 ) : (
-                                    <FormExecutionGuard
-                                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                        form={routine.form as any}
-                                        onExecute={() => handleFillRoutineForm(routine.id)}
-                                        onPublishAndExecute={async () => {
-                                            await handlePublishForm(routine.id);
-                                            handleFillRoutineForm(routine.id);
+                                    <Button
+                                        size="sm"
+                                        variant="default"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCreateWorkOrder(routine.id);
                                         }}
-                                        onEditForm={() => handleEditFormClick(routine)}
                                     >
-                                        <Button
-                                            size="sm"
-                                            variant="default"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <ClipboardCheck className="mr-1 h-4 w-4" />
-                                            Preencher
-                                        </Button>
-                                    </FormExecutionGuard>
+                                        <Plus className="mr-1 h-4 w-4" />
+                                        Criar Ordem de Serviço
+                                    </Button>
                                 )
-                            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                            ) : routine.form && (routine.form as any).has_draft_changes ? (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditFormClick(routine);
-                                    }}
-                                >
-                                    <FileText className="mr-1 h-4 w-4" />
-                                    Editar Tarefas
-                                </Button>
                             ) : (
                                 <Button
                                     size="sm"
@@ -700,12 +734,6 @@ export default function AssetRoutinesTab({
                                         icon: <Upload className="h-4 w-4" />,
                                         onClick: () => handlePublishForm(routine.id),
                                     }] : []),
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    ...(routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 && getFormState(routine.form as any) !== 'unpublished' ? [{
-                                        label: 'Preencher',
-                                        icon: <ClipboardCheck className="h-4 w-4" />,
-                                        onClick: () => handleFillRoutineForm(routine.id),
-                                    }] : []),
                                     {
                                         /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                         label: routine.form && (routine.form as any).has_draft_changes ? 'Editar Tarefas' :
@@ -715,16 +743,12 @@ export default function AssetRoutinesTab({
                                         icon: <FileText className="h-4 w-4" />,
                                         onClick: () => handleEditFormClick(routine),
                                     },
-                                    {
-                                        label: 'Visualizar Execuções',
+                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                                    ...(routine.form && (routine.form as any).has_draft_changes && (routine.form as any).current_version_id ? [{
+                                        label: `Ver Versão Publicada (v${(routine.form as any).current_version?.version_number || '1.0'})`,
                                         icon: <Eye className="h-4 w-4" />,
-                                        onClick: () => handleViewExecutions(routine.id),
-                                    },
-                                    {
-                                        label: 'Editar Rotina',
-                                        icon: <Edit2 className="h-4 w-4" />,
-                                        onClick: () => handleEditRoutine(routine),
-                                    },
+                                        onClick: () => router.visit(route('maintenance.routines.view-published-version', { routine: routine.id })),
+                                    }] : []),
                                     /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                     ...(routine.form && (routine.form as any).current_version_id ? [{
                                         label: 'Ver Histórico de Versões',
@@ -757,12 +781,7 @@ export default function AssetRoutinesTab({
             {/* EditRoutineSheet - Always rendered but controlled via isOpen */}
             <EditRoutineSheet
                 showTrigger={false}
-                routine={routineToEditInSheet || {
-                    name: '',
-                    trigger_hours: 0,
-                    status: 'Active' as const,
-                    description: '',
-                }}
+                routine={routineToEditInSheet || defaultRoutine}
                 isNew={false}
                 assetId={assetId}
                 onSuccess={handleEditRoutineSuccess}
@@ -806,8 +825,7 @@ export default function AssetRoutinesTab({
             {/* Modal de Histórico de Versões */}
             {selectedRoutineForHistory && (
                 <FormVersionHistory
-                    formId={routines.find(r => r.id === selectedRoutineForHistory)?.form?.id || 0}
-                    currentVersionId={routines.find(r => r.id === selectedRoutineForHistory)?.form?.current_version_id}
+                    routineId={selectedRoutineForHistory}
                     isOpen={showVersionHistory}
                     onClose={() => {
                         setShowVersionHistory(false);

@@ -13,7 +13,7 @@ class WorkOrderTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            // Preventive
+            // Maintenance - Preventive
             [
                 'name' => 'Manutenção Preventiva por Tempo',
                 'code' => 'PM_TIME',
@@ -22,6 +22,7 @@ class WorkOrderTypeSeeder extends Seeder
                 'color' => '#10B981',
                 'icon' => 'clock',
                 'requires_approval' => false,
+                'auto_approve_from_routine' => true,
                 'default_priority' => 'normal',
                 'sla_hours' => 48,
                 'is_active' => true,
@@ -34,6 +35,7 @@ class WorkOrderTypeSeeder extends Seeder
                 'color' => '#10B981',
                 'icon' => 'activity',
                 'requires_approval' => false,
+                'auto_approve_from_routine' => true,
                 'default_priority' => 'normal',
                 'sla_hours' => 72,
                 'is_active' => true,
@@ -46,12 +48,13 @@ class WorkOrderTypeSeeder extends Seeder
                 'color' => '#10B981',
                 'icon' => 'droplet',
                 'requires_approval' => false,
+                'auto_approve_from_routine' => true,
                 'default_priority' => 'low',
                 'sla_hours' => 24,
                 'is_active' => true,
             ],
             
-            // Corrective
+            // Maintenance - Corrective
             [
                 'name' => 'Reparo Emergencial',
                 'code' => 'CM_EMERGENCY',
@@ -89,7 +92,7 @@ class WorkOrderTypeSeeder extends Seeder
                 'is_active' => true,
             ],
             
-            // Inspection
+            // Maintenance - Inspection
             [
                 'name' => 'Inspeção Visual',
                 'code' => 'INSP_VISUAL',
@@ -139,7 +142,7 @@ class WorkOrderTypeSeeder extends Seeder
                 'is_active' => true,
             ],
             
-            // Project
+            // Maintenance - Project
             [
                 'name' => 'Instalação de Equipamento',
                 'code' => 'PROJ_INSTALL',

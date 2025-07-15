@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Maintenance;
 use App\Http\Controllers\Controller;
 use App\Jobs\GenerateExecutionPDF;
 use App\Models\Maintenance\ExecutionExport;
-use App\Models\Maintenance\RoutineExecution;
+use App\Models\WorkOrders\WorkOrderExecution;
 use App\Services\PDFGeneratorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -21,7 +21,7 @@ class ExecutionExportController extends Controller
     /**
      * Export a single execution
      */
-    public function exportSingle(Request $request, RoutineExecution $execution)
+    public function exportSingle(Request $request, WorkOrderExecution $execution)
     {
         // $this->authorize('export', $execution);
 
@@ -107,23 +107,23 @@ class ExecutionExportController extends Controller
 
         // Always use the specified filename format
         try {
-            $execution = RoutineExecution::with(['routine', 'routine.assets'])->find($export->execution_ids[0]);
+            $execution = WorkOrderExecution::with(['workOrder', 'workOrder.asset'])->find($export->execution_ids[0]);
             
-            if ($execution && $execution->routine) {
-                // Get asset tag (primary asset or first asset)
-                $assetTag = $execution->routine->assets->first()?->tag ?? $execution->primary_asset_tag ?? 'NoAsset';
+            if ($execution && $execution->workOrder) {
+                // Get asset tag
+                $assetTag = $execution->workOrder->asset->tag ?? 'NoAsset';
                 
-                // Get routine name and sanitize it
-                $routineName = $execution->routine->name;
+                // Get work order title
+                $workOrderTitle = $execution->workOrder->title;
                 
                 // Sanitize filename components - use Laravel's Str::slug for better handling of special characters
                 // This will convert accented characters to their ASCII equivalents
                 $assetTag = Str::slug($assetTag, '_');
-                $routineName = Str::slug($routineName, '_');
+                $workOrderTitle = Str::slug($workOrderTitle, '_');
                 
                 // Convert to uppercase
                 $assetTag = strtoupper($assetTag);
-                $routineName = strtoupper($routineName);
+                $workOrderTitle = strtoupper($workOrderTitle);
                 
                 // Get execution ID
                 $executionId = $execution->id;
@@ -133,8 +133,8 @@ class ExecutionExportController extends Controller
                     ? \Carbon\Carbon::parse($execution->started_at)->format('Y-m-d_His')
                     : $export->created_at->format('Y-m-d_His');
                 
-                // Build filename: AssetTag_RoutineName_ExecutionID_ExecutionDateTime.pdf
-                $fileName = "{$assetTag}_{$routineName}_ID{$executionId}_{$executionDateTime}.pdf";
+                // Build filename: AssetTag_WorkOrderTitle_ExecutionID_ExecutionDateTime.pdf
+                $fileName = "{$assetTag}_{$workOrderTitle}_ID{$executionId}_{$executionDateTime}.pdf";
             } else {
                 // Fallback if execution not found or incomplete
                 $fileName = "execution_{$export->execution_ids[0]}_{$export->created_at->format('Y-m-d_His')}.pdf";

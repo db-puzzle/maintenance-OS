@@ -9,6 +9,8 @@ use App\Models\AssetHierarchy\AssetType;
 use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
+use App\Models\WorkOrders\WorkOrder;
+use App\Models\WorkOrders\WorkOrderExecution;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -292,7 +294,9 @@ class AssetController extends Controller
             'plant',
             'area.plant',
             'sector',
-            'routines.form',
+            'routines.form.currentVersion.tasks',
+            'routines.form.draftTasks',
+            'routines.lastExecutionFormVersion',
             'latestRuntimeMeasurement.user',
             'shift',
         ]);
@@ -300,6 +304,66 @@ class AssetController extends Controller
         // Include shift_id and runtime data in the response
         $assetData = $loadedAsset->toArray();
         $assetData['shift_id'] = $loadedAsset->shift_id;
+        
+        // Ensure routines are properly included with updated fields
+        $assetData['routines'] = $loadedAsset->routines->map(function ($routine) {
+            return [
+                'id' => $routine->id,
+                'name' => $routine->name,
+                'description' => $routine->description,
+                'trigger_type' => $routine->trigger_type,
+                'trigger_runtime_hours' => $routine->trigger_runtime_hours,
+                'trigger_calendar_days' => $routine->trigger_calendar_days,
+                'execution_mode' => $routine->execution_mode,
+                'advance_generation_hours' => $routine->advance_generation_hours,
+                'auto_approve_work_orders' => $routine->auto_approve_work_orders,
+                'default_priority' => $routine->default_priority,
+                'priority_score' => $routine->priority_score,
+                'last_execution_runtime_hours' => $routine->last_execution_runtime_hours,
+                'last_execution_completed_at' => $routine->last_execution_completed_at,
+                'last_execution_form_version_id' => $routine->last_execution_form_version_id,
+                'lastExecutionFormVersion' => $routine->lastExecutionFormVersion ? [
+                    'id' => $routine->lastExecutionFormVersion->id,
+                    'version_number' => $routine->lastExecutionFormVersion->version_number,
+                ] : null,
+                'form_id' => $routine->form_id,
+                'form' => $routine->form ? [
+                    'id' => $routine->form->id,
+                    'name' => $routine->form->name,
+                    // Show draft tasks if available, otherwise show published tasks
+                    'tasks' => $routine->form->draftTasks->count() > 0 
+                        ? $routine->form->draftTasks->map(function ($task) {
+                            return [
+                                'id' => $task->id,
+                                'type' => $task->type,
+                                'description' => $task->description,
+                                'is_required' => $task->is_required,
+                                'position' => $task->position,
+                            ];
+                        })
+                        : ($routine->form->currentVersion && $routine->form->currentVersion->tasks 
+                            ? $routine->form->currentVersion->tasks->map(function ($task) {
+                                return [
+                                    'id' => $task->id,
+                                    'type' => $task->type,
+                                    'description' => $task->description,
+                                    'is_required' => $task->is_required,
+                                    'position' => $task->position,
+                                ];
+                            })
+                            : collect()
+                        ),
+                    'current_version' => $routine->form->currentVersion ? [
+                        'id' => $routine->form->currentVersion->id,
+                        'version_number' => $routine->form->currentVersion->version_number,
+                        'published_at' => $routine->form->currentVersion->published_at,
+                    ] : null,
+                    'current_version_id' => $routine->form->currentVersion?->id,
+                    'has_draft_changes' => $routine->form->draftTasks->count() > 0,
+                ] : null,
+                'is_active' => $routine->is_active,
+            ];
+        })->toArray();
 
         // Add runtime data with calculation details
         $calculationDetails = $loadedAsset->getRuntimeCalculationDetails();
@@ -330,6 +394,10 @@ class AssetController extends Controller
             'plants' => Plant::with('areas.sectors')->get(),
             'isCreating' => false,
             'newRoutineId' => $newRoutineId,
+            'auth' => [
+                'user' => Auth::user(),
+                'permissions' => Auth::user()->getAllPermissions()->pluck('name')->toArray(),
+            ],
         ]);
     }
 
@@ -669,6 +737,184 @@ class AssetController extends Controller
             'asset_tag' => $asset->tag,
             'breakdown' => $asset->getDetailedRuntimeBreakdown(),
         ]);
+    }
+
+    /**
+     * Get work order history for an asset
+     */
+    public function getWorkOrderHistory(Request $request, Asset $asset)
+    {
+        // Check if user can view this asset
+        $this->authorize('view', $asset);
+        
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+        $category = $request->input('category', 'preventive'); // Default to preventive
+        
+        $query = $asset->workOrders()
+            ->with([
+                'type',
+                'execution.executedBy',
+                'requestedBy',
+                'approvedBy',
+                'form.currentVersion'
+            ]);
+            
+        // Filter by category if provided
+        if ($category) {
+            $query->where('work_order_category', $category);
+        }
+        
+        // Apply sorting with proper handling for related table fields
+        switch ($sort) {
+            case 'started_at':
+                $query->leftJoin('work_order_executions', 'work_orders.id', '=', 'work_order_executions.work_order_id')
+                      ->orderBy('work_order_executions.started_at', $direction)
+                      ->select('work_orders.*');
+                break;
+            case 'completed_at':
+                $query->leftJoin('work_order_executions', 'work_orders.id', '=', 'work_order_executions.work_order_id')
+                      ->orderBy('work_order_executions.completed_at', $direction)
+                      ->select('work_orders.*');
+                break;
+            case 'executor_name':
+                $query->leftJoin('work_order_executions', 'work_orders.id', '=', 'work_order_executions.work_order_id')
+                      ->leftJoin('users', 'work_order_executions.executed_by', '=', 'users.id')
+                      ->orderBy('users.name', $direction)
+                      ->select('work_orders.*');
+                break;
+            case 'routine_name':
+                $query->leftJoin('routines', function ($join) {
+                          $join->on('work_orders.source_id', '=', 'routines.id')
+                               ->where('work_orders.source_type', '=', 'routine');
+                      })
+                      ->orderBy('routines.name', $direction)
+                      ->select('work_orders.*');
+                break;
+            default:
+                // For fields that exist in the work_orders table
+                $query->orderBy($sort, $direction);
+                break;
+        }
+        
+        $workOrders = $query->paginate($perPage, ['*'], 'page', $page);
+        
+        // Load sourceRoutine relationship for work orders with source_type = 'routine'
+        $workOrders->getCollection()->load('sourceRoutine');
+        
+        // Transform the data to match ExecutionHistory expected format
+        $transformedData = $workOrders->getCollection()->map(function ($workOrder) {
+            $execution = $workOrder->execution;
+            
+            return [
+                'id' => $workOrder->id,
+                'work_order_id' => $workOrder->id,
+                'routine' => ($workOrder->source_type === 'routine' && $workOrder->sourceRoutine) ? [
+                    'id' => $workOrder->sourceRoutine->id,
+                    'name' => $workOrder->sourceRoutine->name,
+                    'description' => $workOrder->sourceRoutine->description,
+                ] : null,
+                'routine_name' => ($workOrder->source_type === 'routine' && $workOrder->sourceRoutine) ? $workOrder->sourceRoutine->name : $workOrder->title,
+                'executor' => $execution && $execution->executedBy ? [
+                    'id' => $execution->executedBy->id,
+                    'name' => $execution->executedBy->name,
+                ] : null,
+                'executor_name' => $execution && $execution->executedBy ? $execution->executedBy->name : null,
+                'form_version' => $workOrder->form && $workOrder->form->currentVersion ? [
+                    'id' => $workOrder->form->currentVersion->id,
+                    'version_number' => $workOrder->form->currentVersion->version_number,
+                    'published_at' => $workOrder->form->currentVersion->published_at,
+                ] : null,
+                'status' => $workOrder->status,
+                'started_at' => $execution ? $execution->started_at : null,
+                'completed_at' => $execution ? $execution->completed_at : null,
+                'duration_minutes' => $execution && $execution->started_at && $execution->completed_at 
+                    ? $execution->started_at->diffInMinutes($execution->completed_at) 
+                    : null,
+                'progress' => $this->calculateWorkOrderProgress($workOrder),
+                'task_summary' => $this->getTaskSummary($workOrder),
+                'created_at' => $workOrder->created_at,
+                'updated_at' => $workOrder->updated_at,
+            ];
+        });
+        
+        return response()->json([
+            'data' => $transformedData,
+            'current_page' => $workOrders->currentPage(),
+            'last_page' => $workOrders->lastPage(),
+            'per_page' => $workOrders->perPage(),
+            'total' => $workOrders->total(),
+            'from' => $workOrders->firstItem(),
+            'to' => $workOrders->lastItem(),
+        ]);
+    }
+    
+    /**
+     * Calculate work order progress percentage
+     */
+    private function calculateWorkOrderProgress($workOrder): int
+    {
+        if (!$workOrder->execution || !$workOrder->form) {
+            // If no form, base progress on status
+            switch ($workOrder->status) {
+                case 'completed':
+                    return 100;
+                case 'in_progress':
+                    return 50;
+                case 'approved':
+                case 'planned':
+                    return 25;
+                default:
+                    return 0;
+            }
+        }
+        
+        $formVersion = $workOrder->form->currentVersion;
+        if (!$formVersion) {
+            return 0;
+        }
+        
+        $totalTasks = $formVersion->tasks()->count();
+        if ($totalTasks === 0) {
+            return $workOrder->status === 'completed' ? 100 : 0;
+        }
+        
+        $completedTasks = $workOrder->execution->taskResponses()
+            ->whereNotNull('completed_at')
+            ->count();
+            
+        return (int) round(($completedTasks / $totalTasks) * 100);
+    }
+    
+    /**
+     * Get task summary for work order
+     */
+    private function getTaskSummary($workOrder): ?array
+    {
+        if (!$workOrder->execution || !$workOrder->form) {
+            return null;
+        }
+        
+        $formVersion = $workOrder->form->currentVersion;
+        if (!$formVersion) {
+            return null;
+        }
+        
+        $totalTasks = $formVersion->tasks()->count();
+        $completedTasks = $workOrder->execution->taskResponses()
+            ->whereNotNull('completed_at')
+            ->count();
+        $tasksWithIssues = $workOrder->execution->taskResponses()
+            ->where('has_issues', true)
+            ->count();
+            
+        return [
+            'total' => $totalTasks,
+            'completed' => $completedTasks,
+            'with_issues' => $tasksWithIssues,
+        ];
     }
 
     /**

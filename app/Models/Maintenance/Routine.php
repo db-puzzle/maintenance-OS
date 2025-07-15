@@ -6,61 +6,49 @@ use App\Models\AssetHierarchy\Asset;
 use App\Models\Forms\Form;
 use App\Models\Forms\FormVersion;
 use App\Models\WorkOrders\WorkOrder;
-use App\Models\WorkOrders\WorkOrderType;
-use Carbon\Carbon;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class Routine extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'asset_id', 'name', 'trigger_hours', 'status', 'description',
-        'form_id', 'active_form_version_id', 'advance_generation_hours',
-        'auto_approve_work_orders', 'default_priority'
+        'asset_id',
+        'name',
+        'trigger_type',
+        'trigger_runtime_hours',
+        'trigger_calendar_days',
+        'execution_mode',
+        'description',
+        'form_id',
+        'active_form_version_id',
+        'advance_generation_hours',
+        'auto_approve_work_orders',
+        'default_priority',
+        'priority_score',
+        'last_execution_runtime_hours',
+        'last_execution_completed_at',
+        'last_execution_form_version_id',
+        'is_active',
+        'created_by',
     ];
 
     protected $casts = [
-        'trigger_hours' => 'integer',
+        'trigger_runtime_hours' => 'integer',
+        'trigger_calendar_days' => 'integer',
         'advance_generation_hours' => 'integer',
         'auto_approve_work_orders' => 'boolean',
+        'last_execution_runtime_hours' => 'decimal:2',
+        'last_execution_completed_at' => 'datetime',
+        'priority_score' => 'integer',
+        'is_active' => 'boolean',
     ];
-
-    protected static function booted()
-    {
-        // Automatically create a form when a routine is created
-        static::creating(function ($routine) {
-            if (! $routine->form_id) {
-                $form = Form::create([
-                    'name' => $routine->name.' - Form',
-                    'description' => 'Form for routine: '.$routine->name,
-                    'is_active' => true,
-                    'created_by' => auth()->id() ?? null,
-                ]);
-                $routine->form_id = $form->id;
-            }
-        });
-
-        // Delete the associated form when the routine is deleted
-        static::deleting(function ($routine) {
-            if ($routine->form) {
-                // Delete all form versions and their tasks
-                foreach ($routine->form->versions as $version) {
-                    $version->tasks()->delete();
-                }
-                $routine->form->versions()->delete();
-
-                // Delete draft tasks
-                $routine->form->draftTasks()->delete();
-
-                // Then delete the form
-                $routine->form->delete();
-            }
-        });
-    }
 
     // Relationships
     public function asset(): BelongsTo
@@ -78,153 +66,294 @@ class Routine extends Model
         return $this->belongsTo(FormVersion::class, 'active_form_version_id');
     }
 
+    public function lastExecutionFormVersion(): BelongsTo
+    {
+        return $this->belongsTo(FormVersion::class, 'last_execution_form_version_id');
+    }
+
     public function workOrders(): HasMany
     {
         return $this->hasMany(WorkOrder::class, 'source_id')
             ->where('source_type', 'routine');
     }
 
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     // Scopes
+    public function scopeAutomatic($query)
+    {
+        return $query->where('execution_mode', 'automatic');
+    }
+
+    public function scopeManual($query)
+    {
+        return $query->where('execution_mode', 'manual');
+    }
+
     public function scopeActive($query)
     {
-        return $query->where('status', 'Active');
+        return $query->where('is_active', true);
+    }
+
+    public function scopeRuntimeBased($query)
+    {
+        return $query->where('trigger_type', 'runtime_hours');
+    }
+
+    public function scopeCalendarBased($query)
+    {
+        return $query->where('trigger_type', 'calendar_days');
     }
 
     // Helper methods
-    public function getLastCompletedWorkOrder(): ?WorkOrder
-    {
-        return $this->workOrders()
-            ->whereIn('status', [
-                WorkOrder::STATUS_COMPLETED,
-                WorkOrder::STATUS_VERIFIED,
-                WorkOrder::STATUS_CLOSED
-            ])
-            ->orderBy('actual_end_date', 'desc')
-            ->first();
-    }
-
-    public function getNextDueDate(): Carbon
-    {
-        $lastCompleted = $this->getLastCompletedWorkOrder();
-        
-        if (!$lastCompleted || !$lastCompleted->actual_end_date) {
-            // First time - calculate based on current runtime
-            $currentHours = $this->asset->current_runtime_hours ?? 0;
-            $hoursUntilDue = max(0, $this->trigger_hours - $currentHours);
-            
-            // Estimate based on average runtime per day
-            $avgHoursPerDay = 16; // Configurable default
-            $daysUntilDue = $hoursUntilDue / $avgHoursPerDay;
-            
-            return now()->addDays($daysUntilDue);
-        }
-        
-        // Calculate based on last completion
-        return $lastCompleted->actual_end_date->copy()
-            ->addHours($this->trigger_hours);
-    }
-
     public function isDue(): bool
     {
-        return $this->getNextDueDate()->isPast();
+        $hoursUntilDue = $this->calculateHoursUntilDue();
+        return $hoursUntilDue !== null && $hoursUntilDue <= 0;
+    }
+
+    public function getHoursUntilDue(): float
+    {
+        return $this->calculateHoursUntilDue() ?? 0;
+    }
+
+    public function calculateHoursUntilDue(): ?float
+    {
+        if ($this->trigger_type === 'runtime_hours') {
+            return $this->calculateRuntimeHoursUntilDue();
+        } else {
+            return $this->calculateCalendarHoursUntilDue();
+        }
+    }
+
+    private function calculateRuntimeHoursUntilDue(): ?float
+    {
+        if (!$this->trigger_runtime_hours) {
+            return null;
+        }
+
+        // If never executed, due immediately
+        if (!$this->last_execution_runtime_hours) {
+            return 0;
+        }
+        
+        $currentRuntime = $this->asset->current_runtime_hours ?? 0;
+        $runtimeSinceLastExecution = $currentRuntime - $this->last_execution_runtime_hours;
+        $hoursRemaining = $this->trigger_runtime_hours - $runtimeSinceLastExecution;
+        
+        // Return actual runtime hours remaining, not calendar hours
+        return max(0, $hoursRemaining);
+    }
+
+    private function calculateCalendarHoursUntilDue(): ?float
+    {
+        if (!$this->trigger_calendar_days) {
+            return null;
+        }
+
+        // If never executed, due immediately
+        if (!$this->last_execution_completed_at) {
+            return 0;
+        }
+        
+        $nextDueDate = $this->last_execution_completed_at->addDays($this->trigger_calendar_days);
+        $hoursUntilDue = now()->diffInHours($nextDueDate, false);
+        
+        return max(0, $hoursUntilDue);
+    }
+
+    public function calculateDueDate(): Carbon
+    {
+        if ($this->trigger_type === 'runtime_hours') {
+            $hoursUntilDue = $this->calculateRuntimeHoursUntilDue() ?? 0;
+            return now()->addHours($hoursUntilDue);
+        } else {
+            if (!$this->last_execution_completed_at) {
+                return now();
+            }
+            return $this->last_execution_completed_at->addDays($this->trigger_calendar_days);
+        }
     }
 
     public function shouldGenerateWorkOrder(): bool
     {
-        // Check if active
-        if ($this->status !== 'Active') {
+        // Check if routine is active
+        if (!$this->is_active) {
             return false;
         }
 
-        // Check if there's already an open work order
-        $hasOpenWorkOrder = $this->workOrders()
-            ->whereNotIn('status', [
-                WorkOrder::STATUS_CLOSED,
-                WorkOrder::STATUS_CANCELLED,
-                WorkOrder::STATUS_REJECTED
-            ])
-            ->exists();
-            
-        if ($hasOpenWorkOrder) {
+        // Check if no open work order exists (any status except verified/closed)
+        if ($this->hasOpenWorkOrder()) {
             return false;
         }
-
-        // Check if due within advance generation window
-        $nextDue = $this->getNextDueDate();
-        $generateBy = $nextDue->copy()->subHours($this->advance_generation_hours);
         
-        return now()->greaterThanOrEqualTo($generateBy);
+        $hoursUntilDue = $this->calculateHoursUntilDue();
+        
+        return $hoursUntilDue !== null 
+            && $hoursUntilDue <= ($this->advance_generation_hours ?? 24) 
+            && $hoursUntilDue >= 0;
     }
 
-    public function generateWorkOrder(?Carbon $dueDate = null): WorkOrder
+    public function hasOpenWorkOrder(): bool
     {
-        $workOrderType = WorkOrderType::where('code', 'pm_routine')->first();
-        $formVersion = $this->active_form_version_id 
-            ? $this->activeFormVersion 
-            : $this->form->currentVersion;
+        return WorkOrder::where('source_type', 'routine')
+            ->where('source_id', $this->id)
+            ->whereNotIn('status', ['verified', 'closed'])
+            ->exists();
+    }
 
-        $workOrder = WorkOrder::create([
-            'title' => $this->name,
-            'description' => $this->description,
-            'work_order_type_id' => $workOrderType->id,
+    public function getOpenWorkOrder(): ?WorkOrder
+    {
+        return WorkOrder::where('source_type', 'routine')
+            ->where('source_id', $this->id)
+            ->whereNotIn('status', ['verified', 'closed'])
+            ->first();
+    }
+
+    public function generateWorkOrder(): WorkOrder
+    {
+        $dueDate = $this->calculateDueDate();
+        
+        return WorkOrder::create([
+            'discipline' => 'maintenance',
             'work_order_category' => 'preventive',
-            'priority' => $this->default_priority,
+            'title' => $this->generateWorkOrderTitle(),
+            'description' => $this->generateWorkOrderDescription(),
+            'work_order_type_id' => $this->getWorkOrderTypeId(),
             'asset_id' => $this->asset_id,
-            'form_id' => $this->form_id,
-            'form_version_id' => $formVersion?->id,
+            'priority' => $this->default_priority ?? 'normal',
+            'priority_score' => $this->priority_score ?? 50,
             'source_type' => 'routine',
             'source_id' => $this->id,
-            'requested_due_date' => $dueDate ?? $this->getNextDueDate(),
-            'requested_by' => 1, // System user ID
-            'status' => $this->shouldAutoApprove() 
-                ? WorkOrder::STATUS_APPROVED 
-                : WorkOrder::STATUS_REQUESTED,
+            'form_id' => $this->form_id,
+            'form_version_id' => $this->active_form_version_id ?? $this->form->current_version_id,
+            'requested_by' => $this->created_by ?? auth()->id() ?? 1,
+            'requested_at' => now(),
+            'requested_due_date' => $dueDate,
+            'status' => 'requested',
         ]);
+    }
 
-        if ($this->shouldAutoApprove()) {
-            $workOrder->update([
-                'approved_by' => 1,
-                'approved_at' => now(),
-            ]);
+    private function generateWorkOrderTitle(): string
+    {
+        $interval = $this->trigger_type === 'runtime_hours' 
+            ? "{$this->trigger_runtime_hours}h" 
+            : "{$this->trigger_calendar_days} dias";
             
-            // Record status change
-            $workOrder->statusHistory()->create([
-                'from_status' => WorkOrder::STATUS_REQUESTED,
-                'to_status' => WorkOrder::STATUS_APPROVED,
-                'changed_by' => 1,
-                'reason' => 'Auto-approved for routine work order',
-            ]);
+        return "Manutenção Preventiva - {$this->name} ({$interval})";
+    }
+
+    private function generateWorkOrderDescription(): string
+    {
+        $triggerInfo = $this->trigger_type === 'runtime_hours'
+            ? "Baseada em horas de operação: {$this->trigger_runtime_hours} horas"
+            : "Baseada em calendário: a cada {$this->trigger_calendar_days} dias";
+            
+        $description = $this->description ?? "Executar rotina de manutenção preventiva conforme procedimento padrão.";
+        
+        return "{$description}\n\n{$triggerInfo}";
+    }
+
+    private function getWorkOrderTypeId(): int
+    {
+        // Get preventive work order type
+        $workOrderType = \App\Models\WorkOrders\WorkOrderType::where('category', 'preventive')
+            ->where('is_active', true)
+            ->first();
+            
+        if (!$workOrderType) {
+            throw new \RuntimeException('No active preventive work order type found');
         }
-
-        return $workOrder;
+        
+        return $workOrderType->id;
     }
 
-    private function shouldAutoApprove(): bool
+    // Permission validation for auto-approval
+    public function setAutoApproveWorkOrdersAttribute($value)
     {
-        $workOrderType = WorkOrderType::where('code', 'pm_routine')->first();
-        return $this->auto_approve_work_orders && 
-               $workOrderType?->auto_approve_from_routine ?? false;
-    }
-
-    /**
-     * Check if the routine has a published form version
-     */
-    public function hasPublishedForm(): bool
-    {
-        return $this->getFormVersionForExecution() !== null;
-    }
-
-    /**
-     * Get the form version to use for new executions
-     */
-    public function getFormVersionForExecution(): ?FormVersion
-    {
-        // Use the routine's active version if set
-        if ($this->active_form_version_id) {
-            return $this->activeFormVersion;
+        if ($value && auth()->check() && !auth()->user()->can('work-orders.approve')) {
+            throw new \Illuminate\Auth\Access\AuthorizationException(
+                'You do not have permission to enable automatic work order approval'
+            );
         }
+        
+        $this->attributes['auto_approve_work_orders'] = $value;
+    }
 
-        // Otherwise use the form's current version
-        return $this->form->currentVersion;
+    // Computed attributes
+    public function getProgressPercentageAttribute(): float
+    {
+        $hoursUntilDue = $this->calculateHoursUntilDue();
+        
+        if ($hoursUntilDue === null) {
+            return 0;
+        }
+        
+        if ($this->trigger_type === 'runtime_hours') {
+            if (!$this->last_execution_runtime_hours || !$this->trigger_runtime_hours) {
+                return 100; // Due if never executed
+            }
+            
+            $currentRuntime = $this->asset->current_runtime_hours ?? 0;
+            $runtimeSinceLastExecution = $currentRuntime - $this->last_execution_runtime_hours;
+            $progress = ($runtimeSinceLastExecution / $this->trigger_runtime_hours) * 100;
+        } else {
+            if (!$this->last_execution_completed_at || !$this->trigger_calendar_days) {
+                return 100; // Due if never executed
+            }
+            
+            $daysSinceLastExecution = $this->last_execution_completed_at->diffInDays(now());
+            $progress = ($daysSinceLastExecution / $this->trigger_calendar_days) * 100;
+        }
+        
+        return min(100, max(0, $progress));
+    }
+
+    public function getEstimatedHoursUntilDueAttribute(): ?float
+    {
+        if ($this->trigger_type !== 'runtime_hours') {
+            return null;
+        }
+        
+        return $this->calculateRuntimeHoursUntilDue();
+    }
+
+    public function getNextDueDateAttribute(): ?string
+    {
+        if ($this->trigger_type !== 'calendar_days') {
+            return null;
+        }
+        
+        if (!$this->last_execution_completed_at) {
+            return now()->toIso8601String();
+        }
+        
+        return $this->last_execution_completed_at
+            ->addDays($this->trigger_calendar_days)
+            ->toIso8601String();
+    }
+
+    // Boot method to handle form creation
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($routine) {
+            // Create associated form if not provided
+            if (!$routine->form_id) {
+                $form = Form::create([
+                    'name' => $routine->name . ' - Form',
+                    'description' => 'Form for routine: ' . $routine->name,
+                    'created_by' => $routine->created_by ?? auth()->id() ?? 1,
+                    'is_active' => true,
+                ]);
+                
+                $routine->form_id = $form->id;
+            }
+        });
     }
 }
+

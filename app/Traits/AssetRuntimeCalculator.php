@@ -72,7 +72,8 @@ trait AssetRuntimeCalculator
                     $daySchedule,
                     $currentDate,
                     $startDate,
-                    $endDate
+                    $endDate,
+                    $shift
                 );
 
                 if ($dayMinutes > 0) {
@@ -93,7 +94,8 @@ trait AssetRuntimeCalculator
                     $previousDate,
                     $currentDate,
                     $startDate,
-                    $endDate
+                    $endDate,
+                    $shift
                 );
 
                 if ($midnightCrossingMinutes > 0) {
@@ -118,7 +120,8 @@ trait AssetRuntimeCalculator
         $daySchedule,
         Carbon $currentDate,
         Carbon $startDate,
-        Carbon $endDate
+        Carbon $endDate,
+        $shift = null
     ): int {
         $totalMinutes = 0;
 
@@ -126,8 +129,10 @@ trait AssetRuntimeCalculator
         $dayStart = $currentDate->copy()->startOfDay();
         $dayEnd = $currentDate->copy()->endOfDay();
 
-        // Get the shift to access timezone conversion methods
-        $shift = $daySchedule->shift;
+        // Use the passed shift or try to get it from the schedule
+        if (!$shift) {
+            $shift = $daySchedule->shift;
+        }
 
         foreach ($daySchedule->shiftTimes as $shiftTime) {
             if (! $shiftTime->active) {
@@ -205,7 +210,8 @@ trait AssetRuntimeCalculator
         Carbon $previousDate,
         Carbon $currentDate,
         Carbon $startDate,
-        Carbon $endDate
+        Carbon $endDate,
+        $shift = null
     ): int {
         $totalMinutes = 0;
 
@@ -213,8 +219,10 @@ trait AssetRuntimeCalculator
         $midnightStart = $currentDate->copy()->startOfDay();
         $dayEnd = $currentDate->copy()->endOfDay();
 
-        // Get the shift to access timezone conversion methods
-        $shift = $previousDaySchedule->shift;
+        // Use the passed shift or try to get it from the schedule
+        if (!$shift) {
+            $shift = $previousDaySchedule->shift;
+        }
 
         foreach ($previousDaySchedule->shiftTimes as $shiftTime) {
             if (! $shiftTime->active) {
@@ -355,7 +363,7 @@ trait AssetRuntimeCalculator
             'accumulated_shift_hours' => $accumulatedHours,
             'current_runtime_hours' => $latestMeasurement->reported_hours + $accumulatedHours,
             'has_shift' => $hasShift,
-            'shift_name' => $hasShift ? $this->shift->name : null,
+            'shift_name' => $hasShift ? ($this->shift ? $this->shift->name : null) : null,
             'last_measurement_date' => $latestMeasurement->measurement_datetime->toIso8601String(),
             'calculation_method' => $calculationMethod,
         ];

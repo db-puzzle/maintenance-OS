@@ -17,7 +17,12 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             WorkOrderTypeSeeder::class,
+            WorkOrderDisciplineConfigSeeder::class,
             FailureClassificationSeeder::class,
+            PartSeeder::class,
+            TeamSeeder::class,
+            SkillSeeder::class,
+            CertificationSeeder::class,
         ]);
     }
 }

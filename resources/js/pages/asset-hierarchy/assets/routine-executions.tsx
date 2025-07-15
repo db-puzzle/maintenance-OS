@@ -4,34 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
+import { type WorkOrder } from '@/types/work-order';
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Calendar, Clock, FileText, User } from 'lucide-react';
-
-interface RoutineExecution {
-    id: number;
-    status: string;
-    executed_at: string;
-    executed_by: {
-        id: number;
-        name: string;
-    };
-    form_execution?: {
-        id: number;
-        responses: Array<{
-            id: number;
-            task: {
-                id: number;
-                description: string;
-            };
-            value: string;
-        }>;
-    };
-}
 
 interface Routine {
     id: number;
     name: string;
-    trigger_hours: number;
+    trigger_type: 'runtime_hours' | 'calendar_days';
+    trigger_runtime_hours?: number;
+    trigger_calendar_days?: number;
     form?: {
         id: number;
         name: string;
@@ -41,8 +23,8 @@ interface Routine {
 interface Props {
     asset: Asset;
     routine: Routine;
-    executions: {
-        data: RoutineExecution[];
+    workOrders: {
+        data: WorkOrder[];
         current_page: number;
         last_page: number;
         total: number;
@@ -59,13 +41,14 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '#',
     },
     {
-        title: 'Execuções da Rotina',
+        title: 'Ordens de Trabalho da Rotina',
         href: '#',
     },
 ];
 
-export default function RoutineExecutions({ asset, routine, executions }: Props) {
-    const formatDate = (dateString: string) => {
+export default function RoutineWorkOrders({ asset, routine, workOrders }: Props) {
+    const formatDate = (dateString: string | null) => {
+        if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('pt-BR', {
             day: '2-digit',
             month: '2-digit',
@@ -89,16 +72,36 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                         Em Andamento
                     </Badge>
                 );
-            case 'failed':
-                return <Badge variant="destructive">Falhou</Badge>;
+            case 'pending':
+                return (
+                    <Badge variant="default" className="bg-gray-100 text-gray-800">
+                        Pendente
+                    </Badge>
+                );
+            case 'approved':
+                return (
+                    <Badge variant="default" className="bg-blue-100 text-blue-800">
+                        Aprovada
+                    </Badge>
+                );
+            case 'cancelled':
+                return <Badge variant="destructive">Cancelada</Badge>;
             default:
                 return <Badge variant="secondary">{status}</Badge>;
         }
     };
 
+    const getTriggerInfo = () => {
+        if (routine.trigger_type === 'runtime_hours') {
+            return `${routine.trigger_runtime_hours} horas de operação`;
+        } else {
+            return `${routine.trigger_calendar_days} dias`;
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Execuções - ${routine.name}`} />
+            <Head title={`Ordens de Trabalho - ${routine.name}`} />
 
             <div className="space-y-6">
                 {/* Header */}
@@ -112,7 +115,7 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                                 </Button>
                             </Link>
                         </div>
-                        <h1 className="text-2xl font-bold">Execuções da Rotina</h1>
+                        <h1 className="text-2xl font-bold">Ordens de Trabalho da Rotina</h1>
                         <p className="text-muted-foreground">
                             {routine.name} • {asset.tag}
                         </p>
@@ -126,8 +129,8 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                             <div className="flex items-center gap-2">
                                 <Calendar className="h-5 w-5 text-blue-500" />
                                 <div>
-                                    <p className="text-muted-foreground text-sm">Total de Execuções</p>
-                                    <p className="text-2xl font-bold">{executions.total}</p>
+                                    <p className="text-muted-foreground text-sm">Total de Ordens</p>
+                                    <p className="text-2xl font-bold">{workOrders.total}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -137,10 +140,8 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                             <div className="flex items-center gap-2">
                                 <Clock className="h-5 w-5 text-green-500" />
                                 <div>
-                                    <p className="text-muted-foreground text-sm">Última Execução</p>
-                                    <p className="text-sm font-medium">
-                                        {executions.data.length > 0 ? formatDate(executions.data[0].executed_at) : 'Nunca executada'}
-                                    </p>
+                                    <p className="text-muted-foreground text-sm">Frequência</p>
+                                    <p className="text-sm font-medium">{getTriggerInfo()}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -158,42 +159,51 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                     </Card>
                 </div>
 
-                {/* Lista de Execuções */}
+                {/* Lista de Ordens de Trabalho */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Histórico de Execuções</CardTitle>
+                        <CardTitle>Histórico de Ordens de Trabalho</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {executions.data.length === 0 ? (
+                        {workOrders.data.length === 0 ? (
                             <div className="py-8 text-center">
                                 <Calendar className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
-                                <h3 className="mb-2 text-lg font-semibold">Nenhuma execução encontrada</h3>
-                                <p className="text-muted-foreground">Esta rotina ainda não foi executada.</p>
+                                <h3 className="mb-2 text-lg font-semibold">Nenhuma ordem encontrada</h3>
+                                <p className="text-muted-foreground">Esta rotina ainda não gerou ordens de trabalho.</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {executions.data.map((execution) => (
-                                    <div key={execution.id} className="rounded-lg border p-4">
+                                {workOrders.data.map((workOrder) => (
+                                    <div key={workOrder.id} className="rounded-lg border p-4">
                                         <div className="mb-3 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <Calendar className="text-muted-foreground h-5 w-5" />
                                                 <div>
-                                                    <p className="font-medium">Execução #{execution.id}</p>
-                                                    <p className="text-muted-foreground text-sm">{formatDate(execution.executed_at)}</p>
+                                                    <Link
+                                                        href={route('work-orders.show', workOrder.id)}
+                                                        className="font-medium hover:underline"
+                                                    >
+                                                        {workOrder.title}
+                                                    </Link>
+                                                    <p className="text-muted-foreground text-sm">
+                                                        Criada em {formatDate(workOrder.created_at)}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2">{getStatusBadge(execution.status)}</div>
+                                            <div className="flex items-center gap-2">{getStatusBadge(workOrder.status)}</div>
                                         </div>
 
                                         <div className="text-muted-foreground flex items-center gap-4 text-sm">
-                                            <div className="flex items-center gap-1">
-                                                <User className="h-4 w-4" />
-                                                {execution.executed_by.name}
-                                            </div>
-                                            {execution.form_execution && (
+                                            {workOrder.assigned_technician && (
                                                 <div className="flex items-center gap-1">
-                                                    <FileText className="h-4 w-4" />
-                                                    {execution.form_execution.responses.length} respostas
+                                                    <User className="h-4 w-4" />
+                                                    {workOrder.assigned_technician.name}
+                                                </div>
+                                            )}
+                                            {workOrder.requested_due_date && (
+                                                <div className="flex items-center gap-1">
+                                                    <Clock className="h-4 w-4" />
+                                                    Vence em {formatDate(workOrder.requested_due_date)}
                                                 </div>
                                             )}
                                         </div>
@@ -205,18 +215,14 @@ export default function RoutineExecutions({ asset, routine, executions }: Props)
                 </Card>
 
                 {/* Paginação */}
-                {executions.last_page > 1 && (
+                {workOrders.last_page > 1 && (
                     <div className="flex justify-center">
                         <div className="flex items-center gap-2">
-                            {Array.from({ length: executions.last_page }, (_, i) => i + 1).map((page) => (
+                            {Array.from({ length: workOrders.last_page }, (_, i) => i + 1).map((page) => (
                                 <Link
                                     key={page}
-                                    href={route('maintenance.assets.routines.executions', {
-                                        asset: asset.id,
-                                        routine: routine.id,
-                                        page,
-                                    })}
-                                    className={`rounded px-3 py-1 ${page === executions.current_page ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+                                    href={`/asset-hierarchy/assets/${asset.id}/routines/${routine.id}/work-orders?page=${page}`}
+                                    className={`rounded px-3 py-1 ${page === workOrders.current_page ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
                                         }`}
                                 >
                                     {page}

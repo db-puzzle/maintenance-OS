@@ -2,302 +2,267 @@
 
 namespace App\Services;
 
-use App\Models\Maintenance\RoutineExecution;
+use App\Models\WorkOrders\WorkOrder;
+use App\Models\WorkOrders\WorkOrderExecution;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ExecutionAnalyticsService
 {
-    /**
-     * Get dashboard statistics
-     */
-    public function getDashboardStats(array $filters = []): array
+    public function getExecutionSummary(array $filters = []): array
     {
-        $query = RoutineExecution::query();
+        // Filter work orders that come from routines
+        $query = WorkOrder::where('source_type', 'routine')
+            ->where('work_order_category', 'preventive');
 
-        // Apply filters if provided
-        $this->applyFilters($query, $filters);
+        if (!empty($filters['plant_id'])) {
+            $query->whereHas('asset', function ($q) use ($filters) {
+                $q->where('plant_id', $filters['plant_id']);
+            });
+        }
+
+        if (!empty($filters['date_from'])) {
+            $query->where('requested_at', '>=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->where('requested_at', '<=', $filters['date_to']);
+        }
 
         $total = $query->count();
-        $completed = $query->where('status', RoutineExecution::STATUS_COMPLETED)->count();
-        $inProgress = $query->where('status', RoutineExecution::STATUS_IN_PROGRESS)->count();
-        $failed = $query->where('status', RoutineExecution::STATUS_CANCELLED)->count();
-
-        $completionRate = $total > 0 ? round(($completed / $total) * 100, 1) : 0;
-
-        // Calculate trend (compare with previous period)
-        $trend = $this->calculateTrend($filters);
+        $completed = $query->where('status', WorkOrder::STATUS_COMPLETED)->count();
+        $inProgress = $query->where('status', WorkOrder::STATUS_IN_PROGRESS)->count();
+        $cancelled = $query->where('status', WorkOrder::STATUS_CANCELLED)->count();
 
         return [
             'total' => $total,
             'completed' => $completed,
             'in_progress' => $inProgress,
-            'failed' => $failed,
-            'completion_rate' => $completionRate,
-            'trend' => $trend,
+            'cancelled' => $cancelled,
+            'completion_rate' => $total > 0 ? round(($completed / $total) * 100, 2) : 0,
         ];
     }
 
-    /**
-     * Get recent executions
-     */
-    public function getRecentExecutions(int $limit = 5): Collection
+    public function getRecentExecutions(int $limit = 10): Collection
     {
-        return RoutineExecution::with(['routine', 'executor', 'routine.assets'])
-            ->orderBy('started_at', 'desc')
+        return WorkOrder::with(['asset', 'requestedBy', 'execution'])
+            ->where('source_type', 'routine')
+            ->where('work_order_category', 'preventive')
+            ->orderBy('requested_at', 'desc')
             ->limit($limit)
             ->get()
-            ->map(function ($execution) {
+            ->map(function ($workOrder) {
                 return [
-                    'id' => $execution->id,
-                    'routine_name' => $execution->routine->name,
-                    'asset_tag' => $execution->primary_asset_tag,
-                    'executor_name' => $execution->executor->name,
-                    'status' => $execution->status,
-                    'started_at' => $execution->started_at,
-                    'duration_minutes' => $execution->duration_minutes,
-                    'progress' => $execution->progress_percentage,
+                    'id' => $workOrder->id,
+                    'work_order_number' => $workOrder->work_order_number,
+                    'routine_name' => $workOrder->title,
+                    'asset_tag' => $workOrder->asset->tag ?? 'N/A',
+                    'executor_name' => $workOrder->execution->executedBy->name ?? 'N/A',
+                    'started_at' => $workOrder->actual_start_date,
+                    'completed_at' => $workOrder->actual_end_date,
+                    'status' => $workOrder->status,
+                    'duration_minutes' => $workOrder->execution ? 
+                        $workOrder->execution->started_at->diffInMinutes($workOrder->execution->completed_at) : 0,
                 ];
             });
     }
 
-    /**
-     * Get daily trend data for charts
-     */
-    public function getDailyTrend(int $days = 30, array $filters = []): Collection
+    public function getExecutionTrends(int $days = 30): array
     {
-        // If date filters are provided, use them; otherwise fall back to last N days
-        if (isset($filters['date_from'], $filters['date_to'])) {
-            $startDate = Carbon::parse($filters['date_from'])->startOfDay();
-            $endDate = Carbon::parse($filters['date_to'])->endOfDay();
-        } else {
-            $startDate = Carbon::now()->subDays($days)->startOfDay();
-            $endDate = Carbon::now()->endOfDay();
-        }
+        $endDate = now()->endOfDay();
+        $startDate = now()->subDays($days)->startOfDay();
 
-        $executions = RoutineExecution::whereBetween('started_at', [$startDate, $endDate])
-            ->get()
-            ->groupBy(function ($execution) {
-                return Carbon::parse($execution->started_at)->format('Y-m-d');
-            })
-            ->map(function ($dayExecutions, $date) {
-                $completed = $dayExecutions->where('status', RoutineExecution::STATUS_COMPLETED)->count();
-                $cancelled = $dayExecutions->where('status', RoutineExecution::STATUS_CANCELLED)->count();
-
-                return [
-                    'date' => $date,
-                    'count' => $dayExecutions->count(),
-                    'completed' => $completed,
-                    'failed' => $cancelled,
-                ];
-            });
-
-        // Fill in missing dates with zero values
-        $period = new \DatePeriod(
-            $startDate,
-            new \DateInterval('P1D'),
-            $endDate->copy()->addDay()
-        );
-
-        $filledData = collect();
-        foreach ($period as $date) {
-            $dateStr = $date->format('Y-m-d');
-            if ($executions->has($dateStr)) {
-                $filledData->push($executions->get($dateStr));
-            } else {
-                $filledData->push([
-                    'date' => $dateStr,
-                    'count' => 0,
-                    'completed' => 0,
-                    'failed' => 0,
-                ]);
-            }
-        }
-
-        return $filledData->sortBy('date')->values();
-    }
-
-    /**
-     * Get execution performance metrics
-     */
-    public function getPerformanceMetrics(): array
-    {
-        $completedExecutions = RoutineExecution::where('status', RoutineExecution::STATUS_COMPLETED)
-            ->whereNotNull('started_at')
-            ->whereNotNull('completed_at')
+        $workOrders = WorkOrder::where('source_type', 'routine')
+            ->where('work_order_category', 'preventive')
+            ->whereBetween('requested_at', [$startDate, $endDate])
             ->get();
 
-        if ($completedExecutions->isEmpty()) {
-            return [
-                'average_duration_minutes' => 0,
-                'median_duration_minutes' => 0,
-                'fastest_execution_minutes' => 0,
-                'slowest_execution_minutes' => 0,
-                'total_execution_time_hours' => 0,
+        $trends = [];
+        $currentDate = $startDate->copy();
+
+        while ($currentDate <= $endDate) {
+            $dayWorkOrders = $workOrders->filter(function ($wo) use ($currentDate) {
+                return Carbon::parse($wo->requested_at)->isSameDay($currentDate);
+            });
+
+            $completed = $dayWorkOrders->where('status', WorkOrder::STATUS_COMPLETED)->count();
+            $cancelled = $dayWorkOrders->where('status', WorkOrder::STATUS_CANCELLED)->count();
+
+            $trends[] = [
+                'date' => $currentDate->format('Y-m-d'),
+                'completed' => $completed,
+                'cancelled' => $cancelled,
+                'total' => $dayWorkOrders->count(),
+            ];
+
+            $currentDate->addDay();
+        }
+
+        return $trends;
+    }
+
+    public function getAverageExecutionTime(): array
+    {
+        $avgByCategory = DB::table('work_orders')
+            ->join('work_order_executions', 'work_orders.id', '=', 'work_order_executions.work_order_id')
+            ->where('work_orders.source_type', 'routine')
+            ->where('work_orders.work_order_category', 'preventive')
+            ->whereNotNull('work_order_executions.completed_at')
+            ->select(
+                'work_orders.work_order_category',
+                DB::raw('AVG(TIMESTAMPDIFF(MINUTE, work_order_executions.started_at, work_order_executions.completed_at)) as avg_minutes')
+            )
+            ->groupBy('work_orders.work_order_category')
+            ->get();
+
+        $result = [];
+        foreach ($avgByCategory as $category) {
+            $result[$category->work_order_category] = [
+                'minutes' => round($category->avg_minutes),
+                'formatted' => $this->formatMinutes(round($category->avg_minutes)),
             ];
         }
 
-        $durations = $completedExecutions
-            ->map(fn ($ex) => $ex->duration_minutes)
-            ->filter()
-            ->sort()
-            ->values();
-
-        return [
-            'average_duration_minutes' => round($durations->avg(), 1),
-            'median_duration_minutes' => $this->getMedian($durations),
-            'fastest_execution_minutes' => $durations->min(),
-            'slowest_execution_minutes' => $durations->max(),
-            'total_execution_time_hours' => round($durations->sum() / 60, 1),
-        ];
+        return $result;
     }
 
-    /**
-     * Get asset execution summary
-     */
-    public function getAssetExecutionSummary(): Collection
+    public function getCompletionRateByAsset(): array
     {
-        // Get all assets that have routines with executions
-        $assets = \App\Models\AssetHierarchy\Asset::whereHas('routines.routineExecutions')
-            ->with(['routines.routineExecutions' => function ($query) {
-                $query->select('id', 'routine_id', 'status', 'started_at', 'completed_at');
-            }])
+        $completedWorkOrders = WorkOrder::where('source_type', 'routine')
+            ->where('work_order_category', 'preventive')
+            ->where('status', WorkOrder::STATUS_COMPLETED)
+            ->whereBetween('requested_at', [now()->subDays(30), now()])
+            ->select('asset_id', DB::raw('count(*) as completed_count'))
+            ->groupBy('asset_id')
+            ->pluck('completed_count', 'asset_id');
+
+        $totalWorkOrders = WorkOrder::where('source_type', 'routine')
+            ->where('work_order_category', 'preventive')
+            ->whereBetween('requested_at', [now()->subDays(30), now()])
+            ->select('asset_id', DB::raw('count(*) as total_count'))
+            ->groupBy('asset_id')
+            ->pluck('total_count', 'asset_id');
+
+        $assetIds = $totalWorkOrders->keys();
+        $assets = \App\Models\AssetHierarchy\Asset::whereIn('id', $assetIds)
+            ->with(['area', 'plant'])
             ->get();
 
-        return $assets->map(function ($asset) {
-            $allExecutions = $asset->routines->flatMap->routineExecutions;
-            $totalExecutions = $allExecutions->count();
-            $completedExecutions = $allExecutions->where('status', RoutineExecution::STATUS_COMPLETED);
-            $completedCount = $completedExecutions->count();
+        $result = [];
+        foreach ($assets as $asset) {
+            $completed = $completedWorkOrders->get($asset->id, 0);
+            $total = $totalWorkOrders->get($asset->id, 0);
 
-            // Calculate average duration for completed executions
-            $avgDuration = null;
-            if ($completedCount > 0) {
-                $totalDuration = $completedExecutions->sum(function ($execution) {
-                    if ($execution->started_at && $execution->completed_at) {
-                        return Carbon::parse($execution->completed_at)
-                            ->diffInMinutes(Carbon::parse($execution->started_at));
-                    }
-
-                    return 0;
-                });
-                $avgDuration = round($totalDuration / $completedCount, 1);
-            }
-
-            return [
+            $result[] = [
                 'asset_id' => $asset->id,
                 'asset_tag' => $asset->tag,
-                'asset_description' => $asset->description,
-                'total_executions' => $totalExecutions,
-                'completed_executions' => $completedCount,
-                'completion_rate' => $totalExecutions > 0
-                    ? round(($completedCount / $totalExecutions) * 100, 1)
-                    : 0,
-                'avg_duration_minutes' => $avgDuration,
+                'asset_name' => $asset->name,
+                'area' => $asset->area->name ?? 'N/A',
+                'plant' => $asset->plant->name ?? 'N/A',
+                'completed' => $completed,
+                'total' => $total,
+                'completion_rate' => $total > 0 ? round(($completed / $total) * 100, 2) : 0,
             ];
-        })->filter(function ($summary) {
-            return $summary['total_executions'] > 0;
-        })->sortByDesc('total_executions')->values();
-    }
-
-    /**
-     * Calculate trend percentage compared to previous period
-     */
-    private function calculateTrend(array $filters): array
-    {
-        // Get current period count
-        $currentQuery = RoutineExecution::query();
-        $this->applyFilters($currentQuery, $filters);
-        $currentCount = $currentQuery->count();
-
-        // Calculate previous period based on date range
-        $dateRange = $this->getDateRangeFromFilters($filters);
-        if (! $dateRange) {
-            return ['direction' => 'stable', 'percentage' => 0];
         }
 
-        $periodLength = $dateRange['end']->diffInDays($dateRange['start']);
-        $previousStart = $dateRange['start']->copy()->subDays($periodLength);
-        $previousEnd = $dateRange['start']->copy()->subDay();
+        // Sort by completion rate descending
+        usort($result, function ($a, $b) {
+            return $b['completion_rate'] <=> $a['completion_rate'];
+        });
 
-        $previousCount = RoutineExecution::whereBetween('started_at', [$previousStart, $previousEnd])
+        return $result;
+    }
+
+    public function getExecutionComparison(string $period = 'month'): array
+    {
+        $currentStart = $this->getPeriodStart($period);
+        $currentEnd = now();
+        $previousStart = $this->getPreviousPeriodStart($period);
+        $previousEnd = $this->getPeriodStart($period)->subSecond();
+
+        $currentQuery = WorkOrder::where('source_type', 'routine')
+            ->where('work_order_category', 'preventive');
+        $currentCount = (clone $currentQuery)
+            ->whereBetween('requested_at', [$currentStart, $currentEnd])
+            ->count();
+        $currentCompleted = (clone $currentQuery)
+            ->whereBetween('requested_at', [$currentStart, $currentEnd])
+            ->where('status', WorkOrder::STATUS_COMPLETED)
             ->count();
 
-        if ($previousCount === 0) {
-            return ['direction' => $currentCount > 0 ? 'up' : 'stable', 'percentage' => 0];
-        }
+        $previousCount = WorkOrder::where('source_type', 'routine')
+            ->where('work_order_category', 'preventive')
+            ->whereBetween('requested_at', [$previousStart, $previousEnd])
+            ->count();
+        $previousCompleted = WorkOrder::where('source_type', 'routine')
+            ->where('work_order_category', 'preventive')
+            ->whereBetween('requested_at', [$previousStart, $previousEnd])
+            ->where('status', WorkOrder::STATUS_COMPLETED)
+            ->count();
 
-        $changePercentage = round((($currentCount - $previousCount) / $previousCount) * 100, 1);
+        $currentRate = $currentCount > 0 ? round(($currentCompleted / $currentCount) * 100, 2) : 0;
+        $previousRate = $previousCount > 0 ? round(($previousCompleted / $previousCount) * 100, 2) : 0;
 
         return [
-            'direction' => $changePercentage > 0 ? 'up' : ($changePercentage < 0 ? 'down' : 'stable'),
-            'percentage' => abs($changePercentage),
+            'current' => [
+                'total' => $currentCount,
+                'completed' => $currentCompleted,
+                'completion_rate' => $currentRate,
+            ],
+            'previous' => [
+                'total' => $previousCount,
+                'completed' => $previousCompleted,
+                'completion_rate' => $previousRate,
+            ],
+            'change' => [
+                'total' => $this->calculatePercentageChange($previousCount, $currentCount),
+                'completed' => $this->calculatePercentageChange($previousCompleted, $currentCompleted),
+                'completion_rate' => round($currentRate - $previousRate, 2),
+            ],
         ];
     }
 
-    /**
-     * Apply common filters to query
-     */
-    private function applyFilters($query, array $filters): void
+    private function getPeriodStart(string $period): Carbon
     {
-        if (isset($filters['date_from'], $filters['date_to'])) {
-            $query->filterByDateRange($filters['date_from'], $filters['date_to']);
-        }
-
-        if (isset($filters['asset_ids']) && ! empty($filters['asset_ids'])) {
-            $query->filterByAssets($filters['asset_ids']);
-        }
-
-        if (isset($filters['routine_ids']) && ! empty($filters['routine_ids'])) {
-            $query->filterByRoutines($filters['routine_ids']);
-        }
-
-        if (isset($filters['executor_ids']) && ! empty($filters['executor_ids'])) {
-            $query->filterByExecutors($filters['executor_ids']);
-        }
-
-        if (isset($filters['status']) && ! empty($filters['status'])) {
-            $query->filterByStatus($filters['status']);
-        }
-
-        if (isset($filters['search']) && ! empty($filters['search'])) {
-            $query->search($filters['search']);
-        }
+        return match ($period) {
+            'week' => now()->startOfWeek(),
+            'month' => now()->startOfMonth(),
+            'quarter' => now()->startOfQuarter(),
+            'year' => now()->startOfYear(),
+            default => now()->startOfMonth(),
+        };
     }
 
-    /**
-     * Get date range from filters
-     */
-    private function getDateRangeFromFilters(array $filters): ?array
+    private function getPreviousPeriodStart(string $period): Carbon
     {
-        if (! isset($filters['date_from'], $filters['date_to'])) {
-            return null;
-        }
-
-        return [
-            'start' => Carbon::parse($filters['date_from']),
-            'end' => Carbon::parse($filters['date_to']),
-        ];
+        return match ($period) {
+            'week' => now()->subWeek()->startOfWeek(),
+            'month' => now()->subMonth()->startOfMonth(),
+            'quarter' => now()->subQuarter()->startOfQuarter(),
+            'year' => now()->subYear()->startOfYear(),
+            default => now()->subMonth()->startOfMonth(),
+        };
     }
 
-    /**
-     * Get median value from collection
-     */
-    private function getMedian(Collection $collection): float
+    private function calculatePercentageChange($previous, $current): float
     {
-        $count = $collection->count();
-
-        if ($count === 0) {
-            return 0;
+        if ($previous == 0) {
+            return $current > 0 ? 100 : 0;
         }
 
-        if ($count % 2 === 0) {
-            $mid1 = $collection->get($count / 2 - 1);
-            $mid2 = $collection->get($count / 2);
+        return round((($current - $previous) / $previous) * 100, 2);
+    }
 
-            return ($mid1 + $mid2) / 2;
+    private function formatMinutes(int $minutes): string
+    {
+        $hours = floor($minutes / 60);
+        $mins = $minutes % 60;
+
+        if ($hours > 0) {
+            return sprintf('%dh %dm', $hours, $mins);
         }
 
-        return $collection->get(intval($count / 2));
+        return sprintf('%dm', $mins);
     }
 }

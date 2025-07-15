@@ -11,7 +11,7 @@ class CompleteExecutionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('complete', $this->route('work_order'));
+        return $this->user()->can('complete', $this->route('workOrder'));
     }
 
     /**

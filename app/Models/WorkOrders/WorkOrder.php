@@ -16,9 +16,9 @@ use Illuminate\Support\Facades\DB;
 class WorkOrder extends Model
 {
     protected $fillable = [
-        'work_order_number', 'title', 'description', 'work_order_type_id',
+        'work_order_number', 'discipline', 'title', 'description', 'work_order_type_id',
         'work_order_category', 'priority', 'priority_score', 'status',
-        'asset_id', 'form_id', 'form_version_id', 'custom_tasks',
+        'asset_id', 'instrument_id', 'form_id', 'form_version_id', 'custom_tasks',
         'estimated_hours', 'estimated_parts_cost', 'estimated_labor_cost',
         'estimated_total_cost', 'downtime_required', 'safety_requirements',
         'requested_due_date', 'scheduled_start_date', 'scheduled_end_date',
@@ -30,7 +30,8 @@ class WorkOrder extends Model
         'approved_by', 'planned_by', 'verified_by', 'closed_by',
         'requested_at', 'approved_at', 'planned_at', 'verified_at',
         'closed_at', 'external_reference', 'warranty_claim',
-        'attachments', 'tags'
+        'attachments', 'tags', 'calibration_due_date', 'certificate_number',
+        'compliance_standard', 'tolerance_specs'
     ];
 
     protected $casts = [
@@ -40,8 +41,15 @@ class WorkOrder extends Model
         'required_certifications' => 'array',
         'attachments' => 'array',
         'tags' => 'array',
+        'tolerance_specs' => 'array',
         'downtime_required' => 'boolean',
         'warranty_claim' => 'boolean',
+        'estimated_hours' => 'float',
+        'actual_hours' => 'float',
+        'estimated_parts_cost' => 'float',
+        'estimated_labor_cost' => 'float',
+        'estimated_total_cost' => 'float',
+        'actual_cost' => 'float',
         'requested_due_date' => 'datetime',
         'scheduled_start_date' => 'datetime',
         'scheduled_end_date' => 'datetime',
@@ -52,6 +60,7 @@ class WorkOrder extends Model
         'planned_at' => 'datetime',
         'verified_at' => 'datetime',
         'closed_at' => 'datetime',
+        'calibration_due_date' => 'date',
     ];
 
     // Status constants
@@ -59,7 +68,7 @@ class WorkOrder extends Model
     const STATUS_APPROVED = 'approved';
     const STATUS_REJECTED = 'rejected';
     const STATUS_PLANNED = 'planned';
-    const STATUS_READY = 'ready_to_schedule';
+    const STATUS_READY_TO_SCHEDULE = 'ready_to_schedule';
     const STATUS_SCHEDULED = 'scheduled';
     const STATUS_IN_PROGRESS = 'in_progress';
     const STATUS_ON_HOLD = 'on_hold';
@@ -72,11 +81,11 @@ class WorkOrder extends Model
     const STATUS_TRANSITIONS = [
         self::STATUS_REQUESTED => [self::STATUS_APPROVED, self::STATUS_REJECTED, self::STATUS_CANCELLED],
         self::STATUS_APPROVED => [self::STATUS_PLANNED, self::STATUS_ON_HOLD, self::STATUS_CANCELLED],
-        self::STATUS_PLANNED => [self::STATUS_READY, self::STATUS_ON_HOLD],
-        self::STATUS_READY => [self::STATUS_SCHEDULED, self::STATUS_ON_HOLD],
+        self::STATUS_PLANNED => [self::STATUS_READY_TO_SCHEDULE, self::STATUS_ON_HOLD],
+        self::STATUS_READY_TO_SCHEDULE => [self::STATUS_SCHEDULED, self::STATUS_ON_HOLD],
         self::STATUS_SCHEDULED => [self::STATUS_IN_PROGRESS, self::STATUS_ON_HOLD],
         self::STATUS_IN_PROGRESS => [self::STATUS_COMPLETED, self::STATUS_ON_HOLD],
-        self::STATUS_ON_HOLD => [self::STATUS_APPROVED, self::STATUS_PLANNED, self::STATUS_READY, self::STATUS_SCHEDULED, self::STATUS_IN_PROGRESS],
+        self::STATUS_ON_HOLD => [self::STATUS_APPROVED, self::STATUS_PLANNED, self::STATUS_READY_TO_SCHEDULE, self::STATUS_SCHEDULED, self::STATUS_IN_PROGRESS],
         self::STATUS_COMPLETED => [self::STATUS_VERIFIED, self::STATUS_IN_PROGRESS],
         self::STATUS_VERIFIED => [self::STATUS_CLOSED, self::STATUS_COMPLETED],
         self::STATUS_REJECTED => [],
@@ -94,6 +103,12 @@ class WorkOrder extends Model
             }
             if (empty($workOrder->requested_at)) {
                 $workOrder->requested_at = now();
+            }
+            if (empty($workOrder->discipline)) {
+                $workOrder->discipline = 'maintenance';
+            }
+            if (empty($workOrder->status)) {
+                $workOrder->status = self::STATUS_REQUESTED;
             }
         });
     }
@@ -161,6 +176,12 @@ class WorkOrder extends Model
         }
     }
 
+    // Specific source relationships for eager loading
+    public function sourceRoutine(): BelongsTo
+    {
+        return $this->belongsTo(Routine::class, 'source_id');
+    }
+
     // User relationships
     public function requestedBy(): BelongsTo
     {
@@ -190,6 +211,22 @@ class WorkOrder extends Model
     public function assignedTechnician(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_technician_id');
+    }
+
+    public function assignedTeam(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Team::class, 'assigned_team_id');
+    }
+
+    // Discipline-aware scopes
+    public function scopeMaintenance($query)
+    {
+        return $query->where('discipline', 'maintenance');
+    }
+    
+    public function scopeQuality($query)
+    {
+        return $query->where('discipline', 'quality');
     }
 
     // Scopes
@@ -227,6 +264,38 @@ class WorkOrder extends Model
     public function scopeScheduledBetween($query, $start, $end)
     {
         return $query->whereBetween('scheduled_start_date', [$start, $end]);
+    }
+
+    // Discipline-aware helper methods
+    public function getAllowedCategories(): array
+    {
+        return match($this->discipline) {
+            'maintenance' => ['preventive', 'corrective', 'inspection', 'project'],
+            'quality' => ['calibration', 'quality_control', 'quality_audit', 'non_conformance'],
+            default => []
+        };
+    }
+    
+    public function getAllowedSourceTypes(): array
+    {
+        return match($this->discipline) {
+            'maintenance' => ['manual', 'routine', 'sensor', 'inspection'],
+            'quality' => ['manual', 'calibration_schedule', 'quality_alert', 'audit', 'complaint'],
+            default => ['manual']
+        };
+    }
+    
+    public function validateForDiscipline(): bool
+    {
+        if ($this->discipline === 'maintenance' && !$this->asset_id) {
+            throw new \Illuminate\Validation\ValidationException('Maintenance work orders require an asset');
+        }
+        
+        if ($this->discipline === 'quality' && $this->work_order_category === 'calibration' && !$this->instrument_id) {
+            throw new \Illuminate\Validation\ValidationException('Calibration work orders require an instrument');
+        }
+        
+        return true;
     }
 
     // Helper methods

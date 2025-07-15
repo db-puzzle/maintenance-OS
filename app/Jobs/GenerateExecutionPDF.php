@@ -39,7 +39,7 @@ class GenerateExecutionPDF implements ShouldQueue
 
             // Generate the export based on format
             $filePath = match ($this->export->export_format) {
-                'csv' => $pdfService->generateCSVExport($this->export->execution_ids),
+                'csv' => $this->generateCSV($pdfService),
                 'pdf' => $this->generatePDF($pdfService),
                 default => throw new \Exception('Unsupported export format: '.$this->export->export_format),
             };
@@ -81,10 +81,31 @@ class GenerateExecutionPDF implements ShouldQueue
             );
         }
 
+        // For batch reports, we need work order IDs, not execution IDs
+        // Get work order IDs from the executions
+        $workOrderIds = $this->export->getExecutions()
+            ->pluck('work_order_id')
+            ->unique()
+            ->toArray();
+
         return $pdfService->generateBatchReport(
-            $this->export->execution_ids,
+            $workOrderIds,
             $metadata
         );
+    }
+
+    /**
+     * Generate CSV export
+     */
+    private function generateCSV(PDFGeneratorService $pdfService): string
+    {
+        // Get work order IDs from the executions
+        $workOrderIds = $this->export->getExecutions()
+            ->pluck('work_order_id')
+            ->unique()
+            ->toArray();
+
+        return $pdfService->generateCSVExport($workOrderIds);
     }
 
     /**

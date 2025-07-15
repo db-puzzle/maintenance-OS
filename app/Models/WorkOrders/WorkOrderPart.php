@@ -8,6 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WorkOrderPart extends Model
 {
+    // Status constants
+    const STATUS_PLANNED = 'planned';
+    const STATUS_RESERVED = 'reserved';
+    const STATUS_ISSUED = 'issued';
+    const STATUS_USED = 'used';
+    const STATUS_RETURNED = 'returned';
+
     protected $fillable = [
         'work_order_id',
         'part_id',

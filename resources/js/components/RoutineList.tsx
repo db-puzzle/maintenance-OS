@@ -33,9 +33,13 @@ export interface Routine {
     id?: number;
     name: string;
     trigger_hours: number;
-    status: 'Active' | 'Inactive';
+    execution_mode: 'automatic' | 'manual';
     description?: string;
     form_id?: number;
+    asset_id?: number;
+    last_execution_runtime_hours?: number;
+    last_execution_completed_at?: string;
+    last_execution_form_version_id?: number;
     form?: {
         id: number;
         name: string;
@@ -246,7 +250,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
             if (!routine?.id) return;
 
             setIsDeleting(true);
-            router.delete(route('maintenance.assets.routines.destroy', { asset: assetId, routine: routine.id }), {
+            router.delete(route('maintenance.routines.destroy', { routine: routine.id }), {
                 onSuccess: () => {
                     toast.success('Rotina excluída com sucesso!');
                     setShowDeleteDialog(false);
@@ -272,19 +276,23 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
         const isConfirmationValid = confirmationText === 'EXCLUIR';
 
         const handlePublishForm = async () => {
-            try {
-                await axios.post(
-                    route('maintenance.assets.routines.forms.publish', {
-                        asset: assetId,
-                        routine: routine?.id,
-                    }),
-                );
-                toast.success('Formulário publicado com sucesso!');
-                // Refresh form data
-                await fetchRoutineFormData();
-            } catch {
-                toast.error('Erro ao publicar formulário');
-            }
+            router.post(
+                route('maintenance.assets.routines.forms.publish', {
+                    asset: assetId,
+                    routine: routine?.id,
+                }),
+                {},
+                {
+                    onSuccess: () => {
+                        toast.success('Formulário publicado com sucesso!');
+                        // Refresh form data
+                        fetchRoutineFormData();
+                    },
+                    onError: () => {
+                        toast.error('Erro ao publicar formulário');
+                    },
+                }
+            );
         };
 
         const handleEditFormClick = () => {
@@ -464,23 +472,27 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                     onExecute={() => {
                                         if (onFillForm) onFillForm();
                                     }}
-                                    onPublishAndExecute={async () => {
+                                    onPublishAndExecute={() => {
                                         // Publish the form first
-                                        try {
-                                            await axios.post(
-                                                route('maintenance.assets.routines.forms.publish', {
-                                                    asset: assetId,
-                                                    routine: routine?.id,
-                                                }),
-                                            );
-                                            toast.success('Formulário publicado com sucesso!');
-                                            // Refresh form data
-                                            await fetchRoutineFormData();
-                                            // Then execute
-                                            if (onFillForm) onFillForm();
-                                        } catch {
-                                            toast.error('Erro ao publicar formulário');
-                                        }
+                                        router.post(
+                                            route('maintenance.assets.routines.forms.publish', {
+                                                asset: assetId,
+                                                routine: routine?.id,
+                                            }),
+                                            {},
+                                            {
+                                                onSuccess: () => {
+                                                    toast.success('Formulário publicado com sucesso!');
+                                                    // Refresh form data
+                                                    fetchRoutineFormData();
+                                                    // Then execute
+                                                    if (onFillForm) onFillForm();
+                                                },
+                                                onError: () => {
+                                                    toast.error('Erro ao publicar formulário');
+                                                },
+                                            }
+                                        );
                                     }}
                                     onEditForm={onEditForm}
                                 >
@@ -529,6 +541,16 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                                         Editar Tarefas
                                                     </>
                                                 </DropdownMenuItem>
+                                                {/* Show "View Published Version" option when there are draft changes */}
+                                                {formState === 'draft' && routineData.form?.current_version_id && (
+                                                    <DropdownMenuItem
+                                                        onClick={() => router.visit(route('maintenance.routines.view-published-version', { routine: routineData.id }))}
+                                                        className="flex items-center"
+                                                    >
+                                                        <Eye className="mr-2 h-4 w-4" />
+                                                        Ver Versão Publicada (v{routineData.form.current_version?.version_number})
+                                                    </DropdownMenuItem>
+                                                )}
                                             </>
                                         ) : (
                                             // Show Fill option for published/draft forms
@@ -599,14 +621,12 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                             <DropdownMenuSeparator />
                                         </>
                                     )}
-                                    <DropdownMenuItem asChild>
-                                        <Link
-                                            href={route('maintenance.assets.routines.executions', { asset: assetId, routine: routineData.id })}
-                                            className="flex items-center"
-                                        >
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            Visualizar Execuções
-                                        </Link>
+                                    <DropdownMenuItem
+                                        onClick={() => router.visit(`/maintenance/work-orders?source_type=routine&source_id=${routineData.id}&asset_id=${assetId}`)}
+                                        className="flex items-center cursor-pointer"
+                                    >
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Visualizar Ordens de Serviço
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={handleEditClick}>
                                         <Edit2 className="mr-2 h-4 w-4" />

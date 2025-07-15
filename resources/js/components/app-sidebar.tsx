@@ -33,10 +33,7 @@ const gerenciamentoNavItems: NavGroup = {
                     title: 'Ativos',
                     href: '/asset-hierarchy/assets',
                 },
-                {
-                    title: 'Dashboard de Rotinas',
-                    href: '/maintenance/routines/dashboard',
-                },
+
                 {
                     title: 'Hierarchia de Ativos',
                     href: '/asset-hierarchy',

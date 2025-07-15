@@ -68,14 +68,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the routine executions performed by this user
-     */
-    public function executedRoutines(): HasMany
-    {
-        return $this->hasMany(\App\Models\Maintenance\RoutineExecution::class, 'executed_by');
-    }
-
-    /**
      * Get the execution exports created by this user
      */
     public function executionExports(): HasMany

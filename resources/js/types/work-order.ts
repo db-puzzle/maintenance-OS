@@ -3,17 +3,23 @@
 export interface WorkOrder {
     id: number;
     work_order_number: string;
+    discipline: 'maintenance' | 'quality';
     title: string;
     description?: string;
     work_order_type_id: number;
-    work_order_category: 'corrective' | 'preventive' | 'inspection' | 'project';
+    work_order_category: 'corrective' | 'preventive' | 'inspection' | 'project' |
+    'calibration' | 'quality_control' | 'quality_audit' | 'non_conformance';
     priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
     priority_score: number;
     status: WorkOrderStatus;
 
-    // Asset relationship
-    asset_id: number;
+    // Asset relationship (maintenance discipline)
+    asset_id?: number;
     asset?: Asset;
+
+    // Instrument relationship (quality discipline - future)
+    instrument_id?: number;
+    instrument?: Instrument;
 
     // Form/Task configuration
     form_id?: number;
@@ -52,8 +58,21 @@ export interface WorkOrder {
     actual_total_cost?: number;
 
     // Source tracking
-    source_type: 'manual' | 'routine' | 'sensor' | 'inspection_finding';
+    source_type: 'manual' | 'routine' | 'sensor' | 'inspection' |
+    'calibration_schedule' | 'quality_alert' | 'audit' | 'complaint';
     source_id?: number;
+    source_routine?: {
+        id: number;
+        name: string;
+        trigger_type: 'runtime_hours' | 'calendar_days';
+        trigger_runtime_hours?: number;
+        trigger_calendar_days?: number;
+        execution_mode: 'automatic' | 'manual';
+        last_execution_completed_at?: string;
+        last_execution_runtime_hours?: number;
+        advance_generation_hours: number;
+        auto_approve_work_orders: boolean;
+    };
 
     // Relationships
     related_work_order_id?: number;
@@ -86,6 +105,12 @@ export interface WorkOrder {
     warranty_claim: boolean;
     attachments?: Attachment[];
     tags?: string[];
+
+    // Quality-specific fields (sparse)
+    calibration_due_date?: string;
+    certificate_number?: string;
+    compliance_standard?: string;
+    tolerance_specs?: any;
 
     // Related data
     type?: WorkOrderType;
@@ -168,7 +193,7 @@ export interface WorkOrderStatusHistory {
     from_status?: string;
     to_status: string;
     changed_by: number;
-    changer?: User;
+    changedBy?: User;
     reason?: string;
     created_at: string;
 }
@@ -278,6 +303,20 @@ export interface Asset {
     asset_type?: AssetType;
 }
 
+export interface Instrument {
+    id: number;
+    tag: string;
+    name: string;
+    plant_id: number;
+    area_id: number;
+    sector_id?: number;
+    instrument_type_id: number;
+    plant?: Plant;
+    area?: Area;
+    sector?: Sector;
+    instrument_type?: InstrumentType;
+}
+
 export interface Plant {
     id: number;
     name: string;
@@ -296,6 +335,11 @@ export interface Sector {
 }
 
 export interface AssetType {
+    id: number;
+    name: string;
+}
+
+export interface InstrumentType {
     id: number;
     name: string;
 }
@@ -339,24 +383,33 @@ export interface PaginationMeta {
 
 // Form Data Types
 export interface CreateWorkOrderData {
+    discipline?: 'maintenance' | 'quality';
     title: string;
     description?: string;
     work_order_type_id: number;
-    work_order_category: 'corrective' | 'preventive' | 'inspection' | 'project';
+    work_order_category: 'corrective' | 'preventive' | 'inspection' | 'project' |
+    'calibration' | 'quality_control' | 'quality_audit' | 'non_conformance';
     priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
     priority_score: number;
-    asset_id: number;
+    asset_id?: number;
+    instrument_id?: number;
     form_id?: number;
     custom_tasks?: CustomTask[];
     requested_due_date: string;
     downtime_required: boolean;
-    source_type: 'manual' | 'routine' | 'sensor' | 'inspection_finding';
+    source_type: 'manual' | 'routine' | 'sensor' | 'inspection' |
+    'calibration_schedule' | 'quality_alert' | 'audit' | 'complaint';
     source_id?: number;
     related_work_order_id?: number;
     relationship_type?: 'follow_up' | 'prerequisite' | 'related';
     external_reference?: string;
     warranty_claim: boolean;
     tags?: string[];
+    // Quality-specific fields
+    calibration_due_date?: string;
+    certificate_number?: string;
+    compliance_standard?: string;
+    tolerance_specs?: any;
 }
 
 export interface UpdateWorkOrderData extends Partial<CreateWorkOrderData> {
@@ -414,7 +467,46 @@ export const PRIORITY_CONFIG = {
     high: { label: 'Alta', color: 'yellow', score: 60 },
     normal: { label: 'Normal', color: 'blue', score: 40 },
     low: { label: 'Baixa', color: 'gray', score: 20 },
-};
+} as const;
+
+// Discipline Configuration
+export interface DisciplineConfig {
+    discipline: 'maintenance' | 'quality';
+    allowedCategories: string[];
+    allowedSources: string[];
+    requiresComplianceFields: boolean;
+    requiresCalibrationTracking: boolean;
+}
+
+// Discipline-specific constants
+export const MAINTENANCE_CATEGORIES = [
+    { value: 'preventive', label: 'Preventiva' },
+    { value: 'corrective', label: 'Corretiva' },
+    { value: 'inspection', label: 'Inspeção' },
+    { value: 'project', label: 'Projeto' }
+] as const;
+
+export const QUALITY_CATEGORIES = [
+    { value: 'calibration', label: 'Calibração' },
+    { value: 'quality_control', label: 'Controle de Qualidade' },
+    { value: 'quality_audit', label: 'Auditoria' },
+    { value: 'non_conformance', label: 'Não Conformidade' }
+] as const;
+
+export const MAINTENANCE_SOURCES = [
+    { value: 'manual', label: 'Manual' },
+    { value: 'routine', label: 'Rotina' },
+    { value: 'sensor', label: 'Sensor' },
+    { value: 'inspection', label: 'Inspeção' }
+] as const;
+
+export const QUALITY_SOURCES = [
+    { value: 'manual', label: 'Manual' },
+    { value: 'calibration_schedule', label: 'Cronograma de Calibração' },
+    { value: 'quality_alert', label: 'Alerta de Qualidade' },
+    { value: 'audit', label: 'Auditoria' },
+    { value: 'complaint', label: 'Reclamação' }
+] as const;
 
 // Status Configuration
 export const STATUS_CONFIG = {

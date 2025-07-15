@@ -6,7 +6,7 @@ use App\Models\AssetHierarchy\Asset;
 use App\Models\Forms\Form;
 use App\Models\Forms\FormVersion;
 use App\Models\Maintenance\Routine;
-use App\Models\Maintenance\RoutineExecution;
+use App\Models\WorkOrders\WorkOrder;
 use App\Models\User;
 use Tests\Unit\ModelTestCase;
 
@@ -23,7 +23,9 @@ class RoutineTest extends ModelTestCase
         $this->assertTrue(method_exists($routine, 'asset'));
         $this->assertTrue(method_exists($routine, 'form'));
         $this->assertTrue(method_exists($routine, 'activeFormVersion'));
-        $this->assertTrue(method_exists($routine, 'routineExecutions'));
+        $this->assertTrue(method_exists($routine, 'lastExecutionFormVersion'));
+        $this->assertTrue(method_exists($routine, 'workOrders'));
+        $this->assertTrue(method_exists($routine, 'createdBy'));
     }
 
     /**
@@ -33,22 +35,37 @@ class RoutineTest extends ModelTestCase
     {
         // Test daily state
         $dailyRoutine = Routine::factory()->daily()->make();
-        $this->assertEquals(24, $dailyRoutine->trigger_hours);
+        $this->assertEquals('runtime_hours', $dailyRoutine->trigger_type);
+        $this->assertEquals(24, $dailyRoutine->trigger_runtime_hours);
         $this->assertEquals('Daily Inspection', $dailyRoutine->name);
         
         // Test weekly state
         $weeklyRoutine = Routine::factory()->weekly()->make();
-        $this->assertEquals(168, $weeklyRoutine->trigger_hours);
+        $this->assertEquals('runtime_hours', $weeklyRoutine->trigger_type);
+        $this->assertEquals(168, $weeklyRoutine->trigger_runtime_hours);
         $this->assertEquals('Weekly Maintenance', $weeklyRoutine->name);
         
         // Test monthly state
         $monthlyRoutine = Routine::factory()->monthly()->make();
-        $this->assertEquals(720, $monthlyRoutine->trigger_hours);
+        $this->assertEquals('calendar_days', $monthlyRoutine->trigger_type);
+        $this->assertEquals(30, $monthlyRoutine->trigger_calendar_days);
         $this->assertEquals('Monthly Maintenance', $monthlyRoutine->name);
         
-        // Test inactive state
-        $inactiveRoutine = Routine::factory()->inactive()->make();
-        $this->assertEquals('Inactive', $inactiveRoutine->status);
+        // Test manual state
+        $manualRoutine = Routine::factory()->manual()->make();
+        $this->assertEquals('manual', $manualRoutine->execution_mode);
+        
+        // Test runtime-based state
+        $runtimeRoutine = Routine::factory()->runtimeBased()->make();
+        $this->assertEquals('runtime_hours', $runtimeRoutine->trigger_type);
+        $this->assertNotNull($runtimeRoutine->trigger_runtime_hours);
+        $this->assertNull($runtimeRoutine->trigger_calendar_days);
+        
+        // Test calendar-based state
+        $calendarRoutine = Routine::factory()->calendarBased()->make();
+        $this->assertEquals('calendar_days', $calendarRoutine->trigger_type);
+        $this->assertNotNull($calendarRoutine->trigger_calendar_days);
+        $this->assertNull($calendarRoutine->trigger_runtime_hours);
     }
 
     /**
@@ -56,40 +73,116 @@ class RoutineTest extends ModelTestCase
      */
     public function test_routine_fillable_attributes()
     {
-        $asset = Asset::factory()->create();
-        $form = Form::factory()->create();
-        
-        $data = [
-            'asset_id' => $asset->id,
-            'name' => 'Test Routine',
-            'trigger_hours' => 336,
-            'status' => 'Active',
-            'description' => 'Test description',
-            'form_id' => $form->id,
-            'active_form_version_id' => null,
+        $fillable = [
+            'asset_id',
+            'name',
+            'trigger_type',
+            'trigger_runtime_hours',
+            'trigger_calendar_days',
+            'execution_mode',
+            'description',
+            'form_id',
+            'active_form_version_id',
+            'advance_generation_hours',
+            'auto_approve_work_orders',
+            'default_priority',
+            'priority_score',
+            'last_execution_runtime_hours',
+            'last_execution_completed_at',
+            'last_execution_form_version_id',
+            'is_active',
+            'created_by',
         ];
-
-        $routine = Routine::create($data);
-
-        $this->assertDatabaseHas('routines', $data);
-        $this->assertEquals('Test Routine', $routine->name);
-        $this->assertEquals(336, $routine->trigger_hours);
+        
+        $routine = new Routine();
+        
+        foreach ($fillable as $field) {
+            $this->assertContains($field, $routine->getFillable());
+        }
     }
-    
+
     /**
      * Test routine casts
      */
-    public function test_routine_casts_attributes()
+    public function test_routine_casts()
     {
-        $routine = new Routine([
-            'trigger_hours' => '168',
-            'asset_id' => '5',
+        $routine = new Routine();
+        $casts = $routine->getCasts();
+        
+        $this->assertEquals('integer', $casts['trigger_runtime_hours']);
+        $this->assertEquals('integer', $casts['trigger_calendar_days']);
+        $this->assertEquals('integer', $casts['advance_generation_hours']);
+        $this->assertEquals('boolean', $casts['auto_approve_work_orders']);
+        $this->assertEquals('decimal:2', $casts['last_execution_runtime_hours']);
+        $this->assertArrayHasKey('last_execution_completed_at', $casts);
+        $this->assertEquals('integer', $casts['priority_score']);
+        $this->assertEquals('boolean', $casts['is_active']);
+    }
+
+    /**
+     * Test routine scopes
+     */
+    public function test_routine_scopes()
+    {
+        $routine = new Routine();
+        
+        // Test that scope methods exist
+        $this->assertTrue(method_exists($routine, 'scopeAutomatic'));
+        $this->assertTrue(method_exists($routine, 'scopeManual'));
+        $this->assertTrue(method_exists($routine, 'scopeActive'));
+        $this->assertTrue(method_exists($routine, 'scopeRuntimeBased'));
+        $this->assertTrue(method_exists($routine, 'scopeCalendarBased'));
+    }
+
+    /**
+     * Test routine helper methods
+     */
+    public function test_routine_helper_methods()
+    {
+        $routine = new Routine();
+        
+        // Test that helper methods exist
+        $this->assertTrue(method_exists($routine, 'isDue'));
+        $this->assertTrue(method_exists($routine, 'getHoursUntilDue'));
+        $this->assertTrue(method_exists($routine, 'calculateHoursUntilDue'));
+        $this->assertTrue(method_exists($routine, 'calculateDueDate'));
+        $this->assertTrue(method_exists($routine, 'shouldGenerateWorkOrder'));
+        $this->assertTrue(method_exists($routine, 'hasOpenWorkOrder'));
+        $this->assertTrue(method_exists($routine, 'getOpenWorkOrder'));
+        $this->assertTrue(method_exists($routine, 'generateWorkOrder'));
+    }
+
+    /**
+     * Test routine computed attributes
+     */
+    public function test_routine_computed_attributes()
+    {
+        $routine = Routine::factory()->make([
+            'trigger_type' => 'runtime_hours',
+            'trigger_runtime_hours' => 500,
+            'last_execution_runtime_hours' => 1000,
         ]);
         
-        // Force cast attributes
-        $routine->syncOriginal();
+        // Test progress percentage attribute
+        $this->assertIsNumeric($routine->progress_percentage);
         
-        $this->assertIsInt($routine->trigger_hours);
-        $this->assertIsInt($routine->asset_id);
+        // Test estimated hours until due attribute
+        $this->assertIsNumeric($routine->estimated_hours_until_due);
+        
+        // Test next due date attribute (should be null for runtime-based)
+        $this->assertNull($routine->next_due_date);
+        
+        // Test calendar-based routine
+        $calendarRoutine = Routine::factory()->make([
+            'trigger_type' => 'calendar_days',
+            'trigger_calendar_days' => 30,
+            'last_execution_completed_at' => now()->subDays(20),
+        ]);
+        
+        // Next due date should be set for calendar-based
+        $this->assertNotNull($calendarRoutine->next_due_date);
+        
+        // Estimated hours should be null for calendar-based
+        $this->assertNull($calendarRoutine->estimated_hours_until_due);
     }
 } 

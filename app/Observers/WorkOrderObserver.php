@@ -20,21 +20,17 @@ class WorkOrderObserver
             [],
             $workOrder->toArray(),
             [
-                'code' => $workOrder->code,
+                'work_order_number' => $workOrder->work_order_number,
                 'title' => $workOrder->title,
-                'type' => $workOrder->workOrderType->name ?? null,
+                'type' => $workOrder->type->name ?? null,
                 'priority' => $workOrder->priority,
+                'discipline' => $workOrder->discipline,
+                'category' => $workOrder->work_order_category,
                 'created_by' => auth()->user()?->name ?? 'System',
             ]
         );
 
-        // Create initial status history
-        $workOrder->statusHistory()->create([
-            'from_status' => null,
-            'to_status' => 'pending',
-            'changed_by' => $workOrder->created_by ?? auth()->id(),
-            'notes' => 'Ordem de serviço criada',
-        ]);
+        // Note: Initial status history is created by BaseWorkOrderService
     }
 
     /**
@@ -53,15 +49,24 @@ class WorkOrderObserver
             $original,
             $changes,
             [
-                'code' => $workOrder->code,
+                'work_order_number' => $workOrder->work_order_number,
                 'updated_by' => auth()->user()?->name ?? 'System',
             ]
         );
 
-        // If assigned_to changed, log assignment
-        if (isset($changes['assigned_to'])) {
-            $oldAssignee = $original['assigned_to'] ? \App\Models\User::find($original['assigned_to'])?->name : 'Ninguém';
-            $newAssignee = $workOrder->assignedTo?->name ?? 'Ninguém';
+        // If status changed, record in status history
+        if (isset($changes['status'])) {
+            $workOrder->statusHistory()->create([
+                'from_status' => $original['status'],
+                'to_status' => $workOrder->status,
+                'changed_by' => auth()->id(),
+            ]);
+        }
+
+        // If assigned_technician_id changed, log assignment
+        if (isset($changes['assigned_technician_id'])) {
+            $oldAssignee = $original['assigned_technician_id'] ? \App\Models\User::find($original['assigned_technician_id'])?->name : 'Ninguém';
+            $newAssignee = $workOrder->assignedTechnician?->name ?? 'Ninguém';
 
             AuditLogService::log(
                 'work-order.assigned',
@@ -70,7 +75,7 @@ class WorkOrderObserver
                 ['assigned_to' => $oldAssignee],
                 ['assigned_to' => $newAssignee],
                 [
-                    'code' => $workOrder->code,
+                    'work_order_number' => $workOrder->work_order_number,
                     'from' => $oldAssignee,
                     'to' => $newAssignee,
                     'assigned_by' => auth()->user()?->name ?? 'System',
@@ -87,7 +92,7 @@ class WorkOrderObserver
                 ['priority' => $original['priority']],
                 ['priority' => $workOrder->priority],
                 [
-                    'code' => $workOrder->code,
+                    'work_order_number' => $workOrder->work_order_number,
                     'from' => $original['priority'],
                     'to' => $workOrder->priority,
                     'changed_by' => auth()->user()?->name ?? 'System',
@@ -108,7 +113,7 @@ class WorkOrderObserver
             $workOrder->toArray(),
             [],
             [
-                'code' => $workOrder->code,
+                'work_order_number' => $workOrder->work_order_number,
                 'title' => $workOrder->title,
                 'deleted_by' => auth()->user()?->name ?? 'System',
             ]
@@ -127,7 +132,7 @@ class WorkOrderObserver
             [],
             $workOrder->toArray(),
             [
-                'code' => $workOrder->code,
+                'work_order_number' => $workOrder->work_order_number,
                 'title' => $workOrder->title,
                 'restored_by' => auth()->user()?->name ?? 'System',
             ]
@@ -146,7 +151,7 @@ class WorkOrderObserver
             $workOrder->toArray(),
             [],
             [
-                'code' => $workOrder->code,
+                'work_order_number' => $workOrder->work_order_number,
                 'title' => $workOrder->title,
                 'deleted_by' => auth()->user()?->name ?? 'System',
             ]

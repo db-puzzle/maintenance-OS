@@ -13,6 +13,7 @@ import EmptyCard from '@/components/ui/empty-card';
 
 interface ExecutionData {
     id: number | string;
+    work_order_id?: number;
     routine?: {
         id: number;
         name: string;
@@ -76,16 +77,67 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
 
         setLoading(true);
         try {
-            const response = await axios.get(route('maintenance.assets.execution-history', assetId), {
+            const response = await axios.get(route('asset-hierarchy.assets.work-order-history', assetId), {
                 params: {
                     page: executions.current_page,
                     per_page: filters.per_page,
                     sort: filters.sort,
                     direction: filters.direction,
+                    category: 'preventive',
                 },
             });
 
-            setExecutions(response.data.executions);
+            // Transform work order data to match the expected execution format
+            // Handle the response structure from the API
+            let workOrdersData = [];
+            let paginationInfo = null;
+
+            if (response.data.success && response.data.data) {
+                // The actual work orders are in response.data.data.data
+                workOrdersData = response.data.data.data || [];
+                paginationInfo = response.data.data;
+            } else if (Array.isArray(response.data)) {
+                workOrdersData = response.data;
+            }
+
+            const transformedData = Array.isArray(workOrdersData) ? workOrdersData.map((workOrder: any) => ({
+                id: workOrder.execution?.id || workOrder.id,
+                work_order_id: workOrder.id,
+                routine_name: workOrder.title,
+                executor_name: workOrder.execution?.executedBy?.name || 'N/A',
+                status: workOrder.execution?.status || 'pending',
+                started_at: workOrder.execution?.started_at || workOrder.actual_start_date,
+                completed_at: workOrder.execution?.completed_at || workOrder.actual_end_date,
+                duration_minutes: workOrder.execution?.started_at && workOrder.execution?.completed_at
+                    ? Math.floor((new Date(workOrder.execution.completed_at).getTime() - new Date(workOrder.execution.started_at).getTime()) / 60000)
+                    : null,
+                progress: workOrder.execution?.status === 'completed' ? 100 : 50,
+                form_version: workOrder.form_version_id ? {
+                    id: workOrder.form_version_id,
+                    version_number: 'v1.0',
+                    published_at: workOrder.created_at
+                } : null,
+            })) : [];
+
+            // Use pagination info if available, otherwise use defaults
+            const finalPaginationData = paginationInfo || {
+                current_page: 1,
+                last_page: 1,
+                per_page: 10,
+                total: transformedData.length,
+                from: transformedData.length > 0 ? 1 : null,
+                to: transformedData.length,
+            };
+
+            setExecutions({
+                data: transformedData,
+                current_page: finalPaginationData.current_page || 1,
+                last_page: finalPaginationData.last_page || 1,
+                per_page: finalPaginationData.per_page || 10,
+                total: finalPaginationData.total || 0,
+                from: finalPaginationData.from || null,
+                to: finalPaginationData.to || null,
+            });
         } catch (error) {
             console.error('Error fetching executions:', error);
             toast.error('Erro ao carregar histórico de execuções');
@@ -138,9 +190,14 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
         return new Date(dateString).toLocaleString('pt-BR');
     };
 
-    const handleExportSingle = async (executionId: number) => {
+    const handleExportSingle = async (_executionId: number) => {
+        // For now, disable export functionality until work order export is implemented
+        toast.info('Exportação de ordens de serviço será implementada em breve');
+        return;
+
+        /* TODO: Implement work order export
         try {
-            const response = await fetch(`/maintenance/routines/executions/${executionId}/export`, {
+            const response = await fetch(`/maintenance/work-orders/${executionId}/export`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -169,7 +226,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             // Find the execution data to get the routine name
             const execution = executions.data.find(e => e.id === executionId);
             const description = execution
-                ? `Execution #${executionId} - ${execution.routine?.name || 'Sem nome'}`
+                ? `Execution #${executionId} - ${execution.routine?.name || execution.routine_name || 'Sem nome'}`
                 : `Execution #${executionId}`;
 
             // Add to export manager
@@ -229,6 +286,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             console.error('Export error:', error);
             toast.error(error instanceof Error ? error.message : 'An error occurred while exporting');
         }
+        */
     };
 
     const columns = [
@@ -336,7 +394,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                 <TabsList>
                     <TabsTrigger value="executions" className="flex items-center gap-2">
                         <ClipboardCheck className="h-4 w-4" />
-                        Execução de Rotinas
+                        Ordens de Serviço
                     </TabsTrigger>
                     <TabsTrigger value="audit" className="flex items-center gap-2">
                         <Shield className="h-4 w-4" />
@@ -348,8 +406,8 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                     {executions.data.length === 0 && !loading ? (
                         <EmptyCard
                             icon={Calendar}
-                            title="Nenhuma execução registrada"
-                            description="Ainda não há execuções de rotinas para este ativo"
+                            title="Nenhuma ordem de serviço registrada"
+                            description="Ainda não há ordens de serviço para este ativo"
                             primaryButtonText=""
                             primaryButtonAction={() => { }}
                         />
@@ -360,24 +418,36 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                                     data={executions.data as unknown as Record<string, unknown>[]}
                                     columns={columns}
                                     loading={loading}
-                                    onRowClick={(execution) => router.visit(`/maintenance/routines/executions/${(execution as unknown as ExecutionData).id}`)}
+                                    onRowClick={(execution) => {
+                                        const exec = execution as unknown as ExecutionData & { work_order_id?: number };
+                                        if (exec.work_order_id) {
+                                            router.visit(`/maintenance/work-orders/${exec.work_order_id}`);
+                                        }
+                                    }}
                                     onSort={handleSort}
-                                    actions={(execution) => (
-                                        <EntityActionDropdown
-                                            additionalActions={[
-                                                {
-                                                    label: 'Visualizar',
-                                                    icon: <Eye className="h-4 w-4" />,
-                                                    onClick: () => router.visit(`/maintenance/routines/executions/${(execution as unknown as ExecutionData).id}`),
-                                                },
-                                                {
-                                                    label: 'Exportar PDF',
-                                                    icon: <FileText className="h-4 w-4" />,
-                                                    onClick: () => handleExportSingle(Number((execution as unknown as ExecutionData).id)),
-                                                },
-                                            ]}
-                                        />
-                                    )}
+                                    actions={(execution) => {
+                                        const exec = execution as unknown as ExecutionData & { work_order_id?: number };
+                                        return (
+                                            <EntityActionDropdown
+                                                additionalActions={[
+                                                    {
+                                                        label: 'Visualizar',
+                                                        icon: <Eye className="h-4 w-4" />,
+                                                        onClick: () => {
+                                                            if (exec.work_order_id) {
+                                                                router.visit(`/maintenance/work-orders/${exec.work_order_id}`);
+                                                            }
+                                                        },
+                                                    },
+                                                    {
+                                                        label: 'Exportar PDF',
+                                                        icon: <FileText className="h-4 w-4" />,
+                                                        onClick: () => handleExportSingle(Number(exec.id)),
+                                                    },
+                                                ]}
+                                            />
+                                        );
+                                    }}
                                 />
 
                                 <EntityPagination

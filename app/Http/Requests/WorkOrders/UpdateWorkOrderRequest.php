@@ -11,7 +11,7 @@ class UpdateWorkOrderRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('work_order'));
+        return $this->user()->can('update', $this->route('workOrder'));
     }
 
     /**
@@ -21,7 +21,7 @@ class UpdateWorkOrderRequest extends FormRequest
      */
     public function rules(): array
     {
-        $workOrder = $this->route('work_order');
+        $workOrder = $this->route('workOrder');
         
         // Only allow certain fields to be updated based on status
         $rules = [];

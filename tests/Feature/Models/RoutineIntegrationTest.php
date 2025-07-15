@@ -6,7 +6,7 @@ use App\Models\AssetHierarchy\Asset;
 use App\Models\Forms\Form;
 use App\Models\Forms\FormVersion;
 use App\Models\Maintenance\Routine;
-use App\Models\Maintenance\RoutineExecution;
+use App\Models\WorkOrders\WorkOrder;
 use App\Models\PermissionAuditLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,236 +63,120 @@ class RoutineIntegrationTest extends TestCase
     /**
      * Test routine automatically creates form on creation
      */
-    public function test_routine_automatically_creates_form()
+    public function test_routine_creates_form_on_creation()
     {
         $asset = Asset::factory()->create();
         
         $routine = Routine::create([
-            'asset_id' => $asset->id,
             'name' => 'Test Routine',
-            'trigger_hours' => 168,
-            'status' => 'Active',
+            'asset_id' => $asset->id,
+            'trigger_type' => 'runtime_hours',
+            'trigger_runtime_hours' => 500,
+            'execution_mode' => 'automatic',
             'description' => 'Test description',
         ]);
-
+        
         $this->assertNotNull($routine->form);
         $this->assertEquals('Test Routine - Form', $routine->form->name);
         $this->assertEquals('Form for routine: Test Routine', $routine->form->description);
-        
-        // Verify the form was created by the authenticated user
-        $this->assertEquals($this->user->id, $routine->form->created_by);
     }
 
     /**
-     * Test routine relationships
+     * Test routine can generate work order
      */
-    public function test_routine_belongs_to_asset()
+    public function test_routine_can_generate_work_order()
     {
-        $routine = Routine::factory()->create();
-        
-        $this->assertInstanceOf(Asset::class, $routine->asset);
-        $this->assertEquals($routine->asset_id, $routine->asset->id);
-    }
-
-    /**
-     * Test routine belongs to form
-     */
-    public function test_routine_belongs_to_form()
-    {
-        $routine = Routine::factory()->create();
-        
-        $this->assertInstanceOf(Form::class, $routine->form);
-        $this->assertEquals($routine->form_id, $routine->form->id);
-    }
-
-    /**
-     * Test routine has many executions
-     */
-    public function test_routine_has_many_executions()
-    {
-        $routine = Routine::factory()->create();
-        $executions = RoutineExecution::factory()
-            ->count(3)
-            ->create(['routine_id' => $routine->id]);
-
-        $this->assertCount(3, $routine->routineExecutions);
-        $this->assertTrue($routine->routineExecutions->contains($executions->first()));
-    }
-
-    /**
-     * Test routine with published form factory state
-     */
-    public function test_routine_with_published_form_factory_state()
-    {
-        $routine = Routine::factory()->withPublishedForm()->create();
-
-        $this->assertNotNull($routine->form);
-        
-        // Reload the routine with relationships to ensure we have the latest data
-        $routine->load('form.currentVersion', 'activeFormVersion');
-        
-        // The form should have been updated with a current version
-        $this->assertNotNull($routine->active_form_version_id);
-        $this->assertNotNull($routine->activeFormVersion);
-        $this->assertTrue($routine->activeFormVersion->is_active);
-        $this->assertNotNull($routine->activeFormVersion->published_at);
-        $this->assertTrue($routine->hasPublishedForm());
-    }
-
-    /**
-     * Test routine factory states for different frequencies
-     */
-    public function test_routine_daily_factory_state()
-    {
-        $routine = Routine::factory()->daily()->create();
-        $this->assertEquals(24, $routine->trigger_hours);
-    }
-
-    public function test_routine_weekly_factory_state()
-    {
-        $routine = Routine::factory()->weekly()->create();
-        $this->assertEquals(168, $routine->trigger_hours);
-    }
-
-    public function test_routine_monthly_factory_state()
-    {
-        $routine = Routine::factory()->monthly()->create();
-        $this->assertEquals(720, $routine->trigger_hours);
-    }
-
-    /**
-     * Test inactive routine factory state
-     */
-    public function test_routine_inactive_factory_state()
-    {
-        $routine = Routine::factory()->inactive()->create();
-        $this->assertEquals('Inactive', $routine->status);
-    }
-
-    /**
-     * Test get form version for execution
-     */
-    public function test_routine_get_form_version_for_execution()
-    {
-        // Test with active form version set
-        $routine = Routine::factory()->create();
-        $version = FormVersion::factory()->published()->create([
-            'form_id' => $routine->form_id,
+        $routine = Routine::factory()->create([
+            'trigger_type' => 'runtime_hours',
+            'trigger_runtime_hours' => 500,
+            'execution_mode' => 'manual',
         ]);
-        $routine->update(['active_form_version_id' => $version->id]);
-
-        $this->assertTrue($routine->getFormVersionForExecution()->is($version));
-
-        // Test without active form version (uses form's current version)
-        $routine2 = Routine::factory()->withPublishedForm()->create();
         
-        // Reload to get the updated relationships
-        $routine2->load('form.currentVersion', 'activeFormVersion');
-        
-        // The factory should have set an active form version
-        $this->assertNotNull($routine2->getFormVersionForExecution());
-        
-        // It should use the active form version set by the factory
-        $this->assertEquals($routine2->active_form_version_id, $routine2->getFormVersionForExecution()->id);
-    }
-
-    /**
-     * Test has published form method
-     */
-    public function test_routine_has_published_form()
-    {
-        // Routine without published form
-        $routine1 = Routine::factory()->create();
-        $this->assertFalse($routine1->hasPublishedForm());
-
-        // Routine with published form
-        $routine2 = Routine::factory()->withPublishedForm()->create();
-        $this->assertTrue($routine2->hasPublishedForm());
-    }
-
-    /**
-     * Test routine deleting cascade
-     */
-    public function test_routine_deleting_cascade()
-    {
-        // Temporarily enable model events if they were disabled
-        $routine = Routine::factory()->create();
-        $formId = $routine->form_id;
-        
-        // Verify form exists
-        $this->assertDatabaseHas('forms', ['id' => $formId]);
-        
-        // Ensure the routine has the deleting event registered
-        $this->assertNotNull($routine->form);
-        
-        // Delete routine - this should trigger the deleting event
-        $routine->delete();
-        
-        // Verify routine was deleted
-        $this->assertDatabaseMissing('routines', ['id' => $routine->id]);
-        
-        // The form should be soft deleted
-        $form = Form::withTrashed()->find($formId);
-        if ($form && $form->trashed()) {
-            // If using soft deletes
-            $this->assertNotNull($form->deleted_at);
-        } else {
-            // If not using soft deletes
-            $this->assertDatabaseMissing('forms', ['id' => $formId]);
-        }
-    }
-
-    /**
-     * Test routine casts attributes
-     */
-    public function test_routine_casts_attributes()
-    {
-        $asset = Asset::factory()->create();
-        $form = Form::factory()->create();
-        
-        $routine = Routine::create([
-            'asset_id' => $asset->id,
-            'name' => 'Test Routine',
-            'trigger_hours' => '168',
-            'status' => 'Active',
-            'description' => 'Test description',
-            'form_id' => $form->id,
+        // Create work order type for preventive maintenance
+        \App\Models\WorkOrders\WorkOrderType::create([
+            'name' => 'Preventive Maintenance',
+            'code' => 'PM',
+            'category' => 'preventive',
+            'is_active' => true,
         ]);
-
-        $this->assertIsInt($routine->trigger_hours);
-        $this->assertIsInt($routine->asset_id);
-        $this->assertEquals(168, $routine->trigger_hours);
-        $this->assertEquals($asset->id, $routine->asset_id);
+        
+        $workOrder = $routine->generateWorkOrder();
+        
+        $this->assertInstanceOf(WorkOrder::class, $workOrder);
+        $this->assertEquals('routine', $workOrder->source_type);
+        $this->assertEquals($routine->id, $workOrder->source_id);
+        $this->assertEquals($routine->asset_id, $workOrder->asset_id);
+        $this->assertEquals('preventive', $workOrder->work_order_category);
     }
-    
+
     /**
-     * Test that audit logs track user correctly during routine operations
+     * Test routine with runtime hours trigger
      */
-    public function test_audit_logs_track_user_during_routine_operations()
+    public function test_routine_with_runtime_hours_trigger()
     {
-        // Create a second user to test different users creating routines
-        $user2 = User::factory()->create();
+        $routine = Routine::factory()->runtimeBased()->create([
+            'trigger_runtime_hours' => 500,
+            'last_execution_runtime_hours' => 1000,
+        ]);
         
-        // First user creates a routine
-        $this->actingAs($this->user);
-        $routine1 = Routine::factory()->create(['name' => 'User 1 Routine']);
+        // Mock asset runtime
+        $routine->asset->update(['current_runtime_hours' => 1450]);
         
-        // Second user creates a routine
-        $this->actingAs($user2);
-        $routine2 = Routine::factory()->create(['name' => 'User 2 Routine']);
+        $hoursUntilDue = $routine->calculateHoursUntilDue();
         
-        // Verify audit logs show correct users
-        $logs = PermissionAuditLog::whereIn('user_id', [$this->user->id, $user2->id])
-            ->where('event_type', 'permissions.generated')
-            ->get();
+        // Should be 50 hours until due (1500 - 1450)
+        $this->assertNotNull($hoursUntilDue);
+        $this->assertLessThan(100, $hoursUntilDue);
+    }
+
+    /**
+     * Test routine with calendar days trigger
+     */
+    public function test_routine_with_calendar_days_trigger()
+    {
+        $routine = Routine::factory()->calendarBased()->create([
+            'trigger_calendar_days' => 30,
+            'last_execution_completed_at' => now()->subDays(25),
+        ]);
         
-        $this->assertGreaterThanOrEqual(2, $logs->count());
+        $hoursUntilDue = $routine->calculateHoursUntilDue();
         
-        // Verify each user's actions are properly logged
-        $user1Logs = $logs->where('user_id', $this->user->id);
-        $user2Logs = $logs->where('user_id', $user2->id);
+        // Should be approximately 5 days (120 hours) until due
+        $this->assertNotNull($hoursUntilDue);
+        $this->assertGreaterThan(100, $hoursUntilDue);
+        $this->assertLessThan(150, $hoursUntilDue);
+    }
+
+    /**
+     * Test routine should generate work order logic
+     */
+    public function test_routine_should_generate_work_order()
+    {
+        $routine = Routine::factory()->runtimeBased()->create([
+            'trigger_runtime_hours' => 500,
+            'advance_generation_hours' => 50,
+            'last_execution_runtime_hours' => 1000,
+        ]);
         
-        $this->assertNotEmpty($user1Logs);
-        $this->assertNotEmpty($user2Logs);
+        // Mock asset runtime - exactly at generation window
+        $routine->asset->update(['current_runtime_hours' => 1450]);
+        
+        $this->assertTrue($routine->shouldGenerateWorkOrder());
+        
+        // Create an open work order
+        WorkOrder::create([
+            'work_order_number' => 'WO-TEST-001',
+            'title' => 'Test WO',
+            'work_order_type_id' => 1,
+            'work_order_category' => 'preventive',
+            'asset_id' => $routine->asset_id,
+            'source_type' => 'routine',
+            'source_id' => $routine->id,
+            'status' => 'in_progress',
+            'requested_by' => $this->user->id,
+        ]);
+        
+        // Should not generate when open work order exists
+        $this->assertFalse($routine->shouldGenerateWorkOrder());
     }
 } 

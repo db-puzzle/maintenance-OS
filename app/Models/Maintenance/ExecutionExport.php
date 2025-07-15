@@ -83,7 +83,7 @@ class ExecutionExport extends Model
      */
     public function getExecutions()
     {
-        return \App\Models\Maintenance\RoutineExecution::whereIn('id', $this->execution_ids)->get();
+        return \App\Models\WorkOrders\WorkOrderExecution::whereIn('id', $this->execution_ids)->get();
     }
 
     /**

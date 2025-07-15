@@ -49,7 +49,15 @@ class RoleSeeder extends Seeder
                 'users.viewAny',
                 'users.view',
                 'roles.viewAny',
-                'roles.view'
+                'roles.view',
+                // Work Order permissions
+                'work-orders.view',
+                'work-orders.create',
+                'work-orders.update',
+                'work-orders.approve',
+                'work-orders.plan',
+                'work-orders.validate',
+                'work-orders.cancel',
             ];
             $plantManager->syncPermissions($plantManagerPermissions);
 
@@ -66,7 +74,11 @@ class RoleSeeder extends Seeder
             $areaManagerPermissions = [
                 'users.viewAny',
                 'users.view',
-                'users.update.owned'
+                'users.update.owned',
+                // Work Order permissions
+                'work-orders.view',
+                'work-orders.create',
+                'work-orders.update',
             ];
             $areaManager->syncPermissions($areaManagerPermissions);
 
@@ -83,7 +95,10 @@ class RoleSeeder extends Seeder
             $sectorManagerPermissions = [
                 'users.viewAny',
                 'users.view',
-                'users.update.owned'
+                'users.update.owned',
+                // Work Order permissions
+                'work-orders.view',
+                'work-orders.create',
             ];
             $sectorManager->syncPermissions($sectorManagerPermissions);
 
@@ -98,9 +113,39 @@ class RoleSeeder extends Seeder
             
             // Maintenance Supervisor gets basic permissions
             $maintenanceSupervisorPermissions = [
-                'users.update.owned'
+                'users.update.owned',
+                // Work Order permissions
+                'work-orders.view',
+                'work-orders.create',
+                'work-orders.update',
+                'work-orders.approve', // Limited by cost/priority in policy
+                'work-orders.plan',
+                'work-orders.execute',
+                'work-orders.complete',
+                'work-orders.validate',
             ];
             $maintenanceSupervisor->syncPermissions($maintenanceSupervisorPermissions);
+
+            // Create Planner role
+            $planner = Role::firstOrCreate(
+                ['name' => 'Planner', 'guard_name' => 'web'],
+                [
+                    'is_system' => true,
+                    'display_name' => 'Planner',
+                    'description' => 'Plan and schedule maintenance work orders'
+                ]
+            );
+            
+            // Planner permissions
+            $plannerPermissions = [
+                'users.update.owned',
+                // Work Order permissions
+                'work-orders.view',
+                'work-orders.create',
+                'work-orders.update',
+                'work-orders.plan',
+            ];
+            $planner->syncPermissions($plannerPermissions);
 
             $technician = Role::firstOrCreate(
                 ['name' => 'Technician', 'guard_name' => 'web'],
@@ -113,9 +158,32 @@ class RoleSeeder extends Seeder
             
             // Technician gets minimal permissions
             $technicianPermissions = [
-                'users.update.owned'
+                'users.update.owned',
+                // Work Order permissions
+                'work-orders.view', // Can view assigned work orders
+                'work-orders.execute', // Can execute assigned work orders
+                'work-orders.complete', // Can complete assigned work orders
             ];
             $technician->syncPermissions($technicianPermissions);
+
+            // Create Validator role
+            $validator = Role::firstOrCreate(
+                ['name' => 'Validator', 'guard_name' => 'web'],
+                [
+                    'is_system' => true,
+                    'display_name' => 'Validator',
+                    'description' => 'Validate quality of completed work orders'
+                ]
+            );
+            
+            // Validator permissions
+            $validatorPermissions = [
+                'users.update.owned',
+                // Work Order permissions
+                'work-orders.view',
+                'work-orders.validate',
+            ];
+            $validator->syncPermissions($validatorPermissions);
 
             $viewer = Role::firstOrCreate(
                 ['name' => 'Viewer', 'guard_name' => 'web'],
@@ -128,7 +196,9 @@ class RoleSeeder extends Seeder
             
             // Viewer gets minimal permissions
             $viewerPermissions = [
-                'users.update.owned'
+                'users.update.owned',
+                // Work Order permissions
+                'work-orders.view', // Read-only access
             ];
             $viewer->syncPermissions($viewerPermissions);
 
@@ -160,6 +230,13 @@ class RoleSeeder extends Seeder
             $this->command->info('  - asset-types.create.plant.[id]');
             $this->command->info('  - manufacturers.viewAny.plant.[id]');
             $this->command->info('  - manufacturers.create.plant.[id]');
+            $this->command->info('  - work-orders.view.plant.[id]');
+            $this->command->info('  - work-orders.create.plant.[id]');
+            $this->command->info('  - work-orders.update.plant.[id]');
+            $this->command->info('  - work-orders.approve.plant.[id]');
+            $this->command->info('  - work-orders.plan.plant.[id]');
+            $this->command->info('  - work-orders.validate.plant.[id]');
+            $this->command->info('  - work-orders.cancel.plant.[id]');
             $this->command->info('');
             $this->command->info('Area Manager (when assigned to an area):');
             $this->command->info('  - users.invite.area.[id]');
@@ -172,6 +249,9 @@ class RoleSeeder extends Seeder
             $this->command->info('  - assets.manage.area.[id]');
             $this->command->info('  - assets.execute-routines.area.[id]');
             $this->command->info('  - assets.export.area.[id]');
+            $this->command->info('  - work-orders.view.area.[id]');
+            $this->command->info('  - work-orders.create.area.[id]');
+            $this->command->info('  - work-orders.update.area.[id]');
             $this->command->info('');
             $this->command->info('Sector Manager (when assigned to a sector):');
             $this->command->info('  - users.invite.sector.[id]');
@@ -182,11 +262,29 @@ class RoleSeeder extends Seeder
             $this->command->info('  - assets.manage.sector.[id]');
             $this->command->info('  - assets.execute-routines.sector.[id]');
             $this->command->info('  - assets.export.sector.[id]');
+            $this->command->info('  - work-orders.view.sector.[id]');
+            $this->command->info('  - work-orders.create.sector.[id]');
             $this->command->info('');
             $this->command->info('Maintenance Supervisor (flexible assignment to plant/area/sector):');
             $this->command->info('  - assets.viewAny.[scope].[id]');
             $this->command->info('  - assets.view.[scope].[id]');
             $this->command->info('  - assets.execute-routines.[scope].[id]');
+            $this->command->info('  - work-orders.view.[scope].[id]');
+            $this->command->info('  - work-orders.create.[scope].[id]');
+            $this->command->info('  - work-orders.update.[scope].[id]');
+            $this->command->info('  - work-orders.approve.[scope].[id] (limited by cost/priority)');
+            $this->command->info('  - work-orders.plan.[scope].[id]');
+            $this->command->info('  - work-orders.execute.[scope].[id]');
+            $this->command->info('  - work-orders.complete.[scope].[id]');
+            $this->command->info('  - work-orders.validate.[scope].[id]');
+            $this->command->info('');
+            $this->command->info('Planner (flexible assignment to plant/area/sector):');
+            $this->command->info('  - assets.viewAny.[scope].[id]');
+            $this->command->info('  - assets.view.[scope].[id]');
+            $this->command->info('  - work-orders.view.[scope].[id]');
+            $this->command->info('  - work-orders.create.[scope].[id]');
+            $this->command->info('  - work-orders.update.[scope].[id]');
+            $this->command->info('  - work-orders.plan.[scope].[id]');
             $this->command->info('');
             $this->command->info('Technician (flexible assignment to plant/area/sector/asset):');
             $this->command->info('  For individual assets:');
@@ -196,10 +294,18 @@ class RoleSeeder extends Seeder
             $this->command->info('  - assets.viewAny.[scope].[id]');
             $this->command->info('  - assets.view.[scope].[id]');
             $this->command->info('  - assets.execute-routines.[scope].[id]');
+            $this->command->info('  - work-orders.view.[scope].[id] (assigned only)');
+            $this->command->info('  - work-orders.execute.[scope].[id] (assigned only)');
+            $this->command->info('  - work-orders.complete.[scope].[id] (assigned only)');
+            $this->command->info('');
+            $this->command->info('Validator (flexible assignment to plant/area/sector):');
+            $this->command->info('  - work-orders.view.[scope].[id]');
+            $this->command->info('  - work-orders.validate.[scope].[id]');
             $this->command->info('');
             $this->command->info('Viewer (flexible assignment to any entity):');
             $this->command->info('  - [resource].view.[id]');
             $this->command->info('  - [resource].viewAny.[scope].[id]');
+            $this->command->info('  - work-orders.view.[scope].[id]');
         });
     }
 }

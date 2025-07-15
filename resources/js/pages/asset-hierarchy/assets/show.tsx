@@ -62,8 +62,16 @@ interface Props {
             description?: string;
             form?: unknown;
             form_id?: number;
-            trigger_hours?: number;
-            status?: 'Active' | 'Inactive';
+            trigger_type: 'runtime_hours' | 'calendar_days';
+            trigger_runtime_hours?: number;
+            trigger_calendar_days?: number;
+            execution_mode: 'automatic' | 'manual';
+            advance_generation_hours?: number;
+            auto_approve_work_orders?: boolean;
+            default_priority?: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
+            priority_score?: number;
+            last_execution_runtime_hours?: number;
+            last_execution_completed_at?: string;
             [key: string]: unknown;
         }>;
         shift_id?: number;
@@ -85,7 +93,15 @@ interface Props {
 }
 
 export default function Show({ asset, plants, assetTypes, manufacturers, isCreating = false, newRoutineId }: Props) {
-    const { url } = usePage<{ flash?: { success?: string } }>();
+    const page = usePage<{
+        flash?: { success?: string };
+        auth: {
+            user: any;
+            permissions: string[];
+        };
+    }>();
+    const { url } = page;
+    const userPermissions = page.props.auth?.permissions || [];
 
     // Extrai o parâmetro tab da URL
     const urlParams = new URLSearchParams(url.split('?')[1] || '');
@@ -115,8 +131,16 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             description?: string;
             form?: unknown;
             form_id?: number;
-            trigger_hours?: number;
-            status?: 'Active' | 'Inactive';
+            trigger_type: 'runtime_hours' | 'calendar_days';
+            trigger_runtime_hours?: number;
+            trigger_calendar_days?: number;
+            execution_mode: 'automatic' | 'manual';
+            advance_generation_hours?: number;
+            auto_approve_work_orders?: boolean;
+            default_priority?: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
+            priority_score?: number;
+            last_execution_runtime_hours?: number;
+            last_execution_completed_at?: string;
             [key: string]: unknown;
         }>
     >(asset?.routines || []);
@@ -127,34 +151,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             setRoutines(asset.routines);
         }
     }, [asset?.routines]);
-
-    // Fetch complete form data for routines when on the routines tab
-    useEffect(() => {
-        const fetchRoutinesWithFormData = async () => {
-            // Remove the tab check for now to ensure data is loaded
-            if (!asset?.routines) return;
-
-            const routinesWithFormData = await Promise.all(
-                asset.routines.map(async (routine) => {
-                    // Always fetch form data if routine has a form_id
-                    if (routine.form_id) {
-                        try {
-                            const response = await axios.get(route('maintenance.routines.form-data', routine.id));
-                            return response.data.routine;
-                        } catch (error) {
-                            console.error(`Error fetching form data for routine ${routine.id}:`, error);
-                            return routine;
-                        }
-                    }
-                    return routine;
-                })
-            );
-
-            setRoutines(routinesWithFormData);
-        };
-
-        fetchRoutinesWithFormData();
-    }, [asset?.routines]); // Remove tabFromUrl dependency
 
     // Estado para controlar o modo comprimido
     const [isCompressed, setIsCompressed] = useState(false);
@@ -453,35 +449,16 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                     assetId={asset!.id}
                                     routines={routines}
                                     selectedShift={selectedShift}
-                                    onRoutinesUpdate={setRoutines}
                                     newRoutineId={newRoutineId}
+                                    userPermissions={userPermissions}
                                 />
                             </div>
                         );
                     })(),
                 },
                 {
-                    id: 'chamados',
-                    label: 'Chamados de Usuário',
-                    content: (
-                        <div className="flex min-h-[400px] items-center justify-center py-4">
-                            <div className="w-full">
-                                <EmptyCard
-                                    icon={MessageSquare}
-                                    title="Nenhum chamado registrado"
-                                    description="Registre chamados para este ativo"
-                                    primaryButtonText="Novo chamado"
-                                    primaryButtonAction={() => { }}
-                                    secondaryButtonText="Ver histórico"
-                                    secondaryButtonAction={() => { }}
-                                />
-                            </div>
-                        </div>
-                    ),
-                },
-                {
                     id: 'ordem-serviço',
-                    label: 'Ordens de Manutenção',
+                    label: 'Ordens de Serviço',
                     content: (
                         <div className="flex min-h-[400px] items-center justify-center py-4">
                             <div className="w-full">

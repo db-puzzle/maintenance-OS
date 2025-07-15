@@ -1,38 +1,3 @@
-export interface RoutineExecution {
-    id: number;
-    routine: {
-        id: number;
-        name: string;
-        description?: string;
-    };
-    assets: Asset[];
-    executor: {
-        id: number;
-        name: string;
-    };
-    form_execution?: {
-        id: number;
-        form_version: {
-            id: number;
-            version_number: number;
-            published_at: string;
-        };
-    };
-    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-    progress: number;
-    started_at: string | null;
-    completed_at: string | null;
-    duration_minutes: number | null;
-    notes: string | null;
-    task_summary: {
-        total: number;
-        completed: number;
-        with_issues: number;
-    };
-    timeline: ExecutionTimelineEvent[];
-    primary_asset_tag: string | null;
-}
-
 export interface Asset {
     id: number;
     tag: string;
@@ -235,20 +200,16 @@ export interface AssetExecutionSummary {
     avg_duration_minutes: number | null;
 }
 
-export interface PaginatedExecutions {
-    data: RoutineExecution[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-}
-
-
-
 export interface ExecutionIndexPageProps {
-    executions: PaginatedExecutions;
+    executions: {
+        data: any[]; // Replace with appropriate work order execution type
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        from: number | null;
+        to: number | null;
+    };
     filters: ExecutionFilters;
     filterOptions: {
         assets: FilterOption[];
@@ -261,10 +222,4 @@ export interface ExecutionIndexPageProps {
         column: string;
         direction: 'asc' | 'desc';
     };
-}
-
-export interface ExecutionShowPageProps {
-    execution: RoutineExecution;
-    taskResponses: TaskResponse[];
-    canExport: boolean;
 }

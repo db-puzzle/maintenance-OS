@@ -1,11 +1,15 @@
 import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { WorkOrderStatusBadge } from '@/components/work-orders/WorkOrderStatusBadge';
-import { WorkOrderPriorityIndicator } from '@/components/work-orders/WorkOrderPriorityIndicator';
+import {
+    WorkOrderStatusBadge,
+    WorkOrderPriorityIndicator,
+    WorkOrderApprovalDialog
+} from '@/components/work-orders';
 import EmptyCard from '@/components/ui/empty-card';
 import { type BreadcrumbItem } from '@/types';
 import {
@@ -30,23 +34,32 @@ import { toast } from 'sonner';
 
 interface Props {
     workOrder: any; // Using any for now to avoid complex type definitions
+    discipline: 'maintenance' | 'quality';
     canEdit: boolean;
     canApprove: boolean;
     canPlan: boolean;
     canExecute: boolean;
     canValidate: boolean;
+    approvalThreshold?: {
+        maxCost: number;
+        maxPriority: string;
+    };
 }
 
 export default function ShowWorkOrder({
     workOrder,
+    discipline,
     canEdit,
     canApprove,
     canPlan,
     canExecute,
-    canValidate
+    canValidate,
+    approvalThreshold
 }: Props) {
+    const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+
     const handleStatusAction = (action: string) => {
-        router.post(route(`work-orders.${action}`, workOrder.id), {}, {
+        router.post(route(`${discipline}.work-orders.${action}`, workOrder.id), {}, {
             onSuccess: () => {
                 toast.success(`Ordem de serviço ${action === 'approve' ? 'aprovada' : 'atualizada'} com sucesso!`);
             },
@@ -61,29 +74,25 @@ export default function ShowWorkOrder({
 
         if (workOrder.status === 'requested' && canApprove) {
             actions.push(
-                <Button key="approve" onClick={() => handleStatusAction('approve')} variant="default">
+                <Button key="approve" onClick={() => setApprovalDialogOpen(true)} variant="default">
                     <CheckCircle className="mr-2 h-4 w-4" />
-                    Aprovar
-                </Button>,
-                <Button key="reject" onClick={() => handleStatusAction('reject')} variant="destructive">
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Rejeitar
+                    Aprovar/Rejeitar
                 </Button>
             );
         }
 
-        if (workOrder.status === 'approved' && canPlan) {
+        if ((workOrder.status === 'approved' || workOrder.status === 'planned') && canPlan) {
             actions.push(
-                <Button key="plan" onClick={() => router.visit(route('work-orders.planning', workOrder.id))}>
+                <Button key="plan" onClick={() => router.visit(route(`${discipline}.work-orders.planning`, workOrder.id))}>
                     <Calendar className="mr-2 h-4 w-4" />
-                    Planejar
+                    {workOrder.status === 'planned' ? 'Editar Planejamento' : 'Planejar'}
                 </Button>
             );
         }
 
         if (workOrder.status === 'scheduled' && canExecute) {
             actions.push(
-                <Button key="execute" onClick={() => router.visit(route('work-orders.execute', workOrder.id))}>
+                <Button key="execute" onClick={() => router.visit(route(`${discipline}.work-orders.execute`, workOrder.id))}>
                     <Play className="mr-2 h-4 w-4" />
                     Executar
                 </Button>
@@ -92,7 +101,7 @@ export default function ShowWorkOrder({
 
         if (workOrder.status === 'completed' && canValidate) {
             actions.push(
-                <Button key="validate" onClick={() => router.visit(route('work-orders.validate', workOrder.id))}>
+                <Button key="validate" onClick={() => router.visit(route(`${discipline}.work-orders.validate`, workOrder.id))}>
                     <CheckCircle className="mr-2 h-4 w-4" />
                     Validar
                 </Button>
@@ -101,7 +110,7 @@ export default function ShowWorkOrder({
 
         if (canEdit && ['requested', 'approved'].includes(workOrder.status)) {
             actions.push(
-                <Button key="edit" variant="outline" onClick={() => router.visit(route('work-orders.edit', workOrder.id))}>
+                <Button key="edit" variant="outline" onClick={() => router.visit(route(`${discipline}.work-orders.edit`, workOrder.id))}>
                     <Edit className="mr-2 h-4 w-4" />
                     Editar
                 </Button>
@@ -119,7 +128,7 @@ export default function ShowWorkOrder({
         },
         {
             title: 'Ordens de Serviço',
-            href: '/work-orders',
+            href: `/${discipline}/work-orders`,
         },
         {
             title: workOrder.work_order_number,
@@ -271,7 +280,7 @@ export default function ShowWorkOrder({
                                         <p className="text-sm font-medium text-muted-foreground">Custo Estimado de Peças</p>
                                         <p className="font-medium">
                                             {workOrder.estimated_parts_cost ?
-                                                `R$ ${workOrder.estimated_parts_cost.toFixed(2).replace('.', ',')}` :
+                                                `R$ ${Number(workOrder.estimated_parts_cost).toFixed(2).replace('.', ',')}` :
                                                 '-'
                                             }
                                         </p>
@@ -280,7 +289,7 @@ export default function ShowWorkOrder({
                                         <p className="text-sm font-medium text-muted-foreground">Custo Estimado de Mão de Obra</p>
                                         <p className="font-medium">
                                             {workOrder.estimated_labor_cost ?
-                                                `R$ ${workOrder.estimated_labor_cost.toFixed(2).replace('.', ',')}` :
+                                                `R$ ${Number(workOrder.estimated_labor_cost).toFixed(2).replace('.', ',')}` :
                                                 '-'
                                             }
                                         </p>
@@ -289,7 +298,7 @@ export default function ShowWorkOrder({
                                         <p className="text-sm font-medium text-muted-foreground">Custo Total Estimado</p>
                                         <p className="font-medium">
                                             {workOrder.estimated_total_cost ?
-                                                `R$ ${workOrder.estimated_total_cost.toFixed(2).replace('.', ',')}` :
+                                                `R$ ${Number(workOrder.estimated_total_cost).toFixed(2).replace('.', ',')}` :
                                                 '-'
                                             }
                                         </p>
@@ -419,7 +428,7 @@ export default function ShowWorkOrder({
                                             <Badge>{history.to_status}</Badge>
                                         </div>
                                         <p className="text-sm text-muted-foreground mt-1">
-                                            Por {history.changer?.name || 'Sistema'} em{' '}
+                                            Por {history.changedBy?.name || 'Sistema'} em{' '}
                                             {format(new Date(history.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                                         </p>
                                         {history.reason && (
@@ -469,7 +478,7 @@ export default function ShowWorkOrder({
                                             {part.used_quantity || part.estimated_quantity} unidades
                                         </p>
                                         <p className="text-sm text-muted-foreground">
-                                            R$ {part.total_cost.toFixed(2).replace('.', ',')}
+                                            R$ {Number(part.total_cost).toFixed(2).replace('.', ',')}
                                         </p>
                                     </div>
                                 </div>
@@ -565,10 +574,20 @@ export default function ShowWorkOrder({
             <ShowLayout
                 title={workOrder.work_order_number}
                 subtitle={workOrder.title}
-                editRoute={canEdit && ['requested', 'approved'].includes(workOrder.status) ? route('work-orders.edit', workOrder.id) : ''}
+                editRoute={canEdit && ['requested', 'approved'].includes(workOrder.status) ? route(`${discipline}.work-orders.edit`, workOrder.id) : ''}
                 tabs={tabs}
                 defaultActiveTab="details"
                 showEditButton={canEdit && ['requested', 'approved'].includes(workOrder.status)}
+            />
+
+            {/* Approval Dialog */}
+            <WorkOrderApprovalDialog
+                open={approvalDialogOpen}
+                onOpenChange={setApprovalDialogOpen}
+                workOrder={workOrder}
+                canApprove={canApprove}
+                approvalThreshold={approvalThreshold}
+                discipline={discipline}
             />
         </AppLayout>
     );

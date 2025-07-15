@@ -14,16 +14,21 @@ return new class extends Migration
         Schema::create('work_orders', function (Blueprint $table) {
             $table->id();
             $table->string('work_order_number')->unique();
+            $table->enum('discipline', ['maintenance', 'quality'])->default('maintenance');
             $table->string('title');
             $table->text('description')->nullable();
             $table->foreignId('work_order_type_id')->constrained();
-            $table->enum('work_order_category', ['corrective', 'preventive', 'inspection', 'project']);
+            $table->enum('work_order_category', ['corrective', 'preventive', 'inspection', 'project', 
+                                                'calibration', 'quality_control', 'quality_audit', 'non_conformance']);
             $table->enum('priority', ['emergency', 'urgent', 'high', 'normal', 'low'])->default('normal');
             $table->integer('priority_score')->default(50)->comment('0-100 for fine-grained sorting');
             $table->string('status', 50)->default('requested');
             
-            // Asset relationship
-            $table->foreignId('asset_id')->constrained();
+            // Asset relationship (for maintenance discipline)
+            $table->foreignId('asset_id')->nullable()->constrained();
+            
+            // Instrument relationship (for quality discipline - future)
+            $table->unsignedBigInteger('instrument_id')->nullable();
             
             // Form/Task configuration
             $table->foreignId('form_id')->nullable()->constrained();
@@ -44,7 +49,7 @@ return new class extends Migration
             $table->timestamp('scheduled_end_date')->nullable();
             
             // Assignment
-            $table->foreignId('assigned_team_id')->nullable()->constrained('teams');
+            $table->unsignedBigInteger('assigned_team_id')->nullable();
             $table->foreignId('assigned_technician_id')->nullable()->constrained('users');
             $table->json('required_skills')->nullable();
             $table->json('required_certifications')->nullable();
@@ -58,7 +63,7 @@ return new class extends Migration
             $table->decimal('actual_total_cost', 10, 2)->nullable();
             
             // Source tracking
-            $table->string('source_type', 50)->default('manual')->comment('manual, routine, sensor, inspection_finding');
+            $table->string('source_type', 50)->default('manual')->comment('manual, routine, sensor, inspection, calibration_schedule, quality_alert, audit, complaint');
             $table->unsignedBigInteger('source_id')->nullable();
             
             // Relationships (flat structure)
@@ -85,12 +90,22 @@ return new class extends Migration
             $table->json('attachments')->nullable();
             $table->json('tags')->nullable();
             
+            // Quality-specific fields (sparse, used only for quality discipline)
+            $table->date('calibration_due_date')->nullable();
+            $table->string('certificate_number', 100)->nullable();
+            $table->string('compliance_standard', 100)->nullable();
+            $table->json('tolerance_specs')->nullable();
+            
             $table->timestamps();
             
             // Indexes
             $table->index('work_order_number');
             $table->index(['status', 'priority_score']);
+            $table->index(['discipline']);
+            $table->index(['discipline', 'work_order_category']);
+            $table->index(['discipline', 'status']);
             $table->index(['asset_id', 'status']);
+            $table->index('instrument_id');
             $table->index(['scheduled_start_date', 'scheduled_end_date']);
             $table->index(['source_type', 'source_id']);
             $table->index(['work_order_category', 'status']);

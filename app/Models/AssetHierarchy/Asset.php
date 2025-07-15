@@ -216,4 +216,44 @@ class Asset extends Model
         
         return round($correctiveWorkOrders->avg('actual_hours'), 2);
     }
+    
+    /**
+     * Get average runtime hours per day based on recent measurements
+     */
+    public function getAverageRuntimePerDay(): float
+    {
+        // Get measurements from the last 30 days
+        $measurements = $this->runtimeMeasurements()
+            ->where('created_at', '>=', now()->subDays(30))
+            ->orderBy('created_at', 'asc')
+            ->get();
+            
+        if ($measurements->count() < 2) {
+            // Not enough data, use default 8 hours per day
+            return 8.0;
+        }
+        
+        $totalHours = 0;
+        $totalDays = 0;
+        
+        // Calculate runtime between consecutive measurements
+        for ($i = 1; $i < $measurements->count(); $i++) {
+            $previous = $measurements[$i - 1];
+            $current = $measurements[$i];
+            
+            $hoursDiff = $current->reported_hours - $previous->reported_hours;
+            $daysDiff = $previous->created_at->diffInDays($current->created_at);
+            
+            if ($daysDiff > 0 && $hoursDiff > 0) {
+                $totalHours += $hoursDiff;
+                $totalDays += $daysDiff;
+            }
+        }
+        
+        if ($totalDays === 0) {
+            return 8.0; // Default
+        }
+        
+        return round($totalHours / $totalDays, 2);
+    }
 }

@@ -193,12 +193,83 @@ class PermissionSeeder extends Seeder
                 ]
             ];
 
+            // Work Order management permissions
+            $workOrderPermissions = [
+                [
+                    'name' => 'work-orders.viewAny',
+                    'display_name' => 'View Work Order List',
+                    'description' => 'View list of all work orders',
+                    'sort_order' => 40
+                ],
+                [
+                    'name' => 'work-orders.view',
+                    'display_name' => 'View Work Order Details',
+                    'description' => 'View work order details',
+                    'sort_order' => 41
+                ],
+                [
+                    'name' => 'work-orders.create',
+                    'display_name' => 'Create Work Orders',
+                    'description' => 'Create new work orders',
+                    'sort_order' => 42
+                ],
+                [
+                    'name' => 'work-orders.update',
+                    'display_name' => 'Update Work Orders',
+                    'description' => 'Update work order information',
+                    'sort_order' => 43
+                ],
+                [
+                    'name' => 'work-orders.delete',
+                    'display_name' => 'Delete Work Orders',
+                    'description' => 'Delete work orders',
+                    'sort_order' => 44
+                ],
+                [
+                    'name' => 'work-orders.approve',
+                    'display_name' => 'Approve Work Orders',
+                    'description' => 'Approve or reject work order requests',
+                    'sort_order' => 45
+                ],
+                [
+                    'name' => 'work-orders.plan',
+                    'display_name' => 'Plan Work Orders',
+                    'description' => 'Plan resources and schedule work orders',
+                    'sort_order' => 46
+                ],
+                [
+                    'name' => 'work-orders.execute',
+                    'display_name' => 'Execute Work Orders',
+                    'description' => 'Execute assigned work orders',
+                    'sort_order' => 47
+                ],
+                [
+                    'name' => 'work-orders.complete',
+                    'display_name' => 'Complete Work Orders',
+                    'description' => 'Mark work orders as completed',
+                    'sort_order' => 48
+                ],
+                [
+                    'name' => 'work-orders.validate',
+                    'display_name' => 'Validate Work Orders',
+                    'description' => 'Validate quality of completed work',
+                    'sort_order' => 49
+                ],
+                [
+                    'name' => 'work-orders.cancel',
+                    'display_name' => 'Cancel Work Orders',
+                    'description' => 'Cancel work orders',
+                    'sort_order' => 50
+                ]
+            ];
+
             // Create all permissions
             $allPermissions = array_merge(
                 $systemPermissions,
                 $userPermissions,
                 $invitationPermissions,
-                $rolePermissions
+                $rolePermissions,
+                $workOrderPermissions
             );
 
             foreach ($allPermissions as $permissionData) {

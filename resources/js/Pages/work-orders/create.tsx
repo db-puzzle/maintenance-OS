@@ -9,10 +9,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import ItemSelect from '@/components/ItemSelect';
 import { toast } from 'sonner';
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Save, Send, Clock, Activity, Droplet, AlertTriangle, Wrench, RefreshCw, Eye, Thermometer, Package, TrendingUp, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Send, Clock, Activity, Droplet, AlertTriangle, Wrench, RefreshCw, Eye, Thermometer, Package, TrendingUp, Zap, Shield, Briefcase, Gauge, CheckSquare, ClipboardList, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
+import { MAINTENANCE_CATEGORIES, QUALITY_CATEGORIES } from '@/types/work-order';
 
 // Icon mapping for work order types
 const iconMap = {
@@ -27,6 +28,18 @@ const iconMap = {
     'package': Package,
     'trending-up': TrendingUp,
     'zap': Zap,
+};
+
+// Category icon mapping
+const categoryIcons = {
+    preventive: Shield,
+    corrective: Wrench,
+    inspection: Eye,
+    project: Briefcase,
+    calibration: Gauge,
+    quality_control: CheckSquare,
+    quality_audit: ClipboardList,
+    non_conformance: AlertCircle,
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -51,6 +64,7 @@ interface Props {
     sectors: Array<{ id: number; name: string; area_id: number }>;
     assets: Array<{ id: number; tag: string; name: string; plant_id: number; area_id: number; sector_id?: number }>;
     forms: Array<{ id: number; name: string }>;
+    discipline: 'maintenance' | 'quality';
 }
 
 export default function CreateWorkOrder({
@@ -59,7 +73,8 @@ export default function CreateWorkOrder({
     areas,
     sectors,
     assets,
-    forms
+    forms,
+    discipline = 'maintenance'
 }: Props) {
     const [currentStep, setCurrentStep] = useState(1);
     const totalSteps = 4;
@@ -70,18 +85,22 @@ export default function CreateWorkOrder({
         icon: type.icon && iconMap[type.icon as keyof typeof iconMap] ? iconMap[type.icon as keyof typeof iconMap] : undefined
     }));
 
+    // Get discipline-specific categories
+    const categories = discipline === 'maintenance' ? MAINTENANCE_CATEGORIES : QUALITY_CATEGORIES;
+
     const { data, setData, post, processing, errors } = useForm({
         // Step 1: Basic Information
         work_order_type_id: '',
-        work_order_category: 'corrective' as 'corrective' | 'preventive' | 'inspection' | 'project',
+        work_order_category: discipline === 'maintenance' ? 'corrective' : 'calibration',
         title: '',
         description: '',
 
-        // Step 2: Asset Selection
+        // Step 2: Asset Selection (Maintenance) / Instrument Selection (Quality)
         plant_id: '',
         area_id: '',
         sector_id: '',
         asset_id: '',
+        instrument_id: '',
 
         // Step 3: Priority & Due Date
         priority: 'normal' as 'emergency' | 'urgent' | 'high' | 'normal' | 'low',
@@ -95,18 +114,24 @@ export default function CreateWorkOrder({
         warranty_claim: false,
         tags: [] as string[],
 
+        // Quality-specific fields
+        calibration_due_date: '',
+        certificate_number: '',
+        compliance_standard: '',
+
         // Hidden fields
         source_type: 'manual' as const,
+        discipline: discipline,
     });
 
     // Filter areas based on selected plant
-    const filteredAreas = areas.filter(area => area.plant_id === parseInt(data.plant_id));
+    const filteredAreas = (areas || []).filter(area => area.plant_id === parseInt(data.plant_id));
 
     // Filter sectors based on selected area
-    const filteredSectors = sectors.filter(sector => sector.area_id === parseInt(data.area_id));
+    const filteredSectors = (sectors || []).filter(sector => sector.area_id === parseInt(data.area_id));
 
     // Filter assets based on selections
-    const filteredAssets = assets.filter(asset => {
+    const filteredAssets = (assets || []).filter(asset => {
         if (data.sector_id) {
             return asset.sector_id === parseInt(data.sector_id);
         }
@@ -139,8 +164,8 @@ export default function CreateWorkOrder({
         e.preventDefault();
 
         const url = isDraft ?
-            route('work-orders.store', { draft: true }) :
-            route('work-orders.store');
+            route(`${discipline}.work-orders.store`, { draft: true }) :
+            route(`${discipline}.work-orders.store`);
 
         post(url, {
             onSuccess: () => {
@@ -149,8 +174,19 @@ export default function CreateWorkOrder({
                     'Ordem de serviço criada com sucesso!'
                 );
             },
-            onError: () => {
-                toast.error('Erro ao salvar ordem de serviço. Verifique os campos.');
+            onError: (errors) => {
+                // Check if there are field-specific errors
+                const errorMessages = Object.entries(errors).map(([field, message]) => {
+                    return `${field}: ${message}`;
+                });
+
+                if (errorMessages.length > 0) {
+                    toast.error('Erro ao salvar ordem de serviço', {
+                        description: errorMessages.join(', ')
+                    });
+                } else {
+                    toast.error('Erro ao salvar ordem de serviço. Verifique os campos.');
+                }
             },
         });
     };
@@ -176,7 +212,7 @@ export default function CreateWorkOrder({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Nova Ordem de Serviço" />
+            <Head title={discipline === 'maintenance' ? 'Nova Ordem de Manutenção' : 'Nova Ordem de Qualidade'} />
 
             <div className="mx-auto max-w-4xl space-y-6">
                 {/* Header */}
@@ -253,22 +289,18 @@ export default function CreateWorkOrder({
                                             value={data.work_order_category}
                                             onValueChange={(value) => setData('work_order_category', value as any)}
                                         >
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="corrective" id="corrective" />
-                                                <Label htmlFor="corrective">Corretiva</Label>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="preventive" id="preventive" />
-                                                <Label htmlFor="preventive">Preventiva</Label>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="inspection" id="inspection" />
-                                                <Label htmlFor="inspection">Inspeção</Label>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="project" id="project" />
-                                                <Label htmlFor="project">Projeto</Label>
-                                            </div>
+                                            {categories.map(category => {
+                                                const Icon = categoryIcons[category.value as keyof typeof categoryIcons];
+                                                return (
+                                                    <div key={category.value} className="flex items-center space-x-2">
+                                                        <RadioGroupItem value={category.value} id={category.value} />
+                                                        <Label htmlFor={category.value} className="flex items-center">
+                                                            {Icon && <Icon className="mr-2 h-4 w-4" />}
+                                                            {category.label}
+                                                        </Label>
+                                                    </div>
+                                                );
+                                            })}
                                         </RadioGroup>
                                     </div>
 
@@ -279,8 +311,8 @@ export default function CreateWorkOrder({
                                             value={data.title}
                                             onChange={(e) => setData('title', e.target.value)}
                                             placeholder="Digite um título descritivo"
-                                            error={errors.title}
                                         />
+                                        {errors.title && <span className="text-sm text-red-500">{errors.title}</span>}
                                     </div>
 
                                     <div className="space-y-2">
@@ -296,7 +328,7 @@ export default function CreateWorkOrder({
                                 </>
                             )}
 
-                            {/* Step 2: Asset Selection */}
+                            {/* Step 2: Asset/Instrument Selection */}
                             {currentStep === 2 && (
                                 <>
                                     <div className="space-y-2">
@@ -311,6 +343,7 @@ export default function CreateWorkOrder({
                                                     area_id: '',
                                                     sector_id: '',
                                                     asset_id: '',
+                                                    instrument_id: '',
                                                 });
                                             }}
                                             placeholder="Selecione a planta"
@@ -358,22 +391,40 @@ export default function CreateWorkOrder({
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="asset_id">Ativo*</Label>
-                                        <ItemSelect
-                                            items={filteredAssets.map(asset => ({
-                                                ...asset,
-                                                name: `${asset.tag} - ${asset.name}`,
-                                            }))}
-                                            value={data.asset_id}
-                                            onValueChange={(value) => setData('asset_id', value)}
-                                            placeholder="Selecione o ativo"
-                                            error={errors.asset_id}
-                                            disabled={!data.area_id}
-                                            searchable
-                                            required
-                                        />
-                                    </div>
+                                    {discipline === 'maintenance' ? (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="asset_id">Ativo*</Label>
+                                            <ItemSelect
+                                                items={filteredAssets.map(asset => ({
+                                                    ...asset,
+                                                    name: `${asset.tag} - ${asset.name}`,
+                                                }))}
+                                                value={data.asset_id}
+                                                onValueChange={(value) => setData('asset_id', value)}
+                                                placeholder="Selecione o ativo"
+                                                error={errors.asset_id}
+                                                disabled={!data.area_id}
+                                                searchable
+                                                required
+                                            />
+                                        </div>
+                                    ) : (
+                                        data.work_order_category === 'calibration' && (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="instrument_id">Instrumento*</Label>
+                                                <ItemSelect
+                                                    items={[]} // TODO: Add instruments list
+                                                    value={data.instrument_id}
+                                                    onValueChange={(value) => setData('instrument_id', value)}
+                                                    placeholder="Selecione o instrumento"
+                                                    error={errors.instrument_id}
+                                                    disabled={!data.area_id}
+                                                    searchable
+                                                    required
+                                                />
+                                            </div>
+                                        )
+                                    )}
                                 </>
                             )}
 
@@ -442,9 +493,9 @@ export default function CreateWorkOrder({
                                             type="datetime-local"
                                             value={data.requested_due_date}
                                             onChange={(e) => setData('requested_due_date', e.target.value)}
-                                            error={errors.requested_due_date}
                                             required
                                         />
+                                        {errors.requested_due_date && <span className="text-sm text-red-500">{errors.requested_due_date}</span>}
                                     </div>
 
                                     <div className="flex items-center space-x-2">
@@ -491,7 +542,7 @@ export default function CreateWorkOrder({
                                         <Checkbox
                                             id="warranty_claim"
                                             checked={data.warranty_claim}
-                                            onCheckedChange={(checked) => setData('warranty_claim', checked as boolean)}
+                                            onCheckedChange={(checked) => setData('warranty_claim', checked === true)}
                                         />
                                         <Label htmlFor="warranty_claim">
                                             Solicitação de garantia
@@ -525,7 +576,7 @@ export default function CreateWorkOrder({
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => router.visit(route('work-orders.index'))}
+                            onClick={() => router.visit(route(`${discipline}.work-orders.index`))}
                         >
                             Cancelar
                         </Button>

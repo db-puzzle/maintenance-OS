@@ -272,7 +272,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             }
 
             return {
-                name: '',
+                name: '5x10',
                 timezone: userTimezone,
                 schedules: weekdays.map((day) => ({
                     weekday: day.key,
@@ -793,17 +793,17 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                         <CommandItem
                                                                             key={zone.value}
                                                                             value={`${zone.value} ${zone.label}`}
-                                                                                                                                        onSelect={() => {
-                                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                                setData('timezone' as any, zone.value);
-                                                                setTimezoneOpen(false);
-                                                            }}
+                                                                            onSelect={() => {
+                                                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                                                setData('timezone' as any, zone.value);
+                                                                                setTimezoneOpen(false);
+                                                                            }}
                                                                         >
                                                                             <Check
                                                                                 className={cn(
                                                                                     'mr-2 h-4 w-4',
                                                                                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                                    (data as any).timezone === zone.value ? 'opacity-100' : 'opacity-0',
+                                                                                    (data as any).timezone === zone.value ? 'opacity-100' : 'opacity-0',
                                                                                 )}
                                                                             />
                                                                             {zone.label}
@@ -1144,7 +1144,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                     </CardHeader>
                                                     <CardContent>
                                                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                        <ShiftCalendarView schedules={(data as any).schedules} />
+                                                        <ShiftCalendarView schedules={(data as any).schedules} />
                                                     </CardContent>
                                                 </Card>
                                             </div>
@@ -1158,7 +1158,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                     </CardHeader>
                                                     <CardContent>
                                                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                        <ShiftTableView schedules={(data as any).schedules} />
+                                                        <ShiftTableView schedules={(data as any).schedules} />
                                                     </CardContent>
                                                 </Card>
                                             </div>
