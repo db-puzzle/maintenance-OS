@@ -263,13 +263,66 @@ class PermissionSeeder extends Seeder
                 ]
             ];
 
+            // Parts management permissions
+            $partsPermissions = [
+                [
+                    'name' => 'parts.viewAny',
+                    'display_name' => 'View Parts List',
+                    'description' => 'View list of all parts',
+                    'sort_order' => 60
+                ],
+                [
+                    'name' => 'parts.view',
+                    'display_name' => 'View Part Details',
+                    'description' => 'View part details',
+                    'sort_order' => 61
+                ],
+                [
+                    'name' => 'parts.create',
+                    'display_name' => 'Create Parts',
+                    'description' => 'Create new parts',
+                    'sort_order' => 62
+                ],
+                [
+                    'name' => 'parts.update',
+                    'display_name' => 'Update Parts',
+                    'description' => 'Update part information',
+                    'sort_order' => 63
+                ],
+                [
+                    'name' => 'parts.delete',
+                    'display_name' => 'Delete Parts',
+                    'description' => 'Delete parts',
+                    'sort_order' => 64
+                ],
+                [
+                    'name' => 'parts.manage-stock',
+                    'display_name' => 'Manage Parts Stock',
+                    'description' => 'Adjust part quantities and stock levels',
+                    'sort_order' => 65
+                ],
+                [
+                    'name' => 'parts.import',
+                    'display_name' => 'Import Parts',
+                    'description' => 'Import parts from CSV files',
+                    'sort_order' => 66
+                ],
+                [
+                    'name' => 'parts.export',
+                    'display_name' => 'Export Parts',
+                    'description' => 'Export parts to CSV files',
+                    'sort_order' => 67
+                ]
+            ];
+
             // Create all permissions
             $allPermissions = array_merge(
                 $systemPermissions,
                 $userPermissions,
                 $invitationPermissions,
                 $rolePermissions,
-                $workOrderPermissions
+                $workOrderPermissions,
+                $partsPermissions
             );
 
             foreach ($allPermissions as $permissionData) {

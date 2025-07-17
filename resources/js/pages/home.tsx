@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { BarChart3, Boxes, ChevronRight, ClipboardList, Route } from 'lucide-react';
+import { BarChart3, Boxes, ChevronRight, ClipboardList, Route, Package } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,6 +30,12 @@ export default function Dashboard() {
             icon: Route,
             description: 'Estrutura e organização de ativos',
             href: '/asset-hierarchy',
+        },
+        parts: {
+            title: 'Peças',
+            icon: Package,
+            description: 'Gestão de peças e estoque',
+            href: '/parts',
         },
     };
 

@@ -58,6 +58,15 @@ class RoleSeeder extends Seeder
                 'work-orders.plan',
                 'work-orders.validate',
                 'work-orders.cancel',
+                // Parts permissions
+                'parts.viewAny',
+                'parts.view',
+                'parts.create',
+                'parts.update',
+                'parts.delete',
+                'parts.manage-stock',
+                'parts.import',
+                'parts.export',
             ];
             $plantManager->syncPermissions($plantManagerPermissions);
 
@@ -123,6 +132,14 @@ class RoleSeeder extends Seeder
                 'work-orders.execute',
                 'work-orders.complete',
                 'work-orders.validate',
+                // Parts permissions
+                'parts.viewAny',
+                'parts.view',
+                'parts.create',
+                'parts.update',
+                'parts.delete',
+                'parts.manage-stock',
+                'parts.export',
             ];
             $maintenanceSupervisor->syncPermissions($maintenanceSupervisorPermissions);
 
@@ -144,6 +161,14 @@ class RoleSeeder extends Seeder
                 'work-orders.create',
                 'work-orders.update',
                 'work-orders.plan',
+                // Parts permissions
+                'parts.viewAny',
+                'parts.view',
+                'parts.create',
+                'parts.update',
+                'parts.delete',
+                'parts.manage-stock',
+                'parts.export',
             ];
             $planner->syncPermissions($plannerPermissions);
 
@@ -163,6 +188,9 @@ class RoleSeeder extends Seeder
                 'work-orders.view', // Can view assigned work orders
                 'work-orders.execute', // Can execute assigned work orders
                 'work-orders.complete', // Can complete assigned work orders
+                // Parts permissions
+                'parts.viewAny',
+                'parts.view',
             ];
             $technician->syncPermissions($technicianPermissions);
 
@@ -199,6 +227,9 @@ class RoleSeeder extends Seeder
                 'users.update.owned',
                 // Work Order permissions
                 'work-orders.view', // Read-only access
+                // Parts permissions
+                'parts.viewAny',
+                'parts.view',
             ];
             $viewer->syncPermissions($viewerPermissions);
 

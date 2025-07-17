@@ -75,6 +75,9 @@ require __DIR__.'/maintenance.php';
 // Work Orders
 require __DIR__.'/work-orders.php';
 
+// Parts
+require __DIR__.'/parts.php';
+
 // Settings
 require __DIR__.'/settings.php';
 

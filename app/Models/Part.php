@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\WorkOrders\WorkOrderPart;
 
 class Part extends Model
 {
@@ -30,6 +32,14 @@ class Part extends Model
         'maximum_quantity' => 'integer',
         'active' => 'boolean',
     ];
+
+    /**
+     * Get the work order parts for the part.
+     */
+    public function workOrderParts(): HasMany
+    {
+        return $this->hasMany(WorkOrderPart::class);
+    }
 
     /**
      * Scope a query to only include active parts.
