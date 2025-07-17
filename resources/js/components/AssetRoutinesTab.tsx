@@ -291,6 +291,24 @@ export default function AssetRoutinesTab({
             ),
         },
         {
+            key: 'priority_score',
+            label: 'Prioridade',
+            sortable: true,
+            width: 'w-[100px]',
+            render: (value, row) => {
+                const routine = row as Routine;
+                const priority = routine.priority_score;
+
+                return (
+                    <div className="text-center">
+                        <span className="text-sm">
+                            {priority || '-'}
+                        </span>
+                    </div>
+                );
+            },
+        },
+        {
             key: 'execution_mode',
             label: 'Modo de Execução',
             sortable: true,
@@ -613,7 +631,7 @@ export default function AssetRoutinesTab({
         setRoutines((prevRoutines) =>
             prevRoutines.map((r) => (r.id === updatedRoutine.id ? updatedRoutine : r))
         );
-        toast.success('Rotina atualizada com sucesso!');
+        // Don't show toast here - EditRoutineSheet already shows it
         // Reload to refresh form data
         router.reload();
     };

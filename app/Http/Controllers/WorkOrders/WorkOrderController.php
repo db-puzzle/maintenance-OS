@@ -251,6 +251,20 @@ class WorkOrderController extends Controller
     }
 
     /**
+     * Open the work order creation page
+     */
+    public function createNew(Request $request)
+    {
+        $this->authorize('create', WorkOrder::class);
+        
+        // Determine discipline from route prefix
+        $discipline = str_contains($request->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
+        
+        // Redirect to the show page with the "new" parameter
+        return redirect()->route("{$discipline}.work-orders.show", ['workOrder' => 'new']);
+    }
+
+    /**
      * Store a newly created work order
      */
     public function store(StoreWorkOrderRequest $request)
@@ -273,8 +287,55 @@ class WorkOrderController extends Controller
     /**
      * Display the specified work order
      */
-    public function show(WorkOrder $workOrder)
+    public function show($workOrder)
     {
+        // Determine discipline from route prefix
+        $discipline = str_contains(request()->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
+        
+        // Check if we're creating a new work order
+        if ($workOrder === 'new') {
+            $this->authorize('create', WorkOrder::class);
+            
+            // Get data based on discipline
+            if ($discipline === 'maintenance') {
+                $plants = Plant::orderBy('name')->get();
+                $areas = Area::with('plant')->orderBy('name')->get();
+                $sectors = Sector::with('area')->orderBy('name')->get();
+                $assets = Asset::with(['plant', 'area', 'sector'])->orderBy('tag')->get();
+            } else {
+                $plants = [];
+                $areas = [];
+                $sectors = [];
+                $assets = [];
+                // For quality discipline, we would load instruments instead
+            }
+            
+            $workOrderTypes = WorkOrderType::active()->orderBy('name')->get();
+            $forms = Form::where('is_active', true)->orderBy('name')->get();
+            
+            return Inertia::render('work-orders/show', [
+                'workOrder' => null,
+                'workOrderTypes' => $workOrderTypes,
+                'plants' => $plants,
+                'areas' => $areas,
+                'sectors' => $sectors,
+                'assets' => $assets,
+                'forms' => $forms,
+                'discipline' => $discipline,
+                'isCreating' => true,
+                'canEdit' => true,
+                'canDelete' => false,
+                'canApprove' => false,
+                'canPlan' => false,
+                'canExecute' => false,
+                'canValidate' => false,
+                'canStart' => false,
+                'canComplete' => false,
+            ]);
+        }
+        
+        // Otherwise, it's an existing work order
+        $workOrder = WorkOrder::findOrFail($workOrder);
         $this->authorize('view', $workOrder);
 
         $workOrder->load([
@@ -326,6 +387,7 @@ class WorkOrderController extends Controller
             'workOrder' => $workOrder,
             'users' => $users,
             'discipline' => $workOrder->discipline,
+            'isCreating' => false,
             'canEdit' => auth()->user()->can('update', $workOrder),
             'canDelete' => auth()->user()->can('delete', $workOrder),
             'canApprove' => auth()->user()->can('approve', $workOrder),

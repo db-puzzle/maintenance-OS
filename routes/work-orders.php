@@ -11,9 +11,8 @@ Route::prefix('maintenance/work-orders')
     ->middleware(['auth', 'verified'])
     ->group(function () {
         Route::get('/', [WorkOrderController::class, 'index'])->name('index');
-        Route::get('/create', [WorkOrderController::class, 'create'])->name('create');
+        Route::get('/create', [WorkOrderController::class, 'createNew'])->name('create');
         Route::post('/', [WorkOrderController::class, 'store'])->name('store');
-        Route::get('/{workOrder}', [WorkOrderController::class, 'show'])->name('show');
         Route::get('/{workOrder}/edit', [WorkOrderController::class, 'edit'])->name('edit');
         Route::put('/{workOrder}', [WorkOrderController::class, 'update'])->name('update');
         Route::delete('/{workOrder}', [WorkOrderController::class, 'destroy'])->name('destroy');
@@ -58,6 +57,9 @@ Route::prefix('maintenance/work-orders')
         Route::get('/analytics', [WorkOrderController::class, 'analytics'])->name('analytics');
         Route::get('/calendar', [WorkOrderController::class, 'calendar'])->name('calendar');
         Route::get('/export', [WorkOrderController::class, 'export'])->name('export');
+        
+        // General work order route (must come after all specific routes)
+        Route::get('/{workOrder}', [WorkOrderController::class, 'show'])->name('show');
 });
 
 // Future: Quality discipline work orders

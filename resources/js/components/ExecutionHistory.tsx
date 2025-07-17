@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
-import { Calendar, ClipboardCheck, Eye, FileText, Shield } from 'lucide-react';
+import { Calendar, ClipboardCheck, Eye, FileText, Shield, Gauge } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useExportManager } from '@/hooks/use-export-manager';
 import { toast } from 'sonner';
 import EmptyCard from '@/components/ui/empty-card';
+import RuntimeHistory from '@/components/RuntimeHistory';
 
 interface ExecutionData {
     id: number | string;
@@ -48,6 +49,9 @@ interface ExecutionHistoryProps {
 
 export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
     const [loading, setLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('executions');
+    const [isParentVisible, setIsParentVisible] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [executions, setExecutions] = useState<{
         data: ExecutionData[];
         current_page: number;
@@ -71,6 +75,29 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
         per_page: 10,
     });
     const { addExport, updateExport } = useExportManager();
+
+    // Detect when the parent Histórico tab becomes visible
+    useEffect(() => {
+        const currentElement = containerRef.current;
+        if (!currentElement) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    setIsParentVisible(entry.isIntersecting);
+                });
+            },
+            {
+                threshold: 0.1,
+            }
+        );
+
+        observer.observe(currentElement);
+
+        return () => {
+            observer.unobserve(currentElement);
+        };
+    }, []);
 
     const fetchExecutions = useCallback(async () => {
         if (!assetId) return;
@@ -389,12 +416,16 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
     }
 
     return (
-        <div className="space-y-4">
-            <Tabs defaultValue="executions">
+        <div ref={containerRef} className="space-y-4">
+            <Tabs defaultValue="executions" value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="executions" className="flex items-center gap-2">
                         <ClipboardCheck className="h-4 w-4" />
                         Ordens de Serviço
+                    </TabsTrigger>
+                    <TabsTrigger value="horimetro" className="flex items-center gap-2">
+                        <Gauge className="h-4 w-4" />
+                        Horímetro
                     </TabsTrigger>
                     <TabsTrigger value="audit" className="flex items-center gap-2">
                         <Shield className="h-4 w-4" />
@@ -465,6 +496,10 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                             </div>
                         </>
                     )}
+                </TabsContent>
+
+                <TabsContent value="horimetro" className="mt-4">
+                    <RuntimeHistory assetId={assetId} activeTab={activeTab} parentVisible={isParentVisible} />
                 </TabsContent>
 
                 <TabsContent value="audit" className="mt-4">

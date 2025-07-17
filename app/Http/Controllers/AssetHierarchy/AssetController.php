@@ -692,10 +692,21 @@ class AssetController extends Controller
         $this->authorize('view', $asset);
         
         $perPage = $request->input('per_page', 10);
+        $sort = $request->input('sort', 'measurement_datetime');
+        $direction = $request->input('direction', 'desc');
 
-        $measurements = $asset->runtimeMeasurements()
-            ->with('user')
-            ->paginate($perPage);
+        // Build query with sorting
+        $query = $asset->runtimeMeasurements()
+            ->with('user');
+
+        // Apply sorting
+        if (in_array($sort, ['measurement_datetime', 'reported_hours', 'source', 'created_at'])) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy('measurement_datetime', 'desc');
+        }
+
+        $measurements = $query->paginate($perPage);
 
         return response()->json($measurements);
     }

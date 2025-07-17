@@ -153,6 +153,9 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     // Estado para controlar o modo comprimido
     const [isCompressed, setIsCompressed] = useState(false);
 
+    // Estado para controlar refresh do histórico de runtime
+
+
     // Estados para turnos
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [selectedShiftId, setSelectedShiftId] = useState<string>(asset?.shift_id?.toString() || '');
@@ -223,7 +226,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
 
     const loadShiftDetails = async (shiftId: number) => {
         try {
-            const response = await axios.get(route('asset-hierarchy.shifts.show', shiftId), {
+            const response = await axios.get(route('asset-hierarchy.shifts.show', { shift: shiftId }), {
                 params: { format: 'json' },
             });
             setSelectedShift(response.data.shift);
@@ -261,7 +264,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 setSelectedShiftId(tempSelectedShiftId);
                 toast.success('Turno associado ao ativo');
 
-                // Reload the page to refresh runtime data
+                // Reload the page to refresh all data
                 router.reload();
             } catch {
                 toast.error('Erro ao associar turno');
@@ -371,7 +374,8 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                         assetId={asset?.id}
                                         runtimeData={asset?.runtime_data}
                                         onRuntimeUpdated={() => {
-                                            // Handle runtime update if needed
+                                            // Reload the page to refresh all data
+                                            router.reload();
                                         }}
                                     />
                                 </div>

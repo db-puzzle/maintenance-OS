@@ -1,2 +1,6 @@
+export { WorkOrderStatusBadge } from './WorkOrderStatusBadge';
 export { WorkOrderPriorityIndicator } from './WorkOrderPriorityIndicator';
-export { WorkOrderStatusBadge } from './WorkOrderStatusBadge'; 
+export { default as WorkOrderFormComponent } from './WorkOrderFormComponent';
+
+// Export all tabs
+export * from './tabs'; 

@@ -84,7 +84,7 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                         onSuccess(response.data.runtime_data);
                     }
 
-                    // Refresh the page data
+                    // Reload the page to refresh all data with Inertia
                     router.reload();
                 }
             } catch (err: unknown) {

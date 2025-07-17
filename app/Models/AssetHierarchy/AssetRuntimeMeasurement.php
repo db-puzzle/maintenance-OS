@@ -50,12 +50,17 @@ class AssetRuntimeMeasurement extends Model
      */
     public function getPreviousHoursAttribute(): float
     {
-        $previousMeasurement = $this->asset->runtimeMeasurements()
+        if (!$this->asset_id || !$this->created_at) {
+            return 0.0;
+        }
+
+        // Avoid lazy loading by querying directly
+        $previousMeasurement = self::where('asset_id', $this->asset_id)
             ->where('created_at', '<', $this->created_at)
             ->orderBy('created_at', 'desc')
             ->first();
 
-        return $previousMeasurement ? $previousMeasurement->reported_hours : 0.0;
+        return $previousMeasurement ? (float) $previousMeasurement->reported_hours : 0.0;
     }
 
     /**
@@ -63,6 +68,6 @@ class AssetRuntimeMeasurement extends Model
      */
     public function getHoursDifferenceAttribute(): float
     {
-        return $this->reported_hours - $this->previous_hours;
+        return (float) $this->reported_hours - $this->previous_hours;
     }
 }

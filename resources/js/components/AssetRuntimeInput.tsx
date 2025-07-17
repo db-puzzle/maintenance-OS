@@ -1,7 +1,8 @@
 import ReportRuntimeSheet from '@/components/ReportRuntimeSheet';
 import { Button } from '@/components/ui/button';
-import { Activity, Clock } from 'lucide-react';
-import { useRef } from 'react';
+import { Gauge, Clock } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import axios from 'axios';
 
 interface RuntimeData {
     current_hours: number;
@@ -20,8 +21,16 @@ interface AssetRuntimeInputProps {
     onRuntimeUpdated?: (data: RuntimeData) => void;
 }
 
-export default function AssetRuntimeInput({ assetId, runtimeData, onRuntimeUpdated }: AssetRuntimeInputProps) {
+export default function AssetRuntimeInput({ assetId, runtimeData: initialRuntimeData, onRuntimeUpdated }: AssetRuntimeInputProps) {
     const reportSheetRef = useRef<HTMLButtonElement>(null);
+    const [runtimeData, setRuntimeData] = useState<RuntimeData | undefined>(initialRuntimeData);
+
+    // Update runtime data when initialRuntimeData changes
+    useEffect(() => {
+        setRuntimeData(initialRuntimeData);
+    }, [initialRuntimeData]);
+
+
 
     const formatLastMeasurement = (datetime: string, userTimezone?: string) => {
         try {
@@ -63,7 +72,7 @@ export default function AssetRuntimeInput({ assetId, runtimeData, onRuntimeUpdat
                 {/* Current Runtime - More compact */}
                 <div className="mb-4">
                     <div className="mb-1 flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-gray-500" />
+                        <Gauge className="h-4 w-4 text-gray-500" />
                         <span className="text-sm font-medium text-gray-700">Horímetro Calculado</span>
                     </div>
                     <p className="text-2xl font-bold text-gray-900">{currentHours.toFixed(1)} horas</p>
@@ -100,7 +109,14 @@ export default function AssetRuntimeInput({ assetId, runtimeData, onRuntimeUpdat
                         assetId={assetId}
                         currentRuntime={currentHours}
                         showTrigger
-                        onSuccess={onRuntimeUpdated}
+                        onSuccess={(data) => {
+                            // Update local state
+                            setRuntimeData(data);
+                            // Call parent callback
+                            if (onRuntimeUpdated) {
+                                onRuntimeUpdated(data);
+                            }
+                        }}
                     />
                 </div>
             </div>

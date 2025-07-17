@@ -76,9 +76,9 @@ export default function ShowLayout({
     };
 
     return (
-        <div className="relative flex h-[calc(100vh-3rem)] flex-col">
+        <div className="relative flex h-full w-full flex-col overflow-hidden">
             {/* Fixed Header Section */}
-            <div className="bg-background flex-shrink-0">
+            <div className="bg-background flex-shrink-0 flex-grow-0">
                 {/* Title and Actions */}
                 <div
                     className={cn(
@@ -224,7 +224,7 @@ export default function ShowLayout({
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="bg-sidebar-accent/30 flex-1 overflow-y-auto">
+            <div className="bg-sidebar-accent/30 min-h-0 flex-1 overflow-y-auto">
                 <div className="px-6 lg:px-8">
                     {tabs && tabs.length > 0
                         ? tabs.map((tab) => (
