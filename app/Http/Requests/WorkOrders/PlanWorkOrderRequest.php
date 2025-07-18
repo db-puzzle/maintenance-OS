@@ -44,7 +44,7 @@ class PlanWorkOrderRequest extends FormRequest
             'parts.*.estimated_quantity' => 'required|integer|min:1|max:9999',
             'parts.*.unit_cost' => 'required|numeric|min:0|max:999999',
             
-            'scheduled_start_date' => 'nullable|date|after:now',
+            'scheduled_start_date' => 'nullable|date|after_or_equal:today',
             'scheduled_end_date' => 'nullable|date|after:scheduled_start_date',
             
             'assigned_team_id' => 'nullable|exists:teams,id',
@@ -71,7 +71,7 @@ class PlanWorkOrderRequest extends FormRequest
             'parts.*.estimated_quantity.min' => 'A quantidade deve ser pelo menos 1.',
             'parts.*.unit_cost.required' => 'O custo unitário é obrigatório.',
             
-            'scheduled_start_date.after' => 'A data de início deve ser futura.',
+            'scheduled_start_date.after_or_equal' => 'A data de início deve ser hoje ou futura.',
             'scheduled_end_date.after' => 'A data de término deve ser após a data de início.',
             
             'assigned_team_id.exists' => 'A equipe selecionada não existe.',
