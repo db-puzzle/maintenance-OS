@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import StateButton from '@/components/StateButton';
 import {
     AlertCircle,
     CheckCircle,
@@ -35,34 +34,49 @@ export function WorkOrderApprovalTab({
     discipline
 }: WorkOrderApprovalTabProps) {
     const [decision, setDecision] = useState('');
-    const [notes, setNotes] = useState('');
-    const [rejectionReason, setRejectionReason] = useState('');
+    const [reason, setReason] = useState('');
     const [processing, setProcessing] = useState(false);
 
     const isApproved = workOrder.status !== 'requested';
-    const approvalEntry = workOrder.status_history?.find((entry: any) =>
-        entry.from_status === 'requested' && entry.to_status === 'approved'
-    );
+
+    // Debug: Log the status history
+    console.log('[WorkOrderApprovalTab] Status History:', workOrder.status_history);
+
+    // Find the most recent approval or rejection entry (could be multiple)
+    const approvalEntries = workOrder.status_history?.filter((entry: any) =>
+        entry.from_status === 'requested' && (entry.to_status === 'approved' || entry.to_status === 'rejected')
+    ) || [];
+
+    // Get the most recent one (last in the array since they should be ordered by created_at)
+    const approvalEntry = approvalEntries.length > 0 ? approvalEntries[approvalEntries.length - 1] : null;
+
+    // Debug: Log the found approval entry
+    console.log('[WorkOrderApprovalTab] Approval Entries:', approvalEntries);
+    console.log('[WorkOrderApprovalTab] Selected Approval Entry:', approvalEntry);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isApproved || !decision) return;
 
+        // Validate that rejection has a reason
+        if (decision === 'reject' && !reason.trim()) {
+            alert('Por favor, forneça uma razão para a rejeição.');
+            return;
+        }
+
         setProcessing(true);
         const data = {
             decision,
-            notes,
-            rejection_reason: rejectionReason
+            reason: reason.trim(),
+            // For backward compatibility with the backend
+            notes: decision === 'approve' ? reason.trim() : undefined,
+            rejection_reason: decision === 'reject' ? reason.trim() : undefined
         };
 
         let url = '';
         if (decision === 'approve') {
             url = route(`${discipline}.work-orders.approve.store`, workOrder.id);
         } else if (decision === 'reject') {
-            if (!rejectionReason) {
-                setProcessing(false);
-                return;
-            }
             url = route(`${discipline}.work-orders.reject`, workOrder.id);
         }
 
@@ -76,148 +90,141 @@ export function WorkOrderApprovalTab({
     return (
         <div className="space-y-6 py-6">
             {isApproved && approvalEntry ? (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                            Ordem de Serviço Aprovada
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                                <User className="h-4 w-4" />
-                                <span>Aprovado por: <strong className="text-foreground">{approvalEntry.user?.name || 'Sistema'}</strong></span>
-                            </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                                <Calendar className="h-4 w-4" />
-                                <span>Data da aprovação: <strong className="text-foreground">
-                                    {format(new Date(approvalEntry.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
-                                </strong></span>
-                            </div>
-                            {approvalEntry.notes && (
-                                <div className="mt-4 p-4 bg-muted rounded-lg">
-                                    <p className="text-sm font-medium mb-1">Observações da aprovação:</p>
-                                    <p className="text-sm text-muted-foreground">{approvalEntry.notes}</p>
-                                </div>
+                <>
+                    {/* Approval/Rejection Status Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            {approvalEntry.to_status === 'approved' ? (
+                                <>
+                                    <CheckCircle className="h-5 w-5 text-green-600" />
+                                    <h3 className="text-lg font-semibold">Ordem de Serviço Aprovada</h3>
+                                </>
+                            ) : (
+                                <>
+                                    <XCircle className="h-5 w-5 text-red-600" />
+                                    <h3 className="text-lg font-semibold">Ordem de Serviço Rejeitada</h3>
+                                </>
                             )}
                         </div>
-                    </CardContent>
-                </Card>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label>{approvalEntry.to_status === 'approved' ? 'Aprovado por' : 'Rejeitado por'}</Label>
+                                <div className="rounded-md border bg-muted/20 p-2 text-sm flex items-center gap-2">
+                                    <User className="h-4 w-4 text-muted-foreground" />
+                                    <span className="font-medium">{approvalEntry.changed_by?.name || approvalEntry.user?.name || 'Sistema'}</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Data da {approvalEntry.to_status === 'approved' ? 'aprovação' : 'rejeição'}</Label>
+                                <div className="rounded-md border bg-muted/20 p-2 text-sm flex items-center gap-2">
+                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                    <span className="font-medium">
+                                        {format(new Date(approvalEntry.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {approvalEntry.reason && (
+                            <div className="space-y-2">
+                                <Label>Razão da {approvalEntry.to_status === 'approved' ? 'aprovação' : 'rejeição'}</Label>
+                                <div className="rounded-md border bg-muted/20 p-3 text-sm">
+                                    {approvalEntry.reason}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </>
             ) : isApproved ? (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Status da Aprovação</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground">
+                <>
+                    {/* Other Status Section */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Status da Aprovação</h3>
+                        <div className="rounded-md border bg-muted/20 p-3 text-sm">
                             Esta ordem de serviço já foi processada e está com status: <Badge variant="outline">{workOrder.status}</Badge>
-                        </p>
-                    </CardContent>
-                </Card>
+                        </div>
+                    </div>
+                </>
             ) : (
                 <>
-                    <div className="space-y-2">
-                        <h3 className="text-lg font-semibold">Detalhes da Solicitação</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Informações sobre a ordem de serviço solicitada
-                        </p>
-                    </div>
-
-                    <Separator />
-
+                    {/* Approval Decision Section */}
                     <div className="space-y-4">
-                        <div>
-                            <p className="text-sm font-medium">Ativo:</p>
-                            <p className="text-sm">{workOrder.asset?.tag} - {workOrder.asset?.name}</p>
-                        </div>
-                        <div>
-                            <p className="text-sm font-medium">Descrição:</p>
-                            <p className="text-sm">{workOrder.description || 'N/A'}</p>
-                        </div>
-                    </div>
+                        <h3 className="text-lg font-semibold">Decisão de Aprovação</h3>
 
-                    {canApprove && (
-                        <>
-                            <Separator />
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Decisão de Aprovação</CardTitle>
-                                    <CardDescription>
-                                        Selecione sua decisão e adicione comentários se necessário
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <form onSubmit={handleSubmit} className="space-y-4">
-                                        <RadioGroup value={decision} onValueChange={setDecision}>
-                                            <div className="flex items-start space-x-3">
-                                                <RadioGroupItem value="approve" id="approve" />
-                                                <Label htmlFor="approve" className="cursor-pointer">
-                                                    <div className="flex items-center gap-2">
-                                                        <CheckCircle className="h-4 w-4 text-green-600" />
-                                                        <span>Aprovar</span>
-                                                    </div>
-                                                </Label>
-                                            </div>
-                                            <div className="flex items-start space-x-3">
-                                                <RadioGroupItem value="reject" id="reject" />
-                                                <Label htmlFor="reject" className="cursor-pointer">
-                                                    <div className="flex items-center gap-2">
-                                                        <XCircle className="h-4 w-4 text-red-600" />
-                                                        <span>Rejeitar</span>
-                                                    </div>
-                                                </Label>
-                                            </div>
-                                        </RadioGroup>
+                        {!canApprove ? (
+                            <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    Você não tem permissão para aprovar esta ordem de serviço.
+                                </AlertDescription>
+                            </Alert>
+                        ) : (
+                            <>
+                                <Separator />
 
-                                        {decision === 'reject' && (
-                                            <div className="space-y-2">
-                                                <Label htmlFor="rejection_reason">
-                                                    Motivo da Rejeição <span className="text-red-500">*</span>
-                                                </Label>
-                                                <Textarea
-                                                    id="rejection_reason"
-                                                    placeholder="Explique o motivo da rejeição..."
-                                                    value={rejectionReason}
-                                                    onChange={(e) => setRejectionReason(e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                        )}
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="notes">Comentários</Label>
-                                            <Textarea
-                                                id="notes"
-                                                placeholder="Adicione comentários sobre sua decisão..."
-                                                value={notes}
-                                                onChange={(e) => setNotes(e.target.value)}
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                                    {/* Decision Buttons */}
+                                    <div className="space-y-2">
+                                        <Label>Selecione sua decisão</Label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <StateButton
+                                                icon={CheckCircle}
+                                                title="Aprovar"
+                                                description="Autorizar a execução desta ordem de serviço"
+                                                selected={decision === 'approve'}
+                                                onClick={() => setDecision('approve')}
+                                                variant="green"
+                                            />
+                                            <StateButton
+                                                icon={XCircle}
+                                                title="Rejeitar"
+                                                description="Recusar a execução desta ordem de serviço"
+                                                selected={decision === 'reject'}
+                                                onClick={() => setDecision('reject')}
+                                                variant="red"
                                             />
                                         </div>
+                                    </div>
 
-                                        <div className="flex justify-end gap-2">
-                                            <Button
-                                                type="submit"
-                                                disabled={!decision || processing}
-                                                variant={decision === 'reject' ? 'destructive' : 'default'}
-                                            >
-                                                {processing ? 'Processando...' : 'Confirmar Decisão'}
-                                            </Button>
-                                        </div>
-                                    </form>
-                                </CardContent>
-                            </Card>
-                        </>
-                    )}
+                                    {/* Reason */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="reason">
+                                            Razão
+                                            {decision === 'reject' && <span className="text-red-500"> *</span>}
+                                        </Label>
+                                        <Textarea
+                                            id="reason"
+                                            placeholder={
+                                                decision === 'reject'
+                                                    ? "Explique a razão da rejeição (obrigatório)..."
+                                                    : "Adicione uma razão para sua decisão (opcional)..."
+                                            }
+                                            value={reason}
+                                            onChange={(e) => setReason(e.target.value)}
+                                            rows={4}
+                                            required={decision === 'reject'}
+                                        />
+                                        {decision === 'reject' && !reason.trim() && (
+                                            <p className="text-sm text-red-500">A razão da rejeição é obrigatória</p>
+                                        )}
+                                    </div>
 
-                    {!canApprove && (
-                        <Alert>
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                                Você não tem permissão para aprovar esta ordem de serviço.
-                            </AlertDescription>
-                        </Alert>
-                    )}
+                                    {/* Action Buttons */}
+                                    <div className="flex justify-end pt-4">
+                                        <Button
+                                            type="submit"
+                                            disabled={!decision || processing || (decision === 'reject' && !reason.trim())}
+                                            variant={decision === 'reject' ? 'destructive' : 'default'}
+                                        >
+                                            {processing ? 'Processando...' : 'Confirmar Decisão'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </>
+                        )}
+                    </div>
                 </>
             )}
         </div>

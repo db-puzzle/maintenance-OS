@@ -66,7 +66,6 @@ interface WorkOrderFormData {
     asset_id: string;
 
     // Priority & Scheduling
-    priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
     priority_score: number;
     requested_due_date: string;
     downtime_required: boolean;
@@ -82,7 +81,7 @@ interface WorkOrderFormData {
     discipline: 'maintenance' | 'quality';
 
     // Index signature for form compatibility
-    [key: string]: string | number | boolean | string[] | 'manual' | 'maintenance' | 'quality' | 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
+    [key: string]: string | number | boolean | string[] | 'manual' | 'maintenance' | 'quality';
 }
 
 interface WorkOrderFormComponentProps {
@@ -95,7 +94,7 @@ interface WorkOrderFormComponentProps {
         work_order_category_id: number;
         icon?: string;
         color?: string;
-        default_priority?: string;
+        default_priority_score?: number;
     }>;
     plants: Array<{ id: number; name: string }>;
     areas: Array<{ id: number; name: string; plant_id: number }>;
@@ -151,8 +150,7 @@ export default function WorkOrderFormComponent({
         area_id: workOrder?.asset?.area_id?.toString() || preselectedAsset?.area_id?.toString() || '',
         sector_id: workOrder?.asset?.sector_id?.toString() || preselectedAsset?.sector_id?.toString() || '',
         asset_id: workOrder?.asset_id?.toString() || preselectedAssetId?.toString() || '',
-        priority: workOrder?.priority || 'normal',
-        priority_score: workOrder?.priority_score || 40,
+        priority_score: workOrder?.priority_score || 50,
         requested_due_date: workOrder?.requested_due_date || '',
         downtime_required: workOrder?.downtime_required || false,
         form_id: workOrder?.form_id?.toString() || '',
@@ -397,24 +395,15 @@ export default function WorkOrderFormComponent({
                     </div>
 
                     {/* Title - spans 3 columns */}
-                    <div className="space-y-2 md:col-span-3">
-                        <Label htmlFor="title">Título*</Label>
-                        {isViewMode ? (
-                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                                {data.title || 'Sem título'}
-                            </div>
-                        ) : (
-                            <>
-                                <Input
-                                    id="title"
-                                    value={data.title}
-                                    onChange={(e) => setData('title', e.target.value)}
-                                    placeholder="Digite um título descritivo"
-                                    required
-                                />
-                                {errors.title && <span className="text-sm text-red-500">{errors.title}</span>}
-                            </>
-                        )}
+                    <div className="md:col-span-3">
+                        <TextInput
+                            form={{ data, setData, errors, clearErrors }}
+                            name="title"
+                            label="Título"
+                            placeholder="Digite um título descritivo"
+                            required={true}
+                            view={isViewMode}
+                        />
                     </div>
 
                 </div>
@@ -425,7 +414,7 @@ export default function WorkOrderFormComponent({
                     {/* Category */}
                     <div className="space-y-2">
                         <ItemSelect
-                            label="Categoria*"
+                            label="Categoria"
                             items={categoriesForSelect}
                             value={data.work_order_category_id || ''}
                             onValueChange={(value) => {
@@ -448,16 +437,16 @@ export default function WorkOrderFormComponent({
 
                     {/* Work Order Type */}
                     <ItemSelect
-                        label="Tipo de Ordem*"
+                        label="Tipo de Ordem"
                         items={workOrderTypesWithIcons}
                         value={data.work_order_type_id}
                         onValueChange={(value) => {
                             const type = workOrderTypesWithIcons.find(t => t.id.toString() === value);
-                            if (type && type.default_priority) {
+                            if (type && type.default_priority_score) {
                                 setData(prev => ({
                                     ...prev,
                                     work_order_type_id: value,
-                                    priority: type.default_priority as any,
+                                    priority_score: type.default_priority_score || 50,
                                 }));
                             } else {
                                 setData('work_order_type_id', value);
@@ -471,7 +460,7 @@ export default function WorkOrderFormComponent({
                     />
                     {/* Priority */}
                     <div className="space-y-2">
-                        <Label htmlFor="priority_score">Pontuação de Prioridade (0-100)</Label>
+                        <Label htmlFor="priority_score">Prioridade (0-100)</Label>
                         {isViewMode ? (
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                 {data.priority_score}
@@ -485,8 +474,10 @@ export default function WorkOrderFormComponent({
                                     max={100}
                                     value={data.priority_score}
                                     onChange={(e) => setData('priority_score', parseInt(e.target.value) || 0)}
+                                    onFocus={(e) => e.target.select()}
                                     onWheel={(e) => e.preventDefault()}
                                     placeholder="50"
+                                    disabled={processing}
                                     className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                             </>

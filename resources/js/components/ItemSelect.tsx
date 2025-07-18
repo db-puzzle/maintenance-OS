@@ -147,8 +147,8 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                                     '[&>svg]:hidden',
                                     // Don't override placeholder text color
                                     '[&_[data-slot=select-value]:not(:has(*))]:text-inherit',
-                                    // Add muted background when empty
-                                    !selectedItem && 'bg-muted/20',
+                                    // Add muted background in view mode to match TextInput styling
+                                    'bg-muted/20',
                                 ]
                                     .filter(Boolean)
                                     .join(' '),

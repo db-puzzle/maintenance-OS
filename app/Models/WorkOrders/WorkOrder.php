@@ -20,7 +20,7 @@ class WorkOrder extends Model
     
     protected $fillable = [
         'work_order_number', 'discipline', 'title', 'description', 'work_order_type_id',
-        'work_order_category_id', 'priority', 'priority_score', 'status',
+        'work_order_category_id', 'priority_score', 'status',
         'asset_id', 'instrument_id', 'form_id', 'form_version_id', 'custom_tasks',
         'estimated_hours', 'estimated_parts_cost', 'estimated_labor_cost',
         'estimated_total_cost', 'downtime_required', 'safety_requirements',
@@ -418,17 +418,7 @@ class WorkOrder extends Model
     // Calculate priority score based on multiple factors
     public function calculatePriorityScore(): int
     {
-        $score = 50; // Base score
-
-        // Priority weight
-        $priorityWeights = [
-            'emergency' => 40,
-            'urgent' => 30,
-            'high' => 20,
-            'normal' => 0,
-            'low' => -20,
-        ];
-        $score += $priorityWeights[$this->priority] ?? 0;
+        $score = $this->priority_score ?? 50; // Base score from current priority_score
 
         // Age factor (older = higher priority)
         $ageInDays = $this->created_at->diffInDays(now());

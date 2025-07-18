@@ -104,7 +104,7 @@ export default function WorkOrderDetailsTab({
                     </div>
                     <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Prioridade</p>
-                        <WorkOrderPriorityIndicator priority={workOrder.priority} />
+                        <WorkOrderPriorityIndicator priorityScore={workOrder.priority_score || 50} />
                     </div>
                     <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Categoria</p>

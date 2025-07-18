@@ -25,6 +25,8 @@ interface ShowLayoutProps {
     children?: ReactNode;
     showEditButton?: boolean;
     defaultActiveTab?: string;
+    activeTab?: string;
+    onActiveTabChange?: (tabId: string) => void;
     onCompressedChange?: (compressed: boolean) => void;
     defaultCompressed?: boolean;
 }
@@ -37,11 +39,17 @@ export default function ShowLayout({
     children,
     showEditButton = false,
     defaultActiveTab,
+    activeTab: controlledActiveTab,
+    onActiveTabChange,
     onCompressedChange,
     defaultCompressed = false,
 }: ShowLayoutProps) {
-    const [activeTab, setActiveTab] = useState(defaultActiveTab || (tabs && tabs.length > 0 ? tabs[0].id : ''));
+    const [internalActiveTab, setInternalActiveTab] = useState(defaultActiveTab || (tabs && tabs.length > 0 ? tabs[0].id : ''));
     const [isCompressed, setIsCompressed] = useState(defaultCompressed);
+
+    // Use controlled mode if activeTab and onActiveTabChange are provided
+    const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab;
+    const setActiveTab = onActiveTabChange || setInternalActiveTab;
 
     // Always call the hook, but handle cases where the provider might not be available
     const sidebarControls = useSidebar();

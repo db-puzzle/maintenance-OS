@@ -9,7 +9,6 @@ export interface WorkOrder {
     work_order_type_id: number;
     work_order_category_id: number;
     work_order_category_obj?: WorkOrderCategory;
-    priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
     priority_score: number;
     status: WorkOrderStatus;
 
@@ -156,7 +155,7 @@ export interface WorkOrderType {
     description?: string;
     color?: string;
     icon?: string;
-    default_priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
+    default_priority_score: number;
     sla_hours?: number;
     requires_approval: boolean;
     auto_approve_from_routine: boolean;
@@ -407,7 +406,6 @@ export interface CreateWorkOrderData {
     work_order_type_id: number;
     work_order_category: 'corrective' | 'preventive' | 'inspection' | 'project' |
     'calibration' | 'quality_control' | 'quality_audit' | 'non_conformance';
-    priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
     priority_score: number;
     asset_id?: number;
     instrument_id?: number;
@@ -478,14 +476,7 @@ export const STATUS_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
     cancelled: [],
 };
 
-// Priority Configuration
-export const PRIORITY_CONFIG = {
-    emergency: { label: 'Emergência', color: 'red', score: 100 },
-    urgent: { label: 'Urgente', color: 'orange', score: 80 },
-    high: { label: 'Alta', color: 'yellow', score: 60 },
-    normal: { label: 'Normal', color: 'blue', score: 40 },
-    low: { label: 'Baixa', color: 'gray', score: 20 },
-} as const;
+
 
 // Discipline Configuration
 export interface DisciplineConfig {

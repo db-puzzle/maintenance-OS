@@ -47,7 +47,7 @@ class WorkOrderTypeFactory extends Factory
             'description' => $this->faker->sentence(),
             'color' => $this->faker->hexColor(),
             'icon' => $this->faker->randomElement(['wrench', 'cog', 'tools', 'hammer']),
-            'default_priority' => $this->faker->randomElement(['low', 'normal', 'high']),
+            'default_priority_score' => $this->faker->numberBetween(30, 80),
             'requires_approval' => $this->faker->boolean(),
             'auto_approve_from_routine' => $this->faker->boolean(),
             'sla_hours' => $this->faker->numberBetween(24, 168),

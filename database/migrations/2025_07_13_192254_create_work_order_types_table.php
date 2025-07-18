@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('color', 7)->nullable()->comment('Hex color for UI');
             $table->string('icon', 50)->nullable()->comment('Icon identifier for UI');
-            $table->string('default_priority', 20)->default('normal');
+            $table->integer('default_priority_score')->default(50)->comment('Default priority score 0-100');
             $table->boolean('requires_approval')->default(true);
             $table->boolean('auto_approve_from_routine')->default(false);
             $table->integer('sla_hours')->nullable()->comment('Service level agreement in hours');

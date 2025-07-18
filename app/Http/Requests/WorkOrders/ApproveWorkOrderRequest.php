@@ -20,7 +20,8 @@ class ApproveWorkOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'notes' => 'nullable|string|max:1000',
+            'reason' => 'nullable|string|max:1000',
+            'notes' => 'nullable|string|max:1000', // Kept for backward compatibility
         ];
     }
 
@@ -30,6 +31,7 @@ class ApproveWorkOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'reason.max' => 'A razão não pode ter mais de 1000 caracteres.',
             'notes.max' => 'As notas não podem ter mais de 1000 caracteres.',
         ];
     }

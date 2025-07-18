@@ -57,7 +57,7 @@ class WorkOrderUpdateTest extends TestCase
             'title' => 'Original Title',
             'description' => 'Original Description',
             'asset_id' => $this->asset->id,
-            'priority' => 'normal',
+
             'priority_score' => 50,
             'requested_due_date' => now()->addDays(7),
             'downtime_required' => false,
@@ -83,7 +83,6 @@ class WorkOrderUpdateTest extends TestCase
             'title' => 'Updated Title',
             'description' => 'Updated Description',
             'asset_id' => $newAsset->id,
-            'priority' => 'high',
             'priority_score' => 75,
             'requested_due_date' => now()->addDays(14)->format('Y-m-d\TH:i:s'),
             'downtime_required' => true,
@@ -108,7 +107,6 @@ class WorkOrderUpdateTest extends TestCase
         $this->assertEquals('Updated Title', $this->workOrder->title);
         $this->assertEquals('Updated Description', $this->workOrder->description);
         $this->assertEquals($newAsset->id, $this->workOrder->asset_id);
-        $this->assertEquals('high', $this->workOrder->priority);
         $this->assertEquals(75, $this->workOrder->priority_score);
         $this->assertTrue($this->workOrder->downtime_required);
         $this->assertEquals('REF-002-UPDATED', $this->workOrder->external_reference);
@@ -325,7 +323,6 @@ class WorkOrderUpdateTest extends TestCase
 
         $updateData = [
             'title' => 'Should Not Update',
-            'priority' => 'emergency',
         ];
 
         $response = $this->put(
@@ -338,7 +335,6 @@ class WorkOrderUpdateTest extends TestCase
         // Verify nothing was updated
         $this->workOrder->refresh();
         $this->assertEquals('Original Title', $this->workOrder->title);
-        $this->assertEquals('normal', $this->workOrder->priority);
     }
 
     /**

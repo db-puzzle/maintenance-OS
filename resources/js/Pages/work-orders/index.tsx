@@ -172,6 +172,12 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
                     ) as React.ReactNode;
                 }
 
+                // Handle category as object or string
+                let categoryCode = row.work_order_category;
+                if (typeof categoryCode === 'object' && categoryCode !== null) {
+                    categoryCode = categoryCode.code || categoryCode.name || '';
+                }
+
                 // Fallback to category code
                 const categoryLabels: Record<string, string> = {
                     preventive: 'Preventiva',
@@ -183,7 +189,7 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
                     quality_audit: 'Auditoria',
                     non_conformance: 'Não Conformidade',
                 };
-                return categoryLabels[row.work_order_category] || row.work_order_category;
+                return categoryLabels[categoryCode] || categoryCode || '-';
             },
         },
         {
@@ -192,9 +198,9 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
             render: (_: any, row: any) => (row.type?.name || '-') as React.ReactNode,
         },
         {
-            key: 'priority',
+            key: 'priority_score',
             label: 'Prioridade',
-            render: (value: any) => <WorkOrderPriorityIndicator priority={value} showLabel={false} />,
+            render: (value: any) => <WorkOrderPriorityIndicator priorityScore={value || 50} showLabel={false} />,
             width: 'w-[80px]',
         },
         {

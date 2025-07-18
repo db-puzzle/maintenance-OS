@@ -32,7 +32,6 @@ class UpdateWorkOrderRequest extends FormRequest
                 'work_order_category_id' => 'sometimes|exists:work_order_categories,id',
                 'title' => 'sometimes|string|max:255',
                 'description' => 'nullable|string',
-                'priority' => 'sometimes|in:emergency,urgent,high,normal,low',
                 'priority_score' => 'sometimes|integer|min:0|max:100',
                 'asset_id' => 'nullable|exists:assets,id',
                 'plant_id' => 'sometimes|exists:plants,id',

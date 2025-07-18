@@ -757,7 +757,8 @@ class AssetController extends Controller
         $page = $request->input('page', 1);
         $sort = $request->input('sort', 'created_at');
         $direction = $request->input('direction', 'desc');
-        $category = $request->input('category', 'preventive'); // Default to preventive
+        $category = $request->input('category'); // No default category - show all work orders
+        $search = $request->input('search');
         
         $query = $asset->workOrders()
             ->with([
@@ -771,6 +772,15 @@ class AssetController extends Controller
         // Filter by category if provided
         if ($category) {
             $query->byCategory($category);
+        }
+        
+        // Apply search filter
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('work_order_number', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
         }
         
         // Apply sorting with proper handling for related table fields

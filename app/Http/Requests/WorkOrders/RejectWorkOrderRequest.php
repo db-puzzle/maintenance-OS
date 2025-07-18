@@ -20,7 +20,9 @@ class RejectWorkOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'rejection_reason' => 'required|string|min:10|max:1000',
+            'reason' => 'required_without_all:rejection_reason,notes|string|min:10|max:1000',
+            'rejection_reason' => 'required_without_all:reason,notes|string|min:10|max:1000', // Kept for backward compatibility
+            'notes' => 'required_without_all:reason,rejection_reason|string|min:10|max:1000', // Kept for backward compatibility
         ];
     }
 
@@ -30,9 +32,15 @@ class RejectWorkOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'rejection_reason.required' => 'O motivo da rejeição é obrigatório.',
-            'rejection_reason.min' => 'O motivo da rejeição deve ter pelo menos 10 caracteres.',
-            'rejection_reason.max' => 'O motivo da rejeição não pode ter mais de 1000 caracteres.',
+            'reason.required_without_all' => 'A razão da rejeição é obrigatória.',
+            'reason.min' => 'A razão da rejeição deve ter pelo menos 10 caracteres.',
+            'reason.max' => 'A razão da rejeição não pode ter mais de 1000 caracteres.',
+            'rejection_reason.required_without_all' => 'A razão da rejeição é obrigatória.',
+            'rejection_reason.min' => 'A razão da rejeição deve ter pelo menos 10 caracteres.',
+            'rejection_reason.max' => 'A razão da rejeição não pode ter mais de 1000 caracteres.',
+            'notes.required_without_all' => 'A razão da rejeição é obrigatória.',
+            'notes.min' => 'A razão da rejeição deve ter pelo menos 10 caracteres.',
+            'notes.max' => 'A razão da rejeição não pode ter mais de 1000 caracteres.',
         ];
     }
 } 

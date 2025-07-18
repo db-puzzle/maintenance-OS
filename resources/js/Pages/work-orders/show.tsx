@@ -1,11 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Head, router } from '@inertiajs/react';
+import React, { useMemo, useEffect, useState } from 'react';
+import { Head, router, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import {
     WorkOrderStatusBadge,
     WorkOrderPriorityIndicator,
-    WorkOrderFormComponent
+    WorkOrderFormComponent,
+    WorkOrderStatusProgress
 } from '@/components/work-orders';
 import {
     WorkOrderApprovalTab,
@@ -91,6 +92,8 @@ export default function ShowWorkOrder({
     preselectedAssetId,
     preselectedAsset
 }: Props) {
+    const [activeTab, setActiveTab] = useState('details');
+
     console.log('[show.tsx] ShowWorkOrder rendering', {
         workOrderId: workOrder?.id,
         workOrderStatus: workOrder?.status,
@@ -161,6 +164,21 @@ export default function ShowWorkOrder({
         },
     ], [discipline, workOrder?.work_order_number, isCreating]);
 
+    // Helper function to get tab label by ID
+    const getTabLabelById = (tabId: string): string => {
+        const tabMapping: Record<string, string> = {
+            'details': 'Informações Gerais',
+            'status': 'Status',
+            'approval': 'Aprovação',
+            'planning': 'Planejamento',
+            'execution': 'Execução',
+            'analysis': 'Análise de Falha',
+            'history': 'Histórico',
+            'parts': 'Peças'
+        };
+        return tabMapping[tabId] || tabId;
+    };
+
     // Define tabs
     console.log('[show.tsx] Building tabs array');
     const tabs: any[] = [];
@@ -192,7 +210,25 @@ export default function ShowWorkOrder({
         });
     } else {
         // Show all tabs for existing work orders
-        // 1. Informações Gerais (always first) - using WorkOrderFormComponent in view mode
+        // 1. Status (progress tracking) - now first
+        tabs.push({
+            id: 'status',
+            label: 'Status',
+            icon: <Activity className="h-4 w-4" />,
+            content: (
+                <div className="py-8">
+                    <WorkOrderStatusProgress
+                        currentStatus={workOrder.status}
+                        workOrder={workOrder}
+                        onTabChange={(tabId) => {
+                            setActiveTab(tabId);
+                        }}
+                    />
+                </div>
+            ),
+        });
+
+        // 2. Informações Gerais - using WorkOrderFormComponent in view mode
         tabs.push({
             id: 'details',
             label: 'Informações Gerais',
@@ -219,7 +255,7 @@ export default function ShowWorkOrder({
             ),
         });
 
-        // 2. Aprovação (always shown)
+        // 3. Aprovação (always shown)
         console.log('[show.tsx] Adding approval tab', {
             workOrderStatus: workOrder.status,
             canApprove,
@@ -239,7 +275,7 @@ export default function ShowWorkOrder({
             ),
         });
 
-        // 3. Planejamento (always shown)
+        // 4. Planejamento (always shown)
         tabs.push({
             id: 'planning',
             label: 'Planejamento',
@@ -255,14 +291,13 @@ export default function ShowWorkOrder({
                     canPlan={canPlan}
                     discipline={discipline}
                     onGoToApproval={() => {
-                        // Since we can't control the active tab, we'll show an alert
-                        alert('Por favor, clique na aba "Aprovação" para aprovar esta ordem de serviço.');
+                        setActiveTab('approval');
                     }}
                 />
             ),
         });
 
-        // 4. Execução (always shown)
+        // 5. Execução (always shown)
         tabs.push({
             id: 'execution',
             label: 'Execução',
@@ -302,11 +337,26 @@ export default function ShowWorkOrder({
 
             <ShowLayout
                 title={isCreating ? 'Nova Ordem de Serviço' : workOrder?.work_order_number}
-                subtitle={isCreating ? 'Criação de nova ordem de serviço' : workOrder?.title}
+                subtitle={
+                    isCreating ? (
+                        'Criação de nova ordem de serviço'
+                    ) : workOrder?.asset ? (
+                        <Link
+                            href={route('asset-hierarchy.assets.show', workOrder.asset.id)}
+                            className="text-muted-foreground hover:underline"
+                        >
+                            {workOrder.asset.tag}
+                        </Link>
+                    ) : (
+                        workOrder?.title
+                    )
+                }
                 editRoute={!isCreating && canEdit && workOrder?.status === 'requested' ? route(`${discipline}.work-orders.edit`, workOrder.id) : ''}
                 tabs={tabs}
                 defaultActiveTab="details"
                 showEditButton={!isCreating && canEdit && workOrder?.status === 'requested'}
+                activeTab={activeTab}
+                onActiveTabChange={setActiveTab}
             />
         </AppLayout>
     );

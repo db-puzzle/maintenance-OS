@@ -124,25 +124,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     ];
 
     // Estado para gerenciar as rotinas
-    const [routines, setRoutines] = useState<
-        Array<{
-            id: number;
-            name: string;
-            description?: string;
-            form?: unknown;
-            form_id?: number;
-            trigger_type: 'runtime_hours' | 'calendar_days';
-            trigger_runtime_hours?: number;
-            trigger_calendar_days?: number;
-            execution_mode: 'automatic' | 'manual';
-            advance_generation_days?: number;
-            auto_approve_work_orders?: boolean;
-            priority_score?: number;
-            last_execution_runtime_hours?: number;
-            last_execution_completed_at?: string;
-            [key: string]: unknown;
-        }>
-    >(asset?.routines || []);
+    const [routines, setRoutines] = useState<any[]>(asset?.routines || []);
 
     // Update routines when asset prop changes
     useEffect(() => {
@@ -445,10 +427,11 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                             <div className="min-h-full space-y-4">
                                 <AssetRoutinesTab
                                     assetId={asset!.id}
-                                    routines={routines}
+                                    routines={routines as any}
                                     selectedShift={selectedShift}
                                     newRoutineId={newRoutineId}
                                     userPermissions={userPermissions}
+                                    isCompressed={isCompressed}
                                 />
                             </div>
                         );
@@ -463,6 +446,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                 assetId={asset!.id}
                                 discipline="maintenance"
                                 userPermissions={userPermissions}
+                                isCompressed={isCompressed}
                             />
                         </div>
                     ),

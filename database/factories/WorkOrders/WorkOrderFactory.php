@@ -51,7 +51,6 @@ class WorkOrderFactory extends Factory
             );
         }
             
-        $priorities = ['emergency', 'urgent', 'high', 'normal', 'low'];
         $statuses = ['pending', 'approved', 'in_progress', 'completed'];
         
         return [
@@ -61,7 +60,6 @@ class WorkOrderFactory extends Factory
             'description' => $this->faker->paragraph(),
             'work_order_type_id' => WorkOrderType::factory(),
             'work_order_category_id' => $category->id,
-            'priority' => $this->faker->randomElement($priorities),
             'priority_score' => $this->faker->numberBetween(0, 100),
             'status' => $this->faker->randomElement($statuses),
             'asset_id' => Asset::factory(),

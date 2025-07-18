@@ -1736,8 +1736,7 @@ export interface WorkOrder {
   work_order_type_id: number;
   work_order_category: 'corrective' | 'preventive' | 'inspection' | 'project' |
                       'calibration' | 'quality_control' | 'quality_audit' | 'non_conformance';
-  priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
-  priority_score: number;
+  priority_score: number; // 0-100 priority ranking
   status: string;
   
   // Asset relationship (maintenance discipline)

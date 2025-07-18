@@ -115,8 +115,7 @@ CREATE TABLE work_orders (
     work_order_type_id BIGINT UNSIGNED NOT NULL,
     work_order_category ENUM('corrective', 'preventive', 'inspection', 'project', 
                             'calibration', 'quality_control', 'quality_audit', 'non_conformance') NOT NULL,
-    priority ENUM('emergency', 'urgent', 'high', 'normal', 'low') DEFAULT 'normal',
-    priority_score INTEGER DEFAULT 50,
+    priority_score INTEGER DEFAULT 50 COMMENT '0-100 for priority ranking',
     status VARCHAR(50) DEFAULT 'requested',
     
     -- Asset relationship (for maintenance discipline)

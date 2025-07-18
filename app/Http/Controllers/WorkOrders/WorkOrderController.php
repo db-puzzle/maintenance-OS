@@ -50,7 +50,7 @@ class WorkOrderController extends Controller
         $search = $request->input('search');
         $status = $request->input('status');
         $category = $request->input('category');
-        $priority = $request->input('priority');
+
         $assignedTo = $request->input('assigned_to');
         $plantId = $request->input('plant_id');
         $sort = $request->input('sort', 'created_at');
@@ -107,9 +107,7 @@ class WorkOrderController extends Controller
             }
         }
 
-        if ($priority) {
-            $query->where('priority', $priority);
-        }
+
 
         if ($assignedTo) {
             $query->where('assigned_technician_id', $assignedTo);
@@ -197,7 +195,6 @@ class WorkOrderController extends Controller
                 'search' => $search,
                 'status' => $status,
                 'category' => $category,
-                'priority' => $priority,
                 'assigned_to' => $assignedTo,
                 'plant_id' => $plantId,
                 'date_from' => $dateFrom,
@@ -431,7 +428,7 @@ class WorkOrderController extends Controller
         if (auth()->user()->can('approve', $workOrder)) {
             $approvalThreshold = [
                 'maxCost' => $this->getUserApprovalCostLimit(auth()->user()),
-                'maxPriority' => $this->getUserApprovalPriorityLimit(auth()->user()),
+                'maxPriorityScore' => $this->getUserApprovalPriorityLimit(auth()->user()),
             ];
         }
 
@@ -573,7 +570,10 @@ class WorkOrderController extends Controller
     {
         $validated = $request->validated();
 
-        $success = $workOrder->transitionTo(WorkOrder::STATUS_APPROVED, auth()->user(), $validated['notes'] ?? null);
+        // Use reason field if provided, otherwise fall back to notes for backward compatibility
+        $reason = $validated['reason'] ?? $validated['notes'] ?? null;
+
+        $success = $workOrder->transitionTo(WorkOrder::STATUS_APPROVED, auth()->user(), $reason);
 
         if (!$success) {
             return back()->with('error', 'Não foi possível aprovar a ordem de serviço. Status inválido.');
@@ -589,7 +589,14 @@ class WorkOrderController extends Controller
     {
         $validated = $request->validated();
 
-        $success = $workOrder->transitionTo(WorkOrder::STATUS_REJECTED, auth()->user(), $validated['rejection_reason']);
+        // Use reason field if provided, otherwise fall back to rejection_reason or notes for backward compatibility
+        $reason = $validated['reason'] ?? $validated['rejection_reason'] ?? $validated['notes'] ?? null;
+        
+        if (!$reason) {
+            return back()->with('error', 'A razão da rejeição é obrigatória.');
+        }
+
+        $success = $workOrder->transitionTo(WorkOrder::STATUS_REJECTED, auth()->user(), $reason);
 
         if (!$success) {
             return back()->with('error', 'Não foi possível rejeitar a ordem de serviço. Status inválido.');
@@ -637,7 +644,7 @@ class WorkOrderController extends Controller
         $user = auth()->user();
         $approvalThreshold = [
             'maxCost' => $this->getUserApprovalCostLimit($user),
-            'maxPriority' => $this->getUserApprovalPriorityLimit($user),
+                            'maxPriorityScore' => $this->getUserApprovalPriorityLimit($user),
         ];
 
         return Inertia::render('work-orders/approve', [
@@ -790,18 +797,18 @@ class WorkOrderController extends Controller
     }
 
     /**
-     * Get user's approval priority limit based on role
+     * Get user's approval priority score limit based on role
      */
     private function getUserApprovalPriorityLimit($user)
     {
         if ($user->hasRole('Administrator')) {
-            return 'emergency';
+            return 100; // Can approve any priority
         } elseif ($user->hasRole('Plant Manager')) {
-            return 'high';
+            return 80; // High priority and below
         } elseif ($user->hasRole('Maintenance Supervisor')) {
-            return 'normal';
+            return 60; // Normal priority and below
         }
-        return 'low';
+        return 40; // Low priority only
     }
 
     /**

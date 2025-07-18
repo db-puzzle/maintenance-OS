@@ -20,6 +20,7 @@ import { CalendarRange } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Task } from '@/types/task';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface Shift {
     id: number;
@@ -84,6 +85,7 @@ interface AssetRoutinesTabProps {
     selectedShift?: Shift | null;
     newRoutineId?: number;
     userPermissions?: string[];
+    isCompressed?: boolean;
 }
 
 export default function AssetRoutinesTab({
@@ -91,7 +93,8 @@ export default function AssetRoutinesTab({
     routines: initialRoutines,
     selectedShift,
     newRoutineId,
-    userPermissions = []
+    userPermissions = [],
+    isCompressed = false
 }: AssetRoutinesTabProps) {
 
     // Estado para gerenciar as rotinas
@@ -860,14 +863,20 @@ export default function AssetRoutinesTab({
             <div className="space-y-4 mt-4">
                 {/* Search bar */}
                 <div className="flex items-center justify-between">
-                    <div className="relative max-w-sm">
+                    <div className={cn(
+                        "relative transition-all duration-200",
+                        isCompressed ? "w-[300px]" : "w-[380px]"
+                    )}>
                         <Search className="text-muted-foreground absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2" />
                         <Input
                             type="text"
                             placeholder="Buscar rotinas..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
+                            className={cn(
+                                "pl-10 transition-all duration-200",
+                                isCompressed ? "h-8 text-sm" : "h-10"
+                            )}
                         />
                     </div>
                     <CreateRoutineButton

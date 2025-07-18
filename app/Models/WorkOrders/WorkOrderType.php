@@ -18,7 +18,7 @@ class WorkOrderType extends Model
         'description',
         'color',
         'icon',
-        'default_priority',
+        'default_priority_score',
         'requires_approval',
         'auto_approve_from_routine',
         'sla_hours',
@@ -30,6 +30,7 @@ class WorkOrderType extends Model
         'auto_approve_from_routine' => 'boolean',
         'is_active' => 'boolean',
         'sla_hours' => 'integer',
+        'default_priority_score' => 'integer',
     ];
 
     // Relationships
