@@ -106,6 +106,8 @@ interface WorkOrderFormComponentProps {
     initialMode?: 'view' | 'edit';
     onSuccess?: () => void;
     onCancel?: () => void;
+    preselectedAssetId?: string | number;
+    preselectedAsset?: { id: number; tag: string; name: string; plant_id: number; area_id: number; sector_id?: number };
 }
 
 export default function WorkOrderFormComponent({
@@ -120,7 +122,9 @@ export default function WorkOrderFormComponent({
     discipline = 'maintenance',
     initialMode = 'view',
     onSuccess,
-    onCancel
+    onCancel,
+    preselectedAssetId,
+    preselectedAsset
 }: WorkOrderFormComponentProps) {
     const isEditing = !!workOrder;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
@@ -143,10 +147,10 @@ export default function WorkOrderFormComponent({
         work_order_category_id: workOrder?.work_order_category_id?.toString() || '',
         title: workOrder?.title || '',
         description: workOrder?.description || '',
-        plant_id: workOrder?.asset?.plant_id?.toString() || '',
-        area_id: workOrder?.asset?.area_id?.toString() || '',
-        sector_id: workOrder?.asset?.sector_id?.toString() || '',
-        asset_id: workOrder?.asset_id?.toString() || '',
+        plant_id: workOrder?.asset?.plant_id?.toString() || preselectedAsset?.plant_id?.toString() || '',
+        area_id: workOrder?.asset?.area_id?.toString() || preselectedAsset?.area_id?.toString() || '',
+        sector_id: workOrder?.asset?.sector_id?.toString() || preselectedAsset?.sector_id?.toString() || '',
+        asset_id: workOrder?.asset_id?.toString() || preselectedAssetId?.toString() || '',
         priority: workOrder?.priority || 'normal',
         priority_score: workOrder?.priority_score || 40,
         requested_due_date: workOrder?.requested_due_date || '',
@@ -369,9 +373,10 @@ export default function WorkOrderFormComponent({
                             <>
                                 <Button
                                     type="button"
-                                    variant="outline"
+                                    variant={preselectedAssetId ? "secondary" : "outline"}
                                     className="w-full justify-between"
-                                    onClick={() => setAssetSearchOpen(true)}
+                                    onClick={() => !preselectedAssetId && setAssetSearchOpen(true)}
+                                    disabled={!!preselectedAssetId}
                                 >
                                     {selectedAsset ? (
                                         <div className="flex items-center gap-2">
@@ -384,7 +389,7 @@ export default function WorkOrderFormComponent({
                                             <span>Selecionar Ativo</span>
                                         </div>
                                     )}
-                                    <ChevronDownIcon className="h-4 w-4" />
+                                    {!preselectedAssetId && <ChevronDownIcon className="h-4 w-4" />}
                                 </Button>
                                 {errors.asset_id && <span className="text-sm text-red-500">{errors.asset_id}</span>}
                             </>

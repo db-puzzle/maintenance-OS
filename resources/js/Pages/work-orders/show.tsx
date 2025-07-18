@@ -62,6 +62,8 @@ interface Props {
     sectors?: any[];
     assets?: any[];
     forms?: any[];
+    preselectedAssetId?: string | number;
+    preselectedAsset?: any;
 }
 
 export default function ShowWorkOrder({
@@ -85,7 +87,9 @@ export default function ShowWorkOrder({
     areas = [],
     sectors = [],
     assets = [],
-    forms = []
+    forms = [],
+    preselectedAssetId,
+    preselectedAsset
 }: Props) {
     console.log('[show.tsx] ShowWorkOrder rendering', {
         workOrderId: workOrder?.id,
@@ -180,6 +184,8 @@ export default function ShowWorkOrder({
                         discipline={discipline}
                         initialMode="edit"
                         onSuccess={handleWorkOrderCreated}
+                        preselectedAssetId={preselectedAssetId}
+                        preselectedAsset={preselectedAsset}
                     />
                 </div>
             ),

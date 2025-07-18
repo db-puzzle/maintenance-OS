@@ -317,6 +317,10 @@ class WorkOrderController extends Controller
         if ($workOrder === 'new') {
             $this->authorize('create', WorkOrder::class);
             
+            // Get the pre-selected asset if provided
+            $preselectedAssetId = request()->query('asset_id');
+            $preselectedAsset = null;
+            
             // Get data based on discipline
             if ($discipline === 'maintenance') {
                 $plants = Plant::orderBy('name')->get();
@@ -335,6 +339,11 @@ class WorkOrderController extends Controller
                             'sector_id' => $asset->sector_id,
                         ];
                     });
+                    
+                // If we have a preselected asset, find it
+                if ($preselectedAssetId) {
+                    $preselectedAsset = $assets->firstWhere('id', (int)$preselectedAssetId);
+                }
             } else {
                 $plants = [];
                 $areas = [];
@@ -372,6 +381,8 @@ class WorkOrderController extends Controller
                 'canValidate' => false,
                 'canStart' => false,
                 'canComplete' => false,
+                'preselectedAssetId' => $preselectedAssetId,
+                'preselectedAsset' => $preselectedAsset,
             ]);
         }
         

@@ -51,7 +51,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/assets/{asset}/runtime/calculation-details', [AssetController::class, 'getRuntimeCalculationDetails'])->name('asset-hierarchy.assets.runtime.calculation-details');
     Route::get('asset-hierarchy/assets/{asset}/runtime/breakdown', [AssetController::class, 'getRuntimeBreakdown'])->name('asset-hierarchy.assets.runtime.breakdown');
     
-    // Work order history route
+    // Work order routes
+    Route::get('asset-hierarchy/assets/{asset}/work-orders', [AssetController::class, 'getWorkOrderHistory'])->name('asset-hierarchy.assets.work-orders');
     Route::get('asset-hierarchy/assets/{asset}/work-order-history', [AssetController::class, 'getWorkOrderHistory'])->name('asset-hierarchy.assets.work-order-history');
 
     // General asset route (must come after all specific routes)

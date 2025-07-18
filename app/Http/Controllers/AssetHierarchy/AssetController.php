@@ -817,6 +817,9 @@ class AssetController extends Controller
             return [
                 'id' => $workOrder->id,
                 'work_order_id' => $workOrder->id,
+                'work_order_number' => $workOrder->work_order_number,
+                'title' => $workOrder->title,
+                'priority' => $workOrder->priority,
                 'routine' => ($workOrder->source_type === 'routine' && $workOrder->sourceRoutine) ? [
                     'id' => $workOrder->sourceRoutine->id,
                     'name' => $workOrder->sourceRoutine->name,
@@ -834,6 +837,7 @@ class AssetController extends Controller
                     'published_at' => $workOrder->form->currentVersion->published_at,
                 ] : null,
                 'status' => $workOrder->status,
+                'scheduled_start_date' => $workOrder->scheduled_start_date,
                 'started_at' => $execution ? $execution->started_at : null,
                 'completed_at' => $execution ? $execution->completed_at : null,
                 'duration_minutes' => $execution && $execution->started_at && $execution->completed_at 

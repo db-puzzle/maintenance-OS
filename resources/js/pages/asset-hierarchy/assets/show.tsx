@@ -1,6 +1,7 @@
 import AssetFormComponent from '@/components/AssetFormComponent';
 import AssetRuntimeInput from '@/components/AssetRuntimeInput';
 import AssetRoutinesTab from '@/components/AssetRoutinesTab';
+import AssetWorkOrdersTab from '@/components/AssetWorkOrdersTab';
 import CreateShiftSheet from '@/components/CreateShiftSheet';
 import ExecutionHistory from '@/components/ExecutionHistory';
 import ShiftCalendarView from '@/components/ShiftCalendarView';
@@ -457,18 +458,12 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                     id: 'ordem-serviço',
                     label: 'Ordens de Serviço',
                     content: (
-                        <div className="flex min-h-[400px] items-center justify-center py-4">
-                            <div className="w-full">
-                                <EmptyCard
-                                    icon={FileText}
-                                    title="Nenhuma ordem de serviço"
-                                    description="Registre ordens de serviço para este ativo"
-                                    primaryButtonText="Nova ordem de serviço"
-                                    primaryButtonAction={() => { }}
-                                    secondaryButtonText="Ver histórico"
-                                    secondaryButtonAction={() => { }}
-                                />
-                            </div>
+                        <div className="py-6">
+                            <AssetWorkOrdersTab
+                                assetId={asset!.id}
+                                discipline="maintenance"
+                                userPermissions={userPermissions}
+                            />
                         </div>
                     ),
                 },
