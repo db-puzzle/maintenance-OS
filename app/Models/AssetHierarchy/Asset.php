@@ -23,7 +23,6 @@ class Asset extends Model
         'part_number',
         'asset_type_id',
         'description',
-        'manufacturer',
         'manufacturer_id',
         'manufacturing_year',
         'plant_id',

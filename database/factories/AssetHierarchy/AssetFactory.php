@@ -40,7 +40,6 @@ class AssetFactory extends Factory
             'part_number' => $this->faker->optional()->numerify('PN-####-###'),
             'asset_type_id' => AssetType::factory(),
             'description' => $this->faker->sentence(),
-            'manufacturer' => null, // deprecated field
             'manufacturer_id' => Manufacturer::factory(),
             'manufacturing_year' => $this->faker->numberBetween(2000, date('Y')),
             'plant_id' => $plant->id,

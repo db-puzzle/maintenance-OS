@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\AssetType;
+use App\Models\AssetHierarchy\Manufacturer;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class AssetImportExportController extends Controller
         // Busca todos os ativos com seus relacionamentos
         $asset = Asset::with([
             'assetType:id,name',
+            'manufacturer:id,name',
             'plant:id,name',
             'area:id,name,plant_id',
             'sector:id,name,area_id',
@@ -41,7 +43,7 @@ class AssetImportExportController extends Controller
                 'Part Number' => $item->part_number,
                 'Tipo de Ativo' => $item->assetType?->name,
                 'Descrição' => $item->description,
-                'Fabricante' => $item->manufacturer,
+                'Fabricante' => $item->manufacturer?->name,
                 'Ano de Fabricação' => $item->manufacturing_year,
                 'Planta' => $item->plant?->name,
                 'Área' => $item->area?->name,
@@ -511,6 +513,15 @@ class AssetImportExportController extends Controller
                         $assetTypeId = $assetType->id;
                     }
 
+                    // Busca o ID do fabricante (opcional)
+                    $manufacturerId = null;
+                    if (! empty($row['manufacturer'])) {
+                        $manufacturer = Manufacturer::firstOrCreate(
+                            ['name' => $row['manufacturer']]
+                        );
+                        $manufacturerId = $manufacturer->id;
+                    }
+
                     // Verifica se já existe um ativo com a mesma TAG na mesma localização
                     $existingAssetQuery = Asset::where('tag', $row['tag']);
 
@@ -544,7 +555,7 @@ class AssetImportExportController extends Controller
                             'part_number' => $row['part_number'] ?? null,
                             'asset_type_id' => $assetTypeId,
                             'description' => $row['description'] ?? null,
-                            'manufacturer' => $row['manufacturer'] ?? null,
+                            'manufacturer_id' => $manufacturerId,
                             'manufacturing_year' => $row['manufacturing_year'] ?? null,
                             'plant_id' => $plant?->id,
                             'area_id' => $area?->id,

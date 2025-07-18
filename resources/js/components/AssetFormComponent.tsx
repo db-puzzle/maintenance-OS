@@ -377,7 +377,6 @@ export default function AssetFormComponent({
         part_number: asset?.part_number || '',
         asset_type_id: asset?.asset_type_id?.toString() || '',
         description: asset?.description || '',
-        manufacturer: typeof asset?.manufacturer === 'string' ? asset.manufacturer : '',
         manufacturer_id: asset?.manufacturer_id?.toString() || (typeof asset?.manufacturer === 'object' && asset?.manufacturer?.id?.toString()) || '',
         manufacturing_year: asset?.manufacturing_year?.toString() || '',
         plant_id: asset?.plant?.id?.toString() || '',

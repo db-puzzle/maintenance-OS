@@ -36,7 +36,7 @@ class PartsImportExportController extends Controller
         
         $data = $parts->map(function ($part) {
             return [
-                'Número da Peça' => $part->part_number,
+                'Part Number' => $part->part_number,
                 'Nome' => $part->name,
                 'Descrição' => $part->description,
                 'Custo Unitário' => $part->unit_cost,
@@ -142,7 +142,7 @@ class PartsImportExportController extends Controller
                     
                     // Ensure required fields
                     if (empty($mappedData['part_number'])) {
-                        throw new \Exception('Número da peça é obrigatório');
+                        throw new \Exception('Part Number é obrigatório');
                     }
                     
                     // Set defaults

@@ -327,7 +327,7 @@ class PlantsController extends Controller
 
         // Busca os ativos diretamente da planta
         $assetQuery = $plant->asset()
-            ->with(['assetType', 'area', 'sector'])
+            ->with(['assetType', 'manufacturer', 'area', 'sector'])
             ->get()
             ->map(function ($item) {
                 return [
@@ -337,7 +337,7 @@ class PlantsController extends Controller
                         'id' => $item->assetType->id,
                         'name' => $item->assetType->name,
                     ] : null,
-                    'manufacturer' => $item->manufacturer,
+                    'manufacturer' => $item->manufacturer?->name,
                     'manufacturing_year' => $item->manufacturing_year,
                     'area_name' => $item->area ? $item->area->name : null,
                     'sector_name' => $item->sector ? $item->sector->name : null,

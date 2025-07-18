@@ -11,19 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Placeholder table for future inventory system
-        Schema::create('inventory_parts', function (Blueprint $table) {
+        Schema::create('parts', function (Blueprint $table) {
             $table->id();
             $table->string('part_number')->unique();
             $table->string('name');
             $table->text('description')->nullable();
             $table->decimal('unit_cost', 10, 2)->default(0);
-            $table->integer('quantity_on_hand')->default(0);
-            $table->boolean('is_active')->default(true);
+            $table->integer('available_quantity')->default(0);
+            $table->integer('minimum_quantity')->default(0);
+            $table->integer('maximum_quantity')->nullable();
+            $table->string('location')->nullable();
+            $table->string('supplier')->nullable();
+            $table->string('manufacturer')->nullable();
+            $table->boolean('active')->default(true);
             $table->timestamps();
             
             $table->index('part_number');
-            $table->index('is_active');
+            $table->index('name');
+            $table->index('active');
         });
     }
 
@@ -32,6 +37,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('inventory_parts');
+        Schema::dropIfExists('parts');
     }
 };

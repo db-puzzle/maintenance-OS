@@ -32,7 +32,7 @@ class WorkOrderExecutionController extends Controller
         // Update work order status
         $workOrder->updateStatus('in_progress');
 
-        return redirect()->route('work-orders.execute', $workOrder)
+        return redirect()->route("{$workOrder->discipline}.work-orders.execute", $workOrder)
             ->with('success', 'Execução da ordem de serviço iniciada.');
     }
 
@@ -44,7 +44,7 @@ class WorkOrderExecutionController extends Controller
         $this->authorize('execute', $workOrder);
 
         if ($workOrder->status !== 'in_progress') {
-            return redirect()->route('work-orders.show', $workOrder)
+            return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
                 ->with('error', 'Esta ordem de serviço não está em execução.');
         }
 
@@ -147,7 +147,7 @@ class WorkOrderExecutionController extends Controller
         // Update execution status
         $workOrder->execution->update(['status' => 'completed']);
 
-        return redirect()->route('work-orders.show', $workOrder)
+        return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
             ->with('success', 'Ordem de serviço concluída com sucesso.');
     }
 
@@ -177,7 +177,7 @@ class WorkOrderExecutionController extends Controller
         // Update work order status back to approved
         $workOrder->updateStatus('approved', 'Execução cancelada: ' . $validated['cancellation_reason']);
 
-        return redirect()->route('work-orders.show', $workOrder)
+        return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
             ->with('success', 'Execução cancelada.');
     }
 

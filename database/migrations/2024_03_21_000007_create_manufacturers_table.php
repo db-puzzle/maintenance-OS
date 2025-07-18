@@ -27,7 +27,7 @@ return new class extends Migration
 
         // Add manufacturer_id to assets table
         Schema::table('assets', function (Blueprint $table) {
-            $table->foreignId('manufacturer_id')->nullable()->after('manufacturer')->constrained('manufacturers')->nullOnDelete();
+            $table->foreignId('manufacturer_id')->nullable()->after('description')->constrained('manufacturers')->nullOnDelete();
             $table->index('manufacturer_id');
         });
     }

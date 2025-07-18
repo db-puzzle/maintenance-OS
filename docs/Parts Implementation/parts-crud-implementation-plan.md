@@ -309,7 +309,7 @@ Add parts permissions to appropriate roles:
 
 | Column | Label | Sortable | Visibility | Format |
 |--------|-------|----------|------------|--------|
-| part_number | Número da Peça | Yes | Always | Text |
+| part_number | Part Number | Yes | Always | Text |
 | name | Nome | Yes | Default | Text with description subtitle |
 | unit_cost | Custo Unitário | Yes | Default | Currency (R$) |
 | available_quantity | Qtd. Disponível | Yes | Default | Number with low stock indicator |
@@ -841,7 +841,7 @@ class PartsImportExportController extends Controller
         
         $data = $parts->map(function ($part) {
             return [
-                'Número da Peça' => $part->part_number,
+                'Part Number' => $part->part_number,
                 'Nome' => $part->name,
                 'Descrição' => $part->description,
                 'Custo Unitário' => $part->unit_cost,
@@ -1028,7 +1028,7 @@ export function EntityImportWizard({
 ```tsx
 export default function ImportParts() {
     const importFields = [
-        { value: 'part_number', label: 'Número da Peça' },
+        { value: 'part_number', label: 'Part Number' },
         { value: 'name', label: 'Nome' },
         { value: 'description', label: 'Descrição' },
         { value: 'unit_cost', label: 'Custo Unitário' },
@@ -1078,7 +1078,7 @@ export default function ImportParts() {
                 <div className="mt-4 space-y-2 text-sm">
                     <p>• Números de peça que já existem não serão importados (a menos que "Atualizar existentes" esteja marcado)</p>
                     <p>• Números de peça duplicados dentro do arquivo CSV serão considerados apenas uma vez</p>
-                    <p>• O campo "Número da Peça" deve ser único para cada peça</p>
+                    <p>• O campo "Part Number" deve ser único para cada peça</p>
                 </div>
             </div>
         </div>

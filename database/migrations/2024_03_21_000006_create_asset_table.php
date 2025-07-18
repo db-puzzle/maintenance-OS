@@ -15,7 +15,6 @@ return new class extends Migration
             $table->string('part_number')->nullable();
             $table->foreignId('asset_type_id')->nullable()->constrained()->onDelete('restrict');
             $table->text('description')->nullable();
-            $table->string('manufacturer')->nullable();
             $table->integer('manufacturing_year')->nullable();
             $table->foreignId('plant_id')->constrained()->onDelete('restrict');
             $table->foreignId('area_id')->nullable()->constrained()->onDelete('restrict');

@@ -9,9 +9,18 @@ interface EntityDeleteDialogProps {
     onOpenChange: (open: boolean) => void;
     entityLabel: string;
     onConfirm: () => Promise<void>;
+    confirmationValue?: string;
+    confirmationLabel?: string;
 }
 
-export function EntityDeleteDialog({ open, onOpenChange, entityLabel, onConfirm }: EntityDeleteDialogProps) {
+export function EntityDeleteDialog({
+    open,
+    onOpenChange,
+    entityLabel,
+    onConfirm,
+    confirmationValue = 'EXCLUIR',
+    confirmationLabel
+}: EntityDeleteDialogProps) {
     const [loading, setLoading] = useState(false);
     const [confirmationText, setConfirmationText] = useState('');
 
@@ -35,7 +44,11 @@ export function EntityDeleteDialog({ open, onOpenChange, entityLabel, onConfirm 
         onOpenChange(newOpen);
     };
 
-    const isConfirmationValid = confirmationText === 'EXCLUIR';
+    const isConfirmationValid = confirmationText === confirmationValue;
+
+    const defaultLabel = confirmationValue === 'EXCLUIR'
+        ? 'Digite EXCLUIR para confirmar'
+        : `Digite ${confirmationValue} para confirmar`;
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -45,7 +58,7 @@ export function EntityDeleteDialog({ open, onOpenChange, entityLabel, onConfirm 
 
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="confirmation">Digite EXCLUIR para confirmar</Label>
+                        <Label htmlFor="confirmation">{confirmationLabel || defaultLabel}</Label>
                         <Input
                             id="confirmation"
                             variant="destructive"

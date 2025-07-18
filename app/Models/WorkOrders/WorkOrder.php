@@ -7,6 +7,7 @@ use App\Models\Forms\Form;
 use App\Models\Forms\FormVersion;
 use App\Models\Maintenance\Routine;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\DB;
 
 class WorkOrder extends Model
 {
+    use HasFactory;
+    
     protected $fillable = [
         'work_order_number', 'discipline', 'title', 'description', 'work_order_type_id',
         'work_order_category', 'priority', 'priority_score', 'status',

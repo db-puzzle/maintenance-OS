@@ -2773,6 +2773,16 @@ php artisan make:page WorkOrders/Create
 php artisan test --filter=WorkOrder
 npm run test:workorders
 
+# Comprehensive work order testing with fresh migration
+php artisan migrate:fresh --env=testing --seed && php artisan test tests/Feature/WorkOrders/
+
+# Specific work order update tests (critical for data integrity)
+php artisan test tests/Feature/WorkOrders/WorkOrderUpdateTest.php
+php artisan test --filter="admin_can_update_work_order_with_all_fields"
+php artisan test --filter="update_preserves_fields_not_sent"
+php artisan test --filter="cannot_update_work_order_in_progress_with_restricted_fields"
+php artisan test --filter="validation_errors_for_invalid_data"
+
 # Build for production
 npm run build
 php artisan optimize

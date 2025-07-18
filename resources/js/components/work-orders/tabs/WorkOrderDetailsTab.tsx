@@ -81,7 +81,7 @@ export default function WorkOrderDetailsTab({
             );
         }
 
-        if (canEdit && ['requested', 'approved'].includes(workOrder.status)) {
+        if (canEdit && workOrder.status === 'requested') {
             actions.push(
                 <Button key="edit" variant="outline" onClick={() => router.visit(route(`${discipline}.work-orders.edit`, workOrder.id))}>
                     <Edit className="mr-2 h-4 w-4" />

@@ -394,7 +394,7 @@ class ShiftController extends Controller
         $activeTab = $request->input('tab', 'informacoes');
 
         $assetsQuery = $shift->assets()
-            ->with(['assetType', 'plant', 'area', 'sector', 'latestRuntimeMeasurement', 'shift'])
+            ->with(['assetType', 'manufacturer', 'plant', 'area', 'sector', 'latestRuntimeMeasurement', 'shift'])
             ->orderBy($assetsSort, $assetsDirection);
 
         $assetsPaginated = $assetsQuery->paginate(10, ['*'], 'assets_page', $assetsPage);
@@ -408,7 +408,7 @@ class ShiftController extends Controller
                     'id' => $asset->assetType->id,
                     'name' => $asset->assetType->name,
                 ] : null,
-                'manufacturer' => $asset->manufacturer,
+                'manufacturer' => $asset->manufacturer?->name,
                 'serial_number' => $asset->serial_number,
                 'plant' => $asset->plant ? $asset->plant->name : null,
                 'area' => $asset->area ? $asset->area->name : null,

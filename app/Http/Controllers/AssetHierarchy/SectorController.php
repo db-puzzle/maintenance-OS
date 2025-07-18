@@ -246,7 +246,7 @@ class SectorController extends Controller
 
         // Busca os ativos com ordenação
         $assetQuery = $setor->asset()
-            ->with('assetType')
+            ->with(['assetType', 'manufacturer'])
             ->get()
             ->map(function ($item) {
                 return [
@@ -256,7 +256,7 @@ class SectorController extends Controller
                         'id' => $item->assetType->id,
                         'name' => $item->assetType->name,
                     ] : null,
-                    'manufacturer' => $item->manufacturer,
+                    'manufacturer' => $item->manufacturer?->name,
                     'manufacturing_year' => $item->manufacturing_year,
                 ];
             })

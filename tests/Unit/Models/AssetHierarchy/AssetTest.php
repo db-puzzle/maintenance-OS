@@ -156,7 +156,6 @@ class AssetTest extends ModelTestCase
             'part_number' => 'PN-1234-567',
             'asset_type_id' => $assetType->id,
             'description' => 'Test Asset',
-            'manufacturer' => null,
             'manufacturer_id' => $manufacturer->id,
             'manufacturing_year' => 2023,
             'plant_id' => $plant->id,

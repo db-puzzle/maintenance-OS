@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('work_order_parts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('work_order_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('part_id')->nullable()->constrained('inventory_parts');
+            $table->foreignId('part_id')->nullable()->constrained('parts');
             $table->string('part_number', 100)->nullable();
             $table->string('part_name');
             

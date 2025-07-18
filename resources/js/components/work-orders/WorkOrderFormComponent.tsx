@@ -4,12 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-
+import { Calendar } from '@/components/ui/calendar';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from '@/components/TextInput';
+import AssetSearchDialog from '@/components/work-orders/AssetSearchDialog';
+import DeleteWorkOrder from '@/components/work-orders/delete-work-order';
 import { toast } from 'sonner';
-import { Pencil, Save } from 'lucide-react';
+import { Pencil, Save, ChevronDownIcon, Search, Settings2 } from 'lucide-react';
 import { MAINTENANCE_CATEGORIES, QUALITY_CATEGORIES } from '@/types/work-order';
 import type { WorkOrder } from '@/types/work-order';
 
@@ -108,6 +116,12 @@ export default function WorkOrderFormComponent({
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
 
+    // Date picker state
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+    // Asset search dialog state
+    const [assetSearchOpen, setAssetSearchOpen] = useState(false);
+
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
@@ -147,14 +161,7 @@ export default function WorkOrderFormComponent({
         }));
     }, [categories]);
 
-    // Priority options for ItemSelect
-    const priorityOptions = useMemo(() => [
-        { id: 1, name: 'Emergência (Score: 100)', value: 'emergency' },
-        { id: 2, name: 'Urgente (Score: 80)', value: 'urgent' },
-        { id: 3, name: 'Alta (Score: 60)', value: 'high' },
-        { id: 4, name: 'Normal (Score: 40)', value: 'normal' },
-        { id: 5, name: 'Baixa (Score: 20)', value: 'low' },
-    ], []);
+
 
     // Transform workOrderTypes to include actual icon components
     const workOrderTypesWithIcons = useMemo(() => {
@@ -190,21 +197,75 @@ export default function WorkOrderFormComponent({
         });
     }, [assets, data.plant_id, data.area_id, data.sector_id]);
 
-    // Update priority score based on priority
-    const updatePriorityScore = (priority: string) => {
-        const scores = {
-            emergency: 100,
-            urgent: 80,
-            high: 60,
-            normal: 40,
-            low: 20,
-        };
-        setData({
-            ...data,
-            priority: priority as any,
-            priority_score: scores[priority as keyof typeof scores],
-        });
+    // Get the selected asset details
+    const selectedAsset = useMemo(() => {
+        if (!data.asset_id) return null;
+        return assets.find(asset => asset.id === parseInt(data.asset_id));
+    }, [data.asset_id, assets]);
+
+    // Handle asset selection from dialog
+    const handleAssetSelect = (assetId: string) => {
+        const asset = assets.find(a => a.id === parseInt(assetId));
+        if (asset) {
+            setData({
+                ...data,
+                asset_id: assetId,
+                plant_id: asset.plant_id.toString(),
+                area_id: asset.area_id.toString(),
+                sector_id: asset.sector_id?.toString() || '',
+            });
+        }
     };
+
+    // Helper functions for date/time handling
+    const parseDateTime = (dateTimeString: string) => {
+        if (!dateTimeString) return { date: undefined, time: '' };
+
+        // Parse datetime-local format directly without timezone conversion
+        const [datePart, timePart] = dateTimeString.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+
+        // Create date using local timezone (no conversion)
+        const date = new Date(year, month - 1, day);
+
+        // Clean up time part - remove timezone indicator and microseconds
+        let cleanTime = timePart || '12:00:00';
+        if (cleanTime) {
+            // Remove timezone indicator (Z or +/-HHMM)
+            cleanTime = cleanTime.replace(/[Z].*$/, '').replace(/[+-]\d{2}:?\d{2}$/, '');
+            // Remove microseconds (keep only HH:MM:SS)
+            cleanTime = cleanTime.split('.')[0];
+            // Ensure we have at least HH:MM:SS format
+            const timeParts = cleanTime.split(':');
+            if (timeParts.length === 2) {
+                cleanTime = `${timeParts[0]}:${timeParts[1]}:00`;
+            }
+        }
+
+        return {
+            date: date,
+            time: cleanTime
+        };
+    };
+
+    const combineDateTime = (date: Date | undefined, time: string) => {
+        if (!date || !time) return '';
+
+        // Format date as YYYY-MM-DD
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        // Ensure time has seconds
+        const [hours, minutes, seconds = '00'] = time.split(':');
+        const formattedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
+
+        // Return in datetime-local format
+        return `${year}-${month}-${day}T${formattedTime}`;
+    };
+
+    // Parse current datetime value
+    const currentDateTime = parseDateTime(data.requested_due_date);
 
     const handleSave = () => {
         if (isEditing) {
@@ -253,6 +314,11 @@ export default function WorkOrderFormComponent({
     };
 
     const handleEdit = () => {
+        // Only allow editing if work order is in 'requested' status
+        if (workOrder && workOrder.status !== 'requested') {
+            toast.error('Esta ordem de serviço não pode ser editada pois já foi aprovada.');
+            return;
+        }
         setMode('edit');
     };
 
@@ -267,29 +333,74 @@ export default function WorkOrderFormComponent({
             {/* Basic Information Section */}
             <div className="space-y-4">
 
-                {/* Title */}
-                <div className="space-y-2 -mt-2">
-                    <Label htmlFor="title">Título*</Label>
-                    {isViewMode ? (
-                        <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                            {data.title || 'Sem título'}
-                        </div>
-                    ) : (
-                        <>
-                            <Input
-                                id="title"
-                                value={data.title}
-                                onChange={(e) => setData('title', e.target.value)}
-                                placeholder="Digite um título descritivo"
-                                required
-                            />
-                            {errors.title && <span className="text-sm text-red-500">{errors.title}</span>}
-                        </>
-                    )}
+                {/* Title and Asset Selection Row */}
+                <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr] -mt-2">
+
+                    {/* Asset Selection */}
+                    <div className="space-y-2">
+                        <Label>Ativo*</Label>
+                        {isViewMode ? (
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                {selectedAsset ? (
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium">{selectedAsset.tag}</span>
+                                        <span className="text-muted-foreground">{selectedAsset.name}</span>
+                                    </div>
+                                ) : (
+                                    'Nenhum ativo selecionado'
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full justify-between"
+                                    onClick={() => setAssetSearchOpen(true)}
+                                >
+                                    {selectedAsset ? (
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium">{selectedAsset.tag}</span>
+                                            <span className="text-muted-foreground">{selectedAsset.name}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <Search className="h-4 w-4" />
+                                            <span>Selecionar Ativo</span>
+                                        </div>
+                                    )}
+                                    <ChevronDownIcon className="h-4 w-4" />
+                                </Button>
+                                {errors.asset_id && <span className="text-sm text-red-500">{errors.asset_id}</span>}
+                            </>
+                        )}
+                    </div>
+
+                    {/* Title - spans 3 columns */}
+                    <div className="space-y-2 md:col-span-3">
+                        <Label htmlFor="title">Título*</Label>
+                        {isViewMode ? (
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                {data.title || 'Sem título'}
+                            </div>
+                        ) : (
+                            <>
+                                <Input
+                                    id="title"
+                                    value={data.title}
+                                    onChange={(e) => setData('title', e.target.value)}
+                                    placeholder="Digite um título descritivo"
+                                    required
+                                />
+                                {errors.title && <span className="text-sm text-red-500">{errors.title}</span>}
+                            </>
+                        )}
+                    </div>
+
                 </div>
 
                 {/* Category, Type, Priority and Due Date Row */}
-                <div className="grid gap-4 md:grid-cols-[25%_25%_25%_25%]">
+                <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr]">
 
                     {/* Category */}
                     <div className="space-y-2">
@@ -330,41 +441,88 @@ export default function WorkOrderFormComponent({
                         view={isViewMode}
                     />
                     {/* Priority */}
-                    <ItemSelect
-                        label="Prioridade*"
-                        items={priorityOptions}
-                        value={priorityOptions.find(priority => priority.value === data.priority)?.id.toString() || ''}
-                        onValueChange={(value) => {
-                            const selectedPriority = priorityOptions.find(priority => priority.id.toString() === value);
-                            if (selectedPriority) {
-                                updatePriorityScore(selectedPriority.value);
-                            }
-                        }}
-                        placeholder="Selecione a prioridade"
-                        error={errors.priority}
-                        required
-                        view={isViewMode}
-                        canCreate={false}
-                    />
-
-                    {/* Due Date */}
                     <div className="space-y-2">
-                        <Label htmlFor="requested_due_date">Data de Vencimento Solicitada*</Label>
+                        <Label htmlFor="priority_score">Pontuação de Prioridade (0-100)*</Label>
                         {isViewMode ? (
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                                {data.requested_due_date ?
-                                    new Date(data.requested_due_date).toLocaleDateString('pt-BR') :
-                                    'Não definida'
-                                }
+                                {data.priority_score}
                             </div>
                         ) : (
-                            <Input
-                                id="requested_due_date"
-                                type="datetime-local"
-                                value={data.requested_due_date}
-                                onChange={(e) => setData('requested_due_date', e.target.value)}
-                                required
-                            />
+                            <>
+                                <Input
+                                    id="priority_score"
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={data.priority_score}
+                                    onChange={(e) => setData('priority_score', parseInt(e.target.value) || 0)}
+                                    onWheel={(e) => e.preventDefault()}
+                                    placeholder="50"
+                                    required
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                            </>
+                        )}
+                        {errors.priority_score && <span className="text-sm text-red-500">{errors.priority_score}</span>}
+                    </div>
+
+                    {/* Due Date */}
+                    <div className="space-y-2 min-w-0">
+                        <Label>Data de Vencimento Solicitada*</Label>
+                        {isViewMode ? (
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                {data.requested_due_date ? (
+                                    `${new Date(data.requested_due_date).toLocaleDateString('pt-BR')} às ${new Date(data.requested_due_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                                ) : (
+                                    'Não definida'
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex gap-2 min-w-0">
+                                <div className="flex-1 min-w-0">
+                                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full justify-between font-normal"
+                                                type="button"
+                                            >
+                                                <span className="truncate">
+                                                    {currentDateTime.date ?
+                                                        currentDateTime.date.toLocaleDateString('pt-BR') :
+                                                        "Selecionar data"
+                                                    }
+                                                </span>
+                                                <ChevronDownIcon className="h-4 w-4 flex-shrink-0" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={currentDateTime.date}
+                                                captionLayout="dropdown"
+                                                onSelect={(date) => {
+                                                    const newDateTime = combineDateTime(date, currentDateTime.time || '12:00:00');
+                                                    setData('requested_due_date', newDateTime);
+                                                    setDatePickerOpen(false);
+                                                }}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <Input
+                                        type="time"
+                                        step="1"
+                                        value={currentDateTime.time || '12:00:00'}
+                                        onChange={(e) => {
+                                            const newDateTime = combineDateTime(currentDateTime.date || new Date(), e.target.value);
+                                            setData('requested_due_date', newDateTime);
+                                        }}
+                                        className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                                    />
+                                </div>
+                            </div>
                         )}
                         {errors.requested_due_date && (
                             <span className="text-sm text-red-500">{errors.requested_due_date}</span>
@@ -373,198 +531,184 @@ export default function WorkOrderFormComponent({
 
                 </div>
 
-                {/* Description */}
-                <div className="space-y-2">
-                    <Label htmlFor="description">Descrição</Label>
-                    {isViewMode ? (
-                        <div className="rounded-md border bg-muted/20 p-3 text-sm">
-                            {data.description || 'Sem descrição'}
-                        </div>
-                    ) : (
-                        <Textarea
-                            id="description"
-                            value={data.description}
-                            onChange={(e) => setData('description', e.target.value)}
-                            placeholder="Descreva o problema ou serviço necessário"
-                            rows={4}
-                        />
-                    )}
+                {/* Description Row */}
+                <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr]">
+                    <div className="space-y-2 md:col-span-4">
+                        <Label htmlFor="description">Descrição</Label>
+                        {isViewMode ? (
+                            <div className="rounded-md border bg-muted/20 p-3 text-sm">
+                                {data.description || 'Sem descrição'}
+                            </div>
+                        ) : (
+                            <Textarea
+                                id="description"
+                                value={data.description}
+                                onChange={(e) => setData('description', e.target.value)}
+                                placeholder="Descreva o problema ou serviço necessário"
+                                rows={4}
+                            />
+                        )}
+                    </div>
                 </div>
-            </div>
 
-            {/* Asset Selection Section */}
-            <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Localização e Ativo</h3>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                    {/* Plant */}
-                    <ItemSelect
-                        label="Planta*"
-                        items={plants}
-                        value={data.plant_id}
-                        onValueChange={(value) => {
-                            setData({
-                                ...data,
-                                plant_id: value,
-                                area_id: '',
-                                sector_id: '',
-                                asset_id: '',
-                            });
-                        }}
-                        placeholder="Selecione a planta"
-                        error={errors.plant_id}
-                        required={!isViewMode}
-                        view={isViewMode}
-                    />
-
-                    {/* Area */}
-                    <ItemSelect
-                        label="Área*"
-                        items={filteredAreas}
-                        value={data.area_id}
-                        onValueChange={(value) => {
-                            setData({
-                                ...data,
-                                area_id: value,
-                                sector_id: '',
-                                asset_id: '',
-                            });
-                        }}
-                        placeholder="Selecione a área"
-                        error={errors.area_id}
-                        disabled={!data.plant_id}
-                        required={!isViewMode}
-                        view={isViewMode}
-                    />
-
-                    {/* Sector */}
-                    <ItemSelect
-                        label="Setor"
-                        items={filteredSectors}
-                        value={data.sector_id}
-                        onValueChange={(value) => {
-                            setData({
-                                ...data,
-                                sector_id: value,
-                                asset_id: '',
-                            });
-                        }}
-                        placeholder="Selecione o setor (opcional)"
-                        error={errors.sector_id}
-                        disabled={!data.area_id}
-                        canClear
-                        view={isViewMode}
-                    />
-
-                    {/* Asset */}
-                    <ItemSelect
-                        label="Ativo*"
-                        items={filteredAssets.map(asset => ({
-                            ...asset,
-                            name: `${asset.tag} - ${asset.name}`,
-                        }))}
-                        value={data.asset_id}
-                        onValueChange={(value) => setData('asset_id', value)}
-                        placeholder="Selecione o ativo"
-                        error={errors.asset_id}
-                        disabled={!data.area_id}
-                        searchable
-                        required={!isViewMode}
-                        view={isViewMode}
-                    />
-                </div>
-            </div>
-
-            {/* Additional Information Section */}
-            {!isViewMode && (
-                <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Informações Adicionais</h3>
-
+                {/* Additional Information Row */}
+                <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr]">
                     {/* Form Template */}
-                    <ItemSelect
-                        label="Template de Formulário"
-                        items={forms}
-                        value={data.form_id}
-                        onValueChange={(value) => setData('form_id', value)}
-                        placeholder="Selecione um formulário (opcional)"
-                        canClear
-                        view={isViewMode}
-                    />
-
-                    {/* Downtime Required */}
-                    <div className="flex items-center space-x-2">
-                        <Checkbox
-                            id="downtime_required"
-                            checked={data.downtime_required}
-                            onCheckedChange={(checked) => setData('downtime_required', checked as boolean)}
-                            disabled={isViewMode}
+                    <div className="space-y-2">
+                        <ItemSelect
+                            label="Template de Formulário"
+                            items={forms}
+                            value={data.form_id}
+                            onValueChange={(value) => setData('form_id', value)}
+                            placeholder="Selecione um formulário (opcional)"
+                            canClear
+                            view={isViewMode}
                         />
-                        <Label htmlFor="downtime_required">
-                            Requer parada do equipamento
-                        </Label>
                     </div>
 
                     {/* External Reference */}
                     <div className="space-y-2">
                         <Label htmlFor="external_reference">Referência Externa</Label>
-                        <Input
-                            id="external_reference"
-                            value={data.external_reference}
-                            onChange={(e) => setData('external_reference', e.target.value)}
-                            placeholder="Número do pedido, ticket, etc."
-                        />
+                        {isViewMode ? (
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                {data.external_reference || 'Sem referência'}
+                            </div>
+                        ) : (
+                            <Input
+                                id="external_reference"
+                                value={data.external_reference}
+                                onChange={(e) => setData('external_reference', e.target.value)}
+                                placeholder="Número do pedido, ticket, etc."
+                            />
+                        )}
+                    </div>
+
+                    {/* Downtime Required */}
+                    <div className="space-y-2">
+                        <Label htmlFor="downtime_required">Parada Requerida</Label>
+                        {isViewMode ? (
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                {data.downtime_required ? 'Sim' : 'Não'}
+                            </div>
+                        ) : (
+                            <div className="flex items-center space-x-2 pt-2">
+                                <Switch
+                                    id="downtime_required"
+                                    checked={data.downtime_required}
+                                    onCheckedChange={(checked) => setData('downtime_required', checked as boolean)}
+                                    disabled={isViewMode}
+                                />
+                                <Label htmlFor="downtime_required" className="text-sm">
+                                    Requer parada do equipamento
+                                </Label>
+                            </div>
+                        )}
                     </div>
 
                     {/* Warranty Claim */}
-                    <div className="flex items-center space-x-2">
-                        <Checkbox
-                            id="warranty_claim"
-                            checked={data.warranty_claim}
-                            onCheckedChange={(checked) => setData('warranty_claim', checked === true)}
-                            disabled={isViewMode}
-                        />
-                        <Label htmlFor="warranty_claim">
-                            Solicitação de garantia
-                        </Label>
+                    <div className="space-y-2">
+                        <Label htmlFor="warranty_claim">Garantia</Label>
+                        {isViewMode ? (
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                {data.warranty_claim ? 'Sim' : 'Não'}
+                            </div>
+                        ) : (
+                            <div className="flex items-center space-x-2 pt-2">
+                                <Switch
+                                    id="warranty_claim"
+                                    checked={data.warranty_claim}
+                                    onCheckedChange={(checked) => setData('warranty_claim', checked === true)}
+                                    disabled={isViewMode}
+                                />
+                                <Label htmlFor="warranty_claim" className="text-sm">
+                                    Solicitação de garantia
+                                </Label>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Asset Search Dialog */}
+            <AssetSearchDialog
+                open={assetSearchOpen}
+                onOpenChange={setAssetSearchOpen}
+                assets={assets}
+                plants={plants}
+                areas={areas}
+                sectors={sectors}
+                selectedAssetId={data.asset_id}
+                onSelectAsset={handleAssetSelect}
+            />
+
+            {/* Action Buttons */}
+            {isEditing && (
+                <div className="flex justify-between pt-4">
+                    {/* Left side - delete button when in edit mode */}
+                    <div>
+                        {!isViewMode && workOrder && (
+                            <DeleteWorkOrder
+                                workOrderId={workOrder.id}
+                                workOrderNumber={workOrder.work_order_number}
+                                discipline={discipline}
+                            />
+                        )}
+                    </div>
+
+                    {/* Right side - action buttons */}
+                    <div className="flex gap-2">
+                        {isViewMode ? (
+                            workOrder?.status === 'requested' && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleEdit}
+                                >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
+                                </Button>
+                            )
+                        ) : (
+                            <>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleCancel}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                >
+                                    {processing ? 'Salvando...' : 'Salvar'}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex justify-between pt-4">
-                {/* Left side - empty for create mode */}
-                <div />
-
-                {/* Right side - action buttons */}
-                <div className="flex gap-2">
-                    {isViewMode ? (
+            {/* Action buttons for create mode */}
+            {!isEditing && (
+                <div className="flex justify-end pt-4">
+                    <div className="flex gap-2">
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={handleEdit}
+                            onClick={handleCancel}
                         >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar
+                            Cancelar
                         </Button>
-                    ) : (
-                        <>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleCancel}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                            >
-                                {processing ? 'Salvando...' : (isEditing ? 'Salvar' : 'Criar Ordem')}
-                            </Button>
-                        </>
-                    )}
+                        <Button
+                            type="submit"
+                            disabled={processing}
+                        >
+                            {processing ? 'Criando...' : 'Criar Ordem'}
+                        </Button>
+                    </div>
                 </div>
-            </div>
+            )}
         </form>
     );
 } 

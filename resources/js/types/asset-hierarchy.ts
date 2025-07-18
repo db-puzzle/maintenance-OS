@@ -39,7 +39,6 @@ export interface AssetForm {
     part_number: string;
     asset_type_id: number | string;
     description: string;
-    manufacturer: string;
     manufacturer_id: number | string;
     manufacturing_year: string;
     area_id: number | string;

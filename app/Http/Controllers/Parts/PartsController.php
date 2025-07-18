@@ -19,13 +19,13 @@ class PartsController extends Controller
 
         // Search functionality
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = strtolower($request->input('search'));
             $query->where(function ($q) use ($search) {
-                $q->where('part_number', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%")
-                    ->orWhere('supplier', 'like', "%{$search}%")
-                    ->orWhere('manufacturer', 'like', "%{$search}%")
-                    ->orWhere('location', 'like', "%{$search}%");
+                $q->whereRaw('LOWER(part_number) like ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(name) like ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(supplier) like ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(manufacturer) like ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(location) like ?', ["%{$search}%"]);
             });
         }
 

@@ -301,7 +301,19 @@ class WorkOrderController extends Controller
                 $plants = Plant::orderBy('name')->get();
                 $areas = Area::with('plant')->orderBy('name')->get();
                 $sectors = Sector::with('area')->orderBy('name')->get();
-                $assets = Asset::with(['plant', 'area', 'sector'])->orderBy('tag')->get();
+                $assets = Asset::with(['plant', 'area', 'sector', 'assetType'])
+                    ->orderBy('tag')
+                    ->get()
+                    ->map(function ($asset) {
+                        return [
+                            'id' => $asset->id,
+                            'tag' => $asset->tag,
+                            'name' => $asset->description ?: ($asset->assetType ? $asset->assetType->name : ''),
+                            'plant_id' => $asset->plant_id,
+                            'area_id' => $asset->area_id,
+                            'sector_id' => $asset->sector_id,
+                        ];
+                    });
             } else {
                 $plants = [];
                 $areas = [];
@@ -383,6 +395,26 @@ class WorkOrderController extends Controller
             ];
         }
 
+        // Get data for WorkOrderFormComponent
+        $workOrderTypes = WorkOrderType::active()->orderBy('name')->get();
+        $assets = Asset::with(['plant', 'area', 'sector', 'assetType'])
+            ->orderBy('tag')
+            ->get()
+            ->map(function ($asset) {
+                return [
+                    'id' => $asset->id,
+                    'tag' => $asset->tag,
+                    'name' => $asset->description ?: ($asset->assetType ? $asset->assetType->name : ''),
+                    'plant_id' => $asset->plant_id,
+                    'area_id' => $asset->area_id,
+                    'sector_id' => $asset->sector_id,
+                ];
+            });
+        $plants = Plant::orderBy('name')->get();
+        $areas = Area::with('plant')->orderBy('name')->get();
+        $sectors = Sector::with('area')->orderBy('name')->get();
+        $forms = Form::where('is_active', true)->orderBy('name')->get();
+
         return Inertia::render('work-orders/show', [
             'workOrder' => $workOrder,
             'users' => $users,
@@ -402,6 +434,13 @@ class WorkOrderController extends Controller
             'parts' => $parts,
             'skills' => $skills,
             'certifications' => $certifications,
+            // Additional data for WorkOrderFormComponent
+            'workOrderTypes' => $workOrderTypes,
+            'assets' => $assets,
+            'plants' => $plants,
+            'areas' => $areas,
+            'sectors' => $sectors,
+            'forms' => $forms,
         ]);
     }
 
@@ -413,7 +452,19 @@ class WorkOrderController extends Controller
         $this->authorize('update', $workOrder);
 
         $workOrderTypes = WorkOrderType::active()->orderBy('name')->get();
-        $assets = Asset::with(['plant', 'area', 'sector'])->orderBy('tag')->get();
+        $assets = Asset::with(['plant', 'area', 'sector', 'assetType'])
+            ->orderBy('tag')
+            ->get()
+            ->map(function ($asset) {
+                return [
+                    'id' => $asset->id,
+                    'tag' => $asset->tag,
+                    'name' => $asset->description ?: ($asset->assetType ? $asset->assetType->name : ''),
+                    'plant_id' => $asset->plant_id,
+                    'area_id' => $asset->area_id,
+                    'sector_id' => $asset->sector_id,
+                ];
+            });
         $plants = Plant::orderBy('name')->get();
         $areas = Area::with('plant')->orderBy('name')->get();
         $sectors = Sector::with('area')->orderBy('name')->get();
@@ -449,7 +500,7 @@ class WorkOrderController extends Controller
 
         $workOrder->update($validated);
 
-        return redirect()->route('work-orders.show', $workOrder)
+        return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
             ->with('success', 'Ordem de serviço atualizada com sucesso.');
     }
 
@@ -460,9 +511,10 @@ class WorkOrderController extends Controller
     {
         $this->authorize('delete', $workOrder);
 
+        $discipline = $workOrder->discipline;
         $workOrder->delete();
 
-        return redirect()->route('work-orders.index')
+        return redirect()->route("{$discipline}.work-orders.index")
             ->with('success', 'Ordem de serviço excluída com sucesso.');
     }
 
@@ -555,7 +607,7 @@ class WorkOrderController extends Controller
         $this->authorize('plan', $workOrder);
 
         if (!in_array($workOrder->status, [WorkOrder::STATUS_APPROVED, WorkOrder::STATUS_PLANNED])) {
-            return redirect()->route('work-orders.show', $workOrder)
+            return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
                 ->with('error', 'Esta ordem de serviço não está em status apropriado para planejamento.');
         }
 
@@ -648,7 +700,7 @@ class WorkOrderController extends Controller
             }
         });
 
-        return redirect()->route('work-orders.planning', $workOrder)
+        return redirect()->route("{$workOrder->discipline}.work-orders.planning", $workOrder)
             ->with('success', 'Planejamento salvo com sucesso.');
     }
 
@@ -670,7 +722,7 @@ class WorkOrderController extends Controller
             return back()->with('error', 'Não foi possível concluir o planejamento. Status inválido.');
         }
 
-        return redirect()->route('work-orders.show', $workOrder)
+        return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
             ->with('success', 'Planejamento concluído. Ordem de serviço pronta para agendamento.');
     }
 

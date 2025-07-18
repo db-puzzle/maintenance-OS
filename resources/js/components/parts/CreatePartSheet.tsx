@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FormField } from '@/components/FormField';
+import TextInput from '@/components/TextInput';
+import InputError from '@/components/input-error';
 import { toast } from 'sonner';
 
 interface Part {
@@ -34,8 +34,8 @@ interface CreatePartSheetProps {
 
 export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreatePartSheetProps) {
     const [stayOpen, setStayOpen] = useState(false);
-    
-    const { data, setData, post, put, processing, errors, reset } = useForm({
+
+    const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm({
         part_number: '',
         name: '',
         description: '',
@@ -46,24 +46,27 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
         location: '',
         supplier: '',
         manufacturer: '',
-        active: true,
+        active: true as boolean,
     });
+
+    // Create a wrapper to handle the typing issue
+    const handleClearErrors = (...fields: string[]) => {
+        clearErrors(...(fields as any));
+    };
 
     useEffect(() => {
         if (part) {
-            setData({
-                part_number: part.part_number,
-                name: part.name,
-                description: part.description || '',
-                unit_cost: part.unit_cost,
-                available_quantity: part.available_quantity,
-                minimum_quantity: part.minimum_quantity,
-                maximum_quantity: part.maximum_quantity,
-                location: part.location || '',
-                supplier: part.supplier || '',
-                manufacturer: part.manufacturer || '',
-                active: part.active,
-            });
+            setData('part_number', part.part_number);
+            setData('name', part.name);
+            setData('description', part.description || '');
+            setData('unit_cost', part.unit_cost);
+            setData('available_quantity', part.available_quantity);
+            setData('minimum_quantity', part.minimum_quantity);
+            setData('maximum_quantity', part.maximum_quantity);
+            setData('location', part.location || '');
+            setData('supplier', part.supplier || '');
+            setData('manufacturer', part.manufacturer || '');
+            setData('active', part.active);
         } else {
             reset();
         }
@@ -71,15 +74,14 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         const submitData = {
             ...data,
             maximum_quantity: data.maximum_quantity || null,
         };
-        
+
         if (part) {
             put(route('parts.update', part.id), {
-                data: submitData,
                 onSuccess: () => {
                     toast.success('Peça atualizada com sucesso');
                     if (!stayOpen) {
@@ -93,7 +95,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
             });
         } else {
             post(route('parts.store'), {
-                data: submitData,
                 onSuccess: () => {
                     toast.success('Peça criada com sucesso');
                     if (stayOpen) {
@@ -132,98 +133,136 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
 
                 <form onSubmit={handleSubmit} className="space-y-6 mt-6">
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Número da Peça" error={errors.part_number} required>
-                            <Input
-                                value={data.part_number}
-                                onChange={(e) => setData('part_number', e.target.value)}
-                                placeholder="EX-001"
-                            />
-                        </FormField>
+                        <TextInput
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors: handleClearErrors,
+                            }}
+                            name="part_number"
+                            label="Part Number"
+                            placeholder="EX-001"
+                            required
+                        />
 
-                        <FormField label="Nome" error={errors.name} required>
-                            <Input
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                placeholder="Nome da peça"
-                            />
-                        </FormField>
+                        <TextInput
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors: handleClearErrors,
+                            }}
+                            name="name"
+                            label="Nome"
+                            placeholder="Nome da peça"
+                            required
+                        />
                     </div>
 
-                    <FormField label="Descrição" error={errors.description}>
+                    <div className="grid gap-2">
+                        <Label htmlFor="description">Descrição</Label>
                         <Textarea
+                            id="description"
                             value={data.description}
                             onChange={(e) => setData('description', e.target.value)}
                             placeholder="Descrição detalhada da peça"
                             rows={3}
                         />
-                    </FormField>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Custo Unitário (R$)" error={errors.unit_cost} required>
-                            <Input
-                                value={formatCurrency(data.unit_cost)}
-                                onChange={handleCurrencyChange}
-                                placeholder="0,00"
-                            />
-                        </FormField>
-
-                        <FormField label="Qtd. Disponível" error={errors.available_quantity} required>
-                            <Input
-                                type="number"
-                                min="0"
-                                value={data.available_quantity}
-                                onChange={(e) => setData('available_quantity', parseInt(e.target.value) || 0)}
-                                placeholder="0"
-                            />
-                        </FormField>
+                        <InputError message={errors.description} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Qtd. Mínima" error={errors.minimum_quantity} required>
-                            <Input
-                                type="number"
-                                min="0"
-                                value={data.minimum_quantity}
-                                onChange={(e) => setData('minimum_quantity', parseInt(e.target.value) || 0)}
-                                placeholder="0"
-                            />
-                        </FormField>
-
-                        <FormField label="Qtd. Máxima" error={errors.maximum_quantity}>
-                            <Input
-                                type="number"
-                                min="0"
-                                value={data.maximum_quantity || ''}
-                                onChange={(e) => setData('maximum_quantity', e.target.value ? parseInt(e.target.value) : null)}
-                                placeholder="Opcional"
-                            />
-                        </FormField>
-                    </div>
-
-                    <FormField label="Localização" error={errors.location}>
-                        <Input
-                            value={data.location}
-                            onChange={(e) => setData('location', e.target.value)}
-                            placeholder="Ex: Almoxarifado A, Prateleira 3"
+                        <TextInput
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors: handleClearErrors,
+                            }}
+                            name="unit_cost"
+                            label="Custo Unitário (R$)"
+                            placeholder="0.00"
+                            required
                         />
-                    </FormField>
+
+                        <TextInput
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors: handleClearErrors,
+                            }}
+                            name="available_quantity"
+                            label="Qtd. Disponível"
+                            placeholder="0"
+                            required
+                        />
+                    </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Fornecedor" error={errors.supplier}>
-                            <Input
-                                value={data.supplier}
-                                onChange={(e) => setData('supplier', e.target.value)}
-                                placeholder="Nome do fornecedor"
-                            />
-                        </FormField>
+                        <TextInput
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors: handleClearErrors,
+                            }}
+                            name="minimum_quantity"
+                            label="Qtd. Mínima"
+                            placeholder="0"
+                            required
+                        />
 
-                        <FormField label="Fabricante" error={errors.manufacturer}>
-                            <Input
-                                value={data.manufacturer}
-                                onChange={(e) => setData('manufacturer', e.target.value)}
-                                placeholder="Nome do fabricante"
-                            />
-                        </FormField>
+                        <TextInput
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors: handleClearErrors,
+                            }}
+                            name="maximum_quantity"
+                            label="Qtd. Máxima"
+                            placeholder="Opcional"
+                        />
+                    </div>
+
+                    <TextInput
+                        form={{
+                            data,
+                            setData,
+                            errors,
+                            clearErrors: handleClearErrors,
+                        }}
+                        name="location"
+                        label="Localização"
+                        placeholder="Ex: Almoxarifado A, Prateleira 3"
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <TextInput
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors: handleClearErrors,
+                            }}
+                            name="supplier"
+                            label="Fornecedor"
+                            placeholder="Nome do fornecedor"
+                        />
+
+                        <TextInput
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors: handleClearErrors,
+                            }}
+                            name="manufacturer"
+                            label="Fabricante"
+                            placeholder="Nome do fabricante"
+                        />
                     </div>
 
                     <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
@@ -236,7 +275,7 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                         <Switch
                             id="active"
                             checked={data.active}
-                            onCheckedChange={(checked) => setData('active', checked)}
+                            onCheckedChange={(checked) => setData('active', checked as boolean)}
                         />
                     </div>
 

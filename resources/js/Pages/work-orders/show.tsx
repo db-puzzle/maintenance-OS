@@ -10,7 +10,6 @@ import {
 import {
     WorkOrderApprovalTab,
     WorkOrderPlanningTab,
-    WorkOrderDetailsTab,
     WorkOrderExecutionTab,
     WorkOrderHistoryTab,
     WorkOrderPartsTab,
@@ -184,21 +183,29 @@ export default function ShowWorkOrder({
         });
     } else {
         // Show all tabs for existing work orders
-        // 1. Detalhes (always first)
+        // 1. Informações Gerais (always first) - using WorkOrderFormComponent in view mode
         tabs.push({
             id: 'details',
-            label: 'Detalhes',
+            label: 'Informações Gerais',
             icon: <FileText className="h-4 w-4" />,
             content: (
-                <WorkOrderDetailsTab
-                    workOrder={workOrder}
-                    discipline={discipline}
-                    canEdit={canEdit}
-                    canApprove={canApprove}
-                    canPlan={canPlan}
-                    canExecute={canExecute}
-                    canValidate={canValidate}
-                />
+                <div className="py-8">
+                    <WorkOrderFormComponent
+                        workOrder={workOrder}
+                        workOrderTypes={workOrderTypes}
+                        plants={plants}
+                        areas={areas}
+                        sectors={sectors}
+                        assets={assets}
+                        forms={forms}
+                        discipline={discipline}
+                        initialMode="view"
+                        onSuccess={() => {
+                            toast.success('Ordem de serviço atualizada com sucesso!');
+                            router.reload();
+                        }}
+                    />
+                </div>
             ),
         });
 
@@ -286,10 +293,10 @@ export default function ShowWorkOrder({
             <ShowLayout
                 title={isCreating ? 'Nova Ordem de Serviço' : workOrder?.work_order_number}
                 subtitle={isCreating ? 'Criação de nova ordem de serviço' : workOrder?.title}
-                editRoute={!isCreating && canEdit && ['requested', 'approved'].includes(workOrder?.status) ? route(`${discipline}.work-orders.edit`, workOrder.id) : ''}
+                editRoute={!isCreating && canEdit && workOrder?.status === 'requested' ? route(`${discipline}.work-orders.edit`, workOrder.id) : ''}
                 tabs={tabs}
                 defaultActiveTab="details"
-                showEditButton={!isCreating && canEdit && ['requested', 'approved'].includes(workOrder?.status)}
+                showEditButton={!isCreating && canEdit && workOrder?.status === 'requested'}
             />
         </AppLayout>
     );

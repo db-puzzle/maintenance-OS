@@ -25,7 +25,7 @@ class WorkOrderPlanningController extends Controller
         $this->authorize('plan', $workOrder);
 
         if (!in_array($workOrder->status, [WorkOrder::STATUS_APPROVED, WorkOrder::STATUS_PLANNED])) {
-            return redirect()->route('maintenance.work-orders.show', $workOrder)
+            return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
                 ->with('error', 'Esta ordem de serviço não está em status apropriado para planejamento.');
         }
 
@@ -130,7 +130,7 @@ class WorkOrderPlanningController extends Controller
             }
         });
 
-        return redirect()->route('maintenance.work-orders.planning', $workOrder)
+        return redirect()->route("{$workOrder->discipline}.work-orders.planning", $workOrder)
             ->with('success', 'Planejamento salvo com sucesso.');
     }
 
@@ -157,7 +157,7 @@ class WorkOrderPlanningController extends Controller
             return back()->with('error', 'Não foi possível concluir o planejamento. Status inválido.');
         }
 
-        return redirect()->route('maintenance.work-orders.show', $workOrder)
+        return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
             ->with('success', 'Planejamento concluído. Ordem de serviço pronta para agendamento.');
     }
 
