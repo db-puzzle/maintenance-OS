@@ -18,8 +18,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->foreignId('work_order_type_id')->constrained();
-            $table->enum('work_order_category', ['corrective', 'preventive', 'inspection', 'project', 
-                                                'calibration', 'quality_control', 'quality_audit', 'non_conformance']);
+            $table->foreignId('work_order_category_id')->constrained('work_order_categories');
             $table->enum('priority', ['emergency', 'urgent', 'high', 'normal', 'low'])->default('normal');
             $table->integer('priority_score')->default(50)->comment('0-100 for fine-grained sorting');
             $table->string('status', 50)->default('requested');
@@ -102,13 +101,13 @@ return new class extends Migration
             $table->index('work_order_number');
             $table->index(['status', 'priority_score']);
             $table->index(['discipline']);
-            $table->index(['discipline', 'work_order_category']);
+            $table->index(['discipline', 'work_order_category_id']);
             $table->index(['discipline', 'status']);
             $table->index(['asset_id', 'status']);
             $table->index('instrument_id');
             $table->index(['scheduled_start_date', 'scheduled_end_date']);
             $table->index(['source_type', 'source_id']);
-            $table->index(['work_order_category', 'status']);
+            $table->index(['work_order_category_id', 'status']);
             $table->index('requested_due_date');
             $table->index('assigned_technician_id');
         });

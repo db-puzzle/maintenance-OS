@@ -141,17 +141,17 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                             error={!!error}
                             className={cn(
                                 view &&
-                                    [
-                                        'pointer-events-none cursor-default opacity-100',
-                                        'text-foreground [&>span]:text-foreground',
-                                        '[&>svg]:hidden',
-                                        // Don't override placeholder text color
-                                        '[&_[data-slot=select-value]:not(:has(*))]:text-inherit',
-                                        // Add muted background when empty
-                                        !selectedItem && 'bg-muted/20',
-                                    ]
-                                        .filter(Boolean)
-                                        .join(' '),
+                                [
+                                    'pointer-events-none cursor-default opacity-100',
+                                    'text-foreground [&>span]:text-foreground',
+                                    '[&>svg]:hidden',
+                                    // Don't override placeholder text color
+                                    '[&_[data-slot=select-value]:not(:has(*))]:text-inherit',
+                                    // Add muted background when empty
+                                    !selectedItem && 'bg-muted/20',
+                                ]
+                                    .filter(Boolean)
+                                    .join(' '),
                             )}
                             tabIndex={view ? -1 : 0}
                         >
@@ -166,7 +166,7 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                         </SelectTrigger>
                         <SelectContent>
                             {showSearch && (
-                                <div className="border-border flex items-center border-b px-2 pb-1">
+                                <div className="sticky top-0 z-10 bg-popover border-border flex items-center border-b px-2 pb-1">
                                     <Search className="text-muted-foreground mr-2 h-4 w-4" />
                                     <input
                                         type="text"
@@ -180,47 +180,49 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                                     />
                                 </div>
                             )}
-                            {filteredItems.length === 0 ? (
-                                <div className="flex flex-col">
-                                    <div className="text-muted-foreground px-2 py-2 text-center text-sm">
-                                        {hasCreateOption
-                                            ? `Nenhum(a) ${label?.toLowerCase() || 'item'} cadastrado(a)`
-                                            : `Nenhum(a) ${label?.toLowerCase() || 'item'} disponível`}
-                                    </div>
-                                    {hasCreateOption && (
-                                        <div className="border-t">
-                                            <CreateButton />
+                            <div className="max-h-60 overflow-y-auto">
+                                {filteredItems.length === 0 ? (
+                                    <div className="flex flex-col">
+                                        <div className="text-muted-foreground px-2 py-2 text-center text-sm">
+                                            {hasCreateOption
+                                                ? `Nenhum(a) ${label?.toLowerCase() || 'item'} cadastrado(a)`
+                                                : `Nenhum(a) ${label?.toLowerCase() || 'item'} disponível`}
                                         </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <>
-                                    {/* Opção para limpar seleção */}
-                                    {canClear && value && (
-                                        <>
-                                            <SelectItem value="__clear__">
-                                                <div className="text-muted-foreground flex items-center gap-2">
-                                                    <span>Limpar seleção</span>
+                                        {hasCreateOption && (
+                                            <div className="border-t">
+                                                <CreateButton />
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Opção para limpar seleção */}
+                                        {canClear && value && (
+                                            <>
+                                                <SelectItem value="__clear__">
+                                                    <div className="text-muted-foreground flex items-center gap-2">
+                                                        <span>Limpar seleção</span>
+                                                    </div>
+                                                </SelectItem>
+                                                <div className="my-1 border-t" />
+                                            </>
+                                        )}
+                                        {filteredItems.map((item) => (
+                                            <SelectItem key={item.id} value={item.id.toString()}>
+                                                <div className="flex items-center gap-2">
+                                                    {item.icon && <item.icon className="h-4 w-4" />}
+                                                    <span>{item.name}</span>
                                                 </div>
                                             </SelectItem>
-                                            <div className="my-1 border-t" />
-                                        </>
-                                    )}
-                                    {filteredItems.map((item) => (
-                                        <SelectItem key={item.id} value={item.id.toString()}>
-                                            <div className="flex items-center gap-2">
-                                                {item.icon && <item.icon className="h-4 w-4" />}
-                                                <span>{item.name}</span>
+                                        ))}
+                                        {hasCreateOption && (
+                                            <div className="border-t">
+                                                <CreateButton />
                                             </div>
-                                        </SelectItem>
-                                    ))}
-                                    {hasCreateOption && (
-                                        <div className="border-t">
-                                            <CreateButton />
-                                        </div>
-                                    )}
-                                </>
-                            )}
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         </SelectContent>
                     </Select>
                 </div>

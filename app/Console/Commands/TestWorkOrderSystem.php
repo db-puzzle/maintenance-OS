@@ -88,11 +88,12 @@ class TestWorkOrderSystem extends Command
             $this->newLine();
             $this->info('Test 1: Creating manual maintenance work order...');
 
+            $correctiveCategory = \App\Models\WorkOrders\WorkOrderCategory::where('code', 'corrective')->first();
             $manualWorkOrder = $maintenanceService->create([
                 'title' => 'Test Manual Work Order',
                 'description' => 'Testing manual work order creation with discipline support',
                 'work_order_type_id' => $workOrderType->id,
-                'work_order_category' => 'corrective',
+                'work_order_category_id' => $correctiveCategory->id,
                 'priority' => 'high',
                 'priority_score' => 75,
                 'asset_id' => $asset->id,
@@ -103,17 +104,18 @@ class TestWorkOrderSystem extends Command
 
             $this->info("✓ Created work order: {$manualWorkOrder->work_order_number}");
             $this->info("  - Discipline: {$manualWorkOrder->discipline}");
-            $this->info("  - Category: {$manualWorkOrder->work_order_category}");
+            $this->info("  - Category: {$manualWorkOrder->workOrderCategory->code}");
             $this->info("  - Status: {$manualWorkOrder->status}");
             $this->newLine();
 
             // Test 2: Test discipline validation
             $this->info('Test 2: Testing discipline validation...');
             try {
+                $calibrationCategory = \App\Models\WorkOrders\WorkOrderCategory::where('code', 'calibration')->first();
                 $maintenanceService->create([
                     'title' => 'Invalid Work Order',
                     'work_order_type_id' => $workOrderType->id,
-                    'work_order_category' => 'calibration', // Quality category for maintenance discipline
+                    'work_order_category_id' => $calibrationCategory->id, // Quality category for maintenance discipline
                     'priority' => 'normal',
                     'asset_id' => $asset->id,
                     'source_type' => 'manual',
@@ -214,9 +216,10 @@ class TestWorkOrderSystem extends Command
                 'open' => WorkOrder::maintenance()->open()->count(),
                 'overdue' => WorkOrder::maintenance()->overdue()->count(),
                 'by_category' => WorkOrder::maintenance()
-                    ->selectRaw('work_order_category, count(*) as count')
-                    ->groupBy('work_order_category')
-                    ->pluck('count', 'work_order_category'),
+                    ->join('work_order_categories', 'work_orders.work_order_category_id', '=', 'work_order_categories.id')
+                    ->selectRaw('work_order_categories.code as work_order_category, count(*) as count')
+                    ->groupBy('work_order_categories.code')
+                    ->pluck('count', 'work_order_categories.code'),
             ];
 
             $this->info('Work Order Statistics:');

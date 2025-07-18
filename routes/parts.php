@@ -17,6 +17,7 @@ Route::middleware(['auth'])->group(function () {
     
     // Parts Management (dynamic routes come after static ones)
     Route::get('parts', [PartsController::class, 'index'])->name('parts.index');
+    Route::get('parts/create', [PartsController::class, 'create'])->name('parts.create');
     Route::post('parts', [PartsController::class, 'store'])->name('parts.store');
     Route::get('parts/{part}', [PartsController::class, 'show'])->name('parts.show');
     Route::put('parts/{part}', [PartsController::class, 'update'])->name('parts.update');

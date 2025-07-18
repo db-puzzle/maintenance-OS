@@ -25,7 +25,7 @@ class WorkOrderObserver
                 'type' => $workOrder->type->name ?? null,
                 'priority' => $workOrder->priority,
                 'discipline' => $workOrder->discipline,
-                'category' => $workOrder->work_order_category,
+                'category' => $workOrder->workOrderCategory?->code,
                 'created_by' => auth()->user()?->name ?? 'System',
             ]
         );

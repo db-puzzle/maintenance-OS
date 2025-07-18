@@ -226,6 +226,11 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                                 <Calendar className="mr-2 h-4 w-4" />
                                 Modificar
                             </Button>
+                        ) : !isEditingShift && !hasSelectedShift ? (
+                            <Button onClick={handleEditShiftClick} variant="default" size="sm">
+                                <Clock className="mr-2 h-4 w-4" />
+                                Adicionar Turno
+                            </Button>
                         ) : isEditingShift ? (
                             <div className="flex gap-2">
                                 <Button onClick={onCancelShiftEdit} variant="outline" size="sm">

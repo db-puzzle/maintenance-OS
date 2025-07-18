@@ -337,10 +337,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         setCreateShiftSheetOpen(true);
     };
 
-    const handleAddShiftClick = () => {
-        // Trigger the same action as "Adicionar Turno" button in ShiftSelectionCard
-        shiftSelectionRef.current?.triggerEditWithFocus();
-    };
+
 
     const tabs = [
         {
@@ -425,9 +422,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                 <EmptyCard
                                     icon={Clock}
                                     title="Nenhum turno selecionado"
-                                    description="Selecione ou configure um turno de operação para visualizar os horários de trabalho do ativo."
-                                    primaryButtonText="Adicionar Turno"
-                                    primaryButtonAction={handleAddShiftClick}
+                                    description="Configure um turno de operação para visualizar os horários de trabalho do ativo."
                                 />
                             )}
 

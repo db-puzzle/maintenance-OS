@@ -30,6 +30,7 @@ class PartsImportExportController extends Controller
         $this->authorize('export', Part::class);
         
         $parts = Part::query()
+            ->with('manufacturer')
             ->when($request->active_only, fn($q) => $q->active())
             ->when($request->low_stock_only, fn($q) => $q->whereRaw('available_quantity < minimum_quantity'))
             ->get();
@@ -44,8 +45,7 @@ class PartsImportExportController extends Controller
                 'Qtd. Mínima' => $part->minimum_quantity,
                 'Qtd. Máxima' => $part->maximum_quantity,
                 'Localização' => $part->location,
-                'Fornecedor' => $part->supplier,
-                'Fabricante' => $part->manufacturer,
+                'Fabricante' => $part->manufacturer?->name,
                 'Ativo' => $part->active ? 'Sim' : 'Não',
             ];
         })->toArray();

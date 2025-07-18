@@ -5,6 +5,7 @@ namespace App\Services\WorkOrders;
 use App\Models\Maintenance\Routine;
 use App\Models\WorkOrders\WorkOrder;
 use App\Models\WorkOrders\WorkOrderType;
+use App\Models\WorkOrders\WorkOrderCategory;
 use Illuminate\Validation\ValidationException;
 
 class MaintenanceWorkOrderService extends BaseWorkOrderService
@@ -30,25 +31,23 @@ class MaintenanceWorkOrderService extends BaseWorkOrderService
         }
         
         // Validate category is allowed for maintenance
-        $allowedCategories = ['preventive', 'corrective', 'inspection', 'project'];
-        if (!in_array($data['work_order_category'], $allowedCategories)) {
+        $category = WorkOrderCategory::find($data['work_order_category_id']);
+        if (!$category || $category->discipline !== 'maintenance') {
             throw ValidationException::withMessages([
-                'work_order_category' => ['Invalid category for maintenance discipline']
+                'work_order_category_id' => ['Invalid category for maintenance discipline']
             ]);
         }
         
-        // Validate source type
-        if (isset($data['source_type'])) {
-            $allowedSources = ['manual', 'routine', 'sensor', 'inspection'];
-            if (!in_array($data['source_type'], $allowedSources)) {
-                throw ValidationException::withMessages([
-                    'source_type' => ['Invalid source type for maintenance discipline']
-                ]);
-            }
-            
-            if ($data['source_type'] === 'routine') {
-                $this->validateRoutineSource($data);
-            }
+        // Validate source type is allowed for this category
+        if (isset($data['source_type']) && !$category->isSourceAllowed($data['source_type'])) {
+            throw ValidationException::withMessages([
+                'source_type' => ['Invalid source type for this category']
+            ]);
+        }
+        
+        // Validate routine source if applicable
+        if (isset($data['source_type']) && $data['source_type'] === 'routine') {
+            $this->validateRoutineSource($data);
         }
     }
     
@@ -105,8 +104,17 @@ class MaintenanceWorkOrderService extends BaseWorkOrderService
      */
     private function generateFromRoutine(Routine $routine, array $additionalData = []): WorkOrder
     {
+        // Get preventive category
+        $preventiveCategory = WorkOrderCategory::where('code', 'preventive')
+            ->where('discipline', 'maintenance')
+            ->first();
+            
+        if (!$preventiveCategory) {
+            throw new \RuntimeException('No preventive category found for maintenance');
+        }
+        
         // Get preventive work order type
-        $workOrderType = WorkOrderType::where('category', 'preventive')
+        $workOrderType = WorkOrderType::where('work_order_category_id', $preventiveCategory->id)
             ->where('is_active', true)
             ->first();
             
@@ -118,7 +126,7 @@ class MaintenanceWorkOrderService extends BaseWorkOrderService
             'title' => "Manutenção Preventiva - {$routine->name}",
             'description' => $routine->description ?? "Executar rotina de manutenção preventiva conforme procedimento padrão.",
             'work_order_type_id' => $workOrderType->id,
-            'work_order_category' => 'preventive',
+            'work_order_category_id' => $preventiveCategory->id,
             'priority' => $routine->getPriorityFromScore(),
             'asset_id' => $routine->asset_id,
             'form_id' => $routine->form_id,

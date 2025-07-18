@@ -5,6 +5,7 @@ namespace App\Models\WorkOrders;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WorkOrderType extends Model
 {
@@ -13,7 +14,7 @@ class WorkOrderType extends Model
     protected $fillable = [
         'name',
         'code',
-        'category',
+        'work_order_category_id',
         'description',
         'color',
         'icon',
@@ -37,6 +38,11 @@ class WorkOrderType extends Model
         return $this->hasMany(WorkOrder::class);
     }
 
+    public function workOrderCategory(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrderCategory::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -45,33 +51,61 @@ class WorkOrderType extends Model
 
     public function scopeByCategory($query, $category)
     {
-        return $query->where('category', $category);
+        if (is_numeric($category)) {
+            return $query->where('work_order_category_id', $category);
+        }
+        
+        // For backwards compatibility, also check by category code
+        return $query->whereHas('workOrderCategory', function($q) use ($category) {
+            $q->where('code', $category);
+        });
+    }
+
+    public function scopeForDiscipline($query, string $discipline)
+    {
+        return $query->whereHas('workOrderCategory', function($q) use ($discipline) {
+            $q->where('discipline', $discipline);
+        });
     }
 
     // Helper methods
     public function isPreventive(): bool
     {
-        return $this->category === 'preventive';
+        return $this->workOrderCategory?->isPreventive() ?? false;
     }
 
     public function isCorrective(): bool
     {
-        return $this->category === 'corrective';
+        return $this->workOrderCategory?->isCorrective() ?? false;
     }
 
     public function isInspection(): bool
     {
-        return $this->category === 'inspection';
+        return $this->workOrderCategory?->isInspection() ?? false;
     }
 
     public function isProject(): bool
     {
-        return $this->category === 'project';
+        return $this->workOrderCategory?->isProject() ?? false;
+    }
+
+    // Get the category code (for backwards compatibility)
+    public function getCategoryCode(): ?string
+    {
+        return $this->workOrderCategory?->code;
+    }
+
+    // Get the discipline
+    public function getDiscipline(): ?string
+    {
+        return $this->workOrderCategory?->discipline;
     }
 
     // Static helpers
     public static function preventive()
     {
-        return static::where('code', 'pm_routine')->first();
+        return static::whereHas('workOrderCategory', function($q) {
+            $q->where('code', 'preventive');
+        })->first();
     }
 }

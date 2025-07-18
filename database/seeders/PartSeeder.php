@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Part;
+use App\Models\AssetHierarchy\Manufacturer;
 
 class PartSeeder extends Seeder
 {
@@ -12,6 +13,9 @@ class PartSeeder extends Seeder
      */
     public function run(): void
     {
+        // Get manufacturers by name
+        $manufacturers = Manufacturer::pluck('id', 'name')->toArray();
+        
         $parts = [
             // Mechanical Seals
             [
@@ -23,8 +27,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 5,
                 'maximum_quantity' => 50,
                 'location' => 'A1-P2-01',
-                'supplier' => 'John Crane',
-                'manufacturer' => 'John Crane',
+                'manufacturer_id' => $manufacturers['John Crane'] ?? null,
             ],
             [
                 'part_number' => 'MS-2350',
@@ -35,8 +38,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 3,
                 'maximum_quantity' => 30,
                 'location' => 'A1-P2-02',
-                'supplier' => 'John Crane',
-                'manufacturer' => 'John Crane',
+                'manufacturer_id' => $manufacturers['John Crane'] ?? null,
             ],
             
             // O-Rings
@@ -49,8 +51,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 20,
                 'maximum_quantity' => 200,
                 'location' => 'A2-P1-05',
-                'supplier' => 'Vedações Brasil',
-                'manufacturer' => 'Parker',
+                'manufacturer_id' => $manufacturers['Parker'] ?? null,
             ],
             [
                 'part_number' => 'OR-150',
@@ -61,8 +62,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 15,
                 'maximum_quantity' => 150,
                 'location' => 'A2-P1-06',
-                'supplier' => 'Vedações Brasil',
-                'manufacturer' => 'Parker',
+                'manufacturer_id' => $manufacturers['Parker'] ?? null,
             ],
             
             // Bearings
@@ -75,8 +75,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 10,
                 'maximum_quantity' => 100,
                 'location' => 'A3-P1-01',
-                'supplier' => 'SKF Brasil',
-                'manufacturer' => 'SKF',
+                'manufacturer_id' => $manufacturers['SKF'] ?? null,
             ],
             [
                 'part_number' => '6206-2RS',
@@ -87,8 +86,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 8,
                 'maximum_quantity' => 80,
                 'location' => 'A3-P1-02',
-                'supplier' => 'SKF Brasil',
-                'manufacturer' => 'SKF',
+                'manufacturer_id' => $manufacturers['SKF'] ?? null,
             ],
             
             // Lubricants
@@ -101,8 +99,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 50,
                 'maximum_quantity' => 500,
                 'location' => 'B1-L1-01',
-                'supplier' => 'Shell Brasil',
-                'manufacturer' => 'Shell',
+                'manufacturer_id' => $manufacturers['Shell'] ?? null,
             ],
             [
                 'part_number' => 'OIL-ISO-VG68',
@@ -113,8 +110,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 40,
                 'maximum_quantity' => 400,
                 'location' => 'B1-L1-02',
-                'supplier' => 'Shell Brasil',
-                'manufacturer' => 'Shell',
+                'manufacturer_id' => $manufacturers['Shell'] ?? null,
             ],
             
             // Filters
@@ -127,8 +123,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 10,
                 'maximum_quantity' => 100,
                 'location' => 'B2-F1-01',
-                'supplier' => 'Filtros Industriais',
-                'manufacturer' => 'Mann Filter',
+                'manufacturer_id' => $manufacturers['Mann Filter'] ?? null,
             ],
             [
                 'part_number' => 'FLT-AIR-001',
@@ -139,8 +134,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 8,
                 'maximum_quantity' => 80,
                 'location' => 'B2-F2-01',
-                'supplier' => 'Filtros Industriais',
-                'manufacturer' => 'Mann Filter',
+                'manufacturer_id' => $manufacturers['Mann Filter'] ?? null,
             ],
             
             // Belts
@@ -153,8 +147,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 15,
                 'maximum_quantity' => 150,
                 'location' => 'C1-B1-01',
-                'supplier' => 'Gates Brasil',
-                'manufacturer' => 'Gates',
+                'manufacturer_id' => $manufacturers['Gates'] ?? null,
             ],
             [
                 'part_number' => 'BELT-V-B120',
@@ -165,8 +158,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 10,
                 'maximum_quantity' => 100,
                 'location' => 'C1-B1-02',
-                'supplier' => 'Gates Brasil',
-                'manufacturer' => 'Gates',
+                'manufacturer_id' => $manufacturers['Gates'] ?? null,
             ],
             
             // Gaskets
@@ -179,8 +171,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 50,
                 'maximum_quantity' => 500,
                 'location' => 'C2-G1-01',
-                'supplier' => 'Teadit',
-                'manufacturer' => 'Teadit',
+                'manufacturer_id' => $manufacturers['Teadit'] ?? null,
             ],
             
             // Electrical
@@ -193,8 +184,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 5,
                 'maximum_quantity' => 50,
                 'location' => 'D1-E1-01',
-                'supplier' => 'WEG',
-                'manufacturer' => 'WEG',
+                'manufacturer_id' => $manufacturers['WEG'] ?? null,
             ],
             [
                 'part_number' => 'REL-TERM-10A',
@@ -205,8 +195,7 @@ class PartSeeder extends Seeder
                 'minimum_quantity' => 5,
                 'maximum_quantity' => 50,
                 'location' => 'D1-E2-01',
-                'supplier' => 'WEG',
-                'manufacturer' => 'WEG',
+                'manufacturer_id' => $manufacturers['WEG'] ?? null,
             ],
         ];
 

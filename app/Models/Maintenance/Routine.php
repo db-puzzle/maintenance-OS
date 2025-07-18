@@ -218,9 +218,18 @@ class Routine extends Model
     {
         $dueDate = $this->calculateDueDate();
         
+        // Get preventive category
+        $preventiveCategory = \App\Models\WorkOrders\WorkOrderCategory::where('code', 'preventive')
+            ->where('discipline', 'maintenance')
+            ->first();
+            
+        if (!$preventiveCategory) {
+            throw new \RuntimeException('Preventive category not found for maintenance discipline');
+        }
+        
         return WorkOrder::create([
             'discipline' => 'maintenance',
-            'work_order_category' => 'preventive',
+            'work_order_category_id' => $preventiveCategory->id,
             'title' => $this->generateWorkOrderTitle(),
             'description' => $this->generateWorkOrderDescription(),
             'work_order_type_id' => $this->getWorkOrderTypeId(),

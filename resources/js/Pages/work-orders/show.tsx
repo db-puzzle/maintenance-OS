@@ -55,6 +55,7 @@ interface Props {
     skills?: string[];
     certifications?: string[];
     isCreating?: boolean;
+    categories?: any[];
     workOrderTypes?: any[];
     plants?: any[];
     areas?: any[];
@@ -78,6 +79,7 @@ export default function ShowWorkOrder({
     skills = [],
     certifications = [],
     isCreating = false,
+    categories = [],
     workOrderTypes = [],
     plants = [],
     areas = [],
@@ -168,6 +170,7 @@ export default function ShowWorkOrder({
             content: (
                 <div className="py-8">
                     <WorkOrderFormComponent
+                        categories={categories}
                         workOrderTypes={workOrderTypes}
                         plants={plants}
                         areas={areas}
@@ -192,6 +195,7 @@ export default function ShowWorkOrder({
                 <div className="py-8">
                     <WorkOrderFormComponent
                         workOrder={workOrder}
+                        categories={categories}
                         workOrderTypes={workOrderTypes}
                         plants={plants}
                         areas={areas}

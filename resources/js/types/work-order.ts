@@ -7,8 +7,8 @@ export interface WorkOrder {
     title: string;
     description?: string;
     work_order_type_id: number;
-    work_order_category: 'corrective' | 'preventive' | 'inspection' | 'project' |
-    'calibration' | 'quality_control' | 'quality_audit' | 'non_conformance';
+    work_order_category_id: number;
+    work_order_category_obj?: WorkOrderCategory;
     priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
     priority_score: number;
     status: WorkOrderStatus;
@@ -134,15 +134,33 @@ export type WorkOrderStatus =
     | 'closed'
     | 'cancelled';
 
+export interface WorkOrderCategory {
+    id: number;
+    discipline: 'maintenance' | 'quality';
+    name: string;
+    code: string;
+    description?: string;
+    color?: string;
+    icon?: string;
+    display_order: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface WorkOrderType {
     id: number;
     name: string;
-    category: 'corrective' | 'preventive' | 'inspection' | 'project';
+    work_order_category_id: number;
+    work_order_category?: WorkOrderCategory;
     description?: string;
-    sla_hours: number;
+    color?: string;
+    icon?: string;
+    default_priority: 'emergency' | 'urgent' | 'high' | 'normal' | 'low';
+    sla_hours?: number;
     requires_approval: boolean;
-    form_template_id?: number;
-    active: boolean;
+    auto_approve_from_routine: boolean;
+    is_active: boolean;
     created_at: string;
     updated_at: string;
 }

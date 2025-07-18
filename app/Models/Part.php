@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\WorkOrders\WorkOrderPart;
+use App\Models\AssetHierarchy\Manufacturer;
 
 class Part extends Model
 {
@@ -20,8 +22,7 @@ class Part extends Model
         'minimum_quantity',
         'maximum_quantity',
         'location',
-        'supplier',
-        'manufacturer',
+        'manufacturer_id',
         'active',
     ];
 
@@ -32,6 +33,14 @@ class Part extends Model
         'maximum_quantity' => 'integer',
         'active' => 'boolean',
     ];
+
+    /**
+     * Get the manufacturer for the part.
+     */
+    public function manufacturer(): BelongsTo
+    {
+        return $this->belongsTo(Manufacturer::class);
+    }
 
     /**
      * Get the work order parts for the part.

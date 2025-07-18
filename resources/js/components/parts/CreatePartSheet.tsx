@@ -10,6 +10,11 @@ import TextInput from '@/components/TextInput';
 import InputError from '@/components/input-error';
 import { toast } from 'sonner';
 
+interface Manufacturer {
+    id: number;
+    name: string;
+}
+
 interface Part {
     id: number;
     part_number: string;
@@ -20,8 +25,8 @@ interface Part {
     minimum_quantity: number;
     maximum_quantity: number | null;
     location: string | null;
-    supplier: string | null;
-    manufacturer: string | null;
+    manufacturer_id: number | null;
+    manufacturer?: Manufacturer | null;
     active: boolean;
 }
 
@@ -44,8 +49,7 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
         minimum_quantity: 0,
         maximum_quantity: null as number | null,
         location: '',
-        supplier: '',
-        manufacturer: '',
+        manufacturer_id: null as number | null,
         active: true as boolean,
     });
 
@@ -64,8 +68,7 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
             setData('minimum_quantity', part.minimum_quantity);
             setData('maximum_quantity', part.maximum_quantity);
             setData('location', part.location || '');
-            setData('supplier', part.supplier || '');
-            setData('manufacturer', part.manufacturer || '');
+            setData('manufacturer_id', part.manufacturer_id || null);
             setData('active', part.active);
         } else {
             reset();
@@ -240,18 +243,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                     />
 
                     <div className="grid grid-cols-2 gap-4">
-                        <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: handleClearErrors,
-                            }}
-                            name="supplier"
-                            label="Fornecedor"
-                            placeholder="Nome do fornecedor"
-                        />
-
                         <TextInput
                             form={{
                                 data,

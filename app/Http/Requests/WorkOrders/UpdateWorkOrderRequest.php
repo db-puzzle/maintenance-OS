@@ -29,7 +29,7 @@ class UpdateWorkOrderRequest extends FormRequest
         if ($workOrder->status === 'requested') {
             $rules = [
                 'work_order_type_id' => 'sometimes|exists:work_order_types,id',
-                'work_order_category' => 'sometimes|string|in:corrective,preventive,predictive,improvement,inspection,calibration,verification,audit',
+                'work_order_category_id' => 'sometimes|exists:work_order_categories,id',
                 'title' => 'sometimes|string|max:255',
                 'description' => 'nullable|string',
                 'priority' => 'sometimes|in:emergency,urgent,high,normal,low',
@@ -69,7 +69,7 @@ class UpdateWorkOrderRequest extends FormRequest
     {
         return [
             'work_order_type_id' => 'tipo de ordem',
-            'work_order_category' => 'categoria',
+            'work_order_category_id' => 'categoria',
             'title' => 'título',
             'description' => 'descrição',
             'priority' => 'prioridade',

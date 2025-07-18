@@ -770,7 +770,7 @@ class AssetController extends Controller
             
         // Filter by category if provided
         if ($category) {
-            $query->where('work_order_category', $category);
+            $query->byCategory($category);
         }
         
         // Apply sorting with proper handling for related table fields

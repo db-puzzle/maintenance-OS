@@ -24,13 +24,26 @@ class WorkOrderTypeFactory extends Factory
      */
     public function definition(): array
     {
-        $categories = ['corrective', 'preventive', 'inspection', 'project'];
-        $category = $this->faker->randomElement($categories);
+        // Get a random category (default to maintenance categories)
+        $category = \App\Models\WorkOrders\WorkOrderCategory::maintenance()
+            ->inRandomOrder()
+            ->first();
+            
+        if (!$category) {
+            // Fallback - create a basic category if none exist
+            $category = \App\Models\WorkOrders\WorkOrderCategory::firstOrCreate(
+                ['code' => 'corrective', 'discipline' => 'maintenance'],
+                [
+                    'name' => 'Corrective',
+                    'is_active' => true,
+                ]
+            );
+        }
         
         return [
             'name' => $this->faker->words(3, true),
             'code' => strtoupper($this->faker->unique()->lexify('??_???')),
-            'category' => $category,
+            'work_order_category_id' => $category->id,
             'description' => $this->faker->sentence(),
             'color' => $this->faker->hexColor(),
             'icon' => $this->faker->randomElement(['wrench', 'cog', 'tools', 'hammer']),
@@ -47,8 +60,12 @@ class WorkOrderTypeFactory extends Factory
      */
     public function corrective(): static
     {
+        $category = \App\Models\WorkOrders\WorkOrderCategory::where('code', 'corrective')
+            ->where('discipline', 'maintenance')
+            ->first();
+            
         return $this->state(fn (array $attributes) => [
-            'category' => 'corrective',
+            'work_order_category_id' => $category?->id,
             'requires_approval' => true,
             'auto_approve_from_routine' => false,
         ]);
@@ -59,8 +76,12 @@ class WorkOrderTypeFactory extends Factory
      */
     public function preventive(): static
     {
+        $category = \App\Models\WorkOrders\WorkOrderCategory::where('code', 'preventive')
+            ->where('discipline', 'maintenance')
+            ->first();
+            
         return $this->state(fn (array $attributes) => [
-            'category' => 'preventive',
+            'work_order_category_id' => $category?->id,
             'requires_approval' => false,
             'auto_approve_from_routine' => true,
         ]);

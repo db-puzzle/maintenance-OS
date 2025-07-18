@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Wrench, Play, AlertCircle, CheckCircle, Calendar as CalendarIcon, ChevronDown, Search, Eye, FileText, CheckSquare, Gauge } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { WorkOrderStatusBadge } from '@/components/work-orders/WorkOrderStatusBadge';
 import { WorkOrderPriorityIndicator } from '@/components/work-orders/WorkOrderPriorityIndicator';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
@@ -108,9 +109,9 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
         return urlParams.get('status') || 'All';
     });
 
-    const [priorityFilter, setPriorityFilter] = useState(() => {
+    const [categoryFilter, setCategoryFilter] = useState(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('priority') || 'All';
+        return urlParams.get('category') || 'All';
     });
 
     const [searchQuery, setSearchQuery] = useState(() => {
@@ -158,7 +159,20 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
         {
             key: 'work_order_category',
             label: 'Categoria',
-            render: (value: any) => {
+            render: (_: any, row: any) => {
+                // Use the category relationship if available
+                if (row.work_order_category_obj) {
+                    return (
+                        <Badge
+                            variant="secondary"
+                            style={{ backgroundColor: row.work_order_category_obj.color + '20', borderColor: row.work_order_category_obj.color }}
+                        >
+                            {row.work_order_category_obj.name}
+                        </Badge>
+                    ) as React.ReactNode;
+                }
+
+                // Fallback to category code
                 const categoryLabels: Record<string, string> = {
                     preventive: 'Preventiva',
                     corrective: 'Corretiva',
@@ -169,7 +183,7 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
                     quality_audit: 'Auditoria',
                     non_conformance: 'Não Conformidade',
                 };
-                return categoryLabels[value] || value;
+                return categoryLabels[row.work_order_category] || row.work_order_category;
             },
         },
         {
@@ -209,8 +223,8 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
             if (statusFilter !== 'All') {
                 params.set('status', statusFilter.toLowerCase());
             }
-            if (priorityFilter !== 'All') {
-                params.set('priority', priorityFilter.toLowerCase());
+            if (categoryFilter !== 'All') {
+                params.set('category', categoryFilter.toLowerCase());
             }
             if (searchQuery) {
                 params.set('search', searchQuery);
@@ -237,8 +251,8 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
             params.set('status', newStatus.toLowerCase());
         }
 
-        if (priorityFilter !== 'All') {
-            params.set('priority', priorityFilter.toLowerCase());
+        if (categoryFilter !== 'All') {
+            params.set('category', categoryFilter.toLowerCase());
         }
 
         if (searchQuery) {
@@ -251,8 +265,8 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
         });
     };
 
-    const handlePriorityFilterChange = (newPriority: string) => {
-        setPriorityFilter(newPriority);
+    const handleCategoryFilterChange = (newCategory: string) => {
+        setCategoryFilter(newCategory);
 
         const params = new URLSearchParams();
 
@@ -265,8 +279,8 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
             params.set('status', statusFilter.toLowerCase());
         }
 
-        if (newPriority !== 'All') {
-            params.set('priority', newPriority.toLowerCase());
+        if (newCategory !== 'All') {
+            params.set('category', newCategory.toLowerCase());
         }
 
         if (searchQuery) {
@@ -294,8 +308,8 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
                 params.set('status', statusFilter.toLowerCase());
             }
 
-            if (priorityFilter !== 'All') {
-                params.set('priority', priorityFilter.toLowerCase());
+            if (categoryFilter !== 'All') {
+                params.set('category', categoryFilter.toLowerCase());
             }
 
             if (newSearch.trim()) {
@@ -470,19 +484,19 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline">
-                                Prioridade: {priorityFilter === 'All' ? 'Todas' : priorityFilter}
+                                Categoria: {categoryFilter === 'All' ? 'Todas' : categoryFilter}
                                 <ChevronDown className="ml-2 h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-56">
-                            <DropdownMenuLabel>Filtrar por Prioridade</DropdownMenuLabel>
+                            <DropdownMenuLabel>Filtrar por Categoria</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuRadioGroup value={priorityFilter} onValueChange={handlePriorityFilterChange}>
+                            <DropdownMenuRadioGroup value={categoryFilter} onValueChange={handleCategoryFilterChange}>
                                 <DropdownMenuRadioItem value="All">Todas</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="Low">Baixa</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="Medium">Média</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="High">Alta</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="Critical">Crítica</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="preventive">Preventiva</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="corrective">Corretiva</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="inspection">Inspeção</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="project">Projeto</DropdownMenuRadioItem>
                             </DropdownMenuRadioGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -517,7 +531,7 @@ export default function WorkOrderIndex({ workOrders, stats, dailyTrend = [], can
                 <Separator orientation="vertical" className="hidden h-16! lg:block" />
                 <div className="flex flex-1 flex-col gap-2">
                     <p className="text-muted-foreground flex justify-between text-sm font-medium">
-                        Concluídas (Mês)
+                        Concluídas
                         <CheckCircle className="h-4 w-4 text-green-600" />
                     </p>
                     <p className="text-xl font-semibold md:text-3xl">{stats.completed_this_month.toLocaleString()}</p>

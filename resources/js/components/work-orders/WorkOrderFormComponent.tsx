@@ -19,7 +19,7 @@ import DeleteWorkOrder from '@/components/work-orders/delete-work-order';
 import { toast } from 'sonner';
 import { Pencil, Save, ChevronDownIcon, Search, Settings2 } from 'lucide-react';
 import { MAINTENANCE_CATEGORIES, QUALITY_CATEGORIES } from '@/types/work-order';
-import type { WorkOrder } from '@/types/work-order';
+import type { WorkOrder, WorkOrderCategory } from '@/types/work-order';
 
 // Icon imports for work order types
 import {
@@ -55,7 +55,7 @@ const iconMap: Record<string, LucideIcon> = {
 interface WorkOrderFormData {
     // Basic Information
     work_order_type_id: string;
-    work_order_category: string;
+    work_order_category_id: string;
     title: string;
     description: string;
 
@@ -87,7 +87,16 @@ interface WorkOrderFormData {
 
 interface WorkOrderFormComponentProps {
     workOrder?: WorkOrder;
-    workOrderTypes: Array<{ id: number; name: string; category: string; icon?: string }>;
+    categories: WorkOrderCategory[];
+    workOrderTypes: Array<{
+        id: number;
+        name: string;
+        category: string;
+        work_order_category_id: number;
+        icon?: string;
+        color?: string;
+        default_priority?: string;
+    }>;
     plants: Array<{ id: number; name: string }>;
     areas: Array<{ id: number; name: string; plant_id: number }>;
     sectors: Array<{ id: number; name: string; area_id: number }>;
@@ -101,6 +110,7 @@ interface WorkOrderFormComponentProps {
 
 export default function WorkOrderFormComponent({
     workOrder,
+    categories,
     workOrderTypes,
     plants,
     areas,
@@ -130,7 +140,7 @@ export default function WorkOrderFormComponent({
     // Initialize form data
     const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm<WorkOrderFormData>({
         work_order_type_id: workOrder?.work_order_type_id?.toString() || '',
-        work_order_category: workOrder?.work_order_category || (discipline === 'maintenance' ? 'corrective' : 'calibration'),
+        work_order_category_id: workOrder?.work_order_category_id?.toString() || '',
         title: workOrder?.title || '',
         description: workOrder?.description || '',
         plant_id: workOrder?.asset?.plant_id?.toString() || '',
@@ -149,41 +159,46 @@ export default function WorkOrderFormComponent({
         discipline: discipline,
     });
 
-    // Get discipline-specific categories
-    const categories = discipline === 'maintenance' ? MAINTENANCE_CATEGORIES : QUALITY_CATEGORIES;
-
     // Transform categories for ItemSelect
     const categoriesForSelect = useMemo(() => {
-        return categories.map((category, index) => ({
-            id: index + 1, // ItemSelect expects numeric ids
-            name: category.label,
-            value: category.value,
+        return (categories || []).map(category => ({
+            id: category.id,
+            name: category.name,
+            value: category.code,
         }));
     }, [categories]);
 
 
 
+    // Filter work order types based on selected category
+    const filteredWorkOrderTypes = useMemo(() => {
+        if (!data.work_order_category_id) return workOrderTypes || [];
+        return (workOrderTypes || []).filter(type =>
+            type.work_order_category_id === parseInt(data.work_order_category_id)
+        );
+    }, [workOrderTypes, data.work_order_category_id]);
+
     // Transform workOrderTypes to include actual icon components
     const workOrderTypesWithIcons = useMemo(() => {
-        return workOrderTypes.map(type => ({
+        return filteredWorkOrderTypes.map(type => ({
             ...type,
             icon: type.icon && iconMap[type.icon] ? iconMap[type.icon] : undefined
         }));
-    }, [workOrderTypes]);
+    }, [filteredWorkOrderTypes]);
 
     // Filter areas based on selected plant
     const filteredAreas = useMemo(() => {
-        return areas.filter(area => area.plant_id === parseInt(data.plant_id));
+        return (areas || []).filter(area => area.plant_id === parseInt(data.plant_id));
     }, [areas, data.plant_id]);
 
     // Filter sectors based on selected area
     const filteredSectors = useMemo(() => {
-        return sectors.filter(sector => sector.area_id === parseInt(data.area_id));
+        return (sectors || []).filter(sector => sector.area_id === parseInt(data.area_id));
     }, [sectors, data.area_id]);
 
     // Filter assets based on selections
     const filteredAssets = useMemo(() => {
-        return assets.filter(asset => {
+        return (assets || []).filter(asset => {
             if (data.sector_id) {
                 return asset.sector_id === parseInt(data.sector_id);
             }
@@ -200,12 +215,12 @@ export default function WorkOrderFormComponent({
     // Get the selected asset details
     const selectedAsset = useMemo(() => {
         if (!data.asset_id) return null;
-        return assets.find(asset => asset.id === parseInt(data.asset_id));
+        return (assets || []).find(asset => asset.id === parseInt(data.asset_id));
     }, [data.asset_id, assets]);
 
     // Handle asset selection from dialog
     const handleAssetSelect = (assetId: string) => {
-        const asset = assets.find(a => a.id === parseInt(assetId));
+        const asset = (assets || []).find(a => a.id === parseInt(assetId));
         if (asset) {
             setData({
                 ...data,
@@ -338,7 +353,7 @@ export default function WorkOrderFormComponent({
 
                     {/* Asset Selection */}
                     <div className="space-y-2">
-                        <Label>Ativo*</Label>
+                        <Label>Ativo{discipline === 'maintenance' ? '*' : ''}</Label>
                         {isViewMode ? (
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                 {selectedAsset ? (
@@ -407,15 +422,19 @@ export default function WorkOrderFormComponent({
                         <ItemSelect
                             label="Categoria*"
                             items={categoriesForSelect}
-                            value={categoriesForSelect.find(cat => cat.value === data.work_order_category)?.id.toString() || ''}
+                            value={data.work_order_category_id || ''}
                             onValueChange={(value) => {
-                                const selectedCategory = categoriesForSelect.find(cat => cat.id.toString() === value);
+                                const selectedCategory = (categories || []).find(cat => cat.id.toString() === value);
                                 if (selectedCategory) {
-                                    setData('work_order_category', selectedCategory.value as any);
+                                    setData(prev => ({
+                                        ...prev,
+                                        work_order_category_id: value,
+                                        work_order_type_id: '', // Reset type when category changes
+                                    }));
                                 }
                             }}
                             placeholder="Selecione a categoria"
-                            error={errors.work_order_category}
+                            error={errors.work_order_category_id}
                             required
                             view={isViewMode}
                             canCreate={false}
@@ -429,20 +448,25 @@ export default function WorkOrderFormComponent({
                         value={data.work_order_type_id}
                         onValueChange={(value) => {
                             const type = workOrderTypesWithIcons.find(t => t.id.toString() === value);
-                            setData({
-                                ...data,
-                                work_order_type_id: value,
-                                work_order_category: type?.category || 'corrective',
-                            });
+                            if (type && type.default_priority) {
+                                setData(prev => ({
+                                    ...prev,
+                                    work_order_type_id: value,
+                                    priority: type.default_priority as any,
+                                }));
+                            } else {
+                                setData('work_order_type_id', value);
+                            }
                         }}
-                        placeholder="Selecione o tipo"
+                        placeholder={!isViewMode && !data.work_order_category_id ? "Selecione uma categoria primeiro" : "Selecione o tipo"}
                         error={errors.work_order_type_id}
                         required
                         view={isViewMode}
+                        disabled={!isViewMode && !data.work_order_category_id}
                     />
                     {/* Priority */}
                     <div className="space-y-2">
-                        <Label htmlFor="priority_score">Pontuação de Prioridade (0-100)*</Label>
+                        <Label htmlFor="priority_score">Pontuação de Prioridade (0-100)</Label>
                         {isViewMode ? (
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                 {data.priority_score}
@@ -458,7 +482,6 @@ export default function WorkOrderFormComponent({
                                     onChange={(e) => setData('priority_score', parseInt(e.target.value) || 0)}
                                     onWheel={(e) => e.preventDefault()}
                                     placeholder="50"
-                                    required
                                     className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                             </>
@@ -468,7 +491,7 @@ export default function WorkOrderFormComponent({
 
                     {/* Due Date */}
                     <div className="space-y-2 min-w-0">
-                        <Label>Data de Vencimento Solicitada*</Label>
+                        <Label>Data de Vencimento Solicitada</Label>
                         {isViewMode ? (
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                 {data.requested_due_date ? (

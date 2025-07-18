@@ -16,7 +16,6 @@ import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { CreatePartSheet } from '@/components/parts/CreatePartSheet';
 import { PartSubstitutionDialog } from '@/components/parts/PartSubstitutionDialog';
 
 // Declare the global route function from Ziggy
@@ -33,6 +32,11 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+interface Manufacturer {
+    id: number;
+    name: string;
+}
+
 interface Part {
     id: number;
     part_number: string;
@@ -43,8 +47,8 @@ interface Part {
     minimum_quantity: number;
     maximum_quantity: number | null;
     location: string | null;
-    supplier: string | null;
-    manufacturer: string | null;
+    manufacturer_id: number | null;
+    manufacturer?: Manufacturer | null;
     active: boolean;
     created_at: string;
     updated_at: string;
@@ -90,8 +94,7 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
     });
 
     const [search, setSearch] = useState(filters.search || '');
-    const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
-    const [editingPart, setEditingPart] = useState<Part | null>(null);
+
     const [showSubstitutionDialog, setShowSubstitutionDialog] = useState(false);
     const [availableParts, setAvailableParts] = useState<Part[]>([]);
 
@@ -120,7 +123,6 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             available_quantity: true,
             minimum_quantity: false,
             location: true,
-            supplier: true,
             manufacturer: false,
             active: true,
         };
@@ -225,23 +227,13 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             },
         },
         {
-            key: 'supplier',
-            label: 'Fornecedor',
-            sortable: true,
-            width: 'w-[200px]',
-            render: (value, row) => {
-                const part = row as unknown as Part;
-                return part.supplier || '-';
-            },
-        },
-        {
             key: 'manufacturer',
             label: 'Fabricante',
             sortable: true,
             width: 'w-[200px]',
             render: (value, row) => {
-                const part = row as unknown as Part;
-                return part.manufacturer || '-';
+                const part = row as any;
+                return part.manufacturer?.name || '-';
             },
         },
         {
@@ -291,8 +283,11 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
     };
 
     const handleEdit = (part: Part) => {
-        setEditingPart(part);
-        setIsCreateSheetOpen(true);
+        router.get(route('parts.show', { part: part.id }));
+    };
+
+    const handleCreate = () => {
+        router.get(route('parts.create'));
     };
 
     const handleSubstitutionConfirm = (
@@ -325,10 +320,7 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
                 searchValue={search}
                 onSearchChange={handleSearch}
                 createButtonText="Nova Peça"
-                onCreateClick={() => {
-                    setEditingPart(null);
-                    setIsCreateSheetOpen(true);
-                }}
+                onCreateClick={handleCreate}
                 actions={
                     <div className="flex items-center gap-2">
                         <ColumnVisibility
@@ -370,31 +362,7 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
                 </div>
             </ListLayout>
 
-            <CreatePartSheet
-                open={isCreateSheetOpen}
-                onOpenChange={setIsCreateSheetOpen}
-                part={editingPart}
-                onSuccess={() => {
-                    setIsCreateSheetOpen(false);
-                    setEditingPart(null);
-                    // Refresh data with current filters to stay on the same page
-                    router.get(
-                        route('parts.index'),
-                        {
-                            search,
-                            sort,
-                            direction,
-                            per_page: filters.per_page,
-                            page: pagination.current_page
-                        },
-                        {
-                            preserveState: true,
-                            preserveScroll: true,
-                            only: ['parts']
-                        }
-                    );
-                }}
-            />
+
 
             {entityOps.deletingItem && entityOps.dependencies && showSubstitutionDialog && (
                 <PartSubstitutionDialog

@@ -20,7 +20,7 @@ class WorkOrder extends Model
     
     protected $fillable = [
         'work_order_number', 'discipline', 'title', 'description', 'work_order_type_id',
-        'work_order_category', 'priority', 'priority_score', 'status',
+        'work_order_category_id', 'priority', 'priority_score', 'status',
         'asset_id', 'instrument_id', 'form_id', 'form_version_id', 'custom_tasks',
         'estimated_hours', 'estimated_parts_cost', 'estimated_labor_cost',
         'estimated_total_cost', 'downtime_required', 'safety_requirements',
@@ -125,6 +125,11 @@ class WorkOrder extends Model
     public function type(): BelongsTo
     {
         return $this->belongsTo(WorkOrderType::class, 'work_order_type_id');
+    }
+
+    public function workOrderCategory(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrderCategory::class);
     }
 
     public function form(): BelongsTo
@@ -251,17 +256,28 @@ class WorkOrder extends Model
 
     public function scopePreventive($query)
     {
-        return $query->where('work_order_category', 'preventive');
+        return $query->whereHas('workOrderCategory', function($q) {
+            $q->where('code', 'preventive');
+        });
     }
 
     public function scopeCorrective($query)
     {
-        return $query->where('work_order_category', 'corrective');
+        return $query->whereHas('workOrderCategory', function($q) {
+            $q->where('code', 'corrective');
+        });
     }
 
     public function scopeByCategory($query, $category)
     {
-        return $query->where('work_order_category', $category);
+        if (is_numeric($category)) {
+            return $query->where('work_order_category_id', $category);
+        }
+        
+        // For backwards compatibility with category codes
+        return $query->whereHas('workOrderCategory', function($q) use ($category) {
+            $q->where('code', $category);
+        });
     }
 
     public function scopeScheduledBetween($query, $start, $end)
@@ -272,20 +288,16 @@ class WorkOrder extends Model
     // Discipline-aware helper methods
     public function getAllowedCategories(): array
     {
-        return match($this->discipline) {
-            'maintenance' => ['preventive', 'corrective', 'inspection', 'project'],
-            'quality' => ['calibration', 'quality_control', 'quality_audit', 'non_conformance'],
-            default => []
-        };
+        // Get categories for this discipline
+        return WorkOrderCategory::forDiscipline($this->discipline)
+            ->pluck('code')
+            ->toArray();
     }
     
     public function getAllowedSourceTypes(): array
     {
-        return match($this->discipline) {
-            'maintenance' => ['manual', 'routine', 'sensor', 'inspection'],
-            'quality' => ['manual', 'calibration_schedule', 'quality_alert', 'audit', 'complaint'],
-            default => ['manual']
-        };
+        // Get allowed source types from the category
+        return $this->workOrderCategory?->getAllowedSourceTypes() ?? ['manual'];
     }
     
     public function validateForDiscipline(): bool
@@ -294,7 +306,7 @@ class WorkOrder extends Model
             throw new \Illuminate\Validation\ValidationException('Maintenance work orders require an asset');
         }
         
-        if ($this->discipline === 'quality' && $this->work_order_category === 'calibration' && !$this->instrument_id) {
+        if ($this->discipline === 'quality' && $this->workOrderCategory?->isCalibration() && !$this->instrument_id) {
             throw new \Illuminate\Validation\ValidationException('Calibration work orders require an instrument');
         }
         
@@ -304,12 +316,18 @@ class WorkOrder extends Model
     // Helper methods
     public function isPreventive(): bool
     {
-        return $this->work_order_category === 'preventive';
+        return $this->workOrderCategory?->isPreventive() ?? false;
     }
 
     public function isCorrective(): bool
     {
-        return $this->work_order_category === 'corrective';
+        return $this->workOrderCategory?->isCorrective() ?? false;
+    }
+
+    // Get category code for backwards compatibility
+    public function getCategoryCode(): ?string
+    {
+        return $this->workOrderCategory?->code ?? $this->work_order_category;
     }
 
     public function isFromRoutine(): bool

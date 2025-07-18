@@ -30,9 +30,26 @@ class WorkOrderFactory extends Factory
         $disciplines = ['maintenance', 'quality'];
         $discipline = $this->faker->randomElement($disciplines);
         
-        $categories = $discipline === 'maintenance' 
-            ? ['corrective', 'preventive', 'predictive', 'improvement', 'inspection']
-            : ['calibration', 'verification', 'audit'];
+        // Get a random category for the discipline
+        $category = \App\Models\WorkOrders\WorkOrderCategory::where('discipline', $discipline)
+            ->inRandomOrder()
+            ->first();
+            
+        if (!$category) {
+            // Fallback if no categories exist
+            $categoryCodes = $discipline === 'maintenance' 
+                ? ['corrective', 'preventive', 'inspection', 'project']
+                : ['calibration', 'quality_control', 'quality_audit', 'non_conformance'];
+            $categoryCode = $this->faker->randomElement($categoryCodes);
+            
+            $category = \App\Models\WorkOrders\WorkOrderCategory::firstOrCreate(
+                ['code' => $categoryCode, 'discipline' => $discipline],
+                [
+                    'name' => ucfirst(str_replace('_', ' ', $categoryCode)),
+                    'is_active' => true,
+                ]
+            );
+        }
             
         $priorities = ['emergency', 'urgent', 'high', 'normal', 'low'];
         $statuses = ['pending', 'approved', 'in_progress', 'completed'];
@@ -43,7 +60,7 @@ class WorkOrderFactory extends Factory
             'title' => $this->faker->sentence(4),
             'description' => $this->faker->paragraph(),
             'work_order_type_id' => WorkOrderType::factory(),
-            'work_order_category' => $this->faker->randomElement($categories),
+            'work_order_category_id' => $category->id,
             'priority' => $this->faker->randomElement($priorities),
             'priority_score' => $this->faker->numberBetween(0, 100),
             'status' => $this->faker->randomElement($statuses),
@@ -66,8 +83,13 @@ class WorkOrderFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'discipline' => 'maintenance',
-            'work_order_category' => $this->faker->randomElement(['corrective', 'preventive', 'predictive', 'improvement', 'inspection']),
-        ]);
+        ])->afterMaking(function (WorkOrder $workOrder) {
+            $category = \App\Models\WorkOrders\WorkOrderCategory::maintenance()
+                ->inRandomOrder()
+                ->first();
+            
+            $workOrder->work_order_category_id = $category->id;
+        });
     }
 
     /**
@@ -77,8 +99,13 @@ class WorkOrderFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'discipline' => 'quality',
-            'work_order_category' => $this->faker->randomElement(['calibration', 'verification', 'audit']),
-        ]);
+        ])->afterMaking(function (WorkOrder $workOrder) {
+            $category = \App\Models\WorkOrders\WorkOrderCategory::quality()
+                ->inRandomOrder()
+                ->first();
+            
+            $workOrder->work_order_category_id = $category->id;
+        });
     }
 
     /**

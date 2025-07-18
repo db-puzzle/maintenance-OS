@@ -164,8 +164,8 @@ class Asset extends Model
 
         return [
             'total_work_orders' => $workOrders->count(),
-            'preventive_count' => $workOrders->where('work_order_category', 'preventive')->count(),
-            'corrective_count' => $workOrders->where('work_order_category', 'corrective')->count(),
+            'preventive_count' => $workOrders->filter(function($wo) { return $wo->workOrderCategory?->code === 'preventive'; })->count(),
+            'corrective_count' => $workOrders->filter(function($wo) { return $wo->workOrderCategory?->code === 'corrective'; })->count(),
             'total_downtime_hours' => $workOrders->sum('actual_hours'),
             'total_cost' => $workOrders->sum('actual_total_cost'),
             'mtbf' => $this->calculateMTBF($startDate, $endDate),

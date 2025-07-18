@@ -21,14 +21,14 @@ return new class extends Migration
             $table->integer('minimum_quantity')->default(0);
             $table->integer('maximum_quantity')->nullable();
             $table->string('location')->nullable();
-            $table->string('supplier')->nullable();
-            $table->string('manufacturer')->nullable();
+            $table->foreignId('manufacturer_id')->nullable()->constrained('manufacturers')->nullOnDelete();
             $table->boolean('active')->default(true);
             $table->timestamps();
             
             $table->index('part_number');
             $table->index('name');
             $table->index('active');
+            $table->index('manufacturer_id');
         });
     }
 

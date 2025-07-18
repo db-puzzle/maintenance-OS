@@ -4,6 +4,7 @@ namespace App\Services\WorkOrders;
 
 use App\Models\Maintenance\Routine;
 use App\Models\WorkOrders\WorkOrder;
+use App\Models\WorkOrders\WorkOrderCategory;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;

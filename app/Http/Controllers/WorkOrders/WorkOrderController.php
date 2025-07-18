@@ -11,6 +11,7 @@ use App\Models\Forms\Form;
 use App\Models\User;
 use App\Models\WorkOrders\WorkOrder;
 use App\Models\WorkOrders\WorkOrderType;
+use App\Models\WorkOrders\WorkOrderCategory;
 use App\Services\WorkOrders\MaintenanceWorkOrderService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -66,6 +67,7 @@ class WorkOrderController extends Controller
         $query = WorkOrder::where('discipline', $discipline)
             ->with([
                 'type',
+                'workOrderCategory',
                 'asset.plant',
                 'asset.area',
                 'asset.sector',
@@ -95,7 +97,14 @@ class WorkOrderController extends Controller
         }
 
         if ($category) {
-            $query->where('work_order_category', $category);
+            // Support both category code and category ID
+            if (is_numeric($category)) {
+                $query->where('work_order_category_id', $category);
+            } else {
+                $query->whereHas('workOrderCategory', function ($q) use ($category) {
+                    $q->where('code', $category);
+                });
+            }
         }
 
         if ($priority) {
@@ -158,11 +167,15 @@ class WorkOrderController extends Controller
         ];
 
         // Get category stats
-        $categoryStats = WorkOrder::where('discipline', $discipline)
-            ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-            ->selectRaw('work_order_category, count(*) as count')
-            ->groupBy('work_order_category')
-            ->pluck('count', 'work_order_category')
+        $categoryStats = WorkOrder::where('work_orders.discipline', $discipline)
+            ->whereBetween('work_orders.created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->join('work_order_categories', 'work_orders.work_order_category_id', '=', 'work_order_categories.id')
+            ->selectRaw('work_order_categories.code, work_order_categories.name, count(work_orders.id) as count')
+            ->groupBy('work_order_categories.id', 'work_order_categories.code', 'work_order_categories.name')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                return [$item->code => ['name' => $item->name, 'count' => $item->count]];
+            })
             ->toArray();
 
         // Calculate trends
@@ -224,7 +237,14 @@ class WorkOrderController extends Controller
             // For quality discipline, we would load instruments instead
         }
         
-        $workOrderTypes = WorkOrderType::active()->orderBy('name')->get();
+        $categories = WorkOrderCategory::forDiscipline($discipline)
+            ->active()
+            ->ordered()
+            ->get();
+        $workOrderTypes = WorkOrderType::active()
+            ->with('workOrderCategory')
+            ->orderBy('name')
+            ->get();
         $forms = Form::where('is_active', true)->orderBy('name')->get();
         $teams = Team::where('is_active', true)->orderBy('name')->get();
         $technicians = User::whereHas('roles', function ($q) {
@@ -238,6 +258,7 @@ class WorkOrderController extends Controller
             'areas' => $areas,
             'sectors' => $sectors,
             'assets' => $assets,
+            'categories' => $categories,
             'workOrderTypes' => $workOrderTypes,
             'forms' => $forms,
             'teams' => $teams,
@@ -322,11 +343,19 @@ class WorkOrderController extends Controller
                 // For quality discipline, we would load instruments instead
             }
             
-            $workOrderTypes = WorkOrderType::active()->orderBy('name')->get();
+            $categories = WorkOrderCategory::forDiscipline($discipline)
+                ->active()
+                ->ordered()
+                ->get();
+            $workOrderTypes = WorkOrderType::active()
+                ->with('workOrderCategory')
+                ->orderBy('name')
+                ->get();
             $forms = Form::where('is_active', true)->orderBy('name')->get();
             
             return Inertia::render('work-orders/show', [
                 'workOrder' => null,
+                'categories' => $categories,
                 'workOrderTypes' => $workOrderTypes,
                 'plants' => $plants,
                 'areas' => $areas,
@@ -396,7 +425,14 @@ class WorkOrderController extends Controller
         }
 
         // Get data for WorkOrderFormComponent
-        $workOrderTypes = WorkOrderType::active()->orderBy('name')->get();
+        $categories = WorkOrderCategory::forDiscipline($workOrder->discipline)
+            ->active()
+            ->ordered()
+            ->get();
+        $workOrderTypes = WorkOrderType::active()
+            ->with('workOrderCategory')
+            ->orderBy('name')
+            ->get();
         $assets = Asset::with(['plant', 'area', 'sector', 'assetType'])
             ->orderBy('tag')
             ->get()
@@ -435,6 +471,7 @@ class WorkOrderController extends Controller
             'skills' => $skills,
             'certifications' => $certifications,
             // Additional data for WorkOrderFormComponent
+            'categories' => $categories,
             'workOrderTypes' => $workOrderTypes,
             'assets' => $assets,
             'plants' => $plants,

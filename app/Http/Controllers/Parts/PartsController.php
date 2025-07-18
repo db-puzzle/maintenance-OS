@@ -15,7 +15,7 @@ class PartsController extends Controller
     {
         $this->authorize('viewAny', Part::class);
 
-        $query = Part::query();
+        $query = Part::query()->with('manufacturer');
 
         // Search functionality
         if ($request->filled('search')) {
@@ -23,9 +23,10 @@ class PartsController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->whereRaw('LOWER(part_number) like ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(name) like ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(supplier) like ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(manufacturer) like ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(location) like ?', ["%{$search}%"]);
+                    ->orWhereRaw('LOWER(location) like ?', ["%{$search}%"])
+                    ->orWhereHas('manufacturer', function ($q) use ($search) {
+                        $q->whereRaw('LOWER(name) like ?', ["%{$search}%"]);
+                    });
             });
         }
 
@@ -49,6 +50,22 @@ class PartsController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        $this->authorize('create', Part::class);
+
+        return Inertia::render('parts/show', [
+            'part' => null,
+            'isCreating' => true,
+            'statistics' => [
+                'total_used' => 0,
+                'total_reserved' => 0,
+                'work_order_count' => 0,
+            ],
+            'manufacturers' => \App\Models\AssetHierarchy\Manufacturer::orderBy('name')->get(),
+        ]);
+    }
+
     public function store(Request $request)
     {
         $this->authorize('create', Part::class);
@@ -62,8 +79,7 @@ class PartsController extends Controller
             'minimum_quantity' => 'required|integer|min:0',
             'maximum_quantity' => 'nullable|integer|min:0',
             'location' => 'nullable|string|max:255',
-            'supplier' => 'nullable|string|max:255',
-            'manufacturer' => 'nullable|string|max:255',
+            'manufacturer_id' => 'nullable|exists:manufacturers,id',
             'active' => 'boolean',
         ]);
 
@@ -76,7 +92,8 @@ class PartsController extends Controller
 
         $part = Part::create($validated);
 
-        return redirect()->route('parts.index')->with('success', 'Peça criada com sucesso.');
+        return redirect()->route('parts.show', $part)->with('success', 'Peça criada com sucesso.')
+            ->with('partId', $part->id);
     }
 
     public function show(Part $part)
@@ -84,7 +101,7 @@ class PartsController extends Controller
         $this->authorize('view', $part);
 
         // Load relationships for the detail view
-        $part->load(['workOrderParts.workOrder']);
+        $part->load(['workOrderParts.workOrder', 'manufacturer']);
 
         // Calculate statistics
         $totalUsed = $part->workOrderParts()->sum('used_quantity');
@@ -97,6 +114,7 @@ class PartsController extends Controller
                 'total_reserved' => $totalReserved,
                 'work_order_count' => $part->workOrderParts()->distinct('work_order_id')->count(),
             ],
+            'manufacturers' => \App\Models\AssetHierarchy\Manufacturer::orderBy('name')->get(),
         ]);
     }
 
@@ -113,8 +131,7 @@ class PartsController extends Controller
             'minimum_quantity' => 'required|integer|min:0',
             'maximum_quantity' => 'nullable|integer|min:0',
             'location' => 'nullable|string|max:255',
-            'supplier' => 'nullable|string|max:255',
-            'manufacturer' => 'nullable|string|max:255',
+            'manufacturer_id' => 'nullable|exists:manufacturers,id',
             'active' => 'boolean',
         ]);
 

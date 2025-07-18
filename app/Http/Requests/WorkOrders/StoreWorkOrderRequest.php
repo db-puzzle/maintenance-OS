@@ -29,7 +29,7 @@ class StoreWorkOrderRequest extends FormRequest
             'source_type' => ['required', 'string'],
             'source_id' => 'nullable|integer',
             'work_order_type_id' => 'required|exists:work_order_types,id',
-            'work_order_category' => ['required', 'string'],
+            'work_order_category_id' => 'required|exists:work_order_categories,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'priority' => 'required|in:emergency,urgent,high,normal,low',
@@ -58,17 +58,23 @@ class StoreWorkOrderRequest extends FormRequest
         // Discipline-specific validation
         if ($discipline === 'maintenance') {
             $rules['asset_id'] = 'required|exists:assets,id';
-            $rules['work_order_category'] = ['required', Rule::in(['preventive', 'corrective', 'inspection', 'project'])];
+            
+            $rules['work_order_category_id'] = ['required', Rule::exists('work_order_categories', 'id')->where('discipline', 'maintenance')];
+            
             $rules['source_type'] = ['required', Rule::in(['manual', 'routine', 'sensor', 'inspection'])];
             
             if ($this->input('source_type') === 'routine') {
                 $rules['source_id'] = 'required|exists:routines,id';
             }
         } elseif ($discipline === 'quality') {
-            $rules['work_order_category'] = ['required', Rule::in(['calibration', 'quality_control', 'quality_audit', 'non_conformance'])];
+            $rules['work_order_category_id'] = ['required', Rule::exists('work_order_categories', 'id')->where('discipline', 'quality')];
+            
             $rules['source_type'] = ['required', Rule::in(['manual', 'calibration_schedule', 'quality_alert', 'audit', 'complaint'])];
             
-            if ($this->input('work_order_category') === 'calibration') {
+            // Check if it's a calibration category
+            $categoryId = $this->input('work_order_category_id');
+            
+            if ($categoryId && \App\Models\WorkOrders\WorkOrderCategory::find($categoryId)?->code === 'calibration') {
                 $rules['instrument_id'] = 'required|exists:instruments,id';
                 $rules['calibration_due_date'] = 'required|date';
             }
@@ -89,7 +95,7 @@ class StoreWorkOrderRequest extends FormRequest
     {
         return [
             'work_order_type_id' => 'tipo de ordem',
-            'work_order_category' => 'categoria',
+            'work_order_category_id' => 'categoria',
             'title' => 'título',
             'description' => 'descrição',
             'priority' => 'prioridade',
