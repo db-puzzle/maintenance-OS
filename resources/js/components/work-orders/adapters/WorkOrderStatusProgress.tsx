@@ -53,11 +53,6 @@ function getWorkOrderStatusSteps(workOrder?: WorkOrder): StatusStep[] {
             description: 'Recursos definidos, aguardando agendamento'
         },
         {
-            id: 'ready_to_schedule',
-            name: 'Pronta para Agendar',
-            description: 'Totalmente planejada, esperando designação'
-        },
-        {
             id: 'scheduled',
             name: 'Agendada',
             description: 'Designada ao técnico, aguardando início'

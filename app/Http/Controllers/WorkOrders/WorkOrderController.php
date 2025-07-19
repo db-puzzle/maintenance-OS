@@ -771,14 +771,14 @@ class WorkOrderController extends Controller
             return back()->with('error', 'Por favor, preencha todos os campos obrigatórios do planejamento.');
         }
 
-        $success = $workOrder->transitionTo(WorkOrder::STATUS_READY_TO_SCHEDULE, auth()->user());
+        $success = $workOrder->transitionTo(WorkOrder::STATUS_SCHEDULED, auth()->user());
 
         if (!$success) {
             return back()->with('error', 'Não foi possível concluir o planejamento. Status inválido.');
         }
 
         return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
-            ->with('success', 'Planejamento concluído. Ordem de serviço pronta para agendamento.');
+            ->with('success', 'Planejamento concluído. Ordem de serviço agendada.');
     }
 
     /**

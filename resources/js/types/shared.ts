@@ -35,6 +35,8 @@ export interface ColumnConfig {
     visible?: boolean;
     width?: string;
     render?: (value: unknown, row: Record<string, unknown>) => React.ReactNode;
+    headerAlign?: 'left' | 'center' | 'right';
+    contentAlign?: 'left' | 'center' | 'right';
 }
 
 export interface BaseEntity {

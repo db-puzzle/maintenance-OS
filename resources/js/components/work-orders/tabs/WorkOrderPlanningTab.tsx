@@ -1,21 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { useForm, router } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
-import { Calendar } from '@/components/ui/calendar';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import EmptyCard from '@/components/ui/empty-card';
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from '@/components/TextInput';
 import PartSearchDialog from '@/components/work-orders/PartSearchDialog';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
+import { ColumnConfig } from '@/types/shared';
 import {
     Plus,
     Trash2,
@@ -23,12 +22,11 @@ import {
     Package,
     Search,
     AlertCircle,
-    ChevronDownIcon,
-    Clock,
-    DollarSign,
+    Shield,
+    Wrench,
+    CheckCircle,
+    Edit3,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 interface WorkOrderPlanningTabProps {
@@ -51,6 +49,93 @@ interface PlanningPart {
     estimated_quantity: number;
     unit_cost: number;
     total_cost: number;
+    available?: number;
+}
+
+interface EditableCellProps {
+    value: string | number;
+    onChange: (value: string) => void;
+    type?: 'text' | 'number';
+    min?: string | number;
+    step?: string | number;
+    placeholder?: string;
+    className?: string;
+    formatDisplay?: (value: string | number) => string;
+}
+
+function EditableCell({
+    value,
+    onChange,
+    type = 'text',
+    min,
+    step,
+    placeholder,
+    className,
+    formatDisplay
+}: EditableCellProps) {
+    const [isEditing, setIsEditing] = useState(false);
+    const [tempValue, setTempValue] = useState(value.toString());
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        if (isEditing && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [isEditing]);
+
+    const handleSave = () => {
+        onChange(tempValue);
+        setIsEditing(false);
+    };
+
+    const handleCancel = () => {
+        setTempValue(value.toString());
+        setIsEditing(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSave();
+        } else if (e.key === 'Escape') {
+            handleCancel();
+        }
+    };
+
+    if (!isEditing) {
+        return (
+            <div
+                className={cn(
+                    "group relative flex items-center justify-between w-full h-full -m-1 p-1 rounded cursor-pointer hover:bg-muted/50 transition-colors",
+                    className
+                )}
+                onClick={() => setIsEditing(true)}
+                title="Clique para editar"
+            >
+                <span className="flex-1">{formatDisplay ? formatDisplay(value) : value}</span>
+                <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
+            </div>
+        );
+    }
+
+    return (
+        <input
+            ref={inputRef}
+            type={type}
+            value={tempValue}
+            onChange={(e) => setTempValue(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={handleKeyDown}
+            min={min}
+            step={step}
+            placeholder={placeholder}
+            className={cn(
+                "w-full px-1.5 py-1 text-sm bg-background border-0 outline-none focus:ring-2 focus:ring-ring rounded",
+                "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                className
+            )}
+        />
+    );
 }
 
 export function WorkOrderPlanningTab({
@@ -64,8 +149,8 @@ export function WorkOrderPlanningTab({
     discipline,
     onGoToApproval
 }: WorkOrderPlanningTabProps) {
-    // Check if work order is in a state that allows planning
-    const canShowPlanning = ['approved', 'planned', 'scheduled'].includes(workOrder.status);
+    // Check if work order is in a state that allows showing planning (view or edit)
+    const canShowPlanning = !['requested', 'rejected', 'cancelled'].includes(workOrder.status);
 
     if (!canShowPlanning) {
         return (
@@ -87,15 +172,19 @@ export function WorkOrderPlanningTab({
             part_id: part.part_id,
             part_number: part.part_number,
             part_name: part.part_name,
-            estimated_quantity: part.estimated_quantity,
-            unit_cost: part.unit_cost,
-            total_cost: part.total_cost,
+            estimated_quantity: Number(part.estimated_quantity) || 1,
+            unit_cost: Number(part.unit_cost) || 0,
+            total_cost: Number(part.total_cost) || 0,
+            available: part.available_quantity,
         })) || []
     );
 
     const [partSearchOpen, setPartSearchOpen] = useState(false);
-    const [startDatePickerOpen, setStartDatePickerOpen] = useState(false);
-    const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
+    const [newSafetyReq, setNewSafetyReq] = useState('');
+    const [newSkill, setNewSkill] = useState('');
+    const [newCert, setNewCert] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
 
     const { data, setData, post, put, processing, errors, clearErrors } = useForm({
         estimated_hours: workOrder.estimated_hours?.toString() || '',
@@ -106,15 +195,11 @@ export function WorkOrderPlanningTab({
         required_skills: workOrder.required_skills || [],
         required_certifications: workOrder.required_certifications || [],
         parts: [] as any[],
-        scheduled_start_date: workOrder.scheduled_start_date || '',
-        scheduled_end_date: workOrder.scheduled_end_date || '',
-        assigned_team_id: workOrder.assigned_team_id?.toString() || '',
-        assigned_technician_id: workOrder.assigned_technician_id?.toString() || '',
         estimated_parts_cost: workOrder.estimated_parts_cost || 0,
         estimated_total_cost: workOrder.estimated_total_cost || 0,
     });
 
-    const isViewMode = !canPlan;
+    const isViewMode = !canPlan || !['approved', 'planned'].includes(workOrder.status);
 
     const calculateLaborCost = () => {
         const hours = parseFloat(data.estimated_hours) || 0;
@@ -123,19 +208,22 @@ export function WorkOrderPlanningTab({
     };
 
     const calculatePartsCost = () => {
-        return plannedParts.reduce((sum, part) => sum + part.total_cost, 0);
-    };
-
-    const calculateTotalCost = () => {
-        return calculateLaborCost() + calculatePartsCost();
+        return plannedParts.reduce((sum, part) => {
+            const partCost = Number(part.total_cost) || 0;
+            return sum + partCost;
+        }, 0);
     };
 
     React.useEffect(() => {
+        const laborCost = calculateLaborCost();
+        const partsCost = calculatePartsCost();
+        const totalCost = laborCost + partsCost;
+
         setData(prev => ({
             ...prev,
-            estimated_labor_cost: calculateLaborCost(),
-            estimated_parts_cost: calculatePartsCost(),
-            estimated_total_cost: calculateTotalCost(),
+            estimated_labor_cost: laborCost,
+            estimated_parts_cost: partsCost,
+            estimated_total_cost: totalCost,
             parts: plannedParts,
         }));
     }, [data.estimated_hours, data.labor_cost_per_hour, plannedParts]);
@@ -172,71 +260,71 @@ export function WorkOrderPlanningTab({
         }).format(value);
     };
 
-    // Helper functions for date/time handling
-    const parseDateTime = (dateTimeString: string) => {
-        if (!dateTimeString) return { date: undefined, time: '' };
-
-        // Parse datetime-local format directly without timezone conversion
-        const [datePart, timePart] = dateTimeString.split('T');
-        const [year, month, day] = datePart.split('-').map(Number);
-
-        // Create date using local timezone (no conversion)
-        const date = new Date(year, month - 1, day);
-
-        // Clean up time part - remove timezone indicator and microseconds
-        let cleanTime = timePart || '12:00:00';
-        if (cleanTime) {
-            cleanTime = cleanTime.replace(/[Z].*$/, '').replace(/[+-]\d{2}:?\d{2}$/, '');
-            cleanTime = cleanTime.split('.')[0];
-            const timeParts = cleanTime.split(':');
-            if (timeParts.length === 2) {
-                cleanTime = `${timeParts[0]}:${timeParts[1]}:00`;
-            }
+    // Safety requirements handlers
+    const handleAddSafetyReq = () => {
+        if (newSafetyReq.trim()) {
+            setData('safety_requirements', [...data.safety_requirements, newSafetyReq.trim()]);
+            setNewSafetyReq('');
         }
-
-        return {
-            date: date,
-            time: cleanTime
-        };
     };
 
-    const combineDateTime = (date: Date | undefined, time: string) => {
-        if (!date || !time) return '';
-
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-
-        const [hours, minutes, seconds = '00'] = time.split(':');
-        const formattedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
-
-        return `${year}-${month}-${day}T${formattedTime}`;
+    const handleRemoveSafetyReq = (index: number) => {
+        setData('safety_requirements', data.safety_requirements.filter((_: string, i: number) => i !== index));
     };
 
-    const startDateTime = parseDateTime(data.scheduled_start_date);
-    const endDateTime = parseDateTime(data.scheduled_end_date);
+    // Skills handlers
+    const handleAddSkill = () => {
+        if (newSkill.trim()) {
+            setData('required_skills', [...data.required_skills, newSkill.trim()]);
+            setNewSkill('');
+        }
+    };
+
+    const handleRemoveSkill = (index: number) => {
+        setData('required_skills', data.required_skills.filter((_: string, i: number) => i !== index));
+    };
+
+    // Certifications handlers
+    const handleAddCert = () => {
+        if (newCert.trim()) {
+            setData('required_certifications', [...data.required_certifications, newCert.trim()]);
+            setNewCert('');
+        }
+    };
+
+    const handleRemoveCert = (index: number) => {
+        setData('required_certifications', data.required_certifications.filter((_: string, i: number) => i !== index));
+    };
 
     const handleAddPart = (part: any) => {
+        const unitCost = Number(part.unit_cost) || 0;
         const newPart: PlanningPart = {
             id: `new-${Date.now()}`,
             part_id: part.id,
             part_number: part.part_number,
             part_name: part.name,
             estimated_quantity: 1,
-            unit_cost: part.unit_cost,
-            total_cost: part.unit_cost,
+            unit_cost: unitCost,
+            total_cost: unitCost * 1,
+            available: part.available_quantity,
         };
+
         setPlannedParts([...plannedParts, newPart]);
     };
 
-    const handleUpdatePartQuantity = (index: number, quantity: number) => {
+    const handleUpdatePart = (index: number, updates: Partial<PlanningPart>) => {
         const updatedParts = [...plannedParts];
         updatedParts[index] = {
             ...updatedParts[index],
-            estimated_quantity: quantity,
-            total_cost: quantity * updatedParts[index].unit_cost
+            ...updates,
+            total_cost: (updates.estimated_quantity || updatedParts[index].estimated_quantity) *
+                (updates.unit_cost || updatedParts[index].unit_cost)
         };
         setPlannedParts(updatedParts);
+    };
+
+    const handleUpdatePartQuantity = (index: number, quantity: number) => {
+        handleUpdatePart(index, { estimated_quantity: quantity });
     };
 
     const handleRemovePart = (index: number) => {
@@ -246,9 +334,128 @@ export function WorkOrderPlanningTab({
 
     const selectedPartIds = plannedParts.map(p => p.part_id).filter(Boolean) as number[];
 
+    // Pagination logic
+    const paginatedParts = useMemo(() => {
+        const startIndex = (currentPage - 1) * perPage;
+        const endIndex = startIndex + perPage;
+        return plannedParts.slice(startIndex, endIndex);
+    }, [plannedParts, currentPage, perPage]);
+
+    const totalPages = Math.ceil(plannedParts.length / perPage);
+
+    // Reset to first page when parts change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [plannedParts.length]);
+
+    // Parts table columns configuration
+    const partsColumns: ColumnConfig[] = [
+        {
+            key: 'part_number',
+            label: 'Código',
+            width: 'w-[150px]',
+            render: (value, row) => {
+                const part = row as unknown as PlanningPart;
+                return <span className="font-mono text-sm">{part.part_number || '-'}</span>;
+            },
+        },
+        {
+            key: 'part_name',
+            label: 'Nome da Peça',
+            render: (value, row) => {
+                const part = row as unknown as PlanningPart;
+                return (
+                    <div>
+                        <span className="text-sm">{part.part_name}</span>
+                        {part.available !== undefined && part.available < part.estimated_quantity && (
+                            <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                Disponível: {part.available} unidades
+                            </p>
+                        )}
+                    </div>
+                );
+            },
+        },
+        {
+            key: 'estimated_quantity',
+            label: 'Quantidade',
+            width: 'w-[140px]',
+            headerAlign: 'center',
+            render: (value, row) => {
+                const part = row as unknown as PlanningPart;
+                const rowIndex = paginatedParts.findIndex(p => p.id === part.id);
+                const actualIndex = (currentPage - 1) * perPage + rowIndex;
+                return isViewMode ? (
+                    <div className="text-center">{part.estimated_quantity}</div>
+                ) : (
+                    <EditableCell
+                        value={part.estimated_quantity}
+                        onChange={(val) => handleUpdatePartQuantity(actualIndex, parseInt(val) || 1)}
+                        type="number"
+                        min="1"
+                        className="text-center"
+                    />
+                );
+            },
+        },
+        {
+            key: 'unit_cost',
+            label: 'Custo Unitário',
+            width: 'w-[160px]',
+            headerAlign: 'right',
+            render: (value, row) => {
+                const part = row as unknown as PlanningPart;
+                const rowIndex = paginatedParts.findIndex(p => p.id === part.id);
+                const actualIndex = (currentPage - 1) * perPage + rowIndex;
+                return isViewMode ? (
+                    <div className="text-right">{formatCurrency(part.unit_cost)}</div>
+                ) : (
+                    <EditableCell
+                        value={part.unit_cost}
+                        onChange={(val) => handleUpdatePart(actualIndex, {
+                            unit_cost: parseFloat(val) || 0
+                        })}
+                        type="number"
+                        step="0.01"
+                        className="text-right"
+                        formatDisplay={(val) => formatCurrency(Number(val))}
+                    />
+                );
+            },
+        },
+        {
+            key: 'total_cost',
+            label: 'Total',
+            width: 'w-[160px]',
+            headerAlign: 'right',
+            render: (value, row) => {
+                const part = row as unknown as PlanningPart;
+                return <div className="text-right font-medium">{formatCurrency(part.total_cost)}</div>;
+            },
+        },
+    ];
+
+    // Actions for each row (remove button)
+    const partsActions = !isViewMode ? (row: Record<string, unknown>) => {
+        const part = row as unknown as PlanningPart;
+        const partIndex = plannedParts.findIndex(p => p.id === part.id);
+        return (
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleRemovePart(partIndex)}
+                className="h-8 w-8 p-0"
+            >
+                <Trash2 className="h-4 w-4" />
+            </Button>
+        );
+    } : undefined;
+
     return (
         <div className="space-y-6 py-6">
-            {!canPlan && (
+            {!canPlan && ['approved', 'planned'].includes(workOrder.status) && (
                 <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
@@ -260,15 +467,15 @@ export function WorkOrderPlanningTab({
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Time and Cost Estimation */}
                 <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Estimativa de Tempo e Custo</h3>
-                    
+                    <h3 className="text-lg font-medium">Horas de Trabalho</h3>
+
                     <div className="grid gap-4 md:grid-cols-4">
                         <TextInput
                             form={{
                                 data,
                                 setData,
                                 errors,
-                                clearErrors,
+                                clearErrors: clearErrors as (...fields: string[]) => void,
                             }}
                             name="estimated_hours"
                             label="Horas Estimadas"
@@ -282,7 +489,7 @@ export function WorkOrderPlanningTab({
                                 data,
                                 setData,
                                 errors,
-                                clearErrors,
+                                clearErrors: clearErrors as (...fields: string[]) => void,
                             }}
                             name="labor_cost_per_hour"
                             label="Custo por Hora (R$)"
@@ -319,6 +526,158 @@ export function WorkOrderPlanningTab({
                     </div>
                 </div>
 
+                <Separator />
+
+                {/* Safety Requirements, Skills, and Certifications */}
+                <div className="space-y-6">
+                    <h3 className="text-lg font-medium">Requisitos e Qualificações</h3>
+
+                    {/* Safety Requirements */}
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Requisitos de Segurança</Label>
+                            {!isViewMode && (
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={newSafetyReq}
+                                        onChange={(e) => setNewSafetyReq(e.target.value)}
+                                        placeholder="Ex: LOTO obrigatório"
+                                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSafetyReq())}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={handleAddSafetyReq}
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                                {data.safety_requirements.map((req: string, index: number) => (
+                                    <Badge key={index} variant="secondary">
+                                        <Shield className="h-3 w-3 mr-1" />
+                                        {req}
+                                        {!isViewMode && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveSafetyReq(index)}
+                                                className="ml-2"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </button>
+                                        )}
+                                    </Badge>
+                                ))}
+                                {data.safety_requirements.length === 0 && (
+                                    <span className="text-sm text-muted-foreground">Nenhum requisito de segurança definido</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Required Skills */}
+                        <div className="space-y-2">
+                            <Label>Habilidades Necessárias</Label>
+                            {!isViewMode && (
+                                <div className="flex gap-2">
+                                    <ItemSelect
+                                        items={skills.map((skill, index) => ({ id: index + 1, name: skill }))}
+                                        value={skills.findIndex(s => s === newSkill) + 1 ? (skills.findIndex(s => s === newSkill) + 1).toString() : ''}
+                                        onValueChange={(value) => {
+                                            const index = parseInt(value) - 1;
+                                            if (index >= 0 && index < skills.length) {
+                                                setNewSkill(skills[index]);
+                                            }
+                                        }}
+                                        placeholder="Selecione uma habilidade"
+                                        canCreate={true}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={handleAddSkill}
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                                {data.required_skills.map((skill: string, index: number) => (
+                                    <Badge key={index} variant="secondary">
+                                        <Wrench className="h-3 w-3 mr-1" />
+                                        {skill}
+                                        {!isViewMode && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveSkill(index)}
+                                                className="ml-2"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </button>
+                                        )}
+                                    </Badge>
+                                ))}
+                                {data.required_skills.length === 0 && (
+                                    <span className="text-sm text-muted-foreground">Nenhuma habilidade específica requerida</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Required Certifications */}
+                        <div className="space-y-2">
+                            <Label>Certificações Necessárias</Label>
+                            {!isViewMode && (
+                                <div className="flex gap-2">
+                                    <ItemSelect
+                                        items={certifications.map((cert, index) => ({ id: index + 1, name: cert }))}
+                                        value={certifications.findIndex(c => c === newCert) + 1 ? (certifications.findIndex(c => c === newCert) + 1).toString() : ''}
+                                        onValueChange={(value) => {
+                                            const index = parseInt(value) - 1;
+                                            if (index >= 0 && index < certifications.length) {
+                                                setNewCert(certifications[index]);
+                                            }
+                                        }}
+                                        placeholder="Selecione uma certificação"
+                                        canCreate={true}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={handleAddCert}
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                                {data.required_certifications.map((cert: string, index: number) => (
+                                    <Badge key={index} variant="secondary">
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        {cert}
+                                        {!isViewMode && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveCert(index)}
+                                                className="ml-2"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </button>
+                                        )}
+                                    </Badge>
+                                ))}
+                                {data.required_certifications.length === 0 && (
+                                    <span className="text-sm text-muted-foreground">Nenhuma certificação específica requerida</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <Separator />
+
                 {/* Parts Planning */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -337,48 +696,33 @@ export function WorkOrderPlanningTab({
                     </div>
 
                     {plannedParts.length > 0 ? (
-                        <div className="space-y-2">
-                            {plannedParts.map((part, index) => (
-                                <div key={part.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                                    <div className="flex-1">
-                                        <div className="font-medium">{part.part_number} - {part.part_name}</div>
-                                        <div className="text-sm text-muted-foreground">
-                                            Custo unitário: {formatCurrency(part.unit_cost)}
-                                        </div>
-                                    </div>
-                                    <div className="w-24">
-                                        {isViewMode ? (
-                                            <div className="text-center">
-                                                <div className="text-sm text-muted-foreground">Qtd</div>
-                                                <div className="font-medium">{part.estimated_quantity}</div>
-                                            </div>
-                                        ) : (
-                                            <Input
-                                                type="number"
-                                                min="1"
-                                                value={part.estimated_quantity}
-                                                onChange={(e) => handleUpdatePartQuantity(index, parseInt(e.target.value) || 1)}
-                                                className="text-center"
-                                            />
-                                        )}
-                                    </div>
-                                    <div className="text-right w-32">
-                                        <div className="text-sm text-muted-foreground">Total</div>
-                                        <div className="font-medium">{formatCurrency(part.total_cost)}</div>
-                                    </div>
-                                    {!isViewMode && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleRemovePart(index)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                            ))}
-                            
+                        <div className="space-y-4">
+                            <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
+                                <EntityDataTable
+                                    data={paginatedParts as any[]}
+                                    columns={partsColumns}
+                                    actions={partsActions}
+                                    emptyMessage="Nenhuma peça adicionada"
+                                />
+                            </div>
+
+                            {/* Show pagination only if more than 10 parts */}
+                            {plannedParts.length > 10 && (
+                                <EntityPagination
+                                    pagination={{
+                                        current_page: currentPage,
+                                        last_page: totalPages,
+                                        per_page: perPage,
+                                        total: plannedParts.length,
+                                        from: (currentPage - 1) * perPage + 1,
+                                        to: Math.min(currentPage * perPage, plannedParts.length),
+                                    }}
+                                    onPageChange={setCurrentPage}
+                                    onPerPageChange={setPerPage}
+                                    perPageOptions={[10, 20, 30, 50]}
+                                />
+                            )}
+
                             <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                                 <span className="font-medium">Custo Total de Peças:</span>
                                 <span className="text-lg font-bold">{formatCurrency(data.estimated_parts_cost)}</span>
@@ -392,173 +736,12 @@ export function WorkOrderPlanningTab({
                     )}
                 </div>
 
-                {/* Schedule Planning */}
-                <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Agendamento</h3>
-                    
-                    <div className="grid gap-4 md:grid-cols-4">
-                        {/* Start Date/Time */}
-                        <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="scheduled_start_date">
-                                Data/Hora de Início <span className="text-red-500">*</span>
-                            </Label>
-                            {isViewMode ? (
-                                <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                                    {data.scheduled_start_date 
-                                        ? format(new Date(data.scheduled_start_date), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                                        : 'Não definido'
-                                    }
-                                </div>
-                            ) : (
-                                <div className="flex gap-2">
-                                    <div className="flex-1">
-                                        <Popover open={startDatePickerOpen} onOpenChange={setStartDatePickerOpen}>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal",
-                                                        !startDateTime.date && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {startDateTime.date 
-                                                        ? format(startDateTime.date, "dd/MM/yyyy", { locale: ptBR })
-                                                        : "Selecione a data"
-                                                    }
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto overflow-hidden p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={startDateTime.date}
-                                                    captionLayout="dropdown"
-                                                    onSelect={(date) => {
-                                                        const newDateTime = combineDateTime(date, startDateTime.time || '08:00:00');
-                                                        setData('scheduled_start_date', newDateTime);
-                                                        setStartDatePickerOpen(false);
-                                                    }}
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-                                    <div className="w-32">
-                                        <Input
-                                            type="time"
-                                            step="1"
-                                            value={startDateTime.time || '08:00:00'}
-                                            onChange={(e) => {
-                                                const newDateTime = combineDateTime(startDateTime.date || new Date(), e.target.value);
-                                                setData('scheduled_start_date', newDateTime);
-                                            }}
-                                            className="bg-background"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                            {errors.scheduled_start_date && (
-                                <span className="text-sm text-red-500">{errors.scheduled_start_date}</span>
-                            )}
-                        </div>
-
-                        {/* End Date/Time */}
-                        <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="scheduled_end_date">
-                                Data/Hora de Término <span className="text-red-500">*</span>
-                            </Label>
-                            {isViewMode ? (
-                                <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                                    {data.scheduled_end_date 
-                                        ? format(new Date(data.scheduled_end_date), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                                        : 'Não definido'
-                                    }
-                                </div>
-                            ) : (
-                                <div className="flex gap-2">
-                                    <div className="flex-1">
-                                        <Popover open={endDatePickerOpen} onOpenChange={setEndDatePickerOpen}>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal",
-                                                        !endDateTime.date && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {endDateTime.date 
-                                                        ? format(endDateTime.date, "dd/MM/yyyy", { locale: ptBR })
-                                                        : "Selecione a data"
-                                                    }
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto overflow-hidden p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={endDateTime.date}
-                                                    captionLayout="dropdown"
-                                                    onSelect={(date) => {
-                                                        const newDateTime = combineDateTime(date, endDateTime.time || '17:00:00');
-                                                        setData('scheduled_end_date', newDateTime);
-                                                        setEndDatePickerOpen(false);
-                                                    }}
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-                                    <div className="w-32">
-                                        <Input
-                                            type="time"
-                                            step="1"
-                                            value={endDateTime.time || '17:00:00'}
-                                            onChange={(e) => {
-                                                const newDateTime = combineDateTime(endDateTime.date || new Date(), e.target.value);
-                                                setData('scheduled_end_date', newDateTime);
-                                            }}
-                                            className="bg-background"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                            {errors.scheduled_end_date && (
-                                <span className="text-sm text-red-500">{errors.scheduled_end_date}</span>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <ItemSelect
-                            label="Equipe Responsável"
-                            items={teams.map(team => ({
-                                id: team.id,
-                                name: team.name,
-                            }))}
-                            value={data.assigned_team_id}
-                            onValueChange={(value) => setData('assigned_team_id', value)}
-                            placeholder="Selecione uma equipe"
-                            view={isViewMode}
-                            canClear
-                        />
-
-                        <ItemSelect
-                            label="Técnico Principal"
-                            items={technicians.map(tech => ({
-                                id: tech.id,
-                                name: tech.name,
-                            }))}
-                            value={data.assigned_technician_id}
-                            onValueChange={(value) => setData('assigned_technician_id', value)}
-                            placeholder="Selecione um técnico"
-                            view={isViewMode}
-                            canClear
-                        />
-                    </div>
-                </div>
+                <Separator />
 
                 {/* Total Cost Summary */}
                 <div className="space-y-4">
                     <h3 className="text-lg font-medium">Resumo de Custos</h3>
-                    
+
                     <div className="border rounded-lg p-4 space-y-2">
                         <div className="flex justify-between">
                             <span>Mão de Obra:</span>
@@ -576,7 +759,7 @@ export function WorkOrderPlanningTab({
                 </div>
 
                 {/* Action Buttons */}
-                {canPlan && workOrder.status !== 'scheduled' && (
+                {canPlan && ['approved', 'planned'].includes(workOrder.status) && (
                     <div className="flex justify-end gap-2 pt-4">
                         <Button
                             type="submit"
@@ -588,7 +771,7 @@ export function WorkOrderPlanningTab({
                         <Button
                             type="button"
                             onClick={handleCompletePlanning}
-                            disabled={processing || !data.estimated_hours || !data.scheduled_start_date || !data.scheduled_end_date}
+                            disabled={processing || !data.estimated_hours}
                         >
                             Concluir Planejamento
                         </Button>

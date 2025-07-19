@@ -29,19 +29,30 @@ export function EntityDataTable<T extends Record<string, unknown>>({
 
     // Convert ColumnConfig to DataTable Column format
     const dataTableColumns: Column<T>[] = columns.map((col) => {
-        const shouldCenterHeader = centeredHeaderColumns.includes(col.key);
+        const shouldCenterHeader = centeredHeaderColumns.includes(col.key) || col.headerAlign === 'center';
+        const headerAlign = col.headerAlign || (shouldCenterHeader ? 'center' : 'left');
+
+        const getAlignmentClass = (align: string) => {
+            switch (align) {
+                case 'center': return 'justify-center';
+                case 'right': return 'justify-end';
+                default: return '';
+            }
+        };
 
         return {
             id: col.key,
             header:
                 col.sortable && onSort ? (
-                    <div className={`flex cursor-pointer items-center gap-2 ${shouldCenterHeader ? 'justify-center' : ''}`} onClick={() => onSort(col.key)}>
+                    <div className={`flex cursor-pointer items-center gap-2 ${getAlignmentClass(headerAlign)}`} onClick={() => onSort(col.key)}>
                         {col.label}
                         <ArrowUpDown className="h-4 w-4" />
                     </div>
                 ) : (
-                    shouldCenterHeader ? (
+                    headerAlign === 'center' ? (
                         <div className="text-center">{col.label}</div>
+                    ) : headerAlign === 'right' ? (
+                        <div className="text-right">{col.label}</div>
                     ) : (
                         col.label
                     )
@@ -59,7 +70,11 @@ export function EntityDataTable<T extends Record<string, unknown>>({
         dataTableColumns.push({
             id: 'actions',
             header: <div className="text-center">Ações</div>,
-            cell: (row: { original: T }) => actions(row.original),
+            cell: (row: { original: T }) => (
+                <div className="flex justify-center">
+                    {actions(row.original)}
+                </div>
+            ),
             width: 'w-[80px]',
         });
     }

@@ -348,7 +348,6 @@ class WorkOrderUpdateTest extends TestCase
             WorkOrder::STATUS_APPROVED,
             WorkOrder::STATUS_REJECTED,
             WorkOrder::STATUS_PLANNED,
-            WorkOrder::STATUS_READY_TO_SCHEDULE,
             WorkOrder::STATUS_SCHEDULED,
             WorkOrder::STATUS_IN_PROGRESS,
             WorkOrder::STATUS_ON_HOLD,

@@ -48,8 +48,8 @@ export function DataTable<TData>({
                         data.map((row) => (
                             <TableRow
                                 key={(row as { id: string | number }).id}
-                                className="hover:bg-muted/50 cursor-pointer transition-colors"
-                                onClick={() => onRowClick?.(row)}
+                                className={onRowClick ? "hover:bg-muted/50 cursor-pointer transition-colors" : "hover:bg-transparent"}
+                                onClick={onRowClick ? () => onRowClick(row) : undefined}
                             >
                                 {visibleColumns.map((column, index) => (
                                     <TableCell

@@ -30,7 +30,6 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('skill_id')->constrained()->onDelete('cascade');
             $table->enum('proficiency_level', ['beginner', 'intermediate', 'advanced', 'expert'])->nullable();
-            $table->date('certified_at')->nullable();
             $table->timestamps();
             
             $table->unique(['user_id', 'skill_id']);

@@ -11,6 +11,7 @@ import {
 import {
     WorkOrderApprovalTab,
     WorkOrderPlanningTab,
+    WorkOrderScheduleTab,
     WorkOrderExecutionTab,
     WorkOrderHistoryTab,
     WorkOrderPartsTab,
@@ -171,6 +172,7 @@ export default function ShowWorkOrder({
             'status': 'Status',
             'approval': 'Aprovação',
             'planning': 'Planejamento',
+            'schedule': 'Agendamento',
             'execution': 'Execução',
             'analysis': 'Análise de Falha',
             'history': 'Histórico',
@@ -297,7 +299,23 @@ export default function ShowWorkOrder({
             ),
         });
 
-        // 5. Execução (always shown)
+        // 5. Agendamento (always shown)
+        tabs.push({
+            id: 'schedule',
+            label: 'Agendamento',
+            icon: <Clock className="h-4 w-4" />,
+            content: (
+                <WorkOrderScheduleTab
+                    workOrder={workOrder}
+                    technicians={technicians}
+                    teams={teams}
+                    canSchedule={canPlan} // Using same permission as planning for now
+                    discipline={discipline}
+                />
+            ),
+        });
+
+        // 6. Execução (always shown)
         tabs.push({
             id: 'execution',
             label: 'Execução',

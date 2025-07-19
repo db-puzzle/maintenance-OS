@@ -71,7 +71,6 @@ class WorkOrder extends Model
     const STATUS_APPROVED = 'approved';
     const STATUS_REJECTED = 'rejected';
     const STATUS_PLANNED = 'planned';
-    const STATUS_READY_TO_SCHEDULE = 'ready_to_schedule';
     const STATUS_SCHEDULED = 'scheduled';
     const STATUS_IN_PROGRESS = 'in_progress';
     const STATUS_ON_HOLD = 'on_hold';
@@ -84,11 +83,10 @@ class WorkOrder extends Model
     const STATUS_TRANSITIONS = [
         self::STATUS_REQUESTED => [self::STATUS_APPROVED, self::STATUS_REJECTED, self::STATUS_CANCELLED],
         self::STATUS_APPROVED => [self::STATUS_PLANNED, self::STATUS_ON_HOLD, self::STATUS_CANCELLED],
-        self::STATUS_PLANNED => [self::STATUS_READY_TO_SCHEDULE, self::STATUS_ON_HOLD],
-        self::STATUS_READY_TO_SCHEDULE => [self::STATUS_SCHEDULED, self::STATUS_ON_HOLD],
+        self::STATUS_PLANNED => [self::STATUS_SCHEDULED, self::STATUS_ON_HOLD],
         self::STATUS_SCHEDULED => [self::STATUS_IN_PROGRESS, self::STATUS_ON_HOLD],
         self::STATUS_IN_PROGRESS => [self::STATUS_COMPLETED, self::STATUS_ON_HOLD],
-        self::STATUS_ON_HOLD => [self::STATUS_APPROVED, self::STATUS_PLANNED, self::STATUS_READY_TO_SCHEDULE, self::STATUS_SCHEDULED, self::STATUS_IN_PROGRESS],
+        self::STATUS_ON_HOLD => [self::STATUS_APPROVED, self::STATUS_PLANNED, self::STATUS_SCHEDULED, self::STATUS_IN_PROGRESS],
         self::STATUS_COMPLETED => [self::STATUS_VERIFIED, self::STATUS_IN_PROGRESS],
         self::STATUS_VERIFIED => [self::STATUS_CLOSED, self::STATUS_COMPLETED],
         self::STATUS_REJECTED => [],

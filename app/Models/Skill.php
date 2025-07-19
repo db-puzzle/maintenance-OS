@@ -35,6 +35,6 @@ class Skill extends Model
     {
         return $this->belongsToMany(User::class, 'user_skills')
             ->withTimestamps()
-            ->withPivot('proficiency_level', 'certified_at');
+            ->withPivot('proficiency_level');
     }
 } 

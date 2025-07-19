@@ -127,14 +127,16 @@ export function WorkOrderApprovalTab({
                             </div>
                         </div>
 
-                        {approvalEntry.reason && (
-                            <div className="space-y-2">
-                                <Label>Razão da {approvalEntry.to_status === 'approved' ? 'aprovação' : 'rejeição'}</Label>
-                                <div className="rounded-md border bg-muted/20 p-3 text-sm">
-                                    {approvalEntry.reason}
-                                </div>
+                        <div className="space-y-2">
+                            <Label>Razão da {approvalEntry.to_status === 'approved' ? 'aprovação' : 'rejeição'}</Label>
+                            <div className="rounded-md border bg-muted/20 p-3 text-sm min-h-[100px] flex items-start">
+                                {approvalEntry.reason || (
+                                    <span className="text-muted-foreground italic">
+                                        Nenhuma razão fornecida
+                                    </span>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
                 </>
             ) : isApproved ? (

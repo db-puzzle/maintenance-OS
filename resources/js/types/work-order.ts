@@ -124,7 +124,6 @@ export type WorkOrderStatus =
     | 'approved'
     | 'rejected'
     | 'planned'
-    | 'ready_to_schedule'
     | 'scheduled'
     | 'in_progress'
     | 'on_hold'
@@ -465,11 +464,10 @@ export const STATUS_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
     requested: ['approved', 'rejected', 'cancelled'],
     approved: ['planned', 'on_hold', 'cancelled'],
     rejected: [],
-    planned: ['ready_to_schedule', 'on_hold'],
-    ready_to_schedule: ['scheduled', 'on_hold'],
+    planned: ['scheduled', 'on_hold'],
     scheduled: ['in_progress', 'on_hold'],
     in_progress: ['completed', 'on_hold'],
-    on_hold: ['approved', 'planned', 'ready_to_schedule', 'scheduled', 'in_progress'],
+    on_hold: ['approved', 'planned', 'scheduled', 'in_progress'],
     completed: ['verified', 'in_progress'],
     verified: ['closed', 'completed'],
     closed: [],
@@ -523,7 +521,6 @@ export const STATUS_CONFIG = {
     approved: { label: 'Aprovado', color: 'blue' },
     rejected: { label: 'Rejeitado', color: 'red' },
     planned: { label: 'Planejado', color: 'indigo' },
-    ready_to_schedule: { label: 'Pronto para Agendar', color: 'purple' },
     scheduled: { label: 'Agendado', color: 'violet' },
     in_progress: { label: 'Em Execução', color: 'yellow' },
     on_hold: { label: 'Em Espera', color: 'orange' },
