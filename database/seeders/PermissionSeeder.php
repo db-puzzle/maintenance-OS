@@ -315,6 +315,74 @@ class PermissionSeeder extends Seeder
                 ]
             ];
 
+            // Skills management permissions
+            $skillsPermissions = [
+                [
+                    'name' => 'skills.viewAny',
+                    'display_name' => 'View Skills List',
+                    'description' => 'View list of all skills',
+                    'sort_order' => 70
+                ],
+                [
+                    'name' => 'skills.view',
+                    'display_name' => 'View Skill Details',
+                    'description' => 'View skill details',
+                    'sort_order' => 71
+                ],
+                [
+                    'name' => 'skills.create',
+                    'display_name' => 'Create Skills',
+                    'description' => 'Create new skills',
+                    'sort_order' => 72
+                ],
+                [
+                    'name' => 'skills.update',
+                    'display_name' => 'Update Skills',
+                    'description' => 'Update skill information',
+                    'sort_order' => 73
+                ],
+                [
+                    'name' => 'skills.delete',
+                    'display_name' => 'Delete Skills',
+                    'description' => 'Delete skills',
+                    'sort_order' => 74
+                ]
+            ];
+
+            // Certifications management permissions
+            $certificationsPermissions = [
+                [
+                    'name' => 'certifications.viewAny',
+                    'display_name' => 'View Certifications List',
+                    'description' => 'View list of all certifications',
+                    'sort_order' => 80
+                ],
+                [
+                    'name' => 'certifications.view',
+                    'display_name' => 'View Certification Details',
+                    'description' => 'View certification details',
+                    'sort_order' => 81
+                ],
+                [
+                    'name' => 'certifications.create',
+                    'display_name' => 'Create Certifications',
+                    'description' => 'Create new certifications',
+                    'sort_order' => 82
+                ],
+                [
+                    'name' => 'certifications.update',
+                    'display_name' => 'Update Certifications',
+                    'description' => 'Update certification information',
+                    'sort_order' => 83
+                ],
+                [
+                    'name' => 'certifications.delete',
+                    'display_name' => 'Delete Certifications',
+                    'description' => 'Delete certifications',
+                    'sort_order' => 84
+                ]
+            ];
+
             // Create all permissions
             $allPermissions = array_merge(
                 $systemPermissions,
@@ -322,7 +390,9 @@ class PermissionSeeder extends Seeder
                 $invitationPermissions,
                 $rolePermissions,
                 $workOrderPermissions,
-                $partsPermissions
+                $partsPermissions,
+                $skillsPermissions,
+                $certificationsPermissions
             );
 
             foreach ($allPermissions as $permissionData) {

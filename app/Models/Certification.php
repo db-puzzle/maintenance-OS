@@ -39,4 +39,34 @@ class Certification extends Model
             ->withTimestamps()
             ->withPivot('issued_at', 'expires_at', 'certificate_number');
     }
+
+    /**
+     * Get the dependencies for this certification
+     */
+    public function getDependencies(): array
+    {
+        return [
+            'users' => [
+                'count' => $this->users()->count(),
+                'label' => 'Usuários',
+                'items' => $this->users()->limit(10)->get(['users.id', 'users.name'])->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                    ];
+                })->toArray(),
+            ],
+        ];
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($certification) {
+            if ($certification->users()->exists()) {
+                throw new \Exception('Não é possível excluir uma certificação que possui usuários vinculados.');
+            }
+        });
+    }
 } 

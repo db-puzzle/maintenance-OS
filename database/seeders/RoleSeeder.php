@@ -67,6 +67,18 @@ class RoleSeeder extends Seeder
                 'parts.manage-stock',
                 'parts.import',
                 'parts.export',
+                // Skills permissions
+                'skills.viewAny',
+                'skills.view',
+                'skills.create',
+                'skills.update',
+                'skills.delete',
+                // Certifications permissions
+                'certifications.viewAny',
+                'certifications.view',
+                'certifications.create',
+                'certifications.update',
+                'certifications.delete',
             ];
             $plantManager->syncPermissions($plantManagerPermissions);
 
@@ -140,6 +152,18 @@ class RoleSeeder extends Seeder
                 'parts.delete',
                 'parts.manage-stock',
                 'parts.export',
+                // Skills permissions
+                'skills.viewAny',
+                'skills.view',
+                'skills.create',
+                'skills.update',
+                'skills.delete',
+                // Certifications permissions
+                'certifications.viewAny',
+                'certifications.view',
+                'certifications.create',
+                'certifications.update',
+                'certifications.delete',
             ];
             $maintenanceSupervisor->syncPermissions($maintenanceSupervisorPermissions);
 
@@ -191,6 +215,12 @@ class RoleSeeder extends Seeder
                 // Parts permissions
                 'parts.viewAny',
                 'parts.view',
+                // Skills permissions (view only)
+                'skills.viewAny',
+                'skills.view',
+                // Certifications permissions (view only)
+                'certifications.viewAny',
+                'certifications.view',
             ];
             $technician->syncPermissions($technicianPermissions);
 
@@ -230,6 +260,12 @@ class RoleSeeder extends Seeder
                 // Parts permissions
                 'parts.viewAny',
                 'parts.view',
+                // Skills permissions (view only)
+                'skills.viewAny',
+                'skills.view',
+                // Certifications permissions (view only)
+                'certifications.viewAny',
+                'certifications.view',
             ];
             $viewer->syncPermissions($viewerPermissions);
 

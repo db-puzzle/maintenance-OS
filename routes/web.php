@@ -78,6 +78,9 @@ require __DIR__.'/work-orders.php';
 // Parts
 require __DIR__.'/parts.php';
 
+// Skills and Certifications
+require __DIR__.'/skills-certifications.php';
+
 // Settings
 require __DIR__.'/settings.php';
 

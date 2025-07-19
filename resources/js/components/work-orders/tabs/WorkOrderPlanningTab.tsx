@@ -14,6 +14,8 @@ import TextInput from '@/components/TextInput';
 import PartSearchDialog from '@/components/work-orders/PartSearchDialog';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
+import SkillSheet from '@/components/skills/SkillSheet';
+import CertificationSheet from '@/components/certifications/CertificationSheet';
 import { ColumnConfig } from '@/types/shared';
 import {
     Plus,
@@ -180,6 +182,8 @@ export function WorkOrderPlanningTab({
     );
 
     const [partSearchOpen, setPartSearchOpen] = useState(false);
+    const [skillSheetOpen, setSkillSheetOpen] = useState(false);
+    const [certificationSheetOpen, setCertificationSheetOpen] = useState(false);
     const [newSafetyReq, setNewSafetyReq] = useState('');
     const [newSkill, setNewSkill] = useState('');
     const [newCert, setNewCert] = useState('');
@@ -585,13 +589,18 @@ export function WorkOrderPlanningTab({
                                         items={skills.map((skill, index) => ({ id: index + 1, name: skill }))}
                                         value={skills.findIndex(s => s === newSkill) + 1 ? (skills.findIndex(s => s === newSkill) + 1).toString() : ''}
                                         onValueChange={(value) => {
-                                            const index = parseInt(value) - 1;
-                                            if (index >= 0 && index < skills.length) {
-                                                setNewSkill(skills[index]);
+                                            if (value === 'create-new') {
+                                                setSkillSheetOpen(true);
+                                            } else {
+                                                const index = parseInt(value) - 1;
+                                                if (index >= 0 && index < skills.length) {
+                                                    setNewSkill(skills[index]);
+                                                }
                                             }
                                         }}
                                         placeholder="Selecione uma habilidade"
                                         canCreate={true}
+                                        createLabel="Criar nova habilidade"
                                     />
                                     <Button
                                         type="button"
@@ -634,13 +643,18 @@ export function WorkOrderPlanningTab({
                                         items={certifications.map((cert, index) => ({ id: index + 1, name: cert }))}
                                         value={certifications.findIndex(c => c === newCert) + 1 ? (certifications.findIndex(c => c === newCert) + 1).toString() : ''}
                                         onValueChange={(value) => {
-                                            const index = parseInt(value) - 1;
-                                            if (index >= 0 && index < certifications.length) {
-                                                setNewCert(certifications[index]);
+                                            if (value === 'create-new') {
+                                                setCertificationSheetOpen(true);
+                                            } else {
+                                                const index = parseInt(value) - 1;
+                                                if (index >= 0 && index < certifications.length) {
+                                                    setNewCert(certifications[index]);
+                                                }
                                             }
                                         }}
                                         placeholder="Selecione uma certificação"
                                         canCreate={true}
+                                        createLabel="Criar nova certificação"
                                     />
                                     <Button
                                         type="button"
@@ -786,6 +800,28 @@ export function WorkOrderPlanningTab({
                 parts={parts}
                 selectedParts={selectedPartIds}
                 onSelectPart={handleAddPart}
+            />
+
+            {/* Skill Sheet */}
+            <SkillSheet
+                open={skillSheetOpen}
+                onOpenChange={setSkillSheetOpen}
+                onClose={() => {
+                    setSkillSheetOpen(false);
+                    // Reload the page to get updated skills list
+                    window.location.reload();
+                }}
+            />
+
+            {/* Certification Sheet */}
+            <CertificationSheet
+                open={certificationSheetOpen}
+                onOpenChange={setCertificationSheetOpen}
+                onClose={() => {
+                    setCertificationSheetOpen(false);
+                    // Reload the page to get updated certifications list
+                    window.location.reload();
+                }}
             />
         </div>
     );
