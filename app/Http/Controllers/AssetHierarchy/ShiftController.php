@@ -167,7 +167,7 @@ class ShiftController extends Controller
         return Inertia::render('asset-hierarchy/shifts/shift-editor');
     }
 
-    private function validateShiftData(Request $request)
+    private function validateShiftData(Request $request, ?Shift $existingShift = null)
     {
         // Formata os horários para remover os segundos se necessário
         $data = $request->all();
@@ -200,8 +200,18 @@ class ShiftController extends Controller
         // Substitui os dados da requisição pelos formatados
         $request->replace($data);
 
+        // Build unique rule for name
+        $nameRule = ['required', 'string', 'max:255'];
+        if ($existingShift) {
+            // When updating, ignore the current shift's name
+            $nameRule[] = Rule::unique('shifts', 'name')->ignore($existingShift->id);
+        } else {
+            // When creating, check all shifts
+            $nameRule[] = Rule::unique('shifts', 'name');
+        }
+
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => $nameRule,
             'timezone' => 'nullable|string|timezone',
             'schedules' => 'required|array',
             'schedules.*.weekday' => ['required', Rule::in(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])],
@@ -212,6 +222,8 @@ class ShiftController extends Controller
             'schedules.*.shifts.*.breaks' => 'nullable|array',
             'schedules.*.shifts.*.breaks.*.start_time' => 'required|date_format:H:i',
             'schedules.*.shifts.*.breaks.*.end_time' => 'required|date_format:H:i|after:schedules.*.shifts.*.breaks.*.start_time',
+        ], [
+            'name.unique' => 'Já existe um turno com este nome. Por favor, escolha um nome diferente.',
         ]);
 
         // Verificar sobreposição de turnos no mesmo dia
@@ -523,7 +535,7 @@ class ShiftController extends Controller
     public function update(Request $request, Shift $shift)
     {
         try {
-            $validated = $this->validateShiftData($request);
+            $validated = $this->validateShiftData($request, $shift);
 
             return DB::transaction(function () use ($shift, $validated, $request) {
                 // Get user's timezone or use existing shift timezone
@@ -535,7 +547,7 @@ class ShiftController extends Controller
                 ];
 
                 // Before updating the shift, create runtime measurements for all assets using this shift
-                $affectedAssets = $shift->assets()->get();
+                $affectedAssets = $shift->assets()->with(['latestRuntimeMeasurement', 'shift.schedules.shiftTimes.breaks'])->get();
                 $user = auth()->user();
 
                 foreach ($affectedAssets as $asset) {
@@ -815,7 +827,7 @@ class ShiftController extends Controller
         $page = $request->input('page', 1);
 
         $assetsQuery = $shift->assets()
-            ->with(['assetType', 'plant', 'area', 'sector']);
+            ->with(['assetType', 'plant', 'area', 'sector', 'latestRuntimeMeasurement', 'shift.schedules.shiftTimes.breaks']);
 
         $assetsPaginated = $assetsQuery->paginate($perPage, ['*'], 'page', $page);
 
@@ -849,7 +861,7 @@ class ShiftController extends Controller
     public function copyAndUpdate(Request $request, Shift $shift)
     {
         try {
-            $validated = $this->validateShiftData($request);
+            $validated = $this->validateShiftData($request, null);
 
             // Get the assets to update
             $assetIds = $request->input('asset_ids', []);
@@ -860,9 +872,49 @@ class ShiftController extends Controller
                 ], 422);
             }
 
-            return DB::transaction(function () use ($shift, $validated, $assetIds) {
-                $user = auth()->user();
+            // Ensure asset IDs are integers
+            $assetIds = array_map('intval', $assetIds);
+            $assetIds = array_filter($assetIds, function($id) {
+                return $id > 0;
+            });
 
+            $user = auth()->user();
+
+            // First check permissions before starting the transaction
+            $affectedAssets = Asset::whereIn('id', $assetIds)
+                ->with([
+                    'latestRuntimeMeasurement', 
+                    'shift.schedules.shiftTimes.breaks',
+                    'plant',
+                    'area',
+                    'sector'
+                ])
+                ->get();
+
+            // Check if any assets were found
+            if ($affectedAssets->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nenhum ativo válido foi encontrado com os IDs fornecidos.',
+                ], 422);
+            }
+
+            // Check if user has permission to update all selected assets
+            $unauthorizedAssets = [];
+            foreach ($affectedAssets as $asset) {
+                if (!$user->can('update', $asset)) {
+                    $unauthorizedAssets[] = $asset->tag;
+                }
+            }
+
+            if (!empty($unauthorizedAssets)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Você não tem permissão para atualizar os seguintes ativos: ' . implode(', ', $unauthorizedAssets),
+                ], 403);
+            }
+
+            return DB::transaction(function () use ($shift, $validated, $assetIds, $user, $affectedAssets) {
                 // Create a new shift with the updated data
                 $newShiftName = $validated['name'].' (Cópia)';
                 $counter = 1;
@@ -906,9 +958,7 @@ class ShiftController extends Controller
                     }
                 }
 
-                // Update only the specified assets to use the new shift
-                $affectedAssets = Asset::whereIn('id', $assetIds)->get();
-
+                // Update the assets to use the new shift
                 foreach ($affectedAssets as $asset) {
                     // Record current runtime before changing shift
                     $currentRuntime = $asset->current_runtime_hours;
@@ -968,7 +1018,16 @@ class ShiftController extends Controller
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
-            throw $e;
+            \Log::error('Error in copyAndUpdate', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'assetIds' => $assetIds ?? [],
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Ocorreu um erro ao processar a solicitação: ' . $e->getMessage(),
+            ], 500);
         }
     }
 }

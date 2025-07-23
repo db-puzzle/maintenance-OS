@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -15,7 +14,6 @@ interface Skill {
     name: string;
     description: string | null;
     category: string;
-    active: boolean;
 }
 
 interface SkillSheetProps {
@@ -43,7 +41,6 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
         name: '',
         description: '',
         category: 'Técnica',
-        active: true,
     });
 
     useEffect(() => {
@@ -52,7 +49,6 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
                 name: skill.name,
                 description: skill.description || '',
                 category: skill.category,
-                active: skill.active,
             });
         } else {
             reset();
@@ -146,20 +142,6 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
                         {errors.description && (
                             <p className="text-sm text-destructive">{errors.description}</p>
                         )}
-                    </div>
-
-                    <div className="flex items-center justify-between space-x-2">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="active">Status</Label>
-                            <p className="text-sm text-muted-foreground">
-                                Habilidades inativas não aparecem para seleção
-                            </p>
-                        </div>
-                        <Switch
-                            id="active"
-                            checked={data.active}
-                            onCheckedChange={(checked) => setData('active', checked)}
-                        />
                     </div>
 
                     {Object.keys(errors).length > 0 && (

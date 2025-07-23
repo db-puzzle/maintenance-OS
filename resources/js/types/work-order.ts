@@ -33,7 +33,8 @@ export interface WorkOrder {
     estimated_labor_cost?: number;
     estimated_total_cost?: number;
     downtime_required: boolean;
-    safety_requirements?: string[];
+    other_requirements?: string[];
+    number_of_people?: number;
 
     // Scheduling
     requested_due_date?: string;

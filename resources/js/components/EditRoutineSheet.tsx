@@ -341,10 +341,9 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                                 value={data.trigger_runtime_hours || ''}
                                                 onChange={(e) => updateData('trigger_runtime_hours', parseInt(e.target.value) || null)}
                                                 onFocus={(e) => e.target.select()}
-                                                onWheel={(e) => e.preventDefault()}
                                                 placeholder="Ex: 500"
                                                 disabled={processing}
-                                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-moz-appearance:textfield]"
                                             />
                                             <p className="text-sm text-muted-foreground">
                                                 Executada após essa quantidade de horas de operação (1-10.000 horas)
@@ -378,10 +377,9 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                         value={data.trigger_calendar_days || ''}
                                         onChange={(e) => updateData('trigger_calendar_days', parseInt(e.target.value) || null)}
                                         onFocus={(e) => e.target.select()}
-                                        onWheel={(e) => e.preventDefault()}
                                         placeholder="Ex: 30"
                                         disabled={processing}
-                                        className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-moz-appearance:textfield]"
                                     />
                                     <p className="text-sm text-muted-foreground">
                                         Executada após essa quantidade de dias (1-365 dias)
@@ -418,9 +416,8 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                                 max={180}
                                                 value={data.advance_generation_days}
                                                 onChange={(e) => updateData('advance_generation_days', parseInt(e.target.value) || 30)}
-                                                onWheel={(e) => e.preventDefault()}
                                                 disabled={processing}
-                                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-moz-appearance:textfield]"
                                             />
                                             <p className="text-sm text-muted-foreground">
                                                 Gerar ordem de serviço essa quantidade de dias antes do vencimento (1-180 dias)
@@ -500,9 +497,8 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                 max={100}
                                 value={data.priority_score}
                                 onChange={(e) => updateData('priority_score', parseInt(e.target.value) || 0)}
-                                onWheel={(e) => e.preventDefault()}
                                 disabled={processing}
-                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-moz-appearance:textfield]"
                             />
                             <p className="text-sm text-muted-foreground">
                                 Pontuação numérica para ordenação automática de prioridades

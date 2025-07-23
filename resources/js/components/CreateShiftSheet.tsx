@@ -3,8 +3,6 @@ import TimeSelect from '@/components/TimeSelect';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -22,6 +20,8 @@ import { TIMEZONE_GROUPS } from '@/constants/timezones';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import InputError from '@/components/input-error';
+import { ShiftUpdateConfirmationDialog } from '@/components/work-orders/ShiftUpdateConfirmationDialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Break {
     start_time: string;
@@ -64,6 +64,7 @@ interface CreateShiftSheetProps {
         timezone?: string;
         schedules: Schedule[];
     };
+    currentAssetId?: number;
 }
 
 // Create a proper type for the form data
@@ -249,7 +250,7 @@ const isBreakOverlapping = (shift: Shift, currentBreak: Break, currentBreakIndex
 };
 
 const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
-    ({ isOpen, onOpenChange, onSuccess, triggerText = 'Novo Turno', triggerVariant = 'outline', showTrigger = false, initialShift }, ref) => {
+    ({ isOpen, onOpenChange, onSuccess, triggerText = 'Novo Turno', triggerVariant = 'outline', showTrigger = false, initialShift, currentAssetId }, ref) => {
         // eslint-disable @typescript-eslint/no-explicit-any -- Complex form state management with deeply nested structures
         const [open, setOpen] = useState(false);
         const buttonRef = useRef<HTMLButtonElement>(null);
@@ -292,7 +293,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, setData, processing, errors, clearErrors } = useForm(getInitialFormData() as any);
+        const { data, setData, processing, errors, clearErrors, setError } = useForm(getInitialFormData() as any);
 
         // Create a wrapper for setData to match the TextInput expected signature
         const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
@@ -600,9 +601,17 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 .catch((error) => {
                     if (error.response && error.response.data && error.response.data.errors) {
                         // Handle validation errors
-                        Object.keys(error.response.data.errors).forEach((key) => {
-                            toast.error(error.response.data.errors[key][0]);
+                        const validationErrors = error.response.data.errors;
+
+                        // Set form errors so they display below the input fields
+                        Object.keys(validationErrors).forEach((key) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            setError(key as any, validationErrors[key][0]);
                         });
+
+                        // Also show the first error as a toast
+                        const firstErrorKey = Object.keys(validationErrors)[0];
+                        toast.error(validationErrors[firstErrorKey][0]);
                     } else {
                         toast.error('Erro ao criar turno', {
                             description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
@@ -633,9 +642,17 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 .catch((error) => {
                     if (error.response && error.response.data && error.response.data.errors) {
                         // Handle validation errors
-                        Object.keys(error.response.data.errors).forEach((key) => {
-                            toast.error(error.response.data.errors[key][0]);
+                        const validationErrors = error.response.data.errors;
+
+                        // Set form errors so they display below the input fields
+                        Object.keys(validationErrors).forEach((key) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            setError(key as any, validationErrors[key][0]);
                         });
+
+                        // Also show the first error as a toast
+                        const firstErrorKey = Object.keys(validationErrors)[0];
+                        toast.error(validationErrors[firstErrorKey][0]);
                     } else {
                         toast.error('Erro ao atualizar turno', {
                             description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
@@ -673,9 +690,19 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 .catch((error) => {
                     if (error.response && error.response.data && error.response.data.errors) {
                         // Handle validation errors
-                        Object.keys(error.response.data.errors).forEach((key) => {
-                            toast.error(error.response.data.errors[key][0]);
+                        const validationErrors = error.response.data.errors;
+
+                        // Set form errors so they display below the input fields
+                        Object.keys(validationErrors).forEach((key) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            setError(key as any, validationErrors[key][0]);
                         });
+
+                        // Also show the first error as a toast
+                        const firstErrorKey = Object.keys(validationErrors)[0];
+                        toast.error(validationErrors[firstErrorKey][0]);
+                    } else if (error.response && error.response.data && error.response.data.message) {
+                        toast.error(error.response.data.message);
                     } else {
                         toast.error('Erro ao criar cópia do turno', {
                             description: 'Ocorreu um erro. Por favor, verifique os dados e tente novamente.',
@@ -1180,157 +1207,19 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 </Sheet>
 
                 {/* Confirmation Dialog for Affected Assets */}
-                <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                    <DialogContent className="flex max-h-[80vh] max-w-2xl flex-col overflow-hidden">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                                Confirmação de Atualização de Turno
-                            </DialogTitle>
-                            <DialogDescription>
-                                Esta alteração afetará {affectedAssets.length} {affectedAssets.length === 1 ? 'ativo' : 'ativos'}. Escolha como deseja
-                                proceder:
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="my-4 space-y-4">
-                            {/* Update Mode Selection */}
-                            <div className="space-y-3">
-                                <div className="flex items-start space-x-3">
-                                    <input
-                                        type="radio"
-                                        id="update-all"
-                                        name="update-mode"
-                                        value="all"
-                                        checked={updateMode === 'all'}
-                                        onChange={() => {
-                                            setUpdateMode('all');
-                                            setSelectedAssetIds([]);
-                                        }}
-                                        className="mt-1"
-                                    />
-                                    <label htmlFor="update-all" className="cursor-pointer">
-                                        <div className="font-medium">Atualizar todos os ativos</div>
-                                        <div className="text-muted-foreground text-sm">
-                                            O turno existente será atualizado e todos os {affectedAssets.length} ativos continuarão usando este turno.
-                                        </div>
-                                    </label>
-                                </div>
-
-                                <div className="flex items-start space-x-3">
-                                    <input
-                                        type="radio"
-                                        id="update-selected"
-                                        name="update-mode"
-                                        value="selected"
-                                        checked={updateMode === 'selected'}
-                                        onChange={() => {
-                                            setUpdateMode('selected');
-                                            // Select all assets by default when switching to this mode
-                                            setSelectedAssetIds(affectedAssets.map((a) => a.id));
-                                        }}
-                                        className="mt-1"
-                                    />
-                                    <label htmlFor="update-selected" className="cursor-pointer">
-                                        <div className="font-medium">Criar cópia do turno para ativos selecionados</div>
-                                        <div className="text-muted-foreground text-sm">
-                                            Um novo turno será criado com as alterações e apenas os ativos selecionados serão associados a ele.
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            {/* Asset List */}
-                            <div className="max-h-[300px] overflow-y-auto rounded-lg border p-2">
-                                {updateMode === 'selected' && (
-                                    <div className="mb-2 flex items-center justify-between border-b pb-2">
-                                        <span className="text-sm font-medium">Selecione os ativos para atualizar:</span>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => {
-                                                if (selectedAssetIds.length === affectedAssets.length) {
-                                                    setSelectedAssetIds([]);
-                                                } else {
-                                                    setSelectedAssetIds(affectedAssets.map((a) => a.id));
-                                                }
-                                            }}
-                                        >
-                                            {selectedAssetIds.length === affectedAssets.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
-                                        </Button>
-                                    </div>
-                                )}
-                                <div className="space-y-2">
-                                    {affectedAssets.map((asset) => (
-                                        <Card key={asset.id} className="p-3">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex flex-1 items-start space-x-3">
-                                                    {updateMode === 'selected' && (
-                                                        <Checkbox
-                                                            checked={selectedAssetIds.includes(asset.id)}
-                                                            onCheckedChange={(checked) => {
-                                                                if (checked) {
-                                                                    setSelectedAssetIds([...selectedAssetIds, asset.id]);
-                                                                } else {
-                                                                    setSelectedAssetIds(selectedAssetIds.filter((id) => id !== asset.id));
-                                                                }
-                                                            }}
-                                                            className="mt-1"
-                                                        />
-                                                    )}
-                                                    <div className="flex-1 space-y-1">
-                                                        <div className="font-medium">{asset.tag}</div>
-                                                        {asset.description && (
-                                                            <div className="text-muted-foreground text-sm">{asset.description}</div>
-                                                        )}
-                                                        <div className="text-muted-foreground space-x-2 text-xs">
-                                                            {asset.asset_type && <span>Tipo: {asset.asset_type}</span>}
-                                                            {asset.plant && <span>• Planta: {asset.plant}</span>}
-                                                            {asset.area && <span>• Área: {asset.area}</span>}
-                                                            {asset.sector && <span>• Setor: {asset.sector}</span>}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="ml-4 text-right">
-                                                    <div className="text-sm font-medium">Horímetro Atual</div>
-                                                    <div className="text-lg">{asset.current_runtime_hours.toFixed(2)}h</div>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {updateMode === 'selected' && (
-                                <div className="text-muted-foreground text-sm">
-                                    {selectedAssetIds.length} de {affectedAssets.length} ativos selecionados
-                                </div>
-                            )}
-
-                            {/* Runtime Recording Note */}
-                            <Alert>
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription className="text-sm">
-                                    O horímetro atual será registrado automaticamente para {updateMode === 'all' ? 'todos os' : 'os'} ativos{' '}
-                                    {updateMode === 'selected' ? 'selecionados' : 'afetados'} antes da alteração, preservando o histórico de operação.
-                                </AlertDescription>
-                            </Alert>
-                        </div>
-
-                        <DialogFooter>
-                            <Button variant="outline" onClick={handleCancelUpdate} disabled={processing}>
-                                Cancelar
-                            </Button>
-                            <Button
-                                onClick={handleConfirmUpdate}
-                                disabled={processing || (updateMode === 'selected' && selectedAssetIds.length === 0)}
-                            >
-                                {processing ? 'Processando...' : updateMode === 'all' ? 'Atualizar Todos' : 'Criar Cópia e Atualizar'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <ShiftUpdateConfirmationDialog
+                    open={showConfirmDialog}
+                    onOpenChange={setShowConfirmDialog}
+                    affectedAssets={affectedAssets}
+                    updateMode={updateMode}
+                    onUpdateModeChange={setUpdateMode}
+                    selectedAssetIds={selectedAssetIds}
+                    onSelectedAssetsChange={setSelectedAssetIds}
+                    onConfirm={handleConfirmUpdate}
+                    onCancel={handleCancelUpdate}
+                    processing={processing}
+                    currentAssetId={currentAssetId}
+                />
             </>
         );
         // eslint-enable @typescript-eslint/no-explicit-any

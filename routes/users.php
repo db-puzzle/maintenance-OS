@@ -28,6 +28,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/copy/{targetUser}', [UserPermissionController::class, 'copy'])->name('copy');
     });
     
+    // User skills and certifications
+    Route::prefix('users/{user}')->name('users.')->group(function () {
+        Route::put('/skills', [UserController::class, 'updateSkills'])->name('skills.update');
+        Route::put('/certifications', [UserController::class, 'updateCertifications'])->name('certifications.update');
+    });
+    
     // Role-based permission application
     Route::prefix('users/{user}/roles')->name('users.roles.')->group(function () {
         Route::post('/apply', [UserRoleController::class, 'applyRoleToEntity'])->name('apply');

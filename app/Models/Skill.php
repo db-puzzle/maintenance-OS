@@ -13,20 +13,10 @@ class Skill extends Model
         'name',
         'description',
         'category',
-        'active',
     ];
 
     protected $casts = [
-        'active' => 'boolean',
     ];
-
-    /**
-     * Scope a query to only include active skills.
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('active', true);
-    }
 
     /**
      * Get users with this skill

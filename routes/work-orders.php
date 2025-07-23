@@ -22,8 +22,8 @@ Route::prefix('maintenance/work-orders')
         Route::post('/{workOrder}/approve', [WorkOrderController::class, 'approve'])->name('approve.store');
         Route::post('/{workOrder}/reject', [WorkOrderController::class, 'reject'])->name('reject');
         
-        // Planning routes
-        Route::get('/{workOrder}/planning', [WorkOrderPlanningController::class, 'show'])->name('planning');
+        // Planning routes (API only - no separate page)
+        // Route::get('/{workOrder}/planning', [WorkOrderPlanningController::class, 'show'])->name('planning'); // DEPRECATED - use show page with planning tab
         Route::post('/{workOrder}/planning', [WorkOrderPlanningController::class, 'store'])->name('planning.store');
         Route::put('/{workOrder}/planning', [WorkOrderPlanningController::class, 'update'])->name('planning.update');
         Route::post('/{workOrder}/planning/complete', [WorkOrderPlanningController::class, 'complete'])->name('planning.complete');

@@ -153,7 +153,6 @@ export default function AssetRoutinesTab({
     const [showLastExecutionDialog, setShowLastExecutionDialog] = useState(false);
     const [routineForLastExecution, setRoutineForLastExecution] = useState<Routine | null>(null);
     const [lastExecutionDate, setLastExecutionDate] = useState('');
-    const [lastExecutionRuntime, setLastExecutionRuntime] = useState('');
     const [isUpdatingLastExecution, setIsUpdatingLastExecution] = useState(false);
 
     // Create a stable default routine object
@@ -364,16 +363,24 @@ export default function AssetRoutinesTab({
             label: 'Última Execução',
             sortable: true,
             width: 'w-[200px]',
+            headerAlign: 'center',
+            contentAlign: 'center',
             render: (value, row) => {
                 const routine = row as Routine;
                 if (!routine.last_execution_completed_at) {
                     return <div className="text-center"><span className="text-muted-foreground text-sm">Nunca executada</span></div>;
                 }
 
+                // Parse the date string to show the correct date without timezone shifting
+                // The date comes as ISO string, we need to extract just the date part
+                const dateStr = routine.last_execution_completed_at.split('T')[0];
+                const [year, month, day] = dateStr.split('-');
+                const displayDate = `${day}/${month}/${year}`;
+
                 return (
                     <div className="space-y-1 text-center">
                         <div className="text-sm">
-                            {new Date(routine.last_execution_completed_at).toLocaleDateString('pt-BR')}
+                            {displayDate}
                         </div>
                         {routine.last_execution_form_version_id && routine.lastExecutionFormVersion && (
                             <div className="text-xs text-muted-foreground">
@@ -389,43 +396,53 @@ export default function AssetRoutinesTab({
             label: 'Próxima Execução',
             sortable: true,
             width: 'w-[220px]',
+            headerAlign: 'center',
+            contentAlign: 'center',
             render: (value, row) => {
                 const routine = row as Routine;
                 if (!routine.next_execution_date) {
                     // If no last execution, show a message prompting to set it
                     if (!routine.last_execution_completed_at) {
                         return (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border bg-amber-50 border-amber-200 cursor-default">
-                                            <AlertTriangle className="h-4 w-4 text-amber-600" />
-                                            <div className="text-left">
-                                                <div className="text-sm font-medium text-amber-600">
-                                                    Definir execução
-                                                </div>
-                                                <div className="text-xs text-amber-600/80">
-                                                    Necessário para cálculo
+                            <div className="flex justify-center">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border bg-amber-50 border-amber-200 cursor-default">
+                                                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                                <div className="text-center">
+                                                    <div className="text-sm font-medium text-amber-600">
+                                                        Definir execução
+                                                    </div>
+                                                    <div className="text-xs text-amber-600/80">
+                                                        Necessário para cálculo
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <div className="text-sm">
-                                            Use "Definir Última Execução" no menu de ações para informar quando esta rotina foi executada pela última vez
-                                        </div>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <div className="text-sm">
+                                                Use "Definir Última Execução" no menu de ações para informar quando esta rotina foi executada pela última vez
+                                            </div>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
                         );
                     }
                     return <div className="text-center"><span className="text-muted-foreground text-sm">-</span></div>;
                 }
 
-                const nextDate = new Date(routine.next_execution_date);
-                const now = new Date();
-                const isOverdue = nextDate < now;
-                const daysUntilDue = Math.ceil((nextDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                // Parse the date correctly to avoid timezone issues
+                const nextDateStr = routine.next_execution_date.split('T')[0];
+                const [year, month, day] = nextDateStr.split('-');
+                const displayDate = `${day}/${month}/${year}`;
+
+                // For comparison, we need to work with UTC dates
+                const nextDateUTC = new Date(routine.next_execution_date);
+                const nowUTC = new Date();
+                const isOverdue = nextDateUTC < nowUTC;
+                const daysUntilDue = Math.ceil((nextDateUTC.getTime() - nowUTC.getTime()) / (1000 * 60 * 60 * 24));
 
                 // Determine status icon and color
                 let StatusIcon = CheckCircle;
@@ -446,36 +463,38 @@ export default function AssetRoutinesTab({
                 }
 
                 return (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border ${bgColor} ${borderColor} cursor-default`}>
-                                    <StatusIcon className={`h-4 w-4 ${statusColor}`} />
-                                    <div className="text-left">
-                                        <div className={`text-sm font-medium ${statusColor}`}>
-                                            {nextDate.toLocaleDateString('pt-BR')}
-                                        </div>
-                                        <div className={`text-xs ${isOverdue ? statusColor : 'text-muted-foreground'}`}>
-                                            {isOverdue
-                                                ? `Vencida há ${Math.abs(daysUntilDue)} dia${Math.abs(daysUntilDue) !== 1 ? 's' : ''}`
-                                                : daysUntilDue === 0
-                                                    ? 'Vence hoje'
-                                                    : `Em ${daysUntilDue} dia${daysUntilDue !== 1 ? 's' : ''}`
-                                            }
+                    <div className="flex justify-center">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border ${bgColor} ${borderColor} cursor-default`}>
+                                        <StatusIcon className={`h-4 w-4 ${statusColor}`} />
+                                        <div className="text-center">
+                                            <div className={`text-sm font-medium ${statusColor}`}>
+                                                {displayDate}
+                                            </div>
+                                            <div className={`text-xs ${isOverdue ? statusColor : 'text-muted-foreground'}`}>
+                                                {isOverdue
+                                                    ? `Vencida há ${Math.abs(daysUntilDue)} dia${Math.abs(daysUntilDue) !== 1 ? 's' : ''}`
+                                                    : daysUntilDue === 0
+                                                        ? 'Vence hoje'
+                                                        : `Em ${daysUntilDue} dia${daysUntilDue !== 1 ? 's' : ''}`
+                                                }
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <div className="text-sm">
-                                    {routine.trigger_type === 'runtime_hours'
-                                        ? 'Estimativa baseada nas horas de operação e turno do ativo'
-                                        : 'Baseado em dias calendário desde a última execução'
-                                    }
-                                </div>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <div className="text-sm">
+                                        {routine.trigger_type === 'runtime_hours'
+                                            ? 'Estimativa baseada nas horas de operação e turno do ativo'
+                                            : 'Baseado em dias calendário desde a última execução'
+                                        }
+                                    </div>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
                 );
             },
         },
@@ -484,6 +503,8 @@ export default function AssetRoutinesTab({
             label: 'Tarefas',
             sortable: false,
             width: 'w-[120px]',
+            headerAlign: 'center',
+            contentAlign: 'center',
             render: (value, row) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const form = (row as any).form;
@@ -777,8 +798,6 @@ export default function AssetRoutinesTab({
         setRoutineForLastExecution(routine);
         // Set default date to today
         setLastExecutionDate(new Date().toISOString().split('T')[0]);
-        // Set default runtime to current asset runtime if available
-        setLastExecutionRuntime('');
         setShowLastExecutionDialog(true);
     };
 
@@ -787,13 +806,13 @@ export default function AssetRoutinesTab({
 
         setIsUpdatingLastExecution(true);
         try {
+            // Ensure the date is sent as start of day to prevent timezone issues
+            // The date input gives us YYYY-MM-DD format, we'll send it as-is
+            // to let the backend handle it consistently
             const response = await axios.post(
                 route('maintenance.routines.update-last-execution', { routine: routineForLastExecution.id }),
                 {
                     last_execution_date: lastExecutionDate,
-                    runtime_hours: routineForLastExecution.trigger_type === 'runtime_hours' && lastExecutionRuntime
-                        ? parseFloat(lastExecutionRuntime)
-                        : undefined,
                 }
             );
 
@@ -819,7 +838,6 @@ export default function AssetRoutinesTab({
                 setShowLastExecutionDialog(false);
                 setRoutineForLastExecution(null);
                 setLastExecutionDate('');
-                setLastExecutionRuntime('');
             }
         } catch (error: any) {
             toast.error(error.response?.data?.error || 'Erro ao atualizar data da última execução');
@@ -1153,26 +1171,10 @@ export default function AssetRoutinesTab({
                                 max={new Date().toISOString().split('T')[0]}
                                 required
                             />
+                            <p className="text-xs text-muted-foreground">
+                                A data será armazenada em UTC (horário universal)
+                            </p>
                         </div>
-                        {routineForLastExecution?.trigger_type === 'runtime_hours' && (
-                            <div className="space-y-2">
-                                <Label htmlFor="runtime-hours">
-                                    Horímetro no Momento da Execução (opcional)
-                                </Label>
-                                <Input
-                                    id="runtime-hours"
-                                    type="number"
-                                    value={lastExecutionRuntime}
-                                    onChange={(e) => setLastExecutionRuntime(e.target.value)}
-                                    placeholder="Ex: 1500.5"
-                                    step="0.1"
-                                    min="0"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    Se não informado, será usado o horímetro atual do ativo
-                                </p>
-                            </div>
-                        )}
                     </div>
                     <DialogFooter className="flex gap-2 sm:gap-2">
                         <Button
@@ -1181,7 +1183,6 @@ export default function AssetRoutinesTab({
                                 setShowLastExecutionDialog(false);
                                 setRoutineForLastExecution(null);
                                 setLastExecutionDate('');
-                                setLastExecutionRuntime('');
                             }}
                             disabled={isUpdatingLastExecution}
                         >

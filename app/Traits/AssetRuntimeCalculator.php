@@ -49,7 +49,10 @@ trait AssetRuntimeCalculator
             return 0.0;
         }
 
-        $shift = $this->shift()->with(['schedules.shiftTimes.breaks'])->first();
+        // Use the already loaded shift if available, otherwise load it with necessary relationships
+        $shift = $this->relationLoaded('shift') && $this->shift
+            ? $this->shift->load(['schedules.shiftTimes.breaks'])
+            : $this->shift()->with(['schedules.shiftTimes.breaks'])->first();
         $totalMinutes = 0;
 
         if (! $shift || $shift->schedules->isEmpty()) {
@@ -404,7 +407,10 @@ trait AssetRuntimeCalculator
             return $breakdown;
         }
 
-        $shift = $this->shift()->with(['schedules.shiftTimes.breaks'])->first();
+        // Use the already loaded shift if available, otherwise load it with necessary relationships
+        $shift = $this->relationLoaded('shift') && $this->shift
+            ? $this->shift->load(['schedules.shiftTimes.breaks'])
+            : $this->shift()->with(['schedules.shiftTimes.breaks'])->first();
 
         if (! $shift || $shift->schedules->isEmpty()) {
             $breakdown['accumulated_shift_hours'] = 0;

@@ -227,8 +227,8 @@ export default function WorkOrderFormComponent({
             setData({
                 ...data,
                 asset_id: assetId,
-                plant_id: asset.plant_id.toString(),
-                area_id: asset.area_id.toString(),
+                plant_id: asset.plant_id ? asset.plant_id.toString() : '',
+                area_id: asset.area_id ? asset.area_id.toString() : '',
                 sector_id: asset.sector_id?.toString() || '',
             });
         }
@@ -355,7 +355,7 @@ export default function WorkOrderFormComponent({
 
                     {/* Asset Selection */}
                     <div className="space-y-2">
-                        <Label>Ativo{discipline === 'maintenance' ? '*' : ''}</Label>
+                        <Label>Ativo{discipline === 'maintenance' && !isViewMode ? '*' : ''}</Label>
                         {isViewMode ? (
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                 {selectedAsset ? (
@@ -401,7 +401,7 @@ export default function WorkOrderFormComponent({
                             name="title"
                             label="Título"
                             placeholder="Digite um título descritivo"
-                            required={true}
+                            required={!isViewMode}
                             view={isViewMode}
                         />
                     </div>
@@ -429,7 +429,7 @@ export default function WorkOrderFormComponent({
                             }}
                             placeholder="Selecione a categoria"
                             error={errors.work_order_category_id}
-                            required
+                            required={!isViewMode}
                             view={isViewMode}
                             canCreate={false}
                         />
@@ -454,7 +454,7 @@ export default function WorkOrderFormComponent({
                         }}
                         placeholder={!isViewMode && !data.work_order_category_id ? "Selecione uma categoria primeiro" : "Selecione o tipo"}
                         error={errors.work_order_type_id}
-                        required
+                        required={!isViewMode}
                         view={isViewMode}
                         disabled={!isViewMode && !data.work_order_category_id}
                     />

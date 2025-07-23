@@ -27,9 +27,10 @@ class PlanWorkOrderRequest extends FormRequest
             'labor_cost_per_hour' => 'nullable|numeric|min:0|max:9999',
             'estimated_labor_cost' => 'nullable|numeric|min:0',
             'downtime_required' => 'boolean',
+            'number_of_people' => 'nullable|integer|min:1|max:50',
             
-            'safety_requirements' => 'nullable|array|max:10',
-            'safety_requirements.*' => 'string|max:255',
+            'other_requirements' => 'nullable|array|max:10',
+            'other_requirements.*' => 'string|max:255',
             
             'required_skills' => 'nullable|array|max:10',
             'required_skills.*' => 'string|max:100',
@@ -60,8 +61,10 @@ class PlanWorkOrderRequest extends FormRequest
         return [
             'estimated_hours.min' => 'O tempo estimado deve ser pelo menos 0.5 horas.',
             'estimated_hours.max' => 'O tempo estimado não pode exceder 999 horas.',
+            'number_of_people.min' => 'O número de pessoas deve ser pelo menos 1.',
+            'number_of_people.max' => 'O número de pessoas não pode exceder 50.',
             
-            'safety_requirements.max' => 'Você pode adicionar no máximo 10 requisitos de segurança.',
+            'other_requirements.max' => 'Você pode adicionar no máximo 10 outros requisitos.',
             'required_skills.max' => 'Você pode adicionar no máximo 10 habilidades.',
             'required_certifications.max' => 'Você pode adicionar no máximo 10 certificações.',
             
@@ -86,7 +89,7 @@ class PlanWorkOrderRequest extends FormRequest
     {
         // Convert empty strings to null for nullable fields
         $nullableFields = [
-            'estimated_hours', 'labor_cost_per_hour', 'scheduled_start_date', 
+            'estimated_hours', 'labor_cost_per_hour', 'number_of_people', 'scheduled_start_date', 
             'scheduled_end_date', 'assigned_team_id', 'assigned_technician_id'
         ];
 

@@ -23,7 +23,7 @@ class WorkOrder extends Model
         'work_order_category_id', 'priority_score', 'status',
         'asset_id', 'instrument_id', 'form_id', 'form_version_id', 'custom_tasks',
         'estimated_hours', 'estimated_parts_cost', 'estimated_labor_cost',
-        'estimated_total_cost', 'downtime_required', 'safety_requirements',
+        'estimated_total_cost', 'downtime_required', 'other_requirements', 'number_of_people',
         'requested_due_date', 'scheduled_start_date', 'scheduled_end_date',
         'assigned_team_id', 'assigned_technician_id', 'required_skills',
         'required_certifications', 'actual_start_date', 'actual_end_date',
@@ -39,7 +39,7 @@ class WorkOrder extends Model
 
     protected $casts = [
         'custom_tasks' => 'array',
-        'safety_requirements' => 'array',
+        'other_requirements' => 'array',
         'required_skills' => 'array',
         'required_certifications' => 'array',
         'attachments' => 'array',
@@ -47,6 +47,7 @@ class WorkOrder extends Model
         'tolerance_specs' => 'array',
         'downtime_required' => 'boolean',
         'warranty_claim' => 'boolean',
+        'number_of_people' => 'integer',
         'estimated_hours' => 'float',
         'actual_hours' => 'float',
         'estimated_parts_cost' => 'float',

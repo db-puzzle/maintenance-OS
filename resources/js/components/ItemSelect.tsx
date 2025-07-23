@@ -165,62 +165,57 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                             </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                            {showSearch && (
-                                <div className="sticky top-0 z-10 bg-popover border-border flex items-center border-b px-2 pb-1">
-                                    <Search className="text-muted-foreground mr-2 h-4 w-4" />
-                                    <input
-                                        type="text"
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                        placeholder="Buscar..."
-                                        className="w-full bg-transparent py-1 text-sm outline-none"
-                                        autoFocus
-                                        onPointerDown={(e) => e.stopPropagation()}
-                                        onKeyDown={(e) => e.stopPropagation()}
-                                    />
-                                </div>
-                            )}
-                            <div className="max-h-60 overflow-y-auto">
-                                {filteredItems.length === 0 ? (
-                                    <div className="flex flex-col">
-                                        <div className="text-muted-foreground px-2 py-2 text-center text-sm">
+                            <div className="flex flex-col max-h-[300px]">
+                                {showSearch && (
+                                    <div className="sticky top-0 z-10 bg-popover border-border flex items-center border-b px-2 pb-1">
+                                        <Search className="text-muted-foreground mr-2 h-4 w-4" />
+                                        <input
+                                            type="text"
+                                            value={search}
+                                            onChange={(e) => setSearch(e.target.value)}
+                                            placeholder="Buscar..."
+                                            className="w-full bg-transparent py-1 text-sm outline-none"
+                                            autoFocus
+                                            onPointerDown={(e) => e.stopPropagation()}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
+                                )}
+                                <div className="flex-1 overflow-y-auto">
+                                    {filteredItems.length === 0 ? (
+                                        <div className="text-muted-foreground px-2 py-8 text-center text-sm">
                                             {hasCreateOption
                                                 ? `Nenhum(a) ${label?.toLowerCase() || 'item'} cadastrado(a)`
                                                 : `Nenhum(a) ${label?.toLowerCase() || 'item'} disponível`}
                                         </div>
-                                        {hasCreateOption && (
-                                            <div className="border-t">
-                                                <CreateButton />
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <>
-                                        {/* Opção para limpar seleção */}
-                                        {canClear && value && (
-                                            <>
-                                                <SelectItem value="__clear__">
-                                                    <div className="text-muted-foreground flex items-center gap-2">
-                                                        <span>Limpar seleção</span>
+                                    ) : (
+                                        <>
+                                            {/* Opção para limpar seleção */}
+                                            {canClear && value && (
+                                                <>
+                                                    <SelectItem value="__clear__">
+                                                        <div className="text-muted-foreground flex items-center gap-2">
+                                                            <span>Limpar seleção</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <div className="my-1 border-t" />
+                                                </>
+                                            )}
+                                            {filteredItems.map((item) => (
+                                                <SelectItem key={item.id} value={item.id.toString()}>
+                                                    <div className="flex items-center gap-2">
+                                                        {item.icon && <item.icon className="h-4 w-4" />}
+                                                        <span>{item.name}</span>
                                                     </div>
                                                 </SelectItem>
-                                                <div className="my-1 border-t" />
-                                            </>
-                                        )}
-                                        {filteredItems.map((item) => (
-                                            <SelectItem key={item.id} value={item.id.toString()}>
-                                                <div className="flex items-center gap-2">
-                                                    {item.icon && <item.icon className="h-4 w-4" />}
-                                                    <span>{item.name}</span>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                        {hasCreateOption && (
-                                            <div className="border-t">
-                                                <CreateButton />
-                                            </div>
-                                        )}
-                                    </>
+                                            ))}
+                                        </>
+                                    )}
+                                </div>
+                                {hasCreateOption && (
+                                    <div className="sticky bottom-0 z-10 bg-popover border-t">
+                                        <CreateButton />
+                                    </div>
                                 )}
                             </div>
                         </SelectContent>

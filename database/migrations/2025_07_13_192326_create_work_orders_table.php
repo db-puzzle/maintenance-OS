@@ -39,7 +39,8 @@ return new class extends Migration
             $table->decimal('estimated_labor_cost', 10, 2)->nullable();
             $table->decimal('estimated_total_cost', 10, 2)->nullable();
             $table->boolean('downtime_required')->default(false);
-            $table->json('safety_requirements')->nullable();
+            $table->json('other_requirements')->nullable();
+            $table->integer('number_of_people')->nullable()->default(1);
             
             // Scheduling
             $table->timestamp('requested_due_date')->nullable();

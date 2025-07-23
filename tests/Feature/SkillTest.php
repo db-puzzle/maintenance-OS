@@ -76,7 +76,6 @@ class SkillTest extends TestCase
             'name' => 'Test Skill',
             'description' => 'Test Description',
             'category' => 'Técnica',
-            'active' => true,
         ];
 
         $response = $this->actingAs($this->admin)->post(route('skills.store'), $skillData);
@@ -96,7 +95,6 @@ class SkillTest extends TestCase
             'name' => 'Test Skill',
             'description' => 'Test Description',
             'category' => 'Técnica',
-            'active' => true,
         ];
 
         $response = $this->actingAs($this->technician)->post(route('skills.store'), $skillData);
@@ -119,7 +117,6 @@ class SkillTest extends TestCase
             'name' => 'New Name',
             'description' => 'New Description',
             'category' => 'Elétrica',
-            'active' => false,
         ];
 
         $response = $this->actingAs($this->admin)->put(route('skills.update', $skill), $updateData);
@@ -130,7 +127,6 @@ class SkillTest extends TestCase
             'id' => $skill->id,
             'name' => 'New Name',
             'category' => 'Elétrica',
-            'active' => false,
         ]);
     }
 
@@ -143,7 +139,6 @@ class SkillTest extends TestCase
             'name' => 'New Name',
             'description' => 'New Description',
             'category' => 'Elétrica',
-            'active' => false,
         ];
 
         $response = $this->actingAs($this->viewer)->put(route('skills.update', $skill), $updateData);
@@ -211,7 +206,6 @@ class SkillTest extends TestCase
             'name' => 'Existing Skill',
             'description' => 'Test Description',
             'category' => 'Técnica',
-            'active' => true,
         ];
 
         $response = $this->actingAs($this->admin)->post(route('skills.store'), $skillData);
@@ -232,21 +226,6 @@ class SkillTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->has('skills.data', 2)
-        );
-    }
-
-    /** @test */
-    public function active_filter_works_correctly()
-    {
-        Skill::factory()->count(3)->active()->create();
-        Skill::factory()->count(2)->inactive()->create();
-
-        $response = $this->actingAs($this->admin)
-            ->get(route('skills.index', ['active' => '1']));
-
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->has('skills.data', 3)
         );
     }
 
@@ -305,5 +284,25 @@ class SkillTest extends TestCase
         
         // Can delete
         $this->assertTrue($supervisor->can('delete', $skill));
+    }
+
+    /** @test */
+    public function skill_validation_rules_work_correctly()
+    {
+        // Test name is required
+        $response = $this->actingAs($this->admin)->post(route('skills.store'), [
+            'description' => 'Test Description',
+            'category' => 'Técnica',
+        ]);
+
+        $response->assertSessionHasErrors(['name']);
+
+        // Test category is required
+        $response = $this->actingAs($this->admin)->post(route('skills.store'), [
+            'name' => 'Test Skill',
+            'description' => 'Test Description',
+        ]);
+
+        $response->assertSessionHasErrors(['category']);
     }
 }

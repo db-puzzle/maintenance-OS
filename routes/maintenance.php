@@ -17,6 +17,7 @@ Route::middleware(['auth', 'verified'])->prefix('maintenance')->name('maintenanc
         Route::delete('/{routine}', [RoutineController::class, 'destroy'])->name('destroy');
         Route::post('/{routine}/forms', [RoutineController::class, 'storeForm'])->name('forms.store');
         Route::post('/{routine}/forms/publish', [RoutineController::class, 'publishForm'])->name('forms.publish');
+        Route::post('/{routine}/forms/save-and-publish', [RoutineController::class, 'saveAndPublishForm'])->name('forms.save-and-publish');
         Route::get('/{routine}/form-data', [RoutineController::class, 'getFormData'])->name('form-data');
         Route::get('/{routine}/published-version', [RoutineController::class, 'viewPublishedVersion'])->name('view-published-version');
         Route::get('/{routine}/version-history', [RoutineController::class, 'getVersionHistory'])->name('version-history');

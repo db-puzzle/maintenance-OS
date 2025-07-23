@@ -179,4 +179,6 @@ class RoutineIntegrationTest extends TestCase
         // Should not generate when open work order exists
         $this->assertFalse($routine->shouldGenerateWorkOrder());
     }
+
+
 } 

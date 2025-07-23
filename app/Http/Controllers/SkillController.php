@@ -17,29 +17,27 @@ class SkillController extends Controller
     {
         $this->authorize('viewAny', Skill::class);
 
+        $perPage = $request->input('per_page', 10);
+        $search = $request->input('search', '');
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+
         $skills = Skill::query()
-            ->when($request->search, function ($query, $search) {
+            ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%")
                         ->orWhere('category', 'like', "%{$search}%");
                 });
             })
-            ->when($request->has('active'), function ($query) use ($request) {
-                if ($request->active !== '') {
-                    $query->where('active', $request->boolean('active'));
-                }
-            })
-            ->orderBy('category')
-            ->orderBy('name')
-            ->paginate(10)
+            ->orderBy($sort, $direction)
+            ->paginate($perPage)
             ->through(function ($skill) {
                 return [
                     'id' => $skill->id,
                     'name' => $skill->name,
                     'description' => $skill->description,
                     'category' => $skill->category,
-                    'active' => $skill->active,
                     'users_count' => $skill->users()->count(),
                     'created_at' => $skill->created_at->format('d/m/Y H:i'),
                     'updated_at' => $skill->updated_at->format('d/m/Y H:i'),
@@ -48,7 +46,12 @@ class SkillController extends Controller
 
         return Inertia::render('skills/index', [
             'skills' => $skills,
-            'filters' => $request->only(['search', 'active']),
+            'filters' => [
+                'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
+                'per_page' => $perPage,
+            ],
             'can' => [
                 'create' => $request->user()->can('create', Skill::class),
             ],
@@ -66,10 +69,7 @@ class SkillController extends Controller
             'name' => 'required|string|max:255|unique:skills,name',
             'description' => 'nullable|string|max:500',
             'category' => 'required|string|max:100',
-            'active' => 'boolean',
         ]);
-
-        $validated['active'] = $validated['active'] ?? true;
 
         Skill::create($validated);
 
@@ -93,7 +93,6 @@ class SkillController extends Controller
                 'name' => $skill->name,
                 'description' => $skill->description,
                 'category' => $skill->category,
-                'active' => $skill->active,
                 'created_at' => $skill->created_at->format('d/m/Y H:i'),
                 'updated_at' => $skill->updated_at->format('d/m/Y H:i'),
                 'users' => $skill->users->map(function ($user) {
@@ -123,7 +122,6 @@ class SkillController extends Controller
             'name' => 'required|string|max:255|unique:skills,name,' . $skill->id,
             'description' => 'nullable|string|max:500',
             'category' => 'required|string|max:100',
-            'active' => 'boolean',
         ]);
 
         $skill->update($validated);

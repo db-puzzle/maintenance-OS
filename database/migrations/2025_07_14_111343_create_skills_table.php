@@ -16,12 +16,10 @@ return new class extends Migration
             $table->string('name')->unique();
             $table->text('description')->nullable();
             $table->string('category')->nullable();
-            $table->boolean('active')->default(true);
             $table->timestamps();
             
             $table->index('name');
             $table->index('category');
-            $table->index('active');
         });
         
         // Create pivot table for user skills

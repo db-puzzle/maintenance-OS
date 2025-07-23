@@ -49,7 +49,8 @@ interface ShiftSelectionCardProps {
     onSaveShift: () => void;
     onShiftChange: (shiftId: string) => void;
     onCreateClick: () => void;
-    onShiftUpdated?: (updatedShift: Shift) => void;
+    onShiftUpdated?: (shift: Shift) => void;
+    currentAssetId?: number;
 }
 
 // Type for the shift data used in CreateShiftSheet
@@ -104,6 +105,7 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
             onShiftChange,
             onCreateClick,
             onShiftUpdated,
+            currentAssetId,
         },
         ref,
     ) => {
@@ -342,6 +344,7 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                         onOpenChange={setIsEditSheetOpen}
                         onSuccess={handleShiftUpdateSuccess}
                         initialShift={selectedShiftData}
+                        currentAssetId={currentAssetId}
                     />
                 )}
             </div>

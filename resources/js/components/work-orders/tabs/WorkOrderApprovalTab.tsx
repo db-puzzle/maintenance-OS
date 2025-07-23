@@ -39,9 +39,6 @@ export function WorkOrderApprovalTab({
 
     const isApproved = workOrder.status !== 'requested';
 
-    // Debug: Log the status history
-    console.log('[WorkOrderApprovalTab] Status History:', workOrder.status_history);
-
     // Find the most recent approval or rejection entry (could be multiple)
     const approvalEntries = workOrder.status_history?.filter((entry: any) =>
         entry.from_status === 'requested' && (entry.to_status === 'approved' || entry.to_status === 'rejected')
@@ -49,10 +46,6 @@ export function WorkOrderApprovalTab({
 
     // Get the most recent one (last in the array since they should be ordered by created_at)
     const approvalEntry = approvalEntries.length > 0 ? approvalEntries[approvalEntries.length - 1] : null;
-
-    // Debug: Log the found approval entry
-    console.log('[WorkOrderApprovalTab] Approval Entries:', approvalEntries);
-    console.log('[WorkOrderApprovalTab] Selected Approval Entry:', approvalEntry);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

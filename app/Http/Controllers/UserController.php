@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Role;
+use App\Models\Skill;
+use App\Models\Certification;
 use App\Services\UserManagementService;
 use App\Services\PermissionHierarchyService;
 use App\Services\AdministratorProtectionService;
@@ -111,7 +113,7 @@ class UserController extends Controller
     }
 
     /**
-     * Show user details with permissions grouped by entity
+     * Display a single user's details
      */
     public function show(User $user)
     {
@@ -123,7 +125,7 @@ class UserController extends Controller
         }
         
         // Load user with all relationships
-        $user->load(['roles', 'permissions']);
+        $user->load(['roles', 'permissions', 'skills', 'certifications']);
         
         // Get permission hierarchy
         $permissionHierarchy = $this->permissionHierarchyService->getUserPermissionHierarchy($user);
@@ -131,14 +133,23 @@ class UserController extends Controller
         // Get activity logs
         $activityLogs = \App\Models\PermissionAuditLog::where('user_id', $user->id)
             ->orWhere('affected_user_id', $user->id)
+            ->with('user') // Load the user relationship
             ->latest()
             ->take(20)
+            ->get();
+        
+        // Get all available skills and certifications for selection
+        $skills = Skill::orderBy('category')->orderBy('name')->get();
+        $certifications = Certification::where('active', true)
+            ->orderBy('name')
             ->get();
         
         return Inertia::render('users/show', [
             'user' => $user,
             'permissionHierarchy' => $permissionHierarchy,
             'activityLogs' => $activityLogs,
+            'skills' => $skills,
+            'certifications' => $certifications,
             'canEditUser' => $currentUser->can('users.update') && $this->userManagementService->canManageUser($currentUser, $user),
             'canManagePermissions' => $this->userManagementService->canManageUser($currentUser, $user),
         ]);
@@ -404,5 +415,51 @@ class UserController extends Controller
             DB::rollBack();
             return back()->with('error', 'Failed to permanently delete user: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Update user skills
+     */
+    public function updateSkills(Request $request, User $user)
+    {
+        $currentUser = auth()->user();
+        
+        if (!$this->userManagementService->canManageUser($currentUser, $user)) {
+            abort(403, 'You do not have permission to update this user.');
+        }
+        
+        $validated = $request->validate([
+            'skills' => 'array',
+            'skills.*' => 'exists:skills,id',
+        ]);
+        
+        // Sync skills
+        $user->skills()->sync($validated['skills'] ?? []);
+        
+        return redirect()->back()
+            ->with('success', 'User skills updated successfully.');
+    }
+
+    /**
+     * Update user certifications
+     */
+    public function updateCertifications(Request $request, User $user)
+    {
+        $currentUser = auth()->user();
+        
+        if (!$this->userManagementService->canManageUser($currentUser, $user)) {
+            abort(403, 'You do not have permission to update this user.');
+        }
+        
+        $validated = $request->validate([
+            'certifications' => 'array',
+            'certifications.*' => 'exists:certifications,id',
+        ]);
+        
+        // Sync certifications
+        $user->certifications()->sync($validated['certifications'] ?? []);
+        
+        return redirect()->back()
+            ->with('success', 'User certifications updated successfully.');
     }
 } 

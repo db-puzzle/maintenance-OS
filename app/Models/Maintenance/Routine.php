@@ -51,6 +51,47 @@ class Routine extends Model
 
     protected $appends = ['next_execution_date'];
 
+    /**
+     * Set the last execution completed at attribute.
+     * Ensures the date is stored correctly without timezone shifting.
+     */
+    public function setLastExecutionCompletedAtAttribute($value)
+    {
+        if ($value === null) {
+            $this->attributes['last_execution_completed_at'] = null;
+            return;
+        }
+
+        // If it's already a Carbon instance, use it
+        if ($value instanceof \Carbon\Carbon) {
+            $this->attributes['last_execution_completed_at'] = $value->format('Y-m-d H:i:s');
+            return;
+        }
+
+        // If it's a string date (YYYY-MM-DD), parse it at start of day
+        if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            // Parse as start of day in UTC
+            $this->attributes['last_execution_completed_at'] = \Carbon\Carbon::parse($value)->startOfDay()->format('Y-m-d H:i:s');
+            return;
+        }
+
+        // For any other format, let Carbon handle it
+        $this->attributes['last_execution_completed_at'] = \Carbon\Carbon::parse($value)->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * Get the last execution completed at attribute.
+     * Log how the date is being retrieved.
+     */
+    public function getLastExecutionCompletedAtAttribute($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return \Carbon\Carbon::parse($value);
+    }
+
     // Relationships
     public function asset(): BelongsTo
     {
@@ -270,7 +311,7 @@ class Routine extends Model
     private function getWorkOrderTypeId(): int
     {
         // Get preventive work order type
-        $workOrderType = \App\Models\WorkOrders\WorkOrderType::where('category', 'preventive')
+        $workOrderType = \App\Models\WorkOrders\WorkOrderType::byCategory('preventive')
             ->where('is_active', true)
             ->first();
             

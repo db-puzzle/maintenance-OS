@@ -1,13 +1,14 @@
-import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import React, { useState } from 'react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
+import UserFormComponent from '@/components/users/UserFormComponent';
+import RolesTable from '@/components/users/RolesTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import {
-    Edit,
     Key,
     Shield,
     Activity,
@@ -16,13 +17,22 @@ import {
     MapPin,
     Hash,
     Eye,
+    Plus,
+    Wrench,
+    Award,
+    Save,
 } from 'lucide-react';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
 import EmptyCard from '@/components/ui/empty-card';
 import { type BreadcrumbItem } from '@/types';
-
+import ItemSelect from '@/components/ItemSelect';
+import SkillsTable from '@/components/work-orders/SkillsTable';
+import CertificationsTable from '@/components/work-orders/CertificationsTable';
+import { ItemRequirementsSelector } from '@/components/work-orders/ItemRequirementsSelector';
+import SkillSheet from '@/components/skills/SkillSheet';
+import CertificationSheet from '@/components/certifications/CertificationSheet';
+import { toast } from 'sonner';
 
 interface User {
     id: number;
@@ -30,8 +40,26 @@ interface User {
     email: string;
     roles: Array<{ id: number; name: string }>;
     permissions: Array<{ id: number; name: string }>;
+    skills: Array<Skill>;
+    certifications: Array<Certification>;
     created_at: string;
     updated_at: string;
+}
+
+interface Skill {
+    id: number;
+    name: string;
+    description?: string | null;
+    category: string;
+}
+
+interface Certification {
+    id: number;
+    name: string;
+    description?: string | null;
+    issuing_organization: string;
+    validity_period_days?: number | null;
+    active: boolean;
 }
 
 interface PermissionNode {
@@ -45,7 +73,7 @@ interface PermissionNode {
 interface ActivityLog {
     id: number;
     action: string;
-    user: { id: number; name: string };
+    user?: { id: number; name: string } | null;
     created_at: string;
     details: Record<string, unknown> | null;
 }
@@ -54,6 +82,8 @@ interface Props {
     user: User;
     permissionHierarchy: PermissionNode[];
     activityLogs: ActivityLog[];
+    skills: Skill[];
+    certifications: Certification[];
     canEditUser: boolean;
     canManagePermissions: boolean;
 }
@@ -62,12 +92,27 @@ export default function UserShow({
     user,
     permissionHierarchy,
     activityLogs,
+    skills,
+    certifications,
     canEditUser,
     canManagePermissions
 }: Props) {
     const getInitials = useInitials();
     const initials = getInitials(user.name);
     const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+    const [skillSheetOpen, setSkillSheetOpen] = useState(false);
+    const [certificationSheetOpen, setCertificationSheetOpen] = useState(false);
+    const [selectedSkills, setSelectedSkills] = useState<Skill[]>(user.skills || []);
+    const [selectedCertifications, setSelectedCertifications] = useState<Certification[]>(user.certifications || []);
+    const [isEditingSkillsCerts, setIsEditingSkillsCerts] = useState(false);
+
+    const { data: skillsData, setData: setSkillsData, put: putSkills, processing: processingSkills } = useForm({
+        skills: selectedSkills.map(s => s.id)
+    });
+
+    const { data: certificationsData, setData: setCertificationsData, put: putCertifications, processing: processingCertifications } = useForm({
+        certifications: selectedCertifications.map(c => c.id)
+    });
 
     const toggleNode = (nodeId: string) => {
         setExpandedNodes(prev => {
@@ -181,6 +226,62 @@ export default function UserShow({
         }
     };
 
+    // Handlers for skills
+    const handleAddSkill = (skill: Skill) => {
+        if (!selectedSkills.find(s => s.id === skill.id)) {
+            setSelectedSkills([...selectedSkills, skill]);
+        }
+    };
+
+    const handleRemoveSkill = (skillId: number) => {
+        setSelectedSkills(selectedSkills.filter(s => s.id !== skillId));
+    };
+
+    // Handlers for certifications
+    const handleAddCertification = (certification: Certification) => {
+        if (!selectedCertifications.find(c => c.id === certification.id)) {
+            setSelectedCertifications([...selectedCertifications, certification]);
+        }
+    };
+
+    const handleRemoveCertification = (certificationId: number) => {
+        setSelectedCertifications(selectedCertifications.filter(c => c.id !== certificationId));
+    };
+
+    // Save handlers
+    const handleSaveSkillsCertifications = () => {
+        // Update form data before saving
+        setSkillsData('skills', selectedSkills.map(s => s.id));
+        setCertificationsData('certifications', selectedCertifications.map(c => c.id));
+
+        // Save skills
+        putSkills(route('users.skills.update', user.id), {
+            onSuccess: () => {
+                // Save certifications
+                putCertifications(route('users.certifications.update', user.id), {
+                    onSuccess: () => {
+                        toast.success('Habilidades e certificações atualizadas com sucesso!');
+                        setIsEditingSkillsCerts(false);
+                        router.reload();
+                    },
+                    onError: () => {
+                        toast.error('Erro ao atualizar certificações');
+                    }
+                });
+            },
+            onError: () => {
+                toast.error('Erro ao atualizar habilidades');
+            }
+        });
+    };
+
+    const handleCancelSkillsCertifications = () => {
+        // Reset to original values
+        setSelectedSkills(user.skills || []);
+        setSelectedCertifications(user.certifications || []);
+        setIsEditingSkillsCerts(false);
+    };
+
     // Define breadcrumbs
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -202,89 +303,118 @@ export default function UserShow({
             id: 'info',
             label: 'User Information',
             content: (
+                <div className="space-y-8 py-8">
+                    <UserFormComponent
+                        user={user}
+                        initialMode="view"
+                        canUpdate={canEditUser}
+                        onSuccess={() => router.reload()}
+                    />
+
+                    <div className="space-y-4">
+                        <RolesTable
+                            selectedRoles={user.roles}
+                            isViewMode={true}
+                            onRemoveRole={() => { }} // Not used in view mode
+                        />
+
+                        {canManagePermissions && (
+                            <div className="flex justify-end">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                >
+                                    <Link href={`/users/${user.id}/permissions`}>
+                                        <Shield className="h-4 w-4 mr-2" />
+                                        Gerenciar Permissões
+                                    </Link>
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            id: 'skills-certifications',
+            label: 'Habilidades e Certificações',
+            icon: <Award className="h-4 w-4" />,
+            content: (
                 <div className="space-y-6 py-6">
-                    {/* User Info Section */}
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16">
-                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} />
-                            <AvatarFallback>{initials}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <h3 className="text-2xl font-semibold">{user.name}</h3>
-                            <p className="text-muted-foreground">{user.email}</p>
-                        </div>
-                    </div>
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        {/* Skills Column */}
+                        <ItemRequirementsSelector
+                            title="Habilidades"
+                            items={skills}
+                            selectedItems={selectedSkills}
+                            onAdd={handleAddSkill}
+                            onRemove={handleRemoveSkill}
+                            onCreateClick={() => setSkillSheetOpen(true)}
+                            isViewMode={!isEditingSkillsCerts}
+                            placeholder="Selecione ou busque uma habilidade..."
+                        >
+                            <SkillsTable
+                                selectedSkills={selectedSkills}
+                                isViewMode={!isEditingSkillsCerts}
+                                onRemoveSkill={handleRemoveSkill}
+                            />
+                        </ItemRequirementsSelector>
 
-                    <Separator />
-
-                    {/* Roles Section */}
-                    <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-muted-foreground">Roles</h4>
-                        <div className="flex flex-wrap gap-2">
-                            {user.roles.length > 0 ? (
-                                user.roles.map((role) => (
-                                    <Badge
-                                        key={role.id}
-                                        className={getRoleBadgeColor(role.name)}
-                                    >
-                                        {role.name}
-                                    </Badge>
-                                ))
-                            ) : (
-                                <span className="text-sm text-muted-foreground">No roles assigned</span>
-                            )}
-                        </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Account Details */}
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <div className="space-y-2">
-                            <p className="text-sm font-medium text-muted-foreground">Total Permissions</p>
-                            <p className="text-2xl font-bold">{user.permissions.length}</p>
-                        </div>
-                        <div className="space-y-2">
-                            <p className="text-sm font-medium text-muted-foreground">Account Status</p>
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                Active
-                            </Badge>
-                        </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Timestamps */}
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <div className="space-y-2">
-                            <p className="text-sm font-medium text-muted-foreground">Created</p>
-                            <p className="text-sm">{new Date(user.created_at).toLocaleString()}</p>
-                        </div>
-                        <div className="space-y-2">
-                            <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
-                            <p className="text-sm">{new Date(user.updated_at).toLocaleString()}</p>
-                        </div>
+                        {/* Certifications Column */}
+                        <ItemRequirementsSelector
+                            title="Certificações"
+                            items={certifications}
+                            selectedItems={selectedCertifications}
+                            onAdd={handleAddCertification}
+                            onRemove={handleRemoveCertification}
+                            onCreateClick={() => setCertificationSheetOpen(true)}
+                            isViewMode={!isEditingSkillsCerts}
+                            placeholder="Selecione ou busque uma certificação..."
+                        >
+                            <CertificationsTable
+                                selectedCertifications={selectedCertifications}
+                                isViewMode={!isEditingSkillsCerts}
+                                onRemoveCertification={handleRemoveCertification}
+                            />
+                        </ItemRequirementsSelector>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-2 pt-4">
-                        {canEditUser && (
-                            <Button variant="outline" asChild>
-                                <Link href={`/users/${user.id}/edit`}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit User
-                                </Link>
-                            </Button>
-                        )}
-                        {canManagePermissions && (
-                            <Button asChild>
-                                <Link href={`/users/${user.id}/permissions`}>
-                                    <Key className="mr-2 h-4 w-4" />
-                                    Manage Permissions
-                                </Link>
-                            </Button>
-                        )}
-                    </div>
+                    {canEditUser && (
+                        <div className="flex justify-end pt-4">
+                            {!isEditingSkillsCerts ? (
+                                <Button
+                                    onClick={() => setIsEditingSkillsCerts(true)}
+                                    variant="outline"
+                                    size="sm"
+                                >
+                                    Editar
+                                </Button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={handleCancelSkillsCertifications}
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={processingSkills || processingCertifications}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        onClick={handleSaveSkillsCertifications}
+                                        size="sm"
+                                        disabled={processingSkills || processingCertifications}
+                                    >
+                                        <Save className="mr-2 h-4 w-4" />
+                                        Salvar
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Removed Manage Permissions button section */}
                 </div>
             ),
         },
@@ -340,7 +470,7 @@ export default function UserShow({
                                 <div key={log.id} className="flex items-start gap-3 pb-4 border-b last:border-0">
                                     <div className="flex-1 space-y-1">
                                         <p className="text-sm">
-                                            <span className="font-medium">{log.user.name}</span>{' '}
+                                            <span className="font-medium">{log.user?.name || 'System'}</span>{' '}
                                             <span className="text-muted-foreground">{log.action}</span>
                                         </p>
                                         {log.details && (
@@ -373,10 +503,34 @@ export default function UserShow({
 
             <ShowLayout
                 title={user.name}
-                subtitle={user.email}
-                editRoute={canEditUser ? route('users.edit', user.id) : ''}
+                subtitle={`${user.email} • ${user.roles.map(role => role.name).join(', ')}`}
+                editRoute={canEditUser ? `/users/${user.id}/edit` : ""}
                 tabs={tabs}
                 defaultActiveTab="info"
+            />
+
+            {/* Skill Sheet for creating new skills */}
+            <SkillSheet
+                open={skillSheetOpen}
+                onOpenChange={setSkillSheetOpen}
+                skill={null}
+                onClose={() => {
+                    setSkillSheetOpen(false);
+                    // Reload to get updated skills list
+                    router.reload();
+                }}
+            />
+
+            {/* Certification Sheet for creating new certifications */}
+            <CertificationSheet
+                open={certificationSheetOpen}
+                onOpenChange={setCertificationSheetOpen}
+                certification={null}
+                onClose={() => {
+                    setCertificationSheetOpen(false);
+                    // Reload to get updated certifications list
+                    router.reload();
+                }}
             />
         </AppLayout>
     );

@@ -278,6 +278,58 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
         );
     };
 
+    const handleSaveAndPublish = async () => {
+        setSaving(true);
+        setPublishing(true);
+
+        const tasksToSave = tasks.map((task) => ({
+            ...task,
+            measurement: task.measurement
+                ? {
+                    ...task.measurement,
+                    name: task.measurement.name,
+                    min: task.measurement.min,
+                    target: task.measurement.target,
+                    max: task.measurement.max,
+                    unit: task.measurement.unit,
+                    category: task.measurement.category,
+                }
+                : undefined,
+            options: task.options?.map((option) => option) || [],
+            instructionImages: task.instructionImages || [],
+        }));
+
+        router.post(
+            route('maintenance.routines.forms.save-and-publish', {
+                routine: routine.id,
+            }),
+            {
+                tasks: JSON.stringify(tasksToSave),
+            },
+            {
+                onSuccess: () => {
+                    toast.success('Formulário salvo e publicado com sucesso!');
+                    setHasDraftChanges(false);
+                    setSaving(false);
+                    setPublishing(false);
+                    setHasUnsavedChanges(false);
+                    if (onSuccess) {
+                        onSuccess({ published: true });
+                    }
+                    // Reload the page to refresh the data
+                    router.reload();
+                },
+                onError: () => {
+                    toast.error('Erro ao salvar e publicar formulário', {
+                        description: 'Verifique os campos e tente novamente.',
+                    });
+                    setSaving(false);
+                    setPublishing(false);
+                },
+            },
+        );
+    };
+
     const handleClose = () => {
         if (hasUnsavedChanges) {
             setShowExitDialog(true);
@@ -377,17 +429,17 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                             </>
                         )}
                     </Button>
-                    {hasDraftChanges && (
-                        <Button type="button" size="sm" variant="action" disabled={publishing || tasks.length === 0} onClick={handlePublish}>
-                            {publishing ? (
+                    {(hasDraftChanges || hasUnsavedChanges) && (
+                        <Button type="button" size="sm" variant="action" disabled={publishing || saving || tasks.length === 0} onClick={handleSaveAndPublish}>
+                            {publishing || saving ? (
                                 <>
                                     <Upload className="mr-2 h-4 w-4 animate-pulse" />
-                                    Publicando...
+                                    {saving ? 'Salvando...' : 'Publicando...'}
                                 </>
                             ) : (
                                 <>
                                     <Upload className="mr-2 h-4 w-4" />
-                                    Publicar
+                                    Salvar e Publicar
                                 </>
                             )}
                         </Button>

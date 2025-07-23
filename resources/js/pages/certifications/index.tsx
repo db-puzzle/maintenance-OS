@@ -1,19 +1,23 @@
-import React, { useState } from 'react';
-import { useForm, router } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { EntityPagination } from '@/components/shared/EntityPagination';
+import { ColumnVisibility } from '@/components/data-table';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
-import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
+import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
+import { EntityPagination } from '@/components/shared/EntityPagination';
 import CertificationSheet from '@/components/certifications/CertificationSheet';
-import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useEntityOperations } from '@/hooks/useEntityOperations';
+import { useSorting } from '@/hooks/useSorting';
+import AppLayout from '@/layouts/app-layout';
+import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
-import { Plus, Search, Shield } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
+
+// Declare the global route function from Ziggy
+declare const route: (name: string, params?: Record<string, string | number>) => string;
 
 interface Certification {
     id: number;
@@ -27,82 +31,93 @@ interface Certification {
     updated_at: string;
 }
 
-interface PageProps {
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Home',
+        href: '/home',
+    },
+    {
+        title: 'Certificações',
+        href: '/certifications',
+    },
+];
+
+interface Props {
     certifications: {
         data: Certification[];
         current_page: number;
         last_page: number;
         per_page: number;
         total: number;
-        from: number;
-        to: number;
+        from: number | null;
+        to: number | null;
     };
     filters: {
-        search?: string;
-        active?: string;
+        search: string;
+        active: string;
+        sort: string;
+        direction: 'asc' | 'desc';
+        per_page: number;
     };
     can: {
         create: boolean;
     };
 }
 
-export default function CertificationsIndex({ certifications, filters, can }: PageProps) {
-    const [search, setSearch] = useState(filters.search || '');
-    const [activeFilter, setActiveFilter] = useState(filters.active || '');
-    const [createOpen, setCreateOpen] = useState(false);
-    const [editingCertification, setEditingCertification] = useState<Certification | null>(null);
-    const [deleteCertification, setDeleteCertification] = useState<Certification | null>(null);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [dependencies, setDependencies] = useState<any>(null);
-    const [dependenciesOpen, setDependenciesOpen] = useState(false);
+export default function CertificationsIndex({ certifications: initialCertifications, filters, can }: Props) {
+    const entityOps = useEntityOperations<Certification>({
+        entityName: 'certification',
+        entityLabel: 'Certificação',
+        routes: {
+            index: 'certifications.index',
+            show: 'certifications.show',
+            destroy: 'certifications.destroy',
+            checkDependencies: 'certifications.check-dependencies',
+        },
+    });
 
-    const { delete: destroy } = useForm();
+    const [search, setSearch] = useState(filters.search);
+    const [activeFilter, setActiveFilter] = useState(filters.active || 'all');
 
-    const handleSearch = (value: string) => {
-        setSearch(value);
-        router.get(route('certifications.index'), { search: value, active: activeFilter }, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
+    // Use centralized sorting hook
+    const sortingResult = useSorting({
+        routeName: 'certifications.index',
+        initialSort: filters.sort || 'name',
+        initialDirection: filters.direction || 'asc',
+        additionalParams: {
+            search,
+            active: activeFilter !== 'all' ? activeFilter : '',
+            per_page: filters.per_page,
+        },
+    });
+    const sortColumn = sortingResult.sort;
+    const sortDirection = sortingResult.direction;
+    const handleSort = sortingResult.handleSort;
 
-    const handleActiveFilter = (value: string) => {
-        setActiveFilter(value);
-        router.get(route('certifications.index'), { search, active: value }, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
-
-    const handleEdit = (certification: Certification) => {
-        setEditingCertification(certification);
-        setCreateOpen(true);
-    };
-
-    const handleDelete = async (certification: Certification) => {
-        setDeleteCertification(certification);
-        
-        // Check dependencies first
-        const response = await fetch(route('certifications.check-dependencies', certification.id));
-        const data = await response.json();
-        
-        if (!data.canDelete) {
-            setDependencies(data);
-            setDependenciesOpen(true);
-        } else {
-            setDeleteDialogOpen(true);
+    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+        if (typeof window !== 'undefined') {
+            const savedVisibility = localStorage.getItem('certificationsColumnsVisibility');
+            if (savedVisibility) {
+                return JSON.parse(savedVisibility);
+            }
         }
-    };
+        return {
+            name: true,
+            issuing_organization: true,
+            validity_period_days: true,
+            users_count: true,
+        };
+    });
 
-    const confirmDelete = () => {
-        if (deleteCertification) {
-            destroy(route('certifications.destroy', deleteCertification.id), {
-                onFinish: () => {
-                    setDeleteDialogOpen(false);
-                    setDeleteCertification(null);
-                },
-            });
-        }
+    // Use data from server - cast to Record<string, unknown>[] for EntityDataTable
+    const data = initialCertifications.data as unknown as Record<string, unknown>[];
+    const pagination = {
+        current_page: initialCertifications.current_page,
+        last_page: initialCertifications.last_page,
+        per_page: initialCertifications.per_page,
+        total: initialCertifications.total,
+        from: initialCertifications.from,
+        to: initialCertifications.to,
     };
 
     const formatValidityPeriod = (days: number | null) => {
@@ -119,16 +134,20 @@ export default function CertificationsIndex({ certifications, filters, can }: Pa
             key: 'name',
             label: 'Nome',
             sortable: true,
+            width: 'w-[300px]',
             render: (value, row) => {
-                const cert = row as Certification;
+                const cert = row as unknown as Certification;
                 return (
-                    <div className="font-medium">
-                        {cert.name}
-                        {cert.active ? (
-                            <Badge variant="success" className="ml-2">Ativa</Badge>
-                        ) : (
-                            <Badge variant="secondary" className="ml-2">Inativa</Badge>
-                        )}
+                    <div>
+                        <div className="font-medium flex items-center gap-2">
+                            {cert.name}
+                            {cert.active ? (
+                                <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">Ativa</Badge>
+                            ) : (
+                                <Badge variant="secondary">Inativa</Badge>
+                            )}
+                        </div>
+                        {cert.description && <div className="text-muted-foreground text-sm">{cert.description}</div>}
                     </div>
                 );
             },
@@ -137,137 +156,153 @@ export default function CertificationsIndex({ certifications, filters, can }: Pa
             key: 'issuing_organization',
             label: 'Organização Emissora',
             sortable: true,
+            width: 'w-[200px]',
+            render: (value) => value as string,
         },
         {
             key: 'validity_period_days',
             label: 'Validade',
-            width: 'w-32',
+            width: 'w-[120px]',
             render: (value) => formatValidityPeriod(value as number | null),
         },
         {
             key: 'users_count',
             label: 'Usuários',
-            width: 'w-24',
+            sortable: true,
+            width: 'w-[100px]',
             headerAlign: 'center',
             render: (value) => (
-                <div className="text-center">{value}</div>
+                <div className="text-center">{value as number}</div>
             ),
-        },
-        {
-            key: 'created_at',
-            label: 'Criado em',
-            width: 'w-40',
-            sortable: true,
         },
     ];
 
-    const actions = (row: Record<string, unknown>) => {
-        const certification = row as Certification;
-        return (
-            <EntityActionDropdown
-                viewUrl={route('certifications.show', certification.id)}
-                onEdit={() => handleEdit(certification)}
-                onDelete={() => handleDelete(certification)}
-                canView={true}
-                canEdit={can.create}
-                canDelete={can.create}
-            />
+    const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
+        const newVisibility = {
+            ...columnVisibility,
+            [columnId]: value,
+        };
+        setColumnVisibility(newVisibility);
+        localStorage.setItem('certificationsColumnsVisibility', JSON.stringify(newVisibility));
+    };
+
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        router.get(
+            route('certifications.index'),
+            { search: value, active: activeFilter, sort: sortColumn, direction: sortDirection, per_page: filters.per_page || 10 },
+            { preserveState: true, preserveScroll: true },
+        );
+    };
+
+    const handleActiveFilter = (value: string) => {
+        setActiveFilter(value);
+        const activeParam = value === 'all' ? '' : value;
+        router.get(
+            route('certifications.index'),
+            { search, active: activeParam, sort: sortColumn, direction: sortDirection, per_page: filters.per_page || 10 },
+            { preserveState: true, preserveScroll: true },
+        );
+    };
+
+    const handlePageChange = (page: number) => {
+        router.get(
+            route('certifications.index'),
+            { ...(filters || {}), search, active: activeFilter, sort: sortColumn, direction: sortDirection, page },
+            { preserveState: true, preserveScroll: true }
+        );
+    };
+
+    const handlePerPageChange = (perPage: number) => {
+        router.get(
+            route('certifications.index'),
+            { ...(filters || {}), search, active: activeFilter, sort: sortColumn, direction: sortDirection, per_page: perPage, page: 1 },
+            { preserveState: true, preserveScroll: true },
         );
     };
 
     return (
-        <AppLayout title="Certificações">
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle>Certificações</CardTitle>
-                                    <CardDescription>
-                                        Gerencie as certificações disponíveis no sistema
-                                    </CardDescription>
-                                </div>
-                                {can.create && (
-                                    <Button onClick={() => setCreateOpen(true)}>
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Nova Certificação
-                                    </Button>
-                                )}
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="mb-4 flex gap-4">
-                                <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        type="search"
-                                        placeholder="Buscar certificações..."
-                                        value={search}
-                                        onChange={(e) => handleSearch(e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                                <Select value={activeFilter} onValueChange={handleActiveFilter}>
-                                    <SelectTrigger className="w-[200px]">
-                                        <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="">Todos</SelectItem>
-                                        <SelectItem value="1">Ativas</SelectItem>
-                                        <SelectItem value="0">Inativas</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Certificações" />
 
-                            <EntityDataTable
-                                data={certifications.data}
-                                columns={columns}
-                                actions={actions}
-                                emptyMessage="Nenhuma certificação encontrada"
+            <ListLayout
+                title="Certificações"
+                description="Gerencie as certificações disponíveis no sistema"
+                searchValue={search}
+                onSearchChange={handleSearch}
+                onCreateClick={can.create ? () => entityOps.setEditSheetOpen(true) : undefined}
+                createButtonText="Nova Certificação"
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Select value={activeFilter} onValueChange={handleActiveFilter}>
+                            <SelectTrigger className="w-[120px]">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos</SelectItem>
+                                <SelectItem value="1">Ativas</SelectItem>
+                                <SelectItem value="0">Inativas</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <ColumnVisibility
+                            columns={columns.map((col) => ({
+                                id: col.key,
+                                header: col.label,
+                                cell: () => null,
+                                width: 'w-auto',
+                            }))}
+                            columnVisibility={columnVisibility}
+                            onColumnVisibilityChange={handleColumnVisibilityChange}
+                        />
+                    </div>
+                }
+            >
+                <div className="space-y-4">
+                    <EntityDataTable
+                        data={data}
+                        columns={columns}
+                        loading={false}
+                        onRowClick={(certification) => router.visit(route('certifications.show', { id: (certification as unknown as Certification).id }))}
+                        columnVisibility={columnVisibility}
+                        onSort={handleSort}
+                        actions={(certification) => (
+                            <EntityActionDropdown
+                                onEdit={can.create ? () => entityOps.handleEdit(certification as unknown as Certification) : undefined}
+                                onDelete={can.create ? () => entityOps.handleDelete(certification as unknown as Certification) : undefined}
                             />
+                        )}
+                        emptyMessage="Nenhuma certificação encontrada"
+                    />
 
-                            <div className="mt-4">
-                                <EntityPagination
-                                    pagination={certifications}
-                                    onPageChange={(page) => {
-                                        router.get(route('certifications.index'), { ...filters, page }, {
-                                            preserveState: true,
-                                            preserveScroll: true,
-                                        });
-                                    }}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <EntityPagination
+                        pagination={pagination}
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
                 </div>
-            </div>
+            </ListLayout>
 
             <CertificationSheet
-                open={createOpen}
-                onOpenChange={setCreateOpen}
-                certification={editingCertification}
+                open={entityOps.isEditSheetOpen}
+                onOpenChange={entityOps.setEditSheetOpen}
+                certification={entityOps.editingItem || undefined}
                 onClose={() => {
-                    setCreateOpen(false);
-                    setEditingCertification(null);
+                    entityOps.setEditSheetOpen(false);
                 }}
             />
 
-            {dependencies && (
-                <EntityDependenciesDialog
-                    open={dependenciesOpen}
-                    onOpenChange={setDependenciesOpen}
-                    entityName="certificação"
-                    dependencies={dependencies}
-                />
-            )}
-
             <EntityDeleteDialog
-                open={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
-                onConfirm={confirmDelete}
-                title="Excluir Certificação"
-                description={`Tem certeza que deseja excluir a certificação "${deleteCertification?.name}"? Esta ação não pode ser desfeita.`}
+                open={entityOps.isDeleteDialogOpen}
+                onOpenChange={entityOps.setDeleteDialogOpen}
+                entityLabel={entityOps.deletingItem?.name || ''}
+                onConfirm={entityOps.confirmDelete}
+            />
+
+            <EntityDependenciesDialog
+                open={entityOps.isDependenciesDialogOpen}
+                onOpenChange={entityOps.setDependenciesDialogOpen}
+                entityName="certificação"
+                dependencies={entityOps.dependencies}
             />
         </AppLayout>
     );

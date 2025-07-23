@@ -17,21 +17,25 @@ class CertificationController extends Controller
     {
         $this->authorize('viewAny', Certification::class);
 
+        $perPage = $request->input('per_page', 10);
+        $search = $request->input('search', '');
+        $active = $request->input('active', '');
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+
         $certifications = Certification::query()
-            ->when($request->search, function ($query, $search) {
+            ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%")
                         ->orWhere('issuing_organization', 'like', "%{$search}%");
                 });
             })
-            ->when($request->has('active'), function ($query) use ($request) {
-                if ($request->active !== '') {
-                    $query->where('active', $request->boolean('active'));
-                }
+            ->when($active !== '', function ($query) use ($active) {
+                $query->where('active', (bool) $active);
             })
-            ->orderBy('name')
-            ->paginate(10)
+            ->orderBy($sort, $direction)
+            ->paginate($perPage)
             ->through(function ($certification) {
                 return [
                     'id' => $certification->id,
@@ -48,7 +52,13 @@ class CertificationController extends Controller
 
         return Inertia::render('certifications/index', [
             'certifications' => $certifications,
-            'filters' => $request->only(['search', 'active']),
+            'filters' => [
+                'search' => $search,
+                'active' => $active,
+                'sort' => $sort,
+                'direction' => $direction,
+                'per_page' => $perPage,
+            ],
             'can' => [
                 'create' => $request->user()->can('create', Certification::class),
             ],

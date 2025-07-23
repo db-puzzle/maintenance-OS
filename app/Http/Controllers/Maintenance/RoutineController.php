@@ -222,6 +222,92 @@ class RoutineController extends Controller
         }
     }
 
+    public function saveAndPublishForm(Request $request, Routine $routine)
+    {
+        // Check if user can manage the asset
+        $this->authorize('manage', $routine->asset);
+        
+        // Parse tasks if they come as JSON string
+        $tasksData = $request->input('tasks');
+        if (is_string($tasksData)) {
+            $tasksData = json_decode($tasksData, true);
+            $request->merge(['tasks' => $tasksData]);
+        }
+
+        $validated = $request->validate([
+            'tasks' => 'required|array',
+            'tasks.*.type' => 'required|string|in:question,multiple_choice,multiple_select,measurement,photo,code_reader,file_upload',
+            'tasks.*.description' => 'required|string',
+            'tasks.*.isRequired' => 'required|boolean', // Frontend sends camelCase
+            'tasks.*.measurement' => 'nullable|array',
+            'tasks.*.options' => 'nullable|array',
+            'tasks.*.instructions' => 'nullable|array',
+            'tasks.*.instructionImages' => 'nullable|array',
+            'tasks.*.codeReaderType' => 'nullable|string',
+            'tasks.*.codeReaderInstructions' => 'nullable|string',
+            'tasks.*.fileUploadInstructions' => 'nullable|string',
+            'tasks.*.state' => 'nullable|string',
+        ]);
+
+        DB::transaction(function () use ($routine, $validated) {
+            $form = $routine->form;
+            
+            // Delete existing draft tasks (if any)
+            $form->draftTasks()->delete();
+
+            // Create new draft tasks
+            foreach ($validated['tasks'] as $index => $taskData) {
+                $task = FormTask::create([
+                    'form_id' => $routine->form_id,
+                    'position' => $index + 1,
+                    'type' => $taskData['type'],
+                    'description' => $taskData['description'],
+                    'is_required' => $taskData['isRequired'], // Map camelCase to snake_case
+                    'configuration' => [
+                        'measurement' => $taskData['measurement'] ?? null,
+                        'options' => $taskData['options'] ?? null,
+                        'codeReaderType' => $taskData['codeReaderType'] ?? null,
+                        'codeReaderInstructions' => $taskData['codeReaderInstructions'] ?? null,
+                        'fileUploadInstructions' => $taskData['fileUploadInstructions'] ?? null,
+                    ],
+                ]);
+
+                // Add instructions if provided
+                if (!empty($taskData['instructions'])) {
+                    foreach ($taskData['instructions'] as $instructionIndex => $instruction) {
+                        $task->instructions()->create([
+                            'type' => $instruction['type'],
+                            'content' => $instruction['content'],
+                            'media_url' => $instruction['media_url'] ?? null,
+                            'position' => $instructionIndex + 1,
+                        ]);
+                    }
+                }
+
+                // Add instruction images if provided (legacy support)
+                if (!empty($taskData['instructionImages'])) {
+                    foreach ($taskData['instructionImages'] as $instructionIndex => $imageUrl) {
+                        $task->instructions()->create([
+                            'type' => 'image',
+                            'content' => 'Instruction image',
+                            'media_url' => $imageUrl,
+                            'position' => $instructionIndex + 1 + count($taskData['instructions'] ?? []),
+                        ]);
+                    }
+                }
+            }
+            
+            // Now publish the form
+            $form->load('draftTasks.instructions');
+            $version = $form->publish(auth()->id());
+            
+            // Update routine to use the new version
+            $routine->update(['active_form_version_id' => $version->id]);
+        });
+
+        return back()->with('success', 'Formulário salvo e publicado com sucesso.');
+    }
+
     public function getFormData(Routine $routine)
     {
         // Check if user can view the asset
@@ -509,13 +595,6 @@ class RoutineController extends Controller
         // Check if user can create work orders for this asset
         $this->authorize('manage', $asset);
         
-        // Validate routine is in manual execution mode
-        if ($routine->execution_mode !== 'manual') {
-            return response()->json([
-                'error' => 'Work orders are generated automatically for this routine'
-            ], 422);
-        }
-        
         // Check if routine already has an open work order
         if ($routine->hasOpenWorkOrder()) {
             $openWorkOrder = $routine->getOpenWorkOrder();
@@ -555,7 +634,7 @@ class RoutineController extends Controller
                 'success' => true,
                 'work_order_id' => $workOrder->id,
                 'work_order_number' => $workOrder->work_order_number,
-                'redirect' => route('work-orders.show', $workOrder)
+                'redirect' => route('maintenance.work-orders.show', $workOrder)
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 422);
@@ -584,7 +663,8 @@ class RoutineController extends Controller
         ]);
 
         try {
-            $lastExecutionDate = Carbon::parse($validated['last_execution_date']);
+            // Parse the date at start of day in UTC to ensure no timezone shifting
+            $lastExecutionDate = Carbon::parse($validated['last_execution_date'])->startOfDay();
             
             // Update the routine
             $updateData = [
@@ -605,11 +685,6 @@ class RoutineController extends Controller
                     // Use current asset runtime hours if not provided
                     $currentRuntime = $routine->asset->current_runtime_hours ?? 0;
                     $updateData['last_execution_runtime_hours'] = $currentRuntime;
-                    
-                    \Log::info('Using current asset runtime for routine ' . $routine->id, [
-                        'current_runtime' => $currentRuntime,
-                        'asset_id' => $routine->asset_id,
-                    ]);
                 }
             }
 
@@ -636,7 +711,7 @@ class RoutineController extends Controller
                 'asset.shift.schedules.shiftTimes.breaks',
             ])->find($routine->id);
 
-            return response()->json([
+            $responseData = [
                 'success' => true,
                 'message' => 'Data da última execução atualizada com sucesso.',
                 'routine' => [
@@ -645,7 +720,9 @@ class RoutineController extends Controller
                     'last_execution_runtime_hours' => $freshRoutine->last_execution_runtime_hours,
                     'next_execution_date' => $freshRoutine->next_execution_date?->toIso8601String(),
                 ],
-            ]);
+            ];
+
+            return response()->json($responseData);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Erro ao atualizar data da última execução.',

@@ -197,9 +197,8 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             const shiftsData = response.data.shifts?.data || response.data.shifts || [];
             setShifts(shiftsData);
 
-            if (shiftsData.length === 0) {
-                toast.info('Nenhum turno cadastrado.');
-            }
+            // Removed automatic toast notification - shifts are loaded silently in background
+            // The user will see appropriate UI indicators if no shifts are available
         } catch {
             toast.error('Erro ao carregar turnos');
         } finally {
@@ -375,6 +374,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                         onShiftChange={handleShiftChange}
                                         onCreateClick={handleCreateShiftClick}
                                         onShiftUpdated={handleShiftUpdated}
+                                        currentAssetId={asset?.id}
                                     />
                                 </div>
                             </div>

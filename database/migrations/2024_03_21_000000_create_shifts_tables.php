@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('shifts', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name')->unique();
             $table->string('timezone')->default('UTC');
             $table->timestamps();
         });

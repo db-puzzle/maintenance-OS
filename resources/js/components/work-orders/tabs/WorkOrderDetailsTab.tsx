@@ -54,14 +54,7 @@ export default function WorkOrderDetailsTab({
             );
         }
 
-        if ((workOrder.status === 'approved' || workOrder.status === 'planned') && canPlan) {
-            actions.push(
-                <Button key="plan" onClick={() => router.visit(route(`${discipline}.work-orders.planning`, workOrder.id))}>
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {workOrder.status === 'planned' ? 'Editar Planejamento' : 'Planejar'}
-                </Button>
-            );
-        }
+        // Planning is now done through the Planning tab, not a separate page
 
         if (workOrder.status === 'scheduled' && canExecute) {
             actions.push(
@@ -266,11 +259,11 @@ export default function WorkOrderDetailsTab({
                             </div>
                         )}
 
-                        {workOrder.safety_requirements && workOrder.safety_requirements.length > 0 && (
+                        {workOrder.other_requirements && workOrder.other_requirements.length > 0 && (
                             <div className="space-y-2">
-                                <p className="text-sm font-medium">Requisitos de Segurança:</p>
+                                <p className="text-sm font-medium">Outros Requisitos:</p>
                                 <ul className="list-disc list-inside space-y-1">
-                                    {workOrder.safety_requirements.map((req: string, index: number) => (
+                                    {workOrder.other_requirements.map((req: string, index: number) => (
                                         <li key={index} className="text-sm">{req}</li>
                                     ))}
                                 </ul>

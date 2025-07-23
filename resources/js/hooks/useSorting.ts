@@ -14,6 +14,12 @@ export interface UseSortingProps {
     directionParamName?: string;
 }
 
+export interface UseSortingReturn {
+    sort: string;
+    direction: 'asc' | 'desc';
+    handleSort: (columnId: string) => void;
+}
+
 export function useSorting({
     routeName,
     initialSort = 'name',
@@ -21,39 +27,45 @@ export function useSorting({
     additionalParams = {},
     sortParamName = 'sort',
     directionParamName = 'direction'
-}: UseSortingProps) {
-    const [sort, setSort] = useState(initialSort);
-    const [direction, setDirection] = useState<'asc' | 'desc'>(initialDirection);
+}: UseSortingProps): UseSortingReturn {
+    // Ensure initialSort and initialDirection are never null
+    const [currentSortField, setCurrentSortField] = useState(initialSort ?? 'name');
+    const [currentSortDirection, setCurrentSortDirection] = useState<'asc' | 'desc'>(initialDirection ?? 'asc');
 
     const handleSort = useCallback(
         (columnId: string) => {
             let newDirection: 'asc' | 'desc' = 'asc';
             const newSort = columnId;
 
-            if (sort === columnId) {
-                newDirection = direction === 'asc' ? 'desc' : 'asc';
+            if (currentSortField === columnId) {
+                newDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
             }
 
-            setSort(newSort);
-            setDirection(newDirection);
+            setCurrentSortField(newSort);
+            setCurrentSortDirection(newDirection);
+
+            // Filter out null/undefined values from additionalParams
+            const cleanParams = Object.fromEntries(
+                Object.entries(additionalParams || {}).filter(([, value]) => value !== null && value !== undefined)
+            );
 
             // Navigate using Inertia
             router.get(
                 route(routeName),
                 {
-                    ...additionalParams,
+                    ...cleanParams,
                     [sortParamName]: newSort,
                     [directionParamName]: newDirection,
                 },
                 { preserveState: true, preserveScroll: true },
             );
         },
-        [sort, direction, routeName, additionalParams, sortParamName, directionParamName],
+        [currentSortField, currentSortDirection, routeName, additionalParams, sortParamName, directionParamName],
     );
 
     return {
-        sort,
-        direction,
+        sort: currentSortField,
+        direction: currentSortDirection,
         handleSort,
     };
 }

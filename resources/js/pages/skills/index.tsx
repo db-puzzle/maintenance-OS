@@ -1,108 +1,117 @@
-import React, { useState } from 'react';
-import { useForm, router } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { EntityPagination } from '@/components/shared/EntityPagination';
+import { ColumnVisibility } from '@/components/data-table';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
-import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
+import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
+import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
+import { EntityPagination } from '@/components/shared/EntityPagination';
 import SkillSheet from '@/components/skills/SkillSheet';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { useEntityOperations } from '@/hooks/useEntityOperations';
+import { useSorting } from '@/hooks/useSorting';
+import AppLayout from '@/layouts/app-layout';
+import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
-import { Plus, Search, Filter } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
+
+// Declare the global route function from Ziggy
+declare const route: (name: string, params?: Record<string, string | number>) => string;
 
 interface Skill {
     id: number;
     name: string;
     description: string | null;
     category: string;
-    active: boolean;
     users_count: number;
     created_at: string;
     updated_at: string;
 }
 
-interface PageProps {
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Home',
+        href: '/home',
+    },
+    {
+        title: 'Habilidades',
+        href: '/skills',
+    },
+];
+
+interface Props {
     skills: {
         data: Skill[];
         current_page: number;
         last_page: number;
         per_page: number;
         total: number;
-        from: number;
-        to: number;
+        from: number | null;
+        to: number | null;
     };
     filters: {
-        search?: string;
-        active?: string;
+        search: string;
+        sort: string;
+        direction: 'asc' | 'desc';
+        per_page: number;
     };
     can: {
         create: boolean;
     };
 }
 
-export default function SkillsIndex({ skills, filters, can }: PageProps) {
-    const [search, setSearch] = useState(filters.search || '');
-    const [activeFilter, setActiveFilter] = useState(filters.active || '');
-    const [createOpen, setCreateOpen] = useState(false);
-    const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
-    const [deleteSkill, setDeleteSkill] = useState<Skill | null>(null);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [dependencies, setDependencies] = useState<any>(null);
-    const [dependenciesOpen, setDependenciesOpen] = useState(false);
+export default function SkillsIndex({ skills: initialSkills, filters, can }: Props) {
 
-    const { delete: destroy } = useForm();
+    const entityOps = useEntityOperations<Skill>({
+        entityName: 'skill',
+        entityLabel: 'Habilidade',
+        routes: {
+            index: 'skills.index',
+            show: 'skills.show',
+            destroy: 'skills.destroy',
+            checkDependencies: 'skills.check-dependencies',
+        },
+    });
 
-    const handleSearch = (value: string) => {
-        setSearch(value);
-        router.get(route('skills.index'), { search: value, active: activeFilter }, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
+    const [search, setSearch] = useState(filters.search);
 
-    const handleActiveFilter = (value: string) => {
-        setActiveFilter(value);
-        router.get(route('skills.index'), { search, active: value }, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
+    // Use centralized sorting hook
+    const sortingResult = useSorting({
+        routeName: 'skills.index',
+        initialSort: filters.sort || 'name',
+        initialDirection: filters.direction || 'asc',
+        additionalParams: {
+            search,
+            per_page: filters.per_page,
+        },
+    });
+    const sortColumn = sortingResult.sort;
+    const sortDirection = sortingResult.direction;
+    const handleSort = sortingResult.handleSort;
 
-    const handleEdit = (skill: Skill) => {
-        setEditingSkill(skill);
-        setCreateOpen(true);
-    };
-
-    const handleDelete = async (skill: Skill) => {
-        setDeleteSkill(skill);
-        
-        // Check dependencies first
-        const response = await fetch(route('skills.check-dependencies', skill.id));
-        const data = await response.json();
-        
-        if (!data.canDelete) {
-            setDependencies(data);
-            setDependenciesOpen(true);
-        } else {
-            setDeleteDialogOpen(true);
+    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+        if (typeof window !== 'undefined') {
+            const savedVisibility = localStorage.getItem('skillsColumnsVisibility');
+            if (savedVisibility) {
+                return JSON.parse(savedVisibility);
+            }
         }
-    };
+        return {
+            name: true,
+            category: true,
+            users_count: true,
+        };
+    });
 
-    const confirmDelete = () => {
-        if (deleteSkill) {
-            destroy(route('skills.destroy', deleteSkill.id), {
-                onFinish: () => {
-                    setDeleteDialogOpen(false);
-                    setDeleteSkill(null);
-                },
-            });
-        }
+    // Use data from server - cast to Record<string, unknown>[] for EntityDataTable
+    const data = initialSkills.data as unknown as Record<string, unknown>[];
+    const pagination = {
+        current_page: initialSkills.current_page,
+        last_page: initialSkills.last_page,
+        per_page: initialSkills.per_page,
+        total: initialSkills.total,
+        from: initialSkills.from,
+        to: initialSkills.to,
     };
 
     const columns: ColumnConfig[] = [
@@ -110,16 +119,15 @@ export default function SkillsIndex({ skills, filters, can }: PageProps) {
             key: 'name',
             label: 'Nome',
             sortable: true,
+            width: 'w-[300px]',
             render: (value, row) => {
-                const skill = row as Skill;
+                const skill = row as unknown as Skill;
                 return (
-                    <div className="font-medium">
-                        {skill.name}
-                        {skill.active ? (
-                            <Badge variant="success" className="ml-2">Ativa</Badge>
-                        ) : (
-                            <Badge variant="secondary" className="ml-2">Inativa</Badge>
-                        )}
+                    <div>
+                        <div className="font-medium flex items-center gap-2">
+                            {skill.name}
+                        </div>
+                        {skill.description && <div className="text-muted-foreground text-sm">{skill.description}</div>}
                     </div>
                 );
             },
@@ -128,139 +136,129 @@ export default function SkillsIndex({ skills, filters, can }: PageProps) {
             key: 'category',
             label: 'Categoria',
             sortable: true,
+            width: 'w-[150px]',
             render: (value) => (
-                <Badge variant="outline">{value}</Badge>
+                <Badge variant="outline">{value as string}</Badge>
             ),
-        },
-        {
-            key: 'description',
-            label: 'Descrição',
-            render: (value) => value || '-',
         },
         {
             key: 'users_count',
             label: 'Usuários',
-            width: 'w-24',
+            sortable: true,
+            width: 'w-[100px]',
             headerAlign: 'center',
             render: (value) => (
-                <div className="text-center">{value}</div>
+                <div className="text-center">{value as number}</div>
             ),
-        },
-        {
-            key: 'created_at',
-            label: 'Criado em',
-            width: 'w-40',
-            sortable: true,
         },
     ];
 
-    const actions = (row: Record<string, unknown>) => {
-        const skill = row as Skill;
-        return (
-            <EntityActionDropdown
-                viewUrl={route('skills.show', skill.id)}
-                onEdit={() => handleEdit(skill)}
-                onDelete={() => handleDelete(skill)}
-                canView={true}
-                canEdit={can.create}
-                canDelete={can.create}
-            />
+    const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
+        const newVisibility = {
+            ...columnVisibility,
+            [columnId]: value,
+        };
+        setColumnVisibility(newVisibility);
+        localStorage.setItem('skillsColumnsVisibility', JSON.stringify(newVisibility));
+    };
+
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        router.get(
+            route('skills.index'),
+            { search: value, sort: sortColumn, direction: sortDirection, per_page: filters.per_page || 10 },
+            { preserveState: true, preserveScroll: true },
+        );
+    };
+
+    const handlePageChange = (page: number) => {
+        router.get(
+            route('skills.index'),
+            { ...filters, search, sort: sortColumn, direction: sortDirection, page },
+            { preserveState: true, preserveScroll: true }
+        );
+    };
+
+    const handlePerPageChange = (perPage: number) => {
+        router.get(
+            route('skills.index'),
+            { ...filters, search, sort: sortColumn, direction: sortDirection, per_page: perPage, page: 1 },
+            { preserveState: true, preserveScroll: true },
         );
     };
 
     return (
-        <AppLayout title="Habilidades">
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle>Habilidades</CardTitle>
-                                    <CardDescription>
-                                        Gerencie as habilidades disponíveis no sistema
-                                    </CardDescription>
-                                </div>
-                                {can.create && (
-                                    <Button onClick={() => setCreateOpen(true)}>
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Nova Habilidade
-                                    </Button>
-                                )}
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="mb-4 flex gap-4">
-                                <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        type="search"
-                                        placeholder="Buscar habilidades..."
-                                        value={search}
-                                        onChange={(e) => handleSearch(e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                                <Select value={activeFilter} onValueChange={handleActiveFilter}>
-                                    <SelectTrigger className="w-[200px]">
-                                        <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="">Todos</SelectItem>
-                                        <SelectItem value="1">Ativas</SelectItem>
-                                        <SelectItem value="0">Inativas</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Habilidades" />
 
-                            <EntityDataTable
-                                data={skills.data}
-                                columns={columns}
-                                actions={actions}
-                                emptyMessage="Nenhuma habilidade encontrada"
+            <ListLayout
+                title="Habilidades"
+                description="Gerencie as habilidades disponíveis no sistema"
+                searchValue={search}
+                onSearchChange={handleSearch}
+                onCreateClick={can.create ? () => entityOps.setEditSheetOpen(true) : undefined}
+                createButtonText="Nova Habilidade"
+                actions={
+                    <div className="flex items-center gap-2">
+                        <ColumnVisibility
+                            columns={columns.map((col) => ({
+                                id: col.key,
+                                header: col.label,
+                                cell: () => null,
+                                width: 'w-auto',
+                            }))}
+                            columnVisibility={columnVisibility}
+                            onColumnVisibilityChange={handleColumnVisibilityChange}
+                        />
+                    </div>
+                }
+            >
+                <div className="space-y-4">
+                    <EntityDataTable
+                        data={data}
+                        columns={columns}
+                        loading={false}
+                        onRowClick={(skill) => router.visit(route('skills.show', { id: (skill as unknown as Skill).id }))}
+                        columnVisibility={columnVisibility}
+                        onSort={handleSort}
+                        actions={(skill) => (
+                            <EntityActionDropdown
+                                onEdit={can.create ? () => entityOps.handleEdit(skill as unknown as Skill) : undefined}
+                                onDelete={can.create ? () => entityOps.handleDelete(skill as unknown as Skill) : undefined}
                             />
+                        )}
+                        emptyMessage="Nenhuma habilidade encontrada"
+                    />
 
-                            <div className="mt-4">
-                                <EntityPagination
-                                    pagination={skills}
-                                    onPageChange={(page) => {
-                                        router.get(route('skills.index'), { ...filters, page }, {
-                                            preserveState: true,
-                                            preserveScroll: true,
-                                        });
-                                    }}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <EntityPagination
+                        pagination={pagination}
+                        onPageChange={handlePageChange}
+                        onPerPageChange={handlePerPageChange}
+                    />
                 </div>
-            </div>
+            </ListLayout>
 
             <SkillSheet
-                open={createOpen}
-                onOpenChange={setCreateOpen}
-                skill={editingSkill}
+                open={entityOps.isEditSheetOpen}
+                onOpenChange={entityOps.setEditSheetOpen}
+                skill={entityOps.editingItem || undefined}
                 onClose={() => {
-                    setCreateOpen(false);
-                    setEditingSkill(null);
+                    entityOps.setEditSheetOpen(false);
                 }}
             />
 
-            {dependencies && (
-                <EntityDependenciesDialog
-                    open={dependenciesOpen}
-                    onOpenChange={setDependenciesOpen}
-                    entityName="habilidade"
-                    dependencies={dependencies}
-                />
-            )}
-
             <EntityDeleteDialog
-                open={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
-                onConfirm={confirmDelete}
-                title="Excluir Habilidade"
-                description={`Tem certeza que deseja excluir a habilidade "${deleteSkill?.name}"? Esta ação não pode ser desfeita.`}
+                open={entityOps.isDeleteDialogOpen}
+                onOpenChange={entityOps.setDeleteDialogOpen}
+                entityLabel={entityOps.deletingItem?.name || ''}
+                onConfirm={entityOps.confirmDelete}
+            />
+
+            <EntityDependenciesDialog
+                open={entityOps.isDependenciesDialogOpen}
+                onOpenChange={entityOps.setDependenciesDialogOpen}
+                entityName="habilidade"
+                dependencies={entityOps.dependencies}
             />
         </AppLayout>
     );

@@ -243,11 +243,7 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             width: 'w-[100px]',
             render: (value, row) => {
                 const part = row as unknown as Part;
-                return (
-                    <Badge variant={part.active ? 'default' : 'secondary'}>
-                        {part.active ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                );
+                return part.active ? 'Ativo' : 'Inativo';
             },
         },
     ];

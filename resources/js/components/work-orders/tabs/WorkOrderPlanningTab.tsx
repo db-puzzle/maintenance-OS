@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,9 @@ import EmptyCard from '@/components/ui/empty-card';
 import ItemSelect from '@/components/ItemSelect';
 import TextInput from '@/components/TextInput';
 import PartSearchDialog from '@/components/work-orders/PartSearchDialog';
+import SkillsTable from '@/components/work-orders/SkillsTable';
+import CertificationsTable from '@/components/work-orders/CertificationsTable';
+import { ItemRequirementsSelector } from '@/components/work-orders/ItemRequirementsSelector';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import SkillSheet from '@/components/skills/SkillSheet';
@@ -30,14 +33,32 @@ import {
     Edit3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+interface Skill {
+    id: number;
+    name: string;
+    description?: string | null;
+    category: string;
+}
+
+interface Certification {
+    id: number;
+    name: string;
+    description?: string | null;
+    issuing_organization: string;
+    validity_period_days?: number | null;
+    active: boolean;
+}
 
 interface WorkOrderPlanningTabProps {
     workOrder: any;
     technicians?: any[];
     teams?: any[];
     parts?: any[];
-    skills?: string[];
-    certifications?: string[];
+    skills: Skill[];
+    certifications: Certification[];
     canPlan: boolean;
     discipline: 'maintenance' | 'quality';
     onGoToApproval?: () => void;
@@ -168,6 +189,27 @@ export function WorkOrderPlanningTab({
         );
     }
 
+    // Check if planning is complete (status is scheduled or beyond)
+    const isPlanned = ['planned', 'scheduled', 'in_progress', 'completed', 'verified', 'closed'].includes(workOrder.status);
+
+    // Find the planning completion entry in status history
+    const planningEntry = workOrder.status_history?.find((entry: any) =>
+        entry.from_status === 'planned' && entry.to_status === 'scheduled'
+    );
+
+    // Also check for any entry that shows the work order was planned
+    const planningRelatedEntry = planningEntry || workOrder.status_history?.find((entry: any) =>
+        (entry.from_status === 'approved' && entry.to_status === 'planned') ||
+        (entry.from_status === 'planned' && entry.to_status === 'scheduled')
+    );
+
+    // Get planning data from work order if status history doesn't have it
+    const planningData = planningRelatedEntry || (isPlanned ? {
+        changed_by: workOrder.planned_by || workOrder.updated_by,
+        user: workOrder.planned_by || workOrder.updated_by,
+        created_at: workOrder.planned_at || workOrder.updated_at
+    } : null);
+
     const [plannedParts, setPlannedParts] = useState<PlanningPart[]>(
         workOrder.parts?.map((part: any) => ({
             id: part.id?.toString(),
@@ -184,31 +226,51 @@ export function WorkOrderPlanningTab({
     const [partSearchOpen, setPartSearchOpen] = useState(false);
     const [skillSheetOpen, setSkillSheetOpen] = useState(false);
     const [certificationSheetOpen, setCertificationSheetOpen] = useState(false);
-    const [newSafetyReq, setNewSafetyReq] = useState('');
-    const [newSkill, setNewSkill] = useState('');
-    const [newCert, setNewCert] = useState('');
+    const [newOtherReq, setNewOtherReq] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
+
+    // Initialize selected skills from workOrder data
+    const [selectedSkills, setSelectedSkills] = useState<Skill[]>(() => {
+        if (!workOrder.required_skills || workOrder.required_skills.length === 0) return [];
+
+        // Map skill names from workOrder to skill objects
+        return workOrder.required_skills
+            .map((skillName: string) => skills.find(s => s.name === skillName))
+            .filter(Boolean) as Skill[];
+    });
+
+    // Initialize selected certifications from workOrder data
+    const [selectedCertifications, setSelectedCertifications] = useState<Certification[]>(() => {
+        if (!workOrder.required_certifications || workOrder.required_certifications.length === 0) return [];
+
+        // Map certification names from workOrder to certification objects
+        return workOrder.required_certifications
+            .map((certName: string) => certifications.find(c => c.name === certName))
+            .filter(Boolean) as Certification[];
+    });
 
     const { data, setData, post, put, processing, errors, clearErrors } = useForm({
         estimated_hours: workOrder.estimated_hours?.toString() || '',
         labor_cost_per_hour: workOrder.labor_cost_per_hour?.toString() || '150.00',
         estimated_labor_cost: workOrder.estimated_labor_cost || 0,
         downtime_required: workOrder.downtime_required || false,
-        safety_requirements: workOrder.safety_requirements || [],
-        required_skills: workOrder.required_skills || [],
-        required_certifications: workOrder.required_certifications || [],
+        other_requirements: workOrder.other_requirements || [],
+        number_of_people: workOrder.number_of_people?.toString() || '1',
+        required_skills: selectedSkills.map(s => s.name),
+        required_certifications: selectedCertifications.map(c => c.name),
         parts: [] as any[],
         estimated_parts_cost: workOrder.estimated_parts_cost || 0,
         estimated_total_cost: workOrder.estimated_total_cost || 0,
     });
 
-    const isViewMode = !canPlan || !['approved', 'planned'].includes(workOrder.status);
+    const isViewMode = !canPlan || !['approved', 'planned'].includes(workOrder.status) || isPlanned;
 
     const calculateLaborCost = () => {
         const hours = parseFloat(data.estimated_hours) || 0;
         const rate = parseFloat(data.labor_cost_per_hour) || 0;
-        return hours * rate;
+        const people = parseInt(data.number_of_people) || 1;
+        return hours * rate * people;
     };
 
     const calculatePartsCost = () => {
@@ -230,7 +292,7 @@ export function WorkOrderPlanningTab({
             estimated_total_cost: totalCost,
             parts: plannedParts,
         }));
-    }, [data.estimated_hours, data.labor_cost_per_hour, plannedParts]);
+    }, [data.estimated_hours, data.labor_cost_per_hour, data.number_of_people, plannedParts]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -264,40 +326,46 @@ export function WorkOrderPlanningTab({
         }).format(value);
     };
 
-    // Safety requirements handlers
-    const handleAddSafetyReq = () => {
-        if (newSafetyReq.trim()) {
-            setData('safety_requirements', [...data.safety_requirements, newSafetyReq.trim()]);
-            setNewSafetyReq('');
+    // Other requirements handlers
+    const handleAddOtherReq = () => {
+        if (newOtherReq.trim()) {
+            setData('other_requirements', [...data.other_requirements, newOtherReq.trim()]);
+            setNewOtherReq('');
         }
     };
 
-    const handleRemoveSafetyReq = (index: number) => {
-        setData('safety_requirements', data.safety_requirements.filter((_: string, i: number) => i !== index));
+    const handleRemoveOtherReq = (index: number) => {
+        setData('other_requirements', data.other_requirements.filter((_: string, i: number) => i !== index));
     };
 
     // Skills handlers
-    const handleAddSkill = () => {
-        if (newSkill.trim()) {
-            setData('required_skills', [...data.required_skills, newSkill.trim()]);
-            setNewSkill('');
+    const handleAddSkill = (skill: Skill) => {
+        if (!selectedSkills.find(s => s.id === skill.id)) {
+            const newSelectedSkills = [...selectedSkills, skill];
+            setSelectedSkills(newSelectedSkills);
+            setData('required_skills', newSelectedSkills.map(s => s.name));
         }
     };
 
-    const handleRemoveSkill = (index: number) => {
-        setData('required_skills', data.required_skills.filter((_: string, i: number) => i !== index));
+    const handleRemoveSkill = (skillId: number) => {
+        const newSelectedSkills = selectedSkills.filter(s => s.id !== skillId);
+        setSelectedSkills(newSelectedSkills);
+        setData('required_skills', newSelectedSkills.map(s => s.name));
     };
 
     // Certifications handlers
-    const handleAddCert = () => {
-        if (newCert.trim()) {
-            setData('required_certifications', [...data.required_certifications, newCert.trim()]);
-            setNewCert('');
+    const handleAddCertification = (certification: Certification) => {
+        if (!selectedCertifications.find(c => c.id === certification.id)) {
+            const newSelectedCertifications = [...selectedCertifications, certification];
+            setSelectedCertifications(newSelectedCertifications);
+            setData('required_certifications', newSelectedCertifications.map(c => c.name));
         }
     };
 
-    const handleRemoveCert = (index: number) => {
-        setData('required_certifications', data.required_certifications.filter((_: string, i: number) => i !== index));
+    const handleRemoveCertification = (certificationId: number) => {
+        const newSelectedCertifications = selectedCertifications.filter(c => c.id !== certificationId);
+        setSelectedCertifications(newSelectedCertifications);
+        setData('required_certifications', newSelectedCertifications.map(c => c.name));
     };
 
     const handleAddPart = (part: any) => {
@@ -459,6 +527,54 @@ export function WorkOrderPlanningTab({
 
     return (
         <div className="space-y-6 py-6">
+            {/* Planning Success Message */}
+            {isPlanned && planningData && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <h3 className="text-lg font-semibold">Ordem de Serviço Planejada</h3>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label>Planejado por</Label>
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm flex items-center gap-2">
+                                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">{planningData.user?.name || planningData.changed_by?.name || 'Sistema'}</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Data do planejamento</Label>
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm flex items-center gap-2">
+                                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">
+                                    {format(new Date(planningData.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Separator />
+                </div>
+            )}
+
+            {/* Show simpler planned message if we don't have planning data but work order is planned */}
+            {isPlanned && !planningData && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <h3 className="text-lg font-semibold">Ordem de Serviço Planejada</h3>
+                    </div>
+
+                    <div className="rounded-md border bg-muted/20 p-3 text-sm">
+                        Esta ordem de serviço foi planejada e está com status: <Badge variant="outline">{workOrder.status}</Badge>
+                    </div>
+
+                    <Separator />
+                </div>
+            )}
+
             {!canPlan && ['approved', 'planned'].includes(workOrder.status) && (
                 <Alert>
                     <AlertCircle className="h-4 w-4" />
@@ -471,7 +587,7 @@ export function WorkOrderPlanningTab({
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Time and Cost Estimation */}
                 <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Horas de Trabalho</h3>
+                    <h3 className="text-lg font-medium">Horas de Trabalho e Equipe</h3>
 
                     <div className="grid gap-4 md:grid-cols-4">
                         <TextInput
@@ -484,6 +600,20 @@ export function WorkOrderPlanningTab({
                             name="estimated_hours"
                             label="Horas Estimadas"
                             placeholder="4.0"
+                            required
+                            view={isViewMode}
+                        />
+
+                        <TextInput
+                            form={{
+                                data,
+                                setData,
+                                errors,
+                                clearErrors: clearErrors as (...fields: string[]) => void,
+                            }}
+                            name="number_of_people"
+                            label="Número de Pessoas"
+                            placeholder="1"
                             required
                             view={isViewMode}
                         />
@@ -532,161 +662,45 @@ export function WorkOrderPlanningTab({
 
                 <Separator />
 
-                {/* Safety Requirements, Skills, and Certifications */}
-                <div className="space-y-6">
-                    <h3 className="text-lg font-medium">Requisitos e Qualificações</h3>
+                {/* Skills and Certifications Planning */}
+                <div className="space-y-4">
 
-                    {/* Safety Requirements */}
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Requisitos de Segurança</Label>
-                            {!isViewMode && (
-                                <div className="flex gap-2">
-                                    <Input
-                                        value={newSafetyReq}
-                                        onChange={(e) => setNewSafetyReq(e.target.value)}
-                                        placeholder="Ex: LOTO obrigatório"
-                                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSafetyReq())}
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={handleAddSafetyReq}
-                                    >
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
-                            <div className="flex flex-wrap gap-2">
-                                {data.safety_requirements.map((req: string, index: number) => (
-                                    <Badge key={index} variant="secondary">
-                                        <Shield className="h-3 w-3 mr-1" />
-                                        {req}
-                                        {!isViewMode && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveSafetyReq(index)}
-                                                className="ml-2"
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </button>
-                                        )}
-                                    </Badge>
-                                ))}
-                                {data.safety_requirements.length === 0 && (
-                                    <span className="text-sm text-muted-foreground">Nenhum requisito de segurança definido</span>
-                                )}
-                            </div>
-                        </div>
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        {/* Skills Column */}
+                        <ItemRequirementsSelector
+                            title="Habilidades Necessárias"
+                            items={skills}
+                            selectedItems={selectedSkills}
+                            onAdd={handleAddSkill}
+                            onRemove={handleRemoveSkill}
+                            onCreateClick={() => setSkillSheetOpen(true)}
+                            isViewMode={isViewMode}
+                            placeholder="Selecione ou busque uma habilidade..."
+                        >
+                            <SkillsTable
+                                selectedSkills={selectedSkills}
+                                isViewMode={isViewMode}
+                                onRemoveSkill={handleRemoveSkill}
+                            />
+                        </ItemRequirementsSelector>
 
-                        {/* Required Skills */}
-                        <div className="space-y-2">
-                            <Label>Habilidades Necessárias</Label>
-                            {!isViewMode && (
-                                <div className="flex gap-2">
-                                    <ItemSelect
-                                        items={skills.map((skill, index) => ({ id: index + 1, name: skill }))}
-                                        value={skills.findIndex(s => s === newSkill) + 1 ? (skills.findIndex(s => s === newSkill) + 1).toString() : ''}
-                                        onValueChange={(value) => {
-                                            if (value === 'create-new') {
-                                                setSkillSheetOpen(true);
-                                            } else {
-                                                const index = parseInt(value) - 1;
-                                                if (index >= 0 && index < skills.length) {
-                                                    setNewSkill(skills[index]);
-                                                }
-                                            }
-                                        }}
-                                        placeholder="Selecione uma habilidade"
-                                        canCreate={true}
-                                        createLabel="Criar nova habilidade"
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={handleAddSkill}
-                                    >
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
-                            <div className="flex flex-wrap gap-2">
-                                {data.required_skills.map((skill: string, index: number) => (
-                                    <Badge key={index} variant="secondary">
-                                        <Wrench className="h-3 w-3 mr-1" />
-                                        {skill}
-                                        {!isViewMode && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveSkill(index)}
-                                                className="ml-2"
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </button>
-                                        )}
-                                    </Badge>
-                                ))}
-                                {data.required_skills.length === 0 && (
-                                    <span className="text-sm text-muted-foreground">Nenhuma habilidade específica requerida</span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Required Certifications */}
-                        <div className="space-y-2">
-                            <Label>Certificações Necessárias</Label>
-                            {!isViewMode && (
-                                <div className="flex gap-2">
-                                    <ItemSelect
-                                        items={certifications.map((cert, index) => ({ id: index + 1, name: cert }))}
-                                        value={certifications.findIndex(c => c === newCert) + 1 ? (certifications.findIndex(c => c === newCert) + 1).toString() : ''}
-                                        onValueChange={(value) => {
-                                            if (value === 'create-new') {
-                                                setCertificationSheetOpen(true);
-                                            } else {
-                                                const index = parseInt(value) - 1;
-                                                if (index >= 0 && index < certifications.length) {
-                                                    setNewCert(certifications[index]);
-                                                }
-                                            }
-                                        }}
-                                        placeholder="Selecione uma certificação"
-                                        canCreate={true}
-                                        createLabel="Criar nova certificação"
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={handleAddCert}
-                                    >
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
-                            <div className="flex flex-wrap gap-2">
-                                {data.required_certifications.map((cert: string, index: number) => (
-                                    <Badge key={index} variant="secondary">
-                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                        {cert}
-                                        {!isViewMode && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveCert(index)}
-                                                className="ml-2"
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </button>
-                                        )}
-                                    </Badge>
-                                ))}
-                                {data.required_certifications.length === 0 && (
-                                    <span className="text-sm text-muted-foreground">Nenhuma certificação específica requerida</span>
-                                )}
-                            </div>
-                        </div>
+                        {/* Certifications Column */}
+                        <ItemRequirementsSelector
+                            title="Certificações Necessárias"
+                            items={certifications}
+                            selectedItems={selectedCertifications}
+                            onAdd={handleAddCertification}
+                            onRemove={handleRemoveCertification}
+                            onCreateClick={() => setCertificationSheetOpen(true)}
+                            isViewMode={isViewMode}
+                            placeholder="Selecione ou busque uma certificação..."
+                        >
+                            <CertificationsTable
+                                selectedCertifications={selectedCertifications}
+                                isViewMode={isViewMode}
+                                onRemoveCertification={handleRemoveCertification}
+                            />
+                        </ItemRequirementsSelector>
                     </div>
                 </div>
 
@@ -695,7 +709,7 @@ export function WorkOrderPlanningTab({
                 {/* Parts Planning */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium">Peças Necessárias</h3>
+                        <h4 className="text-base font-medium">Peças Necessárias</h4>
                         {!isViewMode && (
                             <Button
                                 type="button"
@@ -743,9 +757,81 @@ export function WorkOrderPlanningTab({
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center py-8 text-muted-foreground border rounded-lg">
-                            <Package className="h-8 w-8 mx-auto mb-2" />
-                            <p>Nenhuma peça adicionada</p>
+                        <div className="text-center py-4 text-muted-foreground border rounded-lg min-h-[60px] flex flex-col justify-center">
+                            <Package className="h-6 w-6 mx-auto mb-1" />
+                            <p className="text-sm">Nenhuma peça adicionada</p>
+                        </div>
+                    )}
+                </div>
+
+                <Separator />
+
+                {/* Other Requirements */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h4 className="text-base font-medium">Outros Requisitos</h4>
+                    </div>
+
+                    {!isViewMode && (
+                        <div className="flex gap-2">
+                            <Input
+                                value={newOtherReq}
+                                onChange={(e) => setNewOtherReq(e.target.value)}
+                                placeholder="Ex: LOTO obrigatório"
+                                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddOtherReq())}
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={handleAddOtherReq}
+                            >
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Other Requirements List */}
+                    {data.other_requirements.length > 0 ? (
+                        <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
+                            <EntityDataTable
+                                data={data.other_requirements.map((req: string, index: number) => ({
+                                    id: index,
+                                    requirement: req,
+                                })) as any[]}
+                                columns={[
+                                    {
+                                        key: 'requirement',
+                                        label: 'Outros Requisitos',
+                                        render: (value, row) => {
+                                            const req = row as unknown as { requirement: string };
+                                            return (
+                                                <span className="text-sm">{req.requirement}</span>
+                                            );
+                                        },
+                                    },
+                                ]}
+                                actions={!isViewMode ? (row: Record<string, unknown>) => {
+                                    const req = row as unknown as { id: number };
+                                    return (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleRemoveOtherReq(req.id)}
+                                            className="h-8 w-8 p-0"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    );
+                                } : undefined}
+                                emptyMessage="Nenhum outro requisito definido"
+                            />
+                        </div>
+                    ) : (
+                        <div className="text-center py-4 text-muted-foreground border rounded-lg min-h-[60px] flex flex-col justify-center">
+                            <Shield className="h-6 w-6 mx-auto mb-1" />
+                            <p className="text-sm">Nenhum outro requisito adicionado</p>
                         </div>
                     )}
                 </div>
@@ -802,14 +888,18 @@ export function WorkOrderPlanningTab({
                 onSelectPart={handleAddPart}
             />
 
+
+
             {/* Skill Sheet */}
             <SkillSheet
                 open={skillSheetOpen}
                 onOpenChange={setSkillSheetOpen}
                 onClose={() => {
                     setSkillSheetOpen(false);
-                    // Reload the page to get updated skills list
-                    window.location.reload();
+                    // Reload skills to get the newly created skill
+                    router.reload({
+                        only: ['skills']
+                    });
                 }}
             />
 
@@ -819,8 +909,10 @@ export function WorkOrderPlanningTab({
                 onOpenChange={setCertificationSheetOpen}
                 onClose={() => {
                     setCertificationSheetOpen(false);
-                    // Reload the page to get updated certifications list
-                    window.location.reload();
+                    // Reload certifications to get the newly created certification
+                    router.reload({
+                        only: ['certifications']
+                    });
                 }}
             />
         </div>

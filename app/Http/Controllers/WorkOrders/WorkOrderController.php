@@ -48,21 +48,11 @@ class WorkOrderController extends Controller
         $discipline = str_contains($request->route()->getPrefix(), 'quality') ? 'quality' : 'maintenance';
         $perPage = $request->input('per_page', 10);
         $search = $request->input('search');
-        $status = $request->input('status');
+        $status = $request->input('status', 'open'); // Default to 'open' filter
         $category = $request->input('category');
 
-        $assignedTo = $request->input('assigned_to');
-        $plantId = $request->input('plant_id');
-        $sort = $request->input('sort', 'created_at');
+        $sort = $request->input('sort', 'work_order_number');
         $direction = $request->input('direction', 'desc');
-        $dateFrom = $request->input('date_from');
-        $dateTo = $request->input('date_to');
-
-        // Set default date range if not provided
-        if (!$dateFrom || !$dateTo) {
-            $dateFrom = now()->subDays(30)->format('Y-m-d');
-            $dateTo = now()->format('Y-m-d');
-        }
 
         $query = WorkOrder::where('discipline', $discipline)
             ->with([
@@ -74,11 +64,6 @@ class WorkOrderController extends Controller
                 'assignedTechnician',
                 'requestedBy',
             ]);
-
-        // Apply date filter
-        if ($dateFrom && $dateTo) {
-            $query->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-        }
 
         // Apply filters
         if ($search) {
@@ -92,9 +77,14 @@ class WorkOrderController extends Controller
             });
         }
 
-        if ($status) {
+        if ($status === 'open') {
+            // Special filter for all open orders (exclude cancelled and closed)
+            $query->whereNotIn('status', [WorkOrder::STATUS_CANCELLED, WorkOrder::STATUS_CLOSED]);
+        } elseif ($status !== 'All') {
+            // Apply specific status filter only if not 'All'
             $query->where('status', $status);
         }
+        // If status is 'All', no filter is applied (show all statuses)
 
         if ($category) {
             // Support both category code and category ID
@@ -108,16 +98,6 @@ class WorkOrderController extends Controller
         }
 
 
-
-        if ($assignedTo) {
-            $query->where('assigned_technician_id', $assignedTo);
-        }
-
-        if ($plantId) {
-            $query->whereHas('asset', function ($q) use ($plantId) {
-                $q->where('plant_id', $plantId);
-            });
-        }
 
         // Apply sorting
         if ($sort === 'asset') {
@@ -137,72 +117,23 @@ class WorkOrderController extends Controller
         // Transform paginated data to match React component expectations
         $workOrders = [
             'data' => $workOrdersPaginated->items(),
-            'meta' => [
-                'current_page' => $workOrdersPaginated->currentPage(),
-                'last_page' => $workOrdersPaginated->lastPage(),
-                'per_page' => $workOrdersPaginated->perPage(),
-                'total' => $workOrdersPaginated->total(),
-                'from' => $workOrdersPaginated->firstItem(),
-                'to' => $workOrdersPaginated->lastItem(),
-            ]
+            'current_page' => $workOrdersPaginated->currentPage(),
+            'last_page' => $workOrdersPaginated->lastPage(),
+            'per_page' => $workOrdersPaginated->perPage(),
+            'total' => $workOrdersPaginated->total(),
+            'from' => $workOrdersPaginated->firstItem(),
+            'to' => $workOrdersPaginated->lastItem(),
         ];
-
-        // Get stats for the period
-        $stats = [
-            'open' => WorkOrder::where('discipline', $discipline)
-                ->open()
-                ->count(),
-            'in_progress' => WorkOrder::where('discipline', $discipline)
-                ->where('status', WorkOrder::STATUS_IN_PROGRESS)
-                ->count(),
-            'overdue' => WorkOrder::where('discipline', $discipline)
-                ->overdue()
-                ->count(),
-            'completed_this_month' => WorkOrder::where('discipline', $discipline)
-                ->whereBetween('created_at', [now()->startOfMonth(), now()])
-                ->whereIn('status', [WorkOrder::STATUS_COMPLETED, WorkOrder::STATUS_VERIFIED, WorkOrder::STATUS_CLOSED])
-                ->count(),
-        ];
-
-        // Get category stats
-        $categoryStats = WorkOrder::where('work_orders.discipline', $discipline)
-            ->whereBetween('work_orders.created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-            ->join('work_order_categories', 'work_orders.work_order_category_id', '=', 'work_order_categories.id')
-            ->selectRaw('work_order_categories.code, work_order_categories.name, count(work_orders.id) as count')
-            ->groupBy('work_order_categories.id', 'work_order_categories.code', 'work_order_categories.name')
-            ->get()
-            ->mapWithKeys(function ($item) {
-                return [$item->code => ['name' => $item->name, 'count' => $item->count]];
-            })
-            ->toArray();
-
-        // Calculate trends
-        $stats['trend'] = $this->calculateTrend($stats);
-        $dailyTrend = $this->getDailyTrend($dateFrom, $dateTo, $discipline);
-
-        // Get filter options
-        $plants = Plant::orderBy('name')->get(['id', 'name']);
-        $technicians = User::whereHas('roles', function ($q) {
-            $q->whereIn('name', ['Technician', 'Maintenance Supervisor']);
-        })->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('work-orders/index', [
             'workOrders' => $workOrders,
-            'stats' => $stats,
-            'dailyTrend' => $dailyTrend,
-            'categoryStats' => $categoryStats,
             'filters' => [
                 'search' => $search,
                 'status' => $status,
-                'category' => $category,
-                'assigned_to' => $assignedTo,
-                'plant_id' => $plantId,
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
+                'sort' => $sort,
+                'direction' => $direction,
                 'per_page' => $perPage,
             ],
-            'plants' => $plants,
-            'technicians' => $technicians,
             'discipline' => $discipline,
             'canCreate' => auth()->user()->can('create', WorkOrder::class),
         ]);
@@ -247,7 +178,7 @@ class WorkOrderController extends Controller
         $technicians = User::whereHas('roles', function ($q) {
             $q->whereIn('name', ['Technician', 'Maintenance Supervisor']);
         })->orderBy('name')->get();
-        $skills = Skill::where('active', true)->orderBy('name')->get();
+        $skills = Skill::orderBy('name')->get();
         $certifications = Certification::where('active', true)->orderBy('name')->get();
 
         return Inertia::render('work-orders/create', [
@@ -392,7 +323,7 @@ class WorkOrderController extends Controller
             'asset.plant',
             'asset.area',
             'asset.sector',
-            'form.formVersion',
+            'form.currentVersion',
             'assignedTechnician',
             'requestedBy',
             'approvedBy',
@@ -420,8 +351,8 @@ class WorkOrderController extends Controller
             ->orderBy('part_number')
             ->get();
 
-        $skills = Skill::where('active', true)->pluck('name')->toArray();
-        $certifications = Certification::where('active', true)->pluck('name')->toArray();
+        $skills = Skill::orderBy('name')->get(['id', 'name', 'category', 'description']);
+        $certifications = Certification::where('active', true)->orderBy('name')->get(['id', 'name', 'issuing_organization', 'validity_period_days', 'description', 'active']);
 
         // Get user's approval threshold
         $approvalThreshold = null;
@@ -719,7 +650,8 @@ class WorkOrderController extends Controller
                 'estimated_parts_cost' => $this->calculatePartsCost($validated['parts'] ?? []),
                 'estimated_total_cost' => ($validated['estimated_labor_cost'] ?? 0) + $this->calculatePartsCost($validated['parts'] ?? []),
                 'downtime_required' => $validated['downtime_required'] ?? false,
-                'safety_requirements' => $validated['safety_requirements'] ?? [],
+                'other_requirements' => $validated['other_requirements'] ?? [],
+                'number_of_people' => $validated['number_of_people'] ?? 1,
                 'required_skills' => $validated['required_skills'] ?? [],
                 'required_certifications' => $validated['required_certifications'] ?? [],
                 'scheduled_start_date' => $validated['scheduled_start_date'] ?? null,
@@ -821,70 +753,5 @@ class WorkOrderController extends Controller
         });
     }
 
-    /**
-     * Calculate trend for stats
-     */
-    private function calculateTrend($stats)
-    {
-        // Calculate trend based on last week's data
-        $lastWeek = WorkOrder::whereIn('status', ['requested', 'approved', 'planned', 'scheduled'])
-            ->whereBetween('created_at', [now()->subDays(14), now()->subDays(7)])
-            ->count();
-        
-        $thisWeek = $stats['open'];
-        
-        if ($lastWeek == 0) {
-            return [
-                'direction' => 'stable',
-                'percentage' => 0
-            ];
-        }
-        
-        $percentageChange = (($thisWeek - $lastWeek) / $lastWeek) * 100;
-        
-        return [
-            'direction' => $percentageChange > 0 ? 'up' : ($percentageChange < 0 ? 'down' : 'stable'),
-            'percentage' => round(abs($percentageChange), 1)
-        ];
-    }
 
-    /**
-     * Get daily trend data for the chart
-     */
-    private function getDailyTrend($dateFrom, $dateTo, $discipline)
-    {
-        $dailyTrend = [];
-        $startDate = Carbon::parse($dateFrom);
-        $endDate = Carbon::parse($dateTo);
-
-        while ($startDate->lte($endDate)) {
-            $date = $startDate->format('Y-m-d');
-            
-            // Count completed work orders for this specific date
-            $completed = WorkOrder::where('discipline', $discipline)
-                ->where('status', 'completed')
-                ->whereDate('actual_end_date', $date)
-                ->count();
-            
-            // Count overdue work orders as of this date
-            $overdue = WorkOrder::where('discipline', $discipline)
-                ->where('status', '!=', 'completed')
-                ->where('status', '!=', 'verified')
-                ->where('status', '!=', 'closed')
-                ->where('status', '!=', 'cancelled')
-                ->where('requested_due_date', '<', Carbon::parse($date)->endOfDay())
-                ->whereDate('created_at', '<=', $date)
-                ->count();
-            
-            $dailyTrend[] = [
-                'date' => $date,
-                'completed' => $completed,
-                'overdue' => $overdue,
-            ];
-            
-            $startDate->addDay();
-        }
-        
-        return $dailyTrend;
-    }
 }

@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { useForm, router } from '@inertiajs/react';
-import ShowLayout from '@/layouts/show-layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { router, Head } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { Badge } from '@/components/ui/badge';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
-import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
-import CertificationSheet from '@/components/certifications/CertificationSheet';
+import CertificationFormComponent from '@/components/certifications/CertificationFormComponent';
 import { ColumnConfig } from '@/types/shared';
-import { Edit, Trash2, User, Calendar, Building2, Clock } from 'lucide-react';
+import { User, Building2, Users, AlertCircle } from 'lucide-react';
+import { type BreadcrumbItem } from '@/types';
 
 interface CertificationUser {
     id: number;
@@ -39,40 +37,28 @@ interface PageProps {
         update: boolean;
         delete: boolean;
     };
+    activeTab?: string;
 }
 
-export default function CertificationShow({ certification, can }: PageProps) {
-    const [editOpen, setEditOpen] = useState(false);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [dependencies, setDependencies] = useState<any>(null);
-    const [dependenciesOpen, setDependenciesOpen] = useState(false);
+export default function CertificationShow({ certification, can, activeTab = 'informacoes' }: PageProps) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Home',
+            href: '/home',
+        },
+        {
+            title: 'Certificações',
+            href: '/certifications',
+        },
+        {
+            title: certification.name,
+            href: '#',
+        },
+    ];
 
-    const { delete: destroy } = useForm();
-
-    const handleDelete = async () => {
-        // Check dependencies first
-        const response = await fetch(route('certifications.check-dependencies', certification.id));
-        const data = await response.json();
-        
-        if (!data.canDelete) {
-            setDependencies(data);
-            setDependenciesOpen(true);
-        } else {
-            setDeleteDialogOpen(true);
-        }
-    };
-
-    const confirmDelete = () => {
-        destroy(route('certifications.destroy', certification.id));
-    };
-
-    const formatValidityPeriod = (days: number | null) => {
-        if (!days) return 'Sem validade';
-        if (days === 365) return '1 ano';
-        if (days % 365 === 0) return `${days / 365} anos`;
-        if (days === 30) return '1 mês';
-        if (days % 30 === 0) return `${Math.floor(days / 30)} meses`;
-        return `${days} dias`;
+    const handleEditSuccess = () => {
+        // Reload the page to refresh the data
+        router.reload();
     };
 
     const userColumns: ColumnConfig[] = [
@@ -81,7 +67,7 @@ export default function CertificationShow({ certification, can }: PageProps) {
             label: 'Nome',
             sortable: true,
             render: (value, row) => {
-                const user = row as CertificationUser;
+                const user = row as unknown as CertificationUser;
                 return (
                     <div>
                         <div className="font-medium">{user.name}</div>
@@ -93,147 +79,141 @@ export default function CertificationShow({ certification, can }: PageProps) {
         {
             key: 'certificate_number',
             label: 'Número do Certificado',
-            render: (value) => value || '-',
+            width: 'w-48',
+            render: (value) => (value || '-') as React.ReactNode,
         },
         {
             key: 'issued_at',
             label: 'Data de Emissão',
             width: 'w-32',
-            render: (value) => value || '-',
+            render: (value) => {
+                if (!value) return '-';
+                return new Date(value as string).toLocaleDateString('pt-BR');
+            },
         },
         {
             key: 'expires_at',
-            label: 'Validade',
+            label: 'Data de Validade',
             width: 'w-32',
             render: (value, row) => {
-                const user = row as CertificationUser;
-                if (!value) return 'Sem validade';
-                return (
-                    <div>
-                        <div>{value}</div>
-                        {user.is_expired && (
-                            <Badge variant="destructive" className="mt-1">Expirado</Badge>
-                        )}
-                    </div>
+                const user = row as unknown as CertificationUser;
+                if (!value) return '-';
+                const date = new Date(value as string);
+                const dateString = date.toLocaleDateString('pt-BR');
+
+                if (user.is_expired) {
+                    return (
+                        <div className="flex items-center gap-1">
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                            <span className="text-red-500">{dateString}</span>
+                        </div>
+                    );
+                }
+                return dateString;
+            },
+        },
+        {
+            key: 'status',
+            label: 'Status',
+            width: 'w-32',
+            render: (value, row) => {
+                const user = row as unknown as CertificationUser;
+                return user.is_expired ? (
+                    <Badge variant="destructive">Expirado</Badge>
+                ) : (
+                    <Badge variant="default" className="bg-green-500 hover:bg-green-600">Válido</Badge>
                 );
             },
         },
     ];
 
-    const detailItems = [
+    const validUsers = certification.users.filter(u => !u.is_expired).length;
+    const expiredUsers = certification.users.filter(u => u.is_expired).length;
+
+    const subtitle = (
+        <span className="text-muted-foreground flex items-center gap-4 text-sm">
+            <span className="flex items-center gap-1">
+                <Building2 className="h-4 w-4" />
+                <span>{certification.issuing_organization}</span>
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="flex items-center gap-1">
+                <Users className="h-4 w-4" />
+                <span>{certification.users.length} {certification.users.length === 1 ? 'usuário' : 'usuários'}</span>
+            </span>
+            {certification.users.length > 0 && (
+                <>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="flex items-center gap-2">
+                        <Badge variant="default" className="bg-green-500 hover:bg-green-600">{validUsers} válidos</Badge>
+                        {expiredUsers > 0 && <Badge variant="destructive">{expiredUsers} expirados</Badge>}
+                    </span>
+                </>
+            )}
+            <span className="text-muted-foreground">•</span>
+            <span>
+                {certification.active ? (
+                    <Badge variant="default" className="bg-green-500 hover:bg-green-600">Ativa</Badge>
+                ) : (
+                    <Badge variant="secondary">Inativa</Badge>
+                )}
+            </span>
+        </span>
+    );
+
+    const tabs = [
         {
-            label: 'Organização Emissora',
-            value: certification.issuing_organization,
-            icon: Building2,
-        },
-        {
-            label: 'Período de Validade',
-            value: formatValidityPeriod(certification.validity_period_days),
-            icon: Clock,
-        },
-        {
-            label: 'Status',
-            value: certification.active ? (
-                <Badge variant="success">Ativa</Badge>
-            ) : (
-                <Badge variant="secondary">Inativa</Badge>
+            id: 'informacoes',
+            label: 'Informações Gerais',
+            content: (
+                <div className="py-8">
+                    <CertificationFormComponent
+                        certification={certification}
+                        initialMode="view"
+                        onSuccess={handleEditSuccess}
+                        canUpdate={can.update}
+                        canDelete={can.delete}
+                    />
+                </div>
             ),
         },
         {
-            label: 'Criado em',
-            value: certification.created_at,
-            icon: Calendar,
-        },
-        {
-            label: 'Atualizado em',
-            value: certification.updated_at,
-            icon: Calendar,
-        },
-    ];
-
-    const breadcrumbs = [
-        { label: 'Certificações', href: route('certifications.index') },
-        { label: certification.name },
-    ];
-
-    const actions = (
-        <>
-            {can.update && (
-                <Button variant="outline" onClick={() => setEditOpen(true)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Editar
-                </Button>
-            )}
-            {can.delete && (
-                <Button variant="outline" onClick={handleDelete}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Excluir
-                </Button>
-            )}
-        </>
-    );
-
-    return (
-        <ShowLayout
-            title={certification.name}
-            subtitle={certification.description || 'Sem descrição'}
-            breadcrumbs={breadcrumbs}
-            actions={actions}
-            detailItems={detailItems}
-        >
-            <Card className="mt-6">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>Usuários certificados</CardTitle>
-                            <CardDescription>
-                                {certification.users.length} {certification.users.length === 1 ? 'usuário possui' : 'usuários possuem'} esta certificação
-                            </CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
+            id: 'usuarios',
+            label: 'Usuários Certificados',
+            content: (
+                <div className="mt-4 space-y-4">
                     {certification.users.length > 0 ? (
                         <EntityDataTable
-                            data={certification.users}
+                            data={certification.users as unknown as Record<string, unknown>[]}
                             columns={userColumns}
                             emptyMessage="Nenhum usuário possui esta certificação"
+                            onRowClick={(row) => router.get(route('users.show', (row as unknown as CertificationUser).id))}
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             <User className="mb-4 h-12 w-12 text-muted-foreground" />
                             <p className="text-lg font-medium">Nenhum usuário possui esta certificação</p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground mt-1">
                                 Os usuários podem adicionar esta certificação em seus perfis
                             </p>
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            ),
+        },
+    ];
 
-            <CertificationSheet
-                open={editOpen}
-                onOpenChange={setEditOpen}
-                certification={certification}
-                onClose={() => setEditOpen(false)}
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`Certificação ${certification.name}`} />
+
+            <ShowLayout
+                title={certification.name}
+                subtitle={subtitle}
+                editRoute=""
+                tabs={tabs}
+                defaultActiveTab={activeTab}
             />
-
-            {dependencies && (
-                <EntityDependenciesDialog
-                    open={dependenciesOpen}
-                    onOpenChange={setDependenciesOpen}
-                    entityName="certificação"
-                    dependencies={dependencies}
-                />
-            )}
-
-            <EntityDeleteDialog
-                open={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
-                onConfirm={confirmDelete}
-                title="Excluir Certificação"
-                description={`Tem certeza que deseja excluir a certificação "${certification.name}"? Esta ação não pode ser desfeita.`}
-            />
-        </ShowLayout>
+        </AppLayout>
     );
 }

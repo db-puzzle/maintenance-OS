@@ -12,10 +12,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Eye, Key, Trash2 } from 'lucide-react';
-import { useInitials } from '@/hooks/use-initials';
-import { cn } from '@/lib/utils';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
@@ -113,7 +110,6 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const getInitials = useInitials();
 
     const handleSearch = (value: string) => {
         setSearch(value);
@@ -175,26 +171,7 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
         }
     };
 
-    const getRoleBadgeColor = (roleName: string) => {
-        switch (roleName) {
-            case 'Administrator':
-                return 'bg-red-500 text-white hover:bg-red-600';
-            case 'Plant Manager':
-                return 'bg-blue-500 text-white hover:bg-blue-600';
-            case 'Area Manager':
-                return 'bg-green-500 text-white hover:bg-green-600';
-            case 'Sector Manager':
-                return 'bg-yellow-500 text-white hover:bg-yellow-600';
-            case 'Maintenance Supervisor':
-                return 'bg-purple-500 text-white hover:bg-purple-600';
-            case 'Technician':
-                return 'bg-orange-500 text-white hover:bg-orange-600';
-            case 'Viewer':
-                return 'bg-gray-500 text-white hover:bg-gray-600';
-            default:
-                return 'bg-gray-200 text-gray-800 hover:bg-gray-300';
-        }
-    };
+
 
     const handlePageChange = (page: number) => {
         router.get('/users', { ...filters, page }, { preserveState: true, preserveScroll: true });
@@ -207,24 +184,26 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
     // Define columns for EntityDataTable
     const columns: ColumnConfig[] = [
         {
-            key: 'user',
-            label: 'User',
+            key: 'name',
+            label: 'Name',
             sortable: false,
-            width: 'w-[300px]',
+            width: 'w-[200px]',
             render: (_, row) => {
                 const user = row as unknown as User;
-                const initials = getInitials(user.name);
                 return (
-                    <div className="flex items-center gap-3">
-                        <Avatar>
-                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} />
-                            <AvatarFallback>{initials}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <div className="font-medium">{user.name}</div>
-                            <div className="text-sm text-muted-foreground">{user.email}</div>
-                        </div>
-                    </div>
+                    <div className="font-medium">{user.name}</div>
+                );
+            },
+        },
+        {
+            key: 'email',
+            label: 'Email',
+            sortable: false,
+            width: 'w-[250px]',
+            render: (_, row) => {
+                const user = row as unknown as User;
+                return (
+                    <div>{user.email}</div>
                 );
             },
         },
@@ -240,7 +219,8 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                         {user.roles?.map((role) => (
                             <Badge
                                 key={role.id}
-                                className={cn('text-xs', getRoleBadgeColor(role.name))}
+                                variant="secondary"
+                                className="text-xs"
                             >
                                 {role.name}
                             </Badge>
@@ -320,7 +300,7 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                     </div>
                 }
             >
-                <div className="space-y-4">
+                <div className="-mt-4 space-y-4">
                     {/* Additional Filters */}
                     <div className="grid gap-4 md:grid-cols-2">
                         <Select
@@ -363,7 +343,7 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                     {/* Users Table */}
                     <EntityDataTable
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        data={ users.data as any}
+                        data={users.data as any}
                         columns={columns}
                         loading={false}
                         /* eslint-disable-next-line @typescript-eslint/no-explicit-any */

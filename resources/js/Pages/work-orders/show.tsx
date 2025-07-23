@@ -5,7 +5,6 @@ import ShowLayout from '@/layouts/show-layout';
 import {
     WorkOrderStatusBadge,
     WorkOrderPriorityIndicator,
-    WorkOrderFormComponent,
     WorkOrderStatusProgress
 } from '@/components/work-orders';
 import {
@@ -15,7 +14,8 @@ import {
     WorkOrderExecutionTab,
     WorkOrderHistoryTab,
     WorkOrderPartsTab,
-    WorkOrderFailureAnalysisTab
+    WorkOrderFailureAnalysisTab,
+    WorkOrderGeneralTab
 } from '@/components/work-orders/tabs';
 import EmptyCard from '@/components/ui/empty-card';
 import { type BreadcrumbItem } from '@/types';
@@ -54,8 +54,8 @@ interface Props {
     technicians?: any[];
     teams?: any[];
     parts?: any[];
-    skills?: string[];
-    certifications?: string[];
+    skills?: any[];
+    certifications?: any[];
     isCreating?: boolean;
     categories?: any[];
     workOrderTypes?: any[];
@@ -95,40 +95,15 @@ export default function ShowWorkOrder({
 }: Props) {
     const [activeTab, setActiveTab] = useState('details');
 
-    console.log('[show.tsx] ShowWorkOrder rendering', {
-        workOrderId: workOrder?.id,
-        workOrderStatus: workOrder?.status,
-        canApprove,
-        approvalThreshold,
-        isCreating
-    });
-
     useEffect(() => {
-        console.log('[show.tsx] Component mounted/updated', {
-            workOrderId: workOrder?.id,
-            workOrderStatus: workOrder?.status,
-            isCreating
-        });
-
         // Add error event listener to catch React errors
         const handleError = (event: ErrorEvent) => {
-            console.error('[show.tsx] Global error caught:', {
-                message: event.message,
-                error: event.error,
-                filename: event.filename,
-                lineno: event.lineno,
-                colno: event.colno
-            });
+            // Error handling without logging
         };
 
         window.addEventListener('error', handleError);
 
         return () => {
-            console.log('[show.tsx] Component unmounting', {
-                workOrderId: workOrder?.id,
-                workOrderStatus: workOrder?.status,
-                isCreating
-            });
             window.removeEventListener('error', handleError);
         };
     }, [workOrder?.id, workOrder?.status, isCreating]);
@@ -182,7 +157,6 @@ export default function ShowWorkOrder({
     };
 
     // Define tabs
-    console.log('[show.tsx] Building tabs array');
     const tabs: any[] = [];
 
     if (isCreating) {
@@ -192,22 +166,20 @@ export default function ShowWorkOrder({
             label: 'Informações Gerais',
             icon: <FileText className="h-4 w-4" />,
             content: (
-                <div className="py-8">
-                    <WorkOrderFormComponent
-                        categories={categories}
-                        workOrderTypes={workOrderTypes}
-                        plants={plants}
-                        areas={areas}
-                        sectors={sectors}
-                        assets={assets}
-                        forms={forms}
-                        discipline={discipline}
-                        initialMode="edit"
-                        onSuccess={handleWorkOrderCreated}
-                        preselectedAssetId={preselectedAssetId}
-                        preselectedAsset={preselectedAsset}
-                    />
-                </div>
+                <WorkOrderGeneralTab
+                    categories={categories}
+                    workOrderTypes={workOrderTypes}
+                    plants={plants}
+                    areas={areas}
+                    sectors={sectors}
+                    assets={assets}
+                    forms={forms}
+                    discipline={discipline}
+                    isCreating={true}
+                    preselectedAssetId={preselectedAssetId}
+                    preselectedAsset={preselectedAsset}
+                    onWorkOrderCreated={handleWorkOrderCreated}
+                />
             ),
         });
     } else {
@@ -230,39 +202,28 @@ export default function ShowWorkOrder({
             ),
         });
 
-        // 2. Informações Gerais - using WorkOrderFormComponent in view mode
+        // 2. Informações Gerais - using WorkOrderGeneralTab component
         tabs.push({
             id: 'details',
             label: 'Informações Gerais',
             icon: <FileText className="h-4 w-4" />,
             content: (
-                <div className="py-8">
-                    <WorkOrderFormComponent
-                        workOrder={workOrder}
-                        categories={categories}
-                        workOrderTypes={workOrderTypes}
-                        plants={plants}
-                        areas={areas}
-                        sectors={sectors}
-                        assets={assets}
-                        forms={forms}
-                        discipline={discipline}
-                        initialMode="view"
-                        onSuccess={() => {
-                            toast.success('Ordem de serviço atualizada com sucesso!');
-                            router.reload();
-                        }}
-                    />
-                </div>
+                <WorkOrderGeneralTab
+                    workOrder={workOrder}
+                    categories={categories}
+                    workOrderTypes={workOrderTypes}
+                    plants={plants}
+                    areas={areas}
+                    sectors={sectors}
+                    assets={assets}
+                    forms={forms}
+                    discipline={discipline}
+                    isCreating={false}
+                />
             ),
         });
 
         // 3. Aprovação (always shown)
-        console.log('[show.tsx] Adding approval tab', {
-            workOrderStatus: workOrder.status,
-            canApprove,
-            approvalThreshold
-        });
         tabs.push({
             id: 'approval',
             label: 'Aprovação',

@@ -3,9 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Skill;
+use App\Models\Certification;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -97,6 +100,26 @@ class User extends Authenticatable
     public function approvedWorkOrders(): HasMany
     {
         return $this->hasMany(WorkOrder::class, 'approved_by');
+    }
+
+    /**
+     * Get the skills assigned to this user
+     */
+    public function skills(): BelongsToMany
+    {
+        return $this->belongsToMany(Skill::class, 'user_skills')
+            ->withPivot('proficiency_level')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the certifications assigned to this user
+     */
+    public function certifications(): BelongsToMany
+    {
+        return $this->belongsToMany(Certification::class, 'user_certifications')
+            ->withPivot('issued_at', 'expires_at', 'certificate_number')
+            ->withTimestamps();
     }
 
     /**

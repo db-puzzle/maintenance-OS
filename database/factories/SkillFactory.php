@@ -54,28 +54,7 @@ class SkillFactory extends Factory
             'name' => $skillName,
             'description' => $this->faker->optional(0.8)->sentence(),
             'category' => $category,
-            'active' => $this->faker->boolean(90), // 90% chance of being active
         ];
-    }
-
-    /**
-     * Indicate that the skill is inactive.
-     */
-    public function inactive(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'active' => false,
-        ]);
-    }
-
-    /**
-     * Indicate that the skill is active.
-     */
-    public function active(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'active' => true,
-        ]);
     }
 
     /**

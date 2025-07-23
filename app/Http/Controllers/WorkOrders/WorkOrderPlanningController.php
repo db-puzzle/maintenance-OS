@@ -54,8 +54,8 @@ class WorkOrderPlanningController extends Controller
             ->get();
 
         // Get skills and certifications lists
-        $skills = Skill::where('active', true)->pluck('name')->toArray();
-        $certifications = Certification::where('active', true)->pluck('name')->toArray();
+        $skills = Skill::orderBy('name')->pluck('name')->toArray();
+        $certifications = Certification::where('active', true)->orderBy('name')->pluck('name')->toArray();
 
         return Inertia::render('work-orders/planning', [
             'workOrder' => $workOrder,
@@ -95,7 +95,8 @@ class WorkOrderPlanningController extends Controller
             // Calculate labor cost if hours and rate are provided
             $laborCost = null;
             if (isset($validated['estimated_hours']) && isset($validated['labor_cost_per_hour'])) {
-                $laborCost = $validated['estimated_hours'] * $validated['labor_cost_per_hour'];
+                $numberOfPeople = $validated['number_of_people'] ?? 1;
+                $laborCost = $validated['estimated_hours'] * $validated['labor_cost_per_hour'] * $numberOfPeople;
             }
 
             // Calculate parts cost
@@ -108,7 +109,8 @@ class WorkOrderPlanningController extends Controller
                 'estimated_parts_cost' => $partsCost,
                 'estimated_total_cost' => ($laborCost ?? $workOrder->estimated_labor_cost ?? 0) + $partsCost,
                 'downtime_required' => $validated['downtime_required'] ?? false,
-                'safety_requirements' => $validated['safety_requirements'] ?? [],
+                'other_requirements' => $validated['other_requirements'] ?? [],
+                'number_of_people' => $validated['number_of_people'] ?? 1,
                 'required_skills' => $validated['required_skills'] ?? [],
                 'required_certifications' => $validated['required_certifications'] ?? [],
                 'scheduled_start_date' => $validated['scheduled_start_date'] ?? $workOrder->scheduled_start_date,
@@ -130,7 +132,7 @@ class WorkOrderPlanningController extends Controller
             }
         });
 
-        return redirect()->route("{$workOrder->discipline}.work-orders.planning", $workOrder)
+        return redirect()->route("{$workOrder->discipline}.work-orders.show", [$workOrder, 'tab' => 'planning'])
             ->with('success', 'Planejamento salvo com sucesso.');
     }
 
@@ -157,8 +159,8 @@ class WorkOrderPlanningController extends Controller
             return back()->with('error', 'Não foi possível concluir o planejamento. Status inválido.');
         }
 
-        return redirect()->route("{$workOrder->discipline}.work-orders.show", $workOrder)
-            ->with('success', 'Planejamento concluído. Ordem de serviço agendada.');
+        return redirect()->route("{$workOrder->discipline}.work-orders.show", [$workOrder, 'tab' => 'planning'])
+            ->with('success', 'Ordem de serviço planejada com sucesso.');
     }
 
     /**
