@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ChartGantt, ClipboardList, LayoutGrid, Shield, Package, Wrench, Award } from 'lucide-react';
+import { ChartGantt, ClipboardList, LayoutGrid, Shield, Package, Wrench, Award, Factory, Boxes, Truck, BarChart3, QrCode, GitBranch } from 'lucide-react';
 import AppLogo from './app-logo';
 
 interface NavGroup {
@@ -40,6 +40,37 @@ const gerenciamentoNavItems: NavGroup = {
                 {
                     title: 'Peças',
                     href: '/parts',
+                },
+            ],
+        },
+        {
+            title: 'Produção',
+            href: '#',
+            icon: Factory,
+            items: [
+                {
+                    title: 'Itens',
+                    href: '/production/items',
+                },
+                {
+                    title: 'BOMs',
+                    href: '/production/bom',
+                },
+                {
+                    title: 'Roteiros',
+                    href: '/production/routing',
+                },
+                {
+                    title: 'Planejamento',
+                    href: '/production/planning',
+                },
+                {
+                    title: 'Rastreamento',
+                    href: '/production/tracking',
+                },
+                {
+                    title: 'Remessas',
+                    href: '/production/shipments',
                 },
             ],
         },

@@ -24,6 +24,9 @@ class DatabaseSeeder extends Seeder
             TeamSeeder::class,
             SkillSeeder::class,
             CertificationSeeder::class,
+            // Production Module
+            ProductionPermissionSeeder::class,
+            ProductionRoleSeeder::class,
         ]);
     }
 }
