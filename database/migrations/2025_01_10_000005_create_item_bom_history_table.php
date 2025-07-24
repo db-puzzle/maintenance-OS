@@ -12,9 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product_bom_history', function (Blueprint $table) {
+        Schema::create('item_bom_history', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->foreignId('item_id')->constrained('items')->cascadeOnDelete();
             $table->foreignId('bill_of_material_id')->constrained('bill_of_materials');
             
             // Effectivity dates
@@ -28,21 +28,13 @@ return new class extends Migration
             
             $table->timestamps();
             
-            $table->index(['product_id', 'effective_from']);
+            // Indexes
+            $table->index(['item_id', 'effective_from']);
             $table->index('bill_of_material_id');
         });
-
-        // Add exclusion constraint for date ranges (PostgreSQL specific)
-        if (DB::connection()->getPdo()->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
-            DB::statement('
-                ALTER TABLE product_bom_history 
-                ADD CONSTRAINT product_bom_history_no_overlapping_dates 
-                EXCLUDE USING gist (
-                    product_id WITH =,
-                    daterange(effective_from, effective_to, \'[)\') WITH &&
-                )
-            ');
-        }
+        
+        // Add exclusion constraint for PostgreSQL to prevent overlapping date ranges
+        DB::statement('ALTER TABLE item_bom_history ADD CONSTRAINT no_overlapping_dates EXCLUDE USING gist (item_id WITH =, daterange(effective_from, effective_to, \'[)\') WITH &&)');
     }
 
     /**
@@ -50,6 +42,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('product_bom_history');
+        Schema::dropIfExists('item_bom_history');
     }
 };

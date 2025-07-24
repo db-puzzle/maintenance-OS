@@ -90,4 +90,7 @@ require __DIR__.'/scheduler.php';
 // Users
 require __DIR__.'/users.php';
 
+// Production
+require __DIR__.'/production.php';
+
 require __DIR__.'/auth.php';

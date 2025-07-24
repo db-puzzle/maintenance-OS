@@ -15,34 +15,37 @@ return new class extends Migration
             $table->id();
             $table->foreignId('bom_version_id')->constrained('bom_versions')->cascadeOnDelete();
             $table->unsignedBigInteger('parent_item_id')->nullable();
-            $table->string('item_number', 100);
-            $table->string('name', 255);
-            $table->text('description')->nullable();
-            $table->enum('item_type', ['part', 'assembly', 'subassembly']);
+            $table->foreign('parent_item_id')->references('id')->on('bom_items')->cascadeOnDelete();
+            
+            // Reference to item master
+            $table->foreignId('item_id')->constrained('items');
+            
+            // BOM-specific attributes
             $table->decimal('quantity', 10, 4)->default(1);
             $table->string('unit_of_measure', 20)->default('EA');
             $table->integer('level')->default(0); // Hierarchy level
             $table->integer('sequence_number')->nullable(); // Order within parent
             
+            // Reference designators (for electronics)
+            $table->text('reference_designators')->nullable();
+            
             // 3D rendering support
             $table->string('thumbnail_path', 500)->nullable();
             $table->string('model_file_path', 500)->nullable();
             
-            // Metadata
-            $table->string('material', 100)->nullable();
-            $table->decimal('weight', 10, 4)->nullable();
-            $table->json('dimensions')->nullable(); // {length, width, height, unit}
-            $table->json('custom_attributes')->nullable();
+            // BOM-specific metadata
+            $table->json('bom_notes')->nullable();
+            $table->json('assembly_instructions')->nullable();
             
             // QR code tracking
-            $table->string('qr_code', 100)->nullable()->unique();
+            $table->string('qr_code', 100)->unique()->nullable();
             $table->timestamp('qr_generated_at')->nullable();
             
             $table->timestamps();
             
-            $table->foreign('parent_item_id')->references('id')->on('bom_items')->cascadeOnDelete();
+            // Indexes
             $table->index(['bom_version_id', 'parent_item_id']);
-            $table->index('item_number');
+            $table->index('item_id');
             $table->index('qr_code');
             $table->index(['level', 'sequence_number']);
         });

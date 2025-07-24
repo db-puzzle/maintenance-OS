@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('production_orders', function (Blueprint $table) {
             $table->id();
             $table->string('order_number', 100)->unique();
-            $table->foreignId('product_id')->nullable()->constrained('products');
+            $table->foreignId('item_id')->nullable()->constrained('items');
             $table->foreignId('bill_of_material_id')->nullable()->constrained('bill_of_materials'); // Specific BOM version to use
             $table->decimal('quantity', 10, 2);
             $table->string('unit_of_measure', 20)->default('EA');
@@ -39,7 +39,7 @@ return new class extends Migration
             
             $table->index(['status', 'priority']);
             $table->index(['planned_start_date', 'planned_end_date']);
-            $table->index('product_id');
+            $table->index('item_id');
             $table->index('bill_of_material_id');
         });
     }

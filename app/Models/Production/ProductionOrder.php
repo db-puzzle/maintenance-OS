@@ -12,9 +12,25 @@ class ProductionOrder extends Model
 {
     use HasFactory;
 
+    public const STATUSES = [
+        'draft' => 'Draft',
+        'scheduled' => 'Scheduled',
+        'released' => 'Released',
+        'in_progress' => 'In Progress',
+        'completed' => 'Completed',
+        'cancelled' => 'Cancelled',
+    ];
+
+    public const PRIORITIES = [
+        'low' => 'Low',
+        'normal' => 'Normal',
+        'high' => 'High',
+        'urgent' => 'Urgent',
+    ];
+
     protected $fillable = [
         'order_number',
-        'product_id',
+        'item_id',
         'bill_of_material_id',
         'quantity',
         'unit_of_measure',
@@ -40,11 +56,11 @@ class ProductionOrder extends Model
     ];
 
     /**
-     * Get the product for this order.
+     * Get the item for this order.
      */
-    public function product(): BelongsTo
+    public function item(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Item::class);
     }
 
     /**

@@ -4,7 +4,7 @@ import { PaginationMeta } from '@/types/shared';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface EntityPaginationProps {
-    pagination: PaginationMeta;
+    pagination?: PaginationMeta;
     onPageChange: (page: number) => void;
     onPerPageChange?: (perPage: number) => void;
     perPageOptions?: number[];
@@ -18,6 +18,11 @@ export function EntityPagination({
     perPageOptions = [10, 20, 30, 50, 100],
     compact = false
 }: EntityPaginationProps) {
+    // Handle undefined pagination by providing default values or early return
+    if (!pagination) {
+        return null;
+    }
+
     const { current_page, last_page, per_page, total } = pagination;
 
     // Ensure per_page is a valid option, default to 10 if not

@@ -15,31 +15,34 @@ class BomItem extends Model
     protected $fillable = [
         'bom_version_id',
         'parent_item_id',
-        'item_number',
-        'name',
-        'description',
-        'item_type',
+        'item_id', // Now references items table
         'quantity',
         'unit_of_measure',
         'level',
         'sequence_number',
+        'reference_designators',
         'thumbnail_path',
         'model_file_path',
-        'material',
-        'weight',
-        'dimensions',
-        'custom_attributes',
+        'bom_notes',
+        'assembly_instructions',
         'qr_code',
         'qr_generated_at',
     ];
 
     protected $casts = [
         'quantity' => 'decimal:4',
-        'weight' => 'decimal:4',
-        'dimensions' => 'array',
-        'custom_attributes' => 'array',
+        'bom_notes' => 'array',
+        'assembly_instructions' => 'array',
         'qr_generated_at' => 'datetime',
     ];
+
+    /**
+     * Get the item from the item master.
+     */
+    public function item(): BelongsTo
+    {
+        return $this->belongsTo(Item::class);
+    }
 
     /**
      * Get the BOM version that owns the item.
@@ -185,11 +188,43 @@ class BomItem extends Model
     }
 
     /**
-     * Scope for items of a specific type.
+     * Get the item number from the related item.
      */
-    public function scopeOfType($query, $type)
+    public function getItemNumber(): string
     {
-        return $query->where('item_type', $type);
+        return $this->item->item_number;
+    }
+
+    /**
+     * Get the item name from the related item.
+     */
+    public function getItemName(): string
+    {
+        return $this->item->name;
+    }
+
+    /**
+     * Check if the item is sellable.
+     */
+    public function isSellable(): bool
+    {
+        return $this->item->can_be_sold;
+    }
+
+    /**
+     * Get the total cost for this BOM item.
+     */
+    public function getTotalCost(): float
+    {
+        $itemCost = $this->item->cost ?? 0;
+        $totalCost = $itemCost * $this->quantity;
+
+        // Add costs of all children
+        foreach ($this->children as $child) {
+            $totalCost += $child->getTotalCost();
+        }
+
+        return $totalCost;
     }
 
     /**

@@ -46,11 +46,11 @@ class BillOfMaterial extends Model
     }
 
     /**
-     * Get the products using this BOM.
+     * Get the item master entries using this BOM.
      */
-    public function products(): HasMany
+    public function itemMasters(): HasMany
     {
-        return $this->hasMany(Product::class, 'current_bom_id');
+        return $this->hasMany(Item::class, 'current_bom_id');
     }
 
     /**

@@ -22,6 +22,8 @@ export interface BaseEntitySheetProps<TFormData extends FormDataType> {
     triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
+    // Width configuration
+    width?: string;
     // Form configuration
     formConfig: {
         initialData: TFormData;
@@ -56,6 +58,7 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
     triggerVariant = 'outline',
     showTrigger = false,
     triggerRef,
+    width = 'sm:max-w-lg',
     formConfig,
     children,
 }: BaseEntitySheetProps<TFormData>) {
@@ -182,7 +185,7 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
                 </SheetTrigger>
             )}
             <SheetContent
-                className="sm:max-w-lg"
+                className={width}
                 onOpenAutoFocus={(e) => {
                     // Prevent default focus behavior to allow custom focus management
                     e.preventDefault();
