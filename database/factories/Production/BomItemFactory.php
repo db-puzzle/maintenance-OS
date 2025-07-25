@@ -32,14 +32,14 @@ class BomItemFactory extends Factory
             'reference_designators' => fake()->optional(0.3)->words(3, true),
             'thumbnail_path' => fake()->optional(0.2)->imageUrl(200, 200, 'technics'),
             'model_file_path' => fake()->optional(0.1)->filePath(),
-            'bom_notes' => fake()->boolean(30) ? json_encode([
+            'bom_notes' => fake()->boolean(30) ? [
                 'assembly_tip' => fake()->sentence(),
                 'warning' => fake()->optional(0.3)->sentence(),
-            ]) : null,
-            'assembly_instructions' => fake()->boolean(20) ? json_encode([
+            ] : null,
+            'assembly_instructions' => fake()->boolean(20) ? [
                 'step1' => fake()->sentence(),
                 'step2' => fake()->sentence(),
-            ]) : null,
+            ] : null,
             'qr_code' => null, // Will be generated when needed
             'qr_generated_at' => null,
         ];

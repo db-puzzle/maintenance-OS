@@ -26,10 +26,26 @@ class ItemFactory extends Factory
             'status' => 'active',
             'unit_of_measure' => $this->faker->randomElement(['EA', 'KG', 'M', 'L', 'BOX']),
             'weight' => $this->faker->randomFloat(4, 0.1, 100),
+            'dimensions' => [
+                'length' => $this->faker->numberBetween(1, 100),
+                'width' => $this->faker->numberBetween(1, 100),
+                'height' => $this->faker->numberBetween(1, 100),
+                'unit' => 'cm'
+            ],
             'list_price' => $this->faker->randomFloat(2, 10, 1000),
             'cost' => $this->faker->randomFloat(2, 5, 500),
             'lead_time_days' => $this->faker->numberBetween(0, 30),
             'track_inventory' => true,
+            'min_stock_level' => $this->faker->randomFloat(2, 0, 50),
+            'max_stock_level' => $this->faker->randomFloat(2, 100, 500),
+            'reorder_point' => $this->faker->randomFloat(2, 10, 100),
+            'tags' => $this->faker->randomElement([
+                ['bicycle', 'component'],
+                ['raw-material'],
+                ['assembly'],
+                []
+            ]),
+            'custom_attributes' => [],
             'created_by' => 1, // Will be overridden in seeder
         ];
     }
@@ -71,6 +87,7 @@ class ItemFactory extends Factory
             'can_be_manufactured' => false,
             'track_inventory' => false,
             'weight' => null,
+            'dimensions' => null,
         ]);
     }
 

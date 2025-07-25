@@ -23,14 +23,42 @@ use App\Models\Production\ItemBomHistory;
 
 class ProductionTestDataSeeder extends Seeder
 {
+    private $items = [];
+    private $workCells = [];
+    
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        $this->command->info('Creating bicycle production test data...');
+        $this->command->info('Criando dados de produção de bicicletas...');
         
         // Clean up existing data in reverse dependency order
+        $this->cleanDatabase();
+        
+        // Get the first user as creator
+        $creator = User::first();
+        
+        // Create work cells
+        $this->createWorkCells();
+        
+        // Create items for bicycle production
+        $this->createBicycleItems($creator);
+        
+        // Create BOM structure
+        $this->createBicycleBOM($creator);
+        
+        // Create production routings
+        $this->createProductionRoutings($creator);
+        
+        // Create production orders
+        $this->createProductionOrders($creator);
+        
+        $this->command->info('Dados de produção de bicicletas criados com sucesso!');
+    }
+    
+    private function cleanDatabase(): void
+    {
         DB::statement('SET CONSTRAINTS ALL DEFERRED');
         
         ShipmentPhoto::query()->delete();
@@ -50,902 +78,1116 @@ class ProductionTestDataSeeder extends Seeder
         WorkCell::query()->delete();
         
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+    }
+    
+    private function createWorkCells(): void
+    {
+        $this->command->info('Criando células de trabalho...');
         
-        // Get the first user as creator
-        $creator = User::first();
-        
-        // Create work cells for bicycle manufacturing
-        $this->command->info('Creating work cells...');
-        $workCells = [
-            'frame' => WorkCell::factory()->create([
-                'code' => 'FRAME-01',
-                'name' => 'Frame Welding Station',
+        $this->workCells = [
+            'usinagem' => WorkCell::factory()->create([
+                'code' => 'USI-01',
+                'name' => 'Centro de Usinagem',
+                'description' => 'Centro de usinagem para componentes metálicos',
                 'cell_type' => 'internal',
-                'created_at' => now(),
+                'capacity_per_hour' => 20,
+                'setup_time_minutes' => 30,
             ]),
-            'wheel' => WorkCell::factory()->create([
-                'code' => 'WHEEL-01',
-                'name' => 'Wheel Assembly Station',
+            'soldagem' => WorkCell::factory()->create([
+                'code' => 'SOL-01',
+                'name' => 'Estação de Soldagem',
+                'description' => 'Soldagem de quadros e componentes',
                 'cell_type' => 'internal',
-                'created_at' => now(),
+                'capacity_per_hour' => 10,
+                'setup_time_minutes' => 45,
             ]),
-            'painting' => WorkCell::factory()->create([
-                'code' => 'PAINT-01',
-                'name' => 'Painting Booth',
+            'pintura' => WorkCell::factory()->create([
+                'code' => 'PIN-01',
+                'name' => 'Cabine de Pintura',
+                'description' => 'Pintura eletrostática e acabamento',
                 'cell_type' => 'internal',
-                'created_at' => now(),
+                'capacity_per_hour' => 15,
+                'setup_time_minutes' => 60,
             ]),
-            'assembly' => WorkCell::factory()->create([
-                'code' => 'ASSY-01',
-                'name' => 'Final Assembly Line',
+            'montagem_rodas' => WorkCell::factory()->create([
+                'code' => 'MTR-01',
+                'name' => 'Montagem de Rodas',
+                'description' => 'Montagem e alinhamento de rodas',
                 'cell_type' => 'internal',
-                'created_at' => now(),
+                'capacity_per_hour' => 25,
+                'setup_time_minutes' => 15,
             ]),
-            'quality' => WorkCell::factory()->create([
-                'code' => 'QC-01',
-                'name' => 'Quality Control Station',
+            'montagem_final' => WorkCell::factory()->create([
+                'code' => 'MTF-01',
+                'name' => 'Linha de Montagem Final',
+                'description' => 'Montagem final de bicicletas',
                 'cell_type' => 'internal',
-                'created_at' => now(),
+                'capacity_per_hour' => 8,
+                'setup_time_minutes' => 20,
             ]),
-            'packaging' => WorkCell::factory()->create([
-                'code' => 'PACK-01',
-                'name' => 'Packaging Station',
+            'inspecao' => WorkCell::factory()->create([
+                'code' => 'INS-01',
+                'name' => 'Inspeção de Qualidade',
+                'description' => 'Inspeção final e testes',
                 'cell_type' => 'internal',
-                'created_at' => now(),
+                'capacity_per_hour' => 12,
+                'setup_time_minutes' => 10,
+            ]),
+            'embalagem' => WorkCell::factory()->create([
+                'code' => 'EMB-01',
+                'name' => 'Estação de Embalagem',
+                'description' => 'Embalagem e preparação para envio',
+                'cell_type' => 'internal',
+                'capacity_per_hour' => 20,
+                'setup_time_minutes' => 15,
             ]),
         ];
-
-        // Create items - Raw Materials and Purchased Components
-        $this->command->info('Creating purchased components and raw materials...');
+    }
+    
+    private function createBicycleItems($creator): void
+    {
+        $this->command->info('Criando itens de bicicleta...');
         
-        // Frame components (purchased)
-        $frameTubes = Item::create([
-            'item_number' => 'TUBE-AL-001',
-            'name' => 'Aluminum Frame Tube Set',
-            'description' => 'Set of aluminum tubes for frame construction',
-            'category' => 'Raw Materials',
+        // Nível 0 - Produto Final
+        $this->items['bicicleta'] = Item::factory()->create([
+            'item_number' => 'BIKE-001',
+            'name' => 'Bicicleta Urbana Completa',
+            'description' => 'Bicicleta urbana de 21 marchas com acessórios completos',
+            'category' => 'Produto Final',
+            'item_type' => 'manufactured',
+            'can_be_sold' => true,
+            'can_be_purchased' => false,
+            'can_be_manufactured' => true,
+            'unit_of_measure' => 'UN',
+            'weight' => 15.5,
+            'dimensions' => ['length' => 180, 'width' => 60, 'height' => 110, 'unit' => 'cm'],
+            'list_price' => 1500.00,
+            'cost' => 750.00,
+            'lead_time_days' => 5,
+            'tags' => ['bicicleta', 'produto-final', 'urbana'],
+            'created_by' => $creator->id,
+        ]);
+        
+        // Nível 1 - Subconjuntos Principais
+        $this->items['quadro_completo'] = Item::factory()->create([
+            'item_number' => 'QDR-001',
+            'name' => 'Quadro Completo',
+            'description' => 'Quadro de alumínio com garfo e componentes',
+            'category' => 'Subconjunto',
+            'item_type' => 'manufactured',
+            'unit_of_measure' => 'UN',
+            'weight' => 3.5,
+            'cost' => 250.00,
+            'lead_time_days' => 3,
+            'tags' => ['quadro', 'subconjunto'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->items['conjunto_rodas'] = Item::factory()->create([
+            'item_number' => 'CRD-001',
+            'name' => 'Conjunto de Rodas',
+            'description' => 'Par de rodas completas com pneus',
+            'category' => 'Subconjunto',
+            'item_type' => 'manufactured',
+            'unit_of_measure' => 'PAR',
+            'weight' => 4.0,
+            'cost' => 150.00,
+            'lead_time_days' => 2,
+            'tags' => ['rodas', 'subconjunto'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->items['grupo_transmissao'] = Item::factory()->create([
+            'item_number' => 'GTR-001',
+            'name' => 'Grupo de Transmissão',
+            'description' => 'Sistema completo de transmissão 21 marchas',
+            'category' => 'Subconjunto',
+            'item_type' => 'manufactured',
+            'unit_of_measure' => 'UN',
+            'weight' => 2.5,
+            'cost' => 180.00,
+            'lead_time_days' => 2,
+            'tags' => ['transmissao', 'subconjunto'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->items['sistema_freios'] = Item::factory()->create([
+            'item_number' => 'FRE-001',
+            'name' => 'Sistema de Freios',
+            'description' => 'Sistema completo de freios V-brake',
+            'category' => 'Subconjunto',
+            'item_type' => 'manufactured',
+            'unit_of_measure' => 'UN',
+            'weight' => 0.8,
+            'cost' => 60.00,
+            'lead_time_days' => 1,
+            'tags' => ['freios', 'subconjunto'],
+            'created_by' => $creator->id,
+        ]);
+        
+        // Nível 2 - Componentes do Quadro
+        $this->items['estrutura_quadro'] = Item::factory()->create([
+            'item_number' => 'EST-001',
+            'name' => 'Estrutura do Quadro',
+            'description' => 'Estrutura principal do quadro em alumínio',
+            'category' => 'Componente',
+            'item_type' => 'manufactured',
+            'unit_of_measure' => 'UN',
+            'weight' => 2.0,
+            'cost' => 120.00,
+            'lead_time_days' => 2,
+            'tags' => ['estrutura', 'componente'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->items['garfo'] = Item::factory()->create([
+            'item_number' => 'GAR-001',
+            'name' => 'Garfo Dianteiro',
+            'description' => 'Garfo dianteiro em alumínio',
+            'category' => 'Componente',
             'item_type' => 'purchased',
-            'can_be_sold' => false,
             'can_be_purchased' => true,
             'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'SET',
-            'weight' => 2.5,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.8,
             'cost' => 45.00,
             'lead_time_days' => 7,
-            'preferred_vendor' => 'Aluminum Supplies Co.',
-            'vendor_item_number' => 'AL-TUBE-B100',
+            'preferred_vendor' => 'Fornecedor de Garfos Ltda',
+            'vendor_item_number' => 'FOR-GAR-2024',
+            'tags' => ['garfo', 'componente', 'comprado'],
             'created_by' => $creator->id,
         ]);
-
-        // Wheel components
-        $wheelRim = Item::create([
-            'item_number' => 'RIM-26-AL',
-            'name' => '26" Aluminum Wheel Rim',
-            'description' => '26 inch aluminum wheel rim',
-            'category' => 'Wheel Components',
-            'item_type' => 'purchased',
-            'can_be_sold' => true, // Can be sold as spare part
-            'can_be_purchased' => true,
-            'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
+        
+        $this->items['mesa_direcao'] = Item::factory()->create([
+            'item_number' => 'MES-001',
+            'name' => 'Mesa e Direção',
+            'description' => 'Conjunto de mesa e direção',
+            'category' => 'Componente',
+            'item_type' => 'manufactured',
+            'unit_of_measure' => 'UN',
             'weight' => 0.5,
-            'cost' => 15.00,
-            'list_price' => 35.00,
-            'lead_time_days' => 5,
-            'preferred_vendor' => 'Wheel Components Ltd.',
-            'vendor_item_number' => 'RIM-26-STD',
-            'created_by' => $creator->id,
-        ]);
-
-        $spokes = Item::create([
-            'item_number' => 'SPOKE-SS-260',
-            'name' => 'Stainless Steel Spokes 260mm',
-            'description' => 'Stainless steel spokes, 260mm length with nipples',
-            'category' => 'Wheel Components',
-            'item_type' => 'purchased',
-            'can_be_sold' => true,
-            'can_be_purchased' => true,
-            'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'SET',
-            'weight' => 0.2,
-            'cost' => 8.00,
-            'list_price' => 15.00,
-            'lead_time_days' => 3,
-            'preferred_vendor' => 'Spoke Masters Inc.',
-            'vendor_item_number' => 'SPOKE-260-36',
-            'created_by' => $creator->id,
-        ]);
-
-        $wheelHub = Item::create([
-            'item_number' => 'HUB-QR-F',
-            'name' => 'Quick Release Front Hub',
-            'description' => 'Quick release front wheel hub',
-            'category' => 'Wheel Components',
-            'item_type' => 'purchased',
-            'can_be_sold' => true,
-            'can_be_purchased' => true,
-            'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 0.3,
-            'cost' => 12.00,
-            'list_price' => 25.00,
-            'lead_time_days' => 5,
-            'created_by' => $creator->id,
-        ]);
-
-        $tire = Item::create([
-            'item_number' => 'TIRE-26-MTB',
-            'name' => '26" Mountain Bike Tire',
-            'description' => '26x2.1 mountain bike tire',
-            'category' => 'Wheel Components',
-            'item_type' => 'purchased',
-            'can_be_sold' => true,
-            'can_be_purchased' => true,
-            'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 0.7,
-            'cost' => 18.00,
-            'list_price' => 40.00,
-            'lead_time_days' => 3,
-            'preferred_vendor' => 'Tire World Distributors',
-            'created_by' => $creator->id,
-        ]);
-
-        $innerTube = Item::create([
-            'item_number' => 'TUBE-26-INNER',
-            'name' => '26" Inner Tube',
-            'description' => '26x2.1 inner tube with Schrader valve',
-            'category' => 'Wheel Components',
-            'item_type' => 'purchased',
-            'can_be_sold' => true,
-            'can_be_purchased' => true,
-            'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 0.2,
-            'cost' => 4.00,
-            'list_price' => 12.00,
-            'lead_time_days' => 2,
-            'created_by' => $creator->id,
-        ]);
-
-        // Drivetrain components
-        $chainset = Item::create([
-            'item_number' => 'CHAINSET-3X8',
-            'name' => 'Triple Chainset 48/38/28T',
-            'description' => 'Triple chainset with cranks, 48/38/28 teeth',
-            'category' => 'Drivetrain',
-            'item_type' => 'purchased',
-            'can_be_sold' => true,
-            'can_be_purchased' => true,
-            'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'SET',
-            'weight' => 0.9,
             'cost' => 35.00,
-            'list_price' => 75.00,
-            'lead_time_days' => 7,
+            'lead_time_days' => 1,
+            'tags' => ['mesa', 'direcao', 'componente'],
             'created_by' => $creator->id,
         ]);
-
-        $chain = Item::create([
-            'item_number' => 'CHAIN-8SP',
-            'name' => '8-Speed Chain',
-            'description' => '116 link 8-speed chain',
-            'category' => 'Drivetrain',
-            'item_type' => 'purchased',
-            'can_be_sold' => true,
-            'can_be_purchased' => true,
-            'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 0.3,
-            'cost' => 12.00,
-            'list_price' => 25.00,
-            'lead_time_days' => 3,
+        
+        // Nível 2 - Componentes das Rodas
+        $this->items['roda_montada'] = Item::factory()->create([
+            'item_number' => 'RDA-001',
+            'name' => 'Roda Montada',
+            'description' => 'Roda individual montada sem pneu',
+            'category' => 'Componente',
+            'item_type' => 'manufactured',
+            'unit_of_measure' => 'UN',
+            'weight' => 1.5,
+            'cost' => 50.00,
+            'lead_time_days' => 1,
+            'tags' => ['roda', 'componente'],
             'created_by' => $creator->id,
         ]);
-
-        $derailleur = Item::create([
-            'item_number' => 'DERAIL-R-8SP',
-            'name' => 'Rear Derailleur 8-Speed',
-            'description' => '8-speed rear derailleur',
-            'category' => 'Drivetrain',
-            'item_type' => 'purchased',
-            'can_be_sold' => true,
-            'can_be_purchased' => true,
-            'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 0.25,
-            'cost' => 28.00,
-            'list_price' => 55.00,
-            'lead_time_days' => 5,
+        
+        $this->items['conjunto_pneu'] = Item::factory()->create([
+            'item_number' => 'PNE-001',
+            'name' => 'Conjunto Pneu e Câmara',
+            'description' => 'Pneu com câmara de ar instalada',
+            'category' => 'Componente',
+            'item_type' => 'manufactured',
+            'unit_of_measure' => 'UN',
+            'weight' => 0.5,
+            'cost' => 25.00,
+            'lead_time_days' => 1,
+            'tags' => ['pneu', 'componente'],
             'created_by' => $creator->id,
         ]);
-
-        // Control components
-        $handlebar = Item::create([
-            'item_number' => 'HBAR-MTB-680',
-            'name' => 'MTB Handlebar 680mm',
-            'description' => 'Mountain bike handlebar, 680mm width',
-            'category' => 'Controls',
+        
+        // Nível 3 - Componentes da Estrutura
+        $this->items['tubo_superior'] = Item::factory()->create([
+            'item_number' => 'TUB-001',
+            'name' => 'Tubo Superior',
+            'description' => 'Tubo superior do quadro',
+            'category' => 'Matéria Prima',
             'item_type' => 'purchased',
-            'can_be_sold' => true,
             'can_be_purchased' => true,
             'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 0.3,
-            'cost' => 18.00,
-            'list_price' => 40.00,
-            'lead_time_days' => 4,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.5,
+            'cost' => 20.00,
+            'lead_time_days' => 10,
+            'preferred_vendor' => 'Tubos de Alumínio SA',
+            'vendor_item_number' => 'AL-TUB-50',
+            'tags' => ['tubo', 'aluminio', 'materia-prima'],
             'created_by' => $creator->id,
         ]);
-
-        $brakeLever = Item::create([
-            'item_number' => 'BRAKE-LEVER-V',
-            'name' => 'V-Brake Lever Set',
-            'description' => 'Pair of V-brake levers with cables',
-            'category' => 'Controls',
+        
+        $this->items['tubo_inferior'] = Item::factory()->create([
+            'item_number' => 'TUB-002',
+            'name' => 'Tubo Inferior',
+            'description' => 'Tubo inferior do quadro',
+            'category' => 'Matéria Prima',
             'item_type' => 'purchased',
-            'can_be_sold' => true,
             'can_be_purchased' => true,
             'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'SET',
-            'weight' => 0.2,
-            'cost' => 15.00,
-            'list_price' => 30.00,
-            'lead_time_days' => 3,
-            'created_by' => $creator->id,
-        ]);
-
-        $saddle = Item::create([
-            'item_number' => 'SADDLE-COMFORT',
-            'name' => 'Comfort Saddle',
-            'description' => 'Ergonomic comfort saddle',
-            'category' => 'Seating',
-            'item_type' => 'purchased',
-            'can_be_sold' => true,
-            'can_be_purchased' => true,
-            'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 0.4,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.6,
             'cost' => 22.00,
-            'list_price' => 45.00,
-            'lead_time_days' => 5,
+            'lead_time_days' => 10,
+            'preferred_vendor' => 'Tubos de Alumínio SA',
+            'vendor_item_number' => 'AL-TUB-60',
+            'tags' => ['tubo', 'aluminio', 'materia-prima'],
             'created_by' => $creator->id,
         ]);
-
-        $seatpost = Item::create([
-            'item_number' => 'SPOST-27.2-350',
-            'name' => 'Seatpost 27.2mm x 350mm',
-            'description' => 'Aluminum seatpost, 27.2mm diameter, 350mm length',
-            'category' => 'Seating',
+        
+        $this->items['tubo_selim'] = Item::factory()->create([
+            'item_number' => 'TUB-003',
+            'name' => 'Tubo do Selim',
+            'description' => 'Tubo vertical para o selim',
+            'category' => 'Matéria Prima',
             'item_type' => 'purchased',
-            'can_be_sold' => true,
             'can_be_purchased' => true,
             'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 0.25,
-            'cost' => 12.00,
-            'list_price' => 25.00,
-            'lead_time_days' => 3,
-            'created_by' => $creator->id,
-        ]);
-
-        // Create manufactured sub-assemblies
-        $this->command->info('Creating manufactured sub-assemblies...');
-
-        // Front wheel assembly
-        $frontWheel = Item::create([
-            'item_number' => 'WHEEL-F-26-ASSY',
-            'name' => 'Front Wheel Assembly 26"',
-            'description' => 'Complete 26" front wheel assembly with tire',
-            'category' => 'Sub-Assemblies',
-            'item_type' => 'manufactured',
-            'can_be_sold' => true, // Can be sold as spare
-            'can_be_purchased' => false,
-            'can_be_manufactured' => true,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 2.2,
-            'cost' => 57.00, // Will be calculated from BOM
-            'list_price' => 120.00,
-            'lead_time_days' => 2,
-            'created_by' => $creator->id,
-        ]);
-
-        // Rear wheel assembly (similar to front but with different hub)
-        $rearWheelHub = Item::create([
-            'item_number' => 'HUB-QR-R-8SP',
-            'name' => 'Quick Release Rear Hub 8-Speed',
-            'description' => 'Quick release rear wheel hub for 8-speed cassette',
-            'category' => 'Wheel Components',
-            'item_type' => 'purchased',
-            'can_be_sold' => true,
-            'can_be_purchased' => true,
-            'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
+            'unit_of_measure' => 'UN',
             'weight' => 0.4,
             'cost' => 18.00,
-            'list_price' => 35.00,
-            'lead_time_days' => 5,
+            'lead_time_days' => 10,
+            'preferred_vendor' => 'Tubos de Alumínio SA',
+            'vendor_item_number' => 'AL-TUB-40',
+            'tags' => ['tubo', 'aluminio', 'materia-prima'],
             'created_by' => $creator->id,
         ]);
-
-        $rearWheel = Item::create([
-            'item_number' => 'WHEEL-R-26-ASSY',
-            'name' => 'Rear Wheel Assembly 26"',
-            'description' => 'Complete 26" rear wheel assembly with tire and 8-speed cassette',
-            'category' => 'Sub-Assemblies',
+        
+        $this->items['suporte_traseiro'] = Item::factory()->create([
+            'item_number' => 'SUP-001',
+            'name' => 'Suporte Traseiro',
+            'description' => 'Suporte traseiro do quadro',
+            'category' => 'Componente',
             'item_type' => 'manufactured',
-            'can_be_sold' => true,
-            'can_be_purchased' => false,
-            'can_be_manufactured' => true,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 2.5,
-            'cost' => 63.00,
-            'list_price' => 135.00,
-            'lead_time_days' => 2,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.3,
+            'cost' => 15.00,
+            'lead_time_days' => 1,
+            'tags' => ['suporte', 'componente'],
             'created_by' => $creator->id,
         ]);
-
-        // Painted frame assembly
-        $paintedFrame = Item::create([
-            'item_number' => 'FRAME-MTB-M-PAINTED',
-            'name' => 'Painted MTB Frame - Medium',
-            'description' => 'Medium size mountain bike frame, welded and painted',
-            'category' => 'Sub-Assemblies',
-            'item_type' => 'manufactured',
-            'can_be_sold' => true,
-            'can_be_purchased' => false,
-            'can_be_manufactured' => true,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 2.8,
-            'cost' => 65.00,
-            'list_price' => 150.00,
-            'lead_time_days' => 3,
-            'created_by' => $creator->id,
-        ]);
-
-        // Complete bicycle (finished product)
-        $bicycle = Item::create([
-            'item_number' => 'BIKE-MTB-SPORT-26',
-            'name' => 'Mountain Bike Sport 26"',
-            'description' => 'Complete 26" mountain bike with 24-speed drivetrain',
-            'category' => 'Finished Products',
-            'item_type' => 'manufactured',
-            'can_be_sold' => true,
-            'can_be_purchased' => false,
-            'can_be_manufactured' => true,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'EA',
-            'weight' => 13.5,
-            'cost' => 285.00,
-            'list_price' => 599.99,
-            'lead_time_days' => 5,
-            'created_by' => $creator->id,
-        ]);
-
-        // Create BOMs
-        $this->command->info('Creating BOMs and establishing relationships...');
-
-        // BOM for Front Wheel
-        $frontWheelBom = BillOfMaterial::create([
-            'bom_number' => 'BOM-WHEEL-F-001',
-            'name' => 'Front Wheel Assembly BOM',
-            'description' => 'Bill of materials for front wheel assembly',
-            'is_active' => true,
-            'created_by' => $creator->id,
-        ]);
-
-        $frontWheelVersion = BomVersion::create([
-            'bill_of_material_id' => $frontWheelBom->id,
-            'version_number' => 1,
-            'revision_notes' => 'Initial version',
-            'published_at' => now(),
-            'published_by' => $creator->id,
-            'is_current' => true,
-        ]);
-
-        // Assign BOM to front wheel using the proper method
-        $frontWheel->updateBom($frontWheelBom, [
-            'reason' => 'Initial BOM assignment',
-            'change_order' => 'INIT-001',
-        ]);
-
-        // Add components to front wheel BOM
-        BomItem::create([
-            'bom_version_id' => $frontWheelVersion->id,
-            'item_id' => $wheelRim->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'EA',
-            'level' => 1,
-            'sequence_number' => 10,
-        ]);
-
-        BomItem::create([
-            'bom_version_id' => $frontWheelVersion->id,
-            'item_id' => $spokes->id,
-            'quantity' => 1, // 1 set = 36 spokes
-            'unit_of_measure' => 'SET',
-            'level' => 1,
-            'sequence_number' => 20,
-        ]);
-
-        BomItem::create([
-            'bom_version_id' => $frontWheelVersion->id,
-            'item_id' => $wheelHub->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'EA',
-            'level' => 1,
-            'sequence_number' => 30,
-        ]);
-
-        BomItem::create([
-            'bom_version_id' => $frontWheelVersion->id,
-            'item_id' => $tire->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'EA',
-            'level' => 1,
-            'sequence_number' => 40,
-        ]);
-
-        BomItem::create([
-            'bom_version_id' => $frontWheelVersion->id,
-            'item_id' => $innerTube->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'EA',
-            'level' => 1,
-            'sequence_number' => 50,
-        ]);
-
-        // BOM for Rear Wheel
-        $rearWheelBom = BillOfMaterial::create([
-            'bom_number' => 'BOM-WHEEL-R-001',
-            'name' => 'Rear Wheel Assembly BOM',
-            'description' => 'Bill of materials for rear wheel assembly',
-            'is_active' => true,
-            'created_by' => $creator->id,
-        ]);
-
-        $rearWheelVersion = BomVersion::create([
-            'bill_of_material_id' => $rearWheelBom->id,
-            'version_number' => 1,
-            'revision_notes' => 'Initial version',
-            'published_at' => now(),
-            'published_by' => $creator->id,
-            'is_current' => true,
-        ]);
-
-        $rearWheel->updateBom($rearWheelBom, [
-            'reason' => 'Initial BOM assignment',
-            'change_order' => 'INIT-002',
-        ]);
-
-        // Add components to rear wheel BOM (similar to front but with rear hub)
-        BomItem::create([
-            'bom_version_id' => $rearWheelVersion->id,
-            'item_id' => $wheelRim->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'EA',
-            'level' => 1,
-            'sequence_number' => 10,
-        ]);
-
-        BomItem::create([
-            'bom_version_id' => $rearWheelVersion->id,
-            'item_id' => $spokes->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'SET',
-            'level' => 1,
-            'sequence_number' => 20,
-        ]);
-
-        BomItem::create([
-            'bom_version_id' => $rearWheelVersion->id,
-            'item_id' => $rearWheelHub->id, // Different hub for rear
-            'quantity' => 1,
-            'unit_of_measure' => 'EA',
-            'level' => 1,
-            'sequence_number' => 30,
-        ]);
-
-        BomItem::create([
-            'bom_version_id' => $rearWheelVersion->id,
-            'item_id' => $tire->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'EA',
-            'level' => 1,
-            'sequence_number' => 40,
-        ]);
-
-        BomItem::create([
-            'bom_version_id' => $rearWheelVersion->id,
-            'item_id' => $innerTube->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'EA',
-            'level' => 1,
-            'sequence_number' => 50,
-        ]);
-
-        // BOM for Painted Frame
-        $frameBom = BillOfMaterial::create([
-            'bom_number' => 'BOM-FRAME-MTB-001',
-            'name' => 'MTB Frame Assembly BOM',
-            'description' => 'Bill of materials for painted MTB frame',
-            'is_active' => true,
-            'created_by' => $creator->id,
-        ]);
-
-        $frameVersion = BomVersion::create([
-            'bill_of_material_id' => $frameBom->id,
-            'version_number' => 1,
-            'revision_notes' => 'Initial version',
-            'published_at' => now(),
-            'published_by' => $creator->id,
-            'is_current' => true,
-        ]);
-
-        $paintedFrame->updateBom($frameBom, [
-            'reason' => 'Initial BOM assignment',
-            'change_order' => 'INIT-003',
-        ]);
-
-        // Add paint as a purchased item
-        $paint = Item::create([
-            'item_number' => 'PAINT-POWDER-BLK',
-            'name' => 'Black Powder Coat Paint',
-            'description' => 'Black powder coating paint',
-            'category' => 'Consumables',
+        
+        // Nível 3 - Componentes das Rodas
+        $this->items['aro'] = Item::factory()->create([
+            'item_number' => 'ARO-001',
+            'name' => 'Aro 26"',
+            'description' => 'Aro de alumínio 26 polegadas',
+            'category' => 'Componente',
             'item_type' => 'purchased',
-            'can_be_sold' => false,
             'can_be_purchased' => true,
             'can_be_manufactured' => false,
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => 'KG',
-            'weight' => 1.0,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.6,
+            'cost' => 25.00,
+            'lead_time_days' => 14,
+            'preferred_vendor' => 'Aros e Componentes Ltda',
+            'vendor_item_number' => 'ARO-26-AL',
+            'tags' => ['aro', 'componente', 'comprado'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->items['cubo'] = Item::factory()->create([
+            'item_number' => 'CUB-001',
+            'name' => 'Cubo de Roda',
+            'description' => 'Cubo com rolamentos',
+            'category' => 'Componente',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.3,
+            'cost' => 15.00,
+            'lead_time_days' => 14,
+            'preferred_vendor' => 'Cubos Industriais SA',
+            'vendor_item_number' => 'CUB-STD',
+            'tags' => ['cubo', 'componente', 'comprado'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->items['raios'] = Item::factory()->create([
+            'item_number' => 'RAI-001',
+            'name' => 'Conjunto de Raios',
+            'description' => 'Kit com 36 raios e niples',
+            'category' => 'Componente',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'KIT',
+            'weight' => 0.2,
             'cost' => 8.00,
-            'lead_time_days' => 2,
+            'lead_time_days' => 7,
+            'preferred_vendor' => 'Raios e Acessórios Ltda',
+            'vendor_item_number' => 'RAI-36',
+            'tags' => ['raios', 'componente', 'comprado'],
             'created_by' => $creator->id,
         ]);
-
-        BomItem::create([
-            'bom_version_id' => $frameVersion->id,
-            'item_id' => $frameTubes->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'SET',
-            'level' => 1,
-            'sequence_number' => 10,
+        
+        // Nível 3 - Componentes de Pneu
+        $this->items['pneu'] = Item::factory()->create([
+            'item_number' => 'PNE-002',
+            'name' => 'Pneu 26x1.95',
+            'description' => 'Pneu urbano 26 polegadas',
+            'category' => 'Componente',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.7,
+            'cost' => 20.00,
+            'lead_time_days' => 14,
+            'preferred_vendor' => 'Pneus Nacionais SA',
+            'vendor_item_number' => 'PNE-26195',
+            'tags' => ['pneu', 'componente', 'comprado'],
+            'created_by' => $creator->id,
         ]);
-
-        BomItem::create([
-            'bom_version_id' => $frameVersion->id,
-            'item_id' => $paint->id,
-            'quantity' => 0.15, // 150 grams of paint
-            'unit_of_measure' => 'KG',
-            'level' => 1,
-            'sequence_number' => 20,
+        
+        $this->items['camara'] = Item::factory()->create([
+            'item_number' => 'CAM-001',
+            'name' => 'Câmara de Ar 26"',
+            'description' => 'Câmara de ar para pneu 26 polegadas',
+            'category' => 'Componente',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.1,
+            'cost' => 5.00,
+            'lead_time_days' => 7,
+            'preferred_vendor' => 'Borrachas Industriais Ltda',
+            'vendor_item_number' => 'CAM-26',
+            'tags' => ['camara', 'componente', 'comprado'],
+            'created_by' => $creator->id,
         ]);
-
-        // BOM for Complete Bicycle
-        $bicycleBom = BillOfMaterial::create([
-            'bom_number' => 'BOM-BIKE-MTB-001',
-            'name' => 'Mountain Bike Complete Assembly BOM',
-            'description' => 'Bill of materials for complete mountain bike',
+        
+        // Nível 4 - Componentes do Suporte Traseiro
+        $this->items['chapa_suporte'] = Item::factory()->create([
+            'item_number' => 'CHP-001',
+            'name' => 'Chapa de Suporte',
+            'description' => 'Chapa de alumínio cortada',
+            'category' => 'Matéria Prima',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.2,
+            'cost' => 8.00,
+            'lead_time_days' => 7,
+            'preferred_vendor' => 'Metais e Ligas SA',
+            'vendor_item_number' => 'AL-CHP-2MM',
+            'tags' => ['chapa', 'aluminio', 'materia-prima'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->items['parafusos_suporte'] = Item::factory()->create([
+            'item_number' => 'PAR-001',
+            'name' => 'Kit Parafusos M8',
+            'description' => 'Kit com 4 parafusos M8x20mm',
+            'category' => 'Componente',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'KIT',
+            'weight' => 0.05,
+            'cost' => 2.00,
+            'lead_time_days' => 3,
+            'preferred_vendor' => 'Parafusos e Fixadores Ltda',
+            'vendor_item_number' => 'KIT-M8-20',
+            'tags' => ['parafusos', 'fixacao', 'comprado'],
+            'created_by' => $creator->id,
+        ]);
+        
+        // Componentes adicionais de transmissão
+        $this->items['cambio_traseiro'] = Item::factory()->create([
+            'item_number' => 'CMB-001',
+            'name' => 'Câmbio Traseiro',
+            'description' => 'Câmbio traseiro 7 velocidades',
+            'category' => 'Componente',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.3,
+            'cost' => 45.00,
+            'lead_time_days' => 21,
+            'preferred_vendor' => 'Componentes de Transmissão SA',
+            'vendor_item_number' => 'CMB-7V',
+            'tags' => ['cambio', 'transmissao', 'comprado'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->items['corrente'] = Item::factory()->create([
+            'item_number' => 'COR-001',
+            'name' => 'Corrente',
+            'description' => 'Corrente de transmissão 116 elos',
+            'category' => 'Componente',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.3,
+            'cost' => 15.00,
+            'lead_time_days' => 14,
+            'preferred_vendor' => 'Correntes Industriais Ltda',
+            'vendor_item_number' => 'COR-116',
+            'tags' => ['corrente', 'transmissao', 'comprado'],
+            'created_by' => $creator->id,
+        ]);
+        
+        // Componentes adicionais
+        $this->items['selim'] = Item::factory()->create([
+            'item_number' => 'SEL-001',
+            'name' => 'Selim Confort',
+            'description' => 'Selim ergonômico com molas',
+            'category' => 'Componente',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.4,
+            'cost' => 25.00,
+            'lead_time_days' => 14,
+            'preferred_vendor' => 'Selins e Acessórios Ltda',
+            'vendor_item_number' => 'SEL-CONF',
+            'tags' => ['selim', 'acessorio', 'comprado'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->items['guidao'] = Item::factory()->create([
+            'item_number' => 'GUI-001',
+            'name' => 'Guidão Urbano',
+            'description' => 'Guidão tipo urbano em alumínio',
+            'category' => 'Componente',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'UN',
+            'weight' => 0.3,
+            'cost' => 20.00,
+            'lead_time_days' => 14,
+            'preferred_vendor' => 'Componentes de Direção SA',
+            'vendor_item_number' => 'GUI-URB',
+            'tags' => ['guidao', 'direcao', 'comprado'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->items['pedais'] = Item::factory()->create([
+            'item_number' => 'PED-001',
+            'name' => 'Par de Pedais',
+            'description' => 'Pedais com refletores',
+            'category' => 'Componente',
+            'item_type' => 'purchased',
+            'can_be_purchased' => true,
+            'can_be_manufactured' => false,
+            'unit_of_measure' => 'PAR',
+            'weight' => 0.4,
+            'cost' => 15.00,
+            'lead_time_days' => 14,
+            'preferred_vendor' => 'Pedais e Acessórios Ltda',
+            'vendor_item_number' => 'PED-REF',
+            'tags' => ['pedais', 'acessorio', 'comprado'],
+            'created_by' => $creator->id,
+        ]);
+        
+        $this->command->info('Criados ' . count($this->items) . ' itens');
+    }
+    
+    private function createBicycleBOM($creator): void
+    {
+        $this->command->info('Criando estrutura de BOM...');
+        
+        // Create BOM for the bicycle
+        $bom = BillOfMaterial::create([
+            'bom_number' => 'BOM-BIKE-001',
+            'name' => 'Lista de Materiais - Bicicleta Urbana',
+            'description' => 'BOM completa para bicicleta urbana 21 marchas',
             'is_active' => true,
             'created_by' => $creator->id,
         ]);
-
-        $bicycleVersion = BomVersion::create([
-            'bill_of_material_id' => $bicycleBom->id,
+        
+        // Create version
+        $version = BomVersion::create([
+            'bill_of_material_id' => $bom->id,
             'version_number' => 1,
-            'revision_notes' => 'Initial production version',
+            'revision_notes' => 'Versão inicial - Produção de bicicletas',
             'published_at' => now(),
             'published_by' => $creator->id,
             'is_current' => true,
         ]);
-
-        $bicycle->updateBom($bicycleBom, [
-            'reason' => 'Initial BOM assignment for production',
-            'change_order' => 'INIT-004',
-        ]);
-
-        // Add sub-assemblies to bicycle BOM
-        $frameItem = BomItem::create([
-            'bom_version_id' => $bicycleVersion->id,
-            'item_id' => $paintedFrame->id,
+        
+        // Update the bicycle item with the BOM
+        $this->items['bicicleta']->update(['current_bom_id' => $bom->id]);
+        
+        // Create BOM structure
+        // Level 0 - Final Product (no BOM item for the root)
+        
+        // Level 1 - Main Subassemblies
+        $bomQuadro = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => null,
+            'item_id' => $this->items['quadro_completo']->id,
             'quantity' => 1,
-            'unit_of_measure' => 'EA',
+            'unit_of_measure' => 'UN',
             'level' => 1,
             'sequence_number' => 10,
+            'bom_notes' => ['posicao' => 'centro', 'critico' => true],
         ]);
-
-        $frontWheelItem = BomItem::create([
-            'bom_version_id' => $bicycleVersion->id,
-            'item_id' => $frontWheel->id,
+        
+        $bomRodas = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => null,
+            'item_id' => $this->items['conjunto_rodas']->id,
             'quantity' => 1,
-            'unit_of_measure' => 'EA',
+            'unit_of_measure' => 'PAR',
             'level' => 1,
             'sequence_number' => 20,
+            'bom_notes' => ['observacao' => 'Montar após pintura do quadro'],
         ]);
-
-        $rearWheelItem = BomItem::create([
-            'bom_version_id' => $bicycleVersion->id,
-            'item_id' => $rearWheel->id,
+        
+        $bomTransmissao = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => null,
+            'item_id' => $this->items['grupo_transmissao']->id,
             'quantity' => 1,
-            'unit_of_measure' => 'EA',
+            'unit_of_measure' => 'UN',
             'level' => 1,
             'sequence_number' => 30,
         ]);
-
-        // Add individual components to bicycle BOM
-        BomItem::create([
-            'bom_version_id' => $bicycleVersion->id,
-            'item_id' => $chainset->id,
+        
+        $bomFreios = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => null,
+            'item_id' => $this->items['sistema_freios']->id,
             'quantity' => 1,
-            'unit_of_measure' => 'SET',
+            'unit_of_measure' => 'UN',
             'level' => 1,
             'sequence_number' => 40,
         ]);
-
-        BomItem::create([
-            'bom_version_id' => $bicycleVersion->id,
-            'item_id' => $chain->id,
+        
+        // Additional Level 1 items
+        $bomSelim = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => null,
+            'item_id' => $this->items['selim']->id,
             'quantity' => 1,
-            'unit_of_measure' => 'EA',
+            'unit_of_measure' => 'UN',
             'level' => 1,
             'sequence_number' => 50,
         ]);
-
-        BomItem::create([
-            'bom_version_id' => $bicycleVersion->id,
-            'item_id' => $derailleur->id,
+        
+        $bomGuidao = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => null,
+            'item_id' => $this->items['guidao']->id,
             'quantity' => 1,
-            'unit_of_measure' => 'EA',
+            'unit_of_measure' => 'UN',
             'level' => 1,
             'sequence_number' => 60,
         ]);
-
-        BomItem::create([
-            'bom_version_id' => $bicycleVersion->id,
-            'item_id' => $handlebar->id,
+        
+        $bomPedais = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => null,
+            'item_id' => $this->items['pedais']->id,
             'quantity' => 1,
-            'unit_of_measure' => 'EA',
+            'unit_of_measure' => 'PAR',
             'level' => 1,
             'sequence_number' => 70,
         ]);
-
-        BomItem::create([
-            'bom_version_id' => $bicycleVersion->id,
-            'item_id' => $brakeLever->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'SET',
-            'level' => 1,
-            'sequence_number' => 80,
-        ]);
-
-        BomItem::create([
-            'bom_version_id' => $bicycleVersion->id,
-            'item_id' => $saddle->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'EA',
-            'level' => 1,
-            'sequence_number' => 90,
-        ]);
-
-        BomItem::create([
-            'bom_version_id' => $bicycleVersion->id,
-            'item_id' => $seatpost->id,
-            'quantity' => 1,
-            'unit_of_measure' => 'EA',
-            'level' => 1,
-            'sequence_number' => 100,
-        ]);
-
-        // Create production routings for manufactured items
-        $this->command->info('Creating production routings...');
-
-        // Routing for front wheel assembly
-        $frontWheelRouting = ProductionRouting::create([
-            'bom_item_id' => $frontWheelItem->id,
-            'routing_number' => 'RT-WHEEL-F-001',
-            'name' => 'Front Wheel Assembly Routing',
-            'description' => 'Assembly process for front wheel',
-            'routing_type' => 'defined',
-            'is_active' => true,
-            'created_by' => $creator->id,
-        ]);
-
-        RoutingStep::create([
-            'production_routing_id' => $frontWheelRouting->id,
-            'step_number' => 10,
-            'operation_code' => 'WHEEL-LACE',
-            'name' => 'Lace Wheel',
-            'description' => 'Lace spokes into rim and hub',
-            'work_cell_id' => $workCells['wheel']->id,
-            'setup_time_minutes' => 5,
-            'cycle_time_minutes' => 20,
-            'labor_requirement' => 1,
-        ]);
-
-        RoutingStep::create([
-            'production_routing_id' => $frontWheelRouting->id,
-            'step_number' => 20,
-            'operation_code' => 'WHEEL-TRUE',
-            'name' => 'True Wheel',
-            'description' => 'True and tension wheel',
-            'work_cell_id' => $workCells['wheel']->id,
-            'cycle_time_minutes' => 15,
-            'labor_requirement' => 1,
-        ]);
-
-        RoutingStep::create([
-            'production_routing_id' => $frontWheelRouting->id,
-            'step_number' => 30,
-            'operation_code' => 'TIRE-MOUNT',
-            'name' => 'Mount Tire',
-            'description' => 'Mount tire and tube on wheel',
-            'work_cell_id' => $workCells['wheel']->id,
-            'cycle_time_minutes' => 10,
-            'labor_requirement' => 1,
-        ]);
-
-        // Create production orders
-        $this->command->info('Creating production orders...');
-
-        // Create a completed order for historical data
-        $completedOrder = ProductionOrder::create([
-            'order_number' => 'PO-2024-001',
-            'item_id' => $bicycle->id,
-            'bill_of_material_id' => $bicycleBom->id,
-            'quantity' => 5,
-            'status' => 'completed',
-            'priority' => 50,
-            'requested_date' => now()->subDays(10),
-            'planned_start_date' => now()->subDays(8),
-            'planned_end_date' => now()->subDays(5),
-            'actual_start_date' => now()->subDays(8),
-            'actual_end_date' => now()->subDays(4),
-            'created_by' => $creator->id,
-        ]);
-
-        // Create an in-progress order
-        $inProgressOrder = ProductionOrder::create([
-            'order_number' => 'PO-2024-002',
-            'item_id' => $bicycle->id,
-            'bill_of_material_id' => $bicycleBom->id,
-            'quantity' => 10,
-            'status' => 'in_progress',
-            'priority' => 75,
-            'requested_date' => now()->addDays(5),
-            'planned_start_date' => now()->subDays(2),
-            'planned_end_date' => now()->addDays(3),
-            'actual_start_date' => now()->subDays(1),
-            'created_by' => $creator->id,
-        ]);
-
-        // Create a planned order
-        $plannedOrder = ProductionOrder::create([
-            'order_number' => 'PO-2024-003',
-            'item_id' => $frontWheel->id, // Order for just wheels as spares
-            'bill_of_material_id' => $frontWheelBom->id,
-            'quantity' => 20,
-            'status' => 'planned',
-            'priority' => 40,
-            'requested_date' => now()->addDays(15),
-            'planned_start_date' => now()->addDays(7),
-            'planned_end_date' => now()->addDays(10),
-            'created_by' => $creator->id,
-        ]);
-
-        // Create QR tracking events for in-progress order
-        $this->command->info('Creating QR tracking events...');
-
-        QrTracking::create([
-            'trackable_type' => ProductionOrder::class,
-            'trackable_id' => $inProgressOrder->id,
-            'qr_code' => 'QR-PO-2024-002',
-            'event_type' => 'start_production',
-            'event_data' => ['location' => 'Frame Welding Station'],
-            'location' => $workCells['frame']->code,
-            'scanned_by' => $creator->id,
-        ]);
-
-        // Create shipment for completed order
-        $this->command->info('Creating shipments...');
-
-        $shipment = Shipment::create([
-            'shipment_number' => 'SH-2024-001',
-            'shipment_type' => 'customer',
-            'destination_type' => 'customer',
-            'destination_reference' => 'CUST-12345',
-            'destination_details' => [
-                'name' => 'Bike Shop ABC',
-                'address' => '123 Main St, Anytown, USA',
-                'contact' => 'John Doe',
-                'phone' => '555-1234',
-            ],
-            'status' => 'delivered',
-            'scheduled_ship_date' => now()->subDays(3),
-            'actual_ship_date' => now()->subDays(3),
-            'actual_delivery_date' => now()->subDay(),
-            'carrier' => 'FedEx',
-            'tracking_number' => 'FX123456789',
-            'created_by' => $creator->id,
-        ]);
-
-        ShipmentItem::create([
-            'shipment_id' => $shipment->id,
-            'production_order_id' => $completedOrder->id,
-            'item_number' => $bicycle->item_number,
-            'description' => $bicycle->name,
-            'quantity' => 5,
-            'unit_of_measure' => 'EA',
-            'package_number' => 'PKG-001',
-            'package_type' => 'Box',
-            'weight' => 67.5, // 5 bikes
-        ]);
-
-        ShipmentPhoto::create([
-            'shipment_id' => $shipment->id,
-            'photo_type' => 'package',
-            'file_path' => 'shipments/2024/SH-2024-001/package-001.jpg',
-            'description' => 'Packaged bicycles ready for shipment',
-            'uploaded_by' => $creator->id,
-        ]);
-
-        $this->command->info('Bicycle production test data created successfully!');
-        $this->command->info('Summary:');
-        $this->command->table(
-            ['Entity', 'Count'],
-            [
-                ['Items', Item::count()],
-                ['BOMs', BillOfMaterial::count()],
-                ['BOM Items', BomItem::count()],
-                ['Work Cells', WorkCell::count()],
-                ['Production Orders', ProductionOrder::count()],
-                ['Shipments', Shipment::count()],
-                ['QR Tracking Events', QrTracking::count()],
-            ]
-        );
         
-        $this->command->info('');
-        $this->command->info('Key items created:');
-        $this->command->info("- Finished Product: {$bicycle->item_number} - {$bicycle->name}");
-        $this->command->info("- Sub-assemblies: {$frontWheel->item_number}, {$rearWheel->item_number}, {$paintedFrame->item_number}");
-        $this->command->info("- Total purchased components: " . Item::purchasable()->count());
-        $this->command->info("- Total manufactured items: " . Item::manufacturable()->count());
+        // Level 2 - Components of Quadro
+        $bomEstrutura = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomQuadro->id,
+            'item_id' => $this->items['estrutura_quadro']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 2,
+            'sequence_number' => 10,
+            'assembly_instructions' => [
+                'passo1' => 'Posicionar estrutura na bancada',
+                'passo2' => 'Verificar alinhamento'
+            ],
+        ]);
+        
+        $bomGarfo = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomQuadro->id,
+            'item_id' => $this->items['garfo']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 2,
+            'sequence_number' => 20,
+        ]);
+        
+        $bomMesa = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomQuadro->id,
+            'item_id' => $this->items['mesa_direcao']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 2,
+            'sequence_number' => 30,
+        ]);
+        
+        // Level 2 - Components of Rodas
+        $bomRodaMontada = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomRodas->id,
+            'item_id' => $this->items['roda_montada']->id,
+            'quantity' => 2,
+            'unit_of_measure' => 'UN',
+            'level' => 2,
+            'sequence_number' => 10,
+        ]);
+        
+        $bomConjuntoPneu = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomRodas->id,
+            'item_id' => $this->items['conjunto_pneu']->id,
+            'quantity' => 2,
+            'unit_of_measure' => 'UN',
+            'level' => 2,
+            'sequence_number' => 20,
+        ]);
+        
+        // Level 2 - Components of Transmissão
+        $bomCambio = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomTransmissao->id,
+            'item_id' => $this->items['cambio_traseiro']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 2,
+            'sequence_number' => 10,
+        ]);
+        
+        $bomCorrente = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomTransmissao->id,
+            'item_id' => $this->items['corrente']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 2,
+            'sequence_number' => 20,
+        ]);
+        
+        // Level 3 - Components of Estrutura
+        $bomTuboSuperior = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomEstrutura->id,
+            'item_id' => $this->items['tubo_superior']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 3,
+            'sequence_number' => 10,
+        ]);
+        
+        $bomTuboInferior = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomEstrutura->id,
+            'item_id' => $this->items['tubo_inferior']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 3,
+            'sequence_number' => 20,
+        ]);
+        
+        $bomTuboSelim = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomEstrutura->id,
+            'item_id' => $this->items['tubo_selim']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 3,
+            'sequence_number' => 30,
+        ]);
+        
+        $bomSuporteTraseiro = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomEstrutura->id,
+            'item_id' => $this->items['suporte_traseiro']->id,
+            'quantity' => 2,
+            'unit_of_measure' => 'UN',
+            'level' => 3,
+            'sequence_number' => 40,
+        ]);
+        
+        // Level 3 - Components of Roda Montada
+        $bomAro = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomRodaMontada->id,
+            'item_id' => $this->items['aro']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 3,
+            'sequence_number' => 10,
+        ]);
+        
+        $bomCubo = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomRodaMontada->id,
+            'item_id' => $this->items['cubo']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 3,
+            'sequence_number' => 20,
+        ]);
+        
+        $bomRaios = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomRodaMontada->id,
+            'item_id' => $this->items['raios']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'KIT',
+            'level' => 3,
+            'sequence_number' => 30,
+        ]);
+        
+        // Level 3 - Components of Conjunto Pneu
+        $bomPneu = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomConjuntoPneu->id,
+            'item_id' => $this->items['pneu']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 3,
+            'sequence_number' => 10,
+        ]);
+        
+        $bomCamara = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomConjuntoPneu->id,
+            'item_id' => $this->items['camara']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 3,
+            'sequence_number' => 20,
+        ]);
+        
+        // Level 4 - Components of Suporte Traseiro
+        $bomChapa = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomSuporteTraseiro->id,
+            'item_id' => $this->items['chapa_suporte']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 4,
+            'sequence_number' => 10,
+        ]);
+        
+        $bomParafusos = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $bomSuporteTraseiro->id,
+            'item_id' => $this->items['parafusos_suporte']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'KIT',
+            'level' => 4,
+            'sequence_number' => 20,
+        ]);
+        
+        // Create Item BOM History
+        ItemBomHistory::create([
+            'item_id' => $this->items['bicicleta']->id,
+            'bill_of_material_id' => $bom->id,
+            'changed_by' => $creator->id,
+            'change_reason' => 'BOM inicial criada',
+        ]);
+        
+        $this->command->info('Estrutura de BOM criada com 4 níveis');
+    }
+    
+    private function createProductionRoutings($creator): void
+    {
+        $this->command->info('Criando roteiros de produção...');
+        
+        // Get BOM items that need routing
+        $bomVersion = BomVersion::where('is_current', true)->first();
+        
+        // Routing for Estrutura do Quadro
+        $estruturaBomItem = BomItem::where('bom_version_id', $bomVersion->id)
+            ->where('item_id', $this->items['estrutura_quadro']->id)
+            ->first();
+            
+        if ($estruturaBomItem) {
+            $routingEstrutura = ProductionRouting::create([
+                'bom_item_id' => $estruturaBomItem->id,
+                'routing_number' => 'ROT-EST-001',
+                'name' => 'Roteiro - Estrutura do Quadro',
+                'description' => 'Processo de soldagem da estrutura do quadro',
+                'routing_type' => 'defined',
+                'is_active' => true,
+                'created_by' => $creator->id,
+            ]);
+            
+            // Routing steps
+            RoutingStep::create([
+                'production_routing_id' => $routingEstrutura->id,
+                'step_number' => 10,
+                'operation_code' => 'CORTE',
+                'operation_description' => 'Cortar tubos no comprimento especificado',
+                'work_cell_id' => $this->workCells['usinagem']->id,
+                'setup_time_minutes' => 15,
+                'cycle_time_minutes' => 10,
+                'labor_time_minutes' => 10,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingEstrutura->id,
+                'step_number' => 20,
+                'operation_code' => 'SOLDA',
+                'operation_description' => 'Soldar tubos conforme gabarito',
+                'work_cell_id' => $this->workCells['soldagem']->id,
+                'setup_time_minutes' => 30,
+                'cycle_time_minutes' => 45,
+                'labor_time_minutes' => 45,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingEstrutura->id,
+                'step_number' => 30,
+                'operation_code' => 'ACABAMENTO',
+                'operation_description' => 'Lixar e preparar para pintura',
+                'work_cell_id' => $this->workCells['usinagem']->id,
+                'setup_time_minutes' => 10,
+                'cycle_time_minutes' => 20,
+                'labor_time_minutes' => 20,
+                'created_by' => $creator->id,
+            ]);
+        }
+        
+        // Routing for Quadro Completo
+        $quadroBomItem = BomItem::where('bom_version_id', $bomVersion->id)
+            ->where('item_id', $this->items['quadro_completo']->id)
+            ->first();
+            
+        if ($quadroBomItem) {
+            $routingQuadro = ProductionRouting::create([
+                'bom_item_id' => $quadroBomItem->id,
+                'routing_number' => 'ROT-QDR-001',
+                'name' => 'Roteiro - Quadro Completo',
+                'description' => 'Montagem e pintura do quadro completo',
+                'routing_type' => 'defined',
+                'is_active' => true,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingQuadro->id,
+                'step_number' => 10,
+                'operation_code' => 'MONTAGEM',
+                'operation_description' => 'Montar estrutura com garfo e mesa',
+                'work_cell_id' => $this->workCells['montagem_final']->id,
+                'setup_time_minutes' => 10,
+                'cycle_time_minutes' => 15,
+                'labor_time_minutes' => 15,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingQuadro->id,
+                'step_number' => 20,
+                'operation_code' => 'PINTURA',
+                'operation_description' => 'Pintura eletrostática do quadro',
+                'work_cell_id' => $this->workCells['pintura']->id,
+                'setup_time_minutes' => 30,
+                'cycle_time_minutes' => 60,
+                'labor_time_minutes' => 20,
+                'created_by' => $creator->id,
+            ]);
+        }
+        
+        // Routing for Roda Montada
+        $rodaBomItem = BomItem::where('bom_version_id', $bomVersion->id)
+            ->where('item_id', $this->items['roda_montada']->id)
+            ->first();
+            
+        if ($rodaBomItem) {
+            $routingRoda = ProductionRouting::create([
+                'bom_item_id' => $rodaBomItem->id,
+                'routing_number' => 'ROT-RDA-001',
+                'name' => 'Roteiro - Montagem de Roda',
+                'description' => 'Montagem e balanceamento de rodas',
+                'routing_type' => 'defined',
+                'is_active' => true,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingRoda->id,
+                'step_number' => 10,
+                'operation_code' => 'RAIACAO',
+                'operation_description' => 'Montar raios no aro e cubo',
+                'work_cell_id' => $this->workCells['montagem_rodas']->id,
+                'setup_time_minutes' => 10,
+                'cycle_time_minutes' => 25,
+                'labor_time_minutes' => 25,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingRoda->id,
+                'step_number' => 20,
+                'operation_code' => 'CENTRAGEM',
+                'operation_description' => 'Centrar e balancear roda',
+                'work_cell_id' => $this->workCells['montagem_rodas']->id,
+                'setup_time_minutes' => 5,
+                'cycle_time_minutes' => 15,
+                'labor_time_minutes' => 15,
+                'created_by' => $creator->id,
+            ]);
+        }
+        
+        // Routing for Final Assembly (Bicycle)
+        $bicicleta = $this->items['bicicleta'];
+        $bomBicicleta = BillOfMaterial::find($bicicleta->current_bom_id);
+        
+        if ($bomBicicleta) {
+            // Create a phantom BOM item for the bicycle to attach routing
+            $bicicletaBomItem = BomItem::create([
+                'bom_version_id' => $bomVersion->id,
+                'parent_item_id' => null,
+                'item_id' => $bicicleta->id,
+                'quantity' => 1,
+                'unit_of_measure' => 'UN',
+                'level' => 0,
+                'sequence_number' => 1,
+            ]);
+            
+            $routingFinal = ProductionRouting::create([
+                'bom_item_id' => $bicicletaBomItem->id,
+                'routing_number' => 'ROT-BIKE-001',
+                'name' => 'Roteiro - Montagem Final',
+                'description' => 'Montagem final da bicicleta',
+                'routing_type' => 'defined',
+                'is_active' => true,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingFinal->id,
+                'step_number' => 10,
+                'operation_code' => 'MONT-INICIAL',
+                'operation_description' => 'Montar rodas no quadro',
+                'work_cell_id' => $this->workCells['montagem_final']->id,
+                'setup_time_minutes' => 10,
+                'cycle_time_minutes' => 20,
+                'labor_time_minutes' => 20,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingFinal->id,
+                'step_number' => 20,
+                'operation_code' => 'MONT-TRANS',
+                'operation_description' => 'Instalar sistema de transmissão',
+                'work_cell_id' => $this->workCells['montagem_final']->id,
+                'setup_time_minutes' => 5,
+                'cycle_time_minutes' => 30,
+                'labor_time_minutes' => 30,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingFinal->id,
+                'step_number' => 30,
+                'operation_code' => 'MONT-FREIOS',
+                'operation_description' => 'Instalar e ajustar sistema de freios',
+                'work_cell_id' => $this->workCells['montagem_final']->id,
+                'setup_time_minutes' => 5,
+                'cycle_time_minutes' => 20,
+                'labor_time_minutes' => 20,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingFinal->id,
+                'step_number' => 40,
+                'operation_code' => 'MONT-ACESS',
+                'operation_description' => 'Instalar selim, guidão e pedais',
+                'work_cell_id' => $this->workCells['montagem_final']->id,
+                'setup_time_minutes' => 5,
+                'cycle_time_minutes' => 15,
+                'labor_time_minutes' => 15,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingFinal->id,
+                'step_number' => 50,
+                'operation_code' => 'INSPECAO',
+                'operation_description' => 'Inspeção final e testes',
+                'work_cell_id' => $this->workCells['inspecao']->id,
+                'setup_time_minutes' => 5,
+                'cycle_time_minutes' => 15,
+                'labor_time_minutes' => 15,
+                'created_by' => $creator->id,
+            ]);
+            
+            RoutingStep::create([
+                'production_routing_id' => $routingFinal->id,
+                'step_number' => 60,
+                'operation_code' => 'EMBALAGEM',
+                'operation_description' => 'Embalar bicicleta para envio',
+                'work_cell_id' => $this->workCells['embalagem']->id,
+                'setup_time_minutes' => 5,
+                'cycle_time_minutes' => 10,
+                'labor_time_minutes' => 10,
+                'created_by' => $creator->id,
+            ]);
+        }
+        
+        $this->command->info('Roteiros de produção criados');
+    }
+    
+    private function createProductionOrders($creator): void
+    {
+        $this->command->info('Criando ordens de produção...');
+        
+        // Create production orders for bicycles
+        for ($i = 1; $i <= 5; $i++) {
+            $order = ProductionOrder::create([
+                'order_number' => sprintf('OP-%s-%04d', date('Y'), $i),
+                'item_id' => $this->items['bicicleta']->id,
+                'bill_of_material_id' => $this->items['bicicleta']->current_bom_id,
+                'quantity' => rand(5, 20),
+                'unit_of_measure' => 'UN',
+                'status' => $i <= 2 ? 'in_progress' : 'scheduled',
+                'priority' => $i == 1 ? 'high' : 'normal',
+                'requested_date' => now()->addDays(rand(7, 30)),
+                'planned_start_date' => now()->addDays(rand(1, 5)),
+                'planned_end_date' => now()->addDays(rand(6, 10)),
+                'source_type' => 'sales_order',
+                'source_reference' => 'PED-' . str_pad($i, 4, '0', STR_PAD_LEFT),
+                'created_by' => $creator->id,
+            ]);
+            
+            // Create some production schedules for the first order
+            if ($i == 1) {
+                $routingSteps = RoutingStep::whereHas('productionRouting', function($q) {
+                    $q->whereHas('bomItem', function($q2) {
+                        $q2->where('item_id', $this->items['bicicleta']->id);
+                    });
+                })->get();
+                
+                foreach ($routingSteps as $step) {
+                    ProductionSchedule::create([
+                        'production_order_id' => $order->id,
+                        'routing_step_id' => $step->id,
+                        'work_cell_id' => $step->work_cell_id,
+                        'scheduled_start' => now()->addHours(rand(1, 24)),
+                        'scheduled_end' => now()->addHours(rand(25, 48)),
+                        'buffer_time_minutes' => 30,
+                        'status' => 'scheduled',
+                    ]);
+                }
+            }
+        }
+        
+        $this->command->info('Ordens de produção criadas');
     }
 } 
