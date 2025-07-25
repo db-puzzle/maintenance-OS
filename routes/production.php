@@ -20,7 +20,6 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
     // BOMs Management
     Route::resource('bom', BillOfMaterialController::class);
-    Route::get('bom/{bom}/hierarchy', [BillOfMaterialController::class, 'hierarchy'])->name('bom.hierarchy');
     Route::post('bom/{bom}/duplicate', [BillOfMaterialController::class, 'duplicate'])->name('bom.duplicate');
     Route::get('bom/{bom}/export', [BillOfMaterialController::class, 'export'])->name('bom.export');
     Route::get('bom/{bom}/export-excel', [BillOfMaterialController::class, 'exportExcel'])->name('bom.export-excel');
@@ -32,6 +31,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('bom/{bom}/items', [BillOfMaterialController::class, 'addItem'])->name('bom.items.add');
     Route::put('bom/{bom}/items/{item}', [BillOfMaterialController::class, 'updateItem'])->name('bom.items.update');
     Route::delete('bom/{bom}/items/{item}', [BillOfMaterialController::class, 'removeItem'])->name('bom.items.remove');
+    Route::post('bom/{bom}/items/{item}/move', [BillOfMaterialController::class, 'moveItem'])->name('bom.items.move');
     
     // BOM Versions
     Route::post('bom/{bom}/versions', [BillOfMaterialController::class, 'createVersion'])->name('bom.versions.create');

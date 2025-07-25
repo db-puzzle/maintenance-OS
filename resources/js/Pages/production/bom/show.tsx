@@ -2,82 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
 import { Head, Link } from '@inertiajs/react';
-import { Package, History, Factory, FileText, Plus, GitBranch, Download, QrCode, Copy } from 'lucide-react';
+import { Package, History, Factory, FileText, Plus, Download, QrCode, Copy, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import TextInput from '@/components/TextInput';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import EmptyCard from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
+import BomConfiguration from '@/components/production/BomConfiguration';
 import { BillOfMaterial, BomItem, BomVersion, Item } from '@/types/production';
 import { ColumnConfig } from '@/types/shared';
-
-interface TextAreaInputProps {
-    form: {
-        data: Record<string, any>;
-        setData: (name: string, value: any) => void;
-        errors: Partial<Record<string, string>>;
-        clearErrors: (...fields: string[]) => void;
-    };
-    name: string;
-    label: string;
-    placeholder: string;
-    rows?: number;
-    required?: boolean;
-    disabled?: boolean;
-    view?: boolean;
-}
-
-function TextAreaInput({ form, name, label, placeholder, rows = 3, required = false, disabled = false, view = false }: TextAreaInputProps) {
-    const value = form.data[name];
-    const hasValue = value !== null && value !== undefined && value !== '';
-
-    return (
-        <div className="grid gap-2">
-            <label className="text-sm font-medium">
-                {label}
-                {required && <span className="text-destructive"> *</span>}
-            </label>
-            <div className="bg-background">
-                {view ? (
-                    <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                        {hasValue ? String(value) : placeholder}
-                    </div>
-                ) : (
-                    <textarea
-                        className="rounded-md border bg-background px-3 py-2 text-sm w-full resize-none"
-                        name={name}
-                        placeholder={placeholder}
-                        value={value || ''}
-                        onChange={(e) => form.setData(name, e.target.value)}
-                        onBlur={() => form.clearErrors(name)}
-                        rows={rows}
-                        disabled={disabled}
-                    />
-                )}
-            </div>
-            {form.errors[name] && (
-                <p className="text-sm text-destructive">{form.errors[name]}</p>
-            )}
-        </div>
-    );
-}
+import { toast } from 'sonner';
 
 interface Props {
-    bom?: BillOfMaterial & {
-        currentVersion?: BomVersion & {
-            items: (BomItem & { item: Item })[];
-        };
-        versions: BomVersion[];
-        itemMasters: Item[];
-        versions_count?: number;
-        item_masters_count?: number;
-    };
-    items?: Item[];
-    can?: {
+    bom?: BillOfMaterial;
+    items: Item[];
+    can: {
         update: boolean;
         delete: boolean;
         manageItems: boolean;
@@ -86,166 +31,111 @@ interface Props {
 }
 
 export default function BomShow({ bom, items = [], can = { update: false, delete: false, manageItems: false }, isCreating = false }: Props) {
-    const page = usePage<{
-        flash?: { success?: string };
-        auth: {
-            user: any;
-            permissions: string[];
-        };
-    }>();
-    const userPermissions = page.props.auth?.permissions || [];
+    const [isEditMode, setIsEditMode] = useState(isCreating);
+    const [isCompressed, setIsCompressed] = useState(false);
 
-    const breadcrumbs = [
-        { title: 'Produção', href: '/' },
-        { title: 'BOMs', href: route('production.bom.index') },
-        { title: bom?.bom_number || 'Nova BOM', href: '' }
-    ];
-
-    // Form state for creation/editing
-    const { data, setData, errors, processing, post, patch, clearErrors } = useForm({
+    const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm({
         bom_number: bom?.bom_number || '',
         name: bom?.name || '',
         description: bom?.description || '',
         external_reference: bom?.external_reference || '',
-        is_active: bom?.is_active !== undefined ? bom.is_active : true,
+        is_active: bom?.is_active ?? true,
     });
 
-    const [isEditMode, setIsEditMode] = useState(isCreating);
-    const [isCompressed, setIsCompressed] = useState(false);
+    const breadcrumbs = [
+        { label: 'Produção', href: '/production' },
+        { label: 'BOMs', href: route('production.bom.index') },
+        { label: isCreating ? 'Nova BOM' : (bom?.name || 'BOM') },
+    ];
+
+    // Column configurations
+    const versionColumns: ColumnConfig[] = [
+        { key: 'version_number', label: 'Versão', sortable: true },
+        { key: 'published_at', label: 'Publicado em', format: 'date', sortable: true },
+        { key: 'revision_notes', label: 'Notas de Revisão' },
+        { key: 'is_current', label: 'Status', format: (value: boolean) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> },
+    ];
+
+    const itemMasterColumns: ColumnConfig[] = [
+        { key: 'item_number', label: 'Código', sortable: true },
+        { key: 'name', label: 'Descrição', sortable: true },
+        { key: 'category', label: 'Categoria' },
+        { key: 'status', label: 'Status', format: (value: string) => <Badge variant={value === 'active' ? 'default' : 'secondary'}>{value}</Badge> },
+    ];
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (isCreating) {
-            post(route('production.bom.store'));
-        } else if (bom) {
-            patch(route('production.bom.update', bom.id), {
+            post(route('production.bom.store'), {
                 onSuccess: () => {
+                    toast.success('BOM criada com sucesso');
+                },
+                onError: () => {
+                    toast.error('Erro ao criar BOM');
+                }
+            });
+        } else if (bom) {
+            put(route('production.bom.update', bom.id), {
+                onSuccess: () => {
+                    toast.success('BOM atualizada com sucesso');
                     setIsEditMode(false);
                 },
+                onError: () => {
+                    toast.error('Erro ao atualizar BOM');
+                }
             });
         }
     };
 
     const handleDelete = () => {
-        if (bom && confirm('Tem certeza que deseja excluir esta BOM?')) {
-            router.delete(route('production.bom.destroy', bom.id));
-        }
+        if (!bom || !confirm('Tem certeza que deseja excluir esta BOM?')) return;
+
+        router.delete(route('production.bom.destroy', bom.id), {
+            onSuccess: () => {
+                toast.success('BOM excluída com sucesso');
+            }
+        });
     };
 
     const handleDuplicate = () => {
-        if (bom) {
-            router.post(route('production.bom.duplicate', bom.id));
-        }
+        if (!bom) return;
+
+        router.post(route('production.bom.duplicate', bom.id), {}, {
+            onSuccess: () => {
+                toast.success('BOM duplicada com sucesso');
+            }
+        });
     };
 
     const handleGenerateQr = () => {
-        if (bom) {
-            router.post(route('production.bom.generate-qr', bom.id));
-        }
+        if (!bom) return;
+
+        router.post(route('production.bom.generate-qr', bom.id), {}, {
+            onSuccess: () => {
+                toast.success('QR Codes gerados com sucesso');
+            }
+        });
     };
 
-    const renderBomItems = (items: any[], level: number = 0) => {
-        return items.map((bomItem, index) => (
-            <div key={bomItem.id} style={{ marginLeft: `${level * 2}rem` }} className="border-b py-3">
-                <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">
-                                {bomItem.sequence_number || index + 1}.
-                            </span>
-                            <span className="font-medium">{bomItem.item.item_number}</span>
-                            <span className="text-muted-foreground">- {bomItem.item.name}</span>
+    const renderBomItems = (items: BomItem[], level = 0): React.ReactNode => {
+        return items.map((item) => (
+            <div key={item.id} className={`border-b last:border-0 ${level > 0 ? 'ml-8' : ''}`}>
+                <div className="p-4 hover:bg-muted/50">
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                            <div className="font-medium">{item.item?.itemNumber || item.item?.item_number}</div>
+                            <div className="text-sm text-muted-foreground">{item.item?.name}</div>
                         </div>
-                        {bomItem.reference_designators && (
-                            <div className="text-sm text-muted-foreground mt-1">
-                                Ref: {bomItem.reference_designators}
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm">
-                            {bomItem.quantity} {bomItem.unit_of_measure}
-                        </span>
-                        {bomItem.qr_code && (
-                            <Badge variant="outline" className="text-xs">
-                                <QrCode className="h-3 w-3 mr-1" />
-                                {bomItem.qr_code}
-                            </Badge>
-                        )}
-                        {can.manageItems && (
-                            <EntityActionDropdown
-                                onEdit={() => {/* TODO: Implement edit */ }}
-                                onDelete={() => {/* TODO: Implement delete */ }}
-                            />
-                        )}
+                        <div className="text-sm">
+                            <Badge variant="secondary">{item.quantity} {item.unitOfMeasure || item.unit_of_measure}</Badge>
+                        </div>
                     </div>
                 </div>
-                {bomItem.children && bomItem.children.length > 0 && (
-                    <div className="mt-2">
-                        {renderBomItems(bomItem.children, level + 1)}
-                    </div>
-                )}
+                {item.children && item.children.length > 0 && renderBomItems(item.children, level + 1)}
             </div>
         ));
     };
-
-    const versionColumns: ColumnConfig[] = [
-        {
-            key: 'version_number',
-            label: 'Versão',
-            width: 'w-[100px]',
-            render: (value: any, version: any) => (
-                <div className="flex items-center gap-2">
-                    <span className="font-medium">v{value}</span>
-                    {version.is_current && (
-                        <Badge variant="default">Atual</Badge>
-                    )}
-                </div>
-            )
-        },
-        {
-            key: 'revision_notes',
-            label: 'Notas de Revisão',
-            render: (value: any) => value || '-'
-        },
-        {
-            key: 'published_at',
-            label: 'Publicada em',
-            width: 'w-[150px]',
-            render: (value: any) => new Date(value).toLocaleDateString('pt-BR')
-        }
-    ];
-
-    const itemMasterColumns: ColumnConfig[] = [
-        {
-            key: 'item_number',
-            label: 'Código',
-            width: 'w-[150px]',
-            render: (value: any, item: any) => (
-                <Link
-                    href={route('production.items.show', item.id)}
-                    className="font-medium hover:underline"
-                >
-                    {value}
-                </Link>
-            )
-        },
-        {
-            key: 'name',
-            label: 'Nome',
-            render: (value: any) => value
-        },
-        {
-            key: 'is_active',
-            label: 'Status',
-            width: 'w-[100px]',
-            render: (value: any) => (
-                <Badge variant={value ? 'default' : 'secondary'}>
-                    {value ? 'Ativo' : 'Inativo'}
-                </Badge>
-            )
-        }
-    ];
 
     const tabs = [
         {
@@ -284,15 +174,21 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                             view={!isEditMode}
                         />
 
-                        <TextAreaInput
-                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
-                            name="description"
-                            label="Descrição"
-                            placeholder="Descrição detalhada da BOM"
-                            rows={4}
-                            disabled={!isEditMode || processing}
-                            view={!isEditMode}
-                        />
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Descrição</Label>
+                            <Textarea
+                                id="description"
+                                name="description"
+                                placeholder="Descrição detalhada da BOM"
+                                value={data.description}
+                                onChange={(e) => setData('description', e.target.value)}
+                                rows={4}
+                                disabled={!isEditMode || processing}
+                            />
+                            {errors.description && (
+                                <p className="text-sm text-destructive">{errors.description}</p>
+                            )}
+                        </div>
 
                         {/* Status */}
                         <div className="space-y-4">
@@ -346,6 +242,23 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
             ? []
             : [
                 {
+                    id: 'configuration',
+                    label: 'Configuração',
+                    icon: <Settings className="h-4 w-4" />,
+                    content: (
+                        <div className="h-[calc(100vh-300px)]">
+                            <BomConfiguration
+                                bomId={bom?.id || 0}
+                                versionId={bom?.currentVersion?.id || 0}
+                                bomItems={bom?.currentVersion?.items || []}
+                                availableItems={items}
+                                canEdit={can.manageItems}
+                                onUpdate={() => router.reload({ only: ['bom'] })}
+                            />
+                        </div>
+                    ),
+                },
+                {
                     id: 'items',
                     label: `Itens (${bom?.currentVersion?.items?.length || 0})`,
                     content: (
@@ -354,21 +267,27 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center mb-4">
                                         <div>
-                                            <h3 className="text-lg font-medium">Estrutura de Materiais</h3>
+                                            <h3 className="text-lg font-medium">Lista de Materiais</h3>
                                             <p className="text-sm text-muted-foreground">
-                                                Versão {bom.currentVersion?.version_number || 1} -
-                                                {bom.currentVersion?.is_current ? ' Atual' : ' Histórica'}
+                                                Versão {bom?.currentVersion?.version_number || 1} -
+                                                {bom?.currentVersion?.is_current ? ' Atual' : ' Histórica'}
                                             </p>
                                         </div>
-                                        {can.manageItems && (
-                                            <Button onClick={() => {/* TODO: Add item modal */ }}>
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Adicionar Item
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => router.visit(`/production/bom/${bom.id}#configuration`)}
+                                            >
+                                                <Settings className="h-4 w-4 mr-2" />
+                                                Configurar Estrutura
                                             </Button>
-                                        )}
+                                        </div>
                                     </div>
                                     <div className="border rounded-lg">
-                                        {renderBomItems(bom.currentVersion.items.filter(item => !item.parent_item_id))}
+                                        {renderBomItems(bom.currentVersion.items.filter(item => {
+                                            const parentId = item.parentItemId ?? item.parent_item_id;
+                                            return parentId === null || parentId === undefined;
+                                        }))}
                                     </div>
                                 </div>
                             ) : (
@@ -376,8 +295,8 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                                     icon={Package}
                                     title="Nenhum item adicionado"
                                     description="Adicione itens a esta BOM para definir sua estrutura"
-                                    primaryButtonText="Adicionar Item"
-                                    primaryButtonAction={() => {/* TODO: Add item modal */ }}
+                                    primaryButtonText="Configurar BOM"
+                                    primaryButtonAction={() => router.visit(`/production/bom/${bom.id}#configuration`)}
                                 />
                             )}
                         </div>
@@ -508,10 +427,6 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
             {/* Action buttons for existing BOMs */}
             {!isCreating && bom && (
                 <div className="fixed bottom-6 right-6 flex gap-2">
-                    <Button variant="outline" onClick={() => router.visit(route('production.bom.hierarchy', bom.id))}>
-                        <GitBranch className="h-4 w-4 mr-2" />
-                        Hierarquia
-                    </Button>
                     <Button variant="outline" onClick={() => router.get(route('production.bom.export', bom.id))}>
                         <Download className="h-4 w-4 mr-2" />
                         Exportar
@@ -537,4 +452,4 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
             )}
         </AppLayout>
     );
-} 
+}

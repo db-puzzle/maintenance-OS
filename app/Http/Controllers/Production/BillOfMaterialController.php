@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Str;
 
 class BillOfMaterialController extends Controller
 {
@@ -21,6 +22,27 @@ class BillOfMaterialController extends Controller
     public function __construct(BomImportService $importService)
     {
         $this->importService = $importService;
+    }
+
+    /**
+     * Convert array keys from snake_case to camelCase recursively
+     */
+    private function convertKeysToCamelCase($data)
+    {
+        if (!is_array($data)) {
+            return $data;
+        }
+
+        $result = [];
+        foreach ($data as $key => $value) {
+            $camelKey = Str::camel($key);
+            if (is_array($value)) {
+                $result[$camelKey] = $this->convertKeysToCamelCase($value);
+            } else {
+                $result[$camelKey] = $value;
+            }
+        }
+        return $result;
     }
     public function index(Request $request): Response
     {
@@ -38,7 +60,7 @@ class BillOfMaterialController extends Controller
                     $query->where('is_active', false);
                 }
             })
-            ->with(['currentVersion', 'createdBy'])
+            ->with(['currentVersion.items', 'createdBy'])
             ->withCount(['versions' => function ($query) {
                 $query->where('is_current', false);
             }])
@@ -111,7 +133,19 @@ class BillOfMaterialController extends Controller
         $this->authorize('view', $bom);
 
         $bom->load([
-            'currentVersion.items.item',
+            'currentVersion' => function ($query) {
+                $query->with(['items' => function ($itemQuery) {
+                    $itemQuery->with([
+                        'item',
+                        'children' => function ($childQuery) {
+                            $childQuery->with('item');
+                            // Recursive loading of all levels
+                            $childQuery->with('children.item');
+                            $childQuery->with('children.children.item');
+                        }
+                    ]);
+                }]);
+            },
             'versions' => function ($query) {
                 $query->orderBy('version_number', 'desc')->limit(5);
             },
@@ -123,8 +157,19 @@ class BillOfMaterialController extends Controller
         $bom->versions_count = $bom->versions->count();
         $bom->item_masters_count = $bom->itemMasters->count();
 
+        // Load available items for BOM configuration
+        $items = Item::where('is_active', true)
+            ->orderBy('item_number')
+            ->get(['id', 'item_number', 'name', 'unit_of_measure']);
+
+        // Ensure currentVersion items are properly loaded and formatted
+        if ($bom->currentVersion) {
+            $bom->currentVersion->load(['items.item', 'items.children.item']);
+        }
+
         return Inertia::render('production/bom/show', [
-            'bom' => $bom,
+            'bom' => $this->convertKeysToCamelCase($bom->load(['currentVersion.items.item', 'currentVersion.items.children.item'])->toArray()),
+            'items' => $items,
             'isCreating' => false,
             'can' => [
                 'update' => auth()->user()->can('update', $bom),
@@ -170,20 +215,7 @@ class BillOfMaterialController extends Controller
             ->with('success', 'BOM deleted successfully.');
     }
 
-    public function hierarchy(BillOfMaterial $bom)
-    {
-        $this->authorize('view', $bom);
 
-        $bom->load('currentVersion.items.item');
-
-        // Build hierarchy tree
-        $hierarchy = $this->buildHierarchy($bom);
-
-        return Inertia::render('production/bom/hierarchy', [
-            'bom' => $bom,
-            'hierarchy' => $hierarchy,
-        ]);
-    }
 
     public function duplicate(BillOfMaterial $bom)
     {
@@ -387,53 +419,7 @@ class BillOfMaterialController extends Controller
         ]);
     }
 
-    /**
-     * Build hierarchy tree for BOM visualization
-     */
-    private function buildHierarchy(BillOfMaterial $bom, $level = 0, $visited = [])
-    {
-        if (in_array($bom->id, $visited) || $level > 10) {
-            return null; // Prevent infinite recursion
-        }
 
-        $visited[] = $bom->id;
-        $hierarchy = [
-            'id' => $bom->id,
-            'bom_number' => $bom->bom_number,
-            'name' => $bom->name,
-            'level' => $level,
-            'children' => [],
-        ];
-
-        if ($bom->currentVersion && $bom->currentVersion->items) {
-            foreach ($bom->currentVersion->items as $bomItem) {
-                $item = $bomItem->item;
-                $childBom = $item->currentBom;
-                
-                $child = [
-                    'id' => $item->id,
-                    'type' => 'item',
-                    'item_number' => $item->item_number,
-                    'name' => $item->name,
-                    'quantity' => $bomItem->quantity,
-                    'unit_of_measure' => $bomItem->unit_of_measure,
-                    'level' => $level + 1,
-                    'children' => [],
-                ];
-
-                if ($childBom && !in_array($childBom->id, $visited)) {
-                    $childHierarchy = $this->buildHierarchy($childBom, $level + 2, $visited);
-                    if ($childHierarchy) {
-                        $child['children'][] = $childHierarchy;
-                    }
-                }
-
-                $hierarchy['children'][] = $child;
-            }
-        }
-
-        return $hierarchy;
-    }
 
     /**
      * Add item to BOM
@@ -449,6 +435,7 @@ class BillOfMaterialController extends Controller
             'unit_of_measure' => 'required|string|max:20',
             'reference_designators' => 'nullable|string',
             'bom_notes' => 'nullable|array',
+            'assembly_instructions' => 'nullable|array',
             'sequence_number' => 'nullable|integer',
         ]);
 
@@ -478,6 +465,7 @@ class BillOfMaterialController extends Controller
             'unit_of_measure' => $validated['unit_of_measure'],
             'reference_designators' => $validated['reference_designators'] ?? null,
             'bom_notes' => $validated['bom_notes'] ?? null,
+            'assembly_instructions' => $validated['assembly_instructions'] ?? null,
             'sequence_number' => $validated['sequence_number'],
             'level' => $level,
         ]);
