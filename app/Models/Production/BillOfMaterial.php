@@ -100,12 +100,15 @@ class BillOfMaterial extends Model
         $lastVersion = $this->versions()->orderBy('version_number', 'desc')->first();
         $versionNumber = $lastVersion ? $lastVersion->version_number + 1 : 1;
 
+        // First version should be current by default
+        $isCurrent = !$lastVersion;
+
         return $this->versions()->create([
             'version_number' => $versionNumber,
             'revision_notes' => $revisionNotes,
             'published_at' => now(),
             'published_by' => $publishedBy ?? auth()->id(),
-            'is_current' => false,
+            'is_current' => $isCurrent,
         ]);
     }
 

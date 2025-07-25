@@ -20,7 +20,6 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
     // BOMs Management
     Route::resource('bom', BillOfMaterialController::class);
-    Route::get('bom/{bom}/hierarchy', [BillOfMaterialController::class, 'hierarchy'])->name('bom.hierarchy');
     Route::post('bom/{bom}/duplicate', [BillOfMaterialController::class, 'duplicate'])->name('bom.duplicate');
     Route::get('bom/{bom}/export', [BillOfMaterialController::class, 'export'])->name('bom.export');
     Route::get('bom/{bom}/export-excel', [BillOfMaterialController::class, 'exportExcel'])->name('bom.export-excel');

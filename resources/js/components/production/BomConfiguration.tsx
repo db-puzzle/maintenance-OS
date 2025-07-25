@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { router } from '@inertiajs/react';
-import { 
-  Plus, 
-  Trash2, 
-  Save, 
-  Download, 
-  ChevronRight, 
-  ChevronDown, 
-  Edit, 
+import {
+  Plus,
+  Trash2,
+  Save,
+  Download,
+  ChevronRight,
+  ChevronDown,
+  Edit,
   GripVertical,
   Package,
   Search,
@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { BomItem, Item, BomVersion } from '@/types/production';
 
@@ -65,7 +65,6 @@ export default function BomConfiguration({
   canEdit,
   onUpdate
 }: BomConfigurationProps) {
-  const { toast } = useToast();
   const [items, setItems] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [dragging, setDragging] = useState<string | null>(null);
@@ -79,13 +78,20 @@ export default function BomConfiguration({
 
   // Transform flat BOM items to hierarchical structure
   useEffect(() => {
-    const buildHierarchy = (items: any[], parentId: string | null = null): any[] => {
+    const buildHierarchy = (items: any[], parentId: string | number | null = null): any[] => {
       return items
-        .filter(item => item.parent_item_id === parentId)
+        .filter(item => {
+          const itemParentId = item.parentItemId || item.parent_item_id;
+          // Convert both to strings for comparison if they exist
+          const itemParentIdStr = itemParentId ? String(itemParentId) : null;
+          const parentIdStr = parentId ? String(parentId) : null;
+          const matches = itemParentIdStr === parentIdStr;
+          return matches;
+        })
         .map(item => ({
           ...item,
           id: item.id.toString(),
-          children: buildHierarchy(items, item.id.toString())
+          children: buildHierarchy(items, item.id)  // Pass the numeric ID, not string
         }));
     };
 
@@ -140,12 +146,12 @@ export default function BomConfiguration({
       if (item.id === id) {
         return acc;
       }
-      
+
       if (item.children && item.children.length > 0) {
         const newChildren = removeItemFromTree(item.children, id);
         return [...acc, { ...item, children: newChildren }];
       }
-      
+
       return [...acc, item];
     }, []);
   };
@@ -179,19 +185,19 @@ export default function BomConfiguration({
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, id: string) => {
     if (!canEdit) return;
-    
+
     e.stopPropagation();
-    
+
     const dragGhost = document.createElement('div');
     dragGhost.style.position = 'absolute';
     dragGhost.style.top = '-1000px';
     document.body.appendChild(dragGhost);
     e.dataTransfer.setDragImage(dragGhost, 0, 0);
-    
+
     setDragging(id);
     e.dataTransfer.setData('text/plain', id);
     e.dataTransfer.effectAllowed = 'move';
-    
+
     setTimeout(() => {
       document.body.removeChild(dragGhost);
     }, 0);
@@ -199,13 +205,13 @@ export default function BomConfiguration({
 
   const handleDragOver = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
-    
+
     if (!canEdit || dragging === targetId) return;
-    
+
     // Check for circular reference
     const isChildOfDragged = (draggedId: string, targetId: string): boolean => {
       const draggedItem = findItemById(items, draggedId);
-      
+
       const checkChildren = (item: any): boolean => {
         if (item.id === targetId) return true;
         if (item.children && item.children.length > 0) {
@@ -213,41 +219,41 @@ export default function BomConfiguration({
         }
         return false;
       };
-      
+
       return draggedItem ? draggedItem.children.some((child: any) => checkChildren(child)) : false;
     };
-    
+
     if (dragging && isChildOfDragged(dragging, targetId)) {
       return;
     }
-    
+
     e.dataTransfer.dropEffect = 'move';
   };
 
   const handleDrop = async (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
-    
+
     if (!canEdit || !dragging) return;
-    
+
     const draggedId = e.dataTransfer.getData('text/plain');
-    
+
     if (draggedId === targetId) {
       setDragging(null);
       return;
     }
-    
+
     // Update locally first for immediate feedback
     const draggedItem = findItemById(items, draggedId);
     const newItems = removeItemFromTree(items, draggedId);
     const updatedItems = addChildToItem(newItems, targetId, draggedItem);
     setItems(updatedItems);
-    
+
     // Expand target to show newly added item
     setExpanded(prev => ({
       ...prev,
       [targetId]: true
     }));
-    
+
     // Save to backend
     try {
       await router.post(route('production.bom.items.move', {
@@ -258,8 +264,7 @@ export default function BomConfiguration({
       }, {
         preserveScroll: true,
         onSuccess: () => {
-          toast({
-            title: "Item movido",
+          toast.success("Item movido", {
             description: "A estrutura da BOM foi atualizada.",
           });
           onUpdate?.();
@@ -267,24 +272,22 @@ export default function BomConfiguration({
         onError: () => {
           // Revert on error
           setItems(items);
-          toast({
-            title: "Erro",
+          toast.error("Erro", {
             description: "Não foi possível mover o item.",
-            variant: "destructive",
           });
         }
       });
     } catch (error) {
       setItems(items);
     }
-    
+
     setDragging(null);
   };
 
   // CRUD operations
   const handleEditItem = (item: any) => {
     if (!canEdit) return;
-    
+
     setEditingItem({
       id: item.id,
       item_id: item.item_id,
@@ -300,9 +303,9 @@ export default function BomConfiguration({
 
   const handleSaveEdit = async () => {
     if (!editingItem || !canEdit) return;
-    
+
     setSaving(true);
-    
+
     try {
       await router.put(route('production.bom.items.update', {
         bom: bomId,
@@ -316,8 +319,7 @@ export default function BomConfiguration({
       }, {
         preserveScroll: true,
         onSuccess: () => {
-          toast({
-            title: "Item atualizado",
+          toast.success("Item atualizado", {
             description: "As informações do item foram atualizadas.",
           });
           setIsEditDialogOpen(false);
@@ -325,10 +327,8 @@ export default function BomConfiguration({
           onUpdate?.();
         },
         onError: () => {
-          toast({
-            title: "Erro",
+          toast.error("Erro", {
             description: "Não foi possível atualizar o item.",
-            variant: "destructive",
           });
         }
       });
@@ -339,7 +339,7 @@ export default function BomConfiguration({
 
   const handleAddItem = (parentId: string | null) => {
     if (!canEdit) return;
-    
+
     setNewItemParentId(parentId);
     setSelectedItemId(null);
     setItemSearchQuery('');
@@ -355,9 +355,9 @@ export default function BomConfiguration({
 
   const handleSaveNewItem = async () => {
     if (!selectedItemId || !editingItem || !canEdit) return;
-    
+
     setSaving(true);
-    
+
     try {
       await router.post(route('production.bom.items.add', bomId), {
         bom_version_id: versionId,
@@ -371,8 +371,7 @@ export default function BomConfiguration({
       }, {
         preserveScroll: true,
         onSuccess: () => {
-          toast({
-            title: "Item adicionado",
+          toast.success("Item adicionado", {
             description: "O item foi adicionado à BOM.",
           });
           setIsAddItemDialogOpen(false);
@@ -381,10 +380,8 @@ export default function BomConfiguration({
           onUpdate?.();
         },
         onError: () => {
-          toast({
-            title: "Erro",
+          toast.error("Erro", {
             description: "Não foi possível adicionar o item.",
-            variant: "destructive",
           });
         }
       });
@@ -395,11 +392,11 @@ export default function BomConfiguration({
 
   const handleDeleteItem = async (id: string) => {
     if (!canEdit) return;
-    
+
     if (!confirm('Tem certeza que deseja remover este item e todos os seus sub-itens?')) {
       return;
     }
-    
+
     try {
       await router.delete(route('production.bom.items.remove', {
         bom: bomId,
@@ -407,17 +404,14 @@ export default function BomConfiguration({
       }), {
         preserveScroll: true,
         onSuccess: () => {
-          toast({
-            title: "Item removido",
+          toast.success("Item removido", {
             description: "O item foi removido da BOM.",
           });
           onUpdate?.();
         },
         onError: () => {
-          toast({
-            title: "Erro",
+          toast.error("Erro", {
             description: "Não foi possível remover o item.",
-            variant: "destructive",
           });
         }
       });
@@ -439,12 +433,12 @@ export default function BomConfiguration({
   }> = ({ node, depth = 0, isLast = true, parentConnectorLines = [] }) => {
     const isExpanded = expanded[node.id];
     const hasChildren = node.children && node.children.length > 0;
-    
+
     const childConnectorLines = [...parentConnectorLines];
     if (depth > 0) {
       childConnectorLines.push(!isLast);
     }
-    
+
     return (
       <div className="w-full">
         <div className="flex">
@@ -454,7 +448,7 @@ export default function BomConfiguration({
               {showLine && <div className="absolute h-full w-0 border-l-2 border-gray-300 left-3 top-0"></div>}
             </div>
           ))}
-          
+
           {depth > 0 && (
             <div className="w-6 relative">
               <div className="absolute h-1/2 w-0 border-l-2 border-gray-300 left-3 top-0"></div>
@@ -462,9 +456,9 @@ export default function BomConfiguration({
               {!isLast && <div className="absolute h-1/2 w-0 border-l-2 border-gray-300 left-3 top-1/2"></div>}
             </div>
           )}
-          
+
           {/* Item content */}
-          <div 
+          <div
             className={cn(
               "flex-grow p-3 my-1 border rounded-lg transition-all",
               dragging === node.id ? 'opacity-50' : '',
@@ -477,7 +471,7 @@ export default function BomConfiguration({
             <div className="flex items-center w-full gap-2">
               {/* Drag handle */}
               {canEdit && (
-                <div 
+                <div
                   className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
                   draggable="true"
                   onDragStart={(e) => handleDragStart(e, node.id)}
@@ -486,7 +480,7 @@ export default function BomConfiguration({
                   <GripVertical size={16} />
                 </div>
               )}
-              
+
               {/* Expand/collapse button */}
               {hasChildren && (
                 <Button
@@ -499,7 +493,7 @@ export default function BomConfiguration({
                 </Button>
               )}
               {!hasChildren && <div className="w-6"></div>}
-              
+
               {/* Item details */}
               <div className="flex-grow grid grid-cols-12 gap-4 items-center">
                 <div className="col-span-3 font-medium">
@@ -548,15 +542,15 @@ export default function BomConfiguration({
             </div>
           </div>
         </div>
-        
+
         {/* Render children */}
         {hasChildren && isExpanded && (
           <div>
             {node.children.map((child: any, index: number) => (
-              <TreeItem 
-                key={child.id} 
-                node={child} 
-                depth={depth + 1} 
+              <TreeItem
+                key={child.id}
+                node={child}
+                depth={depth + 1}
                 isLast={index === node.children.length - 1}
                 parentConnectorLines={childConnectorLines}
               />
@@ -590,7 +584,7 @@ export default function BomConfiguration({
           </Button>
         </div>
       </div>
-      
+
       {/* Header */}
       <div className="p-4 pb-2">
         <div className="bg-muted/50 p-3 rounded-lg grid grid-cols-12 gap-4 font-semibold text-sm">
@@ -600,15 +594,15 @@ export default function BomConfiguration({
           <div className="col-span-2 text-right">Ações</div>
         </div>
       </div>
-      
+
       {/* Tree view */}
       <div className="flex-grow overflow-auto px-4 pb-4">
         {items.length > 0 ? (
           <div>
             {items.map((item, index) => (
-              <TreeItem 
-                key={item.id} 
-                node={item} 
+              <TreeItem
+                key={item.id}
+                node={item}
                 isLast={index === items.length - 1}
                 parentConnectorLines={[]}
               />
@@ -630,7 +624,7 @@ export default function BomConfiguration({
           </div>
         )}
       </div>
-      
+
       {/* Add Item Dialog */}
       <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
@@ -640,7 +634,7 @@ export default function BomConfiguration({
               Selecione um item e configure suas propriedades
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {/* Item selection */}
             <div className="space-y-2">
@@ -654,7 +648,7 @@ export default function BomConfiguration({
                   className="pl-9"
                 />
               </div>
-              
+
               {/* Items list */}
               <div className="border rounded-lg max-h-48 overflow-y-auto">
                 {filteredItems.length > 0 ? (
@@ -687,7 +681,7 @@ export default function BomConfiguration({
                 )}
               </div>
             </div>
-            
+
             {/* Item configuration */}
             {selectedItemId && editingItem && (
               <>
@@ -706,7 +700,7 @@ export default function BomConfiguration({
                       })}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="unit">Unidade</Label>
                     <Select
@@ -730,7 +724,7 @@ export default function BomConfiguration({
                     </Select>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="reference">Designadores de Referência</Label>
                   <Input
@@ -743,7 +737,7 @@ export default function BomConfiguration({
                     })}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notas da BOM</Label>
                   <Textarea
@@ -759,7 +753,7 @@ export default function BomConfiguration({
               </>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -772,7 +766,7 @@ export default function BomConfiguration({
             >
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={handleSaveNewItem}
               disabled={!selectedItemId || saving}
             >
@@ -781,7 +775,7 @@ export default function BomConfiguration({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Edit Item Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -791,7 +785,7 @@ export default function BomConfiguration({
               {editingItem?.item?.item_number} - {editingItem?.item?.name}
             </DialogDescription>
           </DialogHeader>
-          
+
           {editingItem && (
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
@@ -809,7 +803,7 @@ export default function BomConfiguration({
                     })}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="edit-unit">Unidade</Label>
                   <Select
@@ -833,7 +827,7 @@ export default function BomConfiguration({
                   </Select>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="edit-reference">Designadores de Referência</Label>
                 <Input
@@ -846,7 +840,7 @@ export default function BomConfiguration({
                   })}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="edit-notes">Notas da BOM</Label>
                 <Textarea
@@ -861,7 +855,7 @@ export default function BomConfiguration({
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -873,7 +867,7 @@ export default function BomConfiguration({
             >
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={handleSaveEdit}
               disabled={saving}
             >

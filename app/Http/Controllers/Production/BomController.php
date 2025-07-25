@@ -256,27 +256,7 @@ class BomController extends Controller
         }
     }
 
-    /**
-     * Get BOM hierarchy.
-     */
-    public function hierarchy(BillOfMaterial $bom): Response
-    {
-        $this->authorize('view', $bom);
 
-        $bom->load([
-            'currentVersion.items' => function ($query) {
-                $query->with('routing')
-                    ->orderBy('level')
-                    ->orderBy('sequence_number');
-            },
-        ]);
-
-        return Inertia::render('production/bom/hierarchy', [
-            'bom' => $bom,
-            'items' => $bom->currentVersion?->items ?? collect(),
-            'missingRouting' => $this->routingService->validateBomRouting($bom->currentVersion?->id),
-        ]);
-    }
 
     /**
      * Add item to BOM.
