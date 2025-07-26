@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -14,21 +12,31 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            // Core System
             PermissionSeeder::class,
             RoleSeeder::class,
-            WorkOrderCategorySeeder::class,
-            WorkOrderTypeSeeder::class,
-            FailureClassificationSeeder::class,
-            ManufacturerSeeder::class,
-            PartSeeder::class,
-            TeamSeeder::class,
-            SkillSeeder::class,
-            CertificationSeeder::class,
+            
             // Production Module
             ProductionPermissionSeeder::class,
             ProductionRoleSeeder::class,
-            // Production Test Data
-            ProductionTestDataSeeder::class,
+            
+            // Asset Hierarchy
+            ManufacturerSeeder::class,
+            PlantSeeder::class,
+            FailureAnalysisSeeder::class,
+            
+            // Work Orders
+            WorkOrderTypeSeeder::class,
+            WorkOrderCategorySeeder::class,
+            
+            // Skills & Certifications
+            SkillSeeder::class,
+            CertificationSeeder::class,
+            
+            // Others
+            TeamSeeder::class,
+            ShiftSeeder::class,
+            UserSeeder::class,
         ]);
     }
 }

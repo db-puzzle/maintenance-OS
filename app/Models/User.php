@@ -131,6 +131,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the work cells assigned to this user.
+     * This is primarily for machine operators who are assigned to specific work cells.
+     */
+    public function assignedWorkCells()
+    {
+        return $this->belongsToMany(\App\Models\Production\WorkCell::class, 'user_work_cells')
+            ->withTimestamps();
+    }
+
+    /**
      * Boot the model
      */
     protected static function booted()

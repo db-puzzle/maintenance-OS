@@ -14,14 +14,22 @@ return new class extends Migration
         Schema::create('production_orders', function (Blueprint $table) {
             $table->id();
             $table->string('order_number', 100)->unique();
+            $table->foreignId('parent_id')->nullable()->constrained('production_orders')->cascadeOnDelete();
             $table->foreignId('item_id')->nullable()->constrained('items');
-            $table->foreignId('bill_of_material_id')->nullable()->constrained('bill_of_materials'); // Specific BOM version to use
+            $table->foreignId('bill_of_material_id')->nullable()->constrained('bill_of_materials');
             $table->decimal('quantity', 10, 2);
+            $table->decimal('quantity_completed', 10, 2)->default(0);
+            $table->decimal('quantity_scrapped', 10, 2)->default(0);
             $table->string('unit_of_measure', 20)->default('EA');
             
             // Status tracking
             $table->enum('status', ['draft', 'planned', 'released', 'in_progress', 'completed', 'cancelled'])->default('draft');
             $table->integer('priority')->default(50); // 0-100
+            
+            // Child order tracking
+            $table->integer('child_orders_count')->default(0);
+            $table->integer('completed_child_orders_count')->default(0);
+            $table->boolean('auto_complete_on_children')->default(true);
             
             // Dates
             $table->date('requested_date')->nullable();
@@ -41,6 +49,7 @@ return new class extends Migration
             $table->index(['planned_start_date', 'planned_end_date']);
             $table->index('item_id');
             $table->index('bill_of_material_id');
+            $table->index('parent_id');
         });
     }
 

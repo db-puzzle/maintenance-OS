@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 
 class ProductionRoleSeeder extends Seeder
 {
@@ -12,309 +12,243 @@ class ProductionRoleSeeder extends Seeder
      */
     public function run(): void
     {
-        // Reset cached roles and permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-
-        // Production Manager - Full access to production module
+        // Production Manager - Full control over production module
         $productionManager = Role::updateOrCreate(
             ['name' => 'production-manager'],
-            ['description' => 'Manages all aspects of production including planning, scheduling, and execution']
+            [
+                'display_name' => 'Production Manager',
+                'description' => 'Full control over production module'
+            ]
         );
 
         $productionManager->syncPermissions([
-            // Items - Full access
-            'production.items.view',
-            'production.items.create',
-            'production.items.update',
-            'production.items.delete',
-            'production.items.manage_bom',
-            
-            // BOMs - Full access
-            'production.bom.viewAny',
-            'production.bom.view',
-            'production.bom.create',
-            'production.bom.update',
-            'production.bom.delete',
-            'production.bom.import',
-            'production.bom.manageItems',
-            
-            // Work Cells - Full access
-            'production.workCells.viewAny',
-            'production.workCells.view',
-            'production.workCells.create',
-            'production.workCells.update',
-            'production.workCells.delete',
-            
-            // Routing - Full access
-            'production.routing.viewAny',
-            'production.routing.view',
-            'production.routing.create',
-            'production.routing.update',
-            'production.routing.delete',
-            'production.routing.manageSteps',
-            
-            // Orders - Full access
+            // All order permissions
             'production.orders.viewAny',
             'production.orders.view',
             'production.orders.create',
             'production.orders.update',
             'production.orders.delete',
-            'production.orders.schedule',
             'production.orders.release',
             'production.orders.cancel',
             
-            // Schedules - Full access
-            'production.schedules.viewAny',
-            'production.schedules.view',
-            'production.schedules.update',
-            'production.schedules.start',
-            'production.schedules.complete',
+            // All route permissions
+            'production.routes.viewAny',
+            'production.routes.view',
+            'production.routes.create',
+            'production.routes.update',
+            'production.routes.delete',
+            'production.routes.createFromTemplate',
             
-            // Executions - View only
-            'production.executions.viewAny',
-            'production.executions.view',
+            // All step permissions
+            'production.steps.viewAny',
+            'production.steps.view',
+            'production.steps.update',
+            'production.steps.execute',
+            'production.steps.executeQualityCheck',
+            'production.steps.handleRework',
             
-            // QR - Full access
-            'production.qr.viewAny',
-            'production.qr.view',
-            'production.qr.generate',
-            'production.qr.print',
+            // All template permissions
+            'production.templates.viewAny',
+            'production.templates.view',
+            'production.templates.create',
+            'production.templates.update',
+            'production.templates.delete',
+            'production.templates.duplicate',
             
-            // Shipments - Full access
+            // All item permissions
+            'production.items.viewAny',
+            'production.items.view',
+            'production.items.create',
+            'production.items.update',
+            'production.items.delete',
+            'production.bom.import',
+            'production.bom.manage',
+            
+            // All quality permissions
+            'production.quality.executeCheck',
+            'production.quality.recordResult',
+            'production.quality.initiateRework',
+            'production.quality.scrapPart',
+            
+            // All shipment permissions
             'production.shipments.viewAny',
             'production.shipments.view',
             'production.shipments.create',
             'production.shipments.update',
             'production.shipments.delete',
-            'production.shipments.markReady',
-            'production.shipments.ship',
-            'production.shipments.deliver',
             'production.shipments.uploadPhotos',
+            'production.shipments.markDelivered',
+            
+            // All work cell permissions
+            'production.workcells.viewAny',
+            'production.workcells.view',
+            'production.workcells.create',
+            'production.workcells.update',
+            'production.workcells.delete',
+            
+            // All report permissions
+            'production.reports.viewProductionMetrics',
+            'production.reports.viewQualityMetrics',
+            'production.reports.viewEfficiencyReports',
+            'production.reports.exportData',
         ]);
 
-        // Production Planner - Planning and scheduling focus
+        // Production Planner - Plans and schedules production
         $productionPlanner = Role::updateOrCreate(
             ['name' => 'production-planner'],
-            ['description' => 'Plans and schedules production orders, manages BOMs and routing']
+            [
+                'display_name' => 'Production Planner',
+                'description' => 'Plans and schedules production'
+            ]
         );
 
         $productionPlanner->syncPermissions([
-            // Items - View and update
+            'production.items.viewAny',
             'production.items.view',
+            'production.items.create',
             'production.items.update',
-            'production.items.manage_bom',
-            
-            // BOMs - Full access
-            'production.bom.viewAny',
-            'production.bom.view',
-            'production.bom.create',
-            'production.bom.update',
             'production.bom.import',
-            'production.bom.manageItems',
-            
-            // Work Cells - View only
-            'production.workCells.viewAny',
-            'production.workCells.view',
-            
-            // Routing - Full access
-            'production.routing.viewAny',
-            'production.routing.view',
-            'production.routing.create',
-            'production.routing.update',
-            'production.routing.manageSteps',
-            
-            // Orders - Create and manage
+            'production.bom.manage',
             'production.orders.viewAny',
             'production.orders.view',
             'production.orders.create',
             'production.orders.update',
-            'production.orders.schedule',
             'production.orders.cancel',
-            
-            // Schedules - View and update
-            'production.schedules.viewAny',
-            'production.schedules.view',
-            'production.schedules.update',
-            
-            // Executions - View only
-            'production.executions.viewAny',
-            'production.executions.view',
-            
-            // QR - Generate and print
-            'production.qr.viewAny',
-            'production.qr.view',
-            'production.qr.generate',
-            'production.qr.print',
-            
-            // Shipments - View only
-            'production.shipments.viewAny',
-            'production.shipments.view',
+            'production.routes.viewAny',
+            'production.routes.view',
+            'production.routes.create',
+            'production.routes.update',
+            'production.routes.createFromTemplate',
+            'production.templates.viewAny',
+            'production.templates.view',
+            'production.templates.create',
+            'production.templates.update',
+            'production.templates.duplicate',
+            'production.steps.viewAny',
+            'production.steps.view',
+            'production.workcells.viewAny',
+            'production.workcells.view',
+            'production.reports.viewProductionMetrics',
+            'production.reports.viewEfficiencyReports',
         ]);
 
-        // Shop Floor Supervisor - Execution focus
+        // Shop Floor Supervisor - Supervises production execution
         $shopFloorSupervisor = Role::updateOrCreate(
             ['name' => 'shop-floor-supervisor'],
-            ['description' => 'Supervises production execution on the shop floor']
+            [
+                'display_name' => 'Shop Floor Supervisor',
+                'description' => 'Supervises production execution'
+            ]
         );
 
         $shopFloorSupervisor->syncPermissions([
-            // Items - View only
-            'production.items.view',
-            
-            // BOMs - View only
-            'production.bom.viewAny',
-            'production.bom.view',
-            
-            // Work Cells - View only
-            'production.workCells.viewAny',
-            'production.workCells.view',
-            
-            // Routing - View only
-            'production.routing.viewAny',
-            'production.routing.view',
-            
-            // Orders - View and release
             'production.orders.viewAny',
             'production.orders.view',
             'production.orders.release',
-            
-            // Schedules - Full execution control
-            'production.schedules.viewAny',
-            'production.schedules.view',
-            'production.schedules.update',
-            'production.schedules.start',
-            'production.schedules.complete',
-            
-            // Executions - Full access
-            'production.executions.viewAny',
-            'production.executions.view',
-            'production.executions.update',
-            'production.executions.scan',
-            'production.executions.complete',
-            
-            // QR - View and print
-            'production.qr.viewAny',
-            'production.qr.view',
-            'production.qr.print',
-            
-            // Shipments - View only
-            'production.shipments.viewAny',
-            'production.shipments.view',
+            'production.routes.viewAny',
+            'production.routes.view',
+            'production.steps.viewAny',
+            'production.steps.view',
+            'production.steps.update',
+            'production.steps.execute',
+            'production.steps.executeQualityCheck',
+            'production.steps.handleRework',
+            'production.quality.executeCheck',
+            'production.quality.recordResult',
+            'production.quality.initiateRework',
+            'production.quality.scrapPart',
+            'production.workcells.viewAny',
+            'production.workcells.view',
+            'production.reports.viewProductionMetrics',
+            'production.reports.viewQualityMetrics',
         ]);
 
-        // Machine Operator - Limited execution permissions
-        $operator = Role::updateOrCreate(
-            ['name' => 'operator'],
-            ['description' => 'Operates machines and reports production progress']
+        // Machine Operator - Executes manufacturing steps
+        $machineOperator = Role::updateOrCreate(
+            ['name' => 'machine-operator'],
+            [
+                'display_name' => 'Machine Operator',
+                'description' => 'Executes manufacturing steps'
+            ]
         );
 
-        $operator->syncPermissions([
-            // Items - View only
-            'production.items.view',
-            
-            // BOMs - View only
-            'production.bom.view',
-            
-            // Routing - View only
-            'production.routing.view',
-            
-            // Orders - View only
+        $machineOperator->syncPermissions([
             'production.orders.view',
-            
-            // Schedules - View only
-            'production.schedules.view',
-            
-            // Executions - Scan and complete own work
-            'production.executions.view',
-            'production.executions.update',
-            'production.executions.scan',
-            'production.executions.complete',
-            
-            // QR - View only
-            'production.qr.view',
+            'production.steps.view',
+            'production.steps.execute',
+            'production.workcells.view',
         ]);
 
-        // Shipping Coordinator - Shipment focus
+        // Quality Inspector - Performs quality checks
+        $qualityInspector = Role::updateOrCreate(
+            ['name' => 'quality-inspector'],
+            [
+                'display_name' => 'Quality Inspector',
+                'description' => 'Performs quality checks'
+            ]
+        );
+
+        $qualityInspector->syncPermissions([
+            'production.orders.viewAny',
+            'production.orders.view',
+            'production.steps.viewAny',
+            'production.steps.view',
+            'production.steps.executeQualityCheck',
+            'production.quality.executeCheck',
+            'production.quality.recordResult',
+            'production.quality.initiateRework',
+            'production.quality.scrapPart',
+            'production.reports.viewQualityMetrics',
+        ]);
+
+        // Shipping Coordinator - Manages shipments
         $shippingCoordinator = Role::updateOrCreate(
             ['name' => 'shipping-coordinator'],
-            ['description' => 'Manages shipments and delivery coordination']
+            [
+                'display_name' => 'Shipping Coordinator',
+                'description' => 'Manages shipments'
+            ]
         );
 
         $shippingCoordinator->syncPermissions([
-            // Items - View only
-            'production.items.view',
-            
-            // Orders - View only
             'production.orders.viewAny',
             'production.orders.view',
-            
-            // Schedules - View only
-            'production.schedules.viewAny',
-            'production.schedules.view',
-            
-            // QR - View and print
-            'production.qr.viewAny',
-            'production.qr.view',
-            'production.qr.print',
-            
-            // Shipments - Full access
             'production.shipments.viewAny',
             'production.shipments.view',
             'production.shipments.create',
             'production.shipments.update',
             'production.shipments.delete',
-            'production.shipments.markReady',
-            'production.shipments.ship',
-            'production.shipments.deliver',
             'production.shipments.uploadPhotos',
+            'production.shipments.markDelivered',
         ]);
 
-        // Quality Inspector - View and tracking focus
-        $qualityInspector = Role::updateOrCreate(
-            ['name' => 'quality-inspector'],
-            ['description' => 'Inspects production quality and tracks issues']
+        // Production Viewer - Read-only access
+        $productionViewer = Role::updateOrCreate(
+            ['name' => 'production-viewer'],
+            [
+                'display_name' => 'Production Viewer',
+                'description' => 'Read-only access to production data'
+            ]
         );
 
-        $qualityInspector->syncPermissions([
-            // Items - View only
-            'production.items.view',
-            
-            // BOMs - View only
-            'production.bom.viewAny',
-            'production.bom.view',
-            
-            // Work Cells - View only
-            'production.workCells.viewAny',
-            'production.workCells.view',
-            
-            // Routing - View only
-            'production.routing.viewAny',
-            'production.routing.view',
-            
-            // Orders - View only
+        $productionViewer->syncPermissions([
             'production.orders.viewAny',
             'production.orders.view',
-            
-            // Schedules - View only
-            'production.schedules.viewAny',
-            'production.schedules.view',
-            
-            // Executions - View only
-            'production.executions.viewAny',
-            'production.executions.view',
-            
-            // QR - Full tracking access
-            'production.qr.viewAny',
-            'production.qr.view',
-            'production.qr.generate',
-            'production.qr.print',
-            
-            // Shipments - View and photo upload
+            'production.routes.viewAny',
+            'production.routes.view',
+            'production.steps.viewAny',
+            'production.steps.view',
+            'production.templates.viewAny',
+            'production.templates.view',
+            'production.items.viewAny',
+            'production.items.view',
             'production.shipments.viewAny',
             'production.shipments.view',
-            'production.shipments.uploadPhotos',
+            'production.workcells.viewAny',
+            'production.workcells.view',
+            'production.reports.viewProductionMetrics',
+            'production.reports.viewQualityMetrics',
+            'production.reports.viewEfficiencyReports',
         ]);
-
-        $this->command->info('Production roles created successfully.');
     }
 } 

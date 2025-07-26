@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('form_task_id')->constrained()->cascadeOnDelete();
             $table->foreignId('work_order_execution_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('manufacturing_step_execution_id')->nullable()
+                ->constrained('manufacturing_step_executions');
             $table->foreignId('user_id')->constrained();
             $table->text('response')->nullable();
             $table->json('response_data')->nullable()->comment('Structured data for specific response types');

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Permission;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Permission;
 
 class ProductionPermissionSeeder extends Seeder
 {
@@ -12,93 +12,115 @@ class ProductionPermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        // Reset cached permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-
-        $permissions = [
-            // Item Master
-            'production.items.view' => 'View item details',
-            'production.items.create' => 'Create new items',
-            'production.items.update' => 'Update items',
-            'production.items.delete' => 'Delete items',
-            'production.items.manage_bom' => 'Manage BOM assignments for items',
-
-            // Bill of Materials
-            'production.bom.viewAny' => 'View all BOMs',
-            'production.bom.view' => 'View BOM details',
-            'production.bom.create' => 'Create new BOMs',
-            'production.bom.update' => 'Update BOMs',
-            'production.bom.delete' => 'Delete BOMs',
-            'production.bom.import' => 'Import BOMs from external sources',
-            'production.bom.manageItems' => 'Manage BOM items',
-
-            // Work Cells
-            'production.workCells.viewAny' => 'View all work cells',
-            'production.workCells.view' => 'View work cell details',
-            'production.workCells.create' => 'Create new work cells',
-            'production.workCells.update' => 'Update work cells',
-            'production.workCells.delete' => 'Delete work cells',
-
-            // Production Routing
-            'production.routing.viewAny' => 'View all production routings',
-            'production.routing.view' => 'View routing details',
-            'production.routing.create' => 'Create new routings',
-            'production.routing.update' => 'Update routings',
-            'production.routing.delete' => 'Delete routings',
-            'production.routing.manageSteps' => 'Manage routing steps',
-
-            // Production Orders
-            'production.orders.viewAny' => 'View all production orders',
-            'production.orders.view' => 'View order details',
-            'production.orders.create' => 'Create new production orders',
-            'production.orders.update' => 'Update production orders',
-            'production.orders.delete' => 'Delete production orders',
-            'production.orders.schedule' => 'Schedule production orders',
+        // Manufacturing Orders
+        $orderPermissions = [
+            'production.orders.viewAny' => 'View all manufacturing orders',
+            'production.orders.view' => 'View specific manufacturing order',
+            'production.orders.create' => 'Create manufacturing orders',
+            'production.orders.update' => 'Update manufacturing orders',
+            'production.orders.delete' => 'Delete manufacturing orders',
             'production.orders.release' => 'Release orders for production',
-            'production.orders.cancel' => 'Cancel production orders',
-
-            // Production Schedules
-            'production.schedules.viewAny' => 'View all production schedules',
-            'production.schedules.view' => 'View schedule details',
-            'production.schedules.update' => 'Update production schedules',
-            'production.schedules.start' => 'Start scheduled production',
-            'production.schedules.complete' => 'Complete production schedules',
-
-            // Production Execution
-            'production.executions.viewAny' => 'View all production executions',
-            'production.executions.view' => 'View execution details',
-            'production.executions.update' => 'Update production executions',
-            'production.executions.scan' => 'Scan QR codes for production',
-            'production.executions.complete' => 'Complete production executions',
-
-            // QR Tracking
-            'production.qr.viewAny' => 'View all QR tracking events',
-            'production.qr.view' => 'View QR tracking details',
-            'production.qr.generate' => 'Generate QR codes',
-            'production.qr.print' => 'Print QR labels',
-
-            // Shipments
-            'production.shipments.viewAny' => 'View all shipments',
-            'production.shipments.view' => 'View shipment details',
-            'production.shipments.create' => 'Create new shipments',
-            'production.shipments.update' => 'Update shipments',
-            'production.shipments.delete' => 'Delete shipments',
-            'production.shipments.markReady' => 'Mark shipments as ready',
-            'production.shipments.ship' => 'Ship shipments',
-            'production.shipments.deliver' => 'Mark shipments as delivered',
-            'production.shipments.uploadPhotos' => 'Upload shipment photos',
+            'production.orders.cancel' => 'Cancel manufacturing orders',
         ];
 
-        foreach ($permissions as $name => $description) {
+        // Manufacturing Routes
+        $routePermissions = [
+            'production.routes.viewAny' => 'View all manufacturing routes',
+            'production.routes.view' => 'View specific route',
+            'production.routes.create' => 'Create manufacturing routes',
+            'production.routes.update' => 'Update manufacturing routes',
+            'production.routes.delete' => 'Delete manufacturing routes',
+            'production.routes.createFromTemplate' => 'Create routes from templates',
+        ];
+
+        // Manufacturing Steps
+        $stepPermissions = [
+            'production.steps.viewAny' => 'View all manufacturing steps',
+            'production.steps.view' => 'View specific step',
+            'production.steps.update' => 'Update step details',
+            'production.steps.execute' => 'Execute manufacturing steps',
+            'production.steps.executeQualityCheck' => 'Execute quality checks',
+            'production.steps.handleRework' => 'Handle rework decisions',
+        ];
+
+        // Route Templates
+        $templatePermissions = [
+            'production.templates.viewAny' => 'View all route templates',
+            'production.templates.view' => 'View specific route template',
+            'production.templates.create' => 'Create route templates',
+            'production.templates.update' => 'Update route templates',
+            'production.templates.delete' => 'Delete route templates',
+            'production.templates.duplicate' => 'Duplicate route templates',
+        ];
+
+        // Items and BOMs
+        $itemPermissions = [
+            'production.items.viewAny' => 'View all items',
+            'production.items.view' => 'View specific item',
+            'production.items.create' => 'Create items',
+            'production.items.update' => 'Update items',
+            'production.items.delete' => 'Delete items',
+            'production.bom.import' => 'Import BOMs from CAD',
+            'production.bom.manage' => 'Manage BOM structures',
+        ];
+
+        // Quality Control
+        $qualityPermissions = [
+            'production.quality.executeCheck' => 'Execute quality checks',
+            'production.quality.recordResult' => 'Record quality results',
+            'production.quality.initiateRework' => 'Initiate rework process',
+            'production.quality.scrapPart' => 'Scrap failed parts',
+        ];
+
+        // Shipments
+        $shipmentPermissions = [
+            'production.shipments.viewAny' => 'View all shipments',
+            'production.shipments.view' => 'View specific shipment',
+            'production.shipments.create' => 'Create shipments',
+            'production.shipments.update' => 'Update shipments',
+            'production.shipments.delete' => 'Delete shipments',
+            'production.shipments.uploadPhotos' => 'Upload shipment photos',
+            'production.shipments.markDelivered' => 'Mark shipments as delivered',
+        ];
+
+        // Work Cells
+        $workCellPermissions = [
+            'production.workcells.viewAny' => 'View all work cells',
+            'production.workcells.view' => 'View specific work cell',
+            'production.workcells.create' => 'Create work cells',
+            'production.workcells.update' => 'Update work cells',
+            'production.workcells.delete' => 'Delete work cells',
+        ];
+
+        // Reports and Analytics
+        $reportPermissions = [
+            'production.reports.viewProductionMetrics' => 'View production metrics',
+            'production.reports.viewQualityMetrics' => 'View quality metrics',
+            'production.reports.viewEfficiencyReports' => 'View efficiency reports',
+            'production.reports.exportData' => 'Export production data',
+        ];
+
+        // Create all permissions
+        $allPermissions = array_merge(
+            $orderPermissions,
+            $routePermissions,
+            $stepPermissions,
+            $templatePermissions,
+            $itemPermissions,
+            $qualityPermissions,
+            $shipmentPermissions,
+            $workCellPermissions,
+            $reportPermissions
+        );
+
+        foreach ($allPermissions as $name => $display_name) {
             Permission::updateOrCreate(
                 ['name' => $name],
                 [
-                    'description' => $description,
+                    'display_name' => $display_name,
                     'guard_name' => 'web',
                 ]
             );
         }
-
-        $this->command->info('Production permissions created successfully.');
     }
 } 

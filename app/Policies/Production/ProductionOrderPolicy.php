@@ -4,9 +4,12 @@ namespace App\Policies\Production;
 
 use App\Models\Production\ProductionOrder;
 use App\Models\User;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class ProductionOrderPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any production orders.
      */
@@ -20,7 +23,24 @@ class ProductionOrderPolicy
      */
     public function view(User $user, ProductionOrder $order): bool
     {
-        return $user->hasPermissionTo('production.orders.view');
+        if (!$user->hasPermissionTo('production.orders.view')) {
+            return false;
+        }
+
+        // Check entity-scoped permissions
+        if ($order->item && $order->item->sector) {
+            $sector = $order->item->sector;
+            $area = $sector->area;
+            $plant = $area->plant;
+
+            return $user->hasAnyPermission([
+                "production.orders.view.plant.{$plant->id}",
+                "production.orders.view.area.{$area->id}",
+                "production.orders.view.sector.{$sector->id}",
+            ]);
+        }
+
+        return true;
     }
 
     /**
@@ -36,12 +56,29 @@ class ProductionOrderPolicy
      */
     public function update(User $user, ProductionOrder $order): bool
     {
-        // Can only update draft or scheduled orders
-        if (!in_array($order->status, ['draft', 'scheduled'])) {
+        if (!$user->hasPermissionTo('production.orders.update')) {
             return false;
         }
 
-        return $user->hasPermissionTo('production.orders.update');
+        // Only draft and planned orders can be updated
+        if (!in_array($order->status, ['draft', 'planned'])) {
+            return false;
+        }
+
+        // Check entity-scoped permissions
+        if ($order->item && $order->item->sector) {
+            $sector = $order->item->sector;
+            $area = $sector->area;
+            $plant = $area->plant;
+
+            return $user->hasAnyPermission([
+                "production.orders.update.plant.{$plant->id}",
+                "production.orders.update.area.{$area->id}",
+                "production.orders.update.sector.{$sector->id}",
+            ]);
+        }
+
+        return true;
     }
 
     /**
@@ -49,30 +86,21 @@ class ProductionOrderPolicy
      */
     public function delete(User $user, ProductionOrder $order): bool
     {
-        // Can only delete draft or cancelled orders
-        if (!in_array($order->status, ['draft', 'cancelled'])) {
+        if (!$user->hasPermissionTo('production.orders.delete')) {
             return false;
         }
 
-        // Cannot delete if order has shipment items
-        if ($order->shipmentItems()->exists()) {
-            return false;
-        }
-
-        return $user->hasPermissionTo('production.orders.delete');
-    }
-
-    /**
-     * Determine whether the user can schedule the production order.
-     */
-    public function schedule(User $user, ProductionOrder $order): bool
-    {
-        // Can only schedule draft orders
+        // Only draft orders can be deleted
         if ($order->status !== 'draft') {
             return false;
         }
 
-        return $user->hasPermissionTo('production.orders.schedule');
+        // Cannot delete if it has children
+        if ($order->children()->exists()) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -80,12 +108,21 @@ class ProductionOrderPolicy
      */
     public function release(User $user, ProductionOrder $order): bool
     {
-        // Can only release scheduled orders
-        if ($order->status !== 'scheduled') {
+        if (!$user->hasPermissionTo('production.orders.release')) {
             return false;
         }
 
-        return $user->hasPermissionTo('production.orders.release');
+        // Only draft and planned orders can be released
+        if (!$order->canBeReleased()) {
+            return false;
+        }
+
+        // Must have a manufacturing route
+        if (!$order->manufacturingRoute) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -93,11 +130,10 @@ class ProductionOrderPolicy
      */
     public function cancel(User $user, ProductionOrder $order): bool
     {
-        // Cannot cancel completed or already cancelled orders
-        if (in_array($order->status, ['completed', 'cancelled'])) {
+        if (!$user->hasPermissionTo('production.orders.cancel')) {
             return false;
         }
 
-        return $user->hasPermissionTo('production.orders.cancel');
+        return $order->canBeCancelled();
     }
 } 
