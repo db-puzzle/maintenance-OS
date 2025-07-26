@@ -27,6 +27,8 @@ class DatabaseSeeder extends Seeder
             // Production Module
             ProductionPermissionSeeder::class,
             ProductionRoleSeeder::class,
+            // Production Test Data
+            ProductionTestDataSeeder::class,
         ]);
     }
 }

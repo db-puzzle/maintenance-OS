@@ -460,7 +460,7 @@ export default function BomConfiguration({
           {/* Item content */}
           <div
             className={cn(
-              "flex-grow p-3 my-1 border rounded-lg transition-all",
+              "flex-grow p-2 my-0.5 border rounded-lg transition-all",
               dragging === node.id ? 'opacity-50' : '',
               dragging && dragging !== node.id && canEdit ? 'hover:border-blue-500 hover:border-dashed' : '',
               "hover:bg-muted/50"
@@ -472,12 +472,12 @@ export default function BomConfiguration({
               {/* Drag handle */}
               {canEdit && (
                 <div
-                  className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
+                  className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
                   draggable="true"
                   onDragStart={(e) => handleDragStart(e, node.id)}
                   title="Arrastar para reposicionar"
                 >
-                  <GripVertical size={16} />
+                  <GripVertical size={14} />
                 </div>
               )}
 
@@ -486,27 +486,28 @@ export default function BomConfiguration({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0"
+                  className="h-5 w-5 p-0"
                   onClick={() => toggleExpand(node.id)}
                 >
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 </Button>
               )}
-              {!hasChildren && <div className="w-6"></div>}
+              {!hasChildren && <div className="w-5"></div>}
 
               {/* Item details */}
-              <div className="flex-grow grid grid-cols-12 gap-4 items-center">
+              <div className="flex-grow grid grid-cols-12 gap-2 items-center">
                 <div className="col-span-3 font-medium">
-                  <div>{node.item.item_number}</div>
-                  {node.reference_designators && (
-                    <div className="text-xs text-muted-foreground">Ref: {node.reference_designators}</div>
+                  <div className="text-sm">{node.item.itemNumber || node.item.item_number}</div>
+                  {(node.referenceDesignators || node.reference_designators) && (
+                    <div className="text-xs text-muted-foreground">Ref: {node.referenceDesignators || node.reference_designators}</div>
                   )}
                 </div>
-                <div className="col-span-5 text-muted-foreground">{node.item.name}</div>
-                <div className="col-span-2 text-center">
-                  <Badge variant="secondary">
-                    {node.quantity} {node.unit_of_measure}
-                  </Badge>
+                <div className="col-span-4 text-foreground text-sm">{node.item.name}</div>
+                <div className="col-span-1 text-center text-sm text-foreground">
+                  {node.quantity}
+                </div>
+                <div className="col-span-2 text-center text-sm text-foreground">
+                  {node.unitOfMeasure || node.unit_of_measure}
                 </div>
                 <div className="col-span-2 flex justify-end gap-1">
                   {canEdit && (
@@ -514,26 +515,29 @@ export default function BomConfiguration({
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-6 w-6 p-0"
                         onClick={() => handleEditItem(node)}
                         title="Editar item"
                       >
-                        <Edit size={16} />
+                        <Edit size={14} />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-6 w-6 p-0"
                         onClick={() => handleAddItem(node.id)}
                         title="Adicionar sub-item"
                       >
-                        <Plus size={16} />
+                        <Plus size={14} />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-6 w-6 p-0"
                         onClick={() => handleDeleteItem(node.id)}
                         title="Remover item"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </Button>
                     </>
                   )}
@@ -587,10 +591,11 @@ export default function BomConfiguration({
 
       {/* Header */}
       <div className="p-4 pb-2">
-        <div className="bg-muted/50 p-3 rounded-lg grid grid-cols-12 gap-4 font-semibold text-sm">
+        <div className="bg-muted/50 p-3 rounded-lg grid grid-cols-12 gap-2 font-semibold text-sm">
           <div className="col-span-3">Código do Item</div>
-          <div className="col-span-5">Descrição</div>
-          <div className="col-span-2 text-center">Quantidade</div>
+          <div className="col-span-4">Descrição</div>
+          <div className="col-span-1 text-center">Qtd</div>
+          <div className="col-span-2 text-center">Unidade</div>
           <div className="col-span-2 text-right">Ações</div>
         </div>
       </div>

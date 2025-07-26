@@ -36,8 +36,12 @@ class ProductionTestDataSeeder extends Seeder
         // Clean up existing data in reverse dependency order
         $this->cleanDatabase();
         
-        // Get the first user as creator
-        $creator = User::first();
+        // Get or create a user as creator
+        $creator = User::first() ?? User::factory()->create([
+            'name' => 'Administrator',
+            'email' => 'admin@admin.com',
+            'password' => bcrypt('adminadmin'),
+        ]);
         
         // Create work cells
         $this->createWorkCells();
@@ -90,56 +94,63 @@ class ProductionTestDataSeeder extends Seeder
                 'name' => 'Centro de Usinagem',
                 'description' => 'Centro de usinagem para componentes metálicos',
                 'cell_type' => 'internal',
-                'capacity_per_hour' => 20,
-                'setup_time_minutes' => 30,
+                'available_hours_per_day' => 16,
+                'efficiency_percentage' => 85,
+                'is_active' => true,
             ]),
             'soldagem' => WorkCell::factory()->create([
                 'code' => 'SOL-01',
                 'name' => 'Estação de Soldagem',
                 'description' => 'Soldagem de quadros e componentes',
                 'cell_type' => 'internal',
-                'capacity_per_hour' => 10,
-                'setup_time_minutes' => 45,
+                'available_hours_per_day' => 16,
+                'efficiency_percentage' => 80,
+                'is_active' => true,
             ]),
             'pintura' => WorkCell::factory()->create([
                 'code' => 'PIN-01',
                 'name' => 'Cabine de Pintura',
                 'description' => 'Pintura eletrostática e acabamento',
                 'cell_type' => 'internal',
-                'capacity_per_hour' => 15,
-                'setup_time_minutes' => 60,
+                'available_hours_per_day' => 12,
+                'efficiency_percentage' => 75,
+                'is_active' => true,
             ]),
             'montagem_rodas' => WorkCell::factory()->create([
                 'code' => 'MTR-01',
                 'name' => 'Montagem de Rodas',
                 'description' => 'Montagem e alinhamento de rodas',
                 'cell_type' => 'internal',
-                'capacity_per_hour' => 25,
-                'setup_time_minutes' => 15,
+                'available_hours_per_day' => 16,
+                'efficiency_percentage' => 90,
+                'is_active' => true,
             ]),
             'montagem_final' => WorkCell::factory()->create([
                 'code' => 'MTF-01',
                 'name' => 'Linha de Montagem Final',
                 'description' => 'Montagem final de bicicletas',
                 'cell_type' => 'internal',
-                'capacity_per_hour' => 8,
-                'setup_time_minutes' => 20,
+                'available_hours_per_day' => 16,
+                'efficiency_percentage' => 85,
+                'is_active' => true,
             ]),
             'inspecao' => WorkCell::factory()->create([
                 'code' => 'INS-01',
                 'name' => 'Inspeção de Qualidade',
                 'description' => 'Inspeção final e testes',
                 'cell_type' => 'internal',
-                'capacity_per_hour' => 12,
-                'setup_time_minutes' => 10,
+                'available_hours_per_day' => 16,
+                'efficiency_percentage' => 95,
+                'is_active' => true,
             ]),
             'embalagem' => WorkCell::factory()->create([
                 'code' => 'EMB-01',
                 'name' => 'Estação de Embalagem',
                 'description' => 'Embalagem e preparação para envio',
                 'cell_type' => 'internal',
-                'capacity_per_hour' => 20,
-                'setup_time_minutes' => 15,
+                'available_hours_per_day' => 16,
+                'efficiency_percentage' => 90,
+                'is_active' => true,
             ]),
         ];
     }
@@ -892,8 +903,9 @@ class ProductionTestDataSeeder extends Seeder
         ItemBomHistory::create([
             'item_id' => $this->items['bicicleta']->id,
             'bill_of_material_id' => $bom->id,
-            'changed_by' => $creator->id,
+            'approved_by' => $creator->id,
             'change_reason' => 'BOM inicial criada',
+            'effective_from' => now(),
         ]);
         
         $this->command->info('Estrutura de BOM criada com 4 níveis');
@@ -927,36 +939,36 @@ class ProductionTestDataSeeder extends Seeder
                 'production_routing_id' => $routingEstrutura->id,
                 'step_number' => 10,
                 'operation_code' => 'CORTE',
-                'operation_description' => 'Cortar tubos no comprimento especificado',
+                'name' => 'Corte de Tubos',
+                'description' => 'Cortar tubos no comprimento especificado',
                 'work_cell_id' => $this->workCells['usinagem']->id,
                 'setup_time_minutes' => 15,
                 'cycle_time_minutes' => 10,
-                'labor_time_minutes' => 10,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
             
             RoutingStep::create([
                 'production_routing_id' => $routingEstrutura->id,
                 'step_number' => 20,
                 'operation_code' => 'SOLDA',
-                'operation_description' => 'Soldar tubos conforme gabarito',
+                'name' => 'Soldagem',
+                'description' => 'Soldar tubos conforme gabarito',
                 'work_cell_id' => $this->workCells['soldagem']->id,
                 'setup_time_minutes' => 30,
                 'cycle_time_minutes' => 45,
-                'labor_time_minutes' => 45,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
             
             RoutingStep::create([
                 'production_routing_id' => $routingEstrutura->id,
                 'step_number' => 30,
                 'operation_code' => 'ACABAMENTO',
-                'operation_description' => 'Lixar e preparar para pintura',
+                'name' => 'Acabamento',
+                'description' => 'Lixar e preparar para pintura',
                 'work_cell_id' => $this->workCells['usinagem']->id,
                 'setup_time_minutes' => 10,
                 'cycle_time_minutes' => 20,
-                'labor_time_minutes' => 20,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
         }
         
@@ -980,24 +992,24 @@ class ProductionTestDataSeeder extends Seeder
                 'production_routing_id' => $routingQuadro->id,
                 'step_number' => 10,
                 'operation_code' => 'MONTAGEM',
-                'operation_description' => 'Montar estrutura com garfo e mesa',
+                'name' => 'Montagem do Quadro',
+                'description' => 'Montar estrutura com garfo e mesa',
                 'work_cell_id' => $this->workCells['montagem_final']->id,
                 'setup_time_minutes' => 10,
                 'cycle_time_minutes' => 15,
-                'labor_time_minutes' => 15,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
             
             RoutingStep::create([
                 'production_routing_id' => $routingQuadro->id,
                 'step_number' => 20,
                 'operation_code' => 'PINTURA',
-                'operation_description' => 'Pintura eletrostática do quadro',
+                'name' => 'Pintura do Quadro',
+                'description' => 'Pintura eletrostática do quadro',
                 'work_cell_id' => $this->workCells['pintura']->id,
                 'setup_time_minutes' => 30,
                 'cycle_time_minutes' => 60,
-                'labor_time_minutes' => 20,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
         }
         
@@ -1021,24 +1033,24 @@ class ProductionTestDataSeeder extends Seeder
                 'production_routing_id' => $routingRoda->id,
                 'step_number' => 10,
                 'operation_code' => 'RAIACAO',
-                'operation_description' => 'Montar raios no aro e cubo',
+                'name' => 'Raiação da Roda',
+                'description' => 'Montar raios no aro e cubo',
                 'work_cell_id' => $this->workCells['montagem_rodas']->id,
                 'setup_time_minutes' => 10,
                 'cycle_time_minutes' => 25,
-                'labor_time_minutes' => 25,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
             
             RoutingStep::create([
                 'production_routing_id' => $routingRoda->id,
                 'step_number' => 20,
                 'operation_code' => 'CENTRAGEM',
-                'operation_description' => 'Centrar e balancear roda',
+                'name' => 'Centragem da Roda',
+                'description' => 'Centrar e balancear roda',
                 'work_cell_id' => $this->workCells['montagem_rodas']->id,
                 'setup_time_minutes' => 5,
                 'cycle_time_minutes' => 15,
-                'labor_time_minutes' => 15,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
         }
         
@@ -1072,72 +1084,72 @@ class ProductionTestDataSeeder extends Seeder
                 'production_routing_id' => $routingFinal->id,
                 'step_number' => 10,
                 'operation_code' => 'MONT-INICIAL',
-                'operation_description' => 'Montar rodas no quadro',
+                'name' => 'Montagem Inicial',
+                'description' => 'Montar rodas no quadro',
                 'work_cell_id' => $this->workCells['montagem_final']->id,
                 'setup_time_minutes' => 10,
                 'cycle_time_minutes' => 20,
-                'labor_time_minutes' => 20,
-                'created_by' => $creator->id,
+                'labor_requirement' => 2,
             ]);
             
             RoutingStep::create([
                 'production_routing_id' => $routingFinal->id,
                 'step_number' => 20,
                 'operation_code' => 'MONT-TRANS',
-                'operation_description' => 'Instalar sistema de transmissão',
+                'name' => 'Montagem da Transmissão',
+                'description' => 'Instalar sistema de transmissão',
                 'work_cell_id' => $this->workCells['montagem_final']->id,
                 'setup_time_minutes' => 5,
                 'cycle_time_minutes' => 30,
-                'labor_time_minutes' => 30,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
             
             RoutingStep::create([
                 'production_routing_id' => $routingFinal->id,
                 'step_number' => 30,
                 'operation_code' => 'MONT-FREIOS',
-                'operation_description' => 'Instalar e ajustar sistema de freios',
+                'name' => 'Montagem dos Freios',
+                'description' => 'Instalar e ajustar sistema de freios',
                 'work_cell_id' => $this->workCells['montagem_final']->id,
                 'setup_time_minutes' => 5,
                 'cycle_time_minutes' => 20,
-                'labor_time_minutes' => 20,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
             
             RoutingStep::create([
                 'production_routing_id' => $routingFinal->id,
                 'step_number' => 40,
                 'operation_code' => 'MONT-ACESS',
-                'operation_description' => 'Instalar selim, guidão e pedais',
+                'name' => 'Montagem de Acessórios',
+                'description' => 'Instalar selim, guidão e pedais',
                 'work_cell_id' => $this->workCells['montagem_final']->id,
                 'setup_time_minutes' => 5,
                 'cycle_time_minutes' => 15,
-                'labor_time_minutes' => 15,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
             
             RoutingStep::create([
                 'production_routing_id' => $routingFinal->id,
                 'step_number' => 50,
                 'operation_code' => 'INSPECAO',
-                'operation_description' => 'Inspeção final e testes',
+                'name' => 'Inspeção de Qualidade',
+                'description' => 'Inspeção final e testes',
                 'work_cell_id' => $this->workCells['inspecao']->id,
                 'setup_time_minutes' => 5,
                 'cycle_time_minutes' => 15,
-                'labor_time_minutes' => 15,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
             
             RoutingStep::create([
                 'production_routing_id' => $routingFinal->id,
                 'step_number' => 60,
                 'operation_code' => 'EMBALAGEM',
-                'operation_description' => 'Embalar bicicleta para envio',
+                'name' => 'Embalagem Final',
+                'description' => 'Embalar bicicleta para envio',
                 'work_cell_id' => $this->workCells['embalagem']->id,
                 'setup_time_minutes' => 5,
                 'cycle_time_minutes' => 10,
-                'labor_time_minutes' => 10,
-                'created_by' => $creator->id,
+                'labor_requirement' => 1,
             ]);
         }
         
@@ -1156,8 +1168,8 @@ class ProductionTestDataSeeder extends Seeder
                 'bill_of_material_id' => $this->items['bicicleta']->current_bom_id,
                 'quantity' => rand(5, 20),
                 'unit_of_measure' => 'UN',
-                'status' => $i <= 2 ? 'in_progress' : 'scheduled',
-                'priority' => $i == 1 ? 'high' : 'normal',
+                'status' => $i <= 2 ? 'in_progress' : 'planned',
+                'priority' => $i == 1 ? 80 : 50,
                 'requested_date' => now()->addDays(rand(7, 30)),
                 'planned_start_date' => now()->addDays(rand(1, 5)),
                 'planned_end_date' => now()->addDays(rand(6, 10)),
