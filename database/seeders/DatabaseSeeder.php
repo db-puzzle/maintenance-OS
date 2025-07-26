@@ -22,12 +22,12 @@ class DatabaseSeeder extends Seeder
             
             // Asset Hierarchy
             ManufacturerSeeder::class,
-            PlantSeeder::class,
+            // PlantSeeder::class, // TODO: Create this seeder
             FailureAnalysisSeeder::class,
             
             // Work Orders
-            WorkOrderTypeSeeder::class,
             WorkOrderCategorySeeder::class,
+            WorkOrderTypeSeeder::class,
             
             // Skills & Certifications
             SkillSeeder::class,
@@ -35,8 +35,8 @@ class DatabaseSeeder extends Seeder
             
             // Others
             TeamSeeder::class,
-            ShiftSeeder::class,
-            UserSeeder::class,
+            // ShiftSeeder::class, // TODO: Create this seeder
+            // UserSeeder::class, // TODO: Create this seeder
         ]);
     }
 }
