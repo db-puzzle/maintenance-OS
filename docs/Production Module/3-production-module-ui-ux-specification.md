@@ -27,7 +27,8 @@ The Production Module will be integrated into the existing sidebar navigation wi
 Production
 ├── Items
 ├── BOMs
-├── Routing
+├── Manufacturing Orders
+├── Routes & Steps
 ├── Planning
 ├── Tracking
 └── Shipments
@@ -557,9 +558,494 @@ function ItemForm({ item, mode }) {
 }
 ```
 
-### 3.2 BOM Management
+### 3.2 Manufacturing Orders
 
-#### 3.2.1 BOM List Page
+#### 3.2.1 Manufacturing Order List Page
+**Route**: `/production/orders`
+**Layout**: `ListLayout`
+
+```tsx
+<ListLayout
+    title="Ordens de Manufatura"
+    description="Gerencie ordens de produção e acompanhe o progresso"
+    searchPlaceholder="Buscar por número da ordem..."
+    searchValue={searchValue}
+    onSearchChange={handleSearchChange}
+    createRoute="/production/orders/create"
+    createButtonText="Nova Ordem"
+    actions={
+        <ButtonGroup>
+            <Button variant="outline" onClick={() => setShowBulkCreate(true)}>
+                <Package className="h-4 w-4 mr-2" />
+                Criar de BOM
+            </Button>
+            <FilterDropdown
+                filters={filters}
+                onFiltersChange={setFilters}
+                filterOptions={[
+                    { key: 'status', label: 'Status', options: orderStatuses },
+                    { key: 'priority', label: 'Prioridade', options: priorities },
+                    { key: 'plant', label: 'Planta', options: plants },
+                ]}
+            />
+        </ButtonGroup>
+    }
+>
+    <EntityDataTable
+        data={orders}
+        columns={orderColumns}
+        loading={loading}
+        onRowClick={(order) => router.visit(`/production/orders/${order.id}`)}
+        actions={(order) => (
+            <EntityActionDropdown
+                onEdit={() => router.visit(`/production/orders/${order.id}/edit`)}
+                onDelete={() => handleDelete(order)}
+                additionalActions={[
+                    {
+                        label: 'Liberar para Produção',
+                        icon: <PlayCircle className="h-4 w-4" />,
+                        onClick: () => handleRelease(order),
+                        disabled: order.status !== 'planned',
+                        visible: hasPermission('production.orders.release')
+                    },
+                    {
+                        label: 'Ver Rotas',
+                        icon: <Workflow className="h-4 w-4" />,
+                        onClick: () => router.visit(`/production/orders/${order.id}/routes`)
+                    },
+                    {
+                        label: 'Ver Ordens Filhas',
+                        icon: <GitBranch className="h-4 w-4" />,
+                        onClick: () => router.visit(`/production/orders/${order.id}/children`),
+                        visible: order.child_orders_count > 0
+                    },
+                    {
+                        label: 'Cancelar',
+                        icon: <XCircle className="h-4 w-4" />,
+                        onClick: () => handleCancel(order),
+                        disabled: ['completed', 'cancelled'].includes(order.status)
+                    }
+                ]}
+            />
+        )}
+    />
+</ListLayout>
+
+// Column Configuration for Orders
+const orderColumns: ColumnConfig[] = [
+    {
+        key: 'order_number',
+        label: 'Número',
+        sortable: true,
+        width: 'w-[150px]',
+        render: (value, order) => (
+            <div className="flex items-center gap-2">
+                <span className="font-medium">{value}</span>
+                {order.parent_id && (
+                    <Badge variant="outline" className="text-xs">
+                        <GitBranch className="h-3 w-3 mr-1" />
+                        Filha
+                    </Badge>
+                )}
+            </div>
+        )
+    },
+    {
+        key: 'item',
+        label: 'Item',
+        sortable: true,
+        render: (value) => (
+            <div>
+                <div className="font-medium">{value.item_number}</div>
+                <div className="text-sm text-muted-foreground">{value.name}</div>
+            </div>
+        )
+    },
+    {
+        key: 'quantity',
+        label: 'Quantidade',
+        sortable: true,
+        width: 'w-[120px]',
+        render: (value, order) => (
+            <div>
+                <div>{value} {order.unit_of_measure}</div>
+                {order.quantity_completed > 0 && (
+                    <Progress 
+                        value={(order.quantity_completed / value) * 100} 
+                        className="h-1 mt-1"
+                    />
+                )}
+            </div>
+        )
+    },
+    {
+        key: 'status',
+        label: 'Status',
+        sortable: true,
+        width: 'w-[120px]',
+        render: (value) => (
+            <Badge variant={getStatusVariant(value)}>
+                {statusLabels[value]}
+            </Badge>
+        )
+    },
+    {
+        key: 'priority',
+        label: 'Prioridade',
+        sortable: true,
+        width: 'w-[100px]',
+        render: (value) => (
+            <div className="flex items-center gap-1">
+                <PriorityIcon priority={value} />
+                <span className="text-sm">{value}</span>
+            </div>
+        )
+    },
+    {
+        key: 'requested_date',
+        label: 'Data Solicitada',
+        sortable: true,
+        width: 'w-[120px]',
+        render: (value) => formatDate(value)
+    },
+    {
+        key: 'progress',
+        label: 'Progresso',
+        width: 'w-[150px]',
+        render: (value, order) => {
+            if (order.child_orders_count > 0) {
+                return (
+                    <div className="text-sm">
+                        <span className="font-medium">
+                            {order.completed_child_orders_count}/{order.child_orders_count}
+                        </span>
+                        <span className="text-muted-foreground ml-1">ordens filhas</span>
+                    </div>
+                );
+            }
+            return <span className="text-muted-foreground">—</span>;
+        }
+    }
+];
+```
+
+#### 3.2.2 Manufacturing Order Details Page
+**Route**: `/production/orders/{id}`
+**Layout**: `ShowLayout` with tabs
+
+```tsx
+function ManufacturingOrderDetails({ order }) {
+    const tabs = [
+        {
+            id: 'overview',
+            label: 'Visão Geral',
+            content: <OrderOverviewTab order={order} />
+        },
+        {
+            id: 'routes',
+            label: 'Rotas e Etapas',
+            content: <OrderRoutesTab order={order} />,
+            badge: order.manufacturing_route ? '1' : null
+        },
+        {
+            id: 'children',
+            label: 'Ordens Filhas',
+            content: <OrderChildrenTab order={order} />,
+            visible: order.child_orders_count > 0,
+            badge: order.child_orders_count
+        },
+        {
+            id: 'materials',
+            label: 'Materiais',
+            content: <OrderMaterialsTab order={order} />
+        },
+        {
+            id: 'execution',
+            label: 'Execução',
+            content: <OrderExecutionTab order={order} />,
+            visible: ['released', 'in_progress', 'completed'].includes(order.status)
+        },
+        {
+            id: 'history',
+            label: 'Histórico',
+            content: <OrderHistoryTab order={order} />
+        }
+    ];
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <ShowLayout
+                title={`Ordem ${order.order_number}`}
+                subtitle={order.item.name}
+                backUrl="/production/orders"
+                tabs={tabs}
+                actions={
+                    <div className="flex gap-2">
+                        {order.status === 'planned' && (
+                            <Button 
+                                onClick={() => handleRelease(order)}
+                                disabled={!canRelease(order)}
+                            >
+                                <PlayCircle className="h-4 w-4 mr-2" />
+                                Liberar
+                            </Button>
+                        )}
+                        {order.status === 'released' && !order.manufacturing_route && (
+                            <Button variant="outline" asChild>
+                                <Link href={`/production/orders/${order.id}/routes/create`}>
+                                    <Workflow className="h-4 w-4 mr-2" />
+                                    Criar Rota
+                                </Link>
+                            </Button>
+                        )}
+                        <EntityActionDropdown
+                            onEdit={() => router.visit(`/production/orders/${order.id}/edit`)}
+                            onDelete={() => handleDelete(order)}
+                            disabled={['in_progress', 'completed'].includes(order.status)}
+                        />
+                    </div>
+                }
+            />
+        </AppLayout>
+    );
+}
+
+// Order Overview Tab
+function OrderOverviewTab({ order }) {
+    return (
+        <div className="space-y-6 py-6">
+            {/* Status Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Status da Ordem</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                                Status Atual
+                            </label>
+                            <div className="mt-1 flex items-center gap-2">
+                                <Badge variant={getStatusVariant(order.status)} className="text-base">
+                                    {statusLabels[order.status]}
+                                </Badge>
+                                {order.auto_complete_on_children && order.child_orders_count > 0 && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                <Info className="h-4 w-4 text-muted-foreground" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Será concluída automaticamente quando todas as ordens filhas forem concluídas</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                                Prioridade
+                            </label>
+                            <div className="mt-1 flex items-center gap-2">
+                                <PriorityIcon priority={order.priority} />
+                                <span className="font-medium">{order.priority}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                                Progresso
+                            </label>
+                            <div className="mt-1">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm font-medium">
+                                        {order.quantity_completed} / {order.quantity}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {Math.round((order.quantity_completed / order.quantity) * 100)}%
+                                    </span>
+                                </div>
+                                <Progress value={(order.quantity_completed / order.quantity) * 100} />
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Parent Order Card - if this is a child order */}
+            {order.parent && (
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Ordem Principal</CardTitle>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={`/production/orders/${order.parent.id}`}>
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                Ver Ordem
+                            </Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center gap-4">
+                            <div className="flex-1">
+                                <p className="font-medium">{order.parent.order_number}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    {order.parent.item.item_number} - {order.parent.item.name}
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm text-muted-foreground">Quantidade</p>
+                                <p className="font-medium">
+                                    {order.parent.quantity} {order.parent.unit_of_measure}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Child Orders Summary - if this has child orders */}
+            {order.child_orders_count > 0 && (
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Resumo das Ordens Filhas</CardTitle>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={`/production/orders/${order.id}/children`}>
+                                <GitBranch className="h-4 w-4 mr-2" />
+                                Ver Todas
+                            </Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center p-4 border rounded-lg">
+                                <p className="text-2xl font-bold">{order.child_orders_count}</p>
+                                <p className="text-sm text-muted-foreground">Total</p>
+                            </div>
+                            <div className="text-center p-4 border rounded-lg">
+                                <p className="text-2xl font-bold text-green-600">
+                                    {order.completed_child_orders_count}
+                                </p>
+                                <p className="text-sm text-muted-foreground">Concluídas</p>
+                            </div>
+                            <div className="text-center p-4 border rounded-lg">
+                                <p className="text-2xl font-bold text-blue-600">
+                                    {order.child_orders_in_progress}
+                                </p>
+                                <p className="text-sm text-muted-foreground">Em Progresso</p>
+                            </div>
+                            <div className="text-center p-4 border rounded-lg">
+                                <p className="text-2xl font-bold text-yellow-600">
+                                    {order.child_orders_pending}
+                                </p>
+                                <p className="text-sm text-muted-foreground">Pendentes</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+    );
+}
+```
+
+#### 3.2.3 Create Manufacturing Order for BOM
+**Route**: `/production/orders/create-from-bom`
+**Component**: Multi-step wizard
+
+```tsx
+function CreateOrderFromBOM({ boms }) {
+    const [step, setStep] = useState(1);
+    const [orderData, setOrderData] = useState({
+        bill_of_material_id: null,
+        quantity: 1,
+        requested_date: null,
+        priority: 50,
+        auto_create_routes: false,
+        route_template_id: null
+    });
+
+    const steps = [
+        { number: 1, title: 'Selecionar BOM' },
+        { number: 2, title: 'Configurar Ordem' },
+        { number: 3, title: 'Rotas de Produção' },
+        { number: 4, title: 'Visualização' },
+        { number: 5, title: 'Confirmação' }
+    ];
+
+    return (
+        <Dialog open={open} onOpenChange={onClose}>
+            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Criar Ordem de Manufatura de BOM</DialogTitle>
+                    <DialogDescription>
+                        Crie uma ordem principal e todas as ordens filhas automaticamente
+                    </DialogDescription>
+                </DialogHeader>
+
+                <WizardSteps steps={steps} currentStep={step} />
+
+                <div className="flex-1 overflow-auto">
+                    {step === 1 && (
+                        <BOMSelectionStep
+                            selectedBOM={orderData.bill_of_material_id}
+                            onSelect={(bomId) => 
+                                setOrderData({ ...orderData, bill_of_material_id: bomId })
+                            }
+                            boms={boms}
+                        />
+                    )}
+                    {step === 2 && (
+                        <OrderConfigurationStep
+                            data={orderData}
+                            onChange={setOrderData}
+                            selectedBOM={boms.find(b => b.id === orderData.bill_of_material_id)}
+                        />
+                    )}
+                    {step === 3 && (
+                        <RouteConfigurationStep
+                            data={orderData}
+                            onChange={setOrderData}
+                            bomItems={getExpandedBOMItems(orderData.bill_of_material_id)}
+                        />
+                    )}
+                    {step === 4 && (
+                        <OrderPreviewStep
+                            orderData={orderData}
+                            preview={generateOrderPreview(orderData)}
+                        />
+                    )}
+                    {step === 5 && (
+                        <ConfirmationStep
+                            onConfirm={handleCreateOrders}
+                            summary={generateOrderSummary(orderData)}
+                        />
+                    )}
+                </div>
+
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        onClick={() => setStep(step - 1)}
+                        disabled={step === 1}
+                    >
+                        Voltar
+                    </Button>
+                    <Button
+                        onClick={() => step === steps.length ? handleCreateOrders() : setStep(step + 1)}
+                        disabled={!canProceedToNextStep()}
+                    >
+                        {step === steps.length ? 'Criar Ordens' : 'Próximo'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+```
+
+### 3.3 BOM Management
+
+#### 3.3.1 BOM List Page
 **Route**: `/production/bom`
 **Layout**: `ListLayout`
 
@@ -610,7 +1096,7 @@ function ItemForm({ item, mode }) {
 </ListLayout>
 ```
 
-#### 3.2.2 BOM Hierarchy View
+#### 3.3.2 BOM Hierarchy View
 **Route**: `/production/bom/{id}/hierarchy`
 **Layout**: Custom full-screen layout
 
@@ -723,7 +1209,7 @@ function BomHierarchyView({ bom }) {
 }
 ```
 
-#### 3.2.3 BOM Import Wizard
+#### 3.3.3 BOM Import Wizard
 **Component**: Modal dialog with multi-step wizard
 
 ```tsx
@@ -823,17 +1309,18 @@ function BomImportWizard({ open, onClose }) {
 }
 ```
 
-### 3.3 Routing Management
+### 3.4 Manufacturing Routes & Steps
 
-#### 3.3.1 Routing Builder Interface
-**Route**: `/production/routing/{id}/edit`
+#### 3.4.1 Manufacturing Route Builder
+**Route**: `/production/orders/{orderId}/routes/create` or `/production/routes/{id}/edit`
 **Layout**: Custom split-screen layout
 
 ```tsx
-function RoutingBuilder({ routing, bomItem }) {
-    const [steps, setSteps] = useState(routing.steps || []);
+function ManufacturingRouteBuilder({ order, route }) {
+    const [steps, setSteps] = useState(route?.steps || []);
     const [selectedStep, setSelectedStep] = useState(null);
     const [viewMode, setViewMode] = useState('visual'); // visual, grid
+    const [showTemplates, setShowTemplates] = useState(false);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -843,10 +1330,10 @@ function RoutingBuilder({ routing, bomItem }) {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-xl font-semibold">
-                                Roteiro: {bomItem.item_number}
+                                Rota de Manufatura: {order.order_number}
                             </h1>
                             <p className="text-sm text-muted-foreground">
-                                {bomItem.name}
+                                {order.item.item_number} - {order.item.name}
                             </p>
                         </div>
                         <div className="flex gap-2">
@@ -868,6 +1355,14 @@ function RoutingBuilder({ routing, bomItem }) {
                                     Tabela
                                 </Button>
                             </ButtonGroup>
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setShowTemplates(true)}
+                            >
+                                <FileText className="h-4 w-4 mr-2" />
+                                Templates
+                            </Button>
                             <Button variant="outline" size="sm">
                                 <Save className="h-4 w-4 mr-2" />
                                 Salvar
@@ -882,7 +1377,7 @@ function RoutingBuilder({ routing, bomItem }) {
                         <>
                             {/* Visual Builder */}
                             <div className="flex-1 p-4 overflow-auto bg-muted/20">
-                                <RoutingVisualBuilder
+                                <ManufacturingStepVisualBuilder
                                     steps={steps}
                                     onStepsChange={setSteps}
                                     selectedStep={selectedStep}
@@ -892,12 +1387,13 @@ function RoutingBuilder({ routing, bomItem }) {
                             {/* Step Details Panel */}
                             <div className="w-96 border-l bg-background">
                                 {selectedStep ? (
-                                    <RoutingStepDetails
+                                    <ManufacturingStepDetails
                                         step={selectedStep}
                                         onUpdate={(updatedStep) => 
                                             handleStepUpdate(selectedStep.id, updatedStep)
                                         }
                                         workCells={workCells}
+                                        forms={forms}
                                     />
                                 ) : (
                                     <div className="p-8 text-center text-muted-foreground">
@@ -910,10 +1406,11 @@ function RoutingBuilder({ routing, bomItem }) {
                     ) : (
                         /* Grid View */
                         <div className="flex-1 p-4">
-                            <RoutingGridEditor
+                            <ManufacturingStepGridEditor
                                 steps={steps}
                                 onStepsChange={setSteps}
                                 workCells={workCells}
+                                forms={forms}
                             />
                         </div>
                     )}
@@ -924,17 +1421,39 @@ function RoutingBuilder({ routing, bomItem }) {
 }
 ```
 
-#### 3.3.2 Routing Visual Components
+#### 3.4.2 Manufacturing Step Visual Components
 
 ```tsx
-// Visual Node Component
-function RoutingStepNode({ step, isSelected, onSelect, onConnect }) {
+// Manufacturing Step Node Component
+function ManufacturingStepNode({ step, isSelected, onSelect, onConnect }) {
+    const getStepTypeIcon = (type) => {
+        switch(type) {
+            case 'quality_check':
+                return <CheckCircle className="h-4 w-4" />;
+            case 'rework':
+                return <RefreshCw className="h-4 w-4" />;
+            default:
+                return <Settings className="h-4 w-4" />;
+        }
+    };
+
+    const getStepTypeColor = (type) => {
+        switch(type) {
+            case 'quality_check':
+                return 'border-blue-500 bg-blue-50';
+            case 'rework':
+                return 'border-orange-500 bg-orange-50';
+            default:
+                return 'border-gray-300 bg-white';
+        }
+    };
+
     return (
         <div
             className={cn(
-                "relative bg-white border-2 rounded-lg p-4 cursor-pointer transition-all",
-                "hover:shadow-md",
-                isSelected ? "border-primary shadow-lg" : "border-border"
+                "relative border-2 rounded-lg p-4 cursor-pointer transition-all",
+                "hover:shadow-md min-w-[250px]",
+                isSelected ? "border-primary shadow-lg" : getStepTypeColor(step.step_type)
             )}
             onClick={() => onSelect(step)}
         >
@@ -949,17 +1468,24 @@ function RoutingStepNode({ step, isSelected, onSelect, onConnect }) {
             {/* Step Content */}
             <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                        {step.step_number}
+                    <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center",
+                        step.step_type === 'quality_check' ? 'bg-blue-100' :
+                        step.step_type === 'rework' ? 'bg-orange-100' : 'bg-gray-100'
+                    )}>
+                        {getStepTypeIcon(step.step_type)}
                     </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm truncate">
-                        {step.operation_code}
-                    </h4>
-                    <p className="text-xs text-muted-foreground truncate">
-                        {step.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">
+                            Etapa {step.step_number}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                            {getStepStatusLabel(step.status)}
+                        </Badge>
+                    </div>
+                    <h4 className="font-medium text-sm mt-1">{step.name}</h4>
                     <div className="flex items-center gap-2 mt-2">
                         <Badge variant="secondary" className="text-xs">
                             <Clock className="h-3 w-3 mr-1" />
@@ -970,17 +1496,354 @@ function RoutingStepNode({ step, isSelected, onSelect, onConnect }) {
                                 {step.work_cell.code}
                             </Badge>
                         )}
+                        {step.form_id && (
+                            <Badge variant="outline" className="text-xs">
+                                <FileText className="h-3 w-3" />
+                            </Badge>
+                        )}
+                    </div>
+                    {step.step_type === 'quality_check' && (
+                        <div className="mt-2 text-xs text-muted-foreground">
+                            Modo: {getQualityCheckModeLabel(step.quality_check_mode)}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Step Details Panel
+function ManufacturingStepDetails({ step, onUpdate, workCells, forms }) {
+    const [editedStep, setEditedStep] = useState(step);
+
+    return (
+        <div className="h-full flex flex-col">
+            <div className="p-4 border-b">
+                <h3 className="font-semibold">Detalhes da Etapa</h3>
+            </div>
+            <div className="flex-1 overflow-auto p-4 space-y-4">
+                {/* Basic Info */}
+                <div className="space-y-4">
+                    <TextInput
+                        label="Nome da Etapa"
+                        value={editedStep.name}
+                        onChange={(value) => setEditedStep({ ...editedStep, name: value })}
+                    />
+                    <TextAreaInput
+                        label="Descrição"
+                        value={editedStep.description}
+                        onChange={(value) => setEditedStep({ ...editedStep, description: value })}
+                        rows={3}
+                    />
+                </div>
+
+                <Separator />
+
+                {/* Step Type */}
+                <div>
+                    <Label>Tipo de Etapa</Label>
+                    <Select
+                        value={editedStep.step_type}
+                        onValueChange={(value) => setEditedStep({ ...editedStep, step_type: value })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="standard">Padrão</SelectItem>
+                            <SelectItem value="quality_check">Verificação de Qualidade</SelectItem>
+                            <SelectItem value="rework">Retrabalho</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Quality Check Options */}
+                {editedStep.step_type === 'quality_check' && (
+                    <>
+                        <div>
+                            <Label>Modo de Verificação</Label>
+                            <Select
+                                value={editedStep.quality_check_mode}
+                                onValueChange={(value) => 
+                                    setEditedStep({ ...editedStep, quality_check_mode: value })
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="every_part">Cada Peça</SelectItem>
+                                    <SelectItem value="entire_lot">Lote Completo</SelectItem>
+                                    <SelectItem value="sampling">Amostragem (ISO 2859)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {editedStep.quality_check_mode === 'sampling' && (
+                            <TextInput
+                                label="Tamanho da Amostra"
+                                type="number"
+                                value={editedStep.sampling_size}
+                                onChange={(value) => 
+                                    setEditedStep({ ...editedStep, sampling_size: value })
+                                }
+                            />
+                        )}
+                    </>
+                )}
+
+                <Separator />
+
+                {/* Resources */}
+                <div className="space-y-4">
+                    <div>
+                        <Label>Célula de Trabalho</Label>
+                        <Select
+                            value={editedStep.work_cell_id}
+                            onValueChange={(value) => 
+                                setEditedStep({ ...editedStep, work_cell_id: value })
+                            }
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {workCells.map((cell) => (
+                                    <SelectItem key={cell.id} value={cell.id}>
+                                        {cell.code} - {cell.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div>
+                        <Label>Formulário Associado</Label>
+                        <Select
+                            value={editedStep.form_id}
+                            onValueChange={(value) => 
+                                setEditedStep({ ...editedStep, form_id: value })
+                            }
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Nenhum" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">Nenhum</SelectItem>
+                                {forms.map((form) => (
+                                    <SelectItem key={form.id} value={form.id}>
+                                        {form.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
+
+                <Separator />
+
+                {/* Time Settings */}
+                <div className="space-y-4">
+                    <TextInput
+                        label="Tempo de Setup (minutos)"
+                        type="number"
+                        value={editedStep.setup_time_minutes}
+                        onChange={(value) => 
+                            setEditedStep({ ...editedStep, setup_time_minutes: value })
+                        }
+                    />
+                    <TextInput
+                        label="Tempo de Ciclo (minutos)"
+                        type="number"
+                        value={editedStep.cycle_time_minutes}
+                        onChange={(value) => 
+                            setEditedStep({ ...editedStep, cycle_time_minutes: value })
+                        }
+                    />
+                </div>
+
+                {/* Dependencies */}
+                <div>
+                    <Label>Depende da Etapa</Label>
+                    <Select
+                        value={editedStep.depends_on_step_id}
+                        onValueChange={(value) => 
+                            setEditedStep({ ...editedStep, depends_on_step_id: value })
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Nenhuma dependência" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="">Nenhuma</SelectItem>
+                            {/* List other steps */}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <div className="p-4 border-t">
+                <Button 
+                    className="w-full"
+                    onClick={() => onUpdate(editedStep)}
+                >
+                    Atualizar Etapa
+                </Button>
             </div>
         </div>
     );
 }
 ```
 
-### 3.4 Production Planning
+#### 3.4.3 Manufacturing Step Execution Interface
+**Route**: `/production/steps/{id}/execute`
+**Layout**: Mobile-optimized execution interface
 
-#### 3.4.1 Production Schedule Calendar
+```tsx
+function ManufacturingStepExecution({ step, execution }) {
+    const [status, setStatus] = useState(execution?.status || 'queued');
+    const [qualityResult, setQualityResult] = useState(null);
+    const [showForm, setShowForm] = useState(false);
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="bg-white border-b sticky top-0 z-10">
+                <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <h1 className="text-lg font-semibold">{step.name}</h1>
+                        <Badge variant={getStatusVariant(status)}>
+                            {getStepStatusLabel(status)}
+                        </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Ordem: {step.route.production_order.order_number}
+                    </p>
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-4">
+                {/* Step Info Card */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Informações da Etapa</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <DetailItem 
+                            label="Item" 
+                            value={step.route.production_order.item.item_number}
+                        />
+                        <DetailItem 
+                            label="Quantidade" 
+                            value={`${step.route.production_order.quantity} ${step.route.production_order.unit_of_measure}`}
+                        />
+                        <DetailItem 
+                            label="Célula de Trabalho" 
+                            value={step.work_cell?.name}
+                        />
+                        <DetailItem 
+                            label="Tempo Estimado" 
+                            value={`${step.cycle_time_minutes} minutos`}
+                        />
+                    </CardContent>
+                </Card>
+
+                {/* Action Buttons */}
+                {status === 'queued' && (
+                    <Button 
+                        size="lg" 
+                        className="w-full"
+                        onClick={() => handleStart()}
+                    >
+                        <PlayCircle className="h-5 w-5 mr-2" />
+                        Iniciar Etapa
+                    </Button>
+                )}
+
+                {status === 'in_progress' && (
+                    <div className="space-y-2">
+                        {step.form_id && !showForm && (
+                            <Button 
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => setShowForm(true)}
+                            >
+                                <FileText className="h-5 w-5 mr-2" />
+                                Preencher Formulário
+                            </Button>
+                        )}
+                        
+                        {step.step_type === 'quality_check' && (
+                            <QualityCheckPanel
+                                onResult={(result) => setQualityResult(result)}
+                            />
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button 
+                                variant="outline"
+                                onClick={() => handlePause()}
+                            >
+                                <Pause className="h-5 w-5 mr-2" />
+                                Pausar
+                            </Button>
+                            <Button 
+                                onClick={() => handleComplete()}
+                                disabled={step.form_id && !formCompleted}
+                            >
+                                <CheckCircle className="h-5 w-5 mr-2" />
+                                Concluir
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {status === 'on_hold' && (
+                    <Button 
+                        size="lg" 
+                        className="w-full"
+                        onClick={() => handleResume()}
+                    >
+                        <PlayCircle className="h-5 w-5 mr-2" />
+                        Retomar Etapa
+                    </Button>
+                )}
+
+                {/* Form Display */}
+                {showForm && step.form_id && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Formulário da Etapa</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <FormExecution
+                                formId={step.form_id}
+                                executionContext={{
+                                    type: 'manufacturing_step',
+                                    id: execution.id
+                                }}
+                                onComplete={() => setShowForm(false)}
+                            />
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Quality Check Result */}
+                {step.step_type === 'quality_check' && qualityResult && (
+                    <QualityResultActions
+                        result={qualityResult}
+                        onAction={handleQualityAction}
+                    />
+                )}
+            </div>
+        </div>
+    );
+}
+```
+
+### 3.5 Production Planning
+
+#### 3.5.1 Production Schedule Calendar
 **Route**: `/production/planning/calendar`
 **Layout**: Full-screen calendar view
 
@@ -1065,7 +1928,7 @@ function ProductionCalendar({ schedules, workCells }) {
 }
 ```
 
-#### 3.4.2 Gantt Chart View
+#### 3.5.2 Gantt Chart View
 **Route**: `/production/planning/gantt`
 **Layout**: Custom Gantt layout
 
@@ -1151,9 +2014,9 @@ function ProductionGantt({ orders, workCells }) {
 }
 ```
 
-### 3.5 Production Tracking
+### 3.6 Production Tracking
 
-#### 3.5.1 QR Code Scanner Interface
+#### 3.6.1 QR Code Scanner Interface
 **Route**: `/production/tracking/scan`
 **Layout**: Mobile-optimized full-screen
 
@@ -1246,7 +2109,7 @@ function QrScanner() {
 }
 ```
 
-#### 3.5.2 Production Status Dashboard
+#### 3.6.2 Production Status Dashboard
 **Route**: `/production/tracking`
 **Layout**: Dashboard layout
 
@@ -1330,9 +2193,9 @@ function ProductionDashboard() {
 }
 ```
 
-### 3.6 Shipment Management
+### 3.7 Shipment Management
 
-#### 3.6.1 Shipment Creation Form
+#### 3.7.1 Shipment Creation Form
 **Route**: `/production/shipments/create`
 **Layout**: Multi-step form
 

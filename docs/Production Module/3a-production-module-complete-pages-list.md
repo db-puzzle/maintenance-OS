@@ -4,6 +4,22 @@
 
 This document provides a comprehensive list of all pages required for the Production Module, organized by functional area to enable progressive development and testing. Each section includes both operational workflows and administrative CRUD interfaces.
 
+## Key Architecture Notes
+
+### Manufacturing Routes are Order-Specific
+Unlike traditional systems where routes are tied to items, in this system:
+- **Routes belong to Manufacturing Orders**, not items
+- The same item can have different routes in different orders
+- Routes are created after the order is released
+- Route templates provide reusability across orders
+
+### Parent-Child Order Relationships
+When creating an order for a BOM:
+- System automatically creates child orders for all BOM items
+- Parent orders track child completion status
+- Parent orders can auto-complete when all children complete
+- Quantities are consolidated for duplicate items in the BOM
+
 ## Development Order & Dependencies
 
 The sections are ordered to allow progressive development, where each phase builds upon the previous:
@@ -151,9 +167,89 @@ The sections are ordered to allow progressive development, where each phase buil
 
 ---
 
-## Phase 3: Manufacturing Setup - Routing & Resources
+## Phase 3: Manufacturing Orders & Routes
 
-### 3.1 Work Cell Management
+### 3.1 Manufacturing Order Management
+**Purpose**: Create and manage manufacturing orders with parent-child relationships
+
+#### Operational Pages:
+- `/production/orders` ✓
+  - Order list with status filters
+  - Parent/child indicators
+  - Quick actions (release, cancel)
+  
+- `/production/orders/create` ✓
+  - Create single order for item
+  - Set quantity, priority, dates
+  - Auto-assign order number
+  
+- `/production/orders/create-from-bom` ✓
+  - Multi-step wizard for BOM orders
+  - Preview child orders
+  - Configure route templates
+  
+- `/production/orders/{id}` ✓
+  - Order details with tabs
+  - Progress tracking
+  - Child order summary
+  
+- `/production/orders/{id}/edit` ✓
+  - Edit order details
+  - Update quantities/dates
+  - Restricted based on status
+
+#### Additional Pages:
+- `/production/orders/{id}/children`
+  - List all child orders
+  - Tree view of hierarchy
+  - Bulk status updates
+  
+- `/production/orders/{id}/routes`
+  - View/manage order routes
+  - Create route from template
+  - Edit route steps
+  
+- `/production/orders/{id}/timeline`
+  - Visual timeline of order
+  - Step dependencies
+  - Critical path view
+
+### 3.2 Manufacturing Routes & Steps
+**Purpose**: Define and manage manufacturing processes per order
+
+#### Operational Pages:
+- `/production/routes` 
+  - All routes list
+  - Filter by order, status
+  - Route templates
+  
+- `/production/orders/{orderId}/routes/create` ✓
+  - Create route for order
+  - Visual route builder
+  - Template selection
+  
+- `/production/routes/{id}/edit` ✓
+  - Edit existing route
+  - Add/remove/reorder steps
+  - Update step details
+  
+- `/production/routes/{id}`
+  - Route details view
+  - Step sequence
+  - Performance metrics
+
+#### Manufacturing Steps:
+- `/production/steps/{id}/execute` ✓
+  - Mobile-optimized execution
+  - Form integration
+  - Quality check interface
+  
+- `/production/steps/{id}/history`
+  - Step execution history
+  - Time tracking
+  - Quality results
+
+### 3.3 Work Cell Management
 **Purpose**: Define manufacturing resources and capacity
 
 #### Administrative Pages:
@@ -181,41 +277,50 @@ The sections are ordered to allow progressive development, where each phase buil
   - Drag-drop rescheduling
   - Conflict resolution
 
-### 3.2 Production Routing
-**Purpose**: Define manufacturing process steps
+### 3.4 Route Templates
+**Purpose**: Reusable manufacturing process templates
 
-#### Operational Pages:
-- `/production/routing/{id}/edit` ✓
-  - Visual routing builder
-  - Step sequencing
-
-#### Additional Administrative Pages:
-- `/production/routing`
-  - All routings list
-  - Filter by item, status, work cell
-  - Routing templates
+#### Administrative Pages:
+- `/production/route-templates`
+  - Template library
+  - Category filtering
+  - Usage statistics
   
-- `/production/routing/create`
-  - Create new routing
-  - Copy from existing
-  - Import from CAD
+- `/production/route-templates/create`
+  - Create new template
+  - Define standard steps
+  - Set default times
   
-- `/production/routing/{id}`
-  - Routing details view
-  - Where-used list
-  - Performance metrics
+- `/production/route-templates/{id}/edit`
+  - Edit template steps
+  - Update configurations
+  - Version management
   
-- `/production/routing/{id}/simulate`
-  - Time study simulation
-  - Capacity validation
-  - Cost estimation
+- `/production/route-templates/{id}/preview`
+  - Visual preview
+  - Step sequence
+  - Time estimates
 
-- `/production/routing/templates`
-  - Routing template library
-  - Standard operations
-  - Time standards
+### 3.5 Quality Control Setup
+**Purpose**: Configure quality checks and standards
 
-### 3.3 Failure Mode Management
+#### Administrative Pages:
+- `/production/quality/standards`
+  - Quality standards list
+  - Pass/fail criteria
+  - Sampling plans
+  
+- `/production/quality/check-types`
+  - Quality check types
+  - Measurement methods
+  - Form associations
+  
+- `/production/quality/sampling-plans`
+  - ISO 2859 configurations
+  - Lot size tables
+  - AQL settings
+
+### 3.6 Failure Mode Management
 **Purpose**: Quality control and failure tracking setup
 
 #### Administrative Pages:
@@ -238,36 +343,7 @@ The sections are ordered to allow progressive development, where each phase buil
 
 ## Phase 4: Planning & Execution
 
-### 4.1 Production Orders
-**Purpose**: Create and manage manufacturing orders
-
-#### Operational Pages:
-- `/production/orders`
-  - Order list with status filters
-  - Priority indicators
-  - Quick actions
-  
-- `/production/orders/create`
-  - Order creation wizard
-  - Demand source selection
-  - Availability check
-  
-- `/production/orders/{id}`
-  - Order details with progress
-  - Component availability
-  - Schedule timeline
-  
-- `/production/orders/{id}/edit`
-  - Edit quantities, dates
-  - Priority adjustment
-  - Note management
-
-- `/production/orders/bulk-create`
-  - Mass order creation
-  - From forecast/demand
-  - Template-based
-
-### 4.2 Production Planning & Scheduling
+### 4.1 Production Planning & Scheduling
 **Purpose**: Schedule and optimize production
 
 #### Operational Pages:
@@ -300,38 +376,40 @@ The sections are ordered to allow progressive development, where each phase buil
   - Constraint configuration
   - Optimization results
 
-### 4.3 Production Execution
+### 4.2 Production Execution
 **Purpose**: Track actual production progress
 
 #### Operational Pages:
 - `/production/tracking` ✓
   - Production status dashboard
   - Work cell monitors
+  - Active orders by status
   
 - `/production/tracking/scan` ✓
   - QR scanner interface
   - Mobile optimized
+  - Step execution
 
 #### Additional Pages:
-- `/production/execution`
-  - Execution list view
-  - Filter by status, work cell
-  - Batch operations
+- `/production/execution/by-order/{orderId}`
+  - Order execution view
+  - All steps for order
+  - Progress tracking
   
-- `/production/execution/{id}`
-  - Execution details
-  - Time tracking
-  - Quality checks
+- `/production/execution/by-workcell/{workCellId}`
+  - Work cell queue
+  - Current/upcoming steps
+  - Operator assignments
   
-- `/production/execution/{id}/report`
-  - Production reporting
-  - Quantity confirmation
-  - Scrap reporting
+- `/production/execution/quality-dashboard`
+  - Active quality checks
+  - Failed items queue
+  - Rework tracking
   
-- `/production/execution/dashboard`
-  - Real-time monitors
-  - OEE metrics
-  - Alert management
+- `/production/execution/reports`
+  - Daily production report
+  - Efficiency metrics
+  - Quality statistics
 
 ---
 

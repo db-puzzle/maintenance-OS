@@ -47,25 +47,59 @@ This module covers:
 
 ## 3. User Roles
 
-### 3.1 Production Planner
-- Manages BOM structures
-- Defines routing procedures
-- Creates production schedules
-- Monitors production progress
+### 3.1 Production Manager
+**Description**: Manages all aspects of production including planning, scheduling, and execution
+**Key Responsibilities**:
+- Full control over all production module features
+- Strategic production planning and optimization
+- Resource allocation and management
+- Performance analysis and reporting
+- Quality control oversight
 
-### 3.2 Shop Floor Operator
-- Reports production status
-- Scans QR codes
-- Updates routing step completion
+### 3.2 Production Planner
+**Description**: Plans and schedules production orders, manages BOMs and routing
+**Key Responsibilities**:
+- Creates and manages BOMs
+- Defines manufacturing routes and templates
+- Creates and schedules Manufacturing Orders
+- Manages production capacity planning
+- Cannot execute production steps
 
-### 3.3 Shipping Coordinator
-- Creates shipments
-- Manages packaging
-- Documents shipping process
+### 3.3 Shop Floor Supervisor
+**Description**: Supervises production execution on the shop floor
+**Key Responsibilities**:
+- Releases Manufacturing Orders for production
+- Manages work cell assignments
+- Oversees manufacturing step execution
+- Handles quality check results and rework decisions
+- Cannot create or modify BOMs/routes
 
-### 3.4 Production Manager
-- Reviews production reports
-- Analyzes performance metrics
+### 3.4 Machine Operator
+**Description**: Executes manufacturing steps and reports progress
+**Key Responsibilities**:
+- Scans QR codes to start/complete steps
+- Executes assigned manufacturing steps
+- Fills out forms associated with steps
+- Reports quality issues
+- Limited to assigned work cells
+
+### 3.5 Quality Inspector
+**Description**: Performs quality checks and manages quality control processes
+**Key Responsibilities**:
+- Executes quality check steps
+- Records pass/fail results
+- Initiates rework processes
+- Documents quality issues with photos
+- Manages sampling procedures
+
+### 3.6 Shipping Coordinator
+**Description**: Manages shipments and delivery coordination
+**Key Responsibilities**:
+- Creates shipments from completed MOs
+- Manages packaging and documentation
+- Captures shipping photos
+- Tracks delivery status
+- Cannot modify production data
 
 ## 4. High-Level Requirements
 
@@ -268,10 +302,103 @@ This module covers:
 - Multi-language support
 
 ### 6.3 Security
-- Role-based access control for MO creation and routing definition
+- Role-based access control with granular permissions
+- Entity-scoped permissions (Plant, Area, Sector level)
 - Audit trail for all state changes in manufacturing steps
 - Secure photo storage for quality documentation
 - Data encryption in transit and at rest
+
+## 7. Permissions Structure
+
+### 7.1 Permission Categories
+
+#### Manufacturing Orders
+- `production.orders.viewAny.[scope].[id]` - View all MOs in scope
+- `production.orders.view.[id]` - View specific MO
+- `production.orders.create.[scope].[id]` - Create MOs in scope
+- `production.orders.update.[id]` - Update specific MO
+- `production.orders.delete.[id]` - Delete specific MO
+- `production.orders.release.[id]` - Release MO for production
+- `production.orders.cancel.[id]` - Cancel MO
+
+#### Manufacturing Routes
+- `production.routes.viewAny.[scope].[id]` - View all routes in scope
+- `production.routes.view.[id]` - View specific route
+- `production.routes.create.order.[id]` - Create route for MO
+- `production.routes.update.[id]` - Update specific route
+- `production.routes.delete.[id]` - Delete specific route
+- `production.routes.createFromTemplate.[id]` - Use route templates
+
+#### Manufacturing Steps
+- `production.steps.viewAny.route.[id]` - View all steps in route
+- `production.steps.view.[id]` - View specific step
+- `production.steps.update.[id]` - Update step details
+- `production.steps.execute.[id]` - Execute manufacturing step
+- `production.steps.executeQualityCheck.[id]` - Execute quality checks
+- `production.steps.handleRework.[id]` - Handle rework decisions
+
+#### BOMs and Items
+- `production.items.viewAny.[scope].[id]` - View items in scope
+- `production.items.view.[id]` - View specific item
+- `production.items.create.[scope].[id]` - Create items
+- `production.items.update.[id]` - Update item details
+- `production.items.delete.[id]` - Delete items
+- `production.bom.import.[scope].[id]` - Import BOMs from CAD
+
+#### Quality Control
+- `production.quality.executeCheck.[id]` - Execute quality checks
+- `production.quality.recordResult.[id]` - Record pass/fail
+- `production.quality.initiateRework.[id]` - Start rework process
+- `production.quality.scrapPart.[id]` - Scrap failed parts
+
+#### Shipments
+- `production.shipments.viewAny.[scope].[id]` - View shipments
+- `production.shipments.create.[scope].[id]` - Create shipments
+- `production.shipments.update.[id]` - Update shipment
+- `production.shipments.uploadPhotos.[id]` - Add photos
+- `production.shipments.markDelivered.[id]` - Mark as delivered
+
+### 7.2 Permission Inheritance
+- Plant-level permissions cascade to all Areas and Sectors within
+- Area-level permissions cascade to all Sectors within
+- Sector-level permissions apply to all production activities within
+- MO permissions cascade to all child MOs
+- Route permissions cascade to all steps within
+
+### 7.3 Role-Permission Mapping
+
+#### Production Manager
+- All production.* permissions at assigned plant/area/sector levels
+- Can assign production roles to other users within scope
+
+#### Production Planner
+- production.items.* (except delete)
+- production.bom.*
+- production.orders.* (except release)
+- production.routes.*
+- Cannot execute steps or quality checks
+
+#### Shop Floor Supervisor
+- production.orders.view*, release
+- production.routes.view*
+- production.steps.* (all execution permissions)
+- production.quality.* (all quality permissions)
+
+#### Machine Operator
+- production.orders.view (assigned only)
+- production.steps.view, execute (assigned work cell only)
+- Cannot modify routes or handle quality decisions
+
+#### Quality Inspector
+- production.orders.view*
+- production.quality.* (all quality permissions)
+- production.steps.view*
+- Cannot modify production data
+
+#### Shipping Coordinator
+- production.orders.view* (completed only)
+- production.shipments.* (all shipment permissions)
+- Cannot modify production data
 
 ### 6.4 Scalability
 - Support for 100,000+ parts in BOM
@@ -284,41 +411,41 @@ This module covers:
 - Webhook support for event notifications
 - File format standards compliance
 
-## 7. Technical Constraints
+## 8. Technical Constraints
 
-### 7.1 Technology Stack
+### 8.1 Technology Stack
 - Laravel backend (consistent with existing system)
 - Inertia.js + React frontend
 - PostgreSQL database
 - Redis for caching
 - S3-compatible storage for images
 
-### 7.2 Device Support
+### 8.2 Device Support
 - Desktop: Chrome, Firefox, Safari, Edge (latest 2 versions)
 - Mobile: iOS 14+, Android 10+
 - Tablet support for shop floor use
 
-### 7.3 Network Requirements
+### 8.3 Network Requirements
 - Offline capability for critical functions
 - Bandwidth optimization for image handling
 - Progressive web app capabilities
 
-## 8. Success Metrics
+## 9. Success Metrics
 
-### 8.1 Efficiency Metrics
+### 9.1 Efficiency Metrics
 - Reduction in BOM setup time: 75%
 - Manufacturing Order creation time: < 2 minutes
 - Route definition time: 80% reduction with templates
 - Production tracking accuracy: 99%+
 - Schedule adherence improvement: 30%
 
-### 8.2 User Adoption
+### 9.2 User Adoption
 - QR code scanning adoption: 95%
 - Mobile interface usage: 80%
 - Form completion rate: 98%+
 - User satisfaction score: 4.5/5
 
-### 8.3 Business Impact
+### 9.3 Business Impact
 - Quality check compliance: 100%
 - Rework tracking improvement: Full visibility
 - Parent-child MO accuracy: 100%
@@ -326,7 +453,7 @@ This module covers:
 - Production visibility: Real-time vs. daily
 - Error reduction in routing: 90%
 
-## 9. Implementation Phases
+## 10. Implementation Phases
 
 ### Phase 1: Foundation (Months 1-3)
 - BOM import and management
@@ -353,22 +480,22 @@ This module covers:
 - Integration expansions
 - Performance optimization
 
-## 10. Risks and Mitigation
+## 11. Risks and Mitigation
 
-### 10.1 Technical Risks
+### 11.1 Technical Risks
 - **CAD Integration Complexity**: Mitigation - Early prototype with Inventor API
 - **Mobile Performance**: Mitigation - Progressive web app architecture
 - **Data Volume**: Mitigation - Efficient database design and caching
 
-### 10.2 User Adoption Risks
+### 11.2 User Adoption Risks
 - **Shop Floor Resistance**: Mitigation - User training and simple interfaces
 - **Process Change**: Mitigation - Phased rollout and change management
 
-### 10.3 Business Risks
+### 11.3 Business Risks
 - **Scope Creep**: Mitigation - Clear phase boundaries and change control
 - **Integration Dependencies**: Mitigation - Well-defined APIs and fallback mechanisms
 
-## 11. Appendices
+## 12. Appendices
 
 ### Appendix A: Glossary
 - **BOM**: Bill of Materials - hierarchical list of parts and quantities
