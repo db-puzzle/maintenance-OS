@@ -6,8 +6,9 @@ The Production Module is a comprehensive manufacturing management system designe
 
 ### Key Capabilities
 - BOM structure management with nested hierarchies
-- Production routing configuration and visualization
-- Production planning and scheduling
+- Manufacturing Order (MO) creation for items and BOMs with automatic child order generation
+- Production routing configuration tied to Manufacturing Orders (not items directly)
+- Manufacturing step execution with state management and quality control
 - Real-time production tracking via QR codes
 - Shipment management and documentation
 - Integration with CAD systems (Inventor)
@@ -17,7 +18,10 @@ The Production Module is a comprehensive manufacturing management system designe
 ### 2.1 Purpose
 The Production Module aims to digitize and streamline manufacturing operations by providing tools for:
 - Managing complex product structures
-- Defining and tracking manufacturing processes
+- Creating and managing Manufacturing Orders with parent-child relationships
+- Defining production routes specific to each Manufacturing Order
+- Tracking manufacturing steps with proper state management
+- Implementing quality checks and rework processes
 - Planning production schedules
 - Monitoring production progress in real-time
 - Managing shipments and logistics
@@ -25,9 +29,12 @@ The Production Module aims to digitize and streamline manufacturing operations b
 ### 2.2 Scope
 This module covers:
 - BOM import and management
-- Routing definition and management
+- Manufacturing Order creation and hierarchy management
+- Routing definition per Manufacturing Order
+- Manufacturing step execution with states (Queued, In Progress, Completed, On Hold)
+- Quality checks and rework management
+- Form and task integration with manufacturing steps
 - Production planning and scheduling
-- Production execution tracking
 - QR code-based tracking system
 - Shipment management
 - Reporting and analytics
@@ -71,41 +78,54 @@ This module covers:
 
 **HLR-004**: The system shall store and display 3D rendering thumbnails for visual part identification.
 
-### 4.2 Routing Management
-**HLR-005**: The system shall support defining production routing at any level of the BOM hierarchy.
+### 4.2 Manufacturing Order Management
+**HLR-005**: The system shall support creating Manufacturing Orders (MOs) for individual items.
 
-**HLR-006**: The system shall implement inheritance logic where child items without routing inherit parent routing requirements.
+**HLR-006**: The system shall automatically create child MOs when an MO is created for a BOM, with one MO per item in the BOM hierarchy.
 
-**HLR-007**: The system shall enforce routing dependencies ensuring lower-level routing completion before parent-level routing begins.
+**HLR-007**: The system shall consolidate quantities for items appearing multiple times in a BOM into a single MO with the total required quantity.
 
-**HLR-008**: The system shall provide both graphical (drag-and-drop) and grid-based interfaces for routing configuration.
+**HLR-008**: The system shall track parent-child relationships between MOs and automatically complete parent MOs when all child MOs are completed.
 
-**HLR-009**: The system shall support importing routing information from Autodesk Inventor with editing capabilities.
+### 4.3 Routing Management
+**HLR-009**: The system shall allow defining production routes at the Manufacturing Order level, enabling the same item to have different routes in different MOs.
 
-### 4.3 Production Planning
-**HLR-010**: The system shall enable scheduling of routed parts with start/end dates.
+**HLR-010**: The system shall support manufacturing steps with states: Pending, Queued, In Progress, On Hold, Completed, and Skipped.
 
-**HLR-011**: The system shall support work cell assignment for each routing step (internal and external).
+**HLR-011**: The system shall enforce step dependencies ensuring previous steps are completed before subsequent steps can begin.
 
-**HLR-012**: The system shall provide modern graphical visualization of production schedules.
+**HLR-012**: The system shall support Quality Checks as special manufacturing steps with Pass/Fail results.
 
-### 4.4 Production Tracking
-**HLR-013**: The system shall generate unique QR codes for all BOM items (routed and non-routed).
+**HLR-013**: The system shall allow configuration of Quality Check execution modes: every part, entire lot, or sampling per ISO 2859.
 
-**HLR-014**: The system shall provide mobile-friendly interface for QR code scanning.
+**HLR-014**: The system shall support rework steps when Quality Checks fail, allowing items to be brought to specification.
 
-**HLR-015**: The system shall track routing step start and completion times via QR code scanning.
+**HLR-015**: The system shall associate Forms and Tasks with manufacturing steps for data collection and work instructions.
 
-**HLR-016**: The system shall display part information and thumbnails upon QR code scanning.
+### 4.4 Production Planning
+**HLR-016**: The system shall enable scheduling of Manufacturing Orders with start/end dates.
 
-### 4.5 Shipment Management
-**HLR-017**: The system shall support creating shipments from multiple BOM items.
+**HLR-017**: The system shall support work cell assignment for each manufacturing step (internal and external).
 
-**HLR-018**: The system shall generate shipping manifests in printable and PDF formats.
+**HLR-018**: The system shall provide modern graphical visualization of production schedules.
 
-**HLR-019**: The system shall capture and store photos of packages, containers, and documentation.
+### 4.5 Production Tracking
+**HLR-019**: The system shall generate unique QR codes for all BOM items (routed and non-routed).
 
-**HLR-020**: The system shall track both manufactured and resale-only products in shipments.
+**HLR-020**: The system shall provide mobile-friendly interface for QR code scanning.
+
+**HLR-021**: The system shall track manufacturing step start and completion times via QR code scanning.
+
+**HLR-022**: The system shall display part information and thumbnails upon QR code scanning.
+
+### 4.6 Shipment Management
+**HLR-023**: The system shall support creating shipments from multiple BOM items.
+
+**HLR-024**: The system shall generate shipping manifests in printable and PDF formats.
+
+**HLR-025**: The system shall capture and store photos of packages, containers, and documentation.
+
+**HLR-026**: The system shall track both manufactured and resale-only products in shipments.
 
 ## 5. User Stories
 
@@ -135,100 +155,104 @@ This module covers:
   - Thumbnail preview on hover
   - Export to various formats
 
-### 5.2 Routing Management Stories
+### 5.2 Manufacturing Order Stories
 
-**US-004**: As a Production Planner, I want to define routing using drag-and-drop interface so that I can quickly create process flows visually.
+**US-004**: As a Production Planner, I want to create a Manufacturing Order for an item so that I can track its production.
 - **Acceptance Criteria:**
-  - Drag routing steps from library
-  - Connect steps to define sequence
-  - Set step parameters (duration, resources)
-  - Visual validation of routing logic
-  - Save and version routing definitions
+  - Create MO with quantity and due date
+  - System generates unique MO number
+  - MO status starts as 'draft'
+  - Can specify priority and notes
+  - Link to specific BOM version if applicable
 
-**US-005**: As a Production Planner, I want to define routing in a grid format so that I can efficiently enter detailed routing data.
+**US-005**: As a Production Planner, I want to create an MO for a BOM so that all required items are automatically scheduled for production.
 - **Acceptance Criteria:**
-  - Tabular entry of routing steps
-  - Bulk edit capabilities
-  - Copy/paste from Excel
-  - Validation of required fields
-  - Auto-save functionality
+  - Single action creates MO for top-level item
+  - System automatically creates child MOs for all BOM items
+  - Quantities are calculated based on BOM structure
+  - Parent-child relationships are maintained
+  - Duplicate items are consolidated into single MOs
 
-**US-006**: As a Production Planner, I want the system to handle routing inheritance so that I don't have to define routing for every single part.
+**US-006**: As a Production Manager, I want parent MOs to automatically complete when all child MOs are finished so that I don't have to manually track completion.
 - **Acceptance Criteria:**
-  - Automatic inheritance from parent when child has no routing
-  - Visual indicators of inherited vs. defined routing
-  - Override capability at child level
-  - Inheritance rule configuration
+  - System tracks completion status of all child MOs
+  - Parent MO automatically updates to 'completed' when all children complete
+  - Cascading completion for multi-level BOMs
+  - Option to disable auto-completion if needed
+  - Completion timestamps are recorded
 
-### 5.3 Production Planning Stories
+### 5.3 Routing Management Stories
 
-**US-007**: As a Production Planner, I want to schedule production with visual timeline so that I can optimize resource utilization.
+**US-007**: As a Production Planner, I want to define routing specific to each Manufacturing Order so that the same item can have different production processes.
 - **Acceptance Criteria:**
-  - Gantt chart visualization
-  - Drag to adjust dates
-  - Resource conflict detection
-  - Critical path highlighting
-  - What-if scenario planning
+  - Routes are created per MO, not per item
+  - Can copy routes from templates
+  - Can modify routes for specific MOs
+  - Routes include sequence of manufacturing steps
+  - Each step has estimated duration and work cell
 
-**US-008**: As a Production Planner, I want to assign work cells to routing steps so that I can plan capacity and outsourcing.
+**US-008**: As a Shop Floor Operator, I want to see the current state of each manufacturing step so that I know what needs to be done.
 - **Acceptance Criteria:**
-  - Work cell database with capacity info
-  - Internal vs. external designation
-  - Capacity utilization visualization
-  - Lead time calculation
-  - Cost estimation
+  - Clear visual indicators for step states
+  - Can transition steps between states
+  - System enforces dependency rules
+  - Shows next available actions
+  - Mobile-friendly interface
 
-### 5.4 Production Tracking Stories
-
-**US-009**: As a Shop Floor Operator, I want to scan QR codes to report production status so that tracking is quick and accurate.
+**US-009**: As a Quality Inspector, I want to record quality check results so that failed items can be reworked or scrapped.
 - **Acceptance Criteria:**
-  - Mobile-responsive scanning interface
-  - Instant part recognition
-  - Display part thumbnail and info
-  - Simple start/stop buttons
-  - Offline capability with sync
+  - Quality checks appear as special steps
+  - Can record Pass/Fail results
+  - Failed items trigger rework or scrap decision
+  - Rework creates new step in route
+  - Quality data is tracked for reporting
 
-**US-010**: As a Shop Floor Operator, I want to query part information by scanning so that I can identify unknown parts.
+**US-010**: As a Production Planner, I want to configure quality check execution modes so that sampling can be optimized.
 - **Acceptance Criteria:**
-  - Scan to identify functionality
-  - Display complete part information
-  - Show BOM location
-  - Current routing status
-  - Next required action
+  - Choose between every part, entire lot, or sampling
+  - Sampling follows ISO 2859 standards
+  - System calculates required sample size
+  - Tracks which specific parts were checked
+  - Results apply to entire lot when sampling
 
-**US-011**: As a Production Manager, I want to print QR code labels so that all parts can be tracked throughout production.
+### 5.4 Manufacturing Step Stories
+
+**US-011**: As a Shop Floor Operator, I want to execute forms associated with manufacturing steps so that I can capture required data.
 - **Acceptance Criteria:**
-  - Bulk label generation
-  - Multiple label formats
-  - Include part info on label
-  - Durable label material options
-  - Reprint capabilities
+  - Forms appear when starting a step
+  - Can save progress and resume later
+  - Required fields must be completed
+  - Supports various input types (text, numbers, photos)
+  - Data is linked to step execution
 
-### 5.5 Shipment Management Stories
-
-**US-012**: As a Shipping Coordinator, I want to create shipments from BOM items so that I can organize logistics efficiently.
+**US-012**: As a Production Planner, I want to define step dependencies so that the production flow is enforced.
 - **Acceptance Criteria:**
-  - Multi-select BOM items
-  - Package grouping interface
-  - Weight/volume calculations
-  - Shipment type selection
-  - Customer/destination assignment
+  - Can specify which steps depend on others
+  - Choose dependency type (must complete vs can overlap)
+  - System prevents starting steps before dependencies
+  - Visual representation of dependencies
+  - Automatic state updates based on dependencies
 
-**US-013**: As a Shipping Coordinator, I want to generate shipping manifests so that I have proper documentation.
-- **Acceptance Criteria:**
-  - Auto-generate from shipment data
-  - Include all required fields
-  - Multiple format options
-  - Digital signature capability
-  - Email distribution
+### 5.5 Production Execution Workflow
 
-**US-014**: As a Shipping Coordinator, I want to document shipments with photos so that I have proof of condition and loading.
+**US-020**: As a Production Manager, I want to follow the simplest production workflow for basic items without routing.
 - **Acceptance Criteria:**
-  - Mobile photo capture
-  - Multiple photos per package
-  - Photos of truck/container
-  - Driver documentation capture
-  - Timestamp and location data
+  - Create item and MO
+  - Report production complete
+  - Item shows as ready for shipping
+  - No routing steps required
+  - Quick completion process
+
+**US-021**: As a Production Manager, I want to follow the typical production workflow for complex assemblies.
+- **Acceptance Criteria:**
+  - Create items and BOM structure
+  - Create MO for top-level item
+  - System creates all child MOs
+  - Define routes for relevant MOs
+  - Associate forms with steps as needed
+  - Complete steps in sequence
+  - Parent MO completes automatically
+  - Items become available for shipping
 
 ## 6. Non-Functional Requirements
 
@@ -244,14 +268,15 @@ This module covers:
 - Multi-language support
 
 ### 6.3 Security
-- Role-based access control
-- Audit trail for all changes
-- Secure photo storage
+- Role-based access control for MO creation and routing definition
+- Audit trail for all state changes in manufacturing steps
+- Secure photo storage for quality documentation
 - Data encryption in transit and at rest
 
 ### 6.4 Scalability
 - Support for 100,000+ parts in BOM
-- Concurrent user support: 500+
+- Handle thousands of concurrent Manufacturing Orders
+- Support complex routing with 50+ steps
 - Historical data retention: 7 years
 
 ### 6.5 Integration
@@ -282,15 +307,21 @@ This module covers:
 
 ### 8.1 Efficiency Metrics
 - Reduction in BOM setup time: 75%
+- Manufacturing Order creation time: < 2 minutes
+- Route definition time: 80% reduction with templates
 - Production tracking accuracy: 99%+
 - Schedule adherence improvement: 30%
 
 ### 8.2 User Adoption
 - QR code scanning adoption: 95%
 - Mobile interface usage: 80%
+- Form completion rate: 98%+
 - User satisfaction score: 4.5/5
 
 ### 8.3 Business Impact
+- Quality check compliance: 100%
+- Rework tracking improvement: Full visibility
+- Parent-child MO accuracy: 100%
 - Shipment documentation time: -50%
 - Production visibility: Real-time vs. daily
 - Error reduction in routing: 90%
