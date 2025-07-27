@@ -4,7 +4,7 @@ namespace App\Services\Production;
 
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingStepExecution;
-use App\Models\Production\ProductionOrder;
+use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\RouteTemplate;
 use Illuminate\Support\Facades\DB;
 
@@ -13,7 +13,7 @@ class ManufacturingOrderService
     /**
      * Create a new manufacturing order.
      */
-    public function createOrder(array $data): ProductionOrder
+    public function createOrder(array $data): ManufacturingOrder
     {
         return DB::transaction(function () use ($data) {
             // Generate order number if not provided
@@ -21,7 +21,7 @@ class ManufacturingOrderService
                 $data['order_number'] = $this->generateOrderNumber();
             }
 
-            $order = ProductionOrder::create($data);
+            $order = ManufacturingOrder::create($data);
             
             // If BOM-based order, create child orders
             if ($order->bill_of_material_id) {
@@ -43,7 +43,7 @@ class ManufacturingOrderService
     public function generateOrderNumber(): string
     {
         $year = now()->format('Y');
-        $lastOrder = ProductionOrder::whereYear('created_at', $year)
+        $lastOrder = ManufacturingOrder::whereYear('created_at', $year)
             ->orderBy('id', 'desc')
             ->first();
 
@@ -55,7 +55,7 @@ class ManufacturingOrderService
     /**
      * Create manufacturing route from template.
      */
-    public function createRouteFromTemplate(ProductionOrder $order, int $templateId): void
+    public function createRouteFromTemplate(ManufacturingOrder $order, int $templateId): void
     {
         $template = RouteTemplate::findOrFail($templateId);
         
@@ -78,7 +78,7 @@ class ManufacturingOrderService
     /**
      * Release order for production.
      */
-    public function releaseOrder(ProductionOrder $order): void
+    public function releaseOrder(ManufacturingOrder $order): void
     {
         if (!$order->canBeReleased()) {
             throw new \Exception('Order cannot be released in current status');
@@ -131,7 +131,7 @@ class ManufacturingOrderService
      */
     private function executeQualityCheck(ManufacturingStep $step, array $data): ManufacturingStepExecution
     {
-        $productionQuantity = $step->manufacturingRoute->productionOrder->quantity;
+        $productionQuantity = $step->manufacturingRoute->manufacturingOrder->quantity;
         $executions = [];
         
         switch ($step->quality_check_mode) {
@@ -220,7 +220,7 @@ class ManufacturingOrderService
             $reworkStep->update(['status' => 'queued']);
         } else {
             // Scrap - update production order quantity
-            $order = $execution->productionOrder;
+            $order = $execution->manufacturingOrder;
             $order->increment('quantity_scrapped');
         }
     }
@@ -248,7 +248,7 @@ class ManufacturingOrderService
     /**
      * Cancel a production order.
      */
-    public function cancelOrder(ProductionOrder $order): void
+    public function cancelOrder(ManufacturingOrder $order): void
     {
         if (!$order->canBeCancelled()) {
             throw new \Exception('Order cannot be cancelled');

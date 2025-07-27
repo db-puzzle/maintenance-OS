@@ -80,9 +80,9 @@ class Item extends Model
         return $this->hasMany(BomItem::class);
     }
 
-    public function productionOrders(): HasMany
+    public function manufacturingOrders(): HasMany
     {
-        return $this->hasMany(ProductionOrder::class);
+        return $this->hasMany(ManufacturingOrder::class);
     }
 
     // Scopes
@@ -154,7 +154,7 @@ class Item extends Model
             ->exists();
 
         // Check if item has open production orders
-        $hasOpenOrders = $this->productionOrders()
+        $hasOpenOrders = $this->manufacturingOrders()
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->exists();
 

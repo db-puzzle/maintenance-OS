@@ -2,17 +2,17 @@
 
 namespace Database\Factories\Production;
 
-use App\Models\Production\ProductionRouting;
-use App\Models\Production\RoutingStep;
+use App\Models\Production\ManufacturingRoute;
+use App\Models\Production\ManufacturingStep;
 use App\Models\Production\WorkCell;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Production\RoutingStep>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Production\ManufacturingStep>
  */
 class RoutingStepFactory extends Factory
 {
-    protected $model = RoutingStep::class;
+    protected $model = ManufacturingStep::class;
 
     /**
      * Define the model's default state.
@@ -32,7 +32,7 @@ class RoutingStepFactory extends Factory
         $operationCode = strtoupper(substr($operationName, 0, 3)) . '-' . sprintf('%03d', fake()->numberBetween(1, 999));
 
         return [
-            'production_routing_id' => ProductionRouting::factory(),
+            'production_routing_id' => ManufacturingRoute::factory(),
             'step_number' => 1,
             'operation_code' => $operationCode,
             'name' => $operationName . ' ' . fake()->words(2, true),

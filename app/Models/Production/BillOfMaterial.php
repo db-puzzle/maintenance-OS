@@ -56,9 +56,9 @@ class BillOfMaterial extends Model
     /**
      * Get the production orders using this BOM.
      */
-    public function productionOrders(): HasMany
+    public function manufacturingOrders(): HasMany
     {
-        return $this->hasMany(ProductionOrder::class, 'bill_of_material_id');
+        return $this->hasMany(ManufacturingOrder::class, 'bill_of_material_id');
     }
 
     /**

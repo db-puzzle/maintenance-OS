@@ -200,7 +200,7 @@ class ManufacturingStep extends Model
         // Check if production order should be updated
         $route = $this->manufacturingRoute;
         if ($route->allStepsCompleted()) {
-            $order = $route->productionOrder;
+            $order = $route->manufacturingOrder;
             $order->update([
                 'status' => 'completed',
                 'actual_end_date' => now(),
@@ -231,7 +231,7 @@ class ManufacturingStep extends Model
      */
     public function getTotalEstimatedTimeAttribute(): int
     {
-        $quantity = $this->manufacturingRoute->productionOrder->quantity;
+        $quantity = $this->manufacturingRoute->manufacturingOrder->quantity;
         return $this->setup_time_minutes + ($this->cycle_time_minutes * $quantity);
     }
 

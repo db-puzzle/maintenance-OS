@@ -1716,7 +1716,7 @@ function ManufacturingStepExecution({ step, execution }) {
                         </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                        Ordem: {step.route.production_order.order_number}
+                        Ordem: {step.route.manufacturing_order.order_number}
                     </p>
                 </div>
             </div>
@@ -1731,11 +1731,11 @@ function ManufacturingStepExecution({ step, execution }) {
                     <CardContent className="space-y-2">
                         <DetailItem 
                             label="Item" 
-                            value={step.route.production_order.item.item_number}
+                            value={step.route.manufacturing_order.item.item_number}
                         />
                         <DetailItem 
                             label="Quantidade" 
-                            value={`${step.route.production_order.quantity} ${step.route.production_order.unit_of_measure}`}
+                            value={`${step.route.manufacturing_order.quantity} ${step.route.manufacturing_order.unit_of_measure}`}
                         />
                         <DetailItem 
                             label="Célula de Trabalho" 

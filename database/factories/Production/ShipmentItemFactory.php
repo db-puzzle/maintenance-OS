@@ -5,7 +5,7 @@ namespace Database\Factories\Production;
 use App\Models\Production\ShipmentItem;
 use App\Models\Production\Shipment;
 use App\Models\Production\BomItem;
-use App\Models\Production\ProductionOrder;
+use App\Models\Production\ManufacturingOrder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ShipmentItemFactory extends Factory
@@ -19,7 +19,7 @@ class ShipmentItemFactory extends Factory
         return [
             'shipment_id' => Shipment::factory(),
             'bom_item_id' => $bomItem->id,
-            'production_order_id' => ProductionOrder::factory(),
+            'production_order_id' => ManufacturingOrder::factory(),
             'item_number' => $bomItem->item_number ?? $this->faker->bothify('ITEM-#####'),
             'description' => $bomItem->description ?? $this->faker->sentence(),
             'quantity' => $this->faker->randomFloat(2, 1, 100),

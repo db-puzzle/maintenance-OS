@@ -22,7 +22,7 @@ class ProductionExecutionController extends Controller
 
         $executions = ProductionExecution::query()
             ->when($request->input('search'), function ($query, $search) {
-                $query->whereHas('productionSchedule.productionOrder', function ($q) use ($search) {
+                $query->whereHas('productionSchedule.manufacturingOrder', function ($q) use ($search) {
                     $q->where('order_number', 'like', "%{$search}%");
                 })
                 ->orWhereHas('productionSchedule.routingStep.productionRouting.bomItem', function ($q) use ($search) {
@@ -55,7 +55,7 @@ class ProductionExecutionController extends Controller
             ->with([
                 'productionSchedule' => function ($query) {
                     $query->with([
-                        'productionOrder.product',
+                        'manufacturingOrder.product',
                         'routingStep.productionRouting.bomItem',
                         'workCell',
                     ]);
@@ -90,7 +90,7 @@ class ProductionExecutionController extends Controller
             ->with([
                 'productionSchedule' => function ($query) {
                     $query->with([
-                        'productionOrder.product',
+                        'manufacturingOrder.product',
                         'routingStep.productionRouting.bomItem',
                         'workCell',
                     ]);
@@ -158,7 +158,7 @@ class ProductionExecutionController extends Controller
         $execution->load([
             'productionSchedule' => function ($query) {
                 $query->with([
-                    'productionOrder.product',
+                    'manufacturingOrder.product',
                     'routingStep.productionRouting.bomItem',
                     'workCell',
                 ]);
@@ -235,7 +235,7 @@ class ProductionExecutionController extends Controller
                 ->whereNotNull('completed_at')
                 ->sum('quantity_completed');
 
-            if ($totalCompleted >= $schedule->productionOrder->quantity) {
+            if ($totalCompleted >= $schedule->manufacturingOrder->quantity) {
                 $schedule->complete($totalCompleted, 0, 'Completed via executions');
             }
         });
@@ -313,7 +313,7 @@ class ProductionExecutionController extends Controller
                 $query->where('bom_item_id', $bomItem->id);
             })
             ->whereIn('status', ['scheduled', 'in_progress'])
-            ->with(['productionOrder', 'routingStep', 'workCell'])
+            ->with(['manufacturingOrder', 'routingStep', 'workCell'])
             ->get();
 
         return response()->json([

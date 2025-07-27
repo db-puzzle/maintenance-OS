@@ -56,7 +56,7 @@ class WorkCell extends Model
      */
     public function routingSteps(): HasMany
     {
-        return $this->hasMany(RoutingStep::class);
+        return $this->hasMany(ManufacturingStep::class);
     }
 
     /**

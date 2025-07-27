@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
-use App\Models\Production\ProductionOrder;
+use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\Shipment;
 use App\Models\Production\ShipmentItem;
 use App\Models\Production\ShipmentPhoto;
+use App\Models\Production\Item;
 use App\Services\Production\ShipmentManifestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -86,19 +87,14 @@ class ShipmentController extends Controller
     {
         $this->authorize('create', Shipment::class);
 
-        // Get completed production orders with items ready to ship
-        $availableOrders = ProductionOrder::query()
-            ->where('status', 'completed')
-            ->whereDoesntHave('shipmentItems', function ($query) {
-                $query->whereHas('shipment', function ($q) {
-                    $q->whereNotIn('status', ['cancelled']);
-                });
-            })
-            ->with(['product', 'billOfMaterial'])
+        // Get all active items that can be shipped
+        $items = Item::query()
+            ->where('is_active', true)
+            ->orderBy('item_number')
             ->get();
 
         return Inertia::render('production/shipments/create', [
-            'availableOrders' => $availableOrders,
+            'items' => $items,
         ]);
     }
 
@@ -109,47 +105,77 @@ class ShipmentController extends Controller
     {
         $this->authorize('create', Shipment::class);
 
+        // First validate basic fields
         $validated = $request->validate([
-            'shipment_type' => 'required|in:customer,internal,vendor,other',
-            'scheduled_date' => 'required|date|after_or_equal:today',
-            'destination' => 'required|string|max:500',
-            'customer_name' => 'nullable|required_if:shipment_type,customer|string|max:255',
-            'customer_contact' => 'nullable|string|max:255',
-            'customer_phone' => 'nullable|string|max:50',
+            'shipment_type' => 'nullable|in:customer,internal_transfer,vendor_return',
+            'destination_name' => 'required|string|max:255',
+            'destination_address' => 'required|string|max:500',
+            'destination_city' => 'required|string|max:100',
+            'destination_state' => 'required|string|max:50',
+            'destination_zip' => 'required|string|max:20',
+            'scheduled_ship_date' => 'nullable|date|after_or_equal:today',
             'carrier' => 'nullable|string|max:100',
-            'special_instructions' => 'nullable|string',
-            'items' => 'required|array|min:1',
-            'items.*.production_order_id' => 'required|exists:production_orders,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.package_type' => 'required|string|max:50',
-            'items.*.package_count' => 'required|integer|min:1',
-            'items.*.notes' => 'nullable|string',
+            'carrier_contact' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'items' => 'required|string', // JSON string
         ]);
 
-        $shipment = DB::transaction(function () use ($validated) {
-            // Create shipment
-            $shipmentData = $validated;
-            unset($shipmentData['items']);
-            $shipmentData['shipment_number'] = Shipment::generateShipmentNumber();
-            $shipmentData['status'] = 'draft';
-            $shipmentData['created_by'] = auth()->id();
+        // Parse and validate items
+        $items = json_decode($validated['items'], true);
+        if (!is_array($items) || empty($items)) {
+            return back()->withErrors(['items' => 'Invalid items data']);
+        }
 
-            $shipment = Shipment::create($shipmentData);
+        // Validate each item
+        foreach ($items as $index => $item) {
+            if (!isset($item['item_id']) || !isset($item['quantity']) || !isset($item['unit_of_measure'])) {
+                return back()->withErrors(['items' => "Item at index {$index} is missing required fields"]);
+            }
+            
+            if (!Item::where('id', $item['item_id'])->exists()) {
+                return back()->withErrors(['items' => "Item ID {$item['item_id']} does not exist"]);
+            }
+            
+            if ($item['quantity'] <= 0) {
+                return back()->withErrors(['items' => "Item at index {$index} has invalid quantity"]);
+            }
+        }
+
+        $shipment = DB::transaction(function () use ($validated, $items) {
+            // Generate shipment number
+            $shipmentNumber = Shipment::generateShipmentNumber();
+            
+            // Create destination details array
+            $destinationDetails = [
+                'name' => $validated['destination_name'],
+                'address' => $validated['destination_address'],
+                'city' => $validated['destination_city'],
+                'state' => $validated['destination_state'],
+                'zip' => $validated['destination_zip'],
+            ];
+
+            // Create shipment
+            $shipment = Shipment::create([
+                'shipment_number' => $shipmentNumber,
+                'shipment_type' => $validated['shipment_type'] ?? 'customer', // Set default to 'customer'
+                'destination_type' => 'address',
+                'destination_details' => $destinationDetails,
+                'status' => 'draft',
+                'scheduled_ship_date' => $validated['scheduled_ship_date'] ?? now(), // Set default to today if null
+                'carrier' => $validated['carrier'],
+                'created_by' => auth()->id(),
+            ]);
 
             // Create shipment items
-            foreach ($validated['items'] as $itemData) {
-                $order = ProductionOrder::find($itemData['production_order_id']);
+            foreach ($items as $itemData) {
+                $item = Item::find($itemData['item_id']);
                 
                 ShipmentItem::create([
                     'shipment_id' => $shipment->id,
-                    'production_order_id' => $itemData['production_order_id'],
-                    'product_id' => $order->product_id,
+                    'item_number' => $item->item_number,
+                    'description' => $item->description,
                     'quantity' => $itemData['quantity'],
-                    'package_type' => $itemData['package_type'],
-                    'package_count' => $itemData['package_count'],
-                    'weight' => $itemData['weight'] ?? null,
-                    'dimensions' => $itemData['dimensions'] ?? null,
-                    'notes' => $itemData['notes'] ?? null,
+                    'unit_of_measure' => $itemData['unit_of_measure'] ?? $item->unit_of_measure,
                 ]);
             }
 
@@ -157,7 +183,7 @@ class ShipmentController extends Controller
         });
 
         return redirect()->route('production.shipments.show', $shipment)
-            ->with('success', 'Shipment created successfully.');
+            ->with('success', 'Remessa criada com sucesso.');
     }
 
     /**
@@ -169,7 +195,7 @@ class ShipmentController extends Controller
 
         $shipment->load([
             'items' => function ($query) {
-                $query->with(['productionOrder.billOfMaterial', 'product']);
+                $query->with(['manufacturingOrder.billOfMaterial', 'product']);
             },
             'photos',
             'createdBy',
@@ -200,7 +226,7 @@ class ShipmentController extends Controller
                 ->with('error', 'Cannot edit shipment in current status.');
         }
 
-        $shipment->load('items.productionOrder.product');
+        $shipment->load('items.manufacturingOrder.product');
 
         return Inertia::render('production/shipments/edit', [
             'shipment' => $shipment,

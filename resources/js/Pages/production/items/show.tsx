@@ -554,21 +554,7 @@ export default function ItemShow({
                     isCreating ? (
                         'Criação de novo item'
                     ) : (
-                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span>{item?.item_number}</span>
-                            {item?.category && (
-                                <>
-                                    <span className="text-muted-foreground">•</span>
-                                    <span className="text-muted-foreground">{item.category}</span>
-                                </>
-                            )}
-                            <span className="text-muted-foreground">•</span>
-                            <Badge variant="outline">
-                                {itemTypeLabels[item?.item_type || ''] || item?.item_type}
-                            </Badge>
-                            <span className="text-muted-foreground">•</span>
-                            <StatusBadge status={item?.status || 'active'} />
-                        </span>
+                        `${item?.item_number}${item?.category ? ` • ${item.category}` : ''} • ${itemTypeLabels[item?.item_type || ''] || item?.item_type} • ${item?.status === 'active' ? 'Ativo' : item?.status === 'inactive' ? 'Inativo' : item?.status === 'prototype' ? 'Protótipo' : item?.status === 'discontinued' ? 'Descontinuado' : item?.status || 'Ativo'}`
                     )
                 }
                 editRoute=""

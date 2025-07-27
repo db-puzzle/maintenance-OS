@@ -124,7 +124,7 @@ export default function BomIndex({ boms, filters }: Props) {
             label: 'Versão',
             width: 'w-[100px]',
             render: (value: any, bom: any) => {
-                const currentVersion = bom.currentVersion?.version_number;
+                const currentVersion = bom.current_version?.version_number;
                 return currentVersion ? `v${currentVersion}` : '-';
             }
         },

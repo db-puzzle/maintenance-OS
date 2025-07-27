@@ -2,10 +2,10 @@
 
 namespace App\Policies\Production;
 
-use App\Models\Production\ProductionRouting;
+use App\Models\Production\ManufacturingRoute;
 use App\Models\User;
 
-class ProductionRoutingPolicy
+class ManufacturingRoutePolicy
 {
     /**
      * Determine whether the user can view any production routings.
@@ -18,7 +18,7 @@ class ProductionRoutingPolicy
     /**
      * Determine whether the user can view the production routing.
      */
-    public function view(User $user, ProductionRouting $routing): bool
+    public function view(User $user, ManufacturingRoute $routing): bool
     {
         return $user->hasPermissionTo('production.routing.view');
     }
@@ -34,7 +34,7 @@ class ProductionRoutingPolicy
     /**
      * Determine whether the user can update the production routing.
      */
-    public function update(User $user, ProductionRouting $routing): bool
+    public function update(User $user, ManufacturingRoute $routing): bool
     {
         return $user->hasPermissionTo('production.routing.update');
     }
@@ -42,15 +42,10 @@ class ProductionRoutingPolicy
     /**
      * Determine whether the user can delete the production routing.
      */
-    public function delete(User $user, ProductionRouting $routing): bool
+    public function delete(User $user, ManufacturingRoute $routing): bool
     {
-        // Cannot delete if routing has production schedules
-        if ($routing->steps()->has('productionSchedules')->exists()) {
-            return false;
-        }
-
-        // Cannot delete if routing is inherited by others
-        if ($routing->childRoutings()->exists()) {
+        // Cannot delete if routing has executed steps
+        if ($routing->steps()->whereNotIn('status', ['pending', 'cancelled'])->exists()) {
             return false;
         }
 
@@ -60,13 +55,8 @@ class ProductionRoutingPolicy
     /**
      * Determine whether the user can manage routing steps.
      */
-    public function manageSteps(User $user, ProductionRouting $routing): bool
+    public function manageSteps(User $user, ManufacturingRoute $routing): bool
     {
-        // Cannot manage steps for inherited routing
-        if ($routing->routing_type === 'inherited') {
-            return false;
-        }
-
         return $user->hasPermissionTo('production.routing.manageSteps');
     }
 } 

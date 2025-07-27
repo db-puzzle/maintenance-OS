@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 
-class ProductionOrder extends Model
+class ManufacturingOrder extends Model
 {
     use HasFactory;
 
@@ -70,7 +70,7 @@ class ProductionOrder extends Model
      */
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(ProductionOrder::class, 'parent_id');
+        return $this->belongsTo(ManufacturingOrder::class, 'parent_id');
     }
 
     /**
@@ -78,7 +78,7 @@ class ProductionOrder extends Model
      */
     public function children(): HasMany
     {
-        return $this->hasMany(ProductionOrder::class, 'parent_id');
+        return $this->hasMany(ManufacturingOrder::class, 'parent_id');
     }
 
     /**
@@ -86,7 +86,7 @@ class ProductionOrder extends Model
      */
     public function manufacturingRoute(): HasOne
     {
-        return $this->hasOne(ManufacturingRoute::class);
+        return $this->hasOne(ManufacturingRoute::class, 'production_order_id');
     }
 
     /**
@@ -126,7 +126,7 @@ class ProductionOrder extends Model
      */
     public function shipmentItems(): HasMany
     {
-        return $this->hasMany(ShipmentItem::class);
+        return $this->hasMany(ShipmentItem::class, 'production_order_id');
     }
 
     /**
@@ -138,32 +138,69 @@ class ProductionOrder extends Model
             return;
         }
         
-        $bomItems = $this->billOfMaterial->currentVersion->items;
+        // Load BOM with all necessary relationships
+        $this->load(['billOfMaterial.currentVersion']);
         
-        DB::transaction(function () use ($bomItems) {
-            foreach ($bomItems as $bomItem) {
-                $childOrder = ProductionOrder::create([
-                    'order_number' => $this->generateChildOrderNumber($bomItem),
-                    'parent_id' => $this->id,
-                    'item_id' => $bomItem->item_id,
-                    'quantity' => $bomItem->quantity * $this->quantity,
-                    'unit_of_measure' => $bomItem->unit_of_measure,
-                    'status' => 'draft',
-                    'priority' => $this->priority,
-                    'requested_date' => $this->requested_date,
-                    'created_by' => $this->created_by,
-                ]);
-                
-                // Recursively create orders for nested BOMs
-                if ($bomItem->item->current_bom_id) {
-                    $childOrder->bill_of_material_id = $bomItem->item->current_bom_id;
-                    $childOrder->save();
-                    $childOrder->createChildOrders();
-                }
-            }
+        DB::transaction(function () {
+            // Create orders for root-level BOM items only
+            $this->createChildOrdersFromBomItems(
+                $this->billOfMaterial->currentVersion->id,
+                null, // parent_item_id = null for root items
+                $this->id // this order is the parent
+            );
             
             $this->updateChildOrderCounts();
         });
+    }
+
+    /**
+     * Recursively create child orders from BOM items hierarchy.
+     */
+    private function createChildOrdersFromBomItems($bomVersionId, $parentItemId, $parentOrderId, $parentQuantity = 1): void
+    {
+        // Get BOM items at this level
+        $bomItems = \App\Models\Production\BomItem::where('bom_version_id', $bomVersionId)
+            ->where('parent_item_id', $parentItemId)
+            ->with('item')
+            ->get();
+        
+        $parentOrder = ManufacturingOrder::find($parentOrderId);
+        
+        foreach ($bomItems as $bomItem) {
+            // Calculate quantity based on parent quantity
+            $orderQuantity = $bomItem->quantity * $this->quantity * $parentQuantity;
+            
+            // Create manufacturing order for this BOM item
+            $childOrder = ManufacturingOrder::create([
+                'order_number' => $this->generateChildOrderNumberForParent($bomItem, $parentOrder),
+                'parent_id' => $parentOrderId,
+                'item_id' => $bomItem->item_id,
+                'quantity' => $orderQuantity,
+                'unit_of_measure' => $bomItem->unit_of_measure,
+                'status' => 'draft',
+                'priority' => $this->priority,
+                'requested_date' => $this->requested_date,
+                'created_by' => $this->created_by,
+            ]);
+            
+            // Check if this item has its own separate BOM
+            if ($bomItem->item->current_bom_id) {
+                $childOrder->bill_of_material_id = $bomItem->item->current_bom_id;
+                $childOrder->save();
+                $childOrder->createChildOrders();
+            } else {
+                // Recursively create orders for children within the same BOM
+                $this->createChildOrdersFromBomItems(
+                    $bomVersionId,
+                    $bomItem->id, // This BOM item is now the parent
+                    $childOrder->id, // The newly created order is the parent order
+                    $bomItem->quantity // Pass down the quantity multiplier
+                );
+            }
+            
+            // Update child order counts for the newly created order
+            $childOrder->updateChildOrderCounts();
+        }
     }
 
     /**
@@ -171,8 +208,19 @@ class ProductionOrder extends Model
      */
     protected function generateChildOrderNumber(BomItem $bomItem): string
     {
-        $parentNumber = $this->order_number;
-        $sequence = $this->children()->count() + 1;
+        return $this->generateChildOrderNumberForParent($bomItem, $this);
+    }
+
+    /**
+     * Generate a unique order number for child orders with specific parent.
+     */
+    protected function generateChildOrderNumberForParent(BomItem $bomItem, ManufacturingOrder $parentOrder): string
+    {
+        $parentNumber = $parentOrder->order_number;
+        
+        // Count existing children for this parent to generate sequence
+        $existingCount = ManufacturingOrder::where('order_number', 'like', $parentNumber . '-%')->count();
+        $sequence = $existingCount + 1;
         
         return sprintf('%s-%03d', $parentNumber, $sequence);
     }

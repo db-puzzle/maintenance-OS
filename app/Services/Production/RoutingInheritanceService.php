@@ -3,7 +3,7 @@
 namespace App\Services\Production;
 
 use App\Models\Production\BomItem;
-use App\Models\Production\ProductionRouting;
+use App\Models\Production\ManufacturingRoute;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,7 +12,7 @@ class RoutingInheritanceService
     /**
      * Resolve routing for a BOM item.
      */
-    public function resolveRouting(BomItem $item): ?ProductionRouting
+    public function resolveRouting(BomItem $item): ?ManufacturingRoute
     {
         // Check cache first
         $cacheKey = "routing.resolved.{$item->id}";
@@ -107,9 +107,9 @@ class RoutingInheritanceService
     /**
      * Create inherited routing for an item.
      */
-    public function createInheritedRouting(BomItem $item, ProductionRouting $parentRouting): ProductionRouting
+    public function createInheritedRouting(BomItem $item, ManufacturingRoute $parentRouting): ManufacturingRoute
     {
-        return ProductionRouting::create([
+        return ManufacturingRoute::create([
             'bom_item_id' => $item->id,
             'routing_number' => $this->generateRoutingNumber($item),
             'name' => "Inherited: {$parentRouting->name}",
@@ -124,7 +124,7 @@ class RoutingInheritanceService
     /**
      * Override inherited routing with custom routing.
      */
-    public function overrideInheritedRouting(BomItem $item): ProductionRouting
+    public function overrideInheritedRouting(BomItem $item): ManufacturingRoute
     {
         $currentRouting = $item->routing;
         
@@ -133,7 +133,7 @@ class RoutingInheritanceService
         }
 
         // Create new defined routing
-        $newRouting = ProductionRouting::create([
+        $newRouting = ManufacturingRoute::create([
             'bom_item_id' => $item->id,
             'routing_number' => $this->generateRoutingNumber($item),
             'name' => "Custom routing for {$item->name}",
@@ -146,7 +146,7 @@ class RoutingInheritanceService
 
         // Copy steps from inherited routing if desired
         if ($currentRouting->parent_routing_id) {
-            $parentSteps = ProductionRouting::find($currentRouting->parent_routing_id)->steps;
+            $parentSteps = ManufacturingRoute::find($currentRouting->parent_routing_id)->steps;
             
             foreach ($parentSteps as $step) {
                 $newStep = $step->replicate(['production_routing_id']);
@@ -198,7 +198,7 @@ class RoutingInheritanceService
     /**
      * Find routing for an item (checking inheritance).
      */
-    protected function findRoutingForItem(BomItem $item): ?ProductionRouting
+    protected function findRoutingForItem(BomItem $item): ?ManufacturingRoute
     {
         // Check if item has direct routing
         $routing = $item->routing()->active()->first();
@@ -250,7 +250,7 @@ class RoutingInheritanceService
     /**
      * Validate routing resources.
      */
-    protected function validateRoutingResources(ProductionRouting $routing): array
+    protected function validateRoutingResources(ManufacturingRoute $routing): array
     {
         $errors = [];
         
@@ -297,7 +297,7 @@ class RoutingInheritanceService
     /**
      * Get all items using a specific routing.
      */
-    public function getItemsUsingRouting(ProductionRouting $routing): Collection
+    public function getItemsUsingRouting(ManufacturingRoute $routing): Collection
     {
         $items = collect();
         
@@ -305,7 +305,7 @@ class RoutingInheritanceService
         $items->push($routing->bomItem);
         
         // Inherited usage
-        $inheritedRoutings = ProductionRouting::where('parent_routing_id', $routing->id)
+        $inheritedRoutings = ManufacturingRoute::where('parent_routing_id', $routing->id)
             ->with('bomItem')
             ->get();
             

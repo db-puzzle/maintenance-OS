@@ -37,6 +37,9 @@ class DatabaseSeeder extends Seeder
             TeamSeeder::class,
             // ShiftSeeder::class, // TODO: Create this seeder
             // UserSeeder::class, // TODO: Create this seeder
+            
+            // Test Data (only for development)
+            ProductionTestDataSeeder::class,
         ]);
     }
 }

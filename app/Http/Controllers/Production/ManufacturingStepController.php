@@ -26,7 +26,7 @@ class ManufacturingStepController extends Controller
         $this->authorize('viewAny', ManufacturingStep::class);
 
         $steps = ManufacturingStep::with([
-            'manufacturingRoute.productionOrder.item',
+            'manufacturingRoute.manufacturingOrder.item',
             'workCell',
             'form',
             'executions.executedBy',
@@ -60,7 +60,7 @@ class ManufacturingStepController extends Controller
         $this->authorize('view', $step);
 
         $step->load([
-            'manufacturingRoute.productionOrder.item',
+            'manufacturingRoute.manufacturingOrder.item',
             'workCell',
             'form.currentVersion.tasks',
             'dependency',
@@ -141,7 +141,7 @@ class ManufacturingStepController extends Controller
         }
 
         $step->load([
-            'manufacturingRoute.productionOrder.item',
+            'manufacturingRoute.manufacturingOrder.item',
             'executions' => function ($query) {
                 $query->where('status', 'in_progress')
                     ->orWhere(function ($q) {

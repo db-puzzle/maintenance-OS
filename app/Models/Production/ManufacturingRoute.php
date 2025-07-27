@@ -29,9 +29,9 @@ class ManufacturingRoute extends Model
     /**
      * Get the production order that owns the route.
      */
-    public function productionOrder(): BelongsTo
+    public function manufacturingOrder(): BelongsTo
     {
-        return $this->belongsTo(ProductionOrder::class);
+        return $this->belongsTo(ManufacturingOrder::class, 'production_order_id');
     }
 
     /**
@@ -95,7 +95,7 @@ class ManufacturingRoute extends Model
     {
         return $this->steps->sum(function ($step) {
             return $step->setup_time_minutes + 
-                   ($step->cycle_time_minutes * $this->productionOrder->quantity);
+                   ($step->cycle_time_minutes * $this->manufacturingOrder->quantity);
         });
     }
 

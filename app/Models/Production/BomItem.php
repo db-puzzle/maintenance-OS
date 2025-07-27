@@ -74,7 +74,7 @@ class BomItem extends Model
      */
     public function routing(): HasOne
     {
-        return $this->hasOne(ProductionRouting::class, 'bom_item_id');
+        return $this->hasOne(ManufacturingRoute::class, 'bom_item_id');
     }
 
     /**
@@ -88,7 +88,7 @@ class BomItem extends Model
     /**
      * Get the effective routing (own or inherited).
      */
-    public function getEffectiveRouting(): ?ProductionRouting
+    public function getEffectiveRouting(): ?ManufacturingRoute
     {
         // Direct routing
         if ($this->routing && $this->routing->is_active) {

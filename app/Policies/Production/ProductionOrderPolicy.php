@@ -2,7 +2,7 @@
 
 namespace App\Policies\Production;
 
-use App\Models\Production\ProductionOrder;
+use App\Models\Production\ManufacturingOrder;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
@@ -21,7 +21,7 @@ class ProductionOrderPolicy
     /**
      * Determine whether the user can view the production order.
      */
-    public function view(User $user, ProductionOrder $order): bool
+    public function view(User $user, ManufacturingOrder $order): bool
     {
         if (!$user->hasPermissionTo('production.orders.view')) {
             return false;
@@ -54,7 +54,7 @@ class ProductionOrderPolicy
     /**
      * Determine whether the user can update the production order.
      */
-    public function update(User $user, ProductionOrder $order): bool
+    public function update(User $user, ManufacturingOrder $order): bool
     {
         if (!$user->hasPermissionTo('production.orders.update')) {
             return false;
@@ -84,7 +84,7 @@ class ProductionOrderPolicy
     /**
      * Determine whether the user can delete the production order.
      */
-    public function delete(User $user, ProductionOrder $order): bool
+    public function delete(User $user, ManufacturingOrder $order): bool
     {
         if (!$user->hasPermissionTo('production.orders.delete')) {
             return false;
@@ -106,7 +106,7 @@ class ProductionOrderPolicy
     /**
      * Determine whether the user can release the production order.
      */
-    public function release(User $user, ProductionOrder $order): bool
+    public function release(User $user, ManufacturingOrder $order): bool
     {
         if (!$user->hasPermissionTo('production.orders.release')) {
             return false;
@@ -128,7 +128,7 @@ class ProductionOrderPolicy
     /**
      * Determine whether the user can cancel the production order.
      */
-    public function cancel(User $user, ProductionOrder $order): bool
+    public function cancel(User $user, ManufacturingOrder $order): bool
     {
         if (!$user->hasPermissionTo('production.orders.cancel')) {
             return false;

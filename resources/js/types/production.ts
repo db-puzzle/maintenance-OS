@@ -1,5 +1,7 @@
 // Production Module Types
 
+import { User } from '@/types';
+
 export interface Item {
     id: number;
     item_number: string;
@@ -33,7 +35,7 @@ export interface BillOfMaterial {
     external_reference?: string;
     is_active: boolean;
     created_by?: number;
-    currentVersion?: BomVersion;
+    current_version?: BomVersion;
     versions?: BomVersion[];
     versions_count?: number;
     item_masters_count?: number;
@@ -86,55 +88,138 @@ export interface WorkCell {
     updated_at: string;
 }
 
-export interface ProductionRouting {
+export interface ManufacturingOrder {
     id: number;
+    order_number: string;
+    parent_id?: number;
+    parent?: ManufacturingOrder;
     item_id: number;
     item?: Item;
-    name: string;
-    description?: string;
-    version: number;
-    status: 'active' | 'inactive' | 'draft';
-    steps?: RoutingStep[];
+    bill_of_material_id?: number;
+    bill_of_material?: BillOfMaterial;
+    quantity: number;
+    quantity_completed: number;
+    quantity_scrapped: number;
+    unit_of_measure: string;
+    status: 'draft' | 'planned' | 'released' | 'in_progress' | 'completed' | 'cancelled';
+    priority: number;
+    child_orders_count: number;
+    completed_child_orders_count: number;
+    auto_complete_on_children: boolean;
+    requested_date?: string;
+    planned_start_date?: string;
+    planned_end_date?: string;
+    actual_start_date?: string;
+    actual_end_date?: string;
+    source_type?: 'manual' | 'sales_order' | 'forecast';
+    source_reference?: string;
+    children?: ManufacturingOrder[];
+    manufacturing_route?: ManufacturingRoute;
+    created_by?: number;
+    created_by_user?: User;
     created_at: string;
     updated_at: string;
 }
 
-export interface RoutingStep {
+export interface RouteTemplate {
     id: number;
-    routing_id: number;
+    name: string;
+    description?: string;
+    item_category?: string;
+    is_active: boolean;
+    steps?: RouteTemplateStep[];
+    created_by?: number;
+    created_by_user?: User;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface RouteTemplateStep {
+    id: number;
+    route_template_id: number;
     step_number: number;
-    operation_code: string;
+    step_type: 'standard' | 'quality_check' | 'rework';
+    name: string;
+    description?: string;
+    setup_time_minutes: number;
+    cycle_time_minutes: number;
+    work_cell_id?: number;
+    work_cell?: WorkCell;
+    form_id?: number;
+    quality_check_mode?: 'every_part' | 'entire_lot' | 'sampling';
+    sampling_size?: number;
+}
+
+export interface ManufacturingRoute {
+    id: number;
+    production_order_id: number;
+    manufacturing_order?: ManufacturingOrder;
+    item_id: number;
+    item?: Item;
+    route_template_id?: number;
+    route_template?: RouteTemplate;
+    name: string;
+    description?: string;
+    is_active: boolean;
+    steps?: ManufacturingStep[];
+    steps_count?: number;
+    created_by?: number;
+    created_by_user?: User;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ManufacturingStep {
+    id: number;
+    manufacturing_route_id: number;
+    step_number: number;
+    step_type: 'standard' | 'quality_check' | 'rework';
     name: string;
     description?: string;
     work_cell_id?: number;
     work_cell?: WorkCell;
+    status: 'pending' | 'queued' | 'in_progress' | 'on_hold' | 'completed' | 'skipped';
+    form_id?: number;
+    form_version_id?: number;
     setup_time_minutes: number;
     cycle_time_minutes: number;
-    notes?: string;
+    actual_start_time?: string;
+    actual_end_time?: string;
+    quality_result?: 'pending' | 'passed' | 'failed';
+    failure_action?: 'scrap' | 'rework';
+    quality_check_mode?: 'every_part' | 'entire_lot' | 'sampling';
+    sampling_size?: number;
+    depends_on_step_id?: number;
+    can_start_when_dependency?: 'completed' | 'in_progress';
+    executions?: ManufacturingStepExecution[];
 }
 
-export interface ProductionOrder {
+export interface ManufacturingStepExecution {
     id: number;
-    order_number: string;
-    item_id: number;
-    item?: Item;
-    quantity: number;
-    unit_of_measure: string;
-    status: 'planned' | 'released' | 'in_progress' | 'completed' | 'cancelled';
-    priority: 'low' | 'normal' | 'high' | 'urgent';
-    planned_start_date: string;
-    planned_end_date: string;
-    actual_start_date?: string;
-    actual_end_date?: string;
-    notes?: string;
-    created_at: string;
-    updated_at: string;
+    manufacturing_step_id: number;
+    production_order_id: number;
+    part_number?: number;
+    total_parts?: number;
+    status: 'queued' | 'in_progress' | 'on_hold' | 'completed';
+    started_at?: string;
+    completed_at?: string;
+    on_hold_at?: string;
+    resumed_at?: string;
+    total_hold_duration: number;
+    executed_by?: number;
+    executed_by_user?: User;
+    work_cell_id?: number;
+    work_cell?: WorkCell;
+    quality_result?: 'passed' | 'failed';
+    quality_notes?: string;
+    failure_action?: 'scrap' | 'rework';
+    form_execution_id?: number;
 }
 
 export interface ProductionExecution {
     id: number;
     order_id: number;
-    order?: ProductionOrder;
+    order?: ManufacturingOrder;
     work_cell_id: number;
     work_cell?: WorkCell;
     operator_id?: number;

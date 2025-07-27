@@ -57,6 +57,10 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/production/bom',
                 },
                 {
+                    title: 'Ordens de Manufatura',
+                    href: '/production/orders',
+                },
+                {
                     title: 'Roteiros',
                     href: '/production/routing',
                 },

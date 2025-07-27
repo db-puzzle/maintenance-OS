@@ -21,10 +21,10 @@ app/
 │   ├── BillOfMaterial.php
 │   ├── BomItem.php
 │   ├── BomVersion.php
-│   ├── ProductionRouting.php
-│   ├── RoutingStep.php
+│   ├── ManufacturingRoute.php
+│   ├── ManufacturingStep.php
 │   ├── WorkCell.php
-│   ├── ProductionOrder.php
+│   ├── ManufacturingOrder.php
 │   ├── ProductionSchedule.php
 │   ├── ProductionExecution.php
 │   ├── QrTracking.php
@@ -288,7 +288,7 @@ CREATE TABLE work_cells (
 
 ```sql
 -- Production orders
-CREATE TABLE production_orders (
+CREATE TABLE manufacturing_orders (
     id BIGSERIAL PRIMARY KEY,
     order_number VARCHAR(100) UNIQUE NOT NULL,
     product_id BIGINT REFERENCES products(id),
@@ -324,7 +324,7 @@ CREATE TABLE production_orders (
 -- Production schedules (detailed planning)
 CREATE TABLE production_schedules (
     id BIGSERIAL PRIMARY KEY,
-    production_order_id BIGINT REFERENCES production_orders(id) ON DELETE CASCADE,
+    production_order_id BIGINT REFERENCES manufacturing_orders(id) ON DELETE CASCADE,
     routing_step_id BIGINT REFERENCES routing_steps(id),
     work_cell_id BIGINT REFERENCES work_cells(id),
     
@@ -450,7 +450,7 @@ CREATE TABLE shipment_items (
     id BIGSERIAL PRIMARY KEY,
     shipment_id BIGINT REFERENCES shipments(id) ON DELETE CASCADE,
     bom_item_id BIGINT REFERENCES bom_items(id),
-    production_order_id BIGINT REFERENCES production_orders(id),
+    production_order_id BIGINT REFERENCES manufacturing_orders(id),
     
     -- Item details
     item_number VARCHAR(100) NOT NULL,
@@ -538,7 +538,7 @@ namespace App\Services\Production;
 
 class RoutingInheritanceService
 {
-    public function resolveRouting(BomItem $item): ?ProductionRouting
+    public function resolveRouting(BomItem $item): ?ManufacturingRoute
     {
         // Check if item has defined routing
         // If not, traverse up the hierarchy
@@ -566,7 +566,7 @@ namespace App\Services\Production;
 
 class ProductionSchedulingService
 {
-    public function scheduleProduction(ProductionOrder $order): void
+    public function scheduleProduction(ManufacturingOrder $order): void
     {
         // Get BOM item and routing
         // Calculate resource requirements
@@ -820,7 +820,7 @@ namespace App\Models\Production;
 
 class BomItem extends Model
 {
-    public function getEffectiveRouting(): ?ProductionRouting
+    public function getEffectiveRouting(): ?ManufacturingRoute
     {
         // Direct routing
         if ($this->routing && $this->routing->is_active) {

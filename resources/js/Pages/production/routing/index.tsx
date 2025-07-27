@@ -45,7 +45,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
     };
 
     const handleDelete = (routing: any) => {
-        if (confirm(`Tem certeza que deseja excluir o roteiro ${routing.routing_number}?`)) {
+        if (confirm(`Tem certeza que deseja excluir o roteiro ${routing.name}?`)) {
             router.delete(route('production.routing.destroy', routing.id), {
                 onSuccess: () => {
                     toast.success('Roteiro excluído com sucesso');
@@ -59,18 +59,18 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
 
     const columns: ColumnConfig[] = [
         {
-            key: 'routing_number',
-            label: 'Número',
+            key: 'name',
+            label: 'Nome do Roteiro',
             sortable: true,
-            width: 'w-[200px]',
+            width: 'w-[300px]',
             render: (value: unknown, row: Record<string, unknown>) => {
                 const routing = row as any;
                 return (
                     <div>
-                        <div className="font-medium">{routing.routing_number}</div>
-                        {routing.name && (
+                        <div className="font-medium">{routing.name}</div>
+                        {routing.description && (
                             <div className="text-muted-foreground text-sm">
-                                {routing.name.length > 40 ? `${routing.name.substring(0, 40)}...` : routing.name}
+                                {routing.description.length > 40 ? `${routing.description.substring(0, 40)}...` : routing.description}
                             </div>
                         )}
                     </div>
@@ -78,31 +78,39 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             }
         },
         {
-            key: 'bom_item',
+            key: 'manufacturing_order',
+            label: 'Ordem de Produção',
+            sortable: true,
+            width: 'w-[200px]',
+            render: (value: unknown, row: Record<string, unknown>) => {
+                const routing = row as any;
+                return routing.manufacturing_order ? (
+                    <Link
+                        href={route('production.orders.show', routing.manufacturing_order.id)}
+                        className="text-primary hover:underline"
+                    >
+                        {routing.manufacturing_order.order_number}
+                    </Link>
+                ) : '-';
+            }
+        },
+        {
+            key: 'item',
             label: 'Item',
             sortable: true,
             width: 'w-[250px]',
             render: (value: unknown, row: Record<string, unknown>) => {
                 const routing = row as any;
-                return routing.bom_item?.item ? (
+                return routing.item ? (
                     <div>
-                        <div className="font-medium">{routing.bom_item.item.item_number}</div>
+                        <div className="font-medium">{routing.item.item_number}</div>
                         <div className="text-muted-foreground text-sm">
-                            {routing.bom_item.item.name?.length > 40
-                                ? `${routing.bom_item.item.name.substring(0, 40)}...`
-                                : routing.bom_item.item.name || '-'}
+                            {routing.item.name?.length > 40
+                                ? `${routing.item.name.substring(0, 40)}...`
+                                : routing.item.name || '-'}
                         </div>
                     </div>
                 ) : '-';
-            }
-        },
-        {
-            key: 'routing_type',
-            label: 'Tipo',
-            sortable: true,
-            width: 'w-[120px]',
-            render: (value: unknown) => {
-                return value === 'defined' ? 'Definido' : 'Herdado';
             }
         },
         {
@@ -165,10 +173,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
                         onRowClick={(routing: any) => router.visit(route('production.routing.show', routing.id))}
                         actions={(routing: any) => (
                             <EntityActionDropdown
-                                onEdit={routing.routing_type === 'defined' ?
-                                    () => router.visit(route('production.routing.edit', routing.id)) :
-                                    undefined
-                                }
+                                onEdit={() => router.visit(route('production.routing.edit', routing.id))}
                                 onDelete={() => handleDelete(routing)}
                                 additionalActions={[
                                     {

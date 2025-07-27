@@ -2,9 +2,9 @@
 
 namespace Database\Factories\Production;
 
-use App\Models\Production\ProductionOrder;
+use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ProductionSchedule;
-use App\Models\Production\RoutingStep;
+use App\Models\Production\ManufacturingStep;
 use App\Models\Production\WorkCell;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -30,8 +30,8 @@ class ProductionScheduleFactory extends Factory
         $scheduledEnd = fake()->dateTimeBetween($scheduledStart, '+3 weeks');
 
         return [
-            'production_order_id' => ProductionOrder::factory(),
-            'routing_step_id' => RoutingStep::factory(),
+            'production_order_id' => ManufacturingOrder::factory(),
+            'routing_step_id' => ManufacturingStep::factory(),
             'work_cell_id' => WorkCell::factory(),
             'scheduled_start' => $scheduledStart,
             'scheduled_end' => $scheduledEnd,

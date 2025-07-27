@@ -27,7 +27,7 @@ class QrTrackingFactory extends Factory
         
         $trackableTypes = [
             'App\Models\Production\BomItem',
-            'App\Models\Production\ProductionOrder',
+            'App\Models\Production\ManufacturingOrder',
             'App\Models\Production\ProductionSchedule',
             'App\Models\Production\Shipment',
         ];

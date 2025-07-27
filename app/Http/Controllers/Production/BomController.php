@@ -184,7 +184,7 @@ class BomController extends Controller
         }
 
         // Check if BOM is used in any production orders
-        if ($bom->productionOrders()->exists()) {
+        if ($bom->manufacturingOrders()->exists()) {
             return back()->with('error', 'Cannot delete BOM that is used in production orders.');
         }
 

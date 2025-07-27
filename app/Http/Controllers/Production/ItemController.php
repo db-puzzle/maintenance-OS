@@ -85,6 +85,12 @@ class ItemController extends Controller
         $validated['created_by'] = auth()->id();
         $item = Item::create($validated);
 
+        // Check if we should stay on current page (e.g., when creating from BOM)
+        // Check for 'stay' parameter or AJAX request (from Sheet/Modal)
+        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return back()->with('success', 'Item criado com sucesso.');
+        }
+
         return redirect()->route('production.items.show', $item)
             ->with('success', 'Item created successfully.');
     }

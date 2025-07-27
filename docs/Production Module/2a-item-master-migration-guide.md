@@ -207,8 +207,8 @@ return new class extends Migration
 **File: `database/migrations/2025_01_10_000014_create_production_orders_table.php`**
 
 ```php
-// Update the production_orders migration to reference items instead of products
-Schema::create('production_orders', function (Blueprint $table) {
+// Update the manufacturing_orders migration to reference items instead of products
+Schema::create('manufacturing_orders', function (Blueprint $table) {
     // ... other columns ...
     
     // Change from product_id to item_id
@@ -307,9 +307,9 @@ class Item extends Model
         return $this->hasMany(BomItem::class);
     }
 
-    public function productionOrders(): HasMany
+    public function manufacturingOrders(): HasMany
     {
-        return $this->hasMany(ProductionOrder::class);
+        return $this->hasMany(ManufacturingOrder::class);
     }
 
     // Scopes
@@ -381,7 +381,7 @@ class Item extends Model
             ->exists();
 
         // Check if item has open production orders
-        $hasOpenOrders = $this->productionOrders()
+        $hasOpenOrders = $this->manufacturingOrders()
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->exists();
 
@@ -479,7 +479,7 @@ class BomItem extends Model
 
     public function routing(): HasOne
     {
-        return $this->hasOne(ProductionRouting::class);
+        return $this->hasOne(ManufacturingRoute::class);
     }
 
     // Helper methods
@@ -498,7 +498,7 @@ class BomItem extends Model
         return $this->item->can_be_sold;
     }
 
-    public function getEffectiveRouting(): ?ProductionRouting
+    public function getEffectiveRouting(): ?ManufacturingRoute
     {
         // Direct routing
         if ($this->routing && $this->routing->is_active) {
@@ -551,9 +551,9 @@ class BomItem extends Model
 }
 ```
 
-### 2.3 Update ProductionOrder Model
+### 2.3 Update ManufacturingOrder Model
 
-**File: `app/Models/Production/ProductionOrder.php`**
+**File: `app/Models/Production/ManufacturingOrder.php`**
 
 ```php
 // Update the relationship from product() to item()

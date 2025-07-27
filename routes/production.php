@@ -4,7 +4,7 @@ use App\Http\Controllers\Production\ItemController;
 use App\Http\Controllers\Production\BillOfMaterialController;
 use App\Http\Controllers\Production\ProductionRoutingController;
 use App\Http\Controllers\Production\ProductionScheduleController;
-use App\Http\Controllers\Production\ProductionOrderController;
+use App\Http\Controllers\Production\ManufacturingOrderController;
 use App\Http\Controllers\Production\QrTrackingController;
 use App\Http\Controllers\Production\ShipmentController;
 use App\Http\Controllers\Production\WorkCellController;
@@ -49,12 +49,33 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::resource('routing', ProductionRoutingController::class);
     Route::get('routing/{routing}/builder', [ProductionRoutingController::class, 'builder'])->name('routing.builder');
 
+    // Manufacturing Orders
+    Route::resource('orders', ManufacturingOrderController::class);
+    Route::post('orders/{order}/release', [ManufacturingOrderController::class, 'release'])->name('orders.release');
+    Route::post('orders/{order}/cancel', [ManufacturingOrderController::class, 'cancel'])->name('orders.cancel');
+    Route::get('orders/{order}/children', [ManufacturingOrderController::class, 'children'])->name('orders.children');
+
     // Production Planning
     Route::prefix('planning')->name('planning.')->group(function () {
         Route::get('/', [ProductionScheduleController::class, 'index'])->name('index');
         Route::get('/calendar', [ProductionScheduleController::class, 'calendar'])->name('calendar');
-        Route::get('/gantt', [ProductionScheduleController::class, 'gantt'])->name('gantt');
-        Route::resource('orders', ProductionOrderController::class);
+        Route::get('/workload', [ProductionScheduleController::class, 'workload'])->name('workload');
+        Route::post('/optimize', [ProductionScheduleController::class, 'optimize'])->name('optimize');
+    });
+
+    // Production Schedules
+    Route::prefix('schedules')->name('schedules.')->group(function () {
+        Route::get('/', [ProductionScheduleController::class, 'index'])->name('index');
+        Route::get('/create', [ProductionScheduleController::class, 'create'])->name('create');
+        Route::post('/', [ProductionScheduleController::class, 'store'])->name('store');
+        Route::get('/{schedule}', [ProductionScheduleController::class, 'show'])->name('show');
+        Route::get('/{schedule}/edit', [ProductionScheduleController::class, 'edit'])->name('edit');
+        Route::put('/{schedule}', [ProductionScheduleController::class, 'update'])->name('update');
+        Route::post('/{schedule}/start', [ProductionScheduleController::class, 'start'])->name('start');
+        Route::post('/{schedule}/complete', [ProductionScheduleController::class, 'complete'])->name('complete');
+        Route::post('/{schedule}/hold', [ProductionScheduleController::class, 'hold'])->name('hold');
+        Route::post('/{schedule}/resume', [ProductionScheduleController::class, 'resume'])->name('resume');
+        Route::post('/{schedule}/cancel', [ProductionScheduleController::class, 'cancel'])->name('cancel');
     });
 
     // Production Tracking

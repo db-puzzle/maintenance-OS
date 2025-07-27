@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingStepExecution;
-use App\Models\Production\ProductionOrder;
+use App\Models\Production\ManufacturingOrder;
 use App\Services\Production\ManufacturingOrderService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,7 +27,7 @@ class QualityCheckController extends Controller
         $this->authorize('production.quality.executeCheck');
 
         $qualityChecks = ManufacturingStepExecution::with([
-            'manufacturingStep.manufacturingRoute.productionOrder.item',
+            'manufacturingStep.manufacturingRoute.manufacturingOrder.item',
             'workCell',
             'executedBy',
         ])
@@ -67,7 +67,7 @@ class QualityCheckController extends Controller
         $this->authorize('production.quality.executeCheck');
 
         $pendingChecks = ManufacturingStep::with([
-            'manufacturingRoute.productionOrder.item',
+            'manufacturingRoute.manufacturingOrder.item',
             'workCell',
             'executions' => function ($query) {
                 $query->where('status', 'in_progress')
@@ -154,7 +154,7 @@ class QualityCheckController extends Controller
         }
 
         $execution->load([
-            'manufacturingStep.manufacturingRoute.productionOrder.item',
+            'manufacturingStep.manufacturingRoute.manufacturingOrder.item',
             'workCell',
             'executedBy',
         ]);

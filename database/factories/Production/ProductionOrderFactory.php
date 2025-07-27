@@ -4,16 +4,16 @@ namespace Database\Factories\Production;
 
 use App\Models\Production\BillOfMaterial;
 use App\Models\Production\Item;
-use App\Models\Production\ProductionOrder;
+use App\Models\Production\ManufacturingOrder;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Production\ProductionOrder>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Production\ManufacturingOrder>
  */
 class ProductionOrderFactory extends Factory
 {
-    protected $model = ProductionOrder::class;
+    protected $model = ManufacturingOrder::class;
 
     /**
      * Define the model's default state.

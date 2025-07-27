@@ -24,26 +24,6 @@ class BillOfMaterialController extends Controller
         $this->importService = $importService;
     }
 
-    /**
-     * Convert array keys from snake_case to camelCase recursively
-     */
-    private function convertKeysToCamelCase($data)
-    {
-        if (!is_array($data)) {
-            return $data;
-        }
-
-        $result = [];
-        foreach ($data as $key => $value) {
-            $camelKey = Str::camel($key);
-            if (is_array($value)) {
-                $result[$camelKey] = $this->convertKeysToCamelCase($value);
-            } else {
-                $result[$camelKey] = $value;
-            }
-        }
-        return $result;
-    }
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', BillOfMaterial::class);
@@ -168,7 +148,7 @@ class BillOfMaterialController extends Controller
         }
 
         return Inertia::render('production/bom/show', [
-            'bom' => $this->convertKeysToCamelCase($bom->load(['currentVersion.items.item', 'currentVersion.items.children.item'])->toArray()),
+            'bom' => $bom,
             'items' => $items,
             'isCreating' => false,
             'can' => [
@@ -205,7 +185,7 @@ class BillOfMaterialController extends Controller
             return back()->with('error', 'BOM cannot be deleted because it is assigned to items.');
         }
 
-        if ($bom->productionOrders()->exists()) {
+        if ($bom->manufacturingOrders()->exists()) {
             return back()->with('error', 'BOM cannot be deleted because it is used in production orders.');
         }
 
@@ -516,6 +496,37 @@ class BillOfMaterialController extends Controller
         $item->delete();
 
         return back()->with('success', 'Item removed from BOM successfully.');
+    }
+
+    /**
+     * Move item in BOM hierarchy
+     */
+    public function moveItem(Request $request, BillOfMaterial $bom, BomItem $item)
+    {
+        $this->authorize('manageItems', $bom);
+
+        if ($item->bomVersion->bill_of_material_id !== $bom->id) {
+            abort(403, 'Item does not belong to this BOM.');
+        }
+
+        $validated = $request->validate([
+            'parent_item_id' => 'nullable|exists:bom_items,id',
+        ]);
+
+        // Update the parent item
+        $item->parent_item_id = $validated['parent_item_id'];
+        
+        // Update level based on new parent
+        if ($validated['parent_item_id']) {
+            $parent = BomItem::find($validated['parent_item_id']);
+            $item->level = $parent->level + 1;
+        } else {
+            $item->level = 0;
+        }
+        
+        $item->save();
+
+        return back()->with('success', 'Item moved successfully.');
     }
 
     /**

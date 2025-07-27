@@ -58,7 +58,7 @@ export default function UserActivity({ user, activities, filters, availableActio
     const initials = getInitials(user.name);
 
     const [localFilters, setLocalFilters] = useState({
-        action: filters.action || '',
+        action: filters.action || 'all',
         date_from: filters.date_from || '',
         date_to: filters.date_to || '',
     });
@@ -70,7 +70,7 @@ export default function UserActivity({ user, activities, filters, availableActio
 
     const applyFilters = () => {
         const params: Record<string, string> = {};
-        if (localFilters.action) params.action = localFilters.action;
+        if (localFilters.action && localFilters.action !== 'all') params.action = localFilters.action;
         if (localFilters.date_from) params.date_from = localFilters.date_from;
         if (localFilters.date_to) params.date_to = localFilters.date_to;
 
@@ -173,7 +173,7 @@ export default function UserActivity({ user, activities, filters, availableActio
                                         <SelectValue placeholder="All actions" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">All actions</SelectItem>
+                                        <SelectItem value="all">All actions</SelectItem>
                                         {availableActions.map((action) => (
                                             <SelectItem key={action} value={action}>
                                                 {getActionLabel(action)}

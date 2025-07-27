@@ -2,16 +2,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import {
   Plus,
-  Trash2,
-  Save,
   Download,
-  ChevronRight,
-  ChevronDown,
-  Edit,
-  GripVertical,
-  Package,
   Search,
-  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +28,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { BomItem, Item, BomVersion } from '@/types/production';
+import CreateItemSheet from '@/components/CreateItemSheet';
+import BomTreeView from './BomTreeView';
 
 interface BomConfigurationProps {
   bomId: number;
@@ -44,6 +38,15 @@ interface BomConfigurationProps {
   availableItems: Item[];
   canEdit: boolean;
   onUpdate?: () => void;
+  bom?: {
+    name: string;
+    bom_number: string;
+    current_version?: {
+      version_number: number;
+      items?: any[];
+    };
+    versions?: any[];
+  };
 }
 
 interface EditingItem {
@@ -63,7 +66,8 @@ export default function BomConfiguration({
   bomItems: initialBomItems,
   availableItems,
   canEdit,
-  onUpdate
+  onUpdate,
+  bom
 }: BomConfigurationProps) {
   const [items, setItems] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -74,6 +78,7 @@ export default function BomConfiguration({
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateItemSheetOpen, setIsCreateItemSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Transform flat BOM items to hierarchical structure
@@ -81,7 +86,7 @@ export default function BomConfiguration({
     const buildHierarchy = (items: any[], parentId: string | number | null = null): any[] => {
       return items
         .filter(item => {
-          const itemParentId = item.parentItemId || item.parent_item_id;
+          const itemParentId = item.parent_item_id;
           // Convert both to strings for comparison if they exist
           const itemParentIdStr = itemParentId ? String(itemParentId) : null;
           const parentIdStr = parentId ? String(parentId) : null;
@@ -174,13 +179,7 @@ export default function BomConfiguration({
     });
   };
 
-  // Toggle expand/collapse
-  const toggleExpand = (id: string) => {
-    setExpanded(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
+
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -424,210 +423,55 @@ export default function BomConfiguration({
     window.open(route('production.bom.export', bomId), '_blank');
   };
 
-  // Tree item component
-  const TreeItem: React.FC<{
-    node: any;
-    depth?: number;
-    isLast?: boolean;
-    parentConnectorLines?: boolean[];
-  }> = ({ node, depth = 0, isLast = true, parentConnectorLines = [] }) => {
-    const isExpanded = expanded[node.id];
-    const hasChildren = node.children && node.children.length > 0;
 
-    const childConnectorLines = [...parentConnectorLines];
-    if (depth > 0) {
-      childConnectorLines.push(!isLast);
-    }
-
-    return (
-      <div className="w-full">
-        <div className="flex">
-          {/* Connector lines */}
-          {parentConnectorLines.map((showLine, i) => (
-            <div key={`connector-${i}`} className="w-6 relative">
-              {showLine && <div className="absolute h-full w-0 border-l-2 border-gray-300 left-3 top-0"></div>}
-            </div>
-          ))}
-
-          {depth > 0 && (
-            <div className="w-6 relative">
-              <div className="absolute h-1/2 w-0 border-l-2 border-gray-300 left-3 top-0"></div>
-              <div className="absolute w-3 border-t-2 border-gray-300 left-3 top-1/2"></div>
-              {!isLast && <div className="absolute h-1/2 w-0 border-l-2 border-gray-300 left-3 top-1/2"></div>}
-            </div>
-          )}
-
-          {/* Item content */}
-          <div
-            className={cn(
-              "flex-grow p-2 my-0.5 border rounded-lg transition-all",
-              dragging === node.id ? 'opacity-50' : '',
-              dragging && dragging !== node.id && canEdit ? 'hover:border-blue-500 hover:border-dashed' : '',
-              "hover:bg-muted/50"
-            )}
-            onDragOver={(e) => handleDragOver(e, node.id)}
-            onDrop={(e) => handleDrop(e, node.id)}
-          >
-            <div className="flex items-center w-full gap-2">
-              {/* Drag handle */}
-              {canEdit && (
-                <div
-                  className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
-                  draggable="true"
-                  onDragStart={(e) => handleDragStart(e, node.id)}
-                  title="Arrastar para reposicionar"
-                >
-                  <GripVertical size={14} />
-                </div>
-              )}
-
-              {/* Expand/collapse button */}
-              {hasChildren && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-5 w-5 p-0"
-                  onClick={() => toggleExpand(node.id)}
-                >
-                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </Button>
-              )}
-              {!hasChildren && <div className="w-5"></div>}
-
-              {/* Item details */}
-              <div className="flex-grow grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-3 font-medium">
-                  <div className="text-sm">{node.item.itemNumber || node.item.item_number}</div>
-                  {(node.referenceDesignators || node.reference_designators) && (
-                    <div className="text-xs text-muted-foreground">Ref: {node.referenceDesignators || node.reference_designators}</div>
-                  )}
-                </div>
-                <div className="col-span-4 text-foreground text-sm">{node.item.name}</div>
-                <div className="col-span-1 text-center text-sm text-foreground">
-                  {node.quantity}
-                </div>
-                <div className="col-span-2 text-center text-sm text-foreground">
-                  {node.unitOfMeasure || node.unit_of_measure}
-                </div>
-                <div className="col-span-2 flex justify-end gap-1">
-                  {canEdit && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => handleEditItem(node)}
-                        title="Editar item"
-                      >
-                        <Edit size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => handleAddItem(node.id)}
-                        title="Adicionar sub-item"
-                      >
-                        <Plus size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => handleDeleteItem(node.id)}
-                        title="Remover item"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Render children */}
-        {hasChildren && isExpanded && (
-          <div>
-            {node.children.map((child: any, index: number) => (
-              <TreeItem
-                key={child.id}
-                node={child}
-                depth={depth + 1}
-                isLast={index === node.children.length - 1}
-                parentConnectorLines={childConnectorLines}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="w-full h-full flex flex-col">
-      {/* Toolbar */}
-      <div className="p-4 border-b flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-medium">Configuração da BOM</h3>
-          <p className="text-sm text-muted-foreground">
-            {canEdit ? 'Arraste e solte para reorganizar a estrutura' : 'Visualização da estrutura da BOM'}
-          </p>
+      {/* Header */}
+      <div className="p-4 flex justify-between items-center">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <div className="flex flex-wrap items-baseline">
+            <p className="mt-1 ml-2 truncate text-sm text-gray-500">
+              {bom?.current_version?.items?.length || 0} itens na versão
+            </p>
+            <h3 className="mt-2 ml-2 text-base font-semibold text-gray-900">
+              {bom?.name || 'BOM'}
+            </h3>
+          </div>
+          {bom?.current_version && (
+            <Badge variant="secondary">
+              v{bom.current_version.version_number}
+            </Badge>
+          )}
         </div>
         <div className="flex gap-2">
-          {canEdit && (
-            <Button onClick={() => handleAddItem(null)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar Item
-            </Button>
-          )}
-          <Button variant="outline" onClick={handleExportBOM}>
+          <Button variant="outline" size="sm" onClick={handleExportBOM}>
             <Download className="h-4 w-4 mr-2" />
             Exportar BOM
           </Button>
-        </div>
-      </div>
-
-      {/* Header */}
-      <div className="p-4 pb-2">
-        <div className="bg-muted/50 p-3 rounded-lg grid grid-cols-12 gap-2 font-semibold text-sm">
-          <div className="col-span-3">Código do Item</div>
-          <div className="col-span-4">Descrição</div>
-          <div className="col-span-1 text-center">Qtd</div>
-          <div className="col-span-2 text-center">Unidade</div>
-          <div className="col-span-2 text-right">Ações</div>
+          {canEdit && (
+            <Button size="sm" variant="outline" onClick={() => setIsCreateItemSheetOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Criar Novo Item
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Tree view */}
       <div className="flex-grow overflow-auto px-4 pb-4">
-        {items.length > 0 ? (
-          <div>
-            {items.map((item, index) => (
-              <TreeItem
-                key={item.id}
-                node={item}
-                isLast={index === items.length - 1}
-                parentConnectorLines={[]}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <Package className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">Nenhum item na BOM</h3>
-            <p className="text-muted-foreground mb-4">
-              Adicione o primeiro item para começar a construir a estrutura
-            </p>
-            {canEdit && (
-              <Button onClick={() => handleAddItem(null)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Item
-              </Button>
-            )}
-          </div>
-        )}
+        <BomTreeView
+          items={items}
+          canEdit={canEdit}
+          onEditItem={handleEditItem}
+          onAddItem={handleAddItem}
+          onDeleteItem={handleDeleteItem}
+          draggable={true}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          draggingId={dragging}
+        />
       </div>
 
       {/* Add Item Dialog */}
@@ -881,6 +725,21 @@ export default function BomConfiguration({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Item Sheet */}
+      <CreateItemSheet
+        open={isCreateItemSheetOpen}
+        onOpenChange={setIsCreateItemSheetOpen}
+        mode="create"
+        onSuccess={() => {
+          // The backend will stay on the same page when it detects an AJAX request
+          // The BaseEntitySheet handles closing and showing success message
+          // We just need to refresh the data
+          if (onUpdate) {
+            onUpdate();
+          }
+        }}
+      />
     </div>
   );
 }

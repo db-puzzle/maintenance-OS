@@ -50,7 +50,7 @@ class BillOfMaterialPolicy
         }
 
         // Cannot delete if BOM is used in production orders
-        if ($billOfMaterial->productionOrders()->exists()) {
+        if ($billOfMaterial->manufacturingOrders()->exists()) {
             return false;
         }
 

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('manufacturing_step_executions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('manufacturing_step_id')->constrained('manufacturing_steps');
-            $table->foreignId('production_order_id')->constrained('production_orders');
+            $table->foreignId('production_order_id')->constrained('manufacturing_orders');
             
             // Part tracking for lot production
             $table->integer('part_number')->nullable(); // Which part in the lot (1, 2, 3...)

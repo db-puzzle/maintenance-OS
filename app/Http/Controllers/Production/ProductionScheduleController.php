@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
-use App\Models\Production\ProductionOrder;
-use App\Models\Production\ProductionSchedule;
+use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingStep;
 use App\Models\Production\WorkCell;
 use App\Services\Production\ProductionSchedulingService;
 use Illuminate\Http\Request;
@@ -26,14 +26,14 @@ class ProductionScheduleController extends Controller
      */
     public function index(Request $request): Response
     {
-        $this->authorize('viewAny', ProductionSchedule::class);
+        $this->authorize('viewAny', ManufacturingOrder::class);
 
-        $schedules = ProductionSchedule::query()
+        $schedules = ManufacturingStep::query()
             ->when($request->input('search'), function ($query, $search) {
-                $query->whereHas('productionOrder', function ($q) use ($search) {
+                $query->whereHas('manufacturingRoute.manufacturingOrder', function ($q) use ($search) {
                     $q->where('order_number', 'like', "%{$search}%");
                 })
-                ->orWhereHas('routingStep.productionRouting.bomItem', function ($q) use ($search) {
+                ->orWhereHas('manufacturingRoute.item', function ($q) use ($search) {
                     $q->where('item_number', 'like', "%{$search}%")
                       ->orWhere('name', 'like', "%{$search}%");
                 });
@@ -45,30 +45,31 @@ class ProductionScheduleController extends Controller
                 $query->where('work_cell_id', $request->input('work_cell_id'));
             })
             ->when($request->filled('date_from'), function ($query) use ($request) {
-                $query->whereDate('scheduled_start_date', '>=', $request->input('date_from'));
+                $query->where('actual_start_time', '>=', $request->input('date_from'));
             })
             ->when($request->filled('date_to'), function ($query) use ($request) {
-                $query->whereDate('scheduled_start_date', '<=', $request->input('date_to'));
+                $query->where('actual_start_time', '<=', $request->input('date_to'));
             })
             ->with([
-                'productionOrder.product',
-                'routingStep.productionRouting.bomItem',
+                'manufacturingRoute.manufacturingOrder.item',
+                'manufacturingRoute.item',
                 'workCell',
             ])
-            ->orderBy('scheduled_start_date')
-            ->paginate($request->input('per_page', 10))
+            ->orderBy($request->input('sort', 'step_number'), $request->input('direction', 'asc'))
+            ->paginate($request->input('per_page', 15))
             ->withQueryString();
 
-        return Inertia::render('production/schedules/index', [
+        return Inertia::render('production/schedule/index', [
             'schedules' => $schedules,
-            'filters' => $request->only(['search', 'status', 'work_cell_id', 'date_from', 'date_to', 'per_page']),
-            'workCells' => WorkCell::active()->get(['id', 'name']),
+            'filters' => $request->only(['search', 'status', 'work_cell_id', 'date_from', 'date_to', 'per_page', 'sort', 'direction']),
+            'workCells' => WorkCell::active()->get(['id', 'name'])->toArray(),
             'statuses' => [
-                'scheduled' => 'Scheduled',
+                'pending' => 'Pending',
+                'queued' => 'Queued',
                 'in_progress' => 'In Progress',
+                'on_hold' => 'On Hold',
                 'completed' => 'Completed',
-                'delayed' => 'Delayed',
-                'cancelled' => 'Cancelled',
+                'skipped' => 'Skipped',
             ],
         ]);
     }
@@ -78,152 +79,127 @@ class ProductionScheduleController extends Controller
      */
     public function calendar(Request $request): Response
     {
-        $this->authorize('viewAny', ProductionSchedule::class);
+        $this->authorize('viewAny', ManufacturingOrder::class);
 
         $startDate = $request->input('start', now()->startOfMonth());
         $endDate = $request->input('end', now()->endOfMonth());
 
-        $schedules = ProductionSchedule::query()
-            ->whereBetween('scheduled_start_date', [$startDate, $endDate])
+        $schedules = ManufacturingStep::query()
+            ->whereNotNull('actual_start_time')
+            ->whereBetween('actual_start_time', [$startDate, $endDate])
             ->when($request->filled('work_cell_id'), function ($query) use ($request) {
                 $query->where('work_cell_id', $request->input('work_cell_id'));
             })
             ->with([
-                'productionOrder.product',
-                'routingStep.productionRouting.bomItem',
+                'manufacturingRoute.manufacturingOrder.item',
+                'manufacturingRoute.item',
                 'workCell',
             ])
             ->get();
 
-        $events = $schedules->map(function ($schedule) {
-            return [
-                'id' => $schedule->id,
-                'title' => $schedule->routingStep->productionRouting->bomItem->name . ' - ' . $schedule->routingStep->name,
-                'start' => $schedule->scheduled_start_date->toIso8601String(),
-                'end' => $schedule->scheduled_end_date->toIso8601String(),
-                'color' => $this->getStatusColor($schedule->status),
-                'extendedProps' => [
-                    'order_number' => $schedule->productionOrder->order_number,
-                    'work_cell' => $schedule->workCell->name,
-                    'status' => $schedule->status,
-                    'progress' => $schedule->getProgressPercentage(),
-                ],
-            ];
-        });
-
-        return Inertia::render('production/schedules/calendar', [
-            'events' => $events,
+        return Inertia::render('production/schedule/calendar', [
+            'schedules' => $schedules,
             'workCells' => WorkCell::active()->get(['id', 'name']),
-            'filters' => $request->only(['work_cell_id', 'start', 'end']),
         ]);
     }
 
     /**
-     * Display the Gantt chart view of schedules.
+     * Show the form for creating a new schedule.
      */
-    public function gantt(Request $request): Response
+    public function create(): Response
     {
-        $this->authorize('viewAny', ProductionSchedule::class);
+        $this->authorize('create', ManufacturingOrder::class);
 
-        $orders = ProductionOrder::query()
-            ->when($request->filled('status'), function ($query) use ($request) {
-                $query->where('status', $request->input('status'));
-            })
-            ->with([
-                'productionSchedules' => function ($query) {
-                    $query->with(['routingStep.productionRouting.bomItem', 'workCell'])
-                        ->orderBy('scheduled_start_date');
-                },
-                'product',
-            ])
-            ->whereHas('productionSchedules')
-            ->get();
+        return Inertia::render('production/schedule/create', [
+            'manufacturingOrders' => ManufacturingOrder::query()
+                ->whereIn('status', ['draft', 'planned'])
+                ->with('item')
+                ->get(),
+            'workCells' => WorkCell::active()->get(['id', 'name']),
+        ]);
+    }
 
-        $ganttData = $orders->map(function ($order) {
-            return [
-                'id' => 'order-' . $order->id,
-                'name' => $order->order_number . ' - ' . $order->product->name,
-                'type' => 'order',
-                'start' => $order->productionSchedules->min('scheduled_start_date')->toIso8601String(),
-                'end' => $order->productionSchedules->max('scheduled_end_date')->toIso8601String(),
-                'progress' => $order->getCompletionPercentage(),
-                'children' => $order->productionSchedules->map(function ($schedule) {
-                    return [
-                        'id' => 'schedule-' . $schedule->id,
-                        'name' => $schedule->routingStep->productionRouting->bomItem->name . ' - ' . $schedule->routingStep->name,
-                        'type' => 'schedule',
-                        'start' => $schedule->scheduled_start_date->toIso8601String(),
-                        'end' => $schedule->scheduled_end_date->toIso8601String(),
-                        'progress' => $schedule->getProgressPercentage(),
-                        'work_cell' => $schedule->workCell->name,
-                        'status' => $schedule->status,
-                    ];
-                }),
-            ];
+    /**
+     * Store a newly created schedule.
+     */
+    public function store(Request $request)
+    {
+        $this->authorize('create', ManufacturingOrder::class);
+
+        $validated = $request->validate([
+            'manufacturing_order_id' => 'required|exists:manufacturing_orders,id',
+            'scheduled_start' => 'required|date|after:now',
+            'work_cell_assignments' => 'array',
+        ]);
+
+        DB::transaction(function () use ($validated) {
+            $order = ManufacturingOrder::findOrFail($validated['manufacturing_order_id']);
+            $this->schedulingService->scheduleProduction($order);
         });
 
-        return Inertia::render('production/schedules/gantt', [
-            'ganttData' => $ganttData,
-            'filters' => $request->only(['status']),
-        ]);
+        return redirect()->route('production.schedules.index')
+            ->with('success', 'Production scheduled successfully.');
     }
 
     /**
      * Display the specified schedule.
      */
-    public function show(ProductionSchedule $schedule): Response
+    public function show(ManufacturingStep $schedule): Response
     {
-        $this->authorize('view', $schedule);
+        $this->authorize('view', $schedule->manufacturingRoute->manufacturingOrder);
 
         $schedule->load([
-            'productionOrder.product',
-            'routingStep.productionRouting.bomItem',
+            'manufacturingRoute.manufacturingOrder.item',
+            'manufacturingRoute.item',
             'workCell',
-            'productionExecutions.operator',
+            'executions.executedBy',
         ]);
 
-        return Inertia::render('production/schedules/show', [
+        return Inertia::render('production/schedule/show', [
             'schedule' => $schedule,
-            'can' => [
-                'update' => auth()->user()->can('update', $schedule),
-                'start' => auth()->user()->can('start', $schedule),
-                'complete' => auth()->user()->can('complete', $schedule),
-            ],
         ]);
     }
 
     /**
-     * Update the schedule.
+     * Show the form for editing the schedule.
      */
-    public function update(Request $request, ProductionSchedule $schedule)
+    public function edit(ManufacturingStep $schedule): Response
     {
-        $this->authorize('update', $schedule);
+        $this->authorize('update', $schedule->manufacturingRoute->manufacturingOrder);
 
-        if (in_array($schedule->status, ['completed', 'cancelled'])) {
-            return back()->with('error', 'Cannot update completed or cancelled schedules.');
+        // Cannot update completed or skipped schedules
+        if (in_array($schedule->status, ['completed', 'skipped'])) {
+            abort(403, 'Cannot edit completed or skipped schedules.');
+        }
+
+        $schedule->load([
+            'manufacturingRoute.manufacturingOrder',
+            'workCell',
+        ]);
+
+        return Inertia::render('production/schedule/edit', [
+            'schedule' => $schedule,
+            'workCells' => WorkCell::active()->get(['id', 'name']),
+        ]);
+    }
+
+    /**
+     * Update the specified schedule.
+     */
+    public function update(Request $request, ManufacturingStep $schedule)
+    {
+        $this->authorize('update', $schedule->manufacturingRoute->manufacturingOrder);
+
+        // Cannot update completed or skipped schedules
+        if (in_array($schedule->status, ['completed', 'skipped'])) {
+            return back()->withErrors(['error' => 'Cannot update completed or skipped schedules.']);
         }
 
         $validated = $request->validate([
-            'scheduled_start_date' => 'required|date',
-            'scheduled_end_date' => 'required|date|after:scheduled_start_date',
-            'work_cell_id' => 'required|exists:work_cells,id',
-            'assigned_operators' => 'nullable|array',
-            'assigned_operators.*' => 'exists:users,id',
+            'work_cell_id' => 'nullable|exists:work_cells,id',
+            'setup_time_minutes' => 'required|integer|min:0',
+            'cycle_time_minutes' => 'required|integer|min:1',
         ]);
-
-        // Check for conflicts
-        $conflicts = $this->schedulingService->checkScheduleConflicts(
-            $schedule->work_cell_id,
-            $validated['scheduled_start_date'],
-            $validated['scheduled_end_date'],
-            $schedule->id
-        );
-
-        if (!empty($conflicts)) {
-            return back()->withErrors([
-                'scheduled_start_date' => 'Schedule conflicts with existing schedules.',
-            ])->with('conflicts', $conflicts);
-        }
 
         $schedule->update($validated);
 
@@ -231,203 +207,198 @@ class ProductionScheduleController extends Controller
     }
 
     /**
-     * Start the scheduled production.
+     * Start the production schedule.
      */
-    public function start(Request $request, ProductionSchedule $schedule)
+    public function start(Request $request, ManufacturingStep $schedule)
     {
-        $this->authorize('start', $schedule);
+        $this->authorize('update', $schedule->manufacturingRoute->manufacturingOrder);
 
-        if ($schedule->status !== 'scheduled') {
-            return back()->with('error', 'Only scheduled items can be started.');
+        // Can only start pending or queued items
+        if (!in_array($schedule->status, ['pending', 'queued'])) {
+            return back()->withErrors(['error' => 'Can only start pending or queued schedules.']);
         }
 
-        $validated = $request->validate([
-            'operator_notes' => 'nullable|string|max:500',
-        ]);
+        DB::transaction(function () use ($schedule) {
+            $schedule->update([
+                'status' => 'in_progress',
+                'actual_start_time' => now(),
+            ]);
 
-        try {
-            $schedule->start($validated['operator_notes'] ?? null);
-            return back()->with('success', 'Production started successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
-        }
+            // Update manufacturing order status if this is the first step
+            $order = $schedule->manufacturingRoute->manufacturingOrder;
+            if ($order->status === 'released') {
+                $order->update([
+                    'status' => 'in_progress',
+                    'actual_start_date' => now(),
+                ]);
+            }
+        });
+
+        return back()->with('success', 'Production started successfully.');
     }
 
     /**
-     * Complete the scheduled production.
+     * Complete the production schedule.
      */
-    public function complete(Request $request, ProductionSchedule $schedule)
+    public function complete(Request $request, ManufacturingStep $schedule)
     {
-        $this->authorize('complete', $schedule);
+        $this->authorize('update', $schedule->manufacturingRoute->manufacturingOrder);
 
+        // Can only complete in-progress items
         if ($schedule->status !== 'in_progress') {
-            return back()->with('error', 'Only in-progress items can be completed.');
+            return back()->withErrors(['error' => 'Can only complete in-progress schedules.']);
         }
 
         $validated = $request->validate([
             'quantity_completed' => 'required|numeric|min:0',
-            'quantity_rejected' => 'nullable|numeric|min:0',
-            'completion_notes' => 'nullable|string|max:500',
-        ]);
-
-        try {
-            DB::transaction(function () use ($schedule, $validated) {
-                $schedule->complete(
-                    $validated['quantity_completed'],
-                    $validated['quantity_rejected'] ?? 0,
-                    $validated['completion_notes'] ?? null
-                );
-
-                // Check if all schedules for the order are complete
-                $order = $schedule->productionOrder;
-                if ($order->productionSchedules()->where('status', '!=', 'completed')->count() === 0) {
-                    $order->update([
-                        'status' => 'completed',
-                        'actual_end_date' => now(),
-                    ]);
-                }
-            });
-
-            return back()->with('success', 'Production completed successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
-        }
-    }
-
-    /**
-     * Delay the schedule.
-     */
-    public function delay(Request $request, ProductionSchedule $schedule)
-    {
-        $this->authorize('update', $schedule);
-
-        if (in_array($schedule->status, ['completed', 'cancelled'])) {
-            return back()->with('error', 'Cannot delay completed or cancelled schedules.');
-        }
-
-        $validated = $request->validate([
-            'delay_reason' => 'required|string|max:500',
-            'new_start_date' => 'required|date|after:now',
-            'new_end_date' => 'required|date|after:new_start_date',
+            'quantity_scrapped' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         DB::transaction(function () use ($schedule, $validated) {
             $schedule->update([
-                'scheduled_start_date' => $validated['new_start_date'],
-                'scheduled_end_date' => $validated['new_end_date'],
-                'status' => 'delayed',
-                'delay_reason' => $validated['delay_reason'],
+                'status' => 'completed',
+                'actual_end_time' => now(),
             ]);
 
-            // Cascade delay to dependent schedules
-            $this->schedulingService->cascadeDelay($schedule);
+            // Update manufacturing order quantities
+            $order = $schedule->manufacturingRoute->manufacturingOrder;
+            $order->increment('quantity_completed', $validated['quantity_completed']);
+            if ($validated['quantity_scrapped'] ?? 0 > 0) {
+                $order->increment('quantity_scrapped', $validated['quantity_scrapped']);
+            }
+
+            // Check if all steps are completed
+            $allStepsCompleted = $order->manufacturingRoute->steps()
+                ->whereNotIn('status', ['completed', 'skipped'])
+                ->doesntExist();
+
+            if ($allStepsCompleted) {
+                $order->update([
+                    'status' => 'completed',
+                    'actual_end_date' => now(),
+                ]);
+            }
         });
 
-        return back()->with('success', 'Schedule delayed successfully.');
+        return back()->with('success', 'Production completed successfully.');
+    }
+
+    /**
+     * Put the schedule on hold.
+     */
+    public function hold(Request $request, ManufacturingStep $schedule)
+    {
+        $this->authorize('update', $schedule->manufacturingRoute->manufacturingOrder);
+
+        // Can only hold in-progress items
+        if ($schedule->status !== 'in_progress') {
+            return back()->withErrors(['error' => 'Can only hold in-progress schedules.']);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        $schedule->update([
+            'status' => 'on_hold',
+        ]);
+
+        return back()->with('success', 'Production put on hold.');
+    }
+
+    /**
+     * Resume the schedule from hold.
+     */
+    public function resume(ManufacturingStep $schedule)
+    {
+        $this->authorize('update', $schedule->manufacturingRoute->manufacturingOrder);
+
+        // Can only resume on-hold items
+        if ($schedule->status !== 'on_hold') {
+            return back()->withErrors(['error' => 'Can only resume on-hold schedules.']);
+        }
+
+        $schedule->update([
+            'status' => 'in_progress',
+        ]);
+
+        return back()->with('success', 'Production resumed.');
     }
 
     /**
      * Cancel the schedule.
      */
-    public function cancel(Request $request, ProductionSchedule $schedule)
+    public function cancel(Request $request, ManufacturingStep $schedule)
     {
-        $this->authorize('update', $schedule);
+        $this->authorize('update', $schedule->manufacturingRoute->manufacturingOrder);
 
-        if (in_array($schedule->status, ['completed', 'cancelled'])) {
-            return back()->with('error', 'Cannot cancel completed schedules.');
+        // Cannot cancel completed schedules
+        if ($schedule->status === 'completed') {
+            return back()->withErrors(['error' => 'Cannot cancel completed schedules.']);
         }
 
         $validated = $request->validate([
-            'cancellation_reason' => 'required|string|max:500',
+            'reason' => 'required|string|max:1000',
         ]);
 
         $schedule->update([
-            'status' => 'cancelled',
-            'cancellation_reason' => $validated['cancellation_reason'],
-            'cancelled_at' => now(),
+            'status' => 'skipped',
         ]);
 
-        return back()->with('success', 'Schedule cancelled successfully.');
+        return back()->with('success', 'Schedule cancelled.');
     }
 
     /**
-     * Reassign schedule to different work cell.
+     * Optimize schedules for a date range.
      */
-    public function reassign(Request $request, ProductionSchedule $schedule)
+    public function optimize(Request $request)
     {
-        $this->authorize('update', $schedule);
-
-        if ($schedule->status === 'in_progress') {
-            return back()->with('error', 'Cannot reassign in-progress schedules.');
-        }
+        $this->authorize('update', ManufacturingOrder::class);
 
         $validated = $request->validate([
-            'work_cell_id' => 'required|exists:work_cells,id',
-            'reason' => 'required|string|max:500',
-        ]);
-
-        $workCell = WorkCell::find($validated['work_cell_id']);
-
-        // Check if work cell can handle the routing step
-        if ($workCell->type === 'external' && $schedule->routingStep->requires_internal) {
-            return back()->with('error', 'External work cell cannot handle internal routing steps.');
-        }
-
-        // Recalculate schedule based on new work cell capacity
-        $duration = $this->schedulingService->calculateDuration(
-            $schedule->routingStep,
-            $schedule->productionOrder->quantity,
-            $workCell
-        );
-
-        $schedule->update([
-            'work_cell_id' => $validated['work_cell_id'],
-            'scheduled_end_date' => $schedule->scheduled_start_date->copy()->addMinutes($duration),
-            'reassignment_reason' => $validated['reason'],
-        ]);
-
-        return back()->with('success', 'Schedule reassigned successfully.');
-    }
-
-    /**
-     * Get schedule conflicts.
-     */
-    public function conflicts(Request $request)
-    {
-        $this->authorize('viewAny', ProductionSchedule::class);
-
-        $validated = $request->validate([
-            'work_cell_id' => 'required|exists:work_cells,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
-            'exclude_id' => 'nullable|exists:production_schedules,id',
+            'work_cell_ids' => 'nullable|array',
+            'work_cell_ids.*' => 'exists:work_cells,id',
         ]);
 
-        $conflicts = $this->schedulingService->checkScheduleConflicts(
-            $validated['work_cell_id'],
+        $result = $this->schedulingService->optimizeSchedule(
             $validated['start_date'],
             $validated['end_date'],
-            $validated['exclude_id'] ?? null
+            $validated['work_cell_ids'] ?? []
         );
 
         return response()->json([
-            'conflicts' => $conflicts,
-            'has_conflicts' => !empty($conflicts),
+            'message' => 'Schedule optimized successfully',
+            'improvements' => $result,
         ]);
     }
 
     /**
-     * Get status color for calendar.
+     * Get workload analysis for work cells.
      */
-    protected function getStatusColor(string $status): string
+    public function workload(Request $request)
     {
-        return match ($status) {
-            'scheduled' => '#3b82f6', // blue
-            'in_progress' => '#eab308', // yellow
-            'completed' => '#22c55e', // green
-            'delayed' => '#f97316', // orange
-            'cancelled' => '#ef4444', // red
-            default => '#6b7280', // gray
-        };
+        $this->authorize('viewAny', ManufacturingOrder::class);
+
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after:start_date',
+            'work_cell_ids' => 'nullable|array',
+            'work_cell_ids.*' => 'exists:work_cells,id',
+        ]);
+
+        $workload = $this->schedulingService->getWorkloadAnalysis(
+            $validated['start_date'],
+            $validated['end_date'],
+            $validated['work_cell_ids'] ?? []
+        );
+
+        return Inertia::render('production/schedule/workload', [
+            'workload' => $workload,
+            'filters' => $validated,
+            'workCells' => WorkCell::active()->get(['id', 'name']),
+        ]);
     }
 } 

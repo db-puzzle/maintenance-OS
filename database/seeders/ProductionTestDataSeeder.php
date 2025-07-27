@@ -10,11 +10,10 @@ use App\Models\Production\BillOfMaterial;
 use App\Models\Production\BomVersion;
 use App\Models\Production\BomItem;
 use App\Models\Production\WorkCell;
-use App\Models\Production\ProductionRouting;
-use App\Models\Production\RoutingStep;
-use App\Models\Production\ProductionOrder;
-use App\Models\Production\ProductionSchedule;
-use App\Models\Production\ProductionExecution;
+use App\Models\Production\ManufacturingRoute;
+use App\Models\Production\ManufacturingStep;
+use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingStepExecution;
 use App\Models\Production\QrTracking;
 use App\Models\Production\Shipment;
 use App\Models\Production\ShipmentItem;
@@ -53,10 +52,7 @@ class ProductionTestDataSeeder extends Seeder
         // Create BOM structure
         $this->createBicycleBOM($creator);
         
-        // Create production routings
-        $this->createProductionRoutings($creator);
-        
-        // Create production orders
+        // Create production orders and routes
         $this->createProductionOrders($creator);
         
         $this->command->info('Dados de produção de bicicletas criados com sucesso!');
@@ -70,11 +66,10 @@ class ProductionTestDataSeeder extends Seeder
         ShipmentItem::query()->delete();
         Shipment::query()->delete();
         QrTracking::query()->delete();
-        ProductionExecution::query()->delete();
-        ProductionSchedule::query()->delete();
-        ProductionOrder::query()->delete();
-        RoutingStep::query()->delete();
-        ProductionRouting::query()->delete();
+        ManufacturingStepExecution::query()->delete();
+        ManufacturingStep::query()->delete();
+        ManufacturingRoute::query()->delete();
+        ManufacturingOrder::query()->delete();
         BomItem::query()->delete();
         BomVersion::query()->delete();
         ItemBomHistory::query()->delete();
@@ -1040,295 +1035,378 @@ class ProductionTestDataSeeder extends Seeder
         $this->command->info('Estrutura de BOM criada com 4 níveis');
     }
     
-    private function createProductionRoutings($creator): void
-    {
-        $this->command->info('Criando roteiros de produção...');
-        
-        // Get BOM items that need routing
-        $bomVersion = BomVersion::where('is_current', true)->first();
-        
-        // Routing for Estrutura do Quadro
-        $estruturaBomItem = BomItem::where('bom_version_id', $bomVersion->id)
-            ->where('item_id', $this->items['estrutura_quadro']->id)
-            ->first();
-            
-        if ($estruturaBomItem) {
-            $routingEstrutura = ProductionRouting::create([
-                'bom_item_id' => $estruturaBomItem->id,
-                'routing_number' => 'ROT-EST-001',
-                'name' => 'Roteiro - Estrutura do Quadro',
-                'description' => 'Processo de soldagem da estrutura do quadro',
-                'routing_type' => 'defined',
-                'is_active' => true,
-                'created_by' => $creator->id,
-            ]);
-            
-            // Routing steps
-            RoutingStep::create([
-                'production_routing_id' => $routingEstrutura->id,
-                'step_number' => 10,
-                'operation_code' => 'CORTE',
-                'name' => 'Corte de Tubos',
-                'description' => 'Cortar tubos no comprimento especificado',
-                'work_cell_id' => $this->workCells['usinagem']->id,
-                'setup_time_minutes' => 15,
-                'cycle_time_minutes' => 10,
-                'labor_requirement' => 1,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingEstrutura->id,
-                'step_number' => 20,
-                'operation_code' => 'SOLDA',
-                'name' => 'Soldagem',
-                'description' => 'Soldar tubos conforme gabarito',
-                'work_cell_id' => $this->workCells['soldagem']->id,
-                'setup_time_minutes' => 30,
-                'cycle_time_minutes' => 45,
-                'labor_requirement' => 1,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingEstrutura->id,
-                'step_number' => 30,
-                'operation_code' => 'ACABAMENTO',
-                'name' => 'Acabamento',
-                'description' => 'Lixar e preparar para pintura',
-                'work_cell_id' => $this->workCells['usinagem']->id,
-                'setup_time_minutes' => 10,
-                'cycle_time_minutes' => 20,
-                'labor_requirement' => 1,
-            ]);
-        }
-        
-        // Routing for Quadro Completo
-        $quadroBomItem = BomItem::where('bom_version_id', $bomVersion->id)
-            ->where('item_id', $this->items['quadro_completo']->id)
-            ->first();
-            
-        if ($quadroBomItem) {
-            $routingQuadro = ProductionRouting::create([
-                'bom_item_id' => $quadroBomItem->id,
-                'routing_number' => 'ROT-QDR-001',
-                'name' => 'Roteiro - Quadro Completo',
-                'description' => 'Montagem e pintura do quadro completo',
-                'routing_type' => 'defined',
-                'is_active' => true,
-                'created_by' => $creator->id,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingQuadro->id,
-                'step_number' => 10,
-                'operation_code' => 'MONTAGEM',
-                'name' => 'Montagem do Quadro',
-                'description' => 'Montar estrutura com garfo e mesa',
-                'work_cell_id' => $this->workCells['montagem_final']->id,
-                'setup_time_minutes' => 10,
-                'cycle_time_minutes' => 15,
-                'labor_requirement' => 1,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingQuadro->id,
-                'step_number' => 20,
-                'operation_code' => 'PINTURA',
-                'name' => 'Pintura do Quadro',
-                'description' => 'Pintura eletrostática do quadro',
-                'work_cell_id' => $this->workCells['pintura']->id,
-                'setup_time_minutes' => 30,
-                'cycle_time_minutes' => 60,
-                'labor_requirement' => 1,
-            ]);
-        }
-        
-        // Routing for Roda Montada
-        $rodaBomItem = BomItem::where('bom_version_id', $bomVersion->id)
-            ->where('item_id', $this->items['roda_montada']->id)
-            ->first();
-            
-        if ($rodaBomItem) {
-            $routingRoda = ProductionRouting::create([
-                'bom_item_id' => $rodaBomItem->id,
-                'routing_number' => 'ROT-RDA-001',
-                'name' => 'Roteiro - Montagem de Roda',
-                'description' => 'Montagem e balanceamento de rodas',
-                'routing_type' => 'defined',
-                'is_active' => true,
-                'created_by' => $creator->id,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingRoda->id,
-                'step_number' => 10,
-                'operation_code' => 'RAIACAO',
-                'name' => 'Raiação da Roda',
-                'description' => 'Montar raios no aro e cubo',
-                'work_cell_id' => $this->workCells['montagem_rodas']->id,
-                'setup_time_minutes' => 10,
-                'cycle_time_minutes' => 25,
-                'labor_requirement' => 1,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingRoda->id,
-                'step_number' => 20,
-                'operation_code' => 'CENTRAGEM',
-                'name' => 'Centragem da Roda',
-                'description' => 'Centrar e balancear roda',
-                'work_cell_id' => $this->workCells['montagem_rodas']->id,
-                'setup_time_minutes' => 5,
-                'cycle_time_minutes' => 15,
-                'labor_requirement' => 1,
-            ]);
-        }
-        
-        // Routing for Final Assembly (Bicycle)
-        $bicicleta = $this->items['bicicleta'];
-        $bomBicicleta = BillOfMaterial::find($bicicleta->current_bom_id);
-        
-        if ($bomBicicleta) {
-            // Create a phantom BOM item for the bicycle to attach routing
-            $bicicletaBomItem = BomItem::create([
-                'bom_version_id' => $bomVersion->id,
-                'parent_item_id' => null,
-                'item_id' => $bicicleta->id,
-                'quantity' => 1,
-                'unit_of_measure' => 'UN',
-                'level' => 0,
-                'sequence_number' => 1,
-            ]);
-            
-            $routingFinal = ProductionRouting::create([
-                'bom_item_id' => $bicicletaBomItem->id,
-                'routing_number' => 'ROT-BIKE-001',
-                'name' => 'Roteiro - Montagem Final',
-                'description' => 'Montagem final da bicicleta',
-                'routing_type' => 'defined',
-                'is_active' => true,
-                'created_by' => $creator->id,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingFinal->id,
-                'step_number' => 10,
-                'operation_code' => 'MONT-INICIAL',
-                'name' => 'Montagem Inicial',
-                'description' => 'Montar rodas no quadro',
-                'work_cell_id' => $this->workCells['montagem_final']->id,
-                'setup_time_minutes' => 10,
-                'cycle_time_minutes' => 20,
-                'labor_requirement' => 2,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingFinal->id,
-                'step_number' => 20,
-                'operation_code' => 'MONT-TRANS',
-                'name' => 'Montagem da Transmissão',
-                'description' => 'Instalar sistema de transmissão',
-                'work_cell_id' => $this->workCells['montagem_final']->id,
-                'setup_time_minutes' => 5,
-                'cycle_time_minutes' => 30,
-                'labor_requirement' => 1,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingFinal->id,
-                'step_number' => 30,
-                'operation_code' => 'MONT-FREIOS',
-                'name' => 'Montagem dos Freios',
-                'description' => 'Instalar e ajustar sistema de freios',
-                'work_cell_id' => $this->workCells['montagem_final']->id,
-                'setup_time_minutes' => 5,
-                'cycle_time_minutes' => 20,
-                'labor_requirement' => 1,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingFinal->id,
-                'step_number' => 40,
-                'operation_code' => 'MONT-ACESS',
-                'name' => 'Montagem de Acessórios',
-                'description' => 'Instalar selim, guidão e pedais',
-                'work_cell_id' => $this->workCells['montagem_final']->id,
-                'setup_time_minutes' => 5,
-                'cycle_time_minutes' => 15,
-                'labor_requirement' => 1,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingFinal->id,
-                'step_number' => 50,
-                'operation_code' => 'INSPECAO',
-                'name' => 'Inspeção de Qualidade',
-                'description' => 'Inspeção final e testes',
-                'work_cell_id' => $this->workCells['inspecao']->id,
-                'setup_time_minutes' => 5,
-                'cycle_time_minutes' => 15,
-                'labor_requirement' => 1,
-            ]);
-            
-            RoutingStep::create([
-                'production_routing_id' => $routingFinal->id,
-                'step_number' => 60,
-                'operation_code' => 'EMBALAGEM',
-                'name' => 'Embalagem Final',
-                'description' => 'Embalar bicicleta para envio',
-                'work_cell_id' => $this->workCells['embalagem']->id,
-                'setup_time_minutes' => 5,
-                'cycle_time_minutes' => 10,
-                'labor_requirement' => 1,
-            ]);
-        }
-        
-        $this->command->info('Roteiros de produção criados');
-    }
-    
     private function createProductionOrders($creator): void
     {
         $this->command->info('Criando ordens de produção...');
         
-        // Create production orders for bicycles
-        for ($i = 1; $i <= 5; $i++) {
-            $order = ProductionOrder::create([
+        // Create main production order for bicycles
+        $mainOrder = ManufacturingOrder::create([
+            'order_number' => sprintf('OP-%s-%04d', date('Y'), 1),
+            'parent_id' => null,
+            'item_id' => $this->items['bicicleta']->id,
+            'bill_of_material_id' => $this->items['bicicleta']->current_bom_id,
+            'quantity' => 10,
+            'quantity_completed' => 0,
+            'quantity_scrapped' => 0,
+            'unit_of_measure' => 'UN',
+            'status' => 'released',
+            'priority' => 80,
+            'requested_date' => now()->addDays(30),
+            'planned_start_date' => now()->addDays(5),
+            'planned_end_date' => now()->addDays(15),
+            'source_type' => 'sales_order',
+            'source_reference' => 'PED-0001',
+            'created_by' => $creator->id,
+        ]);
+        
+        // Create manufacturing route for the main order
+        $this->createManufacturingRoute($mainOrder, $creator);
+        
+        // Create child orders for sub-assemblies (based on BOM)
+        $this->createChildOrders($mainOrder, $creator);
+        
+        // Create additional orders with different statuses
+        for ($i = 2; $i <= 5; $i++) {
+            $order = ManufacturingOrder::create([
                 'order_number' => sprintf('OP-%s-%04d', date('Y'), $i),
+                'parent_id' => null,
                 'item_id' => $this->items['bicicleta']->id,
                 'bill_of_material_id' => $this->items['bicicleta']->current_bom_id,
                 'quantity' => rand(5, 20),
+                'quantity_completed' => 0,
+                'quantity_scrapped' => 0,
                 'unit_of_measure' => 'UN',
                 'status' => $i <= 2 ? 'in_progress' : 'planned',
-                'priority' => $i == 1 ? 80 : 50,
-                'requested_date' => now()->addDays(rand(7, 30)),
-                'planned_start_date' => now()->addDays(rand(1, 5)),
-                'planned_end_date' => now()->addDays(rand(6, 10)),
+                'priority' => $i == 2 ? 70 : 50,
+                'requested_date' => now()->addDays(rand(7, 45)),
+                'planned_start_date' => now()->addDays(rand(10, 20)),
+                'planned_end_date' => now()->addDays(rand(21, 35)),
                 'source_type' => 'sales_order',
                 'source_reference' => 'PED-' . str_pad($i, 4, '0', STR_PAD_LEFT),
                 'created_by' => $creator->id,
             ]);
             
-            // Create some production schedules for the first order
-            if ($i == 1) {
-                $routingSteps = RoutingStep::whereHas('productionRouting', function($q) {
-                    $q->whereHas('bomItem', function($q2) {
-                        $q2->where('item_id', $this->items['bicicleta']->id);
-                    });
-                })->get();
-                
-                foreach ($routingSteps as $step) {
-                    ProductionSchedule::create([
-                        'production_order_id' => $order->id,
-                        'routing_step_id' => $step->id,
-                        'work_cell_id' => $step->work_cell_id,
-                        'scheduled_start' => now()->addHours(rand(1, 24)),
-                        'scheduled_end' => now()->addHours(rand(25, 48)),
-                        'buffer_time_minutes' => 30,
-                        'status' => 'scheduled',
-                    ]);
-                }
+            // Create route for each order
+            if ($i <= 3) {
+                $this->createManufacturingRoute($order, $creator);
             }
         }
         
-        $this->command->info('Ordens de produção criadas');
+        $this->command->info('Ordens de produção criadas com rotas de manufatura');
+    }
+    
+    private function createManufacturingRoute($order, $creator): void
+    {
+        $route = ManufacturingRoute::create([
+            'production_order_id' => $order->id,
+            'item_id' => $order->item_id,
+            'name' => 'Roteiro - ' . $order->item->name,
+            'description' => 'Roteiro de produção para ' . $order->item->name,
+            'is_active' => true,
+            'created_by' => $creator->id,
+        ]);
+        
+        // Create steps based on item type
+        if ($order->item_id === $this->items['bicicleta']->id) {
+            $this->createBicycleManufacturingSteps($route);
+        } elseif ($order->item_id === $this->items['quadro_completo']->id) {
+            $this->createFrameManufacturingSteps($route);
+        } elseif ($order->item_id === $this->items['estrutura_quadro']->id) {
+            $this->createFrameStructureManufacturingSteps($route);
+        } elseif ($order->item_id === $this->items['roda_montada']->id) {
+            $this->createWheelManufacturingSteps($route);
+        }
+    }
+    
+    private function createBicycleManufacturingSteps($route): void
+    {
+        // Step 1: Initial Assembly
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 10,
+            'step_type' => 'standard',
+            'name' => 'Montagem Inicial',
+            'description' => 'Montar rodas no quadro',
+            'work_cell_id' => $this->workCells['montagem_final']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 10,
+            'cycle_time_minutes' => 20,
+        ]);
+        
+        // Step 2: Transmission Assembly
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 20,
+            'step_type' => 'standard',
+            'name' => 'Montagem da Transmissão',
+            'description' => 'Instalar sistema de transmissão completo',
+            'work_cell_id' => $this->workCells['montagem_final']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 5,
+            'cycle_time_minutes' => 30,
+            'depends_on_step_id' => null,
+        ]);
+        
+        // Step 3: Brake System Assembly
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 30,
+            'step_type' => 'standard',
+            'name' => 'Montagem dos Freios',
+            'description' => 'Instalar e ajustar sistema de freios',
+            'work_cell_id' => $this->workCells['montagem_final']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 5,
+            'cycle_time_minutes' => 20,
+        ]);
+        
+        // Step 4: Accessories Assembly
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 40,
+            'step_type' => 'standard',
+            'name' => 'Montagem de Acessórios',
+            'description' => 'Instalar selim, guidão e pedais',
+            'work_cell_id' => $this->workCells['montagem_final']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 5,
+            'cycle_time_minutes' => 15,
+        ]);
+        
+        // Step 5: Quality Inspection
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 50,
+            'step_type' => 'quality_check',
+            'name' => 'Inspeção de Qualidade',
+            'description' => 'Inspeção completa e testes funcionais',
+            'work_cell_id' => $this->workCells['inspecao']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 5,
+            'cycle_time_minutes' => 15,
+            'quality_check_mode' => 'every_part',
+        ]);
+        
+        // Step 6: Final Packaging
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 60,
+            'step_type' => 'standard',
+            'name' => 'Embalagem Final',
+            'description' => 'Embalar bicicleta para envio',
+            'work_cell_id' => $this->workCells['embalagem']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 5,
+            'cycle_time_minutes' => 10,
+        ]);
+        
+        // Create some step executions for in-progress order
+        if ($route->manufacturingOrder->status === 'in_progress') {
+            $firstStep = $route->steps()->where('step_number', 10)->first();
+            if ($firstStep) {
+                ManufacturingStepExecution::create([
+                    'manufacturing_step_id' => $firstStep->id,
+                    'production_order_id' => $route->production_order_id,
+                    'part_number' => 1,
+                    'total_parts' => (int) $route->manufacturingOrder->quantity,
+                    'status' => 'completed',
+                    'started_at' => now()->subHours(2),
+                    'completed_at' => now()->subHour(),
+                    'work_cell_id' => $firstStep->work_cell_id,
+                ]);
+                
+                $firstStep->update(['status' => 'completed']);
+            }
+        }
+    }
+    
+    private function createFrameManufacturingSteps($route): void
+    {
+        // Step 1: Frame Assembly
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 10,
+            'step_type' => 'standard',
+            'name' => 'Montagem do Quadro',
+            'description' => 'Montar estrutura com garfo e mesa de direção',
+            'work_cell_id' => $this->workCells['montagem_final']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 10,
+            'cycle_time_minutes' => 15,
+        ]);
+        
+        // Step 2: Frame Painting
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 20,
+            'step_type' => 'standard',
+            'name' => 'Pintura do Quadro',
+            'description' => 'Pintura eletrostática do quadro',
+            'work_cell_id' => $this->workCells['pintura']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 30,
+            'cycle_time_minutes' => 60,
+        ]);
+        
+        // Step 3: Paint Quality Check
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 30,
+            'step_type' => 'quality_check',
+            'name' => 'Inspeção de Pintura',
+            'description' => 'Verificar qualidade da pintura',
+            'work_cell_id' => $this->workCells['inspecao']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 5,
+            'cycle_time_minutes' => 10,
+            'quality_check_mode' => 'entire_lot',
+        ]);
+    }
+    
+    private function createFrameStructureManufacturingSteps($route): void
+    {
+        // Step 1: Tube Cutting
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 10,
+            'step_type' => 'standard',
+            'name' => 'Corte de Tubos',
+            'description' => 'Cortar tubos no comprimento especificado',
+            'work_cell_id' => $this->workCells['usinagem']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 15,
+            'cycle_time_minutes' => 10,
+        ]);
+        
+        // Step 2: Welding
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 20,
+            'step_type' => 'standard',
+            'name' => 'Soldagem',
+            'description' => 'Soldar tubos conforme gabarito',
+            'work_cell_id' => $this->workCells['soldagem']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 30,
+            'cycle_time_minutes' => 45,
+        ]);
+        
+        // Step 3: Weld Quality Check
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 25,
+            'step_type' => 'quality_check',
+            'name' => 'Inspeção de Solda',
+            'description' => 'Verificar qualidade das soldas',
+            'work_cell_id' => $this->workCells['inspecao']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 5,
+            'cycle_time_minutes' => 15,
+            'quality_check_mode' => 'sampling',
+            'sampling_size' => 3,
+        ]);
+        
+        // Step 4: Finishing
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 30,
+            'step_type' => 'standard',
+            'name' => 'Acabamento',
+            'description' => 'Lixar e preparar para pintura',
+            'work_cell_id' => $this->workCells['usinagem']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 10,
+            'cycle_time_minutes' => 20,
+        ]);
+    }
+    
+    private function createWheelManufacturingSteps($route): void
+    {
+        // Step 1: Spoke Assembly
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 10,
+            'step_type' => 'standard',
+            'name' => 'Raiação da Roda',
+            'description' => 'Montar raios no aro e cubo',
+            'work_cell_id' => $this->workCells['montagem_rodas']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 10,
+            'cycle_time_minutes' => 25,
+        ]);
+        
+        // Step 2: Wheel Truing
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 20,
+            'step_type' => 'standard',
+            'name' => 'Centragem da Roda',
+            'description' => 'Centrar e balancear roda',
+            'work_cell_id' => $this->workCells['montagem_rodas']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 5,
+            'cycle_time_minutes' => 15,
+        ]);
+        
+        // Step 3: Wheel Quality Check
+        ManufacturingStep::create([
+            'manufacturing_route_id' => $route->id,
+            'step_number' => 30,
+            'step_type' => 'quality_check',
+            'name' => 'Inspeção de Roda',
+            'description' => 'Verificar centragem e tensão dos raios',
+            'work_cell_id' => $this->workCells['inspecao']->id,
+            'status' => 'pending',
+            'setup_time_minutes' => 3,
+            'cycle_time_minutes' => 5,
+            'quality_check_mode' => 'every_part',
+        ]);
+    }
+    
+    private function createChildOrders($parentOrder, $creator): void
+    {
+        if (!$parentOrder->bill_of_material_id) {
+            return;
+        }
+        
+        $bomVersion = $parentOrder->billOfMaterial->currentVersion;
+        if (!$bomVersion) {
+            return;
+        }
+        
+        // Get level 1 BOM items with eager loaded item relationship
+        $level1Items = $bomVersion->items()->with('item')->where('level', 1)->get();
+        
+        foreach ($level1Items as $bomItem) {
+            // Only create child orders for manufactured items
+            if ($bomItem->item->item_type !== 'manufactured') {
+                continue;
+            }
+            
+            $childOrder = ManufacturingOrder::create([
+                'order_number' => sprintf('OP-%s-%04d-C%d', date('Y'), $parentOrder->id, $bomItem->id),
+                'parent_id' => $parentOrder->id,
+                'item_id' => $bomItem->item_id,
+                'bill_of_material_id' => $bomItem->item->current_bom_id,
+                'quantity' => $bomItem->quantity * $parentOrder->quantity,
+                'quantity_completed' => 0,
+                'quantity_scrapped' => 0,
+                'unit_of_measure' => $bomItem->unit_of_measure,
+                'status' => 'planned',
+                'priority' => $parentOrder->priority - 10,
+                'requested_date' => $parentOrder->planned_start_date,
+                'planned_start_date' => $parentOrder->planned_start_date->subDays(5),
+                'planned_end_date' => $parentOrder->planned_start_date->subDay(),
+                'source_type' => 'parent_order',
+                'source_reference' => $parentOrder->order_number,
+                'created_by' => $creator->id,
+            ]);
+            
+            // Create route for child order
+            $this->createManufacturingRoute($childOrder, $creator);
+            
+            // Update parent's child order count
+            $parentOrder->increment('child_orders_count');
+        }
     }
 } 

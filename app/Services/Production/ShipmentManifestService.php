@@ -47,7 +47,7 @@ class ShipmentManifestService
     {
         $shipment->load([
             'items.bomItem',
-            'items.productionOrder.product',
+            'items.manufacturingOrder.product',
             'createdBy',
         ]);
 
@@ -105,8 +105,8 @@ class ShipmentManifestService
                 'weight' => $item->weight,
                 'dimensions' => $this->formatDimensions($item->dimensions),
                 'qr_codes' => $item->qr_codes ?? [],
-                'production_order' => $item->productionOrder?->order_number,
-                'product' => $item->productionOrder?->product?->name,
+                'manufacturing_order' => $item->manufacturingOrder?->order_number,
+                'product' => $item->manufacturingOrder?->product?->name,
             ];
         })->toArray();
     }

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
 use App\Models\Production\BomItem;
-use App\Models\Production\ProductionOrder;
+use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\QrTracking;
 use App\Services\Production\QrCodeGenerationService;
 use Illuminate\Http\Request;
@@ -30,14 +30,14 @@ class QrTrackingController extends Controller
 
         // Get summary statistics
         $totalScans = QrTracking::count();
-        $todayScans = QrTracking::whereDate('scanned_at', today())->count();
+        $todayScans = QrTracking::whereDate('created_at', today())->count();
         $activeItems = BomItem::whereNotNull('qr_code')->count();
         $uniqueOperators = QrTracking::whereNotNull('scanned_by')->distinct('scanned_by')->count();
 
         // Get recent events
         $recentEvents = QrTracking::query()
             ->with('scannedBy:id,name')
-            ->orderBy('scanned_at', 'desc')
+            ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
@@ -50,8 +50,8 @@ class QrTrackingController extends Controller
 
         // Get daily scan trends for the last 7 days
         $dailyTrends = QrTracking::query()
-            ->selectRaw('DATE(scanned_at) as date, COUNT(*) as count')
-            ->where('scanned_at', '>=', now()->subDays(7))
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
+            ->where('created_at', '>=', now()->subDays(7))
             ->groupBy('date')
             ->orderBy('date')
             ->get();
@@ -90,13 +90,13 @@ class QrTrackingController extends Controller
                 $query->where('scanned_by', $request->input('scanned_by'));
             })
             ->when($request->filled('date_from'), function ($query) use ($request) {
-                $query->whereDate('scanned_at', '>=', $request->input('date_from'));
+                $query->whereDate('created_at', '>=', $request->input('date_from'));
             })
             ->when($request->filled('date_to'), function ($query) use ($request) {
-                $query->whereDate('scanned_at', '<=', $request->input('date_to'));
+                $query->whereDate('created_at', '<=', $request->input('date_to'));
             })
             ->with('scannedBy:id,name')
-            ->orderBy('scanned_at', 'desc')
+            ->orderBy('created_at', 'desc')
             ->paginate($request->input('per_page', 10))
             ->withQueryString();
 
@@ -121,7 +121,7 @@ class QrTrackingController extends Controller
     {
         $this->authorize('generate', QrTracking::class);
 
-        $activeOrders = ProductionOrder::query()
+        $activeOrders = ManufacturingOrder::query()
             ->whereIn('status', ['released', 'in_progress'])
             ->with(['product', 'billOfMaterial.currentVersion.items'])
             ->get();
@@ -134,7 +134,7 @@ class QrTrackingController extends Controller
     /**
      * Generate QR codes for production order.
      */
-    public function generateForOrder(Request $request, ProductionOrder $order)
+    public function generateForOrder(Request $request, ManufacturingOrder $order)
     {
         $this->authorize('generate', QrTracking::class);
 
@@ -200,7 +200,7 @@ class QrTrackingController extends Controller
         $this->authorize('generate', QrTracking::class);
 
         $validated = $request->validate([
-            'production_order_id' => 'required|exists:production_orders,id',
+            'production_order_id' => 'required|exists:manufacturing_orders,id',
             'force_regenerate' => 'boolean',
         ]);
 
@@ -208,7 +208,7 @@ class QrTrackingController extends Controller
             return back()->with('error', 'QR code already exists for this item.');
         }
 
-        $order = ProductionOrder::find($validated['production_order_id']);
+        $order = ManufacturingOrder::find($validated['production_order_id']);
 
         try {
             $qrData = $this->qrService->generateForBomItem($item, $order);
@@ -236,7 +236,7 @@ class QrTrackingController extends Controller
 
         $order = null;
         if ($request->filled('order_id')) {
-            $order = ProductionOrder::with([
+            $order = ManufacturingOrder::with([
                 'product',
                 'billOfMaterial.currentVersion.items' => function ($query) {
                     $query->whereNotNull('qr_code')
@@ -289,7 +289,6 @@ class QrTrackingController extends Controller
                     'item_id' => $item->id,
                     'item_number' => $item->item_number,
                 ],
-                'scanned_at' => now(),
                 'scanned_by' => auth()->id(),
             ]);
         }
@@ -359,7 +358,6 @@ class QrTrackingController extends Controller
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ],
-            'scanned_at' => now(),
             'scanned_by' => auth()->id(),
         ]);
 
@@ -396,7 +394,6 @@ class QrTrackingController extends Controller
                 'user_agent' => $request->userAgent(),
                 'location' => $validated['location'] ?? null,
             ]),
-            'scanned_at' => now(),
             'scanned_by' => auth()->id(),
         ]);
 
@@ -430,7 +427,7 @@ class QrTrackingController extends Controller
         // Get tracking history
         $history = QrTracking::where('qr_code', $qrCode)
             ->with('scannedBy:id,name')
-            ->orderBy('scanned_at', 'desc')
+            ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
@@ -462,10 +459,10 @@ class QrTrackingController extends Controller
         $endDate = $request->input('end_date', now()->endOfMonth());
 
         $analytics = [
-            'total_scans' => QrTracking::whereBetween('scanned_at', [$startDate, $endDate])->count(),
-            'unique_codes' => QrTracking::whereBetween('scanned_at', [$startDate, $endDate])
+            'total_scans' => QrTracking::whereBetween('created_at', [$startDate, $endDate])->count(),
+            'unique_codes' => QrTracking::whereBetween('created_at', [$startDate, $endDate])
                 ->distinct('qr_code')->count(),
-            'by_event_type' => QrTracking::whereBetween('scanned_at', [$startDate, $endDate])
+            'by_event_type' => QrTracking::whereBetween('created_at', [$startDate, $endDate])
                 ->groupBy('event_type')
                 ->selectRaw('event_type, COUNT(*) as count')
                 ->pluck('count', 'event_type'),
@@ -492,8 +489,8 @@ class QrTrackingController extends Controller
      */
     protected function getAnalyticsByDay($startDate, $endDate)
     {
-        return QrTracking::whereBetween('scanned_at', [$startDate, $endDate])
-            ->selectRaw('DATE(scanned_at) as date, COUNT(*) as count')
+        return QrTracking::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
             ->groupBy('date')
             ->orderBy('date')
             ->get()
@@ -510,7 +507,7 @@ class QrTrackingController extends Controller
      */
     protected function getAnalyticsByOperator($startDate, $endDate)
     {
-        return QrTracking::whereBetween('scanned_at', [$startDate, $endDate])
+        return QrTracking::whereBetween('created_at', [$startDate, $endDate])
             ->whereNotNull('scanned_by')
             ->groupBy('scanned_by')
             ->selectRaw('scanned_by, COUNT(*) as count')
@@ -529,7 +526,7 @@ class QrTrackingController extends Controller
      */
     protected function getMostScannedItems($startDate, $endDate)
     {
-        return QrTracking::whereBetween('scanned_at', [$startDate, $endDate])
+        return QrTracking::whereBetween('created_at', [$startDate, $endDate])
             ->groupBy('qr_code')
             ->selectRaw('qr_code, COUNT(*) as scan_count')
             ->orderBy('scan_count', 'desc')

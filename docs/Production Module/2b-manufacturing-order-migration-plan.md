@@ -20,10 +20,10 @@ This document outlines the migration plan to update the current production modul
 
 #### 1.1 Update `2025_01_10_000009_create_production_orders_table.php`
 ```php
-Schema::create('production_orders', function (Blueprint $table) {
+Schema::create('manufacturing_orders', function (Blueprint $table) {
     $table->id();
     $table->string('order_number', 100)->unique();
-    $table->foreignId('parent_id')->nullable()->constrained('production_orders')->cascadeOnDelete();
+    $table->foreignId('parent_id')->nullable()->constrained('manufacturing_orders')->cascadeOnDelete();
     $table->foreignId('item_id')->nullable()->constrained('items');
     $table->foreignId('bill_of_material_id')->nullable()->constrained('bill_of_materials');
     $table->decimal('quantity', 10, 2);
@@ -66,7 +66,7 @@ Schema::create('production_orders', function (Blueprint $table) {
 ```php
 Schema::create('manufacturing_routes', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('production_order_id')->constrained('production_orders')->cascadeOnDelete();
+    $table->foreignId('production_order_id')->constrained('manufacturing_orders')->cascadeOnDelete();
     $table->foreignId('item_id')->constrained('items');
     $table->foreignId('route_template_id')->nullable()->constrained('route_templates');
     $table->string('name', 255);
@@ -127,7 +127,7 @@ Schema::create('manufacturing_steps', function (Blueprint $table) {
 Schema::create('manufacturing_step_executions', function (Blueprint $table) {
     $table->id();
     $table->foreignId('manufacturing_step_id')->constrained('manufacturing_steps');
-    $table->foreignId('production_order_id')->constrained('production_orders');
+    $table->foreignId('production_order_id')->constrained('manufacturing_orders');
     
     // Part tracking for lot production
     $table->integer('part_number')->nullable(); // Which part in the lot (1, 2, 3...)
@@ -464,17 +464,17 @@ class EntityPermissionGenerator
 
 ### Phase 3: Model Updates
 
-#### 3.1 Update ProductionOrder Model
+#### 3.1 Update ManufacturingOrder Model
 ```php
 // Add relationships
 public function parent()
 {
-    return $this->belongsTo(ProductionOrder::class, 'parent_id');
+    return $this->belongsTo(ManufacturingOrder::class, 'parent_id');
 }
 
 public function children()
 {
-    return $this->hasMany(ProductionOrder::class, 'parent_id');
+    return $this->hasMany(ManufacturingOrder::class, 'parent_id');
 }
 
 public function manufacturingRoute()
@@ -492,7 +492,7 @@ public function createChildOrders()
     $bomItems = $this->billOfMaterial->currentVersion->items;
     
     foreach ($bomItems as $bomItem) {
-        $childOrder = ProductionOrder::create([
+        $childOrder = ManufacturingOrder::create([
             'order_number' => $this->generateChildOrderNumber($bomItem),
             'parent_id' => $this->id,
             'item_id' => $bomItem->item_id,
@@ -546,9 +546,9 @@ class ManufacturingRoute extends Model
         'created_by',
     ];
     
-    public function productionOrder()
+    public function manufacturingOrder()
     {
-        return $this->belongsTo(ProductionOrder::class);
+        return $this->belongsTo(ManufacturingOrder::class);
     }
     
     public function item()
@@ -663,7 +663,7 @@ class ManufacturingOrderService
     public function createOrder($data)
     {
         DB::transaction(function () use ($data) {
-            $order = ProductionOrder::create($data);
+            $order = ManufacturingOrder::create($data);
             
             // If BOM-based order, create child orders
             if ($order->bill_of_material_id) {
@@ -707,7 +707,7 @@ class ManufacturingOrderService
     
     private function executeQualityCheck(ManufacturingStep $step, $data)
     {
-        $productionQuantity = $step->route->productionOrder->quantity;
+        $productionQuantity = $step->route->manufacturingOrder->quantity;
         
         switch ($step->quality_check_mode) {
             case 'every_part':
@@ -753,7 +753,7 @@ class ManufacturingOrderService
             $reworkStep->save();
         } else {
             // Scrap - update production order quantity
-            $order = $execution->productionOrder;
+            $order = $execution->manufacturingOrder;
             $order->quantity_scrapped += 1;
             $order->save();
         }
@@ -801,7 +801,7 @@ class ManufacturingOrderService
 ## Key Changes Summary
 
 ### Migration Files to Update:
-1. **production_orders** - Add parent_id, child tracking fields, quantity tracking
+1. **manufacturing_orders** - Add parent_id, child tracking fields, quantity tracking
 2. **routing_steps** → **manufacturing_steps** - Rename and enhance with state management, quality checks
 3. **production_executions** → **manufacturing_step_executions** - Complete restructure for step-level execution
 4. **form_executions & task_responses** - Add manufacturing context fields
@@ -832,13 +832,13 @@ class ManufacturingOrderController extends Controller
         $sector = $request->get('sector_id');
         
         if ($plant && $user->can("production.orders.viewAny.plant.{$plant}")) {
-            $orders = ProductionOrder::whereHas('item', function($q) use ($plant) {
+            $orders = ManufacturingOrder::whereHas('item', function($q) use ($plant) {
                 $q->whereHas('sector.area.plant', function($q2) use ($plant) {
                     $q2->where('id', $plant);
                 });
             })->get();
         } elseif ($area && $user->can("production.orders.viewAny.area.{$area}")) {
-            $orders = ProductionOrder::whereHas('item', function($q) use ($area) {
+            $orders = ManufacturingOrder::whereHas('item', function($q) use ($area) {
                 $q->whereHas('sector.area', function($q2) use ($area) {
                     $q2->where('id', $area);
                 });

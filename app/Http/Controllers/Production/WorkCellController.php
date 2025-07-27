@@ -95,7 +95,7 @@ class WorkCellController extends Controller
         $workCell->load([
             'routingSteps.productionRouting.bomItem',
             'productionSchedules' => function ($query) {
-                $query->with(['productionOrder.product', 'routingStep'])
+                $query->with(['manufacturingOrder.product', 'routingStep'])
                     ->whereIn('status', ['scheduled', 'in_progress'])
                     ->orderBy('scheduled_start_date');
             },
@@ -187,7 +187,7 @@ class WorkCellController extends Controller
 
         $schedules = $workCell->productionSchedules()
             ->whereBetween('scheduled_start_date', [$startDate, $endDate])
-            ->with(['productionOrder.product', 'routingStep'])
+            ->with(['manufacturingOrder.product', 'routingStep'])
             ->get();
 
         $capacityData = $this->calculateCapacityAnalysis($workCell, $schedules, $startDate, $endDate);
@@ -212,7 +212,7 @@ class WorkCellController extends Controller
         $schedules = $workCell->productionSchedules()
             ->whereBetween('scheduled_start_date', [$startDate, $endDate])
             ->with([
-                'productionOrder' => function ($query) {
+                'manufacturingOrder' => function ($query) {
                     $query->with(['product', 'billOfMaterial']);
                 },
                 'routingStep.productionRouting.bomItem',

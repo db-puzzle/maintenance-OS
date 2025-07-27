@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('production_orders', function (Blueprint $table) {
+        Schema::create('manufacturing_orders', function (Blueprint $table) {
             $table->id();
             $table->string('order_number', 100)->unique();
-            $table->foreignId('parent_id')->nullable()->constrained('production_orders')->cascadeOnDelete();
+            $table->foreignId('parent_id')->nullable()->constrained('manufacturing_orders')->cascadeOnDelete();
             $table->foreignId('item_id')->nullable()->constrained('items');
             $table->foreignId('bill_of_material_id')->nullable()->constrained('bill_of_materials');
             $table->decimal('quantity', 10, 2);
@@ -58,6 +58,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('production_orders');
+        Schema::dropIfExists('manufacturing_orders');
     }
 };

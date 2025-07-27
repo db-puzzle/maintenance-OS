@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { ColumnConfig } from '@/types/shared';
-import { ProductionOrder, WorkCell } from '@/types/production';
+import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -19,7 +19,7 @@ interface Props {
         efficiency: number;
     };
     workCells: WorkCell[];
-    activeOrders: ProductionOrder[];
+    activeOrders: ManufacturingOrder[];
 }
 
 interface KpiCardProps {
@@ -63,7 +63,7 @@ function WorkCellCard({
     onClick
 }: {
     workCell: WorkCell & {
-        currentOrder?: ProductionOrder;
+        currentOrder?: ManufacturingOrder;
         operator?: { name: string };
         efficiency?: number;
     };
@@ -154,7 +154,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
         // Navigate to cell details or open modal
     };
 
-    const handleOrderClick = (order: ProductionOrder) => {
+    const handleOrderClick = (order: ManufacturingOrder) => {
         router.visit(route('production.planning.orders.show', order.id));
     };
 

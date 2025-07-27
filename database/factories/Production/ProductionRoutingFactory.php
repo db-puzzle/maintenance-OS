@@ -3,16 +3,16 @@
 namespace Database\Factories\Production;
 
 use App\Models\Production\BomItem;
-use App\Models\Production\ProductionRouting;
+use App\Models\Production\ManufacturingRoute;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Production\ProductionRouting>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Production\ManufacturingRoute>
  */
 class ProductionRoutingFactory extends Factory
 {
-    protected $model = ProductionRouting::class;
+    protected $model = ManufacturingRoute::class;
 
     /**
      * Define the model's default state.
@@ -42,7 +42,7 @@ class ProductionRoutingFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'routing_type' => 'inherited',
-            'parent_routing_id' => ProductionRouting::factory(),
+            'parent_routing_id' => ManufacturingRoute::factory(),
         ]);
     }
 
@@ -72,7 +72,7 @@ class ProductionRoutingFactory extends Factory
      */
     public function configure(): static
     {
-        return $this->afterCreating(function (ProductionRouting $routing) {
+        return $this->afterCreating(function (ManufacturingRoute $routing) {
             // Only create steps for defined routings
             if ($routing->routing_type === 'defined') {
                 $stepCount = fake()->numberBetween(2, 6);

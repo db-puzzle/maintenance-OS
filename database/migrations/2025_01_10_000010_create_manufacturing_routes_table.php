@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('manufacturing_routes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('production_order_id')->constrained('production_orders')->cascadeOnDelete();
+            $table->foreignId('production_order_id')->constrained('manufacturing_orders')->cascadeOnDelete();
             $table->foreignId('item_id')->constrained('items');
             $table->foreignId('route_template_id')->nullable()->constrained('route_templates');
             $table->string('name', 255);

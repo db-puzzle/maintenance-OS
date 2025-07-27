@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { ColumnConfig } from '@/types/shared';
+import TextInput from '@/components/TextInput';
+import ItemSelect from '@/components/ItemSelect';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import InputError from '@/components/input-error';
+import { cn } from '@/lib/utils';
 import {
     Workflow,
     Clock,
     Users,
     Settings,
-    GitBranch,
-    Edit,
-    Play,
-    Pause,
     CheckCircle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface Props {
     routing: any;
@@ -33,36 +32,25 @@ interface Props {
 export default function RoutingShow({ routing, effectiveSteps, can }: Props) {
     const [activeTab, setActiveTab] = useState('overview');
 
-    const formatDuration = (minutes: number) => {
-        if (minutes < 60) return `${minutes} min`;
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
-    };
-
-    const totalCycleTime = effectiveSteps.reduce((sum, step) =>
-        sum + (step.cycle_time_minutes || 0), 0
-    );
-
-    const totalSetupTime = effectiveSteps.reduce((sum, step) =>
-        sum + (step.setup_time_minutes || 0), 0
-    );
+    const form = useForm({
+        name: routing.name || '',
+        description: routing.description || '',
+        manufacturing_order_id: routing.manufacturing_order?.id?.toString() || '',
+        item_id: routing.item?.id?.toString() || '',
+        route_template_id: routing.route_template?.id?.toString() || '',
+        is_active: routing.is_active
+    });
 
     const tabs = [
         {
             id: 'overview',
             label: 'Visão Geral',
-            content: <RoutingOverviewTab routing={routing} effectiveSteps={effectiveSteps} />
+            content: <RoutingOverviewTab routing={routing} effectiveSteps={effectiveSteps} form={form} />
         },
         {
             id: 'steps',
             label: 'Etapas do Processo',
             content: <RoutingStepsTab steps={effectiveSteps} canManage={can.manage_steps} routingId={routing.id} />
-        },
-        {
-            id: 'where-used',
-            label: 'Onde é Usado',
-            content: <RoutingWhereUsedTab routing={routing} />
         }
     ];
 
@@ -77,23 +65,19 @@ export default function RoutingShow({ routing, effectiveSteps, can }: Props) {
             <Head title={`Roteiro - ${routing.name}`} />
 
             <ShowLayout
-                title={routing.routing_number}
-                subtitle={routing.name}
-                editRoute={can.update && routing.routing_type === 'defined' ?
-                    route('production.routing.edit', routing.id) :
-                    ''
-                }
+                title={routing.name}
+                subtitle={routing.manufacturing_order ? `Ordem: ${routing.manufacturing_order.order_number}` : 'Roteiro de Produção'}
+                editRoute={can.update ? route('production.routing.edit', routing.id) : ''}
                 tabs={tabs}
-                showEditButton={can.update && routing.routing_type === 'defined'}
+                showEditButton={can.update}
                 defaultActiveTab={activeTab}
-
             />
         </AppLayout>
     );
 }
 
 // Overview Tab Component
-function RoutingOverviewTab({ routing, effectiveSteps }: any) {
+function RoutingOverviewTab({ routing, effectiveSteps, form }: any) {
     const formatDuration = (minutes: number) => {
         if (minutes < 60) return `${minutes} min`;
         const hours = Math.floor(minutes / 60);
@@ -101,129 +85,165 @@ function RoutingOverviewTab({ routing, effectiveSteps }: any) {
         return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
     };
 
-    const totalCycleTime = effectiveSteps.reduce((sum: number, step: any) =>
-        sum + (step.cycle_time_minutes || 0), 0
-    );
+    const totalCycleTime = effectiveSteps?.reduce((sum: number, step: any) =>
+        sum + (step.cycle_time_minutes || 0), 0) || 0;
 
-    const totalSetupTime = effectiveSteps.reduce((sum: number, step: any) =>
-        sum + (step.setup_time_minutes || 0), 0
-    );
+    const totalSetupTime = effectiveSteps?.reduce((sum: number, step: any) =>
+        sum + (step.setup_time_minutes || 0), 0) || 0;
 
-    const totalTeardownTime = effectiveSteps.reduce((sum: number, step: any) =>
-        sum + (step.teardown_time_minutes || 0), 0
-    );
+    const totalTeardownTime = effectiveSteps?.reduce((sum: number, step: any) =>
+        sum + (step.teardown_time_minutes || 0), 0) || 0;
+
+    // Mock data for selects - in a real app these would come from props
+    const manufacturingOrders = routing.manufacturing_order ? [routing.manufacturing_order] : [];
+    const items = routing.item ? [routing.item] : [];
+    const routeTemplates = routing.route_template ? [routing.route_template] : [];
 
     return (
         <div className="space-y-6 py-6">
-            {/* Routing Information */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Informações do Roteiro</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            <DetailItem
-                                label="Número do Roteiro"
-                                value={routing.routing_number}
-                            />
-                            <DetailItem
-                                label="Nome"
-                                value={routing.name}
-                            />
-                            <DetailItem
-                                label="Item"
-                                value={
+            {/* Main Information Section */}
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium">Informações do Roteiro</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <TextInput
+                        form={form}
+                        name="name"
+                        label="Nome do Roteiro"
+                        placeholder="Nome do roteiro"
+                        view={true}
+                    />
+
+                    <ItemSelect
+                        label="Status"
+                        items={[
+                            { id: 1, name: 'Ativo', value: 'true' },
+                            { id: 0, name: 'Inativo', value: 'false' }
+                        ]}
+                        value={routing.is_active ? '1' : '0'}
+                        onValueChange={() => { }}
+                        view={true}
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {routing.manufacturing_order && (
+                        <div className="grid gap-2">
+                            <Label>Ordem de Produção</Label>
+                            <div className="bg-background">
+                                <div className="rounded-md border bg-muted/20 p-2 text-sm">
                                     <Link
-                                        href={route('production.items.show', routing.bom_item?.id)}
+                                        href={route('production.orders.show', routing.manufacturing_order.id)}
                                         className="text-primary hover:underline"
                                     >
-                                        {routing.bom_item?.item?.item_number} - {routing.bom_item?.item?.name}
+                                        {routing.manufacturing_order.order_number}
                                     </Link>
-                                }
-                            />
-                            <DetailItem
-                                label="Tipo"
-                                value={
-                                    <Badge variant={routing.routing_type === 'defined' ? 'default' : 'secondary'}>
-                                        {routing.routing_type === 'defined' ? 'Definido' : 'Herdado'}
-                                    </Badge>
-                                }
-                            />
-                        </div>
-                        <div className="space-y-4">
-                            <DetailItem
-                                label="Status"
-                                value={
-                                    <Badge variant={routing.is_active ? 'default' : 'secondary'}>
-                                        {routing.is_active ? 'Ativo' : 'Inativo'}
-                                    </Badge>
-                                }
-                            />
-                            {routing.parent_routing && (
-                                <DetailItem
-                                    label="Herdado de"
-                                    value={
-                                        <Link
-                                            href={route('production.routing.show', routing.parent_routing.id)}
-                                            className="text-primary hover:underline"
-                                        >
-                                            {routing.parent_routing.routing_number} - {routing.parent_routing.name}
-                                        </Link>
-                                    }
-                                />
-                            )}
-                            <DetailItem
-                                label="Criado por"
-                                value={routing.created_by?.name || 'Sistema'}
-                            />
-                            <DetailItem
-                                label="Criado em"
-                                value={new Date(routing.created_at).toLocaleDateString('pt-BR')}
-                            />
-                        </div>
-                    </div>
-                    {routing.description && (
-                        <div className="mt-6">
-                            <DetailItem
-                                label="Descrição"
-                                value={routing.description}
-                            />
+                                </div>
+                            </div>
                         </div>
                     )}
-                </CardContent>
-            </Card>
 
-            {/* Process Summary */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Resumo do Processo</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <SummaryCard
-                            icon={<Workflow className="h-5 w-5" />}
-                            label="Total de Etapas"
-                            value={effectiveSteps.length}
-                        />
-                        <SummaryCard
-                            icon={<Clock className="h-5 w-5" />}
-                            label="Tempo de Ciclo"
-                            value={formatDuration(totalCycleTime)}
-                        />
-                        <SummaryCard
-                            icon={<Settings className="h-5 w-5" />}
-                            label="Tempo de Setup"
-                            value={formatDuration(totalSetupTime)}
-                        />
-                        <SummaryCard
-                            icon={<Users className="h-5 w-5" />}
-                            label="Operadores Necessários"
-                            value={Math.max(...effectiveSteps.map((s: any) => s.operators_required || 0))}
-                        />
+                    {routing.item && (
+                        <div className="grid gap-2">
+                            <Label>Item</Label>
+                            <div className="bg-background">
+                                <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                    <Link
+                                        href={route('production.items.show', routing.item.id)}
+                                        className="text-primary hover:underline"
+                                    >
+                                        {routing.item.item_number} - {routing.item.name}
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {routing.route_template && (
+                    <div className="grid gap-2">
+                        <Label>Template de Roteiro</Label>
+                        <div className="bg-background">
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                {routing.route_template.name}
+                            </div>
+                        </div>
                     </div>
-                </CardContent>
-            </Card>
+                )}
+
+                {routing.description && (
+                    <div className="grid gap-2">
+                        <Label>Descrição</Label>
+                        <div className="bg-background">
+                            <Textarea
+                                value={routing.description}
+                                readOnly
+                                className="bg-muted/20 resize-none"
+                                rows={3}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Process Summary Section */}
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium">Resumo do Processo</h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <SummaryCard
+                        icon={<Workflow className="h-5 w-5" />}
+                        label="Total de Etapas"
+                        value={effectiveSteps?.length || 0}
+                    />
+                    <SummaryCard
+                        icon={<Clock className="h-5 w-5" />}
+                        label="Tempo de Ciclo"
+                        value={formatDuration(totalCycleTime)}
+                    />
+                    <SummaryCard
+                        icon={<Settings className="h-5 w-5" />}
+                        label="Tempo de Setup"
+                        value={formatDuration(totalSetupTime)}
+                    />
+                    <SummaryCard
+                        icon={<Users className="h-5 w-5" />}
+                        label="Operadores Necessários"
+                        value={effectiveSteps?.length > 0 ? Math.max(...effectiveSteps.map((s: any) => s.operators_required || 0)) : 0}
+                    />
+                </div>
+            </div>
+
+            {/* Metadata Section */}
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium">Informações de Sistema</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                        <Label>Criado por</Label>
+                        <div className="bg-background">
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                {routing.created_by?.name || 'Sistema'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label>Criado em</Label>
+                        <div className="bg-background">
+                            <div className="rounded-md border bg-muted/20 p-2 text-sm">
+                                {new Date(routing.created_at).toLocaleDateString('pt-BR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
@@ -258,6 +278,19 @@ function RoutingStepsTab({ steps, canManage, routingId }: any) {
             }
         },
         {
+            key: 'step_type',
+            label: 'Tipo',
+            render: (value: unknown) => {
+                const typeMap: Record<string, { label: string; variant: any }> = {
+                    'standard': { label: 'Padrão', variant: 'default' },
+                    'quality_check': { label: 'Checagem de Qualidade', variant: 'secondary' },
+                    'rework': { label: 'Retrabalho', variant: 'outline' }
+                };
+                const type = typeMap[value as string] || { label: value as string, variant: 'default' };
+                return <Badge variant={type.variant}>{type.label}</Badge>;
+            }
+        },
+        {
             key: 'work_cell',
             label: 'Célula de Trabalho',
             render: (value: unknown, row: Record<string, unknown>) => {
@@ -272,6 +305,22 @@ function RoutingStepsTab({ steps, canManage, routingId }: any) {
                 ) : (
                     <span className="text-muted-foreground">—</span>
                 );
+            }
+        },
+        {
+            key: 'status',
+            label: 'Status',
+            render: (value: unknown) => {
+                const statusMap: Record<string, { label: string; variant: any }> = {
+                    'pending': { label: 'Pendente', variant: 'outline' },
+                    'queued': { label: 'Na Fila', variant: 'secondary' },
+                    'in_progress': { label: 'Em Progresso', variant: 'default' },
+                    'on_hold': { label: 'Em Espera', variant: 'destructive' },
+                    'completed': { label: 'Concluído', variant: 'default' },
+                    'skipped': { label: 'Pulado', variant: 'secondary' }
+                };
+                const status = statusMap[value as string] || { label: value as string, variant: 'default' };
+                return <Badge variant={status.variant}>{status.label}</Badge>;
             }
         },
         {
@@ -295,118 +344,24 @@ function RoutingStepsTab({ steps, canManage, routingId }: any) {
                     {value ? `${value} min` : '—'}
                 </div>
             )
-        },
-        {
-            key: 'operators_required',
-            label: 'Operadores',
-            width: 'w-[100px]',
-            headerAlign: 'center',
-            render: (value: unknown) => (
-                <div className="text-center">
-                    <Badge variant="outline">{value || 0}</Badge>
-                </div>
-            )
         }
     ];
 
     return (
-        <div className="py-6">
-            <Card>
-                <CardContent className="p-0">
-                    <EntityDataTable
-                        data={steps as any}
-                        columns={columns}
-                        loading={false}
-                    />
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
-// Where Used Tab Component
-function RoutingWhereUsedTab({ routing }: any) {
-    const childRoutings = routing.child_routings || [];
-
-    if (childRoutings.length === 0) {
-        return (
-            <div className="py-6">
-                <Card>
-                    <CardContent className="py-12">
-                        <div className="text-center text-muted-foreground">
-                            <Workflow className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>Este roteiro não é herdado por outros itens</p>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
-    const columns: ColumnConfig[] = [
-        {
-            key: 'bom_item',
-            label: 'Item',
-            render: (value: unknown, row: Record<string, unknown>) => {
-                const childRouting = row as any;
-                return (
-                    <Link
-                        href={route('production.items.show', childRouting.bom_item?.id)}
-                        className="text-primary hover:underline"
-                    >
-                        {childRouting.bom_item?.item?.item_number} - {childRouting.bom_item?.item?.name}
-                    </Link>
-                );
-            }
-        },
-        {
-            key: 'routing_number',
-            label: 'Roteiro',
-            render: (value: unknown, row: Record<string, unknown>) => {
-                const childRouting = row as any;
-                return (
-                    <Link
-                        href={route('production.routing.show', childRouting.id)}
-                        className="text-primary hover:underline"
-                    >
-                        {childRouting.routing_number}
-                    </Link>
-                );
-            }
-        }
-    ];
-
-    return (
-        <div className="py-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Itens que Herdam este Roteiro</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <EntityDataTable
-                        data={childRoutings as any}
-                        columns={columns}
-                        loading={false}
-                    />
-                </CardContent>
-            </Card>
+        <div className="space-y-4 py-6">
+            <EntityDataTable
+                data={steps || []}
+                columns={columns}
+                loading={false}
+            />
         </div>
     );
 }
 
 // Helper Components
-function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
-    return (
-        <div>
-            <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
-            <dd className="mt-1 text-sm">{value || '—'}</dd>
-        </div>
-    );
-}
-
 function SummaryCard({ icon, label, value }: any) {
     return (
-        <div className="flex items-center gap-3 p-4 border rounded-lg">
+        <div className="flex items-center gap-3 p-4 border rounded-lg bg-background">
             <div className="text-muted-foreground">{icon}</div>
             <div>
                 <p className="text-sm text-muted-foreground">{label}</p>

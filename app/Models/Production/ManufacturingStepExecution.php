@@ -66,9 +66,9 @@ class ManufacturingStepExecution extends Model
     /**
      * Get the production order.
      */
-    public function productionOrder(): BelongsTo
+    public function manufacturingOrder(): BelongsTo
     {
-        return $this->belongsTo(ProductionOrder::class);
+        return $this->belongsTo(ManufacturingOrder::class);
     }
 
     /**

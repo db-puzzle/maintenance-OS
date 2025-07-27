@@ -17,6 +17,7 @@ import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import BomConfiguration from '@/components/production/BomConfiguration';
 import { BillOfMaterial, BomItem, BomVersion, Item } from '@/types/production';
 import { ColumnConfig } from '@/types/shared';
+import { type BreadcrumbItem } from '@/types';
 import { toast } from 'sonner';
 
 interface Props {
@@ -42,25 +43,34 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
         is_active: bom?.is_active ?? true,
     });
 
-    const breadcrumbs = [
-        { label: 'Produção', href: '/production' },
-        { label: 'BOMs', href: route('production.bom.index') },
-        { label: isCreating ? 'Nova BOM' : (bom?.name || 'BOM') },
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Home',
+            href: '/home',
+        },
+        {
+            title: 'BOMs',
+            href: route('production.bom.index'),
+        },
+        {
+            title: isCreating ? 'Nova BOM' : (bom?.name || 'BOM'),
+            href: isCreating ? route('production.bom.create') : (bom ? route('production.bom.show', bom.id) : '#'),
+        },
     ];
 
     // Column configurations
     const versionColumns: ColumnConfig[] = [
         { key: 'version_number', label: 'Versão', sortable: true },
-        { key: 'published_at', label: 'Publicado em', format: 'date', sortable: true },
+        { key: 'published_at', label: 'Publicado em', format: 'date', sortable: true } as any,
         { key: 'revision_notes', label: 'Notas de Revisão' },
-        { key: 'is_current', label: 'Status', format: (value: boolean) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> },
+        { key: 'is_current', label: 'Status', format: (value: boolean) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> } as any,
     ];
 
     const itemMasterColumns: ColumnConfig[] = [
         { key: 'item_number', label: 'Código', sortable: true },
         { key: 'name', label: 'Descrição', sortable: true },
         { key: 'category', label: 'Categoria' },
-        { key: 'status', label: 'Status', format: (value: string) => <Badge variant={value === 'active' ? 'default' : 'secondary'}>{value}</Badge> },
+        { key: 'status', label: 'Status', format: (value: string) => <Badge variant={value === 'active' ? 'default' : 'secondary'}>{value}</Badge> } as any,
     ];
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -116,25 +126,6 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                 toast.success('QR Codes gerados com sucesso');
             }
         });
-    };
-
-    const renderBomItems = (items: BomItem[], level = 0): React.ReactNode => {
-        return items.map((item) => (
-            <div key={item.id} className={`border-b last:border-0 ${level > 0 ? 'ml-8' : ''}`}>
-                <div className="p-4 hover:bg-muted/50">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="font-medium">{item.item?.itemNumber || item.item?.item_number}</div>
-                            <div className="text-sm text-muted-foreground">{item.item?.name}</div>
-                        </div>
-                        <div className="text-sm">
-                            <Badge variant="secondary">{item.quantity} {item.unitOfMeasure || item.unit_of_measure}</Badge>
-                        </div>
-                    </div>
-                </div>
-                {item.children && item.children.length > 0 && renderBomItems(item.children, level + 1)}
-            </div>
-        ));
     };
 
     const tabs = [
@@ -249,56 +240,21 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                         <div className="h-[calc(100vh-300px)]">
                             <BomConfiguration
                                 bomId={bom?.id || 0}
-                                versionId={bom?.currentVersion?.id || 0}
-                                bomItems={bom?.currentVersion?.items || []}
+                                versionId={bom?.current_version?.id || 0}
+                                bomItems={(bom?.current_version?.items || []).filter(item => item.item) as any[]}
                                 availableItems={items}
                                 canEdit={can.manageItems}
                                 onUpdate={() => router.reload({ only: ['bom'] })}
+                                bom={bom ? {
+                                    name: bom.name,
+                                    bom_number: bom.bom_number,
+                                    current_version: bom.current_version ? {
+                                        version_number: bom.current_version.version_number,
+                                        items: bom.current_version.items
+                                    } : undefined,
+                                    versions: bom.versions
+                                } : undefined}
                             />
-                        </div>
-                    ),
-                },
-                {
-                    id: 'items',
-                    label: `Itens (${bom?.currentVersion?.items?.length || 0})`,
-                    content: (
-                        <div className="py-6">
-                            {bom?.currentVersion?.items && bom.currentVersion.items.length > 0 ? (
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <div>
-                                            <h3 className="text-lg font-medium">Lista de Materiais</h3>
-                                            <p className="text-sm text-muted-foreground">
-                                                Versão {bom?.currentVersion?.version_number || 1} -
-                                                {bom?.currentVersion?.is_current ? ' Atual' : ' Histórica'}
-                                            </p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => router.visit(`/production/bom/${bom.id}#configuration`)}
-                                            >
-                                                <Settings className="h-4 w-4 mr-2" />
-                                                Configurar Estrutura
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <div className="border rounded-lg">
-                                        {renderBomItems(bom.currentVersion.items.filter(item => {
-                                            const parentId = item.parentItemId ?? item.parent_item_id;
-                                            return parentId === null || parentId === undefined;
-                                        }))}
-                                    </div>
-                                </div>
-                            ) : (
-                                <EmptyCard
-                                    icon={Package}
-                                    title="Nenhum item adicionado"
-                                    description="Adicione itens a esta BOM para definir sua estrutura"
-                                    primaryButtonText="Configurar BOM"
-                                    primaryButtonAction={() => router.visit(`/production/bom/${bom.id}#configuration`)}
-                                />
-                            )}
                         </div>
                     ),
                 },
@@ -350,14 +306,14 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                 },
                 {
                     id: 'usage',
-                    label: `Onde é Usada (${bom?.itemMasters?.length || 0})`,
+                    label: `Onde é Usada (${(bom as any)?.item_masters?.length || 0})`,
                     content: (
                         <div className="py-6">
-                            {bom?.itemMasters && bom.itemMasters.length > 0 ? (
+                            {(bom as any)?.item_masters && (bom as any).item_masters.length > 0 ? (
                                 <div className="space-y-4">
                                     <h3 className="text-lg font-medium mb-4">Itens que Usam esta BOM</h3>
                                     <EntityDataTable
-                                        data={bom.itemMasters as unknown as Record<string, unknown>[]}
+                                        data={(bom as any).item_masters as unknown as Record<string, unknown>[]}
                                         columns={itemMasterColumns}
                                         loading={false}
                                         onRowClick={(item: any) => router.visit(route('production.items.show', item.id))}
@@ -373,48 +329,25 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                         </div>
                     ),
                 },
-                {
-                    id: 'files',
-                    label: 'Arquivos',
-                    content: (
-                        <div className="py-6">
-                            <EmptyCard
-                                icon={FileText}
-                                title="Nenhum arquivo"
-                                description="Anexe arquivos relacionados a esta BOM"
-                                primaryButtonText="Adicionar arquivo"
-                                primaryButtonAction={() => { }}
-                            />
-                        </div>
-                    ),
-                },
             ]),
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={isCreating ? 'Nova BOM' : `BOM ${bom?.bom_number}`} />
+            <Head title={isCreating ? 'Nova BOM' : `BOM ${(bom as any)?.bom_number}`} />
 
             <ShowLayout
-                title={isCreating ? 'Nova BOM' : bom?.name || 'BOM'}
+                title={isCreating ? 'Nova BOM' : (bom as any)?.bom_number || 'BOM'}
                 subtitle={
                     isCreating ? (
                         'Criação de nova lista de materiais'
                     ) : (
                         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span>#{bom?.bom_number}</span>
-                            {bom?.external_reference && (
-                                <>
-                                    <span className="text-muted-foreground">•</span>
-                                    <span className="text-muted-foreground">Ref: {bom.external_reference}</span>
-                                </>
-                            )}
-                            {bom?.currentVersion && (
-                                <>
-                                    <span className="text-muted-foreground">•</span>
-                                    <span className="text-muted-foreground">v{bom.currentVersion.version_number}</span>
-                                </>
-                            )}
+                            <span className="text-muted-foreground">{bom?.name}</span>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="text-muted-foreground">{bom?.current_version?.items?.length || 0} itens</span>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="text-muted-foreground">{bom?.versions?.length || 0} versões</span>
                         </span>
                     )
                 }
