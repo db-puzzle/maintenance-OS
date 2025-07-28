@@ -91,14 +91,18 @@ class BillOfMaterialController extends Controller
         $this->authorize('create', BillOfMaterial::class);
 
         $validated = $request->validate([
-            'bom_number' => 'required|string|max:100|unique:bill_of_materials',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'external_reference' => 'nullable|string|max:100',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
         ]);
 
         $validated['created_by'] = auth()->id();
+        $validated['is_active'] = $validated['is_active'] ?? true;
+        
+        // Generate BOM number automatically
+        $validated['bom_number'] = $this->generateBomNumber();
+        
         $bom = BillOfMaterial::create($validated);
 
         // Create initial version
@@ -828,5 +832,30 @@ class BillOfMaterialController extends Controller
                 $this->flattenBomItems($item->children, $data, $indent . '  ');
             }
         }
+    }
+
+    /**
+     * Generate BOM number.
+     */
+    protected function generateBomNumber(): string
+    {
+        $year = now()->format('y'); // 2-digit year
+        $month = now()->format('m'); // 2-digit month
+        
+        // Find the last BOM created in the current year and month
+        $lastBom = BillOfMaterial::whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($lastBom) {
+            // Extract the sequence number (5 digits after 'BOM-')
+            $sequence = intval(substr($lastBom->bom_number, 4, 5)) + 1;
+        } else {
+            // No BOMs for current year and month, start at 1
+            $sequence = 1;
+        }
+        
+        return sprintf('BOM-%05d-%s%s', $sequence, $year, $month);
     }
 } 

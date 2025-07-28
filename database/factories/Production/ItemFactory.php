@@ -11,42 +11,44 @@ class ItemFactory extends Factory
 
     public function definition(): array
     {
-        $itemType = $this->faker->randomElement(['manufactured', 'purchased', 'phantom', 'service']);
-        
+        $canBeSold = $this->faker->boolean(70);
+        $canBePurchased = $this->faker->boolean(60);
+        $canBeManufactured = $this->faker->boolean(50);
+        $isPhantom = false; // Phantom items are special cases, not random
+
         return [
-            'item_number' => strtoupper($this->faker->unique()->bothify('??-###-??')),
+            'item_number' => strtoupper($this->faker->unique()->bothify('ITEM-####-??')),
             'name' => $this->faker->words(3, true),
             'description' => $this->faker->sentence(),
-            'category' => $this->faker->randomElement(['Electronics', 'Mechanical', 'Assembly', 'Raw Material']),
-            'item_type' => $itemType,
-            'can_be_sold' => $itemType !== 'phantom',
-            'can_be_purchased' => in_array($itemType, ['purchased', 'service']),
-            'can_be_manufactured' => in_array($itemType, ['manufactured', 'phantom']),
-            'is_active' => true,
-            'status' => 'active',
-            'unit_of_measure' => $this->faker->randomElement(['EA', 'KG', 'M', 'L', 'BOX']),
-            'weight' => $this->faker->randomFloat(4, 0.1, 100),
-            'dimensions' => [
-                'length' => $this->faker->numberBetween(1, 100),
-                'width' => $this->faker->numberBetween(1, 100),
-                'height' => $this->faker->numberBetween(1, 100),
+            'item_category_id' => null, // Will be set in seeder
+            // 'item_type' => $this->faker->randomElement(['manufactured', 'purchased', 'phantom', 'service']), // DEPRECATED
+            'can_be_sold' => $canBeSold,
+            'can_be_purchased' => $canBePurchased,
+            'can_be_manufactured' => $canBeManufactured,
+            'is_phantom' => $isPhantom,
+            'is_active' => $this->faker->boolean(90),
+            'status' => $this->faker->randomElement(['active', 'inactive', 'prototype', 'discontinued']),
+            'unit_of_measure' => $this->faker->randomElement(['EA', 'KG', 'L', 'M', 'BOX', 'SET']),
+            'weight' => $this->faker->optional()->randomFloat(2, 0.01, 100),
+            'dimensions' => $this->faker->optional()->passthrough([
+                'length' => $this->faker->numberBetween(1, 200),
+                'width' => $this->faker->numberBetween(1, 200),
+                'height' => $this->faker->numberBetween(1, 200),
                 'unit' => 'cm'
-            ],
-            'list_price' => $this->faker->randomFloat(2, 10, 1000),
-            'cost' => $this->faker->randomFloat(2, 5, 500),
-            'lead_time_days' => $this->faker->numberBetween(0, 30),
-            'track_inventory' => true,
-            'min_stock_level' => $this->faker->randomFloat(2, 0, 50),
-            'max_stock_level' => $this->faker->randomFloat(2, 100, 500),
-            'reorder_point' => $this->faker->randomFloat(2, 10, 100),
-            'tags' => $this->faker->randomElement([
-                ['bicycle', 'component'],
-                ['raw-material'],
-                ['assembly'],
-                []
             ]),
-            'custom_attributes' => [],
-            'created_by' => 1, // Will be overridden in seeder
+            'list_price' => $canBeSold ? $this->faker->randomFloat(2, 10, 1000) : null,
+            'manufacturing_cost' => $canBeManufactured ? $this->faker->randomFloat(2, 5, 500) : null,
+            'manufacturing_lead_time_days' => $canBeManufactured ? $this->faker->numberBetween(0, 30) : 0,
+            'purchase_price' => $canBePurchased ? $this->faker->randomFloat(2, 5, 500) : null,
+            'purchase_lead_time_days' => $canBePurchased ? $this->faker->numberBetween(0, 30) : 0,
+            'track_inventory' => $this->faker->boolean(80),
+            'min_stock_level' => $this->faker->optional()->numberBetween(0, 100),
+            'max_stock_level' => $this->faker->optional()->numberBetween(100, 1000),
+            'reorder_point' => $this->faker->optional()->numberBetween(10, 200),
+            'preferred_vendor' => $canBePurchased ? $this->faker->optional()->company() : null,
+            'vendor_item_number' => $canBePurchased ? $this->faker->optional()->bothify('VEN-####') : null,
+            'tags' => $this->faker->optional()->words(3),
+            'created_by' => null, // Will be set in seeder
         ];
     }
 
@@ -96,6 +98,22 @@ class ItemFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'is_active' => false,
             'status' => 'discontinued',
+        ]);
+    }
+
+    public function phantom(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_phantom' => true,
+            'can_be_sold' => false,
+            'can_be_purchased' => false,
+            'can_be_manufactured' => false,
+            'list_price' => null,
+            'manufacturing_cost' => null,
+            'purchase_price' => null,
+            'preferred_vendor' => null,
+            'vendor_item_number' => null,
+            'track_inventory' => false,
         ]);
     }
 } 

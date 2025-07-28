@@ -1,7 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { useForm } from '@inertiajs/react';
-import { router } from '@inertiajs/react';
-import { Link } from '@inertiajs/react';
 import {
     Factory,
     Package,
@@ -26,17 +24,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import ItemSelect from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
-import AppLayout from '@/layouts/app-layout';
 import { Item, BillOfMaterial, RouteTemplate, ManufacturingOrder } from '@/types/production';
 import { cn } from '@/lib/utils';
-
-interface Props {
-    items?: Item[];
-    billsOfMaterial?: BillOfMaterial[];
-    routeTemplates: RouteTemplate[];
-    sourceTypes: Record<string, string>;
-    selectedBomId?: number;
-}
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface FormData {
     // Order type
@@ -64,6 +62,16 @@ interface FormData {
     route_template_id: number | null;
 }
 
+interface Props {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    items?: Item[];
+    billsOfMaterial?: BillOfMaterial[];
+    routeTemplates: RouteTemplate[];
+    sourceTypes: Record<string, string>;
+    selectedBomId?: number;
+}
+
 interface StepIndicatorProps {
     steps: Array<{
         number: number;
@@ -75,26 +83,26 @@ interface StepIndicatorProps {
 
 function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
     return (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-2">
             {steps.map((step, index) => (
                 <React.Fragment key={step.number}>
                     <div className="flex flex-col items-center">
                         <div
                             className={cn(
-                                "w-10 h-10 rounded-full flex items-center justify-center font-medium",
+                                "w-8 h-8 rounded-full flex items-center justify-center font-medium text-sm",
                                 currentStep >= step.number
                                     ? "bg-primary text-primary-foreground"
                                     : "bg-muted text-muted-foreground"
                             )}
                         >
                             {currentStep > step.number ? (
-                                <Check className="h-5 w-5" />
+                                <Check className="h-4 w-4" />
                             ) : (
                                 step.icon
                             )}
                         </div>
                         <span className={cn(
-                            "text-sm mt-2",
+                            "text-xs mt-1",
                             currentStep >= step.number
                                 ? "text-foreground font-medium"
                                 : "text-muted-foreground"
@@ -104,7 +112,7 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
                     </div>
                     {index < steps.length - 1 && (
                         <div className={cn(
-                            "flex-1 h-0.5 mx-4 mt-5",
+                            "flex-1 h-0.5 mx-2 mt-4",
                             currentStep > step.number
                                 ? "bg-primary"
                                 : "bg-muted"
@@ -116,7 +124,9 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
     );
 }
 
-export default function CreateManufacturingOrder({
+export default function CreateManufacturingOrderDialog({
+    open,
+    onOpenChange,
     items = [],
     billsOfMaterial = [],
     routeTemplates,
@@ -125,7 +135,7 @@ export default function CreateManufacturingOrder({
 }: Props) {
     const [currentStep, setCurrentStep] = useState(1);
 
-    const { data, setData, post, processing, errors } = useForm<FormData>({
+    const { data, setData, post, processing, errors, reset } = useForm<FormData>({
         order_type: selectedBomId ? 'bom' : 'item',
         item_id: null,
         bill_of_material_id: selectedBomId || null,
@@ -141,10 +151,10 @@ export default function CreateManufacturingOrder({
     });
 
     const steps = [
-        { number: 1, title: 'Type', icon: <Factory className="h-5 w-5" /> },
-        { number: 2, title: 'Item', icon: <Package className="h-5 w-5" /> },
-        { number: 3, title: 'Details', icon: <Calendar className="h-5 w-5" /> },
-        { number: 4, title: 'Configuration', icon: <Settings className="h-5 w-5" /> },
+        { number: 1, title: 'Type', icon: <Factory className="h-4 w-4" /> },
+        { number: 2, title: 'Item', icon: <Package className="h-4 w-4" /> },
+        { number: 3, title: 'Details', icon: <Calendar className="h-4 w-4" /> },
+        { number: 4, title: 'Config', icon: <Settings className="h-4 w-4" /> },
     ];
 
     const selectedItem = useMemo(() => {
@@ -185,12 +195,12 @@ export default function CreateManufacturingOrder({
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
+    const handleSubmit = () => {
         post(route('production.orders.store'), {
             onSuccess: () => {
-                // Success is handled by controller redirect
+                reset();
+                setCurrentStep(1);
+                onOpenChange(false);
             },
             onError: (errors) => {
                 console.error('Form submission errors:', errors);
@@ -217,29 +227,31 @@ export default function CreateManufacturingOrder({
         }
     };
 
+    const handleOpenChange = (open: boolean) => {
+        if (!open) {
+            reset();
+            setCurrentStep(1);
+        }
+        onOpenChange(open);
+    };
+
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Production', href: '/production' },
-                { title: 'Manufacturing Orders', href: '/production/orders' },
-                { title: 'Create Order', href: '' },
-            ]}
-        >
-            <div className="space-y-6 max-w-5xl mx-auto">
-                <div>
-                    <h1 className="text-2xl font-semibold">Create Manufacturing Order</h1>
-                    <p className="text-muted-foreground mt-1">
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
+                <DialogHeader className="px-6 py-4 border-b">
+                    <DialogTitle>Create Manufacturing Order</DialogTitle>
+                    <DialogDescription>
                         Create a new manufacturing order for production
-                    </p>
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="px-6 py-4 border-b">
+                    <StepIndicator steps={steps} currentStep={currentStep} />
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <StepIndicator steps={steps} currentStep={currentStep} />
-                    </CardHeader>
-
-                    <form onSubmit={handleSubmit}>
-                        <CardContent className="space-y-6">
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <ScrollArea className="flex-1 px-6">
+                        <div className="py-2">
                             {/* Step 1: Order Type Selection */}
                             {currentStep === 1 && (
                                 <div className="space-y-6">
@@ -473,7 +485,7 @@ export default function CreateManufacturingOrder({
                                             <div>
                                                 <h3 className="font-medium mb-3">Child Orders Preview</h3>
                                                 <div className="border rounded-lg overflow-hidden">
-                                                    <div className="max-h-64 overflow-auto">
+                                                    <div className="max-h-48 overflow-auto">
                                                         <table className="w-full">
                                                             <thead className="bg-muted/50 sticky top-0">
                                                                 <tr className="text-sm">
@@ -549,115 +561,112 @@ export default function CreateManufacturingOrder({
                                     {/* Route Configuration */}
                                     <div>
                                         <h3 className="font-medium mb-4">Manufacturing Route</h3>
-                                        <Card>
-                                            <CardContent className="pt-6">
-                                                <RadioGroup
-                                                    value={data.route_creation_mode}
-                                                    onValueChange={(value: 'manual' | 'template' | 'auto') =>
-                                                        setData('route_creation_mode', value)
-                                                    }
-                                                    className="space-y-4"
-                                                >
-                                                    <div className="flex items-start space-x-3">
-                                                        <RadioGroupItem value="manual" id="manual" className="mt-1" />
-                                                        <div>
-                                                            <Label htmlFor="manual" className="font-normal cursor-pointer">
-                                                                <div className="font-medium">Manual Route Creation</div>
-                                                                <p className="text-sm text-muted-foreground mt-1">
-                                                                    Create routes manually after order release
-                                                                </p>
-                                                            </Label>
-                                                        </div>
-                                                    </div>
+                                        <RadioGroup
+                                            value={data.route_creation_mode}
+                                            onValueChange={(value: 'manual' | 'template' | 'auto') =>
+                                                setData('route_creation_mode', value)
+                                            }
+                                            className="space-y-4"
+                                        >
+                                            <div className="flex items-start space-x-3">
+                                                <RadioGroupItem value="manual" id="manual" className="mt-1" />
+                                                <div>
+                                                    <Label htmlFor="manual" className="font-normal cursor-pointer">
+                                                        <div className="font-medium">Manual Route Creation</div>
+                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                            Create routes manually after order release
+                                                        </p>
+                                                    </Label>
+                                                </div>
+                                            </div>
 
-                                                    <div className="flex items-start space-x-3">
-                                                        <RadioGroupItem value="template" id="template" className="mt-1" />
-                                                        <div className="flex-1">
-                                                            <Label htmlFor="template" className="font-normal cursor-pointer">
-                                                                <div className="font-medium">Use Route Template</div>
-                                                                <p className="text-sm text-muted-foreground mt-1">
-                                                                    Apply a predefined route template
-                                                                </p>
-                                                            </Label>
+                                            <div className="flex items-start space-x-3">
+                                                <RadioGroupItem value="template" id="template" className="mt-1" />
+                                                <div className="flex-1">
+                                                    <Label htmlFor="template" className="font-normal cursor-pointer">
+                                                        <div className="font-medium">Use Route Template</div>
+                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                            Apply a predefined route template
+                                                        </p>
+                                                    </Label>
 
-                                                            {data.route_creation_mode === 'template' && (
-                                                                <div className="mt-3">
-                                                                    <ItemSelect
-                                                                        label=""
-                                                                        items={filteredRouteTemplates}
-                                                                        value={data.route_template_id}
-                                                                        onValueChange={(value) =>
-                                                                            setData('route_template_id', value)
-                                                                        }
-                                                                        placeholder="Select a route template..."
-                                                                        displayValue={(template) => template.name}
-                                                                    />
+                                                    {data.route_creation_mode === 'template' && (
+                                                        <div className="mt-3">
+                                                            <ItemSelect
+                                                                label=""
+                                                                items={filteredRouteTemplates}
+                                                                value={data.route_template_id}
+                                                                onValueChange={(value) =>
+                                                                    setData('route_template_id', value)
+                                                                }
+                                                                placeholder="Select a route template..."
+                                                                displayValue={(template) => template.name}
+                                                            />
 
-                                                                    {data.route_template_id && (
-                                                                        <div className="mt-3 p-3 bg-muted/20 rounded-lg">
-                                                                            <p className="text-sm">
-                                                                                {filteredRouteTemplates.find(
-                                                                                    t => t.id === data.route_template_id
-                                                                                )?.description}
-                                                                            </p>
-                                                                        </div>
-                                                                    )}
+                                                            {data.route_template_id && (
+                                                                <div className="mt-3 p-3 bg-muted/20 rounded-lg">
+                                                                    <p className="text-sm">
+                                                                        {filteredRouteTemplates.find(
+                                                                            t => t.id === data.route_template_id
+                                                                        )?.description}
+                                                                    </p>
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    </div>
+                                                    )}
+                                                </div>
+                                            </div>
 
-                                                    <div className="flex items-start space-x-3">
-                                                        <RadioGroupItem value="auto" id="auto" className="mt-1" />
-                                                        <div>
-                                                            <Label htmlFor="auto" className="font-normal cursor-pointer">
-                                                                <div className="font-medium">Auto-create from Defaults</div>
-                                                                <p className="text-sm text-muted-foreground mt-1">
-                                                                    Automatically create routes based on item category
-                                                                </p>
-                                                            </Label>
-                                                        </div>
-                                                    </div>
-                                                </RadioGroup>
-                                            </CardContent>
-                                        </Card>
+                                            <div className="flex items-start space-x-3">
+                                                <RadioGroupItem value="auto" id="auto" className="mt-1" />
+                                                <div>
+                                                    <Label htmlFor="auto" className="font-normal cursor-pointer">
+                                                        <div className="font-medium">Auto-create from Defaults</div>
+                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                            Automatically create routes based on item category
+                                                        </p>
+                                                    </Label>
+                                                </div>
+                                            </div>
+                                        </RadioGroup>
                                     </div>
                                 </div>
                             )}
-                        </CardContent>
+                        </div>
+                    </ScrollArea>
 
-                        <CardFooter className="flex justify-between">
+                    <DialogFooter className="px-6 py-4 border-t">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handlePrevious}
+                            disabled={currentStep === 1}
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-2" />
+                            Previous
+                        </Button>
+
+                        {currentStep < steps.length ? (
                             <Button
                                 type="button"
-                                variant="outline"
-                                onClick={handlePrevious}
-                                disabled={currentStep === 1}
+                                onClick={handleNext}
+                                disabled={!isStepValid(currentStep)}
                             >
-                                <ChevronLeft className="h-4 w-4 mr-2" />
-                                Previous
+                                Next
+                                <ChevronRight className="h-4 w-4 ml-2" />
                             </Button>
-
-                            {currentStep < steps.length ? (
-                                <Button
-                                    type="button"
-                                    onClick={handleNext}
-                                    disabled={!isStepValid(currentStep)}
-                                >
-                                    Next
-                                    <ChevronRight className="h-4 w-4 ml-2" />
-                                </Button>
-                            ) : (
-                                <Button
-                                    type="submit"
-                                    disabled={processing || !isStepValid(currentStep)}
-                                >
-                                    {processing ? 'Creating...' : 'Create Order'}
-                                </Button>
-                            )}
-                        </CardFooter>
-                    </form>
-                </Card>
-            </div>
-        </AppLayout>
+                        ) : (
+                            <Button
+                                type="button"
+                                onClick={handleSubmit}
+                                disabled={processing || !isStepValid(currentStep)}
+                            >
+                                {processing ? 'Creating...' : 'Create Order'}
+                            </Button>
+                        )}
+                    </DialogFooter>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 } 

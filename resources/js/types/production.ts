@@ -2,23 +2,38 @@
 
 import { User } from '@/types';
 
+export interface ItemCategory {
+    id: number;
+    name: string;
+    description?: string;
+    is_active: boolean;
+    items_count?: number;
+    created_by?: number;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface Item {
     id: number;
     item_number: string;
     name: string;
     description?: string;
-    category: string;
-    item_type: 'manufactured' | 'purchased' | 'manufactured-purchased';
+    item_category_id?: number;
+    category?: ItemCategory;
+    // item_type: 'manufactured' | 'purchased' | 'manufactured-purchased' | 'phantom' | 'service'; // DEPRECATED - now determined by capabilities
     can_be_sold: boolean;
     can_be_purchased: boolean;
     can_be_manufactured: boolean;
+    is_phantom: boolean;
     is_active: boolean;
     status: 'active' | 'inactive' | 'prototype' | 'discontinued';
     unit_of_measure: string;
     weight?: number;
     list_price?: number;
-    cost?: number;
-    lead_time_days: number;
+    manufacturing_cost?: number;
+    manufacturing_lead_time_days: number;
+    purchase_price?: number;
+    purchase_lead_time_days: number;
     preferred_vendor?: string;
     vendor_item_number?: string;
     current_bom?: BillOfMaterial;

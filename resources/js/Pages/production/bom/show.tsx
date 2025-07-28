@@ -36,7 +36,6 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
     const [isCompressed, setIsCompressed] = useState(false);
 
     const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm({
-        bom_number: bom?.bom_number || '',
         name: bom?.name || '',
         description: bom?.description || '',
         external_reference: bom?.external_reference || '',
@@ -81,8 +80,10 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                 onSuccess: () => {
                     toast.success('BOM criada com sucesso');
                 },
-                onError: () => {
-                    toast.error('Erro ao criar BOM');
+                onError: (errors) => {
+                    console.error('BOM creation errors:', errors);
+                    const errorMessage = Object.values(errors).flat().join(', ') || 'Erro ao criar BOM';
+                    toast.error(errorMessage);
                 }
             });
         } else if (bom) {
@@ -136,15 +137,23 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                 <div className="py-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <TextInput
-                                form={{ data, setData, errors, clearErrors: clearErrors as any }}
-                                name="bom_number"
-                                label="Número da BOM"
-                                placeholder="BOM-2024-0001"
-                                required
-                                disabled={!isEditMode || processing}
-                                view={!isEditMode}
-                            />
+                            {!isCreating ? (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Número da BOM</label>
+                                    <div className="flex items-center h-10 px-3 py-2 rounded-md border border-input bg-muted">
+                                        <span className="text-sm">{bom?.bom_number}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Gerado automaticamente pelo sistema</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Número da BOM</label>
+                                    <div className="flex items-center h-10 px-3 py-2 rounded-md border border-input bg-muted">
+                                        <span className="text-sm text-muted-foreground">Será gerado automaticamente</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Formato: BOM-NNNNN-AAMM</p>
+                                </div>
+                            )}
                             <TextInput
                                 form={{ data, setData, errors, clearErrors: clearErrors as any }}
                                 name="external_reference"

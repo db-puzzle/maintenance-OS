@@ -17,11 +17,12 @@ class Item extends Model
         'item_number',
         'name',
         'description',
-        'category',
-        'item_type',
+        'item_category_id',
+        // 'item_type', // DEPRECATED - now determined by capabilities
         'can_be_sold',
         'can_be_purchased',
         'can_be_manufactured',
+        'is_phantom',
         'is_active',
         'status',
         'current_bom_id',
@@ -29,8 +30,10 @@ class Item extends Model
         'weight',
         'dimensions',
         'list_price',
-        'cost',
-        'lead_time_days',
+        'manufacturing_cost',
+        'manufacturing_lead_time_days',
+        'purchase_price',
+        'purchase_lead_time_days',
         'track_inventory',
         'min_stock_level',
         'max_stock_level',
@@ -49,11 +52,13 @@ class Item extends Model
         'can_be_sold' => 'boolean',
         'can_be_purchased' => 'boolean',
         'can_be_manufactured' => 'boolean',
+        'is_phantom' => 'boolean',
         'is_active' => 'boolean',
         'track_inventory' => 'boolean',
         'weight' => 'decimal:4',
         'list_price' => 'decimal:2',
-        'cost' => 'decimal:2',
+        'manufacturing_cost' => 'decimal:2',
+        'purchase_price' => 'decimal:2',
         'min_stock_level' => 'decimal:2',
         'max_stock_level' => 'decimal:2',
         'reorder_point' => 'decimal:2',
@@ -63,6 +68,11 @@ class Item extends Model
     public function currentBom(): BelongsTo
     {
         return $this->belongsTo(BillOfMaterial::class, 'current_bom_id');
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(ItemCategory::class, 'item_category_id');
     }
 
     public function bomHistory(): HasMany

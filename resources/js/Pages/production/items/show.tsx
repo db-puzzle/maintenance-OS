@@ -1,21 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
 import { Head, Link } from '@inertiajs/react';
-import { ShoppingCart, Factory, Package, History, FileText, BarChart3, Boxes } from 'lucide-react';
+import { ShoppingCart, Factory, Package, History, FileText, BarChart3, Boxes, Ghost } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import TextInput from '@/components/TextInput';
 import ItemSelect from '@/components/ItemSelect';
+import StateButton from '@/components/StateButton';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import EmptyCard from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/app-layout';
-import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import { Item, BillOfMaterial } from '@/types/production';
-import { formatCurrency } from '@/lib/utils';
+import ShowLayout from '@/layouts/show-layout';
+import { Item, BillOfMaterial, ItemCategory } from '@/types/production';
+import { formatCurrency, cn } from '@/lib/utils';
 import { ColumnConfig } from '@/types/shared';
+import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
+import axios from 'axios';
 
 interface Props {
     item?: Item;
@@ -38,12 +41,13 @@ const defaultCategories = [
     { id: 6, name: 'Outros' }
 ];
 
-const defaultItemTypes = [
-    { id: 1, name: 'Manufaturado', value: 'manufactured' },
-    { id: 2, name: 'Comprado', value: 'purchased' },
-    { id: 3, name: 'Fantasma', value: 'phantom' },
-    { id: 4, name: 'Serviço', value: 'service' }
-];
+// DEPRECATED: item_type is no longer used
+// const defaultItemTypes = [
+//     { id: 1, name: 'Manufaturado', value: 'manufactured' },
+//     { id: 2, name: 'Comprado', value: 'purchased' },
+//     { id: 3, name: 'Fantasma', value: 'phantom' },
+//     { id: 4, name: 'Serviço', value: 'service' }
+// ];
 
 const defaultItemStatuses = [
     { id: 1, name: 'Ativo', value: 'active' },
@@ -88,13 +92,15 @@ function StatusBadge({ status }: { status: string }) {
 export default function ItemShow({
     item,
     categories = defaultCategories,
-    itemTypes = defaultItemTypes,
+    itemTypes = [], // DEPRECATED
     itemStatuses = defaultItemStatuses,
     can = { update: false, delete: false },
     isCreating = false
 }: Props) {
     const page = usePage<{
-        flash?: { success?: string };
+        flash?: {
+            success?: string;
+        };
         auth: {
             user: any;
             permissions: string[];
@@ -102,10 +108,12 @@ export default function ItemShow({
     }>();
     const userPermissions = page.props.auth?.permissions || [];
 
+
+
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'Itens', href: route('production.items.index') },
-        { title: item?.item_number || 'Novo Item', href: '' }
+        { title: isCreating ? 'Novo Item' : (item?.item_number || 'Item'), href: '' }
     ];
 
     // Form state for creation/editing
@@ -113,28 +121,73 @@ export default function ItemShow({
         item_number: item?.item_number || '',
         name: item?.name || '',
         description: item?.description || '',
-        category: item?.category || '',
-        item_type: item?.item_type || 'manufactured',
-        can_be_sold: item?.can_be_sold !== undefined ? item.can_be_sold : true,
+        item_category_id: item?.item_category_id?.toString() || '',
+        // item_type: item?.item_type || 'manufactured', // DEPRECATED
+        can_be_sold: item?.can_be_sold !== undefined ? item.can_be_sold : false,
         can_be_purchased: item?.can_be_purchased !== undefined ? item.can_be_purchased : false,
         can_be_manufactured: item?.can_be_manufactured !== undefined ? item.can_be_manufactured : true,
+        is_phantom: item?.is_phantom !== undefined ? item.is_phantom : false,
         status: item?.status || 'active',
         unit_of_measure: item?.unit_of_measure || 'EA',
         weight: item?.weight?.toString() || '',
         list_price: item?.list_price?.toString() || '',
-        cost: item?.cost?.toString() || '',
-        lead_time_days: item?.lead_time_days || 0,
+        manufacturing_cost: item?.manufacturing_cost?.toString() || '',
+        manufacturing_lead_time_days: item?.manufacturing_lead_time_days || 0,
+        purchase_price: item?.purchase_price?.toString() || '',
+        purchase_lead_time_days: item?.purchase_lead_time_days || 0,
         preferred_vendor: item?.preferred_vendor || '',
         vendor_item_number: item?.vendor_item_number || '',
     });
 
     const [isEditMode, setIsEditMode] = useState(isCreating);
     const [isCompressed, setIsCompressed] = useState(false);
+    const [itemCategories, setItemCategories] = useState<ItemCategory[]>([]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
+    const [categorySheetOpen, setCategorySheetOpen] = useState(false);
+
+    // Load categories
+    const loadCategories = async () => {
+        try {
+            const response = await axios.get(route('production.categories.active'));
+            setItemCategories(response.data);
+        } catch (error) {
+            console.error('Failed to load categories:', error);
+        } finally {
+            setLoadingCategories(false);
+        }
+    };
+
+    useEffect(() => {
+        loadCategories();
+    }, []);
+
+    // Update edit mode when isCreating prop changes (e.g., after redirect from creation)
+    useEffect(() => {
+        setIsEditMode(isCreating);
+    }, [isCreating]);
+
+    // Reload categories when category sheet closes successfully
+    const handleCategorySheetSuccess = () => {
+        loadCategories();
+        setCategorySheetOpen(false);
+
+        // Since we can't easily get the newly created category ID from the response,
+        // we'll need to wait for the categories to reload and then find the newest one
+        // This is a limitation of the current approach
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isCreating) {
-            post(route('production.items.store'));
+            post(route('production.items.store'), {
+                onSuccess: () => {
+                    // The backend will handle the redirect to the item show page
+                    // No need to do anything here as the page will be redirected
+                },
+                onError: () => {
+                    // Error handling is done by Inertia
+                },
+            });
         } else if (item) {
             patch(route('production.items.update', item.id), {
                 onSuccess: () => {
@@ -208,37 +261,18 @@ export default function ItemShow({
 
                         {/* Classification */}
                         <div className="space-y-4">
-                            <h3 className="text-sm font-medium">Classificação</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <ItemSelect
                                     label="Categoria"
-                                    items={categories}
-                                    value={categories.find(c => c.name === data.category)?.id.toString() || ''}
-                                    onValueChange={(value) => {
-                                        const selected = categories.find(c => c.id.toString() === value);
-                                        if (selected) {
-                                            setData('category', selected.name);
-                                        }
-                                    }}
-                                    placeholder="Selecione a categoria"
-                                    error={errors.category}
-                                    disabled={!isEditMode || processing}
+                                    items={itemCategories}
+                                    value={data.item_category_id}
+                                    onValueChange={(value) => setData('item_category_id', value)}
+                                    onCreateClick={() => setCategorySheetOpen(true)}
+                                    placeholder={loadingCategories ? "Carregando..." : "Selecione a categoria"}
+                                    error={errors.item_category_id}
+                                    disabled={!isEditMode || processing || loadingCategories}
                                     view={!isEditMode}
-                                />
-                                <ItemSelect
-                                    label="Tipo de Item"
-                                    items={itemTypes}
-                                    value={itemTypes.find(t => t.value === data.item_type)?.id.toString() || ''}
-                                    onValueChange={(value) => {
-                                        const selected = itemTypes.find(t => t.id.toString() === value);
-                                        if (selected) {
-                                            setData('item_type', selected.value as any);
-                                        }
-                                    }}
-                                    error={errors.item_type}
-                                    required
-                                    disabled={!isEditMode || processing}
-                                    view={!isEditMode}
+                                    canCreate={isEditMode}
                                 />
                                 <ItemSelect
                                     label="Status"
@@ -258,79 +292,9 @@ export default function ItemShow({
                             </div>
                         </div>
 
-                        {/* Capabilities */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-medium">Capacidades</h3>
-                            {isEditMode ? (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <label className="flex items-center space-x-2">
-                                        <Checkbox
-                                            checked={data.can_be_sold}
-                                            onCheckedChange={(checked) => setData('can_be_sold', !!checked)}
-                                            disabled={processing}
-                                        />
-                                        <span className="text-sm font-medium">Pode ser vendido</span>
-                                    </label>
-                                    <label className="flex items-center space-x-2">
-                                        <Checkbox
-                                            checked={data.can_be_purchased}
-                                            onCheckedChange={(checked) => setData('can_be_purchased', !!checked)}
-                                            disabled={processing}
-                                        />
-                                        <span className="text-sm font-medium">Pode ser comprado</span>
-                                    </label>
-                                    <label className="flex items-center space-x-2">
-                                        <Checkbox
-                                            checked={data.can_be_manufactured}
-                                            onCheckedChange={(checked) => setData('can_be_manufactured', !!checked)}
-                                            disabled={processing}
-                                        />
-                                        <span className="text-sm font-medium">Pode ser manufaturado</span>
-                                    </label>
-                                </div>
-                            ) : (
-                                <div className="flex flex-wrap gap-4">
-                                    {data.can_be_sold && (
-                                        <div className="flex items-center gap-2 p-3 border rounded-lg">
-                                            <ShoppingCart className="h-5 w-5 text-green-600" />
-                                            <div>
-                                                <p className="font-medium">Vendável</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Preço: {data.list_price ? formatCurrency(parseFloat(data.list_price)) : 'Não definido'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {data.can_be_manufactured && (
-                                        <div className="flex items-center gap-2 p-3 border rounded-lg">
-                                            <Factory className="h-5 w-5 text-blue-600" />
-                                            <div>
-                                                <p className="font-medium">Manufaturável</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {item?.current_bom ? 'BOM definida' : 'Sem BOM'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {data.can_be_purchased && (
-                                        <div className="flex items-center gap-2 p-3 border rounded-lg">
-                                            <Package className="h-5 w-5 text-orange-600" />
-                                            <div>
-                                                <p className="font-medium">Comprável</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Fornecedor: {data.preferred_vendor || 'Não definido'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
                         {/* Physical & Operational Attributes */}
                         <div className="space-y-4">
-                            <h3 className="text-sm font-medium">Atributos Físicos e Operacionais</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <TextInput
                                     form={{ data, setData, errors, clearErrors: clearErrors as any }}
                                     name="unit_of_measure"
@@ -347,64 +311,236 @@ export default function ItemShow({
                                     disabled={!isEditMode || processing}
                                     view={!isEditMode}
                                 />
-                                <TextInput
-                                    form={{ data, setData, errors, clearErrors: clearErrors as any }}
-                                    name="lead_time_days"
-                                    label="Lead Time (dias)"
-                                    placeholder="0"
-                                    disabled={!isEditMode || processing}
-                                    view={!isEditMode}
-                                />
                             </div>
                         </div>
 
-                        {/* Financial Information */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-medium">Informações Financeiras</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <TextInput
-                                    form={{ data, setData, errors, clearErrors: clearErrors as any }}
-                                    name="list_price"
-                                    label="Preço de Lista"
-                                    placeholder="0.00"
-                                    disabled={!isEditMode || processing || !data.can_be_sold}
-                                    view={!isEditMode}
-                                />
-                                <TextInput
-                                    form={{ data, setData, errors, clearErrors: clearErrors as any }}
-                                    name="cost"
-                                    label="Custo"
-                                    placeholder="0.00"
-                                    disabled={!isEditMode || processing}
-                                    view={!isEditMode}
-                                />
+                        {/* Capabilities and Associated Fields */}
+                        <div className="grid grid-cols-1 lg:grid-cols-4">
+                            {/* Manufacturing Capability */}
+                            <div className={cn(
+                                "space-y-4 lg:pr-4",
+                                (data.can_be_manufactured || data.can_be_purchased) && "lg:border-r lg:border-border"
+                            )}>
+                                {isEditMode ? (
+                                    <StateButton
+                                        icon={Factory}
+                                        title="Pode ser manufaturado"
+                                        description="Produzido internamente"
+                                        selected={data.can_be_manufactured}
+                                        onClick={() => {
+                                            if (data.is_phantom) {
+                                                setData('is_phantom', false);
+                                            }
+                                            setData('can_be_manufactured', !data.can_be_manufactured);
+                                        }}
+                                        disabled={processing || data.is_phantom}
+                                        variant="default"
+                                    />
+                                ) : (
+                                    <StateButton
+                                        icon={Factory}
+                                        title="Pode ser manufaturado"
+                                        description={data.can_be_manufactured ?
+                                            (item?.current_bom ? 'BOM definida' : 'Sem BOM') :
+                                            'Não pode ser manufaturado'
+                                        }
+                                        selected={data.can_be_manufactured}
+                                        onClick={() => { }}
+                                        variant="default"
+                                    />
+                                )}
+
+                                {data.can_be_manufactured && (
+                                    <div className="space-y-3">
+                                        <TextInput
+                                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                                            name="manufacturing_cost"
+                                            label="Custo de Manufatura"
+                                            placeholder="0.00"
+                                            disabled={!isEditMode || processing}
+                                            view={!isEditMode}
+                                        />
+                                        <TextInput
+                                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                                            name="manufacturing_lead_time_days"
+                                            label="Lead Time de Manufatura (dias)"
+                                            placeholder="0"
+                                            disabled={!isEditMode || processing}
+                                            view={!isEditMode}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Purchasing Capability */}
+                            <div className={cn(
+                                "space-y-4 lg:px-4",
+                                (data.can_be_purchased || data.can_be_sold) && "lg:border-r lg:border-border"
+                            )}>
+                                {isEditMode ? (
+                                    <StateButton
+                                        icon={Package}
+                                        title="Pode ser comprado"
+                                        description="Fornecido por terceiros"
+                                        selected={data.can_be_purchased}
+                                        onClick={() => {
+                                            if (data.is_phantom) {
+                                                setData('is_phantom', false);
+                                            }
+                                            setData('can_be_purchased', !data.can_be_purchased);
+                                        }}
+                                        disabled={processing || data.is_phantom}
+                                        variant="default"
+                                    />
+                                ) : (
+                                    <StateButton
+                                        icon={Package}
+                                        title="Pode ser comprado"
+                                        description={data.can_be_purchased ?
+                                            `Fornecedores: ${data.preferred_vendor || 'Não definido'}` :
+                                            'Não pode ser comprado'
+                                        }
+                                        selected={data.can_be_purchased}
+                                        onClick={() => { }}
+                                        variant="default"
+                                    />
+                                )}
+
+                                {data.can_be_purchased && (
+                                    <div className="space-y-3">
+                                        <TextInput
+                                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                                            name="preferred_vendor"
+                                            label="Fornecedores Preferenciais"
+                                            placeholder="Nome dos fornecedores"
+                                            disabled={!isEditMode || processing}
+                                            view={!isEditMode}
+                                        />
+                                        <TextInput
+                                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                                            name="vendor_item_number"
+                                            label="Código do Fornecedor"
+                                            placeholder="Código do item no fornecedor"
+                                            disabled={!isEditMode || processing}
+                                            view={!isEditMode}
+                                        />
+                                        <TextInput
+                                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                                            name="purchase_price"
+                                            label="Preço de Compra"
+                                            placeholder="0.00"
+                                            disabled={!isEditMode || processing}
+                                            view={!isEditMode}
+                                        />
+                                        <TextInput
+                                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                                            name="purchase_lead_time_days"
+                                            label="Lead Time de Compra (dias)"
+                                            placeholder="0"
+                                            disabled={!isEditMode || processing}
+                                            view={!isEditMode}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Sales Capability */}
+                            <div className={cn(
+                                "space-y-4 lg:px-4",
+                                (data.can_be_sold || data.is_phantom) && "lg:border-r lg:border-border"
+                            )}>
+                                {isEditMode ? (
+                                    <StateButton
+                                        icon={ShoppingCart}
+                                        title="Pode ser vendido"
+                                        description="Produto final para clientes"
+                                        selected={data.can_be_sold}
+                                        onClick={() => {
+                                            if (data.is_phantom) {
+                                                setData('is_phantom', false);
+                                            }
+                                            setData('can_be_sold', !data.can_be_sold);
+                                        }}
+                                        disabled={processing || data.is_phantom}
+                                        variant="default"
+                                    />
+                                ) : (
+                                    <StateButton
+                                        icon={ShoppingCart}
+                                        title="Pode ser vendido"
+                                        description={data.can_be_sold ?
+                                            `Preço: ${data.list_price ? formatCurrency(parseFloat(data.list_price)) : 'Não definido'}` :
+                                            'Não pode ser vendido'
+                                        }
+                                        selected={data.can_be_sold}
+                                        onClick={() => { }}
+                                        variant="default"
+                                    />
+                                )}
+
+                                {data.can_be_sold && (
+                                    <div className="space-y-3">
+                                        <TextInput
+                                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                                            name="list_price"
+                                            label="Preço de Lista"
+                                            placeholder="0.00"
+                                            disabled={!isEditMode || processing}
+                                            view={!isEditMode}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Phantom Item Capability */}
+                            <div className="space-y-4 lg:pl-4">
+                                {isEditMode ? (
+                                    <StateButton
+                                        icon={Ghost}
+                                        title="Item Fantasma"
+                                        description="Apenas para estruturação de BOM"
+                                        selected={data.is_phantom}
+                                        onClick={() => {
+                                            if (!data.is_phantom) {
+                                                // When selecting phantom, deselect all other capabilities
+                                                setData({
+                                                    ...data,
+                                                    is_phantom: true,
+                                                    can_be_manufactured: false,
+                                                    can_be_purchased: false,
+                                                    can_be_sold: false
+                                                });
+                                            } else {
+                                                // When deselecting phantom, just toggle it off
+                                                setData('is_phantom', false);
+                                            }
+                                        }}
+                                        disabled={processing}
+                                        variant="default"
+                                    />
+                                ) : (
+                                    <StateButton
+                                        icon={Ghost}
+                                        title="Item Fantasma"
+                                        description={data.is_phantom ?
+                                            'Item de estruturação apenas' :
+                                            'Item não é fantasma'
+                                        }
+                                        selected={data.is_phantom}
+                                        onClick={() => { }}
+                                        variant="default"
+                                    />
+                                )}
+
+                                {data.is_phantom && (
+                                    <div className="p-3 bg-muted/50 rounded-md">
+                                        <p className="text-sm text-muted-foreground">
+                                            Itens fantasma são usados apenas para organização em listas de materiais e não podem ser vendidos, comprados ou manufaturados.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
-
-                        {/* Purchasing Information - Only show if can be purchased */}
-                        {data.can_be_purchased && (
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-medium">Informações de Compra</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <TextInput
-                                        form={{ data, setData, errors, clearErrors: clearErrors as any }}
-                                        name="preferred_vendor"
-                                        label="Fornecedor Preferencial"
-                                        placeholder="Nome do fornecedor"
-                                        disabled={!isEditMode || processing}
-                                        view={!isEditMode}
-                                    />
-                                    <TextInput
-                                        form={{ data, setData, errors, clearErrors: clearErrors as any }}
-                                        name="vendor_item_number"
-                                        label="Código do Fornecedor"
-                                        placeholder="Código do item no fornecedor"
-                                        disabled={!isEditMode || processing}
-                                        view={!isEditMode}
-                                    />
-                                </div>
-                            </div>
-                        )}
 
                         {isEditMode && (
                             <div className="flex justify-end gap-4 pt-4">
@@ -535,14 +671,15 @@ export default function ItemShow({
             ]),
     ];
 
+    // DEPRECATED: item_type is no longer used
     // Item type labels
-    const itemTypeLabels: Record<string, string> = {
-        manufactured: 'Manufaturado',
-        purchased: 'Comprado',
-        'manufactured-purchased': 'Manufaturado/Comprado',
-        phantom: 'Fantasma',
-        service: 'Serviço'
-    };
+    // const itemTypeLabels: Record<string, string> = {
+    //     manufactured: 'Manufaturado',
+    //     purchased: 'Comprado',
+    //     'manufactured-purchased': 'Manufaturado/Comprado',
+    //     phantom: 'Fantasma',
+    //     service: 'Serviço'
+    // };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -554,13 +691,21 @@ export default function ItemShow({
                     isCreating ? (
                         'Criação de novo item'
                     ) : (
-                        `${item?.item_number}${item?.category ? ` • ${item.category}` : ''} • ${itemTypeLabels[item?.item_type || ''] || item?.item_type} • ${item?.status === 'active' ? 'Ativo' : item?.status === 'inactive' ? 'Inativo' : item?.status === 'prototype' ? 'Protótipo' : item?.status === 'discontinued' ? 'Descontinuado' : item?.status || 'Ativo'}`
+                        `${item?.item_number}${item?.category?.name ? ` • ${item.category.name}` : ''} • ${item?.status === 'active' ? 'Ativo' : item?.status === 'inactive' ? 'Inativo' : item?.status === 'prototype' ? 'Protótipo' : item?.status === 'discontinued' ? 'Descontinuado' : item?.status || 'Ativo'}`
                     )
                 }
                 editRoute=""
                 tabs={tabs}
                 defaultCompressed={isCompressed}
                 onCompressedChange={setIsCompressed}
+            />
+
+            {/* Category Creation Sheet */}
+            <CreateItemCategorySheet
+                open={categorySheetOpen}
+                onOpenChange={setCategorySheetOpen}
+                onSuccess={handleCategorySheetSuccess}
+                mode="create"
             />
         </AppLayout>
     );

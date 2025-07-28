@@ -14,10 +14,14 @@ class DatabaseSeeder extends Seeder
         $this->call([
             // Core System
             PermissionSeeder::class,
+            
+            // Production Module Permissions (must run before RoleSeeder)
+            ProductionPermissionSeeder::class,
+            
+            // Core System Roles (after all permissions are created)
             RoleSeeder::class,
             
             // Production Module
-            ProductionPermissionSeeder::class,
             ProductionRoleSeeder::class,
             
             // Asset Hierarchy
@@ -39,7 +43,7 @@ class DatabaseSeeder extends Seeder
             // UserSeeder::class, // TODO: Create this seeder
             
             // Test Data (only for development)
-            ProductionTestDataSeeder::class,
+            // ProductionTestDataSeeder::class, // COMMENTED: Creates users which steals admin privileges from first interface user
         ]);
     }
 }

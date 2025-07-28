@@ -19,8 +19,9 @@ import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
+import CreateManufacturingOrderDialog from '@/components/production/CreateManufacturingOrderDialog';
 import { ColumnConfig } from '@/types/shared';
-import { ManufacturingOrder } from '@/types/production';
+import { ManufacturingOrder, Item, BillOfMaterial, RouteTemplate } from '@/types/production';
 
 interface Props {
     orders: {
@@ -38,14 +39,27 @@ interface Props {
         search?: string;
         parent_id?: string;
     };
+    items?: Item[];
+    billsOfMaterial?: BillOfMaterial[];
+    routeTemplates?: RouteTemplate[];
+    sourceTypes?: Record<string, string>;
 }
 
-export default function ManufacturingOrders({ orders, statuses, filters }: Props) {
+export default function ManufacturingOrders({
+    orders,
+    statuses,
+    filters,
+    items = [],
+    billsOfMaterial = [],
+    routeTemplates = [],
+    sourceTypes = {}
+}: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
     const [parentFilter, setParentFilter] = useState(filters.parent_id || '');
     const [loading, setLoading] = useState(false);
     const [deleteOrder, setDeleteOrder] = useState<ManufacturingOrder | null>(null);
+    const [showCreateDialog, setShowCreateDialog] = useState(false);
 
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
@@ -281,7 +295,7 @@ export default function ManufacturingOrders({ orders, statuses, filters }: Props
                 searchPlaceholder="Search by order number or item..."
                 searchValue={searchValue}
                 onSearchChange={handleSearchChange}
-                createRoute={route('production.orders.create')}
+                onCreateClick={() => setShowCreateDialog(true)}
                 createButtonText="Create Order"
                 actions={
                     <div className="flex gap-2">
@@ -385,6 +399,16 @@ export default function ManufacturingOrders({ orders, statuses, filters }: Props
                     />
                 </div>
             </ListLayout>
+
+            {/* Create Order Dialog */}
+            <CreateManufacturingOrderDialog
+                open={showCreateDialog}
+                onOpenChange={setShowCreateDialog}
+                items={items}
+                billsOfMaterial={billsOfMaterial}
+                routeTemplates={routeTemplates}
+                sourceTypes={sourceTypes}
+            />
 
             {/* Delete Dialog */}
             <EntityDeleteDialog

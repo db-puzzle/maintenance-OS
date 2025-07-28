@@ -79,6 +79,11 @@ class RoleSeeder extends Seeder
                 'certifications.create',
                 'certifications.update',
                 'certifications.delete',
+                // Production category permissions
+                'production.categories.view',
+                'production.categories.create',
+                'production.categories.update',
+                'production.categories.delete',
             ];
             $plantManager->syncPermissions($plantManagerPermissions);
 
@@ -164,6 +169,11 @@ class RoleSeeder extends Seeder
                 'certifications.create',
                 'certifications.update',
                 'certifications.delete',
+                // Production category permissions
+                'production.categories.view',
+                'production.categories.create',
+                'production.categories.update',
+                'production.categories.delete',
             ];
             $maintenanceSupervisor->syncPermissions($maintenanceSupervisorPermissions);
 
@@ -193,6 +203,8 @@ class RoleSeeder extends Seeder
                 'parts.delete',
                 'parts.manage-stock',
                 'parts.export',
+                // Production category permissions
+                'production.categories.view',
             ];
             $planner->syncPermissions($plannerPermissions);
 
@@ -221,6 +233,8 @@ class RoleSeeder extends Seeder
                 // Certifications permissions (view only)
                 'certifications.viewAny',
                 'certifications.view',
+                // Production category permissions (view only)
+                'production.categories.view',
             ];
             $technician->syncPermissions($technicianPermissions);
 
@@ -266,6 +280,8 @@ class RoleSeeder extends Seeder
                 // Certifications permissions (view only)
                 'certifications.viewAny',
                 'certifications.view',
+                // Production category permissions (view only)
+                'production.categories.view',
             ];
             $viewer->syncPermissions($viewerPermissions);
 

@@ -62,6 +62,11 @@ class ProductionPermissionSeeder extends Seeder
             'production.items.delete' => 'Delete items',
             'production.bom.import' => 'Import BOMs from CAD',
             'production.bom.manage' => 'Manage BOM structures',
+            // Item Categories
+            'production.categories.view' => 'View item categories',
+            'production.categories.create' => 'Create item categories',
+            'production.categories.update' => 'Update item categories',
+            'production.categories.delete' => 'Delete item categories',
         ];
 
         // Quality Control

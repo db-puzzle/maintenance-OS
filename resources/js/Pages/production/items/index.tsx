@@ -25,15 +25,16 @@ interface Props {
     filters: {
         search?: string;
         status?: string;
-        type?: string;
+        type?: string; // Keep for backward compatibility, but won't be used
     };
 }
 
-const itemTypeLabels: Record<string, string> = {
-    manufactured: 'Manufaturado',
-    purchased: 'Comprado',
-    'manufactured-purchased': 'Manufaturado/Comprado'
-};
+// DEPRECATED: item_type is no longer used
+// const itemTypeLabels: Record<string, string> = {
+//     manufactured: 'Manufaturado',
+//     purchased: 'Comprado',
+//     'manufactured-purchased': 'Manufaturado/Comprado'
+// };
 
 export default function ItemsIndex({ items, filters }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
@@ -116,19 +117,22 @@ export default function ItemsIndex({ items, filters }: Props) {
                     <div className="font-medium">{value}</div>
                     {item.category && (
                         <div className="text-muted-foreground text-sm">
-                            {item.category.length > 40 ? `${item.category.substring(0, 40)}...` : item.category}
+                            {item.category.name && item.category.name.length > 40
+                                ? `${item.category.name.substring(0, 40)}...`
+                                : item.category.name || '-'}
                         </div>
                     )}
                 </div>
             )
         },
-        {
-            key: 'item_type',
-            label: 'Tipo',
-            sortable: true,
-            width: 'w-[150px]',
-            render: (value: any) => itemTypeLabels[value as string] || value || '-'
-        },
+        // DEPRECATED: item_type column removed
+        // {
+        //     key: 'item_type',
+        //     label: 'Tipo',
+        //     sortable: true,
+        //     width: 'w-[150px]',
+        //     render: (value: any) => itemTypeLabels[value as string] || value || '-'
+        // },
         {
             key: 'capabilities',
             label: 'Capacidades',
@@ -246,6 +250,8 @@ export default function ItemsIndex({ items, filters }: Props) {
                 onOpenChange={(open) => !open && setDeleteItem(null)}
                 entityLabel={deleteItem ? `o item ${deleteItem.name}` : ''}
                 onConfirm={handleDelete}
+                confirmationValue={deleteItem?.item_number || ''}
+                confirmationLabel={deleteItem ? `Digite o número do item (${deleteItem.item_number}) para confirmar` : ''}
             />
         </AppLayout>
     );

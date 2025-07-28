@@ -42,14 +42,24 @@ class ManufacturingOrderService
      */
     public function generateOrderNumber(): string
     {
-        $year = now()->format('Y');
-        $lastOrder = ManufacturingOrder::whereYear('created_at', $year)
+        $year = now()->format('y'); // 2-digit year
+        $month = now()->format('m'); // 2-digit month
+        
+        // Find the last order created in the current year and month
+        $lastOrder = ManufacturingOrder::whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
             ->orderBy('id', 'desc')
             ->first();
 
-        $sequence = $lastOrder ? intval(substr($lastOrder->order_number, -5)) + 1 : 1;
+        if ($lastOrder) {
+            // Extract the sequence number (5 digits after 'MO-')
+            $sequence = intval(substr($lastOrder->order_number, 3, 5)) + 1;
+        } else {
+            // No orders for current year and month, start at 1
+            $sequence = 1;
+        }
         
-        return sprintf('MO-%s-%05d', $year, $sequence);
+        return sprintf('MO-%05d-%s%s', $sequence, $year, $month);
     }
 
     /**

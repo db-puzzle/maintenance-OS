@@ -11,6 +11,7 @@ use App\Models\Certification;
 use App\Models\Part;
 use App\Models\Production\BillOfMaterial;
 use App\Models\Production\Item;
+use App\Models\Production\ItemCategory;
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingRoute;
@@ -26,6 +27,7 @@ use App\Policies\PartPolicy;
 use App\Policies\PlantPolicy;
 use App\Policies\Production\BillOfMaterialPolicy;
 use App\Policies\Production\ItemPolicy;
+use App\Policies\Production\ItemCategoryPolicy;
 use App\Policies\Production\ManufacturingRoutePolicy;
 use App\Policies\Production\ManufacturingStepPolicy;
 use App\Policies\Production\ProductionOrderPolicy;
@@ -68,6 +70,7 @@ class AuthServiceProvider extends ServiceProvider
         ManufacturingRoute::class => ManufacturingRoutePolicy::class,
         ManufacturingStep::class => ManufacturingStepPolicy::class,
         Item::class => ItemPolicy::class,
+        ItemCategory::class => ItemCategoryPolicy::class,
         BillOfMaterial::class => BillOfMaterialPolicy::class,
         WorkCell::class => WorkCellPolicy::class,
         QrTracking::class => QrTrackingPolicy::class,

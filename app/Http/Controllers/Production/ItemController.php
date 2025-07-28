@@ -34,7 +34,7 @@ class ItemController extends Controller
                         break;
                 }
             })
-            ->with(['currentBom', 'createdBy'])
+            ->with(['currentBom', 'createdBy', 'category'])
             ->paginate($request->input('per_page', 10));
 
         return Inertia::render('production/items/index', [
@@ -67,17 +67,20 @@ class ItemController extends Controller
             'item_number' => 'required|string|max:100|unique:items',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'category' => 'nullable|string|max:100',
-            'item_type' => 'required|in:manufactured,purchased,phantom,service',
+            'item_category_id' => 'nullable|exists:item_categories,id',
+            // 'item_type' => 'required|in:manufactured,purchased,phantom,service', // DEPRECATED
             'can_be_sold' => 'boolean',
             'can_be_purchased' => 'boolean',
             'can_be_manufactured' => 'boolean',
+            'is_phantom' => 'boolean',
             'status' => 'required|in:active,inactive,prototype,discontinued',
             'unit_of_measure' => 'required|string|max:20',
             'weight' => 'nullable|numeric|min:0',
             'list_price' => 'nullable|numeric|min:0',
-            'cost' => 'nullable|numeric|min:0',
-            'lead_time_days' => 'nullable|integer|min:0',
+            'manufacturing_cost' => 'nullable|numeric|min:0',
+            'manufacturing_lead_time_days' => 'nullable|integer|min:0',
+            'purchase_price' => 'nullable|numeric|min:0',
+            'purchase_lead_time_days' => 'nullable|integer|min:0',
             'preferred_vendor' => 'nullable|string|max:255',
             'vendor_item_number' => 'nullable|string|max:100',
         ]);
@@ -85,14 +88,15 @@ class ItemController extends Controller
         $validated['created_by'] = auth()->id();
         $item = Item::create($validated);
 
-        // Check if we should stay on current page (e.g., when creating from BOM)
-        // Check for 'stay' parameter or AJAX request (from Sheet/Modal)
-        if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+        // Check if we should stay on current page (when creating from CreateItemSheet)
+        // BaseEntitySheet adds 'stay' => true to the request
+        if ($request->boolean('stay')) {
             return back()->with('success', 'Item criado com sucesso.');
         }
 
+        // Otherwise redirect to the item show page (when creating from show.tsx)
         return redirect()->route('production.items.show', $item)
-            ->with('success', 'Item created successfully.');
+            ->with('success', 'Item criado com sucesso.');
     }
 
     public function show(Item $item): Response
@@ -103,6 +107,7 @@ class ItemController extends Controller
             'currentBom.currentVersion',
             'bomHistory.billOfMaterial',
             'createdBy',
+            'category',
         ]);
 
         // Get where this item is used
@@ -132,25 +137,35 @@ class ItemController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'category' => 'nullable|string|max:100',
-            'item_type' => 'required|in:manufactured,purchased,phantom,service',
+            'item_category_id' => 'nullable|exists:item_categories,id',
+            // 'item_type' => 'required|in:manufactured,purchased,phantom,service', // DEPRECATED
             'can_be_sold' => 'boolean',
             'can_be_purchased' => 'boolean',
             'can_be_manufactured' => 'boolean',
+            'is_phantom' => 'boolean',
             'status' => 'required|in:active,inactive,prototype,discontinued',
             'unit_of_measure' => 'required|string|max:20',
             'weight' => 'nullable|numeric|min:0',
             'list_price' => 'nullable|numeric|min:0',
-            'cost' => 'nullable|numeric|min:0',
-            'lead_time_days' => 'nullable|integer|min:0',
+            'manufacturing_cost' => 'nullable|numeric|min:0',
+            'manufacturing_lead_time_days' => 'nullable|integer|min:0',
+            'purchase_price' => 'nullable|numeric|min:0',
+            'purchase_lead_time_days' => 'nullable|integer|min:0',
             'preferred_vendor' => 'nullable|string|max:255',
             'vendor_item_number' => 'nullable|string|max:100',
         ]);
 
         $item->update($validated);
 
+        // Check if we should stay on current page (when updating from CreateItemSheet)
+        // BaseEntitySheet adds 'stay' => true to the request
+        if ($request->boolean('stay')) {
+            return back()->with('success', 'Item atualizado com sucesso.');
+        }
+
+        // Otherwise redirect to the item show page (when updating from show.tsx)
         return redirect()->route('production.items.show', $item)
-            ->with('success', 'Item updated successfully.');
+            ->with('success', 'Item atualizado com sucesso.');
     }
 
     public function destroy(Item $item)

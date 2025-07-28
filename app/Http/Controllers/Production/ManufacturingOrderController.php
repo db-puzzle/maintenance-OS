@@ -57,6 +57,23 @@ class ManufacturingOrderController extends Controller
         
         $ordersArray = $orders->toArray();
 
+        // Get data for create dialog
+        $routeTemplates = RouteTemplate::active()
+            ->with('steps')
+            ->get();
+            
+        $items = \App\Models\Production\Item::where('can_be_manufactured', true)
+            ->where('is_active', true)
+            ->orderBy('item_number')
+            ->get();
+            
+        $billsOfMaterial = \App\Models\Production\BillOfMaterial::with([
+            'currentVersion.items.item'
+        ])
+            ->where('is_active', true)
+            ->orderBy('bom_number')
+            ->get();
+
         return Inertia::render('production/manufacturing-orders/index', [
             'orders' => [
                 'data' => $ordersArray['data'],
@@ -69,6 +86,10 @@ class ManufacturingOrderController extends Controller
             ],
             'statuses' => ManufacturingOrder::STATUSES,
             'filters' => $request->only(['status', 'search', 'parent_id']),
+            'routeTemplates' => $routeTemplates,
+            'sourceTypes' => ManufacturingOrder::SOURCE_TYPES,
+            'items' => $items,
+            'billsOfMaterial' => $billsOfMaterial,
         ]);
     }
 

@@ -20,11 +20,12 @@ class BillOfMaterialFactory extends Factory
      */
     public function definition(): array
     {
-        $year = now()->format('Y');
-        $sequence = fake()->numberBetween(1, 9999);
+        $year = now()->format('y'); // 2-digit year
+        $month = now()->format('m'); // 2-digit month
+        $sequence = fake()->numberBetween(1, 99999);
         
         return [
-            'bom_number' => sprintf('BOM-%s-%04d', $year, $sequence),
+            'bom_number' => sprintf('BOM-%05d-%s%s', $sequence, $year, $month),
             'name' => fake()->words(fake()->numberBetween(2, 4), true),
             'description' => fake()->optional(0.7)->sentence(),
             'external_reference' => fake()->optional(0.3)->regexify('[A-Z]{3}-[0-9]{4}'),

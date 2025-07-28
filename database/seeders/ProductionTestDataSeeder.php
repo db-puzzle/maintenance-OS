@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\Production\Item;
+use App\Models\Production\ItemCategory;
 use App\Models\Production\BillOfMaterial;
 use App\Models\Production\BomVersion;
 use App\Models\Production\BomItem;
@@ -24,6 +25,7 @@ class ProductionTestDataSeeder extends Seeder
 {
     private $items = [];
     private $workCells = [];
+    private $categories = [];
     
     /**
      * Run the database seeds.
@@ -35,13 +37,16 @@ class ProductionTestDataSeeder extends Seeder
         // Clean up existing data in reverse dependency order
         $this->cleanDatabase();
         
-        // Get or create a user as creator
-        $creator = User::first() ?? User::create([
-            'name' => 'Administrator',
-            'email' => 'admin@admin.com',
-            'password' => bcrypt('adminadmin'),
-            'timezone' => 'UTC',
-        ]);
+        // Get existing user as creator - do not create users to preserve admin privileges
+        $creator = User::first();
+        if (!$creator) {
+            $this->command->error('No users found in database. Please create a user through the interface first to establish admin privileges.');
+            $this->command->info('After creating your first user, you can run this seeder with: php artisan db:seed --class=ProductionTestDataSeeder');
+            return;
+        }
+        
+        // Load categories
+        $this->loadCategories();
         
         // Create work cells
         $this->createWorkCells();
@@ -80,6 +85,30 @@ class ProductionTestDataSeeder extends Seeder
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
     
+    private function loadCategories(): void
+    {
+        $this->command->info('Carregando categorias...');
+        
+        // Map old category names to new category names
+        $categoryMap = [
+            'Produto Final' => 'Eletrônicos',
+            'Subconjunto' => 'Mecânica',
+            'Componente' => 'Mecânica',
+            'Matéria Prima' => 'Matéria Prima',
+        ];
+        
+        foreach ($categoryMap as $oldName => $newName) {
+            $category = ItemCategory::firstOrCreate(
+                ['name' => $newName],
+                [
+                    'description' => "Categoria: $newName",
+                    'is_active' => true,
+                ]
+            );
+            $this->categories[$oldName] = $category->id;
+        }
+    }
+    
     private function createWorkCells(): void
     {
         $this->command->info('Criando células de trabalho...');
@@ -93,7 +122,7 @@ class ProductionTestDataSeeder extends Seeder
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 85,
                 'is_active' => true,
-                'lead_time_days' => 0,
+                'manufacturing_lead_time_days' => 0,
             ]),
             'soldagem' => WorkCell::create([
                 'code' => 'SOL-01',
@@ -103,7 +132,7 @@ class ProductionTestDataSeeder extends Seeder
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 80,
                 'is_active' => true,
-                'lead_time_days' => 0,
+                'manufacturing_lead_time_days' => 0,
             ]),
             'pintura' => WorkCell::create([
                 'code' => 'PIN-01',
@@ -113,7 +142,7 @@ class ProductionTestDataSeeder extends Seeder
                 'available_hours_per_day' => 12,
                 'efficiency_percentage' => 75,
                 'is_active' => true,
-                'lead_time_days' => 0,
+                'manufacturing_lead_time_days' => 0,
             ]),
             'montagem_rodas' => WorkCell::create([
                 'code' => 'MTR-01',
@@ -123,7 +152,7 @@ class ProductionTestDataSeeder extends Seeder
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 90,
                 'is_active' => true,
-                'lead_time_days' => 0,
+                'manufacturing_lead_time_days' => 0,
             ]),
             'montagem_final' => WorkCell::create([
                 'code' => 'MTF-01',
@@ -133,7 +162,7 @@ class ProductionTestDataSeeder extends Seeder
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 85,
                 'is_active' => true,
-                'lead_time_days' => 0,
+                'manufacturing_lead_time_days' => 0,
             ]),
             'inspecao' => WorkCell::create([
                 'code' => 'INS-01',
@@ -143,7 +172,7 @@ class ProductionTestDataSeeder extends Seeder
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 95,
                 'is_active' => true,
-                'lead_time_days' => 0,
+                'manufacturing_lead_time_days' => 0,
             ]),
             'embalagem' => WorkCell::create([
                 'code' => 'EMB-01',
@@ -153,7 +182,7 @@ class ProductionTestDataSeeder extends Seeder
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 90,
                 'is_active' => true,
-                'lead_time_days' => 0,
+                'manufacturing_lead_time_days' => 0,
             ]),
         ];
     }
@@ -167,7 +196,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'BIKE-001',
             'name' => 'Bicicleta Urbana Completa',
             'description' => 'Bicicleta urbana de 21 marchas com acessórios completos',
-            'category' => 'Produto Final',
+            'item_category_id' => $this->categories['Produto Final'],
             'item_type' => 'manufactured',
             'can_be_sold' => true,
             'can_be_purchased' => false,
@@ -178,8 +207,8 @@ class ProductionTestDataSeeder extends Seeder
             'weight' => 15.5,
             'dimensions' => ['length' => 180, 'width' => 60, 'height' => 110, 'unit' => 'cm'],
             'list_price' => 1500.00,
-            'cost' => 750.00,
-            'lead_time_days' => 5,
+                            'manufacturing_cost' => 750.00,
+            'manufacturing_lead_time_days' => 5,
             'track_inventory' => true,
             'tags' => ['bicicleta', 'produto-final', 'urbana'],
             'created_by' => $creator->id,
@@ -190,7 +219,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'QDR-001',
             'name' => 'Quadro Completo',
             'description' => 'Quadro de alumínio com garfo e componentes',
-            'category' => 'Subconjunto',
+            'item_category_id' => $this->categories['Subconjunto'],
             'item_type' => 'manufactured',
             'can_be_sold' => false,
             'can_be_purchased' => false,
@@ -200,7 +229,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 3.5,
             'cost' => 250.00,
-            'lead_time_days' => 3,
+            'manufacturing_lead_time_days' => 3,
             'track_inventory' => true,
             'tags' => ['quadro', 'subconjunto'],
             'created_by' => $creator->id,
@@ -210,7 +239,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'CRD-001',
             'name' => 'Conjunto de Rodas',
             'description' => 'Par de rodas completas com pneus',
-            'category' => 'Subconjunto',
+            'item_category_id' => $this->categories['Subconjunto'],
             'item_type' => 'manufactured',
             'can_be_sold' => false,
             'can_be_purchased' => false,
@@ -220,7 +249,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'PAR',
             'weight' => 4.0,
             'cost' => 150.00,
-            'lead_time_days' => 2,
+            'manufacturing_lead_time_days' => 2,
             'track_inventory' => true,
             'tags' => ['rodas', 'subconjunto'],
             'created_by' => $creator->id,
@@ -230,7 +259,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'GTR-001',
             'name' => 'Grupo de Transmissão',
             'description' => 'Sistema completo de transmissão 21 marchas',
-            'category' => 'Subconjunto',
+            'item_category_id' => $this->categories['Subconjunto'],
             'item_type' => 'manufactured',
             'can_be_sold' => false,
             'can_be_purchased' => false,
@@ -240,7 +269,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 2.5,
             'cost' => 180.00,
-            'lead_time_days' => 2,
+            'manufacturing_lead_time_days' => 2,
             'track_inventory' => true,
             'tags' => ['transmissao', 'subconjunto'],
             'created_by' => $creator->id,
@@ -250,7 +279,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'FRE-001',
             'name' => 'Sistema de Freios',
             'description' => 'Sistema completo de freios V-brake',
-            'category' => 'Subconjunto',
+            'item_category_id' => $this->categories['Subconjunto'],
             'item_type' => 'manufactured',
             'can_be_sold' => false,
             'can_be_purchased' => false,
@@ -260,7 +289,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.8,
             'cost' => 60.00,
-            'lead_time_days' => 1,
+            'manufacturing_lead_time_days' => 1,
             'track_inventory' => true,
             'tags' => ['freios', 'subconjunto'],
             'created_by' => $creator->id,
@@ -271,7 +300,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'EST-001',
             'name' => 'Estrutura do Quadro',
             'description' => 'Estrutura principal do quadro em alumínio',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'manufactured',
             'can_be_sold' => false,
             'can_be_purchased' => false,
@@ -281,7 +310,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 2.0,
             'cost' => 120.00,
-            'lead_time_days' => 2,
+            'manufacturing_lead_time_days' => 2,
             'track_inventory' => true,
             'tags' => ['estrutura', 'componente'],
             'created_by' => $creator->id,
@@ -291,7 +320,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'GAR-001',
             'name' => 'Garfo Dianteiro',
             'description' => 'Garfo dianteiro em alumínio',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -301,7 +330,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.8,
             'cost' => 45.00,
-            'lead_time_days' => 7,
+            'manufacturing_lead_time_days' => 7,
             'track_inventory' => true,
             'preferred_vendor' => 'Fornecedor de Garfos Ltda',
             'vendor_item_number' => 'FOR-GAR-2024',
@@ -313,7 +342,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'MES-001',
             'name' => 'Mesa e Direção',
             'description' => 'Conjunto de mesa e direção',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'manufactured',
             'can_be_sold' => false,
             'can_be_purchased' => false,
@@ -323,7 +352,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.5,
             'cost' => 35.00,
-            'lead_time_days' => 1,
+            'manufacturing_lead_time_days' => 1,
             'track_inventory' => true,
             'tags' => ['mesa', 'direcao', 'componente'],
             'created_by' => $creator->id,
@@ -334,7 +363,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'RDA-001',
             'name' => 'Roda Montada',
             'description' => 'Roda individual montada sem pneu',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'manufactured',
             'can_be_sold' => false,
             'can_be_purchased' => false,
@@ -344,7 +373,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 1.5,
             'cost' => 50.00,
-            'lead_time_days' => 1,
+            'manufacturing_lead_time_days' => 1,
             'track_inventory' => true,
             'tags' => ['roda', 'componente'],
             'created_by' => $creator->id,
@@ -354,7 +383,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'PNE-001',
             'name' => 'Conjunto Pneu e Câmara',
             'description' => 'Pneu com câmara de ar instalada',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'manufactured',
             'can_be_sold' => false,
             'can_be_purchased' => false,
@@ -364,7 +393,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.5,
             'cost' => 25.00,
-            'lead_time_days' => 1,
+            'manufacturing_lead_time_days' => 1,
             'track_inventory' => true,
             'tags' => ['pneu', 'componente'],
             'created_by' => $creator->id,
@@ -375,7 +404,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'TUB-001',
             'name' => 'Tubo Superior',
             'description' => 'Tubo superior do quadro',
-            'category' => 'Matéria Prima',
+            'item_category_id' => $this->categories['Matéria Prima'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -385,7 +414,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.5,
             'cost' => 20.00,
-            'lead_time_days' => 10,
+            'manufacturing_lead_time_days' => 10,
             'track_inventory' => true,
             'preferred_vendor' => 'Tubos de Alumínio SA',
             'vendor_item_number' => 'AL-TUB-50',
@@ -397,7 +426,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'TUB-002',
             'name' => 'Tubo Inferior',
             'description' => 'Tubo inferior do quadro',
-            'category' => 'Matéria Prima',
+            'item_category_id' => $this->categories['Matéria Prima'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -407,7 +436,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.6,
             'cost' => 22.00,
-            'lead_time_days' => 10,
+            'manufacturing_lead_time_days' => 10,
             'track_inventory' => true,
             'preferred_vendor' => 'Tubos de Alumínio SA',
             'vendor_item_number' => 'AL-TUB-60',
@@ -419,7 +448,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'TUB-003',
             'name' => 'Tubo do Selim',
             'description' => 'Tubo vertical para o selim',
-            'category' => 'Matéria Prima',
+            'item_category_id' => $this->categories['Matéria Prima'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -429,7 +458,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.4,
             'cost' => 18.00,
-            'lead_time_days' => 10,
+            'manufacturing_lead_time_days' => 10,
             'track_inventory' => true,
             'preferred_vendor' => 'Tubos de Alumínio SA',
             'vendor_item_number' => 'AL-TUB-40',
@@ -441,7 +470,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'SUP-001',
             'name' => 'Suporte Traseiro',
             'description' => 'Suporte traseiro do quadro',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'manufactured',
             'can_be_sold' => false,
             'can_be_purchased' => false,
@@ -451,7 +480,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.3,
             'cost' => 15.00,
-            'lead_time_days' => 1,
+            'manufacturing_lead_time_days' => 1,
             'track_inventory' => true,
             'tags' => ['suporte', 'componente'],
             'created_by' => $creator->id,
@@ -462,7 +491,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'ARO-001',
             'name' => 'Aro 26"',
             'description' => 'Aro de alumínio 26 polegadas',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -472,7 +501,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.6,
             'cost' => 25.00,
-            'lead_time_days' => 14,
+            'manufacturing_lead_time_days' => 14,
             'track_inventory' => true,
             'preferred_vendor' => 'Aros e Componentes Ltda',
             'vendor_item_number' => 'ARO-26-AL',
@@ -484,7 +513,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'CUB-001',
             'name' => 'Cubo de Roda',
             'description' => 'Cubo com rolamentos',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -494,7 +523,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.3,
             'cost' => 15.00,
-            'lead_time_days' => 14,
+            'manufacturing_lead_time_days' => 14,
             'track_inventory' => true,
             'preferred_vendor' => 'Cubos Industriais SA',
             'vendor_item_number' => 'CUB-STD',
@@ -506,7 +535,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'RAI-001',
             'name' => 'Conjunto de Raios',
             'description' => 'Kit com 36 raios e niples',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -516,7 +545,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'KIT',
             'weight' => 0.2,
             'cost' => 8.00,
-            'lead_time_days' => 7,
+            'manufacturing_lead_time_days' => 7,
             'track_inventory' => true,
             'preferred_vendor' => 'Raios e Acessórios Ltda',
             'vendor_item_number' => 'RAI-36',
@@ -529,7 +558,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'PNE-002',
             'name' => 'Pneu 26x1.95',
             'description' => 'Pneu urbano 26 polegadas',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -539,7 +568,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.7,
             'cost' => 20.00,
-            'lead_time_days' => 14,
+            'manufacturing_lead_time_days' => 14,
             'track_inventory' => true,
             'preferred_vendor' => 'Pneus Nacionais SA',
             'vendor_item_number' => 'PNE-26195',
@@ -551,7 +580,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'CAM-001',
             'name' => 'Câmara de Ar 26"',
             'description' => 'Câmara de ar para pneu 26 polegadas',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -561,7 +590,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.1,
             'cost' => 5.00,
-            'lead_time_days' => 7,
+            'manufacturing_lead_time_days' => 7,
             'track_inventory' => true,
             'preferred_vendor' => 'Borrachas Industriais Ltda',
             'vendor_item_number' => 'CAM-26',
@@ -574,7 +603,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'CHP-001',
             'name' => 'Chapa de Suporte',
             'description' => 'Chapa de alumínio cortada',
-            'category' => 'Matéria Prima',
+            'item_category_id' => $this->categories['Matéria Prima'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -584,7 +613,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.2,
             'cost' => 8.00,
-            'lead_time_days' => 7,
+            'manufacturing_lead_time_days' => 7,
             'track_inventory' => true,
             'preferred_vendor' => 'Metais e Ligas SA',
             'vendor_item_number' => 'AL-CHP-2MM',
@@ -596,7 +625,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'PAR-001',
             'name' => 'Kit Parafusos M8',
             'description' => 'Kit com 4 parafusos M8x20mm',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -606,7 +635,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'KIT',
             'weight' => 0.05,
             'cost' => 2.00,
-            'lead_time_days' => 3,
+            'manufacturing_lead_time_days' => 3,
             'track_inventory' => true,
             'preferred_vendor' => 'Parafusos e Fixadores Ltda',
             'vendor_item_number' => 'KIT-M8-20',
@@ -619,7 +648,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'CMB-001',
             'name' => 'Câmbio Traseiro',
             'description' => 'Câmbio traseiro 7 velocidades',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -629,7 +658,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.3,
             'cost' => 45.00,
-            'lead_time_days' => 21,
+            'manufacturing_lead_time_days' => 21,
             'track_inventory' => true,
             'preferred_vendor' => 'Componentes de Transmissão SA',
             'vendor_item_number' => 'CMB-7V',
@@ -641,7 +670,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'COR-001',
             'name' => 'Corrente',
             'description' => 'Corrente de transmissão 116 elos',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -651,7 +680,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.3,
             'cost' => 15.00,
-            'lead_time_days' => 14,
+            'manufacturing_lead_time_days' => 14,
             'track_inventory' => true,
             'preferred_vendor' => 'Correntes Industriais Ltda',
             'vendor_item_number' => 'COR-116',
@@ -664,7 +693,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'SEL-001',
             'name' => 'Selim Confort',
             'description' => 'Selim ergonômico com molas',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -674,7 +703,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.4,
             'cost' => 25.00,
-            'lead_time_days' => 14,
+            'manufacturing_lead_time_days' => 14,
             'track_inventory' => true,
             'preferred_vendor' => 'Selins e Acessórios Ltda',
             'vendor_item_number' => 'SEL-CONF',
@@ -686,7 +715,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'GUI-001',
             'name' => 'Guidão Urbano',
             'description' => 'Guidão tipo urbano em alumínio',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -696,7 +725,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'UN',
             'weight' => 0.3,
             'cost' => 20.00,
-            'lead_time_days' => 14,
+            'manufacturing_lead_time_days' => 14,
             'track_inventory' => true,
             'preferred_vendor' => 'Componentes de Direção SA',
             'vendor_item_number' => 'GUI-URB',
@@ -708,7 +737,7 @@ class ProductionTestDataSeeder extends Seeder
             'item_number' => 'PED-001',
             'name' => 'Par de Pedais',
             'description' => 'Pedais com refletores',
-            'category' => 'Componente',
+            'item_category_id' => $this->categories['Componente'],
             'item_type' => 'purchased',
             'can_be_sold' => false,
             'can_be_purchased' => true,
@@ -718,7 +747,7 @@ class ProductionTestDataSeeder extends Seeder
             'unit_of_measure' => 'PAR',
             'weight' => 0.4,
             'cost' => 15.00,
-            'lead_time_days' => 14,
+            'manufacturing_lead_time_days' => 14,
             'track_inventory' => true,
             'preferred_vendor' => 'Pedais e Acessórios Ltda',
             'vendor_item_number' => 'PED-REF',

@@ -86,9 +86,10 @@ export default function ManufacturingOrderTreeView({
         <div className="bg-muted/50 p-3 rounded-lg grid grid-cols-12 gap-2 font-semibold text-sm mb-2">
             <div className="col-span-3">Order Number</div>
             <div className="col-span-4">Item</div>
-            <div className="col-span-1 text-center">Qty</div>
+            <div className="col-span-1 text-right">Qty</div>
+            <div className="col-span-1">Unit</div>
             <div className="col-span-2 text-center">Progress</div>
-            <div className="col-span-2 text-center">Status</div>
+            <div className="col-span-1 text-center">Status</div>
         </div>
     );
 
@@ -128,24 +129,26 @@ export default function ManufacturingOrderTreeView({
                     </div>
 
                     {/* Quantity */}
-                    <div className="col-span-1 text-center">
+                    <div className="col-span-1 text-right">
                         <div className="text-sm font-medium">{node.quantity}</div>
-                        <div className="text-xs text-muted-foreground">{node.unit_of_measure}</div>
+                    </div>
+
+                    {/* Unit of Measure */}
+                    <div className="col-span-1">
+                        <div className="text-sm text-muted-foreground">{node.unit_of_measure}</div>
                     </div>
 
                     {/* Progress */}
                     <div className="col-span-2">
-                        <div className="space-y-1">
-                            <div className="flex justify-between text-xs">
-                                <span>{node.quantity_completed}/{node.quantity}</span>
-                                <span className="font-medium">{progress}%</span>
-                            </div>
-                            <Progress value={progress} className="h-2" />
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">{node.quantity_completed}/{node.quantity}</span>
+                            <Progress value={progress} className="h-1.5 flex-1" />
+                            <span className="text-xs font-medium">{progress}%</span>
                         </div>
                     </div>
 
                     {/* Status */}
-                    <div className="col-span-2 flex items-center justify-center">
+                    <div className="col-span-1 flex items-center justify-center">
                         <Badge
                             variant={getStatusBadgeVariant(node.status)}
                             className="flex items-center gap-1"
@@ -157,8 +160,8 @@ export default function ManufacturingOrderTreeView({
                 </div>
 
                 {/* Additional info row */}
-                {(node.planned_start_date || node.actual_start_date || node.child_orders_count > 0) && (
-                    <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs text-muted-foreground">
+                {(node.planned_start_date || node.actual_start_date) && (
+                    <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                         <div className="flex items-center gap-4">
                             {node.planned_start_date && (
                                 <div>
@@ -171,17 +174,12 @@ export default function ManufacturingOrderTreeView({
                                 </div>
                             )}
                         </div>
-                        {node.child_orders_count > 0 && (
-                            <div className="flex items-center gap-1">
-                                <span>{node.completed_child_orders_count}/{node.child_orders_count} children completed</span>
-                            </div>
-                        )}
                     </div>
                 )}
 
                 {/* Actions */}
                 {showActions && (
-                    <div className="mt-2 pt-2 border-t flex justify-end">
+                    <div className="mt-2 flex justify-end">
                         <Button
                             asChild
                             variant="ghost"

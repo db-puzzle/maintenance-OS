@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Production\ItemController;
+use App\Http\Controllers\Production\ItemCategoryController;
 use App\Http\Controllers\Production\BillOfMaterialController;
 use App\Http\Controllers\Production\ProductionRoutingController;
 use App\Http\Controllers\Production\ProductionScheduleController;
@@ -12,6 +13,10 @@ use App\Http\Controllers\Production\ProductionExecutionController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('production')->name('production.')->group(function () {
+    // Item Categories Management
+    Route::resource('categories', ItemCategoryController::class)->except(['edit', 'show']);
+    Route::get('categories/active', [ItemCategoryController::class, 'active'])->name('categories.active');
+
     // Items Management
     Route::resource('items', ItemController::class)->except(['edit']);
     Route::get('items/{item}/bom', [ItemController::class, 'bom'])->name('items.bom');
