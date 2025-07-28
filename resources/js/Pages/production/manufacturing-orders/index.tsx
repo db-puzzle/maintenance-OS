@@ -299,6 +299,15 @@ export default function ManufacturingOrders({
                 createButtonText="Create Order"
                 actions={
                     <div className="flex gap-2">
+                        <Select value={parentFilter || 'all'} onValueChange={handleParentFilter}>
+                            <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Filter by type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Orders</SelectItem>
+                                <SelectItem value="root">Parent Orders Only</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <Select value={statusFilter || 'all'} onValueChange={handleStatusFilter}>
                             <SelectTrigger className="w-48">
                                 <SelectValue placeholder="Filter by status" />
@@ -310,15 +319,6 @@ export default function ManufacturingOrders({
                                         {label}
                                     </SelectItem>
                                 ))}
-                            </SelectContent>
-                        </Select>
-                        <Select value={parentFilter || 'all'} onValueChange={handleParentFilter}>
-                            <SelectTrigger className="w-48">
-                                <SelectValue placeholder="Filter by type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Orders</SelectItem>
-                                <SelectItem value="root">Parent Orders Only</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

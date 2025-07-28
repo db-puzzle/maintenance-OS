@@ -11,7 +11,8 @@ import {
     Info,
     GitBranch,
     Layers,
-    AlertCircle
+    AlertCircle,
+    CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +25,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import ItemSelect from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
+import StateButton from '@/components/StateButton';
 import { Item, BillOfMaterial, RouteTemplate, ManufacturingOrder } from '@/types/production';
 import { cn } from '@/lib/utils';
 import {
@@ -237,7 +239,7 @@ export default function CreateManufacturingOrderDialog({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
+            <DialogContent className="max-w-4xl h-[70vh] flex flex-col p-0">
                 <DialogHeader className="px-6 py-4 border-b">
                     <DialogTitle>Create Manufacturing Order</DialogTitle>
                     <DialogDescription>
@@ -528,35 +530,6 @@ export default function CreateManufacturingOrderDialog({
                             {/* Step 4: Configuration */}
                             {currentStep === 4 && (
                                 <div className="space-y-6">
-                                    {/* Parent-Child Configuration */}
-                                    {data.order_type === 'bom' && (
-                                        <div>
-                                            <h3 className="font-medium mb-4">Parent-Child Configuration</h3>
-                                            <Card>
-                                                <CardContent className="pt-6">
-                                                    <div className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id="auto-complete"
-                                                            checked={data.auto_complete_on_children}
-                                                            onCheckedChange={(checked) =>
-                                                                setData('auto_complete_on_children', !!checked)
-                                                            }
-                                                        />
-                                                        <Label
-                                                            htmlFor="auto-complete"
-                                                            className="font-normal cursor-pointer"
-                                                        >
-                                                            Auto-complete parent order when all children complete
-                                                        </Label>
-                                                    </div>
-                                                    <p className="text-sm text-muted-foreground mt-2 ml-6">
-                                                        The parent order will automatically transition to completed
-                                                        status when all child orders are finished
-                                                    </p>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                    )}
 
                                     {/* Route Configuration */}
                                     <div>
@@ -630,6 +603,25 @@ export default function CreateManufacturingOrderDialog({
                                             </div>
                                         </RadioGroup>
                                     </div>
+
+                                    {/* Parent-Child Configuration */}
+                                    {data.order_type === 'bom' && (
+                                        <div>
+                                            <h3 className="font-medium mb-4">Parent-Child Auto-Complete</h3>
+                                            <StateButton
+                                                icon={CheckCircle2}
+                                                title="Auto-complete parent order"
+                                                description={
+                                                    data.auto_complete_on_children
+                                                        ? "The parent order will automatically transition to completed status when all child orders are finished"
+                                                        : "The parent order will NOT automatically transition to completed status when all child orders are finished"
+                                                }
+                                                selected={data.auto_complete_on_children}
+                                                onClick={() => setData('auto_complete_on_children', !data.auto_complete_on_children)}
+                                            />
+                                        </div>
+                                    )}
+
                                 </div>
                             )}
                         </div>

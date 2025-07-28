@@ -171,6 +171,7 @@ class ManufacturingOrderController extends Controller
     {
         $this->authorize('view', $order);
 
+        $order->loadCount('children');
         $order->load([
             'item',
             'billOfMaterial.currentVersion.items.item',
@@ -182,6 +183,14 @@ class ManufacturingOrderController extends Controller
 
         // Load children recursively
         $this->loadChildrenRecursively($order);
+
+        // Ensure child counts are up to date
+        if (!isset($order->child_orders_count) || $order->child_orders_count === null) {
+            $order->child_orders_count = $order->children->count();
+        }
+        if (!isset($order->completed_child_orders_count) || $order->completed_child_orders_count === null) {
+            $order->completed_child_orders_count = $order->children->where('status', 'completed')->count();
+        }
 
         return Inertia::render('production/manufacturing-orders/show', [
             'order' => $order,
@@ -320,4 +329,6 @@ class ManufacturingOrderController extends Controller
             'children' => $children,
         ]);
     }
+
+
 } 

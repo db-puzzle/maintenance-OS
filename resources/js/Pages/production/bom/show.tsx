@@ -151,7 +151,6 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                                     <div className="flex items-center h-10 px-3 py-2 rounded-md border border-input bg-muted">
                                         <span className="text-sm text-muted-foreground">Será gerado automaticamente</span>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">Formato: BOM-NNNNN-AAMM</p>
                                 </div>
                             )}
                             <TextInput

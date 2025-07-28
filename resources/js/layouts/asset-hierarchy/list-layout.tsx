@@ -1,7 +1,7 @@
 import { ListTableHeader } from '@/components/table-headers/list-table-header';
 import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 
 interface ListLayoutProps {
     children: ReactNode;
@@ -33,29 +33,25 @@ export default function ListLayout({
     onCompressedChange,
 }: ListLayoutProps) {
     const [isCompressed, setIsCompressed] = useState(defaultCompressed);
-
-    // Always call the hook, but handle cases where the provider might not be available
     const sidebarControls = useSidebar();
 
-    // Store the previous sidebar state
-    const [previousSidebarOpen, setPreviousSidebarOpen] = useState(() => {
-        return sidebarControls ? sidebarControls.state === 'expanded' : true;
-    });
+    // Track previous compression state to detect changes
+    const prevIsCompressed = useRef(isCompressed);
 
     useEffect(() => {
-        // When compressed mode changes, toggle sidebar accordingly
-        if (sidebarControls && !sidebarControls.isMobile) {
+        // Only sync sidebar when compression state actually changes
+        if (sidebarControls && !sidebarControls.isMobile && prevIsCompressed.current !== isCompressed) {
             if (isCompressed) {
-                // Store current sidebar state before closing
-                setPreviousSidebarOpen(sidebarControls.state === 'expanded');
-                // Close sidebar when entering compressed mode
+                // Entering compressed mode - close sidebar
                 sidebarControls.setOpen(false);
             } else {
-                // Restore previous sidebar state when exiting compressed mode
-                sidebarControls.setOpen(previousSidebarOpen);
+                // Exiting compressed mode - open sidebar
+                sidebarControls.setOpen(true);
             }
+            // Update the previous state
+            prevIsCompressed.current = isCompressed;
         }
-    }, [isCompressed, sidebarControls, previousSidebarOpen]);
+    }, [isCompressed, sidebarControls]);
 
     const handleToggleCompressed = () => {
         const newCompressed = !isCompressed;

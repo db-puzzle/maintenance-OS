@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
 import { Head, Link } from '@inertiajs/react';
@@ -145,6 +145,9 @@ export default function ItemShow({
     const [loadingCategories, setLoadingCategories] = useState(true);
     const [categorySheetOpen, setCategorySheetOpen] = useState(false);
 
+    // Ref for auto-focusing the item number input during creation
+    const itemNumberInputRef = useRef<HTMLInputElement>(null);
+
     // Load categories
     const loadCategories = async () => {
         try {
@@ -164,6 +167,13 @@ export default function ItemShow({
     // Update edit mode when isCreating prop changes (e.g., after redirect from creation)
     useEffect(() => {
         setIsEditMode(isCreating);
+    }, [isCreating]);
+
+    // Auto-focus on item number input when creating a new item
+    useEffect(() => {
+        if (isCreating && itemNumberInputRef.current) {
+            itemNumberInputRef.current.focus();
+        }
     }, [isCreating]);
 
     // Reload categories when category sheet closes successfully
@@ -222,6 +232,7 @@ export default function ItemShow({
                                     required
                                     disabled={!isEditMode || processing}
                                     view={!isEditMode}
+                                    ref={itemNumberInputRef}
                                 />
                                 <TextInput
                                     form={{ data, setData, errors, clearErrors: clearErrors as any }}
@@ -623,32 +634,6 @@ export default function ItemShow({
                                 icon={Boxes}
                                 title="Análise de uso"
                                 description="Este item não é usado em nenhuma BOM no momento"
-                            />
-                        </div>
-                    ),
-                },
-                {
-                    id: 'history',
-                    label: 'Histórico',
-                    content: (
-                        <div className="py-6">
-                            <EmptyCard
-                                icon={History}
-                                title="Histórico vazio"
-                                description="O histórico de alterações será exibido aqui"
-                            />
-                        </div>
-                    ),
-                },
-                {
-                    id: 'analytics',
-                    label: 'Análises',
-                    content: (
-                        <div className="py-6">
-                            <EmptyCard
-                                icon={BarChart3}
-                                title="Análises"
-                                description="Análises de uso, custo e desempenho serão exibidas aqui"
                             />
                         </div>
                     ),

@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
 import { Check, Maximize2, Minimize2 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 interface Tab {
     id: string;
@@ -46,36 +46,32 @@ export default function ShowLayout({
 }: ShowLayoutProps) {
     const [internalActiveTab, setInternalActiveTab] = useState(defaultActiveTab || (tabs && tabs.length > 0 ? tabs[0].id : ''));
     const [isCompressed, setIsCompressed] = useState(defaultCompressed);
+    const sidebarControls = useSidebar();
+
+    // Track previous compression state to detect changes
+    const prevIsCompressed = useRef(isCompressed);
 
     // Use controlled mode if activeTab and onActiveTabChange are provided
     const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab;
     const setActiveTab = onActiveTabChange || setInternalActiveTab;
 
-    // Always call the hook, but handle cases where the provider might not be available
-    const sidebarControls = useSidebar();
-
-    // Store the previous sidebar state
-    const [previousSidebarOpen, setPreviousSidebarOpen] = useState(() => {
-        return sidebarControls ? sidebarControls.state === 'expanded' : true;
-    });
-
     // Simple animation class for all tabs
     const tabAnimationClass = 'animate-in fade-in-2 slide-in-from-top-5 duration-200';
 
     useEffect(() => {
-        // When compressed mode changes, toggle sidebar accordingly
-        if (sidebarControls && !sidebarControls.isMobile) {
+        // Only sync sidebar when compression state actually changes
+        if (sidebarControls && !sidebarControls.isMobile && prevIsCompressed.current !== isCompressed) {
             if (isCompressed) {
-                // Store current sidebar state before closing
-                setPreviousSidebarOpen(sidebarControls.state === 'expanded');
-                // Close sidebar when entering compressed mode
+                // Entering compressed mode - close sidebar
                 sidebarControls.setOpen(false);
             } else {
-                // Restore previous sidebar state when exiting compressed mode
-                sidebarControls.setOpen(previousSidebarOpen);
+                // Exiting compressed mode - open sidebar
+                sidebarControls.setOpen(true);
             }
+            // Update the previous state
+            prevIsCompressed.current = isCompressed;
         }
-    }, [isCompressed, sidebarControls, previousSidebarOpen]);
+    }, [isCompressed, sidebarControls]);
 
     const handleToggleCompressed = () => {
         const newCompressed = !isCompressed;

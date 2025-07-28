@@ -31,7 +31,7 @@ import ItemSelect from '@/components/ItemSelect';
 import { ManufacturingOrder } from '@/types/production';
 import { cn } from '@/lib/utils';
 import { useForm } from '@inertiajs/react';
-import ManufacturingOrderTreeView from '@/components/production/ManufacturingOrderTreeView';
+import HierarchicalConfiguration from '@/components/production/HierarchicalConfiguration';
 
 interface Props {
     order: ManufacturingOrder;
@@ -40,11 +40,11 @@ interface Props {
     canCreateRoute: boolean;
 }
 
-function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function FieldGroup({ title, children }: { title?: string; children: React.ReactNode }) {
     return (
         <div className="space-y-4">
-            <h3 className="text-lg font-semibold">{title}</h3>
-            <div className="grid gap-4 md:grid-cols-2">
+            {title && <h3 className="text-lg font-semibold">{title}</h3>}
+            <div className="grid gap-4 md:grid-cols-4">
                 {children}
             </div>
         </div>
@@ -164,14 +164,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold">Order Progress</h3>
                         <div className="space-y-4">
-                            <div>
-                                <div className="flex justify-between text-sm mb-2">
-                                    <span>Overall Completion</span>
-                                    <span className="font-medium">{progress}%</span>
-                                </div>
-                                <Progress value={progress} className="h-3" />
-                            </div>
-
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                                 <StatCard
                                     label="Ordered"
@@ -192,13 +184,21 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                     className="bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
                                 />
                             </div>
+
+                            <div>
+                                <div className="flex justify-between text-sm mb-2">
+                                    <span>Overall Completion</span>
+                                    <span className="font-medium">{progress}%</span>
+                                </div>
+                                <Progress value={progress} className="h-3" />
+                            </div>
                         </div>
                     </div>
 
                     <Separator />
 
                     {/* Order Information */}
-                    <FieldGroup title="Order Information">
+                    <FieldGroup>
                         <TextInput
                             form={form}
                             name="order_number"
@@ -251,12 +251,12 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                 </div>
                             </div>
                         )}
+
                     </FieldGroup>
 
-                    <Separator />
 
                     {/* Item Details */}
-                    <FieldGroup title="Item Details">
+                    <FieldGroup>
                         <div className="grid gap-2">
                             <label className="text-sm font-medium">Item Number</label>
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
@@ -272,7 +272,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                         <div className="grid gap-2">
                             <label className="text-sm font-medium">Category</label>
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                                {order.item?.category || '—'}
+                                {typeof order.item?.category === 'string' ? order.item.category : order.item?.category?.name || '—'}
                             </div>
                         </div>
                         <TextInput
@@ -299,10 +299,9 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                         )}
                     </FieldGroup>
 
-                    <Separator />
 
                     {/* Schedule */}
-                    <FieldGroup title="Schedule">
+                    <FieldGroup>
                         <TextInput
                             form={form}
                             name="requested_date"
@@ -334,11 +333,10 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                     </FieldGroup>
 
                     {/* Parent-Child Configuration */}
-                    {(order.parent_id || order.child_orders_count > 0) && (
+                    {(order.parent_id || order.child_orders_count > 0 || (order.children && order.children.length > 0)) && (
                         <>
                             <Separator />
                             <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">Order Hierarchy</h3>
 
                                 {order.parent_id && (
                                     <Alert>
@@ -355,13 +353,13 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                     </Alert>
                                 )}
 
-                                {order.child_orders_count > 0 && (
+                                {(order.child_orders_count > 0 || (order.children && order.children.length > 0)) && (
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="font-medium">Child Orders</p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {order.completed_child_orders_count} of {order.child_orders_count} completed
+                                                    {order.completed_child_orders_count || 0} of {order.child_orders_count || (order.children?.length || 0)} completed
                                                 </p>
                                             </div>
                                             <Button asChild variant="outline" size="sm">
@@ -387,18 +385,20 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 </div>
             )
         },
-        ...(order.child_orders_count > 0 ? [{
+        ...((order.child_orders_count > 0 || (order.children && order.children.length > 0)) ? [{
             id: 'children',
-            label: `Child Orders (${order.child_orders_count})`,
+            label: `Child Orders (${order.child_orders_count || (order.children?.length || 0)})`,
             content: (
-                <div className="py-6">
+                <div className="h-[calc(100vh-300px)]">
                     {/* Show current order as root of the tree */}
-                    <ManufacturingOrderTreeView
+                    <HierarchicalConfiguration
+                        type="manufacturing-order"
                         orders={[{
                             ...order,
                             children: order.children || []
                         }]}
                         showActions={false}
+                        canEdit={false}
                     />
                 </div>
             )
