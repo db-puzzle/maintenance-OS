@@ -44,7 +44,7 @@ class ManufacturingOrderService
     public function createOrderFromBom(array $data): ManufacturingOrder
     {
         return DB::transaction(function () use ($data) {
-            $bom = BillOfMaterial::findOrFail($data['bill_of_material_id']);
+            $bom = BillOfMaterial::with('currentVersion')->findOrFail($data['bill_of_material_id']);
             
             // The MO is for the BOM's output item
             $data['item_id'] = $bom->output_item_id;

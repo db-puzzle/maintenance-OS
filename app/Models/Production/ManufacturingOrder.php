@@ -175,7 +175,7 @@ class ManufacturingOrder extends Model
         // Get BOM items that are children of the specified parent
         $bomItems = \App\Models\Production\BomItem::where('bom_version_id', $bomVersionId)
             ->where('parent_item_id', $parentItemId) // Always has a parent now
-            ->with('item')
+            ->with(['item.primaryBom']) // Eager load the primaryBom relationship
             ->get();
         
         $parentOrder = ManufacturingOrder::find($parentOrderId);
