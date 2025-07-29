@@ -20,6 +20,7 @@ class BillOfMaterial extends Model
         'name',
         'description',
         'external_reference',
+        'output_item_id', // NEW
         'is_active',
         'created_by',
     ];
@@ -27,6 +28,14 @@ class BillOfMaterial extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Get the item this BOM produces.
+     */
+    public function outputItem(): BelongsTo
+    {
+        return $this->belongsTo(Item::class, 'output_item_id');
+    }
 
     /**
      * Get the versions for the BOM.
@@ -43,14 +52,6 @@ class BillOfMaterial extends Model
     {
         return $this->hasOne(BomVersion::class, 'bill_of_material_id')
             ->where('is_current', true);
-    }
-
-    /**
-     * Get the item master entries using this BOM.
-     */
-    public function itemMasters(): HasMany
-    {
-        return $this->hasMany(Item::class, 'current_bom_id');
     }
 
     /**
@@ -122,5 +123,29 @@ class BillOfMaterial extends Model
         
         // Activate the specified version
         $version->update(['is_current' => true]);
+    }
+
+    /**
+     * Ensure single root item in versions.
+     */
+    public function ensureSingleRootItem(BomVersion $version): void
+    {
+        $rootItems = $version->items()
+            ->whereNull('parent_item_id')
+            ->count();
+
+        if ($rootItems > 1) {
+            throw new \Exception('BOM version cannot have multiple root items');
+        }
+
+        if ($rootItems === 1) {
+            $rootItem = $version->items()
+                ->whereNull('parent_item_id')
+                ->first();
+
+            if ($rootItem->item_id !== $this->output_item_id) {
+                throw new \Exception('Root item must match BOM output item');
+            }
+        }
     }
 }

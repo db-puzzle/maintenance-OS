@@ -138,15 +138,29 @@ class ManufacturingOrder extends Model
             return;
         }
         
-        // Load BOM with all necessary relationships
-        $this->load(['billOfMaterial.currentVersion']);
+        $this->load(['billOfMaterial.currentVersion.items']);
         
         DB::transaction(function () {
-            // Create orders for root-level BOM items only
+            // Get the root BOM item
+            $rootBomItem = $this->billOfMaterial->currentVersion->items()
+                ->whereNull('parent_item_id')
+                ->first();
+            
+            if (!$rootBomItem) {
+                throw new \Exception('BOM has no root item');
+            }
+            
+            // Verify this MO is for the root item
+            if ($this->item_id !== $rootBomItem->item_id) {
+                throw new \Exception('Manufacturing order item does not match BOM root item');
+            }
+            
+            // Create orders for the root item's children only
             $this->createChildOrdersFromBomItems(
                 $this->billOfMaterial->currentVersion->id,
-                null, // parent_item_id = null for root items
-                $this->id // this order is the parent
+                $rootBomItem->id, // Use root BOM item as parent, not null
+                $this->id, // This order represents the root item
+                1 // Initial quantity multiplier
             );
             
             $this->updateChildOrderCounts();
@@ -158,9 +172,9 @@ class ManufacturingOrder extends Model
      */
     private function createChildOrdersFromBomItems($bomVersionId, $parentItemId, $parentOrderId, $parentQuantity = 1): void
     {
-        // Get BOM items at this level
+        // Get BOM items that are children of the specified parent
         $bomItems = \App\Models\Production\BomItem::where('bom_version_id', $bomVersionId)
-            ->where('parent_item_id', $parentItemId)
+            ->where('parent_item_id', $parentItemId) // Always has a parent now
             ->with('item')
             ->get();
         
@@ -184,8 +198,9 @@ class ManufacturingOrder extends Model
             ]);
             
             // Check if this item has its own separate BOM
-            if ($bomItem->item->current_bom_id) {
-                $childOrder->bill_of_material_id = $bomItem->item->current_bom_id;
+            $primaryBom = $bomItem->item->primaryBom;
+            if ($primaryBom) {
+                $childOrder->bill_of_material_id = $primaryBom->id;
                 $childOrder->save();
                 $childOrder->createChildOrders();
             } else {

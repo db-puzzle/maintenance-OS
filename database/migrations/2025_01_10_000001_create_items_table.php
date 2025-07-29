@@ -30,9 +30,6 @@ return new class extends Migration
             // Status for sellable items
             $table->enum('status', ['active', 'inactive', 'prototype', 'discontinued'])->default('active');
             
-            // Current BOM reference (for manufactured items)
-            $table->unsignedBigInteger('current_bom_id')->nullable();
-            
             // Physical attributes
             $table->string('unit_of_measure', 20)->default('EA');
             $table->decimal('weight', 10, 4)->nullable();
@@ -70,7 +67,6 @@ return new class extends Migration
             $table->index('item_number');
             $table->index('status');
             $table->index('item_category_id');
-            $table->index('current_bom_id');
             $table->index(['can_be_sold', 'is_active']);
             $table->index(['can_be_manufactured', 'is_active']);
             $table->index(['can_be_purchased', 'is_active']);

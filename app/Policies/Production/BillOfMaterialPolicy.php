@@ -44,17 +44,12 @@ class BillOfMaterialPolicy
      */
     public function delete(User $user, BillOfMaterial $billOfMaterial): bool
     {
-        // Cannot delete if BOM is assigned to items
-        if ($billOfMaterial->itemMasters()->exists()) {
-            return false;
-        }
-
         // Cannot delete if BOM is used in production orders
         if ($billOfMaterial->manufacturingOrders()->exists()) {
             return false;
         }
 
-        return $user->hasPermissionTo('production.bom.delete');
+        return $user->can('production.bom.delete');
     }
 
     /**

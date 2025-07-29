@@ -242,4 +242,36 @@ class BomItem extends Model
     {
         return $query->whereNotNull('qr_code');
     }
+
+    /**
+     * Validation rules for BOM structure.
+     */
+    public static function validateStructure(BomVersion $version): array
+    {
+        $errors = [];
+        
+        // Check for single root item
+        $rootItems = $version->items()
+            ->whereNull('parent_item_id')
+            ->get();
+        
+        if ($rootItems->count() === 0) {
+            $errors[] = 'BOM must have exactly one root item';
+        } elseif ($rootItems->count() > 1) {
+            $errors[] = 'BOM cannot have multiple root items';
+        } else {
+            $rootItem = $rootItems->first();
+            $bom = $version->billOfMaterial;
+            
+            if ($rootItem->item_id !== $bom->output_item_id) {
+                $errors[] = 'Root item must match BOM output item';
+            }
+            
+            if ($rootItem->quantity != 1) {
+                $errors[] = 'Root item quantity must be 1';
+            }
+        }
+        
+        return $errors;
+    }
 }

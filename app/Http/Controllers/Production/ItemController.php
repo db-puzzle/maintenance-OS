@@ -34,7 +34,7 @@ class ItemController extends Controller
                         break;
                 }
             })
-            ->with(['currentBom', 'createdBy', 'category'])
+            ->with(['primaryBom', 'createdBy', 'category'])
             ->paginate($request->input('per_page', 10));
 
         return Inertia::render('production/items/index', [
@@ -104,7 +104,7 @@ class ItemController extends Controller
         $this->authorize('view', $item);
 
         $item->load([
-            'currentBom.currentVersion',
+            'primaryBom.currentVersion',
             'bomHistory.billOfMaterial',
             'createdBy',
             'category',

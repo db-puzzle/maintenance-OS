@@ -6,6 +6,7 @@ use App\Models\Production\ManufacturingStep;
 use App\Models\Production\ManufacturingStepExecution;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\RouteTemplate;
+use App\Models\Production\BillOfMaterial;
 use Illuminate\Support\Facades\DB;
 
 class ManufacturingOrderService
@@ -32,6 +33,38 @@ class ManufacturingOrderService
             if (isset($data['route_template_id'])) {
                 $this->createRouteFromTemplate($order, $data['route_template_id']);
             }
+            
+            return $order->fresh(['item', 'billOfMaterial', 'children']);
+        });
+    }
+
+    /**
+     * Create a manufacturing order from BOM.
+     */
+    public function createOrderFromBom(array $data): ManufacturingOrder
+    {
+        return DB::transaction(function () use ($data) {
+            $bom = BillOfMaterial::findOrFail($data['bill_of_material_id']);
+            
+            // The MO is for the BOM's output item
+            $data['item_id'] = $bom->output_item_id;
+            
+            // Ensure we have the root BOM item's unit of measure
+            $rootBomItem = $bom->currentVersion->items()
+                ->whereNull('parent_item_id')
+                ->first();
+                
+            $data['unit_of_measure'] = $data['unit_of_measure'] ?? $rootBomItem->unit_of_measure;
+            
+            // Generate order number if not provided
+            if (!isset($data['order_number'])) {
+                $data['order_number'] = $this->generateOrderNumber();
+            }
+
+            $order = ManufacturingOrder::create($data);
+            
+            // Create child orders for components
+            $order->createChildOrders();
             
             return $order->fresh(['item', 'billOfMaterial', 'children']);
         });

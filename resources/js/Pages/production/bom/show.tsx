@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import TextInput from '@/components/TextInput';
+import ItemSelect from '@/components/ItemSelect';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
@@ -35,10 +36,15 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
     const [isEditMode, setIsEditMode] = useState(isCreating);
     const [isCompressed, setIsCompressed] = useState(false);
 
+    // Debug: Log items to console
+    console.log('Items received:', items);
+    console.log('Manufacturable items:', items.filter(item => item.can_be_manufactured));
+
     const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm({
         name: bom?.name || '',
         description: bom?.description || '',
         external_reference: bom?.external_reference || '',
+        output_item_id: bom?.output_item_id?.toString() || '',
         is_active: bom?.is_active ?? true,
     });
 
@@ -162,6 +168,22 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                                 view={!isEditMode}
                             />
                         </div>
+
+                        <ItemSelect
+                            label="Produto Final"
+                            items={items.filter(item => item.can_be_manufactured).map(item => ({
+                                id: item.id,
+                                name: `${item.item_number} - ${item.name}`
+                            }))}
+                            value={data.output_item_id}
+                            onValueChange={(value) => setData('output_item_id', value)}
+                            placeholder="Selecione o produto que esta BOM produz"
+                            error={errors.output_item_id}
+                            disabled={!isEditMode || processing}
+                            view={!isEditMode}
+                            required
+                            searchable
+                        />
 
                         <TextInput
                             form={{ data, setData, errors, clearErrors: clearErrors as any }}
@@ -314,24 +336,33 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                 },
                 {
                     id: 'usage',
-                    label: `Onde é Usada (${(bom as any)?.item_masters?.length || 0})`,
+                    label: 'Produto',
                     content: (
                         <div className="py-6">
-                            {(bom as any)?.item_masters && (bom as any).item_masters.length > 0 ? (
+                            {bom?.output_item ? (
                                 <div className="space-y-4">
-                                    <h3 className="text-lg font-medium mb-4">Itens que Usam esta BOM</h3>
-                                    <EntityDataTable
-                                        data={(bom as any).item_masters as unknown as Record<string, unknown>[]}
-                                        columns={itemMasterColumns}
-                                        loading={false}
-                                        onRowClick={(item: any) => router.visit(route('production.items.show', item.id))}
-                                    />
+                                    <h3 className="text-lg font-medium mb-4">Produto que esta BOM produz</h3>
+                                    <div className="border rounded-lg p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="font-medium">{bom.output_item.item_number}</h4>
+                                                <p className="text-sm text-muted-foreground">{bom.output_item.name}</p>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => router.visit(route('production.items.show', bom.output_item!.id))}
+                                            >
+                                                Ver Item
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </div>
                             ) : (
                                 <EmptyCard
                                     icon={Factory}
-                                    title="Não utilizada"
-                                    description="Esta BOM não está sendo usada por nenhum item"
+                                    title="Produto não definido"
+                                    description="Esta BOM não tem um produto final associado"
                                 />
                             )}
                         </div>

@@ -36,8 +36,8 @@ export interface Item {
     purchase_lead_time_days: number;
     preferred_vendor?: string;
     vendor_item_number?: string;
-    current_bom?: BillOfMaterial;
-    current_bom_id?: number;
+    primary_bom?: BillOfMaterial;
+    created_by?: User;
     created_at: string;
     updated_at: string;
 }
@@ -48,12 +48,13 @@ export interface BillOfMaterial {
     name: string;
     description?: string;
     external_reference?: string;
+    output_item_id: number;
+    output_item?: Item;
     is_active: boolean;
     created_by?: number;
     current_version?: BomVersion;
     versions?: BomVersion[];
     versions_count?: number;
-    item_masters_count?: number;
     created_at: string;
     updated_at: string;
 }

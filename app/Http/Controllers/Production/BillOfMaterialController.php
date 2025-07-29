@@ -44,7 +44,6 @@ class BillOfMaterialController extends Controller
             ->withCount(['versions' => function ($query) {
                 $query->where('is_current', false);
             }])
-            ->withCount(['itemMasters'])
             ->paginate($request->input('per_page', 10));
 
         // Add computed fields for frontend
@@ -66,14 +65,14 @@ class BillOfMaterialController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create()
     {
         $this->authorize('create', BillOfMaterial::class);
 
         $items = Item::where('can_be_manufactured', true)
             ->where('is_active', true)
             ->orderBy('item_number')
-            ->get(['id', 'item_number', 'name']);
+            ->get(['id', 'item_number', 'name', 'unit_of_measure', 'can_be_manufactured', 'is_active']);
 
         return Inertia::render('production/bom/show', [
             'items' => $items,
@@ -94,8 +93,15 @@ class BillOfMaterialController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'external_reference' => 'nullable|string|max:100',
+            'output_item_id' => 'required|exists:items,id', // NEW validation
             'is_active' => 'nullable|boolean',
         ]);
+
+        // Verify the item can be manufactured
+        $item = Item::findOrFail($validated['output_item_id']);
+        if (!$item->can_be_manufactured) {
+            return back()->withErrors(['output_item_id' => 'Selected item cannot be manufactured']);
+        }
 
         $validated['created_by'] = auth()->id();
         $validated['is_active'] = $validated['is_active'] ?? true;
@@ -103,10 +109,22 @@ class BillOfMaterialController extends Controller
         // Generate BOM number automatically
         $validated['bom_number'] = $this->generateBomNumber();
         
-        $bom = BillOfMaterial::create($validated);
-
-        // Create initial version
-        $bom->createVersion('Initial version', auth()->id());
+        DB::transaction(function () use ($validated, &$bom) {
+            $bom = BillOfMaterial::create($validated);
+            
+            // Create initial version
+            $version = $bom->createVersion('Initial version', auth()->id());
+            
+            // Create root BOM item for the output
+            $version->items()->create([
+                'item_id' => $bom->output_item_id,
+                'parent_item_id' => null,
+                'quantity' => 1,
+                'unit_of_measure' => $bom->outputItem->unit_of_measure,
+                'level' => 0,
+                'sequence_number' => 0,
+            ]);
+        });
 
         return redirect()->route('production.bom.show', $bom)
             ->with('success', 'BOM created successfully.');
@@ -134,17 +152,16 @@ class BillOfMaterialController extends Controller
                 $query->orderBy('version_number', 'desc')->limit(5);
             },
             'createdBy',
-            'itemMasters'
+            'outputItem'
         ]);
 
         // Add computed counts for tab labels
         $bom->versions_count = $bom->versions->count();
-        $bom->item_masters_count = $bom->itemMasters->count();
 
         // Load available items for BOM configuration
         $items = Item::where('is_active', true)
             ->orderBy('item_number')
-            ->get(['id', 'item_number', 'name', 'unit_of_measure']);
+            ->get(['id', 'item_number', 'name', 'unit_of_measure', 'can_be_manufactured', 'is_active']);
 
         // Ensure currentVersion items are properly loaded and formatted
         if ($bom->currentVersion) {
@@ -185,12 +202,8 @@ class BillOfMaterialController extends Controller
         $this->authorize('delete', $bom);
 
         // Check if BOM can be deleted
-        if ($bom->itemMasters()->exists()) {
-            return back()->with('error', 'BOM cannot be deleted because it is assigned to items.');
-        }
-
         if ($bom->manufacturingOrders()->exists()) {
-            return back()->with('error', 'BOM cannot be deleted because it is used in production orders.');
+            return back()->with('error', 'BOM cannot be deleted because it has manufacturing orders.');
         }
 
         $bom->delete();
@@ -414,7 +427,7 @@ class BillOfMaterialController extends Controller
 
         $validated = $request->validate([
             'item_id' => 'required|exists:items,id',
-            'parent_item_id' => 'nullable|exists:bom_items,id',
+            'parent_item_id' => 'required|exists:bom_items,id', // NOW REQUIRED
             'quantity' => 'required|numeric|min:0.0001',
             'unit_of_measure' => 'required|string|max:20',
             'reference_designators' => 'nullable|string',
@@ -428,12 +441,19 @@ class BillOfMaterialController extends Controller
             return back()->with('error', 'BOM has no current version.');
         }
 
-        // Determine level
-        $level = 0;
-        if ($validated['parent_item_id']) {
-            $parent = BomItem::find($validated['parent_item_id']);
-            $level = $parent->level + 1;
+        // Prevent adding items at root level
+        if (!$validated['parent_item_id']) {
+            return back()->withErrors(['parent_item_id' => 'Items must be added under the root product']);
         }
+        
+        // Verify parent belongs to this BOM
+        $parent = BomItem::findOrFail($validated['parent_item_id']);
+        if ($parent->bomVersion->bill_of_material_id !== $bom->id) {
+            return back()->withErrors(['parent_item_id' => 'Parent item does not belong to this BOM']);
+        }
+
+        // Determine level based on parent
+        $level = $parent->level + 1;
 
         // Get next sequence number if not provided
         if (!isset($validated['sequence_number'])) {

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Item extends Model
@@ -25,7 +26,7 @@ class Item extends Model
         'is_phantom',
         'is_active',
         'status',
-        'current_bom_id',
+        // 'current_bom_id', // REMOVED
         'unit_of_measure',
         'weight',
         'dimensions',
@@ -65,9 +66,23 @@ class Item extends Model
     ];
 
     // Relationships
-    public function currentBom(): BelongsTo
+    
+    /**
+     * Get BOMs that produce this item.
+     */
+    public function billOfMaterials(): HasMany
     {
-        return $this->belongsTo(BillOfMaterial::class, 'current_bom_id');
+        return $this->hasMany(BillOfMaterial::class, 'output_item_id');
+    }
+
+    /**
+     * Get the primary BOM for this item.
+     */
+    public function primaryBom(): HasOne
+    {
+        return $this->hasOne(BillOfMaterial::class, 'output_item_id')
+            ->where('is_active', true)
+            ->latest();
     }
 
     public function category(): BelongsTo
@@ -124,7 +139,7 @@ class Item extends Model
 
     public function isManufacturable(): bool
     {
-        return $this->can_be_manufactured && $this->current_bom_id !== null;
+        return $this->can_be_manufactured && $this->primaryBom !== null;
     }
 
     public function isPurchasable(): bool
@@ -134,10 +149,10 @@ class Item extends Model
 
     public function hasActiveBom(): bool
     {
-        return $this->current_bom_id !== null && $this->currentBom?->is_active;
+        return $this->billOfMaterials()->where('is_active', true)->exists();
     }
 
-    public function getEffectiveBom(\Carbon\Carbon $date = null): ?BillOfMaterial
+    public function getEffectiveBom(?\Carbon\Carbon $date = null): ?BillOfMaterial
     {
         $date = $date ?? now();
         
@@ -190,9 +205,6 @@ class Item extends Model
             'change_order_number' => $changeData['change_order'] ?? null,
             'approved_by' => auth()->id(),
         ]);
-
-        // Update current BOM reference
-        $this->update(['current_bom_id' => $bom->id]);
 
         return $history;
     }

@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string('name', 255);
             $table->text('description')->nullable();
             $table->string('external_reference', 100)->nullable(); // Inventor drawing number
+            
+            // NEW: Reference to the item this BOM produces
+            $table->foreignId('output_item_id')->constrained('items');
+            
             $table->boolean('is_active')->default(true);
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();
@@ -24,6 +28,7 @@ return new class extends Migration
             $table->index('bom_number');
             $table->index('external_reference');
             $table->index('is_active');
+            $table->index('output_item_id'); // NEW index
         });
     }
 

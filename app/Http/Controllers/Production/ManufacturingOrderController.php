@@ -158,7 +158,12 @@ class ManufacturingOrderController extends Controller
         $validated['created_by'] = auth()->id();
         $validated['status'] = 'draft';
 
-        $order = $this->orderService->createOrder($validated);
+        // Use appropriate method based on order type
+        if ($orderType === 'bom' && isset($validated['bill_of_material_id'])) {
+            $order = $this->orderService->createOrderFromBom($validated);
+        } else {
+            $order = $this->orderService->createOrder($validated);
+        }
 
         return redirect()->route('production.orders.show', $order)
             ->with('success', 'Manufacturing order created successfully.');

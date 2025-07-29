@@ -767,6 +767,7 @@ class ProductionTestDataSeeder extends Seeder
             'bom_number' => 'BOM-BIKE-001',
             'name' => 'Lista de Materiais - Bicicleta Urbana',
             'description' => 'BOM completa para bicicleta urbana 21 marchas',
+            'output_item_id' => $this->items['bicicleta']->id, // NEW: BOM produces this item
             'is_active' => true,
             'created_by' => $creator->id,
         ]);
@@ -781,16 +782,21 @@ class ProductionTestDataSeeder extends Seeder
             'is_current' => true,
         ]);
         
-        // Update the bicycle item with the BOM
-        $this->items['bicicleta']->update(['current_bom_id' => $bom->id]);
-        
-        // Create BOM structure
-        // Level 0 - Final Product (no BOM item for the root)
-        
-        // Level 1 - Main Subassemblies
-        $bomQuadro = BomItem::create([
+        // Create root BOM item for the bicycle itself
+        $rootBomItem = BomItem::create([
             'bom_version_id' => $version->id,
             'parent_item_id' => null,
+            'item_id' => $this->items['bicicleta']->id,
+            'quantity' => 1,
+            'unit_of_measure' => 'UN',
+            'level' => 0,
+            'sequence_number' => 0,
+        ]);
+        
+        // Level 1 - Main Subassemblies (now children of root)
+        $bomQuadro = BomItem::create([
+            'bom_version_id' => $version->id,
+            'parent_item_id' => $rootBomItem->id, // Now child of root
             'item_id' => $this->items['quadro_completo']->id,
             'quantity' => 1,
             'unit_of_measure' => 'UN',
@@ -801,7 +807,7 @@ class ProductionTestDataSeeder extends Seeder
         
         $bomRodas = BomItem::create([
             'bom_version_id' => $version->id,
-            'parent_item_id' => null,
+            'parent_item_id' => $rootBomItem->id, // Now child of root
             'item_id' => $this->items['conjunto_rodas']->id,
             'quantity' => 1,
             'unit_of_measure' => 'PAR',
@@ -812,7 +818,7 @@ class ProductionTestDataSeeder extends Seeder
         
         $bomTransmissao = BomItem::create([
             'bom_version_id' => $version->id,
-            'parent_item_id' => null,
+            'parent_item_id' => $rootBomItem->id, // Now child of root
             'item_id' => $this->items['grupo_transmissao']->id,
             'quantity' => 1,
             'unit_of_measure' => 'UN',
@@ -822,7 +828,7 @@ class ProductionTestDataSeeder extends Seeder
         
         $bomFreios = BomItem::create([
             'bom_version_id' => $version->id,
-            'parent_item_id' => null,
+            'parent_item_id' => $rootBomItem->id, // Now child of root
             'item_id' => $this->items['sistema_freios']->id,
             'quantity' => 1,
             'unit_of_measure' => 'UN',
@@ -833,7 +839,7 @@ class ProductionTestDataSeeder extends Seeder
         // Additional Level 1 items
         $bomSelim = BomItem::create([
             'bom_version_id' => $version->id,
-            'parent_item_id' => null,
+            'parent_item_id' => $rootBomItem->id, // Now child of root
             'item_id' => $this->items['selim']->id,
             'quantity' => 1,
             'unit_of_measure' => 'UN',
@@ -843,7 +849,7 @@ class ProductionTestDataSeeder extends Seeder
         
         $bomGuidao = BomItem::create([
             'bom_version_id' => $version->id,
-            'parent_item_id' => null,
+            'parent_item_id' => $rootBomItem->id, // Now child of root
             'item_id' => $this->items['guidao']->id,
             'quantity' => 1,
             'unit_of_measure' => 'UN',
@@ -853,7 +859,7 @@ class ProductionTestDataSeeder extends Seeder
         
         $bomPedais = BomItem::create([
             'bom_version_id' => $version->id,
-            'parent_item_id' => null,
+            'parent_item_id' => $rootBomItem->id, // Now child of root
             'item_id' => $this->items['pedais']->id,
             'quantity' => 1,
             'unit_of_measure' => 'PAR',
