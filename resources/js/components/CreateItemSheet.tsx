@@ -2,14 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import TextInput from '@/components/TextInput';
 import ItemSelect from '@/components/ItemSelect';
+import StateButton from '@/components/StateButton';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
 import { Item, ItemCategory } from '@/types/production';
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Factory, Package, ShoppingCart, Ghost } from 'lucide-react';
 import axios from 'axios';
 
 interface ItemForm {
@@ -18,10 +16,10 @@ interface ItemForm {
     name: string;
     description: string;
     item_category_id: string;
-    // item_type: 'manufactured' | 'purchased' | 'phantom' | 'service'; // DEPRECATED
     can_be_sold: boolean;
     can_be_purchased: boolean;
     can_be_manufactured: boolean;
+    is_phantom: boolean;
     status: 'active' | 'inactive' | 'prototype' | 'discontinued';
     unit_of_measure: string;
     weight: string;
@@ -41,8 +39,6 @@ interface CreateItemSheetProps {
     mode: 'create' | 'edit';
     onSuccess?: () => void;
 }
-
-
 
 const itemStatuses = [
     { id: 1, name: 'Ativo', value: 'active' },
@@ -125,17 +121,17 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({ item, open, onOpenCha
                 onOpenChange={handleOpenChange}
                 mode={mode}
                 onSuccess={onSuccess}
-                width="sm:max-w-2xl"
+                width="overflow-y-auto sm:max-w-3xl"
                 formConfig={{
                     initialData: {
                         item_number: '',
                         name: '',
                         description: '',
                         item_category_id: '',
-                        // item_type: 'manufactured', // DEPRECATED
-                        can_be_sold: true,
+                        can_be_sold: false,
                         can_be_purchased: false,
-                        can_be_manufactured: true,
+                        can_be_manufactured: false,
+                        is_phantom: false,
                         status: 'active',
                         unit_of_measure: 'EA',
                         weight: '',
@@ -153,257 +149,292 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({ item, open, onOpenCha
                 }}
             >
                 {({ data, setData, errors }) => (
-                    <>
+                    <div className="space-y-6">
                         {/* Basic Information */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <TextInput
-                                ref={itemNumberRef}
-                                form={{
-                                    data,
-                                    setData,
-                                    errors,
-                                    clearErrors: () => { },
-                                }}
-                                name="item_number"
-                                label="Número do Item"
-                                placeholder="ITEM-001"
-                                required
-                            />
-                            <TextInput
-                                form={{
-                                    data,
-                                    setData,
-                                    errors,
-                                    clearErrors: () => { },
-                                }}
-                                name="name"
-                                label="Nome"
-                                placeholder="Nome do item"
-                                required
-                            />
-                        </div>
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-medium">Informações Básicas</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <TextInput
+                                    ref={itemNumberRef}
+                                    form={{
+                                        data,
+                                        setData,
+                                        errors,
+                                        clearErrors: () => { },
+                                    }}
+                                    name="item_number"
+                                    label="Número do Item"
+                                    placeholder="ITEM-001"
+                                    required
+                                />
+                                <TextInput
+                                    form={{
+                                        data,
+                                        setData,
+                                        errors,
+                                        clearErrors: () => { },
+                                    }}
+                                    name="name"
+                                    label="Nome"
+                                    placeholder="Nome do item"
+                                    required
+                                />
+                            </div>
 
-                        {/* Description */}
-                        <div className="space-y-2">
-                            <Label htmlFor="description" className="text-muted-foreground text-sm">
-                                Descrição
-                            </Label>
-                            <Textarea
-                                id="description"
-                                placeholder="Descrição detalhada do item"
-                                value={data.description}
-                                onChange={(e) => setData('description', e.target.value)}
-                                className="min-h-[80px]"
-                            />
-                            {errors.description && <p className="text-destructive text-sm">{errors.description}</p>}
+                            {/* Description */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="description" className="text-sm font-medium">
+                                    Descrição
+                                </Label>
+                                <Textarea
+                                    id="description"
+                                    placeholder="Descrição detalhada do item"
+                                    value={data.description}
+                                    onChange={(e) => setData('description', e.target.value)}
+                                    className="min-h-[80px] resize-none"
+                                />
+                                {errors.description && <p className="text-destructive text-sm">{errors.description}</p>}
+                            </div>
                         </div>
 
                         {/* Classification */}
-                        <Separator />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-muted-foreground text-sm">
-                                    Categoria
-                                </Label>
-                                <div className="flex gap-2">
-                                    <div className="flex-1">
-                                        <ItemSelect
-                                            items={categories}
-                                            value={data.item_category_id}
-                                            onValueChange={(value) => setData('item_category_id', value)}
-                                            placeholder={loadingCategories ? "Carregando..." : "Selecione a categoria"}
-                                            error={errors.item_category_id}
-                                            disabled={loadingCategories}
-                                        />
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={() => setCategorySheetOpen(true)}
-                                        title="Criar nova categoria"
-                                    >
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                            <ItemSelect
-                                label="Status"
-                                items={itemStatuses}
-                                value={itemStatuses.find(s => s.value === data.status)?.id.toString() || ''}
-                                onValueChange={(value) => {
-                                    const selected = itemStatuses.find(s => s.id.toString() === value);
-                                    if (selected) {
-                                        setData('status', selected.value as ItemForm['status']);
-                                    }
-                                }}
-                                error={errors.status}
-                                required
-                            />
-                        </div>
-
-                        {/* Capabilities */}
-                        <Separator />
                         <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <label className="flex items-center space-x-2">
-                                    <Checkbox
-                                        checked={data.can_be_sold}
-                                        onCheckedChange={(checked) => setData('can_be_sold', !!checked)}
-                                    />
-                                    <span className="text-sm font-medium">Pode ser vendido</span>
-                                </label>
-                                <label className="flex items-center space-x-2">
-                                    <Checkbox
-                                        checked={data.can_be_purchased}
-                                        onCheckedChange={(checked) => setData('can_be_purchased', !!checked)}
-                                    />
-                                    <span className="text-sm font-medium">Pode ser comprado</span>
-                                </label>
-                                <label className="flex items-center space-x-2">
-                                    <Checkbox
-                                        checked={data.can_be_manufactured}
-                                        onCheckedChange={(checked) => setData('can_be_manufactured', !!checked)}
-                                    />
-                                    <span className="text-sm font-medium">Pode ser manufaturado</span>
-                                </label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <ItemSelect
+                                    label="Categoria"
+                                    items={categories}
+                                    value={data.item_category_id}
+                                    onValueChange={(value) => setData('item_category_id', value)}
+                                    onCreateClick={() => setCategorySheetOpen(true)}
+                                    placeholder={loadingCategories ? "Carregando..." : "Selecione a categoria"}
+                                    error={errors.item_category_id}
+                                    disabled={loadingCategories}
+                                    canCreate={true}
+                                />
+                                <ItemSelect
+                                    label="Status"
+                                    items={itemStatuses}
+                                    value={itemStatuses.find(s => s.value === data.status)?.id.toString() || ''}
+                                    onValueChange={(value) => {
+                                        const selected = itemStatuses.find(s => s.id.toString() === value);
+                                        if (selected) {
+                                            setData('status', selected.value as ItemForm['status']);
+                                        }
+                                    }}
+                                    error={errors.status}
+                                    required
+                                />
                             </div>
                         </div>
 
-                        {/* Physical Attributes */}
-                        <Separator />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <TextInput
-                                form={{
-                                    data,
-                                    setData,
-                                    errors,
-                                    clearErrors: () => { },
-                                }}
-                                name="unit_of_measure"
-                                label="Unidade de Medida"
-                                placeholder="EA"
-                            />
-                            <TextInput
-                                form={{
-                                    data,
-                                    setData,
-                                    errors,
-                                    clearErrors: () => { },
-                                }}
-                                name="weight"
-                                label="Peso (kg)"
-                                placeholder="0.00"
-                            />
+                        {/* Physical & Operational Attributes */}
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <TextInput
+                                    form={{
+                                        data,
+                                        setData,
+                                        errors,
+                                        clearErrors: () => { },
+                                    }}
+                                    name="unit_of_measure"
+                                    label="Unidade de Medida"
+                                    placeholder="EA"
+                                />
+                                <TextInput
+                                    form={{
+                                        data,
+                                        setData,
+                                        errors,
+                                        clearErrors: () => { },
+                                    }}
+                                    name="weight"
+                                    label="Peso (kg)"
+                                    placeholder="0.00"
+                                />
+                            </div>
                         </div>
 
-                        {/* Sales Information - Only show if can be sold */}
-                        {data.can_be_sold && (
-                            <>
-                                <Separator />
-                                <h3 className="text-sm font-medium">Informações de Venda</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                                    <TextInput
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="list_price"
-                                        label="Preço de Lista"
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                            </>
-                        )}
+                        {/* Capabilities and Associated Fields */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-medium">Capacidades do Item</h3>
 
-                        {/* Manufacturing Information - Only show if can be manufactured */}
-                        {data.can_be_manufactured && (
-                            <>
-                                <Separator />
-                                <h3 className="text-sm font-medium">Informações de Manufatura</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <TextInput
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="manufacturing_cost"
-                                        label="Custo de Manufatura"
-                                        placeholder="0.00"
-                                    />
-                                    <TextInput
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="manufacturing_lead_time_days"
-                                        label="Lead Time de Manufatura (dias)"
-                                        placeholder="0"
-                                    />
-                                </div>
-                            </>
-                        )}
+                            <div className="space-y-3">
+                                {/* Manufacturing Capability */}
+                                <StateButton
+                                    icon={Factory}
+                                    title="Pode ser manufaturado"
+                                    description="Produzido internamente"
+                                    selected={data.can_be_manufactured}
+                                    onClick={() => {
+                                        if (data.is_phantom) {
+                                            setData('is_phantom', false);
+                                        }
+                                        setData('can_be_manufactured', !data.can_be_manufactured);
+                                    }}
+                                    disabled={data.is_phantom}
+                                    variant="default"
+                                />
+                                {data.can_be_manufactured && (
+                                    <div className="border-l border-gray-200">
+                                        <div className="ml-6 space-y-3">
+                                            <TextInput
+                                                form={{
+                                                    data,
+                                                    setData,
+                                                    errors,
+                                                    clearErrors: () => { },
+                                                }}
+                                                name="manufacturing_cost"
+                                                label="Custo de Manufatura"
+                                                placeholder="0.00"
+                                            />
+                                            <TextInput
+                                                form={{
+                                                    data,
+                                                    setData,
+                                                    errors,
+                                                    clearErrors: () => { },
+                                                }}
+                                                name="manufacturing_lead_time_days"
+                                                label="Lead Time de Manufatura (dias)"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
-                        {/* Purchasing Information - Only show if can be purchased */}
-                        {data.can_be_purchased && (
-                            <>
-                                <Separator />
-                                <h3 className="text-sm font-medium">Informações de Compra</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <TextInput
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="preferred_vendor"
-                                        label="Fornecedor Preferencial"
-                                        placeholder="Nome do fornecedor"
-                                    />
-                                    <TextInput
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="vendor_item_number"
-                                        label="Código do Fornecedor"
-                                        placeholder="Código do item no fornecedor"
-                                    />
-                                    <TextInput
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="purchase_price"
-                                        label="Preço de Compra"
-                                        placeholder="0.00"
-                                    />
-                                    <TextInput
-                                        form={{
-                                            data,
-                                            setData,
-                                            errors,
-                                            clearErrors: () => { },
-                                        }}
-                                        name="purchase_lead_time_days"
-                                        label="Lead Time de Compra (dias)"
-                                        placeholder="0"
-                                    />
-                                </div>
-                            </>
-                        )}
-                    </>
+                                {/* Purchasing Capability */}
+                                <StateButton
+                                    icon={Package}
+                                    title="Pode ser comprado"
+                                    description="Fornecido por terceiros"
+                                    selected={data.can_be_purchased}
+                                    onClick={() => {
+                                        if (data.is_phantom) {
+                                            setData('is_phantom', false);
+                                        }
+                                        setData('can_be_purchased', !data.can_be_purchased);
+                                    }}
+                                    disabled={data.is_phantom}
+                                    variant="default"
+                                />
+                                {data.can_be_purchased && (
+                                    <div className="border-l border-gray-200">
+                                        <div className="ml-6 space-y-3">
+                                            <TextInput
+                                                form={{
+                                                    data,
+                                                    setData,
+                                                    errors,
+                                                    clearErrors: () => { },
+                                                }}
+                                                name="preferred_vendor"
+                                                label="Fornecedores Preferenciais"
+                                                placeholder="Nome dos fornecedores"
+                                            />
+                                            <TextInput
+                                                form={{
+                                                    data,
+                                                    setData,
+                                                    errors,
+                                                    clearErrors: () => { },
+                                                }}
+                                                name="vendor_item_number"
+                                                label="Código do Fornecedor"
+                                                placeholder="Código do item no fornecedor"
+                                            />
+                                            <TextInput
+                                                form={{
+                                                    data,
+                                                    setData,
+                                                    errors,
+                                                    clearErrors: () => { },
+                                                }}
+                                                name="purchase_price"
+                                                label="Preço de Compra"
+                                                placeholder="0.00"
+                                            />
+                                            <TextInput
+                                                form={{
+                                                    data,
+                                                    setData,
+                                                    errors,
+                                                    clearErrors: () => { },
+                                                }}
+                                                name="purchase_lead_time_days"
+                                                label="Lead Time de Compra (dias)"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Sales Capability */}
+                                <StateButton
+                                    icon={ShoppingCart}
+                                    title="Pode ser vendido"
+                                    description="Produto final para clientes"
+                                    selected={data.can_be_sold}
+                                    onClick={() => {
+                                        if (data.is_phantom) {
+                                            setData('is_phantom', false);
+                                        }
+                                        setData('can_be_sold', !data.can_be_sold);
+                                    }}
+                                    disabled={data.is_phantom}
+                                    variant="default"
+                                />
+                                {data.can_be_sold && (
+                                    <div className="border-l border-gray-200">
+                                        <div className="ml-6 space-y-3">
+                                            <TextInput
+                                                form={{
+                                                    data,
+                                                    setData,
+                                                    errors,
+                                                    clearErrors: () => { },
+                                                }}
+                                                name="list_price"
+                                                label="Preço de Lista"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Phantom Item Capability */}
+                                <StateButton
+                                    icon={Ghost}
+                                    title="Item Fantasma"
+                                    description="Apenas para estruturação de BOM"
+                                    selected={data.is_phantom}
+                                    onClick={() => {
+                                        if (!data.is_phantom) {
+                                            // When selecting phantom, deselect all other capabilities
+                                            setData('is_phantom', true);
+                                            setData('can_be_manufactured', false);
+                                            setData('can_be_purchased', false);
+                                            setData('can_be_sold', false);
+                                        } else {
+                                            // When deselecting phantom, just toggle it off
+                                            setData('is_phantom', false);
+                                        }
+                                    }}
+                                    variant="default"
+                                />
+                                {data.is_phantom && (
+                                    <div className="border-l border-gray-200">
+                                        <div className="ml-6 p-3 bg-muted/50 rounded-md">
+                                            <p className="text-sm text-muted-foreground">
+                                                Itens fantasma são usados apenas para organização em listas de materiais e não podem ser vendidos, comprados ou manufaturados.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 )}
             </BaseEntitySheet>
 
