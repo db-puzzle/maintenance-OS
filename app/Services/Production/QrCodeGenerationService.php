@@ -171,8 +171,18 @@ class QrCodeGenerationService
     {
         $path = $this->getQrCodePath($code);
         
-        if (Storage::disk('s3')->exists($path)) {
-            return Storage::disk('s3')->url($path);
+        // Try S3 first
+        try {
+            if (Storage::disk('s3')->exists($path)) {
+                return Storage::disk('s3')->url($path);
+            }
+        } catch (\Exception $e) {
+            // S3 not configured, try local
+        }
+        
+        // Try local storage
+        if (Storage::disk('local')->exists($path)) {
+            return Storage::disk('local')->url($path);
         }
         
         return null;
@@ -236,7 +246,14 @@ class QrCodeGenerationService
     {
         $path = $this->getQrCodePath($code);
         
-        Storage::disk('s3')->put($path, $imageData, 'public');
+        // Try S3 first, fall back to local storage
+        try {
+            Storage::disk('s3')->put($path, $imageData, 'public');
+        } catch (\Exception $e) {
+            // Fall back to local storage if S3 is not configured
+            \Log::warning('Failed to save QR code to S3, using local storage: ' . $e->getMessage());
+            Storage::disk('local')->put($path, $imageData);
+        }
         
         return $path;
     }

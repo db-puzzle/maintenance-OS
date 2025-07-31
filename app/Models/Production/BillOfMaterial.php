@@ -148,4 +148,29 @@ class BillOfMaterial extends Model
             }
         }
     }
+
+    /**
+     * Generate a unique BOM number in the format BOM-YYMM-XXXXX.
+     */
+    public static function generateBomNumber(): string
+    {
+        $year = now()->format('y'); // 2-digit year
+        $month = now()->format('m'); // 2-digit month
+        
+        // Find the last BOM created in the current year and month
+        $lastBom = static::whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($lastBom) {
+            // Extract the sequence number (last 5 digits after 'BOM-YYMM-')
+            $sequence = intval(substr($lastBom->bom_number, -5)) + 1;
+        } else {
+            // No BOMs for current year and month, start at 1
+            $sequence = 1;
+        }
+        
+        return sprintf('BOM-%s%s-%05d', $year, $month, $sequence);
+    }
 }

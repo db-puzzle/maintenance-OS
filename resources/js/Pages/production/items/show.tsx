@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
 import { Head, Link } from '@inertiajs/react';
-import { ShoppingCart, Factory, Package, History, FileText, BarChart3, Boxes, Ghost, QrCode } from 'lucide-react';
+import { ShoppingCart, Factory, Package, History, FileText, BarChart3, Boxes, Ghost, QrCode, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,22 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { ColumnConfig } from '@/types/shared';
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
 import { toast } from 'sonner';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+
+import { Label } from '@/components/ui/label';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface Props {
     item?: Item;
@@ -96,6 +112,7 @@ export default function ItemShow({
     const page = usePage<{
         flash?: {
             success?: string;
+            created_category_id?: number;
         };
         auth: {
             user: any;
@@ -139,12 +156,17 @@ export default function ItemShow({
     const [isCompressed, setIsCompressed] = useState(false);
     const [categorySheetOpen, setCategorySheetOpen] = useState(false);
     const [generatingQr, setGeneratingQr] = useState(false);
+    const [showCategoryWarning, setShowCategoryWarning] = useState(false);
+    const [skipWarningChecked, setSkipWarningChecked] = useState(false);
 
     // Use categories from props instead of loading via AJAX
     const itemCategories = categories || [];
 
     // Ref for auto-focusing the item number input during creation
     const itemNumberInputRef = useRef<HTMLInputElement>(null);
+
+    // Ref for category select
+    const categorySelectRef = useRef<HTMLButtonElement>(null);
 
 
 
@@ -163,7 +185,42 @@ export default function ItemShow({
     // Handle category sheet success - Inertia will reload the page with updated categories
     const handleCategorySheetSuccess = () => {
         setCategorySheetOpen(false);
-        // The page will be reloaded by Inertia with fresh data
+
+        // Check if we're coming from the warning dialog flow
+        const wasFromWarning = showCategoryWarning;
+
+        router.reload({
+            only: ['categories'],
+            onSuccess: (page) => {
+                const updatedCategories = page.props.categories as ItemCategory[];
+                const createdCategoryId = (page.props as any).flash?.created_category_id;
+
+                if (createdCategoryId) {
+                    // If we have the created category ID from flash data, use it directly
+                    setData('item_category_id', createdCategoryId.toString());
+                } else if (updatedCategories && updatedCategories.length > 0) {
+                    // Fallback: Find the newest category (highest ID)
+                    const newestCategory = updatedCategories.reduce((prev, current) =>
+                        (prev.id > current.id) ? prev : current
+                    );
+                    setData('item_category_id', newestCategory.id.toString());
+                }
+
+                // If we came from the warning dialog, submit the form automatically
+                if (wasFromWarning) {
+                    setShowCategoryWarning(false);
+                    // Give React time to update the state
+                    setTimeout(() => {
+                        submitForm();
+                    }, 100);
+                } else {
+                    // Otherwise, just focus the category select
+                    setTimeout(() => {
+                        categorySelectRef.current?.focus();
+                    }, 100);
+                }
+            },
+        });
     };
 
     const handleGenerateQrTag = () => {
@@ -187,8 +244,7 @@ export default function ItemShow({
         }
     }, [qrTag]);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const submitForm = () => {
         if (isCreating) {
             post(route('production.items.store'), {
                 onSuccess: () => {
@@ -208,9 +264,57 @@ export default function ItemShow({
         }
     };
 
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Check if category is empty and warning not skipped
+        const skipWarning = localStorage.getItem('skipCategoryWarning') === 'true';
+        if (!data.item_category_id && !skipWarning) {
+            setShowCategoryWarning(true);
+            return;
+        }
+
+        submitForm();
+    };
+
     const handleDelete = () => {
         if (item && confirm('Tem certeza que deseja excluir este item?')) {
             router.delete(route('production.items.destroy', item.id));
+        }
+    };
+
+    const handleCategoryWarningAction = (action: 'continue' | 'select' | 'create') => {
+        if (skipWarningChecked) {
+            localStorage.setItem('skipCategoryWarning', 'true');
+        }
+
+        switch (action) {
+            case 'continue':
+                // Continue without category
+                setShowCategoryWarning(false);
+                submitForm();
+                break;
+            case 'select':
+                // Close dialog and focus on category select
+                setShowCategoryWarning(false);
+                // Wait for dialog to fully close and aria-hidden to be removed
+                setTimeout(() => {
+                    // First scroll into view
+                    categorySelectRef.current?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                    // Then focus after a small delay
+                    setTimeout(() => {
+                        categorySelectRef.current?.focus();
+                    }, 100);
+                }, 200);
+                break;
+            case 'create':
+                // Close warning dialog and open category creation sheet
+                setShowCategoryWarning(false);
+                setCategorySheetOpen(true);
+                break;
         }
     };
 
@@ -273,18 +377,39 @@ export default function ItemShow({
                         {/* Classification */}
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <ItemSelect
-                                    label="Categoria"
-                                    items={itemCategories}
-                                    value={data.item_category_id}
-                                    onValueChange={(value) => setData('item_category_id', value)}
-                                    onCreateClick={() => setCategorySheetOpen(true)}
-                                    placeholder="Selecione a categoria"
-                                    error={errors.item_category_id}
-                                    disabled={!isEditMode || processing}
-                                    view={!isEditMode}
-                                    canCreate={isEditMode}
-                                />
+                                <div className="space-y-1">
+                                    <div className="space-y-2">
+                                        {isEditMode && (
+                                            <div className="flex items-center gap-1 mb-1">
+                                                <Label className="text-sm font-medium">Categoria</Label>
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Lightbulb className="h-4 w-4 text-yellow-500 cursor-help" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>RECOMENDADO: Categorias ajudam a automatizar ordens de manufatura com rotas pré-configuradas</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
+                                        )}
+                                        <ItemSelect
+                                            ref={categorySelectRef}
+                                            label={!isEditMode ? "Categoria" : undefined}
+                                            items={itemCategories}
+                                            value={data.item_category_id}
+                                            onValueChange={(value) => setData('item_category_id', value)}
+                                            onCreateClick={() => setCategorySheetOpen(true)}
+                                            placeholder={!isEditMode && !data.item_category_id ? "Categoria não selecionada" : "Selecione a categoria"}
+                                            error={errors.item_category_id}
+                                            disabled={!isEditMode || processing}
+                                            view={!isEditMode}
+                                            canCreate={isEditMode}
+                                            canClear={isEditMode}
+                                        />
+                                    </div>
+                                </div>
                                 <ItemSelect
                                     label="Status"
                                     items={itemStatuses}
@@ -705,6 +830,75 @@ export default function ItemShow({
                 onSuccess={handleCategorySheetSuccess}
                 mode="create"
             />
+
+            {/* Category Warning Dialog */}
+            <Dialog open={showCategoryWarning} onOpenChange={setShowCategoryWarning}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Lightbulb className="h-5 w-5 text-yellow-500" />
+                            Criar item sem categoria?
+                        </DialogTitle>
+                        <DialogDescription>
+                            Categorias ajudam a automatizar a criação de ordens de manufatura
+                            atribuindo rotas de produção baseadas em templates pré-configurados.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2 pt-4">
+                        <p className="text-sm text-muted-foreground">
+                            Deseja continuar sem categoria?
+                        </p>
+                    </div>
+
+                    <div className="py-4 space-y-3">
+                        <Button
+                            className="w-full justify-start"
+                            variant="outline"
+                            onClick={() => handleCategoryWarningAction('continue')}
+                        >
+                            Continuar sem categoria
+                        </Button>
+                        <Button
+                            className="w-full justify-start"
+                            variant="outline"
+                            onClick={() => handleCategoryWarningAction('select')}
+                        >
+                            Selecionar categoria existente
+                        </Button>
+                        <Button
+                            className="w-full justify-start"
+                            variant="outline"
+                            onClick={() => handleCategoryWarningAction('create')}
+                        >
+                            Criar nova categoria
+                        </Button>
+
+                        <div className="flex items-center space-x-2 pt-2">
+                            <Checkbox
+                                id="skip-warning"
+                                checked={skipWarningChecked}
+                                onCheckedChange={(checked) => setSkipWarningChecked(!!checked)}
+                            />
+                            <Label
+                                htmlFor="skip-warning"
+                                className="text-sm font-normal cursor-pointer text-muted-foreground"
+                            >
+                                Não mostrar este aviso novamente
+                            </Label>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowCategoryWarning(false)}
+                        >
+                            Cancelar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 } 

@@ -30,7 +30,6 @@ interface Props {
 export default function BomIndex({ boms, filters }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteBom, setDeleteBom] = useState<BillOfMaterial | null>(null);
-    const [showImportDialog, setShowImportDialog] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handleSearchChange = (value: string) => {
@@ -172,7 +171,7 @@ export default function BomIndex({ boms, filters }: Props) {
                 createRoute={route('production.bom.create')}
                 createButtonText="Nova BOM"
                 actions={
-                    <Button variant="outline" onClick={() => setShowImportDialog(true)}>
+                    <Button variant="outline" onClick={() => router.visit(route('production.bom.import.wizard'))}>
                         <Upload className="h-4 w-4 mr-2" />
                         Importar
                     </Button>
@@ -222,8 +221,6 @@ export default function BomIndex({ boms, filters }: Props) {
                 entityLabel={deleteBom ? `a BOM ${deleteBom.name}` : ''}
                 onConfirm={handleDelete}
             />
-
-            {/* Import dialog will be implemented separately */}
         </AppLayout>
     );
 }

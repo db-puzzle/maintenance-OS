@@ -94,10 +94,11 @@ const CreateItemCategorySheet: React.FC<CreateItemCategorySheetProps> = ({
                     name: '',
                     description: '',
                     is_active: true,
-                },
+                } as ItemCategoryForm,
                 createRoute: 'production.categories.store',
                 updateRoute: 'production.categories.update',
                 entityName: 'Categoria de Item',
+                routeParameterName: 'category',
             }}
         >
             {({ data, setData, errors }) => (

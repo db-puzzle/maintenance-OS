@@ -114,7 +114,7 @@ class BillOfMaterialController extends Controller
         $validated['is_active'] = $validated['is_active'] ?? true;
         
         // Generate BOM number automatically
-        $validated['bom_number'] = $this->generateBomNumber();
+        $validated['bom_number'] = BillOfMaterial::generateBomNumber();
         
         DB::transaction(function () use ($validated, &$bom) {
             $bom = BillOfMaterial::create($validated);
@@ -301,7 +301,22 @@ class BillOfMaterialController extends Controller
 
         if ($bom->currentVersion) {
             // Build hierarchical structure for export
-            $exportData['items'] = $this->buildExportHierarchy($bom->currentVersion->rootItems);
+            // Load all BOM items at once to avoid N+1 queries and lazy loading issues
+            $allItems = $bom->currentVersion->items()
+                ->with('item')
+                ->orderBy('sequence_number')
+                ->get();
+            
+            // Group items by parent_item_id for efficient hierarchy building
+            $itemsByParent = $allItems->groupBy('parent_item_id');
+            
+            // Get root items (where parent_item_id is null)
+            $rootItems = $itemsByParent->get(null, collect());
+            
+            // Attach children to each item recursively
+            $this->attachChildren($rootItems, $itemsByParent);
+            
+            $exportData['items'] = $this->buildExportHierarchy($rootItems);
         }
 
         if ($format === 'csv') {
@@ -312,6 +327,25 @@ class BillOfMaterialController extends Controller
             'Content-Type' => 'application/json',
             'Content-Disposition' => 'attachment; filename="' . $bom->bom_number . '.json"'
         ]);
+    }
+
+    /**
+     * Recursively attach children to items for efficient hierarchy building
+     */
+    private function attachChildren($items, $itemsByParent)
+    {
+        foreach ($items as $item) {
+            $children = $itemsByParent->get($item->id, collect());
+            if ($children->isNotEmpty()) {
+                // Create a collection-like object that Laravel can work with
+                $item->setRelation('children', $children);
+                // Recursively attach children to the children
+                $this->attachChildren($children, $itemsByParent);
+            } else {
+                // Set empty collection if no children
+                $item->setRelation('children', collect());
+            }
+        }
     }
 
     /**
@@ -350,6 +384,7 @@ class BillOfMaterialController extends Controller
         $request->validate([
             'file' => 'required|file|mimes:csv,txt,json',
             'mapping' => 'nullable|array',
+            'bom_info' => 'nullable|json',
         ]);
 
         try {
@@ -358,24 +393,35 @@ class BillOfMaterialController extends Controller
             $file = $request->file('file');
             $extension = $file->getClientOriginalExtension();
             
+            // Get BOM info from request
+            $bomInfo = $request->input('bom_info') ? json_decode($request->input('bom_info'), true) : [];
+            
             if ($extension === 'json') {
-                // Handle Inventor JSON import
+                // Handle JSON import
                 $data = json_decode(file_get_contents($file->getRealPath()), true);
-                $bom = $this->importService->importFromInventor($data);
+                
+                // Check if this is a native export format
+                if (isset($data['bom_number']) && isset($data['items']) && is_array($data['items'])) {
+                    // This is our own export format
+                    $bom = $this->importService->importFromNativeJson($data, $bomInfo);
+                } else {
+                    // This is Inventor format
+                    $bom = $this->importService->importFromInventor($data);
+                }
             } else {
                 // Handle CSV import
-                $mapping = $request->input('mapping', []);
-                $bom = $this->importService->importFromCsv($file, $mapping);
+                $mapping = $request->input('mapping') ? json_decode($request->input('mapping'), true) : [];
+                $bom = $this->importService->importFromCsv($file, $mapping, $bomInfo);
             }
             
             DB::commit();
             
             return redirect()->route('production.bom.show', $bom)
-                ->with('success', 'BOM imported successfully.');
+                ->with('success', 'BOM importada com sucesso.');
                 
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+            return back()->withErrors(['file' => 'Falha na importação: ' . $e->getMessage()]);
         }
     }
 
@@ -656,6 +702,15 @@ class BillOfMaterialController extends Controller
             return response()->json(['error' => 'No current version found'], 404);
         }
 
+        // Load all items with their relationships efficiently
+        $allItems = $currentVersion->items()->with('item')->get();
+        $itemsByParent = $allItems->groupBy('parent_item_id');
+        $rootItems = $itemsByParent->get(null, collect());
+        $this->attachChildren($rootItems, $itemsByParent);
+        
+        // Temporarily set the relation for cost calculation
+        $currentVersion->setRelation('rootItems', $rootItems);
+        
         $costData = $this->calculateCostRollup($currentVersion);
 
         return response()->json([
@@ -675,7 +730,14 @@ class BillOfMaterialController extends Controller
 
         // This would typically use a package like Laravel Excel
         // For now, we'll implement CSV export
-        $bom->load('currentVersion.items.item');
+        // Load all items efficiently to avoid lazy loading issues
+        $allItems = $bom->currentVersion->items()->with('item')->get();
+        $itemsByParent = $allItems->groupBy('parent_item_id');
+        $rootItems = $itemsByParent->get(null, collect());
+        $this->attachChildren($rootItems, $itemsByParent);
+        
+        // Set the relation for the flattening process
+        $bom->currentVersion->setRelation('rootItems', $rootItems);
 
         $headers = [
             'Level',
@@ -683,6 +745,7 @@ class BillOfMaterialController extends Controller
             'Item Name',
             'Quantity',
             'Unit',
+            'Parent',
             'Reference Designators',
             'Notes',
         ];
@@ -848,7 +911,7 @@ class BillOfMaterialController extends Controller
     /**
      * Flatten BOM items for export
      */
-    private function flattenBomItems($items, &$data, $indent = '')
+    private function flattenBomItems($items, &$data, $indent = '', $parentItemNumber = '')
     {
         foreach ($items as $item) {
             $data[] = [
@@ -857,38 +920,15 @@ class BillOfMaterialController extends Controller
                 $item->item->name,
                 $item->quantity,
                 $item->unit_of_measure,
+                $parentItemNumber,
                 $item->reference_designators,
                 is_array($item->bom_notes) ? json_encode($item->bom_notes) : $item->bom_notes,
             ];
 
             if ($item->children->isNotEmpty()) {
-                $this->flattenBomItems($item->children, $data, $indent . '  ');
+                $this->flattenBomItems($item->children, $data, $indent . '  ', $item->item->item_number);
             }
         }
     }
 
-    /**
-     * Generate BOM number.
-     */
-    protected function generateBomNumber(): string
-    {
-        $year = now()->format('y'); // 2-digit year
-        $month = now()->format('m'); // 2-digit month
-        
-        // Find the last BOM created in the current year and month
-        $lastBom = BillOfMaterial::whereYear('created_at', now()->year)
-            ->whereMonth('created_at', now()->month)
-            ->orderBy('id', 'desc')
-            ->first();
-
-        if ($lastBom) {
-            // Extract the sequence number (5 digits after 'BOM-')
-            $sequence = intval(substr($lastBom->bom_number, 4, 5)) + 1;
-        } else {
-            // No BOMs for current year and month, start at 1
-            $sequence = 1;
-        }
-        
-        return sprintf('BOM-%05d-%s%s', $sequence, $year, $month);
-    }
-} 
+}

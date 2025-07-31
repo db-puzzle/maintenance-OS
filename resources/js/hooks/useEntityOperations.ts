@@ -16,6 +16,7 @@ interface UseEntityOperationsProps {
         destroy: string;
         checkDependencies?: string;
     };
+    routeParameterName?: string; // Optional parameter name for routes (defaults to 'id')
 }
 
 interface UseEntityOperationsReturn<T> {
@@ -43,6 +44,7 @@ export function useEntityOperations<T extends BaseEntity>({
     entityName,
     entityLabel,
     routes,
+    routeParameterName = 'id',
 }: UseEntityOperationsProps): UseEntityOperationsReturn<T> {
     const [editingItem, setEditingItem] = useState<T | null>(null);
     const [deletingItem, setDeletingItem] = useState<T | null>(null);
@@ -56,7 +58,8 @@ export function useEntityOperations<T extends BaseEntity>({
     const handleEdit = async (item: T) => {
         setLoadingEdit(true);
         try {
-            const response = await axios.get(route(routes.show, { id: item.id }));
+            const routeParams = { [routeParameterName]: item.id };
+            const response = await axios.get(route(routes.show, routeParams));
             const data = response.data;
 
             // Extract the entity data from the response
@@ -84,7 +87,8 @@ export function useEntityOperations<T extends BaseEntity>({
 
         try {
             if (routes.checkDependencies) {
-                const response = await fetch(route(routes.checkDependencies, { id: item.id }));
+                const routeParams = { [routeParameterName]: item.id };
+                const response = await fetch(route(routes.checkDependencies, routeParams));
                 const data = await response.json();
                 setDependencies(data);
 
@@ -112,7 +116,8 @@ export function useEntityOperations<T extends BaseEntity>({
         if (!deletingItem) return;
 
         return new Promise<void>((resolve, reject) => {
-            router.delete(route(routes.destroy, { id: deletingItem.id }), {
+            const routeParams = { [routeParameterName]: deletingItem.id };
+            router.delete(route(routes.destroy, routeParams), {
                 onSuccess: () => {
                     toast.success(`${entityLabel} excluído com sucesso`);
                     setDeleteDialogOpen(false);
@@ -135,7 +140,8 @@ export function useEntityOperations<T extends BaseEntity>({
             throw new Error('No item selected or dependencies route not configured');
         }
 
-        const response = await fetch(route(routes.checkDependencies, { id: deletingItem.id }));
+        const routeParams = { [routeParameterName]: deletingItem.id };
+        const response = await fetch(route(routes.checkDependencies, routeParams));
         return response.json();
     };
 

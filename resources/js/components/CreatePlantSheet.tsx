@@ -120,6 +120,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                 createRoute: 'asset-hierarchy.plants.store',
                 updateRoute: 'asset-hierarchy.plants.update',
                 entityName: 'Planta',
+                routeParameterName: 'plant',
             }}
         >
             {({ data, setData, errors }) => (

@@ -16,7 +16,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('production')->name('production.')->group(function () {
     // Item Categories Management
-    Route::resource('categories', ItemCategoryController::class)->except(['edit', 'show']);
+    Route::get('categories', [ItemCategoryController::class, 'index'])->name('categories.index');
+    Route::post('categories', [ItemCategoryController::class, 'store'])->name('categories.store');
+    Route::get('categories/{category}', [ItemCategoryController::class, 'show'])->name('categories.show');
+    Route::put('categories/{category}', [ItemCategoryController::class, 'update'])->name('categories.update');
+    Route::delete('categories/{category}', [ItemCategoryController::class, 'destroy'])->name('categories.destroy');
+    Route::get('categories/{category}/check-dependencies', [ItemCategoryController::class, 'checkDependencies'])->name('categories.check-dependencies');
 
 
     // Items Management

@@ -13,7 +13,7 @@ class ItemCategoryPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('production.categories.view');
+        return $user->hasPermissionTo('production.categories.viewAny');
     }
 
     /**
@@ -21,7 +21,7 @@ class ItemCategoryPolicy
      */
     public function view(User $user, ItemCategory $itemCategory): bool
     {
-        return $user->hasPermission('production.categories.view');
+        return $user->hasPermissionTo('production.categories.view');
     }
 
     /**
@@ -29,7 +29,7 @@ class ItemCategoryPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermission('production.categories.create');
+        return $user->hasPermissionTo('production.categories.create');
     }
 
     /**
@@ -37,7 +37,7 @@ class ItemCategoryPolicy
      */
     public function update(User $user, ItemCategory $itemCategory): bool
     {
-        return $user->hasPermission('production.categories.update');
+        return $user->hasPermissionTo('production.categories.update');
     }
 
     /**
@@ -50,7 +50,7 @@ class ItemCategoryPolicy
             return false;
         }
 
-        return $user->hasPermission('production.categories.delete');
+        return $user->hasPermissionTo('production.categories.delete');
     }
 
     /**
@@ -58,7 +58,7 @@ class ItemCategoryPolicy
      */
     public function restore(User $user, ItemCategory $itemCategory): bool
     {
-        return $user->hasPermission('production.categories.restore');
+        return false;
     }
 
     /**
@@ -66,6 +66,6 @@ class ItemCategoryPolicy
      */
     public function forceDelete(User $user, ItemCategory $itemCategory): bool
     {
-        return $user->hasPermission('production.categories.force-delete');
+        return false;
     }
 } 

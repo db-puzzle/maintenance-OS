@@ -69,6 +69,10 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/production/work-cells',
                 },
                 {
+                    title: 'Categorias de Itens',
+                    href: '/production/categories',
+                },
+                {
                     title: 'Planejamento',
                     href: '/production/planning',
                 },

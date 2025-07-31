@@ -1,0 +1,13 @@
+Código do Item,Nome/Descrição,Quantidade,Unidade de Medida,Nível,Item Pai,Descrição Detalhada,Designadores de Referência
+PROD-001,Produto Final Montado,1,UN,0,,,
+CONJ-001,Conjunto Principal,1,UN,1,PROD-001,Conjunto principal do produto,
+ITEM-001,Placa de Circuito,1,UN,2,CONJ-001,Placa de circuito impresso principal,
+ITEM-002,Resistor 10K,4,UN,3,ITEM-001,Resistor 10K Ohm 1/4W,R1;R2;R3;R4
+ITEM-003,Capacitor 100uF,2,UN,3,ITEM-001,Capacitor eletrolítico 100uF 25V,C1;C2
+ITEM-004,Microcontrolador,1,UN,3,ITEM-001,Microcontrolador ATMEGA328P,U1
+CONJ-002,Carcaça,1,UN,1,PROD-001,Conjunto da carcaça plástica,
+ITEM-005,Tampa Superior,1,UN,2,CONJ-002,Tampa superior em ABS,
+ITEM-006,Base Inferior,1,UN,2,CONJ-002,Base inferior em ABS,
+ITEM-007,Parafuso M3x10,8,UN,2,CONJ-002,Parafuso Phillips M3x10mm,
+ITEM-008,Etiqueta Produto,1,UN,1,PROD-001,Etiqueta de identificação do produto,
+ITEM-009,Manual de Instruções,1,UN,1,PROD-001,Manual de instruções em português,

@@ -356,10 +356,11 @@ class ManufacturingOrder extends Model
 
     /**
      * Check if order can be cancelled.
+     * Draft orders should be deleted, not cancelled.
      */
     public function canBeCancelled(): bool
     {
-        return !in_array($this->status, ['completed', 'cancelled']);
+        return !in_array($this->status, ['draft', 'completed', 'cancelled']);
     }
 
     /**

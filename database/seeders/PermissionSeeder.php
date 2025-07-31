@@ -417,6 +417,40 @@ class PermissionSeeder extends Seeder
                 ]
             ];
 
+            // Production Item Category permissions
+            $itemCategoryPermissions = [
+                [
+                    'name' => 'production.categories.viewAny',
+                    'display_name' => 'View Item Categories List',
+                    'description' => 'View list of all item categories',
+                    'sort_order' => 95
+                ],
+                [
+                    'name' => 'production.categories.view',
+                    'display_name' => 'View Item Category Details',
+                    'description' => 'View item category details',
+                    'sort_order' => 96
+                ],
+                [
+                    'name' => 'production.categories.create',
+                    'display_name' => 'Create Item Categories',
+                    'description' => 'Create new item categories',
+                    'sort_order' => 97
+                ],
+                [
+                    'name' => 'production.categories.update',
+                    'display_name' => 'Update Item Categories',
+                    'description' => 'Update item category information',
+                    'sort_order' => 98
+                ],
+                [
+                    'name' => 'production.categories.delete',
+                    'display_name' => 'Delete Item Categories',
+                    'description' => 'Delete item categories',
+                    'sort_order' => 99
+                ]
+            ];
+
             // Production QR Code permissions
             $qrCodePermissions = [
                 [
@@ -504,6 +538,7 @@ class PermissionSeeder extends Seeder
                 $skillsPermissions,
                 $certificationsPermissions,
                 $workCellPermissions,
+                $itemCategoryPermissions,
                 $qrCodePermissions
             );
 

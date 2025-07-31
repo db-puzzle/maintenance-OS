@@ -85,14 +85,14 @@ class ManufacturingOrderService
             ->first();
 
         if ($lastOrder) {
-            // Extract the sequence number (5 digits after 'MO-')
-            $sequence = intval(substr($lastOrder->order_number, 3, 5)) + 1;
+            // Extract the sequence number (5 digits after 'MO-YYMM-')
+            $sequence = intval(substr($lastOrder->order_number, 8, 5)) + 1;
         } else {
             // No orders for current year and month, start at 1
             $sequence = 1;
         }
         
-        return sprintf('MO-%05d-%s%s', $sequence, $year, $month);
+        return sprintf('MO-%s%s-%05d', $year, $month, $sequence);
     }
 
     /**
@@ -304,7 +304,10 @@ class ManufacturingOrderService
     public function cancelOrder(ManufacturingOrder $order): void
     {
         if (!$order->canBeCancelled()) {
-            throw new \Exception('Order cannot be cancelled');
+            if ($order->status === 'draft') {
+                throw new \Exception('Draft orders cannot be cancelled. They should be deleted instead.');
+            }
+            throw new \Exception('Order cannot be cancelled in its current status.');
         }
 
         DB::transaction(function () use ($order) {

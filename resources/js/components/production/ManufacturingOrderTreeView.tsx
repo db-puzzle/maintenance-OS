@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     Package,
-    CheckCircle,
-    Clock,
-    AlertCircle,
-    Play,
-    FileText,
-    XCircle,
     ArrowRight,
     Route,
     MoreVertical,
     Trash2,
     Settings,
+    Play,
+    XCircle,
+    Edit,
+    Eye,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import TreeView, { TreeNode } from '@/components/shared/TreeView';
@@ -32,6 +29,16 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import RouteTemplateSelectionDialog from '@/components/production/RouteTemplateSelectionDialog';
 import { toast } from 'sonner';
 
@@ -49,41 +56,7 @@ interface ManufacturingOrderTreeViewProps {
     canManageRoutes?: boolean;
 }
 
-const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
-    switch (status) {
-        case 'draft':
-            return 'secondary';
-        case 'planned':
-            return 'outline';
-        case 'released':
-        case 'in_progress':
-        case 'completed':
-            return 'default';
-        case 'cancelled':
-            return 'destructive';
-        default:
-            return 'secondary';
-    }
-};
 
-const getStatusIcon = (status: string) => {
-    switch (status) {
-        case 'draft':
-            return <FileText className="h-3 w-3" />;
-        case 'planned':
-            return <Clock className="h-3 w-3" />;
-        case 'released':
-            return <Play className="h-3 w-3" />;
-        case 'in_progress':
-            return <Clock className="h-3 w-3" />;
-        case 'completed':
-            return <CheckCircle className="h-3 w-3" />;
-        case 'cancelled':
-            return <XCircle className="h-3 w-3" />;
-        default:
-            return <AlertCircle className="h-3 w-3" />;
-    }
-};
 
 export default function ManufacturingOrderTreeView({
     orders,
@@ -94,8 +67,21 @@ export default function ManufacturingOrderTreeView({
     routeTemplates = [],
     canManageRoutes = false
 }: ManufacturingOrderTreeViewProps) {
+    const { props } = usePage();
+    const auth = props.auth as any;
+    const userPermissions = auth?.permissions || [];
+
     const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
     const [selectedOrderForRoute, setSelectedOrderForRoute] = useState<ManufacturingOrderTreeNode | null>(null);
+    const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
+    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+    const [selectedOrderForAction, setSelectedOrderForAction] = useState<ManufacturingOrderTreeNode | null>(null);
+
+    // Check permissions
+    const canReleaseOrders = userPermissions.includes('production.orders.release');
+    const canCancelOrders = userPermissions.includes('production.orders.cancel');
+    const canUpdateOrders = userPermissions.includes('production.orders.update');
+    const canDeleteOrders = userPermissions.includes('production.orders.delete');
 
     const handleApplyTemplate = (order: ManufacturingOrderTreeNode) => {
         setSelectedOrderForRoute(order);
@@ -108,11 +94,12 @@ export default function ManufacturingOrderTreeView({
         router.post(route('production.orders.apply-template', selectedOrderForRoute.id), {
             template_id: templateId
         }, {
-            preserveScroll: true,
+            preserveScroll: false, // Allow page to reload properly
             onSuccess: () => {
                 toast.success('Template de rota aplicado com sucesso');
                 setTemplateDialogOpen(false);
                 setSelectedOrderForRoute(null);
+                // The controller will redirect to the show page with openRouteBuilder=1
             },
             onError: () => {
                 toast.error('Erro ao aplicar template de rota');
@@ -121,7 +108,8 @@ export default function ManufacturingOrderTreeView({
     };
 
     const handleCreateCustomRoute = (order: ManufacturingOrderTreeNode) => {
-        router.visit(route('production.orders.show', order.id) + '?tab=route');
+        // Navigate to the order's show page, specifically to the routes tab
+        router.visit(route('production.orders.show', order.id) + '?openRouteBuilder=1');
     };
 
     const handleRemoveRoute = (order: ManufacturingOrderTreeNode) => {
@@ -138,6 +126,69 @@ export default function ManufacturingOrderTreeView({
                 }
             });
         }
+    };
+
+    const handleReleaseOrder = (order: ManufacturingOrderTreeNode) => {
+        setSelectedOrderForAction(order);
+        setReleaseDialogOpen(true);
+    };
+
+    const confirmReleaseOrder = () => {
+        if (!selectedOrderForAction) return;
+
+        router.post(route('production.orders.release', selectedOrderForAction.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Ordem de manufatura liberada para produção');
+                setReleaseDialogOpen(false);
+                setSelectedOrderForAction(null);
+            },
+            onError: () => {
+                toast.error('Erro ao liberar ordem de manufatura');
+            }
+        });
+    };
+
+    const handleCancelOrder = (order: ManufacturingOrderTreeNode) => {
+        setSelectedOrderForAction(order);
+        setCancelDialogOpen(true);
+    };
+
+    const confirmCancelOrder = () => {
+        if (!selectedOrderForAction) return;
+
+        router.post(route('production.orders.cancel', selectedOrderForAction.id), {
+            reason: 'Cancelled from tree view'
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Ordem de manufatura cancelada');
+                setCancelDialogOpen(false);
+                setSelectedOrderForAction(null);
+            },
+            onError: () => {
+                toast.error('Erro ao cancelar ordem de manufatura');
+            }
+        });
+    };
+
+    const canBeReleased = (order: ManufacturingOrderTreeNode): boolean => {
+        // Check if order is in draft or planned status and has a route with steps
+        return ['draft', 'planned'].includes(order.status) &&
+            !!order.manufacturing_route &&
+            !!order.manufacturing_route.steps &&
+            order.manufacturing_route.steps.length > 0;
+    };
+
+    const canBeCancelled = (order: ManufacturingOrderTreeNode): boolean => {
+        // Order can be cancelled only if it's past draft status and not completed or already cancelled
+        // Draft orders should be deleted, not cancelled
+        return !['draft', 'completed', 'cancelled'].includes(order.status);
+    };
+
+    const canBeDeleted = (order: ManufacturingOrderTreeNode): boolean => {
+        // Only draft orders without children can be deleted
+        return order.status === 'draft' && (!order.children || order.children.length === 0);
     };
 
     const defaultEmptyState = (
@@ -157,8 +208,8 @@ export default function ManufacturingOrderTreeView({
             <div className="col-span-1 text-right">Qty</div>
             <div className="col-span-1">Unit</div>
             <div className="col-span-2 text-center">Route Name</div>
-            <div className="col-span-1 text-center">Route</div>
             <div className="col-span-1 text-center">Status</div>
+            <div className="col-span-1 text-center">Actions</div>
         </div>
     );
 
@@ -221,9 +272,14 @@ export default function ManufacturingOrderTreeView({
                         </div>
                     </div>
 
+                    {/* Status */}
+                    <div className="col-span-1 flex items-center justify-center">
+                        <span className="text-sm font-medium">{node.status.toUpperCase()}</span>
+                    </div>
+
                     {/* Route */}
                     <div className="col-span-1 flex items-center justify-center">
-                        {canManageNodeRoute ? (
+                        {canManageNodeRoute || canReleaseOrders || canCancelOrders || canUpdateOrders || canDeleteOrders ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
@@ -232,44 +288,103 @@ export default function ManufacturingOrderTreeView({
                                         className="h-8 w-8"
                                         onClick={(e) => e.stopPropagation()}
                                     >
-                                        {node.manufacturing_route ? (
-                                            node.manufacturing_route.steps && node.manufacturing_route.steps.length > 0 ? (
-                                                <Route className="h-4 w-4 text-foreground" />
-                                            ) : (
-                                                <Route className="h-4 w-4 text-red-600" />
-                                            )
-                                        ) : (
-                                            <MoreVertical className="h-4 w-4" />
-                                        )}
+                                        <MoreVertical className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-55">
-                                    {!node.manufacturing_route && (
+                                    {/* View Details */}
+                                    <DropdownMenuItem asChild>
+                                        <Link href={route('production.orders.show', node.id)}>
+                                            <Eye className="h-4 w-4 mr-2" />
+                                            Ver Detalhes
+                                        </Link>
+                                    </DropdownMenuItem>
+
+                                    {/* Edit (only for draft/planned) */}
+                                    {canUpdateOrders && ['draft', 'planned'].includes(node.status) && (
+                                        <DropdownMenuItem asChild>
+                                            <Link href={route('production.orders.edit', node.id)}>
+                                                <Edit className="h-4 w-4 mr-2" />
+                                                Editar Ordem
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )}
+
+                                    {/* Route Management Section */}
+                                    {canManageNodeRoute && (
                                         <>
-                                            <DropdownMenuItem onClick={() => handleApplyTemplate(node)}>
-                                                <Route className="h-4 w-4 mr-2" />
-                                                Aplicar Template
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleCreateCustomRoute(node)}>
-                                                <Settings className="h-4 w-4 mr-2" />
-                                                Criar Rota Customizada
-                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            {!node.manufacturing_route && (
+                                                <>
+                                                    <DropdownMenuItem onClick={() => handleApplyTemplate(node)}>
+                                                        <Route className="h-4 w-4 mr-2" />
+                                                        Aplicar Template
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleCreateCustomRoute(node)}>
+                                                        <Settings className="h-4 w-4 mr-2" />
+                                                        Criar Rota Customizada
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
+                                            {node.manufacturing_route && (
+                                                <>
+                                                    <DropdownMenuItem onClick={() => handleCreateCustomRoute(node)}>
+                                                        <Settings className="h-4 w-4 mr-2" />
+                                                        Editar Rota
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="text-destructive"
+                                                        onClick={() => handleRemoveRoute(node)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4 mr-2" />
+                                                        Remover Rota
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
                                         </>
                                     )}
-                                    {node.manufacturing_route && (
+
+                                    {/* Status Change Actions */}
+                                    {(canReleaseOrders || canCancelOrders || canDeleteOrders) && (
                                         <>
-                                            <DropdownMenuItem onClick={() => handleCreateCustomRoute(node)}>
-                                                <Settings className="h-4 w-4 mr-2" />
-                                                Editar Rota
-                                            </DropdownMenuItem>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                variant="destructive"
-                                                onClick={() => handleRemoveRoute(node)}
-                                            >
-                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                Remover Rota
-                                            </DropdownMenuItem>
+
+                                            {/* Release Order (for draft/planned with route) */}
+                                            {canReleaseOrders && canBeReleased(node) && (
+                                                <DropdownMenuItem onClick={() => handleReleaseOrder(node)}>
+                                                    <Play className="h-4 w-4 mr-2" />
+                                                    Liberar para Produção
+                                                </DropdownMenuItem>
+                                            )}
+
+                                            {/* Delete Order (only for draft orders without children) */}
+                                            {canDeleteOrders && canBeDeleted(node) && (
+                                                <DropdownMenuItem
+                                                    className="text-destructive"
+                                                    onClick={() => {
+                                                        if (confirm('Tem certeza que deseja excluir esta ordem de manufatura em rascunho?')) {
+                                                            router.delete(route('production.orders.destroy', node.id), {
+                                                                onSuccess: () => toast.success('Ordem excluída com sucesso'),
+                                                                onError: () => toast.error('Erro ao excluir ordem')
+                                                            });
+                                                        }
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    Excluir Ordem
+                                                </DropdownMenuItem>
+                                            )}
+
+                                            {/* Cancel Order (only for non-draft, non-completed, non-cancelled) */}
+                                            {canCancelOrders && canBeCancelled(node) && (
+                                                <DropdownMenuItem
+                                                    className="text-destructive"
+                                                    onClick={() => handleCancelOrder(node)}
+                                                >
+                                                    <XCircle className="h-4 w-4 mr-2" />
+                                                    Cancelar Ordem
+                                                </DropdownMenuItem>
+                                            )}
                                         </>
                                     )}
                                 </DropdownMenuContent>
@@ -304,17 +419,6 @@ export default function ManufacturingOrderTreeView({
                                 </Tooltip>
                             </TooltipProvider>
                         )}
-                    </div>
-
-                    {/* Status */}
-                    <div className="col-span-1 flex items-center justify-center">
-                        <Badge
-                            variant={getStatusBadgeVariant(node.status)}
-                            className="flex items-center gap-1"
-                        >
-                            {getStatusIcon(node.status)}
-                            <span className="text-xs">{node.status}</span>
-                        </Badge>
                     </div>
                 </div>
 
@@ -380,6 +484,52 @@ export default function ManufacturingOrderTreeView({
                     onSelectTemplate={handleTemplateSelect}
                 />
             )}
+
+            {/* Release Confirmation Dialog */}
+            <AlertDialog open={releaseDialogOpen} onOpenChange={setReleaseDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Liberar Ordem para Produção</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tem certeza que deseja liberar a ordem <strong>{selectedOrderForAction?.order_number}</strong> para produção?
+                            <br /><br />
+                            Esta ação irá disponibilizar a ordem para execução no chão de fábrica.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmReleaseOrder}>
+                            Liberar Ordem
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Cancel Confirmation Dialog */}
+            <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Cancelar Ordem de Manufatura</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tem certeza que deseja cancelar a ordem <strong>{selectedOrderForAction?.order_number}</strong> (Status: {selectedOrderForAction?.status})?
+                            <br /><br />
+                            Esta ação é usada para ordens que já foram iniciadas mas precisam ser interrompidas.
+                            A ordem não poderá mais ser executada após o cancelamento.
+                            <br /><br />
+                            <strong>Nota:</strong> Ordens em rascunho devem ser excluídas, não canceladas.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmCancelOrder}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Cancelar Ordem
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 } 

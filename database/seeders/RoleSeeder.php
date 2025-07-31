@@ -85,6 +85,7 @@ class RoleSeeder extends Seeder
                 'certifications.update',
                 'certifications.delete',
                 // Production category permissions
+                'production.categories.viewAny',
                 'production.categories.view',
                 'production.categories.create',
                 'production.categories.update',
@@ -181,6 +182,7 @@ class RoleSeeder extends Seeder
                 'certifications.update',
                 'certifications.delete',
                 // Production category permissions
+                'production.categories.viewAny',
                 'production.categories.view',
                 'production.categories.create',
                 'production.categories.update',
@@ -221,6 +223,7 @@ class RoleSeeder extends Seeder
                 'parts.manage-stock',
                 'parts.export',
                 // Production category permissions
+                'production.categories.viewAny',
                 'production.categories.view',
                 // Work Cell permissions
                 'production.work-cells.viewAny',
@@ -254,6 +257,7 @@ class RoleSeeder extends Seeder
                 'certifications.viewAny',
                 'certifications.view',
                 // Production category permissions (view only)
+                'production.categories.viewAny',
                 'production.categories.view',
                 // Work Cell permissions (view only)
                 'production.work-cells.viewAny',
@@ -304,6 +308,7 @@ class RoleSeeder extends Seeder
                 'certifications.viewAny',
                 'certifications.view',
                 // Production category permissions (view only)
+                'production.categories.viewAny',
                 'production.categories.view',
                 // Work Cell permissions (view only)
                 'production.work-cells.viewAny',

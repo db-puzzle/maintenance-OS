@@ -311,6 +311,11 @@ class ManufacturingOrderController extends Controller
     {
         $this->authorize('cancel', $order);
 
+        // Explicitly check that draft orders cannot be cancelled
+        if ($order->status === 'draft') {
+            return back()->with('error', 'Draft orders cannot be cancelled. They should be deleted instead.');
+        }
+
         $request->validate([
             'reason' => 'required|string|max:500',
         ]);
@@ -393,7 +398,11 @@ class ManufacturingOrderController extends Controller
         // Create steps from template
         $route->createFromTemplate($template);
 
-        return back()->with('success', 'Route template applied successfully.');
+        // Force reload the order data to ensure route is loaded
+        $order->load('manufacturingRoute.steps');
+
+        return redirect()->route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1])
+            ->with('success', 'Route template applied successfully.');
     }
 
     /**

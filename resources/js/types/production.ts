@@ -9,17 +9,25 @@ export interface ItemCategory {
     is_active: boolean;
     items_count?: number;
     created_by?: number;
+    createdBy?: User;
     created_at: string;
     updated_at: string;
 }
 
 export interface Item {
     id: number;
+    code: string;
     item_number: string;
     name: string;
     description?: string;
     item_category_id?: number;
     category?: ItemCategory;
+    unit_id?: number;
+    unit?: {
+        id: number;
+        name: string;
+        abbreviation: string;
+    };
     // item_type: 'manufactured' | 'purchased' | 'manufactured-purchased' | 'phantom' | 'service'; // DEPRECATED - now determined by capabilities
     can_be_sold: boolean;
     can_be_purchased: boolean;

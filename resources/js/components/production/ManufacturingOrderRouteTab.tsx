@@ -75,7 +75,10 @@ export default function ManufacturingOrderRouteTab({
 
     // Determine the correct view mode
     const determineViewMode = (): ViewMode => {
-        if (shouldStartInBuilder) return 'builder';
+        // Check if we have the necessary data
+        if (!order || !order.id) return 'empty';
+
+        if (shouldStartInBuilder && order.manufacturing_route) return 'builder';
         if (order.manufacturing_route) return 'routeViewer';
         return 'empty';
     };
@@ -92,7 +95,7 @@ export default function ManufacturingOrderRouteTab({
         if (viewMode !== correctMode) {
             setViewMode(correctMode);
         }
-    }, [order.manufacturing_route?.id, openRouteBuilderParam, flash?.openRouteBuilder]);
+    }, [order?.id, order?.manufacturing_route?.id, openRouteBuilderParam, flash?.openRouteBuilder]);
 
     // Clean up URL param after using it
     useEffect(() => {
@@ -207,6 +210,15 @@ export default function ManufacturingOrderRouteTab({
 
 
     // Route Creation Dialog
+    // Add a loading state check
+    if (!order || !order.id) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-muted-foreground">Carregando...</div>
+            </div>
+        );
+    }
+
     return (
         <>
             {/* Main content rendering */}

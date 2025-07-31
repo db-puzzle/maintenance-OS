@@ -30,6 +30,7 @@ export interface BaseEntitySheetProps<TFormData extends FormDataType> {
         createRoute: string;
         updateRoute?: string;
         entityName: string;
+        routeParameterName?: string; // Optional parameter name for routes
         sheetTitle?: {
             create?: string;
             edit?: string;
@@ -126,7 +127,9 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
 
         if (isEditMode && formConfig.updateRoute) {
             const entityId = (entity as Record<string, unknown>).id as string | number;
-            put(route(formConfig.updateRoute, entityId), {
+            const paramName = formConfig.routeParameterName || 'id';
+            const routeParams = { [paramName]: entityId };
+            put(route(formConfig.updateRoute, routeParams), {
                 ...submitData,
                 onSuccess: () => {
                     toast.success(successMessage);
