@@ -32,13 +32,23 @@ class QrTagController extends Controller
         ]);
     }
 
-    public function generateItemTag(Item $item)
+    public function generateItemTag(Request $request, Item $item)
     {
         $this->authorize('view', $item);
         $this->authorize('production.qr-tags.generate');
         
         $pdfUrl = $this->pdfService->generateItemTag($item);
         
+        // If this is an Inertia request, redirect back with success message
+        if ($request->header('X-Inertia')) {
+            return back()->with('qrTag', [
+                'success' => true,
+                'pdf_url' => $pdfUrl,
+                'preview_url' => route('production.qr-tags.preview', ['type' => 'item', 'id' => $item->id])
+            ]);
+        }
+        
+        // Fallback to JSON response for non-Inertia requests
         return response()->json([
             'success' => true,
             'pdf_url' => $pdfUrl,

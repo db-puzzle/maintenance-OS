@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Item, ItemCategory } from '@/types/production';
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
 import { Factory, Package, ShoppingCart, Ghost } from 'lucide-react';
-import axios from 'axios';
+import { router } from '@inertiajs/react';
 
 interface ItemForm {
     [key: string]: string | number | boolean | null | undefined;
@@ -38,6 +38,8 @@ interface CreateItemSheetProps {
     onOpenChange: (open: boolean) => void;
     mode: 'create' | 'edit';
     onSuccess?: () => void;
+    categories?: ItemCategory[];
+    onCategoriesRefresh?: () => void;
 }
 
 const itemStatuses = [
@@ -47,32 +49,35 @@ const itemStatuses = [
     { id: 4, name: 'Descontinuado', value: 'discontinued' }
 ];
 
-const CreateItemSheet: React.FC<CreateItemSheetProps> = ({ item, open, onOpenChange, mode, onSuccess }) => {
+const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
+    item,
+    open,
+    onOpenChange,
+    mode,
+    onSuccess,
+    categories: propCategories,
+    onCategoriesRefresh
+}) => {
     const itemNumberRef = useRef<HTMLInputElement>(null);
-    const [categories, setCategories] = useState<ItemCategory[]>([]);
-    const [loadingCategories, setLoadingCategories] = useState(true);
     const [categorySheetOpen, setCategorySheetOpen] = useState(false);
 
-    // Load categories
-    const loadCategories = async () => {
-        try {
-            const response = await axios.get(route('production.categories.active'));
-            setCategories(response.data);
-        } catch (error) {
-            console.error('Failed to load categories:', error);
-        } finally {
-            setLoadingCategories(false);
-        }
-    };
+    // Use categories from props
+    const categories = propCategories || [];
+    const loadingCategories = false;
 
-    useEffect(() => {
-        loadCategories();
-    }, []);
-
-    // Reload categories when category sheet closes successfully
+    // Handle category sheet success
     const handleCategorySheetSuccess = () => {
-        loadCategories();
         setCategorySheetOpen(false);
+
+        // If parent provided a refresh callback, use it
+        if (onCategoriesRefresh) {
+            onCategoriesRefresh();
+        } else if (!propCategories) {
+            // Otherwise, reload the page to get fresh categories
+            router.reload({
+                only: ['categories']
+            });
+        }
     };
 
     // Auto-focus the item number input when sheet opens for creation

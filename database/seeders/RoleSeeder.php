@@ -58,6 +58,11 @@ class RoleSeeder extends Seeder
                 'work-orders.plan',
                 'work-orders.validate',
                 'work-orders.cancel',
+                // Production permissions
+                'production.orders.create',
+                'production.orders.release',
+                'production.orders.cancel',
+                'production.routes.create',
                 // Parts permissions
                 'parts.viewAny',
                 'parts.view',

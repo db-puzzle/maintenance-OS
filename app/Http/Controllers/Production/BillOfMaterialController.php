@@ -7,6 +7,7 @@ use App\Models\Production\BillOfMaterial;
 use App\Models\Production\BomVersion;
 use App\Models\Production\BomItem;
 use App\Models\Production\Item;
+use App\Models\Production\ItemCategory;
 use App\Services\Production\BomImportService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -74,8 +75,14 @@ class BillOfMaterialController extends Controller
             ->orderBy('item_number')
             ->get(['id', 'item_number', 'name', 'unit_of_measure', 'can_be_manufactured', 'is_active']);
 
+        // Load categories for CreateItemSheet
+        $categories = ItemCategory::active()
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('production/bom/show', [
             'items' => $items,
+            'categories' => $categories,
             'isCreating' => true,
             'can' => [
                 'update' => false,
@@ -163,6 +170,11 @@ class BillOfMaterialController extends Controller
             ->orderBy('item_number')
             ->get(['id', 'item_number', 'name', 'unit_of_measure', 'can_be_manufactured', 'is_active']);
 
+        // Load categories for CreateItemSheet
+        $categories = ItemCategory::active()
+            ->orderBy('name')
+            ->get();
+
         // Ensure currentVersion items are properly loaded and formatted
         if ($bom->currentVersion) {
             $bom->currentVersion->load(['items.item', 'items.children.item']);
@@ -171,6 +183,7 @@ class BillOfMaterialController extends Controller
         return Inertia::render('production/bom/show', [
             'bom' => $bom,
             'items' => $items,
+            'categories' => $categories,
             'isCreating' => false,
             'can' => [
                 'update' => auth()->user()->can('update', $bom),

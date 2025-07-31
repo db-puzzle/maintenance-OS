@@ -28,7 +28,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { BomItem, Item, ManufacturingOrder } from '@/types/production';
+import { BomItem, Item, ItemCategory, ManufacturingOrder, RouteTemplate } from '@/types/production';
 import CreateItemSheet from '@/components/CreateItemSheet';
 import BomTreeView from './BomTreeView';
 import ManufacturingOrderTreeView from './ManufacturingOrderTreeView';
@@ -48,6 +48,7 @@ interface BomConfigurationProps extends BaseHierarchicalConfigurationProps {
     versionId: number;
     bomItems: (BomItem & { item: Item; children?: any[] })[];
     availableItems: Item[];
+    categories?: ItemCategory[];
     bom?: {
         name: string;
         bom_number: string;
@@ -64,6 +65,8 @@ interface ManufacturingOrderConfigurationProps extends BaseHierarchicalConfigura
     orders: ManufacturingOrder[];
     showActions?: boolean;
     onOrderClick?: (order: ManufacturingOrder) => void;
+    routeTemplates?: RouteTemplate[];
+    canManageRoutes?: boolean;
 }
 
 type HierarchicalConfigurationProps = BomConfigurationProps | ManufacturingOrderConfigurationProps;
@@ -478,10 +481,8 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         if (type === 'manufacturing-order') {
             const moProps = props as ManufacturingOrderConfigurationProps;
             return (
-                <div className="p-4">
-                    <h3 className="text-base font-semibold text-gray-900">
-                        Manufacturing Order Hierarchy
-                    </h3>
+                <div className="p-2">
+
                 </div>
             );
         }
@@ -511,11 +512,14 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
 
         if (type === 'manufacturing-order') {
             const moProps = props as ManufacturingOrderConfigurationProps;
+
             return (
                 <ManufacturingOrderTreeView
                     orders={moProps.orders}
                     showActions={moProps.showActions ?? true}
                     onOrderClick={moProps.onOrderClick}
+                    routeTemplates={moProps.routeTemplates}
+                    canManageRoutes={moProps.canManageRoutes}
                 />
             );
         }
@@ -792,6 +796,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                     open={isCreateItemSheetOpen}
                     onOpenChange={setIsCreateItemSheetOpen}
                     mode="create"
+                    categories={type === 'bom' ? (props as BomConfigurationProps).categories : undefined}
                     onSuccess={() => {
                         if (onUpdate) {
                             onUpdate();

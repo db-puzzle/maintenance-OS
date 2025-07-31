@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from '@inertiajs/react';
+import React, { useState } from 'react';
+import { Link, router } from '@inertiajs/react';
 import {
     Package,
     CheckCircle,
@@ -9,13 +9,32 @@ import {
     FileText,
     XCircle,
     ArrowRight,
+    Route,
+    MoreVertical,
+    Trash2,
+    Settings,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import TreeView, { TreeNode } from '@/components/shared/TreeView';
-import { ManufacturingOrder } from '@/types/production';
+import { ManufacturingOrder, RouteTemplate } from '@/types/production';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import RouteTemplateSelectionDialog from '@/components/production/RouteTemplateSelectionDialog';
+import { toast } from 'sonner';
 
 interface ManufacturingOrderTreeNode extends ManufacturingOrder {
     children?: ManufacturingOrderTreeNode[];
@@ -27,6 +46,8 @@ interface ManufacturingOrderTreeViewProps {
     onOrderClick?: (order: ManufacturingOrderTreeNode) => void;
     emptyState?: React.ReactNode;
     headerColumns?: React.ReactNode;
+    routeTemplates?: RouteTemplate[];
+    canManageRoutes?: boolean;
 }
 
 const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
@@ -70,8 +91,56 @@ export default function ManufacturingOrderTreeView({
     showActions = true,
     onOrderClick,
     emptyState,
-    headerColumns
+    headerColumns,
+    routeTemplates = [],
+    canManageRoutes = false
 }: ManufacturingOrderTreeViewProps) {
+    const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+    const [selectedOrderForRoute, setSelectedOrderForRoute] = useState<ManufacturingOrderTreeNode | null>(null);
+
+    const handleApplyTemplate = (order: ManufacturingOrderTreeNode) => {
+        setSelectedOrderForRoute(order);
+        setTemplateDialogOpen(true);
+    };
+
+    const handleTemplateSelect = (templateId: number) => {
+        if (!selectedOrderForRoute) return;
+
+        router.post(route('production.orders.apply-template', selectedOrderForRoute.id), {
+            template_id: templateId
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Template de rota aplicado com sucesso');
+                setTemplateDialogOpen(false);
+                setSelectedOrderForRoute(null);
+            },
+            onError: () => {
+                toast.error('Erro ao aplicar template de rota');
+            }
+        });
+    };
+
+    const handleCreateCustomRoute = (order: ManufacturingOrderTreeNode) => {
+        router.visit(route('production.orders.show', order.id) + '?tab=route');
+    };
+
+    const handleRemoveRoute = (order: ManufacturingOrderTreeNode) => {
+        if (!order.manufacturing_route) return;
+
+        if (confirm('Tem certeza que deseja remover a rota desta ordem de manufatura?')) {
+            router.delete(route('production.routing.destroy', order.manufacturing_route.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    toast.success('Rota removida com sucesso');
+                },
+                onError: () => {
+                    toast.error('Erro ao remover rota');
+                }
+            });
+        }
+    };
+
     const defaultEmptyState = (
         <div className="flex flex-col items-center justify-center h-64 text-center">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
@@ -85,10 +154,11 @@ export default function ManufacturingOrderTreeView({
     const defaultHeaderColumns = (
         <div className="bg-muted/50 p-3 rounded-lg grid grid-cols-12 gap-2 font-semibold text-sm mb-2">
             <div className="col-span-3">Order Number</div>
-            <div className="col-span-4">Item</div>
+            <div className="col-span-3">Item</div>
             <div className="col-span-1 text-right">Qty</div>
             <div className="col-span-1">Unit</div>
-            <div className="col-span-2 text-center">Progress</div>
+            <div className="col-span-2 text-center">Route Name</div>
+            <div className="col-span-1 text-center">Route</div>
             <div className="col-span-1 text-center">Status</div>
         </div>
     );
@@ -97,6 +167,9 @@ export default function ManufacturingOrderTreeView({
         const progress = node.quantity > 0
             ? Math.round((node.quantity_completed / node.quantity) * 100)
             : 0;
+
+        // Check if this specific node can have routes managed
+        const canManageNodeRoute = canManageRoutes && ['draft', 'planned'].includes(node.status);
 
         return (
             <div
@@ -123,7 +196,7 @@ export default function ManufacturingOrderTreeView({
                     </div>
 
                     {/* Item Details */}
-                    <div className="col-span-4">
+                    <div className="col-span-3">
                         <div className="text-sm font-medium">{node.item?.item_number}</div>
                         <div className="text-xs text-muted-foreground">{node.item?.name}</div>
                     </div>
@@ -138,13 +211,104 @@ export default function ManufacturingOrderTreeView({
                         <div className="text-sm text-muted-foreground">{node.unit_of_measure}</div>
                     </div>
 
-                    {/* Progress */}
+                    {/* Route Name */}
                     <div className="col-span-2">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">{node.quantity_completed}/{node.quantity}</span>
-                            <Progress value={progress} className="h-1.5 flex-1" />
-                            <span className="text-xs font-medium">{progress}%</span>
+                        <div className="text-sm text-center">
+                            {node.manufacturing_route ? (
+                                <span className="font-medium text-foreground">
+                                    {node.manufacturing_route.name}
+                                </span>
+                            ) : (
+                                <span className="text-muted-foreground italic">
+                                    Nenhuma rota
+                                </span>
+                            )}
                         </div>
+                    </div>
+
+                    {/* Route */}
+                    <div className="col-span-1 flex items-center justify-center">
+                        {canManageNodeRoute ? (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {node.manufacturing_route ? (
+                                            node.manufacturing_route.steps && node.manufacturing_route.steps.length > 0 ? (
+                                                <Route className="h-4 w-4 text-foreground" />
+                                            ) : (
+                                                <Route className="h-4 w-4 text-red-600" />
+                                            )
+                                        ) : (
+                                            <MoreVertical className="h-4 w-4" />
+                                        )}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-55">
+                                    {!node.manufacturing_route && (
+                                        <>
+                                            <DropdownMenuItem onClick={() => handleApplyTemplate(node)}>
+                                                <Route className="h-4 w-4 mr-2" />
+                                                Aplicar Template
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleCreateCustomRoute(node)}>
+                                                <Settings className="h-4 w-4 mr-2" />
+                                                Criar Rota Customizada
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
+                                    {node.manufacturing_route && (
+                                        <>
+                                            <DropdownMenuItem onClick={() => handleCreateCustomRoute(node)}>
+                                                <Settings className="h-4 w-4 mr-2" />
+                                                Editar Rota
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                variant="destructive"
+                                                onClick={() => handleRemoveRoute(node)}
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                Remover Rota
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="flex items-center justify-center">
+                                            {node.manufacturing_route ? (
+                                                node.manufacturing_route.steps && node.manufacturing_route.steps.length > 0 ? (
+                                                    <Route className="h-4 w-4 text-foreground" />
+                                                ) : (
+                                                    <Route className="h-4 w-4 text-red-600" />
+                                                )
+                                            ) : (
+                                                <div className="h-4 w-4" />
+                                            )}
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {node.manufacturing_route ? (
+                                            node.manufacturing_route.steps && node.manufacturing_route.steps.length > 0 ? (
+                                                `Rota criada com ${node.manufacturing_route.steps.length} passo${node.manufacturing_route.steps.length > 1 ? 's' : ''}`
+                                            ) : (
+                                                'Rota criada mas sem passos configurados'
+                                            )
+                                        ) : (
+                                            'Nenhuma rota criada'
+                                        )}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
                     </div>
 
                     {/* Status */}
@@ -198,15 +362,29 @@ export default function ManufacturingOrderTreeView({
     };
 
     return (
-        <div className="w-full">
-            {headerColumns || defaultHeaderColumns}
-            <TreeView<ManufacturingOrderTreeNode>
-                data={orders}
-                renderNode={renderOrderNode}
-                emptyState={emptyState || defaultEmptyState}
-                defaultExpanded={true}
-                onNodeClick={onOrderClick}
-            />
-        </div>
+        <>
+            <div className="w-full">
+                {headerColumns || defaultHeaderColumns}
+                <TreeView<ManufacturingOrderTreeNode>
+                    data={orders}
+                    renderNode={renderOrderNode}
+                    emptyState={emptyState || defaultEmptyState}
+                    defaultExpanded={true}
+                    onNodeClick={onOrderClick}
+                />
+            </div>
+
+            {/* Template Selection Dialog */}
+            {selectedOrderForRoute && (
+                <RouteTemplateSelectionDialog
+                    open={templateDialogOpen}
+                    onOpenChange={setTemplateDialogOpen}
+                    templates={routeTemplates}
+                    orderNumber={selectedOrderForRoute.order_number}
+                    itemCategoryId={selectedOrderForRoute.item?.item_category_id}
+                    onSelectTemplate={handleTemplateSelect}
+                />
+            )}
+        </>
     );
 } 

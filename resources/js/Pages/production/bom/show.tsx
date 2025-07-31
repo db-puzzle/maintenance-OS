@@ -16,7 +16,7 @@ import EmptyCard from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import BomConfiguration from '@/components/production/BomConfiguration';
-import { BillOfMaterial, BomItem, BomVersion, Item } from '@/types/production';
+import { BillOfMaterial, BomItem, BomVersion, Item, ItemCategory } from '@/types/production';
 import { ColumnConfig } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
 import { toast } from 'sonner';
@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 interface Props {
     bom?: BillOfMaterial;
     items: Item[];
+    categories?: ItemCategory[];
     can: {
         update: boolean;
         delete: boolean;
@@ -32,13 +33,11 @@ interface Props {
     isCreating?: boolean;
 }
 
-export default function BomShow({ bom, items = [], can = { update: false, delete: false, manageItems: false }, isCreating = false }: Props) {
+export default function BomShow({ bom, items = [], categories, can = { update: false, delete: false, manageItems: false }, isCreating = false }: Props) {
     const [isEditMode, setIsEditMode] = useState(isCreating);
     const [isCompressed, setIsCompressed] = useState(false);
 
-    // Debug: Log items to console
-    console.log('Items received:', items);
-    console.log('Manufacturable items:', items.filter(item => item.can_be_manufactured));
+
 
     const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm({
         name: bom?.name || '',
@@ -273,6 +272,7 @@ export default function BomShow({ bom, items = [], can = { update: false, delete
                                 versionId={bom?.current_version?.id || 0}
                                 bomItems={(bom?.current_version?.items || []).filter(item => item.item) as any[]}
                                 availableItems={items}
+                                categories={categories}
                                 canEdit={can.manageItems}
                                 onUpdate={() => router.reload({ only: ['bom'] })}
                                 bom={bom ? {

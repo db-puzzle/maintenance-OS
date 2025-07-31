@@ -18,12 +18,11 @@ import { Item, BillOfMaterial, ItemCategory } from '@/types/production';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ColumnConfig } from '@/types/shared';
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
-import axios from 'axios';
 import { toast } from 'sonner';
 
 interface Props {
     item?: Item;
-    categories?: Array<{ id: number; name: string }>;
+    categories?: ItemCategory[];
     itemTypes?: Array<{ id: number; name: string; value: string }>;
     itemStatuses?: Array<{ id: number; name: string; value: string }>;
     can?: {
@@ -33,14 +32,7 @@ interface Props {
     isCreating?: boolean;
 }
 
-const defaultCategories = [
-    { id: 1, name: 'Eletrônicos' },
-    { id: 2, name: 'Mecânica' },
-    { id: 3, name: 'Matéria Prima' },
-    { id: 4, name: 'Embalagem' },
-    { id: 5, name: 'Ferramentas' },
-    { id: 6, name: 'Outros' }
-];
+const defaultCategories: ItemCategory[] = [];
 
 // DEPRECATED: item_type is no longer used
 // const defaultItemTypes = [
@@ -98,6 +90,9 @@ export default function ItemShow({
     can = { update: false, delete: false },
     isCreating = false
 }: Props) {
+    // Get shared data from page props
+    const { props } = usePage<any>();
+    const { qrTag } = props;
     const page = usePage<{
         flash?: {
             success?: string;
@@ -142,29 +137,16 @@ export default function ItemShow({
 
     const [isEditMode, setIsEditMode] = useState(isCreating);
     const [isCompressed, setIsCompressed] = useState(false);
-    const [itemCategories, setItemCategories] = useState<ItemCategory[]>([]);
-    const [loadingCategories, setLoadingCategories] = useState(true);
     const [categorySheetOpen, setCategorySheetOpen] = useState(false);
     const [generatingQr, setGeneratingQr] = useState(false);
+
+    // Use categories from props instead of loading via AJAX
+    const itemCategories = categories || [];
 
     // Ref for auto-focusing the item number input during creation
     const itemNumberInputRef = useRef<HTMLInputElement>(null);
 
-    // Load categories
-    const loadCategories = async () => {
-        try {
-            const response = await axios.get(route('production.categories.active'));
-            setItemCategories(response.data);
-        } catch (error) {
-            console.error('Failed to load categories:', error);
-        } finally {
-            setLoadingCategories(false);
-        }
-    };
 
-    useEffect(() => {
-        loadCategories();
-    }, []);
 
     // Update edit mode when isCreating prop changes (e.g., after redirect from creation)
     useEffect(() => {
@@ -178,33 +160,32 @@ export default function ItemShow({
         }
     }, [isCreating]);
 
-    // Reload categories when category sheet closes successfully
+    // Handle category sheet success - Inertia will reload the page with updated categories
     const handleCategorySheetSuccess = () => {
-        loadCategories();
         setCategorySheetOpen(false);
-
-        // Since we can't easily get the newly created category ID from the response,
-        // we'll need to wait for the categories to reload and then find the newest one
-        // This is a limitation of the current approach
+        // The page will be reloaded by Inertia with fresh data
     };
 
-    const handleGenerateQrTag = async () => {
+    const handleGenerateQrTag = () => {
         if (!item?.id) return;
 
         setGeneratingQr(true);
-        try {
-            const response = await axios.post(route('production.qr-tags.item', item.id));
-
-            if (response.data.success && response.data.pdf_url) {
-                window.open(response.data.pdf_url, '_blank');
-                toast.success('Etiqueta QR gerada com sucesso!');
-            }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
-        } finally {
-            setGeneratingQr(false);
-        }
+        router.post(route('production.qr-tags.item', item.id), {}, {
+            preserveState: true,
+            preserveScroll: true,
+            onFinish: () => {
+                setGeneratingQr(false);
+            },
+        });
     };
+
+    // Handle QR tag response
+    useEffect(() => {
+        if (qrTag?.success && qrTag?.pdf_url) {
+            window.open(qrTag.pdf_url, '_blank');
+            toast.success('Etiqueta QR gerada com sucesso!');
+        }
+    }, [qrTag]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -298,9 +279,9 @@ export default function ItemShow({
                                     value={data.item_category_id}
                                     onValueChange={(value) => setData('item_category_id', value)}
                                     onCreateClick={() => setCategorySheetOpen(true)}
-                                    placeholder={loadingCategories ? "Carregando..." : "Selecione a categoria"}
+                                    placeholder="Selecione a categoria"
                                     error={errors.item_category_id}
-                                    disabled={!isEditMode || processing || loadingCategories}
+                                    disabled={!isEditMode || processing}
                                     view={!isEditMode}
                                     canCreate={isEditMode}
                                 />
@@ -371,7 +352,7 @@ export default function ItemShow({
                                         icon={Factory}
                                         title="Pode ser manufaturado"
                                         description={data.can_be_manufactured ?
-                                            (item?.current_bom ? 'BOM definida' : 'Sem BOM') :
+                                            (item?.primary_bom ? 'BOM definida' : 'Sem BOM') :
                                             'Não pode ser manufaturado'
                                         }
                                         selected={data.can_be_manufactured}
@@ -609,24 +590,24 @@ export default function ItemShow({
                     label: 'BOM',
                     content: (
                         <div className="py-6">
-                            {item.current_bom ? (
+                            {item.primary_bom ? (
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center mb-4">
                                         <h3 className="text-lg font-medium">Lista de Materiais Atual</h3>
                                         <Button variant="outline" asChild>
-                                            <Link href={route('production.bom.show', item.current_bom_id)}>
+                                            <Link href={route('production.bom.show', item.primary_bom?.id)}>
                                                 Ver BOM Completa
                                             </Link>
                                         </Button>
                                     </div>
                                     <div className="border rounded-lg p-4">
                                         <div className="grid grid-cols-2 gap-4">
-                                            <DetailItem label="Número da BOM" value={item.current_bom.bom_number} />
-                                            <DetailItem label="Nome" value={item.current_bom.name} />
-                                            <DetailItem label="Descrição" value={item.current_bom.description || '—'} />
+                                            <DetailItem label="Número da BOM" value={item.primary_bom.bom_number} />
+                                            <DetailItem label="Nome" value={item.primary_bom.name} />
+                                            <DetailItem label="Descrição" value={item.primary_bom.description || '—'} />
                                             <DetailItem label="Status" value={
-                                                <Badge variant={item.current_bom.is_active ? 'default' : 'secondary'}>
-                                                    {item.current_bom.is_active ? 'Ativa' : 'Inativa'}
+                                                <Badge variant={item.primary_bom.is_active ? 'default' : 'secondary'}>
+                                                    {item.primary_bom.is_active ? 'Ativa' : 'Inativa'}
                                                 </Badge>
                                             } />
                                         </div>

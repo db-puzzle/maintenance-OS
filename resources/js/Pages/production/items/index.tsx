@@ -9,7 +9,7 @@ import CreateItemSheet from '@/components/CreateItemSheet';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
-import { Item } from '@/types/production';
+import { Item, ItemCategory } from '@/types/production';
 import { Link } from '@inertiajs/react';
 
 interface Props {
@@ -27,6 +27,7 @@ interface Props {
         status?: string;
         type?: string; // Keep for backward compatibility, but won't be used
     };
+    categories?: ItemCategory[];
 }
 
 // DEPRECATED: item_type is no longer used
@@ -36,7 +37,7 @@ interface Props {
 //     'manufactured-purchased': 'Manufaturado/Comprado'
 // };
 
-export default function ItemsIndex({ items, filters }: Props) {
+export default function ItemsIndex({ items, filters, categories }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteItem, setDeleteItem] = useState<Item | null>(null);
     const [loading, setLoading] = useState(false);
@@ -146,16 +147,16 @@ export default function ItemsIndex({ items, filters }: Props) {
             }
         },
         {
-            key: 'current_bom',
+            key: 'primary_bom',
             label: 'BOM Atual',
             width: 'w-[150px]',
             render: (value: any, item: any) => (
-                item.current_bom && item.can_be_manufactured ? (
+                item.primary_bom && item.can_be_manufactured ? (
                     <Link
-                        href={route('production.bom.show', item.current_bom_id)}
+                        href={route('production.bom.show', item.primary_bom?.id)}
                         className="text-primary hover:underline"
                     >
-                        {item.current_bom.bom_number}
+                        {item.primary_bom.bom_number}
                     </Link>
                 ) : (
                     '-'
@@ -242,6 +243,8 @@ export default function ItemsIndex({ items, filters }: Props) {
                     onOpenChange={(open) => !open && setEditItem(null)}
                     mode="edit"
                     onSuccess={handleEditSuccess}
+                    categories={categories}
+                    onCategoriesRefresh={() => router.reload({ only: ['categories'] })}
                 />
             )}
 

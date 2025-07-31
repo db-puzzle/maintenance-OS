@@ -27,7 +27,9 @@ class ItemCategoryController extends Controller
             ->orderBy('name')
             ->paginate($request->input('per_page', 10));
 
-        return Inertia::render('production/categories/index', [
+        // Since we don't have a categories index page, return JSON for now
+        // This endpoint might be used by other parts of the system
+        return response()->json([
             'categories' => $categories,
             'filters' => $request->only(['search', 'active_only', 'per_page']),
             'can' => [
@@ -51,11 +53,18 @@ class ItemCategoryController extends Controller
 
         // Check if we should stay on current page (when creating from CreateItemCategorySheet)
         if ($request->boolean('stay')) {
+            // When staying on the same page, we need to ensure Inertia properly reloads
+            // This is especially important when creating from within a sheet
             return back()
-                ->with('success', 'Categoria criada com sucesso.');
+                ->with('success', 'Categoria criada com sucesso.')
+                ->with('flash', [
+                    'categoryCreated' => true,
+                    'newCategory' => $category
+                ]);
         }
 
-        return redirect()->route('production.categories.index')
+        // Since we don't have a categories index page, redirect to items index
+        return redirect()->route('production.items.index')
             ->with('success', 'Categoria criada com sucesso.');
     }
 
@@ -76,7 +85,8 @@ class ItemCategoryController extends Controller
             return back()->with('success', 'Categoria atualizada com sucesso.');
         }
 
-        return redirect()->route('production.categories.index')
+        // Since we don't have a categories index page, redirect to items index
+        return redirect()->route('production.items.index')
             ->with('success', 'Categoria atualizada com sucesso.');
     }
 
@@ -90,17 +100,10 @@ class ItemCategoryController extends Controller
 
         $category->delete();
 
-        return redirect()->route('production.categories.index')
+        // Since we don't have a categories index page, redirect to items index
+        return redirect()->route('production.items.index')
             ->with('success', 'Categoria excluída com sucesso.');
     }
 
-    // API endpoint for getting active categories (for selects)
-    public function active()
-    {
-        $categories = ItemCategory::active()
-            ->orderBy('name')
-            ->get(['id', 'name']);
 
-        return response()->json($categories);
-    }
 } 

@@ -1,12 +1,13 @@
 import React from 'react';
 import HierarchicalConfiguration from './HierarchicalConfiguration';
-import { BomItem, Item } from '@/types/production';
+import { BomItem, Item, ItemCategory } from '@/types/production';
 
 interface BomConfigurationProps {
   bomId: number;
   versionId: number;
   bomItems: (BomItem & { item: Item; children?: any[] })[];
   availableItems: Item[];
+  categories?: ItemCategory[];
   canEdit: boolean;
   onUpdate?: () => void;
   bom?: {
@@ -30,6 +31,7 @@ export default function BomConfiguration({
   versionId,
   bomItems,
   availableItems,
+  categories,
   canEdit,
   onUpdate,
   bom
@@ -41,6 +43,7 @@ export default function BomConfiguration({
       versionId={versionId}
       bomItems={bomItems}
       availableItems={availableItems}
+      categories={categories}
       canEdit={canEdit}
       onUpdate={onUpdate}
       bom={bom}

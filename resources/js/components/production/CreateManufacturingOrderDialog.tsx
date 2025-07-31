@@ -239,7 +239,7 @@ export default function CreateManufacturingOrderDialog({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="max-w-4xl h-150 flex flex-col p-0">
+            <DialogContent className="max-w-4xl h-165 flex flex-col p-0">
                 <DialogHeader className="px-6 py-4 border-b">
                     <DialogTitle>Create Manufacturing Order</DialogTitle>
                     <DialogDescription>

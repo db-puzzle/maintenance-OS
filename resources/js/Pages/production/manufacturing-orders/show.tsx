@@ -47,6 +47,7 @@ interface Props {
     canRelease: boolean;
     canCancel: boolean;
     canCreateRoute: boolean;
+    canManageRoutes?: boolean;
     templates?: any[]; // Route templates for creating new routes
     workCells?: any[];
     stepTypes?: Record<string, string>;
@@ -78,9 +79,10 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
     );
 }
 
-export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
+export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, canManageRoutes = false, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
     const { props } = usePage();
     const flash = props.flash as any;
+    const auth = props.auth as any;
     const [generatingQr, setGeneratingQr] = useState(false);
 
     // Check URL params
@@ -435,6 +437,8 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                         }]}
                         showActions={false}
                         canEdit={false}
+                        routeTemplates={templates}
+                        canManageRoutes={canManageRoutes}
                     />
                 </div>
             )

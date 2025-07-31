@@ -65,10 +65,39 @@ function SheetContent({
             return
           }
 
-          if (
-            target.closest('[data-radix-select-content]') ||
-            target.closest('[data-radix-popover-content]')
-          ) {
+          // Check if there are multiple sheets open (nested sheets)
+          const allSheets = document.querySelectorAll('[data-slot="sheet-content"]')
+          const isNestedSheet = allSheets.length > 1
+
+          // Check for select-related elements or nested sheet
+          const isSelectContent = target.closest('[data-slot="select-content"]')
+          const isRadixViewport = target.closest('[data-radix-select-viewport]')
+          const isRadixPopper = target.closest('[data-radix-popper-content]')
+          const isRadixPopover = target.closest('[data-radix-popover-content]')
+          const isInNestedSheet = target.closest('[data-slot="sheet-content"]')
+
+          // If target is HTML but select elements exist in DOM, this might be a timing issue
+          if (target.tagName === 'HTML') {
+            const selectInDOM = {
+              selectContent: document.querySelector('[data-slot="select-content"]'),
+              radixViewport: document.querySelector('[data-radix-select-viewport]'),
+              radixPopper: document.querySelector('[data-radix-popper-content]'),
+              radixPopover: document.querySelector('[data-radix-popover-content]'),
+            }
+
+            if (Object.values(selectInDOM).some(el => el)) {
+              e.preventDefault()
+              return
+            }
+          }
+
+          // If there are nested sheets and the click target is within a sheet, prevent closing
+          if (isNestedSheet && isInNestedSheet) {
+            e.preventDefault()
+            return
+          }
+
+          if (isSelectContent || isRadixViewport || isRadixPopper || isRadixPopover) {
             e.preventDefault()
           }
         }}

@@ -32,7 +32,7 @@ class ManufacturingOrderController extends Controller
             'item', 
             'billOfMaterial', 
             'parent', 
-            'children',
+            'children.manufacturingRoute.steps',
             'manufacturingRoute.steps',
             'createdBy'
         ])
@@ -196,14 +196,10 @@ class ManufacturingOrderController extends Controller
         // Can create/edit routes if user has permission and order is in draft or planned status
         $canCreateRoute = auth()->user()->can('production.routes.create') && in_array($order->status, ['draft', 'planned']);
         
-        // Load route templates if user can create routes
+        // Load route templates if user can create routes (for any child orders that might need them)
         $templates = [];
-        if ($canCreateRoute && in_array($order->status, ['draft', 'planned'])) {
+        if (auth()->user()->can('production.routes.create')) {
             $templates = RouteTemplate::where('is_active', true)
-                ->when($order->item?->item_category_id, function ($query, $categoryId) {
-                    $query->where('item_category_id', $categoryId)
-                          ->orWhereNull('item_category_id');
-                })
                 ->withCount('steps')
                 ->get()
                 ->map(function ($template) {
@@ -225,6 +221,7 @@ class ManufacturingOrderController extends Controller
             'canRelease' => $order->canBeReleased() && auth()->user()->can('production.orders.release'),
             'canCancel' => $order->canBeCancelled() && auth()->user()->can('production.orders.cancel'),
             'canCreateRoute' => $canCreateRoute,
+            'canManageRoutes' => auth()->user()->can('production.routes.create'), // For child orders
             'templates' => $templates,
             'workCells' => WorkCell::where('is_active', true)->get(),
             'stepTypes' => ManufacturingStep::STEP_TYPES,
@@ -238,7 +235,7 @@ class ManufacturingOrderController extends Controller
     private function loadChildrenRecursively(ManufacturingOrder $order)
     {
         $order->load(['children' => function ($query) {
-            $query->with(['item']);
+            $query->with(['item', 'manufacturingRoute.steps']);
         }]);
 
         foreach ($order->children as $child) {
@@ -360,6 +357,43 @@ class ManufacturingOrderController extends Controller
             'parent' => $order,
             'children' => $children,
         ]);
+    }
+
+    /**
+     * Apply a route template to a manufacturing order.
+     */
+    public function applyTemplate(Request $request, ManufacturingOrder $order)
+    {
+        $this->authorize('update', $order);
+
+        if ($order->manufacturingRoute) {
+            return back()->with('error', 'This order already has a route. Please remove it first.');
+        }
+
+        if (!in_array($order->status, ['draft', 'planned'])) {
+            return back()->with('error', 'Route templates can only be applied to draft or planned orders.');
+        }
+
+        $validated = $request->validate([
+            'template_id' => 'required|exists:route_templates,id',
+        ]);
+
+        $template = RouteTemplate::findOrFail($validated['template_id']);
+
+        // Create route from template
+        $route = $order->manufacturingRoute()->create([
+            'item_id' => $order->item_id,
+            'route_template_id' => $template->id,
+            'name' => $template->name,
+            'description' => $template->description,
+            'is_active' => true,
+            'created_by' => auth()->id(),
+        ]);
+
+        // Create steps from template
+        $route->createFromTemplate($template);
+
+        return back()->with('success', 'Route template applied successfully.');
     }
 
     /**

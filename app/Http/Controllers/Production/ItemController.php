@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
 use App\Models\Production\Item;
+use App\Models\Production\ItemCategory;
 use App\Models\Production\BillOfMaterial;
 use App\Models\Production\BomItem;
 use Illuminate\Http\Request;
@@ -37,9 +38,15 @@ class ItemController extends Controller
             ->with(['primaryBom', 'createdBy', 'category'])
             ->paginate($request->input('per_page', 10));
 
+        // Load categories for the index page
+        $categories = ItemCategory::active()
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('production/items/index', [
             'items' => $items,
             'filters' => $request->only(['search', 'type', 'per_page']),
+            'categories' => $categories,
             'can' => [
                 'create' => $request->user()->can('create', Item::class),
             ],
@@ -50,8 +57,14 @@ class ItemController extends Controller
     {
         $this->authorize('create', Item::class);
 
+        // Load categories for the create page
+        $categories = ItemCategory::active()
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('production/items/show', [
             'isCreating' => true,
+            'categories' => $categories,
             'can' => [
                 'update' => false,
                 'delete' => false,
@@ -118,9 +131,15 @@ class ItemController extends Controller
             ->get()
             ->filter(fn($bomItem) => $bomItem->bomVersion !== null);
 
+        // Load categories for the show page
+        $categories = ItemCategory::active()
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('production/items/show', [
             'item' => $item,
             'whereUsed' => $whereUsed,
+            'categories' => $categories,
             'isCreating' => false,
             'can' => [
                 'update' => auth()->user()->can('update', $item),

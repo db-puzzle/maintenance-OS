@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'verified'])->prefix('production')->name('production.')->group(function () {
     // Item Categories Management
     Route::resource('categories', ItemCategoryController::class)->except(['edit', 'show']);
-    Route::get('categories/active', [ItemCategoryController::class, 'active'])->name('categories.active');
+
 
     // Items Management
     Route::resource('items', ItemController::class)->except(['edit']);
@@ -85,6 +85,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::resource('orders', ManufacturingOrderController::class);
     Route::post('orders/{order}/release', [ManufacturingOrderController::class, 'release'])->name('orders.release');
     Route::post('orders/{order}/cancel', [ManufacturingOrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('orders/{order}/apply-template', [ManufacturingOrderController::class, 'applyTemplate'])->name('orders.apply-template');
     
     // Order Routes
     Route::get('orders/{order}/routes/create', [ManufacturingOrderController::class, 'createRoute'])->name('orders.routes.create');
