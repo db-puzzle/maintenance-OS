@@ -15,7 +15,6 @@ import {
     Settings,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import TreeView, { TreeNode } from '@/components/shared/TreeView';
@@ -164,10 +163,6 @@ export default function ManufacturingOrderTreeView({
     );
 
     const renderOrderNode = (node: ManufacturingOrderTreeNode, isExpanded: boolean, toggleExpand: () => void) => {
-        const progress = node.quantity > 0
-            ? Math.round((node.quantity_completed / node.quantity) * 100)
-            : 0;
-
         // Check if this specific node can have routes managed
         const canManageNodeRoute = canManageRoutes && ['draft', 'planned'].includes(node.status);
 
