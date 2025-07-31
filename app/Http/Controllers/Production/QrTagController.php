@@ -17,6 +17,9 @@ class QrTagController extends Controller
     
     public function __construct(QrTagPdfService $pdfService)
     {
+        // Ensure user is authenticated for all methods
+        $this->middleware(['auth', 'verified']);
+        
         $this->pdfService = $pdfService;
     }
 

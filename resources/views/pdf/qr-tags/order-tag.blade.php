@@ -147,7 +147,7 @@
             </div>
             <div class="detail-row">
                 <span>Entrega:</span>
-                <span>{{ $order->due_date->format('d/m/Y') }}</span>
+                <span>{{ $order->planned_end_date ? $order->planned_end_date->format('d/m/Y') : 'N/A' }}</span>
             </div>
             <div class="generated-date">
                 Gerado em {{ $generatedAt->format('d/m/Y H:i') }}

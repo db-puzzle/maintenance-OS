@@ -65,6 +65,8 @@ class ManufacturingOrder extends Model
         'actual_end_date' => 'datetime',
     ];
 
+    protected $appends = ['has_route'];
+
     /**
      * Get the parent production order.
      */
@@ -366,5 +368,62 @@ class ManufacturingOrder extends Model
     public function getCreatedByUserAttribute()
     {
         return $this->createdBy;
+    }
+
+    /**
+     * Get the has_route attribute.
+     * Checks if this order has a manufacturing route.
+     */
+    public function getHasRouteAttribute(): bool
+    {
+        return $this->manufacturingRoute()->exists();
+    }
+
+    /**
+     * Get the current step in the manufacturing process.
+     * Returns the first non-completed step in sequence.
+     */
+    public function getCurrentStep()
+    {
+        if (!$this->has_route) {
+            return null;
+        }
+
+        return $this->manufacturingRoute->steps()
+            ->whereNotIn('status', ['completed', 'skipped'])
+            ->orderBy('step_number')
+            ->first();
+    }
+
+    /**
+     * Check if this order has any quality check steps.
+     */
+    public function hasQualityChecks(): bool
+    {
+        if (!$this->has_route) {
+            return false;
+        }
+
+        return $this->manufacturingRoute->steps()
+            ->where('step_type', 'quality_check')
+            ->exists();
+    }
+
+    /**
+     * Get the parent order.
+     * Alias for the parent relationship.
+     */
+    public function getParentOrderAttribute()
+    {
+        return $this->parent;
+    }
+
+    /**
+     * Get the route relationship.
+     * Alias for manufacturingRoute relationship.
+     */
+    public function getRouteAttribute()
+    {
+        return $this->manufacturingRoute;
     }
 }

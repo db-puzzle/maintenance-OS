@@ -140,10 +140,13 @@ export interface ManufacturingOrder {
     planned_end_date?: string;
     actual_start_date?: string;
     actual_end_date?: string;
+
     source_type?: 'manual' | 'sales_order' | 'forecast';
     source_reference?: string;
     children?: ManufacturingOrder[];
     manufacturing_route?: ManufacturingRoute;
+    route?: ManufacturingRoute;
+    has_route?: boolean;
     created_by?: number;
     created_by_user?: User;
     created_at: string;

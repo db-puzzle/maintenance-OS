@@ -70,7 +70,7 @@ class QrTagPdfService
         }
         
         // Generate multi-page PDF with all tags
-        return $this->generateBatchPdf($tags, $type);
+        return $this->generateBatchPdf($tags, $type, count($items));
     }
 
     private function prepareItemTagData(Item $item): array
@@ -111,10 +111,18 @@ class QrTagPdfService
     private function generatePdf(string $template, array $data): string
     {
         $pdf = Pdf::view("pdf.qr-tags.{$template}", $data)
-            ->format([70, 140]) // 70mm x 140mm
+            ->paperSize(70, 140, 'mm') // 70mm x 140mm
             ->margins(3, 3, 3, 3); // 3mm margins on all sides
             
-        $filename = "qr-tag-{$data['type']}-" . ($data['item']->id ?? $data['order']->id) . "-" . time() . ".pdf";
+        // Generate descriptive filename with item/order number and UTC timestamp
+        $timestamp = now()->utc()->format('Ymd_His');
+        
+        if ($data['type'] === 'item') {
+            $filename = "QR-ITEM-{$data['item']->item_number}-{$timestamp}.pdf";
+        } else {
+            $filename = "QR-MO-{$data['order']->order_number}-{$timestamp}.pdf";
+        }
+        
         $path = "qr-tags/{$filename}";
         
         // For now, save locally. In production, you'd save to S3
@@ -124,13 +132,16 @@ class QrTagPdfService
         return Storage::disk('public')->url($path);
     }
 
-    private function generateBatchPdf(array $tags, string $type): string
+    private function generateBatchPdf(array $tags, string $type, int $count = 0): string
     {
         $pdf = Pdf::view("pdf.qr-tags.batch", ['tags' => $tags, 'type' => $type])
-            ->format([70, 140]) // 70mm x 140mm per page
+            ->paperSize(70, 140, 'mm') // 70mm x 140mm per page
             ->margins(3, 3, 3, 3);
             
-        $filename = "qr-tags-batch-{$type}-" . time() . ".pdf";
+        // Generate descriptive filename for batch with UTC timestamp and count
+        $timestamp = now()->utc()->format('Ymd_His');
+        $countInfo = $count > 0 ? "-count{$count}" : "";
+        $filename = "qr-tags-batch-{$type}{$countInfo}-{$timestamp}-UTC.pdf";
         $path = "qr-tags/{$filename}";
         
         $pdfContent = $pdf->base64();

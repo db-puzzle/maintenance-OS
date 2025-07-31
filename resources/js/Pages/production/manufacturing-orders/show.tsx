@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
 import {
@@ -16,7 +16,8 @@ import {
     Info,
     TrendingUp,
     Box,
-    Timer
+    Timer,
+    QrCode
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +39,8 @@ import { cn } from '@/lib/utils';
 import { useForm } from '@inertiajs/react';
 import HierarchicalConfiguration from '@/components/production/HierarchicalConfiguration';
 import ManufacturingOrderRouteTab from '@/components/production/ManufacturingOrderRouteTab';
+import axios from 'axios';
+import { toast } from 'sonner';
 
 interface Props {
     order: ManufacturingOrder;
@@ -78,6 +81,7 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
 export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
     const { props } = usePage();
     const flash = props.flash as any;
+    const [generatingQr, setGeneratingQr] = useState(false);
 
     // Check URL params
     const urlParams = new URLSearchParams(window.location.search);
@@ -166,6 +170,22 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             router.post(route('production.orders.cancel', order.id), {
                 reason: 'Cancelled by user'
             });
+        }
+    };
+
+    const handleGenerateQrTag = async () => {
+        setGeneratingQr(true);
+        try {
+            const response = await axios.post(route('production.qr-tags.order', order.id));
+
+            if (response.data.success && response.data.pdf_url) {
+                window.open(response.data.pdf_url, '_blank');
+                toast.success('Etiqueta QR gerada com sucesso!');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
+        } finally {
+            setGeneratingQr(false);
         }
     };
 
@@ -495,13 +515,22 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
     const editRoute = route('production.orders.edit', order.id);
 
     // Check if order has a route
-    const hasRoute = order.manufacturing_route && order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0;
+    const hasRoute = (order as any).has_route || (order.manufacturing_route && order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0);
     const shouldShowRelease = ['draft', 'planned'].includes(order.status);
 
     // Additional actions for the header
     const headerActions = (
         <TooltipProvider>
             <div className="flex gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateQrTag}
+                    disabled={generatingQr}
+                >
+                    <QrCode className="h-4 w-4 mr-2" />
+                    {generatingQr ? 'Gerando...' : 'Gerar QR'}
+                </Button>
                 {shouldShowRelease && (
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -540,9 +569,8 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 editRoute={editRoute}
                 tabs={tabs}
                 defaultActiveTab={(flash?.openRouteBuilder || openRouteBuilderParam === '1') ? "routes" : "overview"}
-            >
-                {headerActions}
-            </ShowLayout>
+                actions={headerActions}
+            />
         </AppLayout>
     );
 } 

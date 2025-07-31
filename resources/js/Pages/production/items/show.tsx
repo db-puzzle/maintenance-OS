@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
 import { Head, Link } from '@inertiajs/react';
-import { ShoppingCart, Factory, Package, History, FileText, BarChart3, Boxes, Ghost } from 'lucide-react';
+import { ShoppingCart, Factory, Package, History, FileText, BarChart3, Boxes, Ghost, QrCode } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { ColumnConfig } from '@/types/shared';
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
 import axios from 'axios';
+import { toast } from 'sonner';
 
 interface Props {
     item?: Item;
@@ -144,6 +145,7 @@ export default function ItemShow({
     const [itemCategories, setItemCategories] = useState<ItemCategory[]>([]);
     const [loadingCategories, setLoadingCategories] = useState(true);
     const [categorySheetOpen, setCategorySheetOpen] = useState(false);
+    const [generatingQr, setGeneratingQr] = useState(false);
 
     // Ref for auto-focusing the item number input during creation
     const itemNumberInputRef = useRef<HTMLInputElement>(null);
@@ -186,6 +188,24 @@ export default function ItemShow({
         // This is a limitation of the current approach
     };
 
+    const handleGenerateQrTag = async () => {
+        if (!item?.id) return;
+
+        setGeneratingQr(true);
+        try {
+            const response = await axios.post(route('production.qr-tags.item', item.id));
+
+            if (response.data.success && response.data.pdf_url) {
+                window.open(response.data.pdf_url, '_blank');
+                toast.success('Etiqueta QR gerada com sucesso!');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
+        } finally {
+            setGeneratingQr(false);
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isCreating) {
@@ -222,7 +242,6 @@ export default function ItemShow({
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Basic Information */}
                         <div className="space-y-4">
-                            <h3 className="text-sm font-medium">Informações Básicas</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <TextInput
                                     form={{ data, setData, errors, clearErrors: clearErrors as any }}
@@ -683,6 +702,19 @@ export default function ItemShow({
                 tabs={tabs}
                 defaultCompressed={isCompressed}
                 onCompressedChange={setIsCompressed}
+                actions={
+                    !isCreating && item && can?.update && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGenerateQrTag}
+                            disabled={generatingQr}
+                        >
+                            <QrCode className="h-4 w-4 mr-2" />
+                            {generatingQr ? 'Gerando...' : 'Gerar QR'}
+                        </Button>
+                    )
+                }
             />
 
             {/* Category Creation Sheet */}

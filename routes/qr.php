@@ -3,8 +3,8 @@
 use App\Http\Controllers\Production\QrCodeController;
 use Illuminate\Support\Facades\Route;
 
-// QR Code Scanning Routes (public with auth redirect)
-Route::prefix('qr')->group(function () {
+// QR Code Scanning Routes (require authentication)
+Route::middleware(['auth', 'verified'])->prefix('qr')->group(function () {
     Route::get('/items/{item_number}', [QrCodeController::class, 'handleItemScan'])
         ->name('qr.item');
     Route::get('/orders/{mo_number}', [QrCodeController::class, 'handleOrderScan'])

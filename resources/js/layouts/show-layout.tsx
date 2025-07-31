@@ -30,6 +30,7 @@ interface ShowLayoutProps {
     onActiveTabChange?: (tabId: string) => void;
     onCompressedChange?: (compressed: boolean) => void;
     defaultCompressed?: boolean;
+    actions?: ReactNode;
 }
 
 export default function ShowLayout({
@@ -44,6 +45,7 @@ export default function ShowLayout({
     onActiveTabChange,
     onCompressedChange,
     defaultCompressed = false,
+    actions,
 }: ShowLayoutProps) {
     const [internalActiveTab, setInternalActiveTab] = useState(defaultActiveTab || (tabs && tabs.length > 0 ? tabs[0].id : ''));
     const [isCompressed, setIsCompressed] = useState(defaultCompressed);
@@ -154,6 +156,7 @@ export default function ShowLayout({
                         </div>
                         {/* Buttons */}
                         <div className="flex items-center gap-2">
+                            {actions}
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>

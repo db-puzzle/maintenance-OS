@@ -12,6 +12,12 @@ use Jenssegers\Agent\Agent;
 
 class QrCodeController extends Controller
 {
+    public function __construct()
+    {
+        // Ensure user is authenticated for all methods
+        $this->middleware(['auth', 'verified']);
+    }
+
     public function handleItemScan(Request $request, string $itemNumber)
     {
         $item = Item::where('item_number', $itemNumber)->firstOrFail();
@@ -31,7 +37,7 @@ class QrCodeController extends Controller
         
         // Return mobile-optimized Inertia page
         return Inertia::render('production/qr/ItemScan', [
-            'item' => $item->load(['category', 'current_bom']),
+            'item' => $item->load(['category', 'primaryBom']),
             'can' => [
                 'view' => $request->user()?->can('view', $item) ?? false,
                 'update' => $request->user()?->can('update', $item) ?? false,
@@ -44,7 +50,7 @@ class QrCodeController extends Controller
     public function handleOrderScan(Request $request, string $orderNumber)
     {
         $order = ManufacturingOrder::where('order_number', $orderNumber)
-            ->with(['item', 'route.steps', 'childOrders'])
+            ->with(['item', 'manufacturingRoute.steps', 'children'])
             ->firstOrFail();
         
         // Log the scan
@@ -114,10 +120,10 @@ class QrCodeController extends Controller
             ];
         }
         
-        if ($item->current_bom && $user?->can('view', $item->current_bom)) {
+        if ($item->primaryBom && $user?->can('view', $item->primaryBom)) {
             $actions[] = [
                 'label' => 'Ver BOM',
-                'route' => route('production.bom.show', $item->current_bom),
+                'route' => route('production.bom.show', $item->primaryBom),
                 'icon' => 'Package'
             ];
         }
