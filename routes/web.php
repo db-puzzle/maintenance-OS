@@ -93,4 +93,7 @@ require __DIR__.'/users.php';
 // Production
 require __DIR__.'/production.php';
 
+// QR Scanning (public routes)
+require __DIR__.'/qr.php';
+
 require __DIR__.'/auth.php';

@@ -11,6 +11,7 @@ use App\Http\Controllers\Production\ShipmentController;
 use App\Http\Controllers\Production\WorkCellController;
 use App\Http\Controllers\Production\ProductionExecutionController;
 use App\Http\Controllers\Production\ManufacturingStepController;
+use App\Http\Controllers\Production\QrTagController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('production')->name('production.')->group(function () {
@@ -50,6 +51,15 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     // QR Code Management
     Route::post('bom/{bom}/generate-qr', [BillOfMaterialController::class, 'generateQrCodes'])->name('bom.generate-qr');
     Route::post('bom/{bom}/print-labels', [BillOfMaterialController::class, 'printLabels'])->name('bom.print-labels');
+    
+    // QR Tag Generation
+    Route::prefix('qr-tags')->name('qr-tags.')->group(function () {
+        Route::get('/', [QrTagController::class, 'index'])->name('index');
+        Route::post('/items/{item}/generate', [QrTagController::class, 'generateItemTag'])->name('item');
+        Route::post('/orders/{order}/generate', [QrTagController::class, 'generateOrderTag'])->name('order');
+        Route::post('/batch', [QrTagController::class, 'generateBatch'])->name('batch');
+        Route::get('/preview/{type}/{id}', [QrTagController::class, 'preview'])->name('preview');
+    });
 
     // Routing Management
     Route::resource('routing', ProductionRoutingController::class);

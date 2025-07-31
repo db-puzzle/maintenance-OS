@@ -417,6 +417,82 @@ class PermissionSeeder extends Seeder
                 ]
             ];
 
+            // Production QR Code permissions
+            $qrCodePermissions = [
+                [
+                    'name' => 'production.qr-tags.view',
+                    'display_name' => 'View QR Tag Generator',
+                    'description' => 'Access the QR tag generator interface',
+                    'sort_order' => 100
+                ],
+                [
+                    'name' => 'production.qr-tags.generate',
+                    'display_name' => 'Generate QR Tags',
+                    'description' => 'Generate QR code tags for items and manufacturing orders',
+                    'sort_order' => 101
+                ],
+                [
+                    'name' => 'production.qr-scan-logs.view',
+                    'display_name' => 'View QR Scan Logs',
+                    'description' => 'View QR code scan history and analytics',
+                    'sort_order' => 102
+                ],
+                [
+                    'name' => 'production.orders.create',
+                    'display_name' => 'Create Manufacturing Orders',
+                    'description' => 'Create new manufacturing orders',
+                    'sort_order' => 103
+                ],
+                [
+                    'name' => 'production.orders.release',
+                    'display_name' => 'Release Manufacturing Orders',
+                    'description' => 'Release manufacturing orders for production',
+                    'sort_order' => 104
+                ],
+                [
+                    'name' => 'production.orders.cancel',
+                    'display_name' => 'Cancel Manufacturing Orders',
+                    'description' => 'Cancel manufacturing orders',
+                    'sort_order' => 105
+                ],
+                [
+                    'name' => 'production.routes.create',
+                    'display_name' => 'Create Production Routes',
+                    'description' => 'Create production routes for manufacturing orders',
+                    'sort_order' => 106
+                ],
+                [
+                    'name' => 'production.steps.execute',
+                    'display_name' => 'Execute Manufacturing Steps',
+                    'description' => 'Execute steps in the manufacturing process',
+                    'sort_order' => 107
+                ],
+                [
+                    'name' => 'production.quality.executeCheck',
+                    'display_name' => 'Execute Quality Checks',
+                    'description' => 'Execute quality checks on manufacturing orders',
+                    'sort_order' => 108
+                ],
+                [
+                    'name' => 'production.quality.recordResult',
+                    'display_name' => 'Record Quality Results',
+                    'description' => 'Record quality check results',
+                    'sort_order' => 109
+                ],
+                [
+                    'name' => 'production.quality.initiateRework',
+                    'display_name' => 'Initiate Rework',
+                    'description' => 'Initiate rework for failed quality checks',
+                    'sort_order' => 110
+                ],
+                [
+                    'name' => 'production.reports.viewQualityMetrics',
+                    'display_name' => 'View Quality Metrics',
+                    'description' => 'View quality metrics and reports',
+                    'sort_order' => 111
+                ]
+            ];
+
             // Create all permissions
             $allPermissions = array_merge(
                 $systemPermissions,
@@ -427,7 +503,8 @@ class PermissionSeeder extends Seeder
                 $partsPermissions,
                 $skillsPermissions,
                 $certificationsPermissions,
-                $workCellPermissions
+                $workCellPermissions,
+                $qrCodePermissions
             );
 
             foreach ($allPermissions as $permissionData) {
