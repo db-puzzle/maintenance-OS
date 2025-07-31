@@ -5,70 +5,79 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
-use App\Models\Production\BillOfMaterial;
-use App\Models\Production\BomItem;
+use App\Services\Production\ItemImportService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ItemController extends Controller
 {
+    protected ItemImportService $importService;
+
+    public function __construct(ItemImportService $importService)
+    {
+        $this->importService = $importService;
+    }
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Item::class);
 
         $items = Item::query()
             ->when($request->input('search'), function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('item_number', 'like', "%{$search}%");
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('item_number', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
             })
-            ->when($request->input('type'), function ($query, $type) {
-                switch ($type) {
-                    case 'sellable':
-                        $query->sellable();
-                        break;
-                    case 'manufacturable':
-                        $query->manufacturable();
-                        break;
-                    case 'purchasable':
-                        $query->purchasable();
-                        break;
+            ->when($request->input('category'), function ($query, $category) {
+                $query->where('item_category_id', $category);
+            })
+            ->when($request->input('status'), function ($query, $status) {
+                if ($status === 'active') {
+                    $query->where('is_active', true);
+                } elseif ($status === 'inactive') {
+                    $query->where('is_active', false);
                 }
             })
-            ->with(['primaryBom', 'createdBy', 'category'])
+            ->when($request->input('type'), function ($query, $type) {
+                if ($type === 'sellable') {
+                    $query->where('can_be_sold', true);
+                } elseif ($type === 'purchasable') {
+                    $query->where('can_be_purchased', true);
+                } elseif ($type === 'manufacturable') {
+                    $query->where('can_be_manufactured', true);
+                }
+            })
+            ->with(['category', 'createdBy'])
+            ->orderBy('item_number')
             ->paginate($request->input('per_page', 10));
 
-        // Load categories for the index page
-        $categories = ItemCategory::active()
-            ->orderBy('name')
-            ->get();
+        $categories = ItemCategory::active()->orderBy('name')->get();
 
         return Inertia::render('production/items/index', [
             'items' => $items,
-            'filters' => $request->only(['search', 'type', 'per_page']),
             'categories' => $categories,
+            'filters' => $request->only(['search', 'category', 'status', 'type', 'per_page']),
             'can' => [
                 'create' => $request->user()->can('create', Item::class),
+                'import' => $request->user()->can('import', Item::class),
+                'export' => $request->user()->can('export', Item::class),
             ],
         ]);
     }
 
-    public function create(): Response
+    public function create()
     {
         $this->authorize('create', Item::class);
 
-        // Load categories for the create page
-        $categories = ItemCategory::active()
-            ->orderBy('name')
-            ->get();
+        $categories = ItemCategory::active()->orderBy('name')->get();
 
-        return Inertia::render('production/items/show', [
-            'isCreating' => true,
+        return Inertia::render('production/items/create', [
             'categories' => $categories,
-            'can' => [
-                'update' => false,
-                'delete' => false,
-            ],
         ]);
     }
 
@@ -77,75 +86,66 @@ class ItemController extends Controller
         $this->authorize('create', Item::class);
 
         $validated = $request->validate([
-            'item_number' => 'required|string|max:100|unique:items',
+            'item_number' => 'required|string|max:50|unique:items,item_number',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'item_category_id' => 'nullable|exists:item_categories,id',
-            // 'item_type' => 'required|in:manufactured,purchased,phantom,service', // DEPRECATED
             'can_be_sold' => 'boolean',
             'can_be_purchased' => 'boolean',
             'can_be_manufactured' => 'boolean',
             'is_phantom' => 'boolean',
-            'status' => 'required|in:active,inactive,prototype,discontinued',
-            'unit_of_measure' => 'required|string|max:20',
+            'is_active' => 'boolean',
+            'unit_of_measure' => 'required|string|max:10',
             'weight' => 'nullable|numeric|min:0',
+            'dimensions' => 'nullable|array',
             'list_price' => 'nullable|numeric|min:0',
             'manufacturing_cost' => 'nullable|numeric|min:0',
             'manufacturing_lead_time_days' => 'nullable|integer|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
             'purchase_lead_time_days' => 'nullable|integer|min:0',
+            'track_inventory' => 'boolean',
+            'min_stock_level' => 'nullable|numeric|min:0',
+            'max_stock_level' => 'nullable|numeric|min:0',
+            'reorder_point' => 'nullable|numeric|min:0',
             'preferred_vendor' => 'nullable|string|max:255',
             'vendor_item_number' => 'nullable|string|max:100',
+            'tags' => 'nullable|array',
+            'custom_attributes' => 'nullable|array',
         ]);
 
         $validated['created_by'] = auth()->id();
+        $validated['status'] = 'active';
+
         $item = Item::create($validated);
 
-        // Check if we should stay on current page (when creating from CreateItemSheet)
-        // BaseEntitySheet adds 'stay' => true to the request
-        if ($request->boolean('stay')) {
-            return back()->with('success', 'Item criado com sucesso.');
-        }
-
-        // Otherwise redirect to the item show page (when creating from show.tsx)
         return redirect()->route('production.items.show', $item)
-            ->with('success', 'Item criado com sucesso.');
+            ->with('success', 'Item created successfully.');
     }
 
     public function show(Item $item): Response
     {
         $this->authorize('view', $item);
 
-        $item->load([
-            'primaryBom.currentVersion',
-            'bomHistory.billOfMaterial',
-            'createdBy',
-            'category',
-        ]);
-
-        // Get where this item is used
-        $whereUsed = BomItem::where('item_id', $item->id)
-            ->with(['bomVersion.billOfMaterial', 'bomVersion' => function ($query) {
-                $query->where('is_current', true);
-            }])
-            ->get()
-            ->filter(fn($bomItem) => $bomItem->bomVersion !== null);
-
-        // Load categories for the show page
-        $categories = ItemCategory::active()
-            ->orderBy('name')
-            ->get();
+        $item->load(['category', 'createdBy', 'billOfMaterials', 'primaryBom']);
 
         return Inertia::render('production/items/show', [
             'item' => $item,
-            'whereUsed' => $whereUsed,
-            'categories' => $categories,
-            'isCreating' => false,
             'can' => [
                 'update' => auth()->user()->can('update', $item),
                 'delete' => auth()->user()->can('delete', $item),
-                'manageBom' => auth()->user()->can('manageBom', $item),
             ],
+        ]);
+    }
+
+    public function edit(Item $item)
+    {
+        $this->authorize('update', $item);
+
+        $categories = ItemCategory::active()->orderBy('name')->get();
+
+        return Inertia::render('production/items/edit', [
+            'item' => $item,
+            'categories' => $categories,
         ]);
     }
 
@@ -154,37 +154,37 @@ class ItemController extends Controller
         $this->authorize('update', $item);
 
         $validated = $request->validate([
+            'item_number' => 'required|string|max:50|unique:items,item_number,' . $item->id,
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'item_category_id' => 'nullable|exists:item_categories,id',
-            // 'item_type' => 'required|in:manufactured,purchased,phantom,service', // DEPRECATED
             'can_be_sold' => 'boolean',
             'can_be_purchased' => 'boolean',
             'can_be_manufactured' => 'boolean',
             'is_phantom' => 'boolean',
-            'status' => 'required|in:active,inactive,prototype,discontinued',
-            'unit_of_measure' => 'required|string|max:20',
+            'is_active' => 'boolean',
+            'unit_of_measure' => 'required|string|max:10',
             'weight' => 'nullable|numeric|min:0',
+            'dimensions' => 'nullable|array',
             'list_price' => 'nullable|numeric|min:0',
             'manufacturing_cost' => 'nullable|numeric|min:0',
             'manufacturing_lead_time_days' => 'nullable|integer|min:0',
             'purchase_price' => 'nullable|numeric|min:0',
             'purchase_lead_time_days' => 'nullable|integer|min:0',
+            'track_inventory' => 'boolean',
+            'min_stock_level' => 'nullable|numeric|min:0',
+            'max_stock_level' => 'nullable|numeric|min:0',
+            'reorder_point' => 'nullable|numeric|min:0',
             'preferred_vendor' => 'nullable|string|max:255',
             'vendor_item_number' => 'nullable|string|max:100',
+            'tags' => 'nullable|array',
+            'custom_attributes' => 'nullable|array',
         ]);
 
         $item->update($validated);
 
-        // Check if we should stay on current page (when updating from CreateItemSheet)
-        // BaseEntitySheet adds 'stay' => true to the request
-        if ($request->boolean('stay')) {
-            return back()->with('success', 'Item atualizado com sucesso.');
-        }
-
-        // Otherwise redirect to the item show page (when updating from show.tsx)
         return redirect()->route('production.items.show', $item)
-            ->with('success', 'Item atualizado com sucesso.');
+            ->with('success', 'Item updated successfully.');
     }
 
     public function destroy(Item $item)
@@ -192,7 +192,7 @@ class ItemController extends Controller
         $this->authorize('delete', $item);
 
         if (!$item->canBeDeleted()) {
-            return back()->with('error', 'Item cannot be deleted because it is used in active BOMs or has open production orders.');
+            return back()->withErrors(['error' => 'This item cannot be deleted because it is being used.']);
         }
 
         $item->delete();
@@ -201,35 +201,229 @@ class ItemController extends Controller
             ->with('success', 'Item deleted successfully.');
     }
 
-    public function assignBom(Request $request, Item $item)
+    /**
+     * Export items to JSON or CSV
+     */
+    public function export(Request $request)
     {
-        $this->authorize('manageBom', $item);
+        $this->authorize('export', Item::class);
 
-        $validated = $request->validate([
-            'bill_of_material_id' => 'required|exists:bill_of_materials,id',
-            'change_reason' => 'nullable|string',
-            'change_order_number' => 'nullable|string|max:100',
-        ]);
-
-        $bom = BillOfMaterial::findOrFail($validated['bill_of_material_id']);
+        $format = $request->input('format', 'json');
         
-        $item->updateBom($bom, [
-            'reason' => $validated['change_reason'],
-            'change_order' => $validated['change_order_number'],
-        ]);
+        // Get filtered items based on request parameters
+        $query = Item::query()
+            ->when($request->input('search'), function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('item_number', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->input('category'), function ($query, $category) {
+                $query->where('item_category_id', $category);
+            })
+            ->when($request->input('status'), function ($query, $status) {
+                if ($status === 'active') {
+                    $query->where('is_active', true);
+                } elseif ($status === 'inactive') {
+                    $query->where('is_active', false);
+                }
+            })
+            ->with(['category', 'createdBy']);
 
-        return back()->with('success', 'BOM assigned successfully.');
+        $items = $query->get();
+
+        if ($format === 'csv') {
+            return $this->exportCsv($items);
+        }
+
+        return $this->exportJson($items);
     }
 
-    public function bomHistory(Item $item)
+    /**
+     * Export items as JSON
+     */
+    protected function exportJson($items)
     {
-        $this->authorize('view', $item);
+        $exportData = [
+            'exported_at' => now()->toIso8601String(),
+            'exported_by' => auth()->user()->name,
+            'total_items' => $items->count(),
+            'items' => $items->map(function ($item) {
+                return [
+                    'item_number' => $item->item_number,
+                    'name' => $item->name,
+                    'description' => $item->description,
+                    'category_name' => $item->category?->name,
+                    'can_be_sold' => $item->can_be_sold,
+                    'can_be_purchased' => $item->can_be_purchased,
+                    'can_be_manufactured' => $item->can_be_manufactured,
+                    'is_phantom' => $item->is_phantom,
+                    'is_active' => $item->is_active,
+                    'status' => $item->status,
+                    'unit_of_measure' => $item->unit_of_measure,
+                    'weight' => $item->weight,
+                    'dimensions' => $item->dimensions,
+                    'list_price' => $item->list_price,
+                    'manufacturing_cost' => $item->manufacturing_cost,
+                    'manufacturing_lead_time_days' => $item->manufacturing_lead_time_days,
+                    'purchase_price' => $item->purchase_price,
+                    'purchase_lead_time_days' => $item->purchase_lead_time_days,
+                    'track_inventory' => $item->track_inventory,
+                    'min_stock_level' => $item->min_stock_level,
+                    'max_stock_level' => $item->max_stock_level,
+                    'reorder_point' => $item->reorder_point,
+                    'preferred_vendor' => $item->preferred_vendor,
+                    'vendor_item_number' => $item->vendor_item_number,
+                    'tags' => $item->tags,
+                    'custom_attributes' => $item->custom_attributes,
+                ];
+            })
+        ];
 
-        $history = $item->bomHistory()
-            ->with(['billOfMaterial', 'approvedBy'])
-            ->orderBy('effective_from', 'desc')
-            ->get();
+        return response()->json($exportData, 200, [
+            'Content-Type' => 'application/json',
+            'Content-Disposition' => 'attachment; filename="items-' . date('Y-m-d') . '.json"'
+        ]);
+    }
 
-        return response()->json(['history' => $history]);
+    /**
+     * Export items as CSV
+     */
+    protected function exportCsv($items)
+    {
+        $headers = [
+            'Item Number',
+            'Name',
+            'Description',
+            'Category',
+            'Unit of Measure',
+            'Can Be Sold',
+            'Can Be Purchased',
+            'Can Be Manufactured',
+            'Is Phantom',
+            'Is Active',
+            'Status',
+            'Weight',
+            'List Price',
+            'Manufacturing Cost',
+            'Manufacturing Lead Time (Days)',
+            'Purchase Price',
+            'Purchase Lead Time (Days)',
+            'Track Inventory',
+            'Min Stock Level',
+            'Max Stock Level',
+            'Reorder Point',
+            'Preferred Vendor',
+            'Vendor Item Number',
+            'Tags',
+        ];
+
+        $csv = fopen('php://temp', 'r+');
+        fputcsv($csv, $headers);
+        
+        foreach ($items as $item) {
+            fputcsv($csv, [
+                $item->item_number,
+                $item->name,
+                $item->description,
+                $item->category?->name,
+                $item->unit_of_measure,
+                $item->can_be_sold ? 'Yes' : 'No',
+                $item->can_be_purchased ? 'Yes' : 'No',
+                $item->can_be_manufactured ? 'Yes' : 'No',
+                $item->is_phantom ? 'Yes' : 'No',
+                $item->is_active ? 'Yes' : 'No',
+                $item->status,
+                $item->weight,
+                $item->list_price,
+                $item->manufacturing_cost,
+                $item->manufacturing_lead_time_days,
+                $item->purchase_price,
+                $item->purchase_lead_time_days,
+                $item->track_inventory ? 'Yes' : 'No',
+                $item->min_stock_level,
+                $item->max_stock_level,
+                $item->reorder_point,
+                $item->preferred_vendor,
+                $item->vendor_item_number,
+                is_array($item->tags) ? implode(', ', $item->tags) : '',
+            ]);
+        }
+        
+        rewind($csv);
+        $output = stream_get_contents($csv);
+        fclose($csv);
+
+        return response($output)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="items-' . date('Y-m-d') . '.csv"');
+    }
+
+    /**
+     * Show import wizard
+     */
+    public function importWizard(): Response
+    {
+        $this->authorize('import', Item::class);
+
+        $categories = ItemCategory::active()->orderBy('name')->get();
+
+        return Inertia::render('production/items/import', [
+            'categories' => $categories,
+            'supportedFormats' => ['csv', 'txt', 'json'],
+            'csvHeaders' => [
+                'item_number' => 'Item Number',
+                'name' => 'Name',
+                'description' => 'Description',
+                'category_name' => 'Category',
+                'unit_of_measure' => 'Unit of Measure',
+                'can_be_sold' => 'Can Be Sold',
+                'can_be_purchased' => 'Can Be Purchased',
+                'can_be_manufactured' => 'Can Be Manufactured',
+                'weight' => 'Weight',
+                'list_price' => 'List Price',
+                'purchase_price' => 'Purchase Price',
+            ],
+        ]);
+    }
+
+    /**
+     * Import items from file
+     */
+    public function import(Request $request)
+    {
+        $this->authorize('import', Item::class);
+
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt,json',
+            'mapping' => 'nullable|array',
+        ]);
+
+        try {
+            $file = $request->file('file');
+            $extension = $file->getClientOriginalExtension();
+            
+            if ($extension === 'json') {
+                // Handle JSON import
+                $data = json_decode(file_get_contents($file->getRealPath()), true);
+                $result = $this->importService->importFromNativeJson($data);
+            } else {
+                // Handle CSV import
+                $mapping = $request->input('mapping') ? json_decode($request->input('mapping'), true) : [];
+                $result = $this->importService->importFromCsv($file, $mapping);
+            }
+            
+            if (count($result['errors']) > 0) {
+                return back()->with('warning', "Imported {$result['count']} items with " . count($result['errors']) . " errors.")
+                    ->withErrors($result['errors']);
+            }
+            
+            return redirect()->route('production.items.index')
+                ->with('success', "Successfully imported {$result['count']} items.");
+                
+        } catch (\Exception $e) {
+            return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);
+        }
     }
 } 
