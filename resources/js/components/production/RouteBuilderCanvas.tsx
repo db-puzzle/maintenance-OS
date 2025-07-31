@@ -116,7 +116,7 @@ export default function RouteBuilderCanvas({
     };
 
     return (
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 h-full">
             <div
                 ref={canvasRef}
                 className="min-h-full p-8 cursor-default bg-grid-pattern"

@@ -203,7 +203,7 @@ export default function RoutingStepsTab({
                 // Builder mode - show route builder inside the tab (edit mode)
                 if (viewMode === 'builder') {
                     return (
-                        <div className="h-[calc(100vh)]">
+                        <div className="h-[calc(100vh-12rem)]">
                             <RouteBuilderCore
                                 routing={{
                                     id: routing.id || 0,
@@ -239,7 +239,7 @@ export default function RoutingStepsTab({
                 // Viewer mode - show route builder in view-only mode
                 if (viewMode === 'viewer' && steps && steps.length > 0) {
                     return (
-                        <div className="h-[calc(100vh)]">
+                        <div className="h-[calc(100vh-12rem)]">
                             <RouteBuilderCore
                                 routing={{
                                     id: routing.id || 0,

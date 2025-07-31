@@ -214,7 +214,7 @@ export default function ManufacturingOrderRouteTab({
                 // Builder mode - show route builder inside the tab (edit mode)
                 if (viewMode === 'builder' && order.manufacturing_route) {
                     return (
-                        <div className="h-[calc(100vh)]">
+                        <div className="h-[calc(100vh-12rem)]">
                             <RouteBuilderCore
                                 routing={{
                                     id: order.manufacturing_route.id || 0,
@@ -250,7 +250,7 @@ export default function ManufacturingOrderRouteTab({
                 // Route viewer mode - show route builder in view-only mode
                 if (viewMode === 'routeViewer' && order.manufacturing_route) {
                     return (
-                        <div className="h-[calc(100vh)]">
+                        <div className="h-[calc(100vh-12rem)]">
                             <RouteBuilderCore
                                 routing={{
                                     id: order.manufacturing_route.id || 0,

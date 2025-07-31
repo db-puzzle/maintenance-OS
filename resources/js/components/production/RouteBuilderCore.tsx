@@ -405,7 +405,7 @@ export default function RouteBuilderCore({
             <div className="flex-1 flex overflow-hidden relative">
                 {/* Main Canvas with transition */}
                 <div className={cn(
-                    "flex-1 transition-all duration-300 ease-out",
+                    "flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-out",
                     selectedStep ? "pr-[35rem]" : "pr-0"
                 )}>
                     <RouteBuilderCanvas
