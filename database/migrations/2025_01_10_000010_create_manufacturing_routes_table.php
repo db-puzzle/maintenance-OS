@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('manufacturing_routes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('production_order_id')->constrained('manufacturing_orders')->cascadeOnDelete();
+            $table->foreignId('manufacturing_order_id')->nullable()->unique()->constrained('manufacturing_orders')->cascadeOnDelete();
             $table->foreignId('item_id')->constrained('items');
             $table->foreignId('route_template_id')->nullable()->constrained('route_templates');
             $table->string('name', 255);
@@ -22,7 +22,6 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();
             
-            $table->index('production_order_id');
             $table->index('item_id');
         });
     }

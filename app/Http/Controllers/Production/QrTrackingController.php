@@ -200,7 +200,7 @@ class QrTrackingController extends Controller
         $this->authorize('generate', QrTracking::class);
 
         $validated = $request->validate([
-            'production_order_id' => 'required|exists:manufacturing_orders,id',
+            'manufacturing_order_id' => 'required|exists:manufacturing_orders,id',
             'force_regenerate' => 'boolean',
         ]);
 
@@ -208,7 +208,7 @@ class QrTrackingController extends Controller
             return back()->with('error', 'QR code already exists for this item.');
         }
 
-        $order = ManufacturingOrder::find($validated['production_order_id']);
+        $order = ManufacturingOrder::find($validated['manufacturing_order_id']);
 
         try {
             $qrData = $this->qrService->generateForBomItem($item, $order);

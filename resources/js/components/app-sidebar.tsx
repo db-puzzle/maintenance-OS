@@ -65,16 +65,20 @@ const gerenciamentoNavItems: NavGroup = {
                     href: '/production/routing',
                 },
                 {
+                    title: 'Células de Trabalho',
+                    href: '/production/work-cells',
+                },
+                {
                     title: 'Planejamento',
                     href: '/production/planning',
                 },
                 {
-                    title: 'Rastreamento',
-                    href: '/production/tracking',
-                },
-                {
                     title: 'Remessas',
                     href: '/production/shipments',
+                },
+                {
+                    title: 'Rastreamento',
+                    href: '/production/tracking',
                 },
             ],
         },

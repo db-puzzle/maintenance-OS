@@ -95,11 +95,24 @@ export interface BomItem {
 
 export interface WorkCell {
     id: number;
-    code: string;
     name: string;
     description?: string;
-    capacity: number;
-    status: 'active' | 'inactive' | 'maintenance';
+    cell_type: 'internal' | 'external';
+    available_hours_per_day: number;
+    efficiency_percentage: number;
+    shift_id?: number;
+    shift?: any; // Shift type from asset-hierarchy
+    plant_id?: number;
+    plant?: any;
+    area_id?: number;
+    area?: any;
+    sector_id?: number;
+    sector?: any;
+    manufacturer_id?: number;
+    manufacturer?: any;
+    is_active: boolean;
+    routing_steps_count?: number;
+    production_schedules_count?: number;
     created_at: string;
     updated_at: string;
 }
@@ -168,7 +181,7 @@ export interface RouteTemplateStep {
 
 export interface ManufacturingRoute {
     id: number;
-    production_order_id: number;
+    manufacturing_order_id: number;
     manufacturing_order?: ManufacturingOrder;
     item_id: number;
     item?: Item;
@@ -206,14 +219,31 @@ export interface ManufacturingStep {
     quality_check_mode?: 'every_part' | 'entire_lot' | 'sampling';
     sampling_size?: number;
     depends_on_step_id?: number;
-    can_start_when_dependency?: 'completed' | 'in_progress';
+    can_start_when_dependency?: 'completed';
     executions?: ManufacturingStepExecution[];
+}
+
+export interface ProductionSchedule {
+    id: number;
+    manufacturing_order_id: number;
+    manufacturing_order?: ManufacturingOrder;
+    manufacturing_step_id: number;
+    manufacturing_step?: ManufacturingStep;
+    work_cell_id: number;
+    work_cell?: WorkCell;
+    scheduled_start: string;
+    scheduled_end: string;
+    actual_start?: string;
+    actual_end?: string;
+    status: 'scheduled' | 'ready' | 'in_progress' | 'completed' | 'cancelled';
+    created_at: string;
+    updated_at: string;
 }
 
 export interface ManufacturingStepExecution {
     id: number;
     manufacturing_step_id: number;
-    production_order_id: number;
+    manufacturing_order_id: number;
     part_number?: number;
     total_parts?: number;
     status: 'queued' | 'in_progress' | 'on_hold' | 'completed';

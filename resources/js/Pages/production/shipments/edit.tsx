@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 
 interface ShipmentItem {
     id: string;
-    production_order_id: string;
+    manufacturing_order_id: string;
     product_id: string;
     quantity: number;
     package_type: string;

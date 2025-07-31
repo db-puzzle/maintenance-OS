@@ -86,7 +86,7 @@ class ManufacturingOrder extends Model
      */
     public function manufacturingRoute(): HasOne
     {
-        return $this->hasOne(ManufacturingRoute::class, 'production_order_id');
+        return $this->hasOne(ManufacturingRoute::class, 'manufacturing_order_id');
     }
 
     /**
@@ -126,7 +126,7 @@ class ManufacturingOrder extends Model
      */
     public function shipmentItems(): HasMany
     {
-        return $this->hasMany(ShipmentItem::class, 'production_order_id');
+        return $this->hasMany(ShipmentItem::class, 'manufacturing_order_id');
     }
 
     /**
@@ -334,7 +334,22 @@ class ManufacturingOrder extends Model
      */
     public function canBeReleased(): bool
     {
-        return in_array($this->status, ['draft', 'planned']);
+        // Order must be in draft or planned status
+        if (!in_array($this->status, ['draft', 'planned'])) {
+            return false;
+        }
+
+        // Order must have a manufacturing route with at least one step
+        if (!$this->manufacturingRoute()->exists()) {
+            return false;
+        }
+
+        // Route must have at least one step
+        if ($this->manufacturingRoute->steps()->count() === 0) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -343,5 +358,13 @@ class ManufacturingOrder extends Model
     public function canBeCancelled(): bool
     {
         return !in_array($this->status, ['completed', 'cancelled']);
+    }
+
+    /**
+     * Get the created by user (alias for createdBy relationship).
+     */
+    public function getCreatedByUserAttribute()
+    {
+        return $this->createdBy;
     }
 }

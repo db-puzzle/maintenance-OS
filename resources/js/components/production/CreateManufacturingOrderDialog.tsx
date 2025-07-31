@@ -239,7 +239,7 @@ export default function CreateManufacturingOrderDialog({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="max-w-4xl h-[78vh] flex flex-col p-0">
+            <DialogContent className="max-w-4xl h-150 flex flex-col p-0">
                 <DialogHeader className="px-6 py-4 border-b">
                     <DialogTitle>Create Manufacturing Order</DialogTitle>
                     <DialogDescription>
@@ -454,8 +454,6 @@ export default function CreateManufacturingOrderDialog({
                                         </div>
                                     </div>
 
-                                    <Separator />
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <ItemSelect
                                             label="Source Type"
@@ -627,7 +625,7 @@ export default function CreateManufacturingOrderDialog({
                         </div>
                     </ScrollArea>
 
-                    <DialogFooter className="px-6 py-4 border-t">
+                    <DialogFooter className="px-6 py-4">
                         <Button
                             type="button"
                             variant="outline"

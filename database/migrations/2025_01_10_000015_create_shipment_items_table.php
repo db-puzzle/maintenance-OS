@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('shipment_id')->constrained('shipments')->cascadeOnDelete();
             $table->foreignId('bom_item_id')->nullable()->constrained('bom_items');
-            $table->foreignId('production_order_id')->nullable()->constrained('manufacturing_orders');
+            $table->foreignId('manufacturing_order_id')->nullable()->constrained('manufacturing_orders');
             
             // Item details
             $table->string('item_number', 100);

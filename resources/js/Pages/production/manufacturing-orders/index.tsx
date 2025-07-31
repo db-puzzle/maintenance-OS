@@ -7,7 +7,8 @@ import {
     Package,
     GitBranch,
     Calendar,
-    AlertCircle
+    AlertCircle,
+    Workflow
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -159,6 +160,11 @@ export default function ManufacturingOrders({
                         <Badge variant="outline" className="text-xs">
                             <GitBranch className="h-3 w-3 mr-1" />
                             {order.child_orders_count}
+                        </Badge>
+                    )}
+                    {order.manufacturing_route && (
+                        <Badge variant="outline" className="text-xs">
+                            <Workflow className="h-3 w-3" />
                         </Badge>
                     )}
                 </div>
@@ -372,7 +378,7 @@ export default function ManufacturingOrders({
                                         label: 'View',
                                         onClick: () => router.visit(route('production.orders.show', (order as any).id))
                                     },
-                                    ...((order as any).status === 'draft' ? [{
+                                    ...(((order as any).status === 'draft' || (order as any).status === 'planned') && (order as any).manufacturing_route ? [{
                                         label: 'Release',
                                         onClick: () => router.post(route('production.orders.release', (order as any).id))
                                     }] : []),

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 class ManufacturingStep extends Model
 {
@@ -66,6 +67,38 @@ class ManufacturingStep extends Model
         'actual_start_time' => 'datetime',
         'actual_end_time' => 'datetime',
     ];
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($step) {
+            // If this is not the first step and no dependency is set, auto-set to previous step
+            if ($step->step_number > 1 && !$step->depends_on_step_id) {
+                $previousStep = static::where('manufacturing_route_id', $step->manufacturing_route_id)
+                    ->where('step_number', '<', $step->step_number)
+                    ->orderBy('step_number', 'desc')
+                    ->first();
+                
+                if ($previousStep) {
+                    $step->depends_on_step_id = $previousStep->id;
+                } else {
+                    // If we can't find a previous step, throw validation error
+                    throw ValidationException::withMessages([
+                        'depends_on_step_id' => ['Steps after the first must have a dependency on a previous step.']
+                    ]);
+                }
+            }
+            
+            // Ensure can_start_when_dependency is always 'completed' to enforce linear path
+            if ($step->depends_on_step_id && !$step->can_start_when_dependency) {
+                $step->can_start_when_dependency = 'completed';
+            }
+        });
+    }
 
     /**
      * Get the manufacturing route.
@@ -134,11 +167,8 @@ class ManufacturingStep extends Model
         
         $dependency = $this->dependency;
         
-        if ($this->can_start_when_dependency === 'completed') {
-            return $dependency->status === 'completed';
-        }
-        
-        return in_array($dependency->status, ['in_progress', 'completed']);
+        // Always require dependency to be completed (enforcing linear path)
+        return $dependency->status === 'completed';
     }
 
     /**
@@ -157,7 +187,7 @@ class ManufacturingStep extends Model
 
         return ManufacturingStepExecution::create([
             'manufacturing_step_id' => $this->id,
-            'production_order_id' => $this->manufacturingRoute->production_order_id,
+            'manufacturing_order_id' => $this->manufacturingRoute->manufacturing_order_id,
             'part_number' => $partNumber,
             'total_parts' => $totalParts,
             'status' => 'in_progress',

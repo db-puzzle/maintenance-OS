@@ -6,7 +6,6 @@ import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Button } from '@/components/ui/button';
-import { GitBranch } from 'lucide-react';
 import { ColumnConfig } from '@/types/shared';
 import { toast } from 'sonner';
 
@@ -175,13 +174,6 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
                             <EntityActionDropdown
                                 onEdit={() => router.visit(route('production.routing.edit', routing.id))}
                                 onDelete={() => handleDelete(routing)}
-                                additionalActions={[
-                                    {
-                                        label: 'Visualizar Roteiro',
-                                        icon: <GitBranch className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.routing.builder', routing.id))
-                                    }
-                                ]}
                             />
                         )}
                     />

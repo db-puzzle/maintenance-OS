@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import {
     Package,
     Calendar,
@@ -13,7 +13,6 @@ import {
     Play,
     XCircle,
     FileText,
-    Workflow,
     Info,
     TrendingUp,
     Box,
@@ -24,6 +23,12 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import TextInput from '@/components/TextInput';
@@ -32,12 +37,17 @@ import { ManufacturingOrder } from '@/types/production';
 import { cn } from '@/lib/utils';
 import { useForm } from '@inertiajs/react';
 import HierarchicalConfiguration from '@/components/production/HierarchicalConfiguration';
+import ManufacturingOrderRouteTab from '@/components/production/ManufacturingOrderRouteTab';
 
 interface Props {
     order: ManufacturingOrder;
     canRelease: boolean;
     canCancel: boolean;
     canCreateRoute: boolean;
+    templates?: any[]; // Route templates for creating new routes
+    workCells?: any[];
+    stepTypes?: Record<string, string>;
+    forms?: any[];
 }
 
 function FieldGroup({ title, children }: { title?: string; children: React.ReactNode }) {
@@ -65,7 +75,13 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
     );
 }
 
-export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute }: Props) {
+export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
+    const { props } = usePage();
+    const flash = props.flash as any;
+
+    // Check URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const openRouteBuilderParam = urlParams.get('openRouteBuilder');
     // Create a form instance for view-only display
     const inertiaForm = useForm({
         order_number: order.order_number,
@@ -406,68 +422,16 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
         {
             id: 'routes',
             label: 'Routes & Steps',
+            fullWidth: true,
             content: (
-                <div className="space-y-4 py-6">
-                    {order.manufacturing_route ? (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-lg font-semibold">{order.manufacturing_route.name}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        {order.manufacturing_route.description}
-                                    </p>
-                                </div>
-                                <Button asChild variant="outline">
-                                    <Link href={`/production/routes/${order.manufacturing_route.id}`}>
-                                        <Workflow className="h-4 w-4 mr-2" />
-                                        View Route
-                                    </Link>
-                                </Button>
-                            </div>
-
-                            {order.manufacturing_route.steps && (
-                                <div className="space-y-2">
-                                    {order.manufacturing_route.steps.map((step: any) => (
-                                        <div key={step.id} className="flex items-center justify-between rounded-lg border p-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                                                    {step.step_number}
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium">{step.name}</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {step.work_cell?.name}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <Badge variant={
-                                                step.status === 'completed' ? 'default' :
-                                                    step.status === 'in_progress' ? 'default' :
-                                                        'secondary'
-                                            }>
-                                                {step.status}
-                                            </Badge>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <Alert>
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription className="flex items-center justify-between">
-                                <span>No manufacturing route has been created for this order.</span>
-                                {canCreateRoute && order.status === 'released' && (
-                                    <Button asChild size="sm">
-                                        <Link href={`/production/orders/${order.id}/routes/create`}>
-                                            Create Route
-                                        </Link>
-                                    </Button>
-                                )}
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </div>
+                <ManufacturingOrderRouteTab
+                    order={order}
+                    canCreateRoute={canCreateRoute}
+                    templates={templates}
+                    workCells={workCells}
+                    stepTypes={stepTypes}
+                    forms={forms}
+                />
             )
         },
         {
@@ -530,22 +494,42 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
     const showEditButton = order.status === 'draft';
     const editRoute = route('production.orders.edit', order.id);
 
+    // Check if order has a route
+    const hasRoute = order.manufacturing_route && order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0;
+    const shouldShowRelease = ['draft', 'planned'].includes(order.status);
+
     // Additional actions for the header
     const headerActions = (
-        <div className="flex gap-2">
-            {canRelease && (
-                <Button onClick={handleRelease}>
-                    <Play className="h-4 w-4 mr-2" />
-                    Release
-                </Button>
-            )}
-            {canCancel && (
-                <Button variant="destructive" onClick={handleCancel}>
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Cancel
-                </Button>
-            )}
-        </div>
+        <TooltipProvider>
+            <div className="flex gap-2">
+                {shouldShowRelease && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span tabIndex={0}>
+                                <Button
+                                    onClick={handleRelease}
+                                    disabled={!canRelease || !hasRoute}
+                                >
+                                    <Play className="h-4 w-4 mr-2" />
+                                    Release
+                                </Button>
+                            </span>
+                        </TooltipTrigger>
+                        {!hasRoute && (
+                            <TooltipContent>
+                                <p>Configure a manufacturing route before releasing</p>
+                            </TooltipContent>
+                        )}
+                    </Tooltip>
+                )}
+                {canCancel && (
+                    <Button variant="destructive" onClick={handleCancel}>
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Cancel
+                    </Button>
+                )}
+            </div>
+        </TooltipProvider>
     );
 
     return (
@@ -554,9 +538,8 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 title={order.order_number}
                 subtitle={subtitle}
                 editRoute={editRoute}
-                showEditButton={showEditButton}
                 tabs={tabs}
-                defaultActiveTab="overview"
+                defaultActiveTab={(flash?.openRouteBuilder || openRouteBuilderParam === '1') ? "routes" : "overview"}
             >
                 {headerActions}
             </ShowLayout>

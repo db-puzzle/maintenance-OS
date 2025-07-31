@@ -334,7 +334,7 @@ class ProductionExecutionController extends Controller
                 $query->where('bom_item_id', $qrData['bom_item_id'] ?? null);
             })
             ->where('status', 'scheduled')
-            ->where('production_order_id', $qrData['production_order_id'] ?? null)
+            ->where('manufacturing_order_id', $qrData['manufacturing_order_id'] ?? null)
             ->first();
 
         if (!$schedule) {
@@ -403,7 +403,7 @@ class ProductionExecutionController extends Controller
         }
 
         return [
-            'production_order_id' => $parts[1],
+            'manufacturing_order_id' => $parts[1],
             'bom_item_id' => $parts[2],
         ];
     }

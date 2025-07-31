@@ -383,6 +383,40 @@ class PermissionSeeder extends Seeder
                 ]
             ];
 
+            // Production Work Cell permissions
+            $workCellPermissions = [
+                [
+                    'name' => 'production.work-cells.viewAny',
+                    'display_name' => 'View Work Cells List',
+                    'description' => 'View list of all work cells',
+                    'sort_order' => 90
+                ],
+                [
+                    'name' => 'production.work-cells.view',
+                    'display_name' => 'View Work Cell Details',
+                    'description' => 'View work cell details',
+                    'sort_order' => 91
+                ],
+                [
+                    'name' => 'production.work-cells.create',
+                    'display_name' => 'Create Work Cells',
+                    'description' => 'Create new work cells',
+                    'sort_order' => 92
+                ],
+                [
+                    'name' => 'production.work-cells.update',
+                    'display_name' => 'Update Work Cells',
+                    'description' => 'Update work cell information',
+                    'sort_order' => 93
+                ],
+                [
+                    'name' => 'production.work-cells.delete',
+                    'display_name' => 'Delete Work Cells',
+                    'description' => 'Delete work cells',
+                    'sort_order' => 94
+                ]
+            ];
+
             // Create all permissions
             $allPermissions = array_merge(
                 $systemPermissions,
@@ -392,7 +426,8 @@ class PermissionSeeder extends Seeder
                 $workOrderPermissions,
                 $partsPermissions,
                 $skillsPermissions,
-                $certificationsPermissions
+                $certificationsPermissions,
+                $workCellPermissions
             );
 
             foreach ($allPermissions as $permissionData) {

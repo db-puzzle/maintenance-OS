@@ -15,6 +15,7 @@ interface Tab {
     id: string;
     label: string;
     content: ReactNode;
+    fullWidth?: boolean;
 }
 
 interface ShowLayoutProps {
@@ -146,9 +147,9 @@ export default function ShowLayout({
                             )}
 
                             {!isCompressed && subtitle && (
-                                <p className={cn('text-muted-foreground text-sm leading-5 transition-all duration-200 ease-in-out')}>
+                                <div className={cn('text-muted-foreground text-sm leading-5 transition-all duration-200 ease-in-out')}>
                                     {subtitle}
-                                </p>
+                                </div>
                             )}
                         </div>
                         {/* Buttons */}
@@ -229,22 +230,22 @@ export default function ShowLayout({
 
             {/* Scrollable Content Area */}
             <div className="bg-sidebar-accent/30 min-h-0 flex-1 overflow-y-auto">
-                <div className="px-6 lg:px-8">
-                    {tabs && tabs.length > 0
-                        ? tabs.map((tab) => (
-                            <div
-                                key={tab.id}
-                                className={cn(
-                                    activeTab === tab.id ? 'block' : 'hidden',
-                                    // Add smooth vertical animation when tab becomes active
-                                    activeTab === tab.id && tabAnimationClass,
-                                )}
-                            >
-                                {tab.content}
-                            </div>
-                        ))
-                        : children}
-                </div>
+                {tabs && tabs.length > 0
+                    ? tabs.map((tab) => (
+                        <div
+                            key={tab.id}
+                            className={cn(
+                                activeTab === tab.id ? 'block' : 'hidden',
+                                // Add smooth vertical animation when tab becomes active
+                                activeTab === tab.id && tabAnimationClass,
+                                // Apply padding only if not full width
+                                !tab.fullWidth && "px-6 lg:px-8"
+                            )}
+                        >
+                            {tab.content}
+                        </div>
+                    ))
+                    : <div className="px-6 lg:px-8">{children}</div>}
             </div>
         </div>
     );

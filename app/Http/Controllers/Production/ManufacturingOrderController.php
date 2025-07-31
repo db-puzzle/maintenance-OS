@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
 use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingStep;
 use App\Models\Production\RouteTemplate;
+use App\Models\Production\WorkCell;
+use App\Models\Forms\Form;
 use App\Services\Production\ManufacturingOrderService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -176,32 +179,56 @@ class ManufacturingOrderController extends Controller
     {
         $this->authorize('view', $order);
 
-        $order->loadCount('children');
         $order->load([
-            'item',
-            'billOfMaterial.currentVersion.items.item',
+            'item.category',
+            'billOfMaterial',
             'parent',
-            'manufacturingRoute.steps.workCell.area.plant',
-            'manufacturingRoute.steps.executions.executedBy',
-            'createdBy',
+            'children',
+            'manufacturingRoute.steps.workCell',
+            'createdBy'
         ]);
 
-        // Load children recursively
-        $this->loadChildrenRecursively($order);
-
-        // Ensure child counts are up to date
-        if (!isset($order->child_orders_count) || $order->child_orders_count === null) {
-            $order->child_orders_count = $order->children->count();
+        // Load children recursively for tree view
+        if ($order->children->isNotEmpty()) {
+            $this->loadChildrenRecursively($order);
         }
-        if (!isset($order->completed_child_orders_count) || $order->completed_child_orders_count === null) {
-            $order->completed_child_orders_count = $order->children->where('status', 'completed')->count();
+
+        // Can create/edit routes if user has permission and order is in draft or planned status
+        $canCreateRoute = auth()->user()->can('production.routes.create') && in_array($order->status, ['draft', 'planned']);
+        
+        // Load route templates if user can create routes
+        $templates = [];
+        if ($canCreateRoute && in_array($order->status, ['draft', 'planned'])) {
+            $templates = RouteTemplate::where('is_active', true)
+                ->when($order->item?->item_category_id, function ($query, $categoryId) {
+                    $query->where('item_category_id', $categoryId)
+                          ->orWhereNull('item_category_id');
+                })
+                ->withCount('steps')
+                ->get()
+                ->map(function ($template) {
+                    // Calculate total estimated time
+                    $template->estimated_time = $template->steps()
+                        ->sum(\DB::raw('COALESCE(setup_time_minutes, 0) + COALESCE(cycle_time_minutes, 0)'));
+                    
+                    // Get usage count
+                    $template->usage_count = \DB::table('manufacturing_routes')
+                        ->where('route_template_id', $template->id)
+                        ->count();
+                        
+                    return $template;
+                });
         }
 
         return Inertia::render('production/manufacturing-orders/show', [
             'order' => $order,
             'canRelease' => $order->canBeReleased() && auth()->user()->can('production.orders.release'),
             'canCancel' => $order->canBeCancelled() && auth()->user()->can('production.orders.cancel'),
-            'canCreateRoute' => !$order->manufacturingRoute && auth()->user()->can('production.routes.create'),
+            'canCreateRoute' => $canCreateRoute,
+            'templates' => $templates,
+            'workCells' => WorkCell::where('is_active', true)->get(),
+            'stepTypes' => ManufacturingStep::STEP_TYPES,
+            'forms' => Form::where('is_active', true)->get(['id', 'name']),
         ]);
     }
 
@@ -335,5 +362,85 @@ class ManufacturingOrderController extends Controller
         ]);
     }
 
+    /**
+     * Show the form for creating a route for an order.
+     */
+    public function createRoute(ManufacturingOrder $order)
+    {
+        $this->authorize('update', $order);
+        
+        if (!in_array($order->status, ['draft', 'planned'])) {
+            return redirect()->route('production.orders.show', $order)
+                ->with('error', 'Routes can only be created for draft or planned orders.');
+        }
+        
+        if ($order->manufacturingRoute()->exists()) {
+            return redirect()->route('production.routing.show', $order->manufacturingRoute->id)
+                ->with('info', 'This order already has a route.');
+        }
+        
+        $templates = RouteTemplate::where('is_active', true)
+            ->when($order->item?->item_category_id, function ($query, $categoryId) {
+                $query->where('item_category_id', $categoryId);
+            })
+            ->withCount('steps')
+            ->get()
+            ->map(function ($template) {
+                $template->total_time = $template->steps()
+                    ->sum(\DB::raw('setup_time_minutes + cycle_time_minutes'));
+                $template->usage_count = \DB::table('manufacturing_routes')
+                    ->where('route_template_id', $template->id)
+                    ->count();
+                return $template;
+            });
+        
+        return Inertia::render('production/orders/routes/create', [
+            'order' => $order->load('item'),
+            'templates' => $templates,
+        ]);
+    }
+
+    /**
+     * Store a newly created route for an order.
+     */
+    public function storeRoute(Request $request, ManufacturingOrder $order)
+    {
+        $this->authorize('update', $order);
+        
+        if (!in_array($order->status, ['draft', 'planned'])) {
+            return redirect()->route('production.orders.show', $order)
+                ->with('error', 'Routes can only be created for draft or planned orders.');
+        }
+        
+        if ($order->manufacturingRoute()->exists()) {
+            return redirect()->route('production.orders.show', $order)
+                ->with('info', 'This order already has a route.');
+        }
+        
+        $validated = $request->validate([
+            'template_id' => 'nullable|exists:route_templates,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+        
+        try {
+            if ($validated['template_id']) {
+                $this->orderService->createRouteFromTemplate($order, $validated['template_id']);
+            } else {
+                $route = $order->manufacturingRoute()->create([
+                    'item_id' => $order->item_id,
+                    'name' => $validated['name'],
+                    'description' => $validated['description'],
+                    'is_active' => true,
+                    'created_by' => auth()->id(),
+                ]);
+            }
+            
+            return redirect()->route('production.orders.show', ['order' => $order->id, 'openRouteBuilder' => 1])
+                ->with('success', 'Route created successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
 
 } 

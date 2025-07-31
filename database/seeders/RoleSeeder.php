@@ -84,6 +84,12 @@ class RoleSeeder extends Seeder
                 'production.categories.create',
                 'production.categories.update',
                 'production.categories.delete',
+                // Work Cell permissions
+                'production.work-cells.viewAny',
+                'production.work-cells.view',
+                'production.work-cells.create',
+                'production.work-cells.update',
+                'production.work-cells.delete',
             ];
             $plantManager->syncPermissions($plantManagerPermissions);
 
@@ -174,6 +180,12 @@ class RoleSeeder extends Seeder
                 'production.categories.create',
                 'production.categories.update',
                 'production.categories.delete',
+                // Work Cell permissions
+                'production.work-cells.viewAny',
+                'production.work-cells.view',
+                'production.work-cells.create',
+                'production.work-cells.update',
+                'production.work-cells.delete',
             ];
             $maintenanceSupervisor->syncPermissions($maintenanceSupervisorPermissions);
 
@@ -205,6 +217,9 @@ class RoleSeeder extends Seeder
                 'parts.export',
                 // Production category permissions
                 'production.categories.view',
+                // Work Cell permissions
+                'production.work-cells.viewAny',
+                'production.work-cells.view',
             ];
             $planner->syncPermissions($plannerPermissions);
 
@@ -235,6 +250,9 @@ class RoleSeeder extends Seeder
                 'certifications.view',
                 // Production category permissions (view only)
                 'production.categories.view',
+                // Work Cell permissions (view only)
+                'production.work-cells.viewAny',
+                'production.work-cells.view',
             ];
             $technician->syncPermissions($technicianPermissions);
 
@@ -282,6 +300,9 @@ class RoleSeeder extends Seeder
                 'certifications.view',
                 // Production category permissions (view only)
                 'production.categories.view',
+                // Work Cell permissions (view only)
+                'production.work-cells.viewAny',
+                'production.work-cells.view',
             ];
             $viewer->syncPermissions($viewerPermissions);
 

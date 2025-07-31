@@ -4,15 +4,18 @@ namespace App\Policies\Production;
 
 use App\Models\Production\WorkCell;
 use App\Models\User;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class WorkCellPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any work cells.
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('production.workCells.viewAny');
+        return $user->hasPermissionTo('production.work-cells.viewAny');
     }
 
     /**
@@ -20,7 +23,7 @@ class WorkCellPolicy
      */
     public function view(User $user, WorkCell $workCell): bool
     {
-        return $user->hasPermissionTo('production.workCells.view');
+        return $user->hasPermissionTo('production.work-cells.view');
     }
 
     /**
@@ -28,7 +31,7 @@ class WorkCellPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('production.workCells.create');
+        return $user->hasPermissionTo('production.work-cells.create');
     }
 
     /**
@@ -36,7 +39,7 @@ class WorkCellPolicy
      */
     public function update(User $user, WorkCell $workCell): bool
     {
-        return $user->hasPermissionTo('production.workCells.update');
+        return $user->hasPermissionTo('production.work-cells.update');
     }
 
     /**
@@ -44,16 +47,24 @@ class WorkCellPolicy
      */
     public function delete(User $user, WorkCell $workCell): bool
     {
-        // Cannot delete if work cell is assigned to routing steps
-        if ($workCell->routingSteps()->exists()) {
-            return false;
-        }
+        // Check dependencies before allowing deletion
+        // The actual dependency validation happens in the controller
+        return $user->hasPermissionTo('production.work-cells.delete');
+    }
 
-        // Cannot delete if work cell has scheduled production
-        if ($workCell->productionSchedules()->whereIn('status', ['scheduled', 'in_progress'])->exists()) {
-            return false;
-        }
+    /**
+     * Determine whether the user can restore the work cell.
+     */
+    public function restore(User $user, WorkCell $workCell): bool
+    {
+        return $user->hasPermissionTo('production.work-cells.restore');
+    }
 
-        return $user->hasPermissionTo('production.workCells.delete');
+    /**
+     * Determine whether the user can permanently delete the work cell.
+     */
+    public function forceDelete(User $user, WorkCell $workCell): bool
+    {
+        return $user->hasPermissionTo('production.work-cells.forceDelete');
     }
 } 

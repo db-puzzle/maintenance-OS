@@ -13,7 +13,7 @@ class ManufacturingRoute extends Model
     use HasFactory;
 
     protected $fillable = [
-        'production_order_id',
+        'manufacturing_order_id',
         'item_id',
         'route_template_id',
         'name',
@@ -31,7 +31,7 @@ class ManufacturingRoute extends Model
      */
     public function manufacturingOrder(): BelongsTo
     {
-        return $this->belongsTo(ManufacturingOrder::class, 'production_order_id');
+        return $this->belongsTo(ManufacturingOrder::class, 'manufacturing_order_id');
     }
 
     /**

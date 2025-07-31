@@ -66,7 +66,7 @@ Schema::create('manufacturing_orders', function (Blueprint $table) {
 ```php
 Schema::create('manufacturing_routes', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('production_order_id')->constrained('manufacturing_orders')->cascadeOnDelete();
+    $table->foreignId('manufacturing_order_id')->constrained('manufacturing_orders')->cascadeOnDelete();
     $table->foreignId('item_id')->constrained('items');
     $table->foreignId('route_template_id')->nullable()->constrained('route_templates');
     $table->string('name', 255);
@@ -75,7 +75,7 @@ Schema::create('manufacturing_routes', function (Blueprint $table) {
     $table->foreignId('created_by')->nullable()->constrained('users');
     $table->timestamps();
     
-    $table->index('production_order_id');
+    $table->index('manufacturing_order_id');
     $table->index('item_id');
 });
 ```
@@ -127,7 +127,7 @@ Schema::create('manufacturing_steps', function (Blueprint $table) {
 Schema::create('manufacturing_step_executions', function (Blueprint $table) {
     $table->id();
     $table->foreignId('manufacturing_step_id')->constrained('manufacturing_steps');
-    $table->foreignId('production_order_id')->constrained('manufacturing_orders');
+    $table->foreignId('manufacturing_order_id')->constrained('manufacturing_orders');
     
     // Part tracking for lot production
     $table->integer('part_number')->nullable(); // Which part in the lot (1, 2, 3...)
@@ -155,9 +155,9 @@ Schema::create('manufacturing_step_executions', function (Blueprint $table) {
     
     $table->timestamps();
     
-    $table->index(['manufacturing_step_id', 'production_order_id']);
+    $table->index(['manufacturing_step_id', 'manufacturing_order_id']);
     $table->index('status');
-    $table->index(['production_order_id', 'part_number']);
+    $table->index(['manufacturing_order_id', 'part_number']);
 });
 ```
 
@@ -537,7 +537,7 @@ public function checkAutoComplete()
 class ManufacturingRoute extends Model
 {
     protected $fillable = [
-        'production_order_id',
+        'manufacturing_order_id',
         'item_id',
         'route_template_id',
         'name',
@@ -643,7 +643,7 @@ class ManufacturingStep extends Model
     {
         return ManufacturingStepExecution::create([
             'manufacturing_step_id' => $this->id,
-            'production_order_id' => $this->route->production_order_id,
+            'manufacturing_order_id' => $this->route->manufacturing_order_id,
             'part_number' => $partNumber,
             'total_parts' => $totalParts,
             'status' => 'in_progress',

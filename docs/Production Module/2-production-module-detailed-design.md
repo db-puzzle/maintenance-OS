@@ -324,7 +324,7 @@ CREATE TABLE manufacturing_orders (
 -- Production schedules (detailed planning)
 CREATE TABLE production_schedules (
     id BIGSERIAL PRIMARY KEY,
-    production_order_id BIGINT REFERENCES manufacturing_orders(id) ON DELETE CASCADE,
+    manufacturing_order_id BIGINT REFERENCES manufacturing_orders(id) ON DELETE CASCADE,
     routing_step_id BIGINT REFERENCES routing_steps(id),
     work_cell_id BIGINT REFERENCES work_cells(id),
     
@@ -450,7 +450,7 @@ CREATE TABLE shipment_items (
     id BIGSERIAL PRIMARY KEY,
     shipment_id BIGINT REFERENCES shipments(id) ON DELETE CASCADE,
     bom_item_id BIGINT REFERENCES bom_items(id),
-    production_order_id BIGINT REFERENCES manufacturing_orders(id),
+    manufacturing_order_id BIGINT REFERENCES manufacturing_orders(id),
     
     -- Item details
     item_number VARCHAR(100) NOT NULL,

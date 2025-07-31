@@ -115,74 +115,60 @@ class ProductionTestDataSeeder extends Seeder
         
         $this->workCells = [
             'usinagem' => WorkCell::create([
-                'code' => 'USI-01',
                 'name' => 'Centro de Usinagem',
                 'description' => 'Centro de usinagem para componentes metálicos',
                 'cell_type' => 'internal',
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 85,
                 'is_active' => true,
-                'manufacturing_lead_time_days' => 0,
             ]),
             'soldagem' => WorkCell::create([
-                'code' => 'SOL-01',
                 'name' => 'Estação de Soldagem',
                 'description' => 'Soldagem de quadros e componentes',
                 'cell_type' => 'internal',
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 80,
                 'is_active' => true,
-                'manufacturing_lead_time_days' => 0,
             ]),
             'pintura' => WorkCell::create([
-                'code' => 'PIN-01',
                 'name' => 'Cabine de Pintura',
                 'description' => 'Pintura eletrostática e acabamento',
                 'cell_type' => 'internal',
                 'available_hours_per_day' => 12,
                 'efficiency_percentage' => 75,
                 'is_active' => true,
-                'manufacturing_lead_time_days' => 0,
             ]),
             'montagem_rodas' => WorkCell::create([
-                'code' => 'MTR-01',
                 'name' => 'Montagem de Rodas',
                 'description' => 'Montagem e alinhamento de rodas',
                 'cell_type' => 'internal',
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 90,
                 'is_active' => true,
-                'manufacturing_lead_time_days' => 0,
             ]),
             'montagem_final' => WorkCell::create([
-                'code' => 'MTF-01',
                 'name' => 'Linha de Montagem Final',
                 'description' => 'Montagem final de bicicletas',
                 'cell_type' => 'internal',
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 85,
                 'is_active' => true,
-                'manufacturing_lead_time_days' => 0,
             ]),
             'inspecao' => WorkCell::create([
-                'code' => 'INS-01',
                 'name' => 'Inspeção de Qualidade',
                 'description' => 'Inspeção final e testes',
                 'cell_type' => 'internal',
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 95,
                 'is_active' => true,
-                'manufacturing_lead_time_days' => 0,
             ]),
             'embalagem' => WorkCell::create([
-                'code' => 'EMB-01',
                 'name' => 'Estação de Embalagem',
                 'description' => 'Embalagem e preparação para envio',
                 'cell_type' => 'internal',
                 'available_hours_per_day' => 16,
                 'efficiency_percentage' => 90,
                 'is_active' => true,
-                'manufacturing_lead_time_days' => 0,
             ]),
         ];
     }
@@ -1133,7 +1119,7 @@ class ProductionTestDataSeeder extends Seeder
     private function createManufacturingRoute($order, $creator): void
     {
         $route = ManufacturingRoute::create([
-            'production_order_id' => $order->id,
+            'manufacturing_order_id' => $order->id,
             'item_id' => $order->item_id,
             'name' => 'Roteiro - ' . $order->item->name,
             'description' => 'Roteiro de produção para ' . $order->item->name,
@@ -1156,9 +1142,9 @@ class ProductionTestDataSeeder extends Seeder
     private function createBicycleManufacturingSteps($route): void
     {
         // Step 1: Initial Assembly
-        ManufacturingStep::create([
+        $step1 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
-            'step_number' => 10,
+            'step_number' => 1,
             'step_type' => 'standard',
             'name' => 'Montagem Inicial',
             'description' => 'Montar rodas no quadro',
@@ -1169,9 +1155,9 @@ class ProductionTestDataSeeder extends Seeder
         ]);
         
         // Step 2: Transmission Assembly
-        ManufacturingStep::create([
+        $step2 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
-            'step_number' => 20,
+            'step_number' => 2,
             'step_type' => 'standard',
             'name' => 'Montagem da Transmissão',
             'description' => 'Instalar sistema de transmissão completo',
@@ -1179,13 +1165,13 @@ class ProductionTestDataSeeder extends Seeder
             'status' => 'pending',
             'setup_time_minutes' => 5,
             'cycle_time_minutes' => 30,
-            'depends_on_step_id' => null,
+            'depends_on_step_id' => $step1->id,
         ]);
         
         // Step 3: Brake System Assembly
-        ManufacturingStep::create([
+        $step3 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
-            'step_number' => 30,
+            'step_number' => 3,
             'step_type' => 'standard',
             'name' => 'Montagem dos Freios',
             'description' => 'Instalar e ajustar sistema de freios',
@@ -1193,12 +1179,13 @@ class ProductionTestDataSeeder extends Seeder
             'status' => 'pending',
             'setup_time_minutes' => 5,
             'cycle_time_minutes' => 20,
+            'depends_on_step_id' => $step2->id,
         ]);
         
         // Step 4: Accessories Assembly
-        ManufacturingStep::create([
+        $step4 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
-            'step_number' => 40,
+            'step_number' => 4,
             'step_type' => 'standard',
             'name' => 'Montagem de Acessórios',
             'description' => 'Instalar selim, guidão e pedais',
@@ -1206,12 +1193,13 @@ class ProductionTestDataSeeder extends Seeder
             'status' => 'pending',
             'setup_time_minutes' => 5,
             'cycle_time_minutes' => 15,
+            'depends_on_step_id' => $step3->id,
         ]);
         
         // Step 5: Quality Inspection
-        ManufacturingStep::create([
+        $step5 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
-            'step_number' => 50,
+            'step_number' => 5,
             'step_type' => 'quality_check',
             'name' => 'Inspeção de Qualidade',
             'description' => 'Inspeção completa e testes funcionais',
@@ -1220,12 +1208,13 @@ class ProductionTestDataSeeder extends Seeder
             'setup_time_minutes' => 5,
             'cycle_time_minutes' => 15,
             'quality_check_mode' => 'every_part',
+            'depends_on_step_id' => $step4->id,
         ]);
         
         // Step 6: Final Packaging
-        ManufacturingStep::create([
+        $step6 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
-            'step_number' => 60,
+            'step_number' => 6,
             'step_type' => 'standard',
             'name' => 'Embalagem Final',
             'description' => 'Embalar bicicleta para envio',
@@ -1233,15 +1222,16 @@ class ProductionTestDataSeeder extends Seeder
             'status' => 'pending',
             'setup_time_minutes' => 5,
             'cycle_time_minutes' => 10,
+            'depends_on_step_id' => $step5->id,
         ]);
         
         // Create some step executions for in-progress order
         if ($route->manufacturingOrder->status === 'in_progress') {
-            $firstStep = $route->steps()->where('step_number', 10)->first();
+            $firstStep = $route->steps()->where('step_number', 1)->first();
             if ($firstStep) {
                 ManufacturingStepExecution::create([
                     'manufacturing_step_id' => $firstStep->id,
-                    'production_order_id' => $route->production_order_id,
+                    'manufacturing_order_id' => $route->manufacturing_order_id,
                     'part_number' => 1,
                     'total_parts' => (int) $route->manufacturingOrder->quantity,
                     'status' => 'completed',
@@ -1258,9 +1248,9 @@ class ProductionTestDataSeeder extends Seeder
     private function createFrameManufacturingSteps($route): void
     {
         // Step 1: Frame Assembly
-        ManufacturingStep::create([
+        $step1 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
-            'step_number' => 10,
+            'step_number' => 1,
             'step_type' => 'standard',
             'name' => 'Montagem do Quadro',
             'description' => 'Montar estrutura com garfo e mesa de direção',
@@ -1271,9 +1261,9 @@ class ProductionTestDataSeeder extends Seeder
         ]);
         
         // Step 2: Frame Painting
-        ManufacturingStep::create([
+        $step2 = ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
-            'step_number' => 20,
+            'step_number' => 2,
             'step_type' => 'standard',
             'name' => 'Pintura do Quadro',
             'description' => 'Pintura eletrostática do quadro',
@@ -1281,12 +1271,13 @@ class ProductionTestDataSeeder extends Seeder
             'status' => 'pending',
             'setup_time_minutes' => 30,
             'cycle_time_minutes' => 60,
+            'depends_on_step_id' => $step1->id,
         ]);
         
         // Step 3: Paint Quality Check
         ManufacturingStep::create([
             'manufacturing_route_id' => $route->id,
-            'step_number' => 30,
+            'step_number' => 3,
             'step_type' => 'quality_check',
             'name' => 'Inspeção de Pintura',
             'description' => 'Verificar qualidade da pintura',
@@ -1294,6 +1285,7 @@ class ProductionTestDataSeeder extends Seeder
             'status' => 'pending',
             'setup_time_minutes' => 5,
             'cycle_time_minutes' => 10,
+            'depends_on_step_id' => $step2->id,
             'quality_check_mode' => 'entire_lot',
         ]);
     }

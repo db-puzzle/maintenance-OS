@@ -2,6 +2,7 @@
 
 namespace App\Models\AssetHierarchy;
 
+use App\Models\Production\WorkCell;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,6 +27,11 @@ class Shift extends Model
     public function assets(): HasMany
     {
         return $this->hasMany(Asset::class);
+    }
+
+    public function workCells(): HasMany
+    {
+        return $this->hasMany(WorkCell::class);
     }
 
     public function getAssetCountAttribute(): int

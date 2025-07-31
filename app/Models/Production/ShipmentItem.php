@@ -13,7 +13,7 @@ class ShipmentItem extends Model
     protected $fillable = [
         'shipment_id',
         'bom_item_id',
-        'production_order_id',
+        'manufacturing_order_id',
         'item_number',
         'description',
         'quantity',
@@ -53,7 +53,7 @@ class ShipmentItem extends Model
      */
     public function manufacturingOrder(): BelongsTo
     {
-        return $this->belongsTo(ManufacturingOrder::class, 'production_order_id');
+        return $this->belongsTo(ManufacturingOrder::class, 'manufacturing_order_id');
     }
 
     /**

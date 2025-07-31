@@ -127,6 +127,16 @@ class ManufacturingOrderService
             throw new \Exception('Order cannot be released in current status');
         }
 
+        // Check if order has a manufacturing route
+        if (!$order->manufacturingRoute()->exists()) {
+            throw new \Exception('Order must have a manufacturing route before it can be released');
+        }
+
+        // Check if route has at least one step
+        if ($order->manufacturingRoute->steps()->count() === 0) {
+            throw new \Exception('Manufacturing route must have at least one step before order can be released');
+        }
+
         $order->update([
             'status' => 'released',
             'actual_start_date' => now(),

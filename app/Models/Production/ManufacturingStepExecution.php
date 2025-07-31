@@ -30,7 +30,7 @@ class ManufacturingStepExecution extends Model
 
     protected $fillable = [
         'manufacturing_step_id',
-        'production_order_id',
+        'manufacturing_order_id',
         'part_number',
         'total_parts',
         'status',

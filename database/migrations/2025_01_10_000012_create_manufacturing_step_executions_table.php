@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('manufacturing_step_executions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('manufacturing_step_id')->constrained('manufacturing_steps');
-            $table->foreignId('production_order_id')->constrained('manufacturing_orders');
+            $table->foreignId('manufacturing_order_id')->constrained('manufacturing_orders');
             
             // Part tracking for lot production
             $table->integer('part_number')->nullable(); // Which part in the lot (1, 2, 3...)
@@ -42,9 +42,9 @@ return new class extends Migration
             
             $table->timestamps();
             
-            $table->index(['manufacturing_step_id', 'production_order_id']);
+            $table->index(['manufacturing_step_id', 'manufacturing_order_id']);
             $table->index('status');
-            $table->index(['production_order_id', 'part_number']);
+            $table->index(['manufacturing_order_id', 'part_number']);
         });
     }
 

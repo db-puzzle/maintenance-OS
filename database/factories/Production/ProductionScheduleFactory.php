@@ -30,7 +30,7 @@ class ProductionScheduleFactory extends Factory
         $scheduledEnd = fake()->dateTimeBetween($scheduledStart, '+3 weeks');
 
         return [
-            'production_order_id' => ManufacturingOrder::factory(),
+            'manufacturing_order_id' => ManufacturingOrder::factory(),
             'routing_step_id' => ManufacturingStep::factory(),
             'work_cell_id' => WorkCell::factory(),
             'scheduled_start' => $scheduledStart,

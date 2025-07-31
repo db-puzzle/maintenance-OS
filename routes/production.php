@@ -10,6 +10,7 @@ use App\Http\Controllers\Production\QrTrackingController;
 use App\Http\Controllers\Production\ShipmentController;
 use App\Http\Controllers\Production\WorkCellController;
 use App\Http\Controllers\Production\ProductionExecutionController;
+use App\Http\Controllers\Production\ManufacturingStepController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('production')->name('production.')->group(function () {
@@ -52,12 +53,32 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
     // Routing Management
     Route::resource('routing', ProductionRoutingController::class);
-    Route::get('routing/{routing}/builder', [ProductionRoutingController::class, 'builder'])->name('routing.builder');
+    // DEPRECATED: Route removed as builder functionality is no longer needed
+    // Route::get('routing/{routing}/builder', [ProductionRoutingController::class, 'builder'])->name('routing.builder');
+    Route::post('routing/{routing}/steps', [ProductionRoutingController::class, 'storeStep'])->name('routing.steps.store');
+    Route::put('routing/{routing}/steps/{step}', [ProductionRoutingController::class, 'updateStep'])->name('routing.steps.update');
+    Route::delete('routing/{routing}/steps/{step}', [ProductionRoutingController::class, 'destroyStep'])->name('routing.steps.destroy');
+    Route::post('routing/{routing}/steps/reorder', [ProductionRoutingController::class, 'reorderSteps'])->name('routing.steps.reorder');
+    Route::post('routing/{routing}/batch-update', [ProductionRoutingController::class, 'batchUpdate'])->name('routing.batch-update');
+    Route::post('routing/{routing}/steps/initialize', [ProductionRoutingController::class, 'initializeSteps'])->name('routing.steps.initialize');
+    Route::post('routing/{routing}/steps/from-template', [ProductionRoutingController::class, 'createStepsFromTemplate'])->name('routing.steps.from-template');
+    
+    // Manufacturing Steps
+    Route::get('steps/{step}/execute', [ManufacturingStepController::class, 'execute'])->name('steps.execute');
+    Route::post('steps/{step}/start', [ManufacturingStepController::class, 'start'])->name('steps.start');
+    Route::post('steps/{step}/executions/{execution}/hold', [ManufacturingStepController::class, 'hold'])->name('steps.hold');
+    Route::post('steps/{step}/executions/{execution}/resume', [ManufacturingStepController::class, 'resume'])->name('steps.resume');
+    Route::post('steps/{step}/executions/{execution}/quality', [ManufacturingStepController::class, 'recordQualityResult'])->name('steps.quality');
+    Route::post('steps/{step}/executions/{execution}/complete', [ManufacturingStepController::class, 'complete'])->name('steps.complete');
 
     // Manufacturing Orders
     Route::resource('orders', ManufacturingOrderController::class);
     Route::post('orders/{order}/release', [ManufacturingOrderController::class, 'release'])->name('orders.release');
     Route::post('orders/{order}/cancel', [ManufacturingOrderController::class, 'cancel'])->name('orders.cancel');
+    
+    // Order Routes
+    Route::get('orders/{order}/routes/create', [ManufacturingOrderController::class, 'createRoute'])->name('orders.routes.create');
+    Route::post('orders/{order}/routes', [ManufacturingOrderController::class, 'storeRoute'])->name('orders.routes.store');
     Route::get('orders/{order}/children', [ManufacturingOrderController::class, 'children'])->name('orders.children');
 
     // Production Planning
@@ -96,6 +117,9 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
     // Work Cells
     Route::resource('work-cells', WorkCellController::class);
+    Route::get('work-cells/{workCell}/check-dependencies', [WorkCellController::class, 'checkDependencies'])->name('work-cells.check-dependencies');
+    Route::get('plants/{plant}/areas', [WorkCellController::class, 'getAreas'])->name('work-cells.get-areas');
+    Route::get('areas/{area}/sectors', [WorkCellController::class, 'getSectors'])->name('work-cells.get-sectors');
 
     // Production Execution
     Route::prefix('executions')->name('executions.')->group(function () {

@@ -19,7 +19,7 @@ class ShipmentItemFactory extends Factory
         return [
             'shipment_id' => Shipment::factory(),
             'bom_item_id' => $bomItem->id,
-            'production_order_id' => ManufacturingOrder::factory(),
+            'manufacturing_order_id' => ManufacturingOrder::factory(),
             'item_number' => $bomItem->item_number ?? $this->faker->bothify('ITEM-#####'),
             'description' => $bomItem->description ?? $this->faker->sentence(),
             'quantity' => $this->faker->randomFloat(2, 1, 100),

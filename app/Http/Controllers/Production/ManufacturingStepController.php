@@ -92,13 +92,44 @@ class ManufacturingStepController extends Controller
     }
 
     /**
+     * Show the step execution interface.
+     */
+    public function execute(ManufacturingStep $step)
+    {
+        $this->authorize('execute', $step);
+
+        $step->load([
+            'manufacturingRoute.manufacturingOrder.item',
+            'workCell',
+            'form.currentVersion.tasks',
+            'executions' => function ($query) {
+                $query->where('status', '!=', 'completed')
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+            }
+        ]);
+
+        // Get current execution if exists
+        $execution = $step->executions->first();
+
+        return Inertia::render('production/steps/execute', [
+            'step' => $step,
+            'execution' => $execution,
+            'currentUser' => auth()->user(),
+            'canExecute' => true,
+        ]);
+    }
+
+    /**
      * Start execution of a manufacturing step.
      */
-    public function execute(Request $request, ManufacturingStep $step)
+    public function start(Request $request, ManufacturingStep $step)
     {
         $this->authorize('execute', $step);
 
         $validated = $request->validate([
+            'operator_id' => 'required|exists:users,id',
+            'work_cell_id' => 'nullable|exists:work_cells,id',
             'part_number' => 'nullable|integer|min:1',
             'total_parts' => 'nullable|integer|min:1',
         ]);
@@ -106,8 +137,7 @@ class ManufacturingStepController extends Controller
         try {
             $execution = $this->orderService->executeStep($step, $validated);
             
-            return redirect()->route('production.executions.show', $execution)
-                ->with('success', 'Step execution started successfully.');
+            return back()->with('success', 'Step execution started successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -200,10 +230,10 @@ class ManufacturingStepController extends Controller
 
         $step->load([
             'dependency' => function ($query) {
-                $query->with('executions' => function ($q) {
+                $query->with(['executions' => function ($q) {
                     $q->where('quality_result', 'failed')
                       ->where('failure_action', 'rework');
-                });
+                }]);
             },
         ]);
 
@@ -211,5 +241,77 @@ class ManufacturingStepController extends Controller
             'step' => $step,
             'failedExecutions' => $step->dependency->executions,
         ]);
+    }
+
+    /**
+     * Put step execution on hold.
+     */
+    public function hold(Request $request, ManufacturingStep $step, ManufacturingStepExecution $execution)
+    {
+        $this->authorize('execute', $step);
+        
+        if ($execution->manufacturing_step_id !== $step->id) {
+            abort(404);
+        }
+        
+        $validated = $request->validate([
+            'reason' => 'required|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+        
+        try {
+            $execution->hold($validated['reason'], $validated['notes']);
+            return back()->with('success', 'Step paused successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Resume step execution from hold.
+     */
+    public function resume(Request $request, ManufacturingStep $step, ManufacturingStepExecution $execution)
+    {
+        $this->authorize('execute', $step);
+        
+        if ($execution->manufacturing_step_id !== $step->id) {
+            abort(404);
+        }
+        
+        $validated = $request->validate([
+            'notes' => 'nullable|string',
+        ]);
+        
+        try {
+            $execution->resume($validated['notes'] ?? null);
+            return back()->with('success', 'Step resumed successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Complete step execution.
+     */
+    public function complete(Request $request, ManufacturingStep $step, ManufacturingStepExecution $execution)
+    {
+        $this->authorize('execute', $step);
+        
+        if ($execution->manufacturing_step_id !== $step->id) {
+            abort(404);
+        }
+        
+        $validated = $request->validate([
+            'notes' => 'nullable|string',
+            'quantity_completed' => 'required|integer|min:0',
+            'quantity_scrapped' => 'nullable|integer|min:0',
+        ]);
+        
+        try {
+            $this->orderService->completeExecution($execution, $validated);
+            return back()->with('success', 'Step completed successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 }
