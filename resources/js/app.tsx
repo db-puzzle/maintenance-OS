@@ -11,10 +11,32 @@ createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) => {
         console.log('Resolving page:', name); // Debug logging
-        const pages = import.meta.glob('./pages/**/*.tsx', { eager: true });
+        // Use a more explicit glob pattern
+        const pages = import.meta.glob([
+            './pages/**/*.tsx',
+            './pages/**/**/*.tsx',
+            './pages/**/**/**/*.tsx'
+        ], { eager: true });
         const page = pages[`./pages/${name}.tsx`];
+
+        // If not found, try without .tsx extension in the path
+        if (!page && name.includes('/')) {
+            const alternativePath = `./pages/${name}/index.tsx`;
+            const foundPage = pages[alternativePath];
+            if (foundPage) {
+                console.log('Found page at alternative path:', alternativePath);
+                return foundPage;
+            }
+        }
+
         console.log('Found page:', page); // This will show if undefined
         console.log('Available pages:', Object.keys(pages)); // Show all available pages
+
+        if (!page) {
+            console.error(`Page not found: ${name}`);
+            console.error(`Looked for: ./pages/${name}.tsx`);
+        }
+
         return page;
     },
     setup({ el, App, props }) {
