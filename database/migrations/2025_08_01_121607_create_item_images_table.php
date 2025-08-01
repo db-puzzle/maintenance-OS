@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('item_images', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('item_id')->constrained('items')->onDelete('cascade');
+            $table->foreignId('item_id')->constrained('items')->onDelete('cascade');
             $table->string('filename');
             $table->string('storage_path');
             $table->string('mime_type');
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('alt_text')->nullable();
             $table->text('caption')->nullable();
             $table->json('metadata')->nullable();
-            $table->foreignUuid('uploaded_by')->constrained('users');
+            $table->foreignId('uploaded_by')->constrained('users');
             $table->timestamps();
             
             $table->index(['item_id', 'is_primary']);

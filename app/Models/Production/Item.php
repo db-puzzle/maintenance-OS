@@ -65,6 +65,8 @@ class Item extends Model
         'reorder_point' => 'decimal:2',
     ];
 
+    protected $appends = ['primary_image_url'];
+
     // Relationships
     
     /**
@@ -191,10 +193,21 @@ class Item extends Model
      */
     public function getPrimaryImageUrlAttribute(): ?string
     {
-        if ($this->primaryImage) {
-            return $this->primaryImage->getVariantUrl('medium');
+        // Check if the primaryImage relationship is loaded
+        if ($this->relationLoaded('primaryImage')) {
+            if ($this->primaryImage) {
+                return $this->primaryImage->getVariantUrl('medium');
+            }
+        } else if ($this->primary_image_id) {
+            // If we have a primary_image_id but the relationship isn't loaded,
+            // load it explicitly
+            $primaryImage = $this->primaryImage()->first();
+            if ($primaryImage) {
+                return $primaryImage->getVariantUrl('medium');
+            }
         }
         
+        // Fall back to finding the first image marked as primary or just the first image
         $firstImage = $this->images()->where('is_primary', true)->first() 
             ?? $this->images()->first();
         
@@ -206,7 +219,22 @@ class Item extends Model
      */
     public function getImageUrlsAttribute(): array
     {
-        return $this->images->map(function ($image) {
+        // Check if the images relationship is loaded
+        if ($this->relationLoaded('images')) {
+            return $this->images->map(function ($image) {
+                return [
+                    'id' => $image->id,
+                    'url' => $image->url,
+                    'thumbnail' => $image->getVariantUrl('thumbnail'),
+                    'medium' => $image->getVariantUrl('medium'),
+                    'is_primary' => $image->is_primary,
+                    'caption' => $image->caption,
+                ];
+            })->toArray();
+        }
+        
+        // If not loaded, query the images
+        return $this->images()->get()->map(function ($image) {
             return [
                 'id' => $image->id,
                 'url' => $image->url,

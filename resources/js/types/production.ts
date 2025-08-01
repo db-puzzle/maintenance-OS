@@ -14,6 +14,29 @@ export interface ItemCategory {
     updated_at: string;
 }
 
+export interface ItemImage {
+    id: string;
+    item_id: number;
+    filename: string;
+    storage_path: string;
+    url: string;
+    thumbnail_url?: string;
+    medium_url?: string;
+    large_url?: string;
+    mime_type: string;
+    file_size: number;
+    width: number;
+    height: number;
+    is_primary: boolean;
+    display_order: number;
+    alt_text?: string;
+    caption?: string;
+    metadata?: any;
+    uploaded_by: string;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface Item {
     id: number;
     code: string;
@@ -45,6 +68,9 @@ export interface Item {
     preferred_vendor?: string;
     vendor_item_number?: string;
     primary_bom?: BillOfMaterial;
+    images?: ItemImage[];
+    images_count?: number;
+    primary_image_url?: string;
     created_by?: User;
     created_at: string;
     updated_at: string;

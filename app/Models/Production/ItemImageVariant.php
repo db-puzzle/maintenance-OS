@@ -33,6 +33,6 @@ class ItemImageVariant extends Model
     
     public function getUrlAttribute(): string
     {
-        return Storage::url($this->storage_path);
+        return Storage::disk('public')->url($this->storage_path);
     }
 }

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
+use App\Models\Production\BillOfMaterial;
 use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
+use App\Models\Production\ManufacturingOrder;
 use App\Services\Production\ItemImportService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -52,7 +54,8 @@ class ItemController extends Controller
                     $query->where('can_be_manufactured', true);
                 }
             })
-            ->with(['category', 'createdBy'])
+            ->with(['category', 'createdBy', 'primaryImage'])
+            ->withCount('images')
             ->orderBy('item_number')
             ->paginate($request->input('per_page', 10));
 
@@ -127,14 +130,65 @@ class ItemController extends Controller
             ->with('success', 'Item created successfully.');
     }
 
-    public function show(Item $item): Response
+    public function show(Request $request, Item $item): Response
     {
         $this->authorize('view', $item);
 
-        $item->load(['category', 'createdBy', 'billOfMaterials', 'primaryBom']);
+        $item->load(['category', 'createdBy', 'billOfMaterials', 'primaryBom', 'images', 'primaryImage']);
+
+        // Get BOMs where this item is used as a component (where-used analysis)
+        $whereUsedBomsQuery = BillOfMaterial::whereHas('currentVersion.items', function ($query) use ($item) {
+            $query->where('item_id', $item->id);
+        })
+        ->with(['outputItem', 'currentVersion']);
+
+        // Apply search filter
+        if ($request->filled('bom_search')) {
+            $search = $request->get('bom_search');
+            $whereUsedBomsQuery->where(function ($query) use ($search) {
+                $query->where('bom_number', 'like', "%{$search}%")
+                      ->orWhere('name', 'like', "%{$search}%")
+                      ->orWhereHas('outputItem', function ($itemQuery) use ($search) {
+                          $itemQuery->where('item_number', 'like', "%{$search}%")
+                                   ->orWhere('name', 'like', "%{$search}%");
+                      });
+            });
+        }
+
+        // Apply pagination
+        $perPage = $request->get('bom_per_page', 10);
+        $whereUsedBoms = $whereUsedBomsQuery
+            ->orderBy('bom_number')
+            ->paginate($perPage, ['*'], 'bom_page')
+            ->withQueryString();
+
+        // Get Manufacturing Orders for this item
+        $manufacturingOrdersQuery = ManufacturingOrder::where('item_id', $item->id)
+            ->with(['billOfMaterial', 'createdBy', 'manufacturingRoute']);
+
+        // Apply search filter for manufacturing orders
+        if ($request->filled('mo_search')) {
+            $moSearch = $request->get('mo_search');
+            $manufacturingOrdersQuery->where(function ($query) use ($moSearch) {
+                $query->where('order_number', 'like', "%{$moSearch}%")
+                      ->orWhere('status', 'like', "%{$moSearch}%")
+                      ->orWhere('source_reference', 'like', "%{$moSearch}%");
+            });
+        }
+
+        // Apply pagination for manufacturing orders
+        $moPerPage = $request->get('mo_per_page', 10);
+        $manufacturingOrders = $manufacturingOrdersQuery
+            ->orderBy('created_at', 'desc')
+            ->paginate($moPerPage, ['*'], 'mo_page')
+            ->withQueryString();
 
         return Inertia::render('production/items/show', [
             'item' => $item,
+            'whereUsedBoms' => $whereUsedBoms,
+            'bomFilters' => $request->only(['bom_search', 'bom_per_page']),
+            'manufacturingOrders' => $manufacturingOrders,
+            'moFilters' => $request->only(['mo_search', 'mo_per_page']),
             'can' => [
                 'update' => auth()->user()->can('update', $item),
                 'delete' => auth()->user()->can('delete', $item),
@@ -431,5 +485,19 @@ class ItemController extends Controller
         } catch (\Exception $e) {
             return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Get item with images (API endpoint for carousel)
+     */
+    public function getWithImages(Item $item): JsonResponse
+    {
+        $this->authorize('view', $item);
+        
+        $item->load(['images', 'primaryImage']);
+        
+        return response()->json([
+            'item' => $item
+        ]);
     }
 } 

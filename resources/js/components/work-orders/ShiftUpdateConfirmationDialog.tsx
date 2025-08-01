@@ -90,7 +90,7 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
                         <AlertTriangle className="h-5 w-5 text-yellow-500" />
                         Confirmação de Atualização de Turno
                     </DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="ml-7">
                         Esta alteração afetará {affectedAssets.length} {affectedAssets.length === 1 ? 'ativo' : 'ativos'}.
                         Escolha como deseja proceder:
                     </DialogDescription>

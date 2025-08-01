@@ -1,23 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
 import { Head, Link } from '@inertiajs/react';
-import { ShoppingCart, Factory, Package, History, FileText, BarChart3, Boxes, Ghost, QrCode, Lightbulb } from 'lucide-react';
+import { ShoppingCart, Factory, Package, History, FileText, BarChart3, Boxes, Ghost, QrCode, Lightbulb, Camera, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import TextInput from '@/components/TextInput';
 import ItemSelect from '@/components/ItemSelect';
 import StateButton from '@/components/StateButton';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
+import { EntityPagination } from '@/components/shared/EntityPagination';
 import EmptyCard from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
-import { Item, BillOfMaterial, ItemCategory } from '@/types/production';
+import { Item, BillOfMaterial, ItemCategory, ManufacturingOrder } from '@/types/production';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ColumnConfig } from '@/types/shared';
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
+import { ItemImageUploader } from '@/components/production/ItemImageUploader';
+import { ItemImageGrid } from '@/components/production/ItemImageGrid';
 import { toast } from 'sonner';
 import axios from 'axios';
 import {
@@ -39,6 +43,32 @@ import {
 
 interface Props {
     item?: Item;
+    whereUsedBoms?: {
+        data: BillOfMaterial[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        from: number | null;
+        to: number | null;
+    };
+    bomFilters?: {
+        bom_search?: string;
+        bom_per_page?: number;
+    };
+    manufacturingOrders?: {
+        data: ManufacturingOrder[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        from: number | null;
+        to: number | null;
+    };
+    moFilters?: {
+        mo_search?: string;
+        mo_per_page?: number;
+    };
     categories?: ItemCategory[];
     itemTypes?: Array<{ id: number; name: string; value: string }>;
     itemStatuses?: Array<{ id: number; name: string; value: string }>;
@@ -101,6 +131,10 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function ItemShow({
     item,
+    whereUsedBoms,
+    bomFilters = {},
+    manufacturingOrders,
+    moFilters = {},
     categories = defaultCategories,
     itemTypes = [], // DEPRECATED
     itemStatuses = defaultItemStatuses,
@@ -157,6 +191,14 @@ export default function ItemShow({
     const [generatingQr, setGeneratingQr] = useState(false);
     const [showCategoryWarning, setShowCategoryWarning] = useState(false);
     const [skipWarningChecked, setSkipWarningChecked] = useState(false);
+
+    // BOM search and pagination state
+    const [bomSearchValue, setBomSearchValue] = useState(bomFilters.bom_search || '');
+    const [bomLoading, setBomLoading] = useState(false);
+
+    // MO search and pagination state
+    const [moSearchValue, setMoSearchValue] = useState(moFilters.mo_search || '');
+    const [moLoading, setMoLoading] = useState(false);
 
     // Use categories from props instead of loading via AJAX
     const itemCategories = categories || [];
@@ -313,6 +355,147 @@ export default function ItemShow({
                 break;
         }
     };
+
+    // Debounced search implementation
+    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+    const performBomSearch = useCallback((searchValue: string) => {
+        if (!item?.id) return;
+
+        setBomLoading(true);
+        router.get(route('production.items.show', item.id), {
+            bom_search: searchValue,
+            bom_per_page: bomFilters.bom_per_page
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['whereUsedBoms'],
+            onFinish: () => setBomLoading(false)
+        });
+    }, [item?.id, bomFilters.bom_per_page]);
+
+    // BOM search handler with debounce
+    const handleBomSearchChange = useCallback((value: string) => {
+        setBomSearchValue(value);
+
+        // Clear previous timer
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+
+        // Set new timer for 300ms delay
+        debounceTimer.current = setTimeout(() => {
+            performBomSearch(value);
+        }, 300);
+    }, [performBomSearch]);
+
+    // Cleanup timer on unmount
+    useEffect(() => {
+        return () => {
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+            }
+        };
+    }, []);
+
+    const handleBomPageChange = (page: number) => {
+        if (!item?.id) return;
+
+        setBomLoading(true);
+        router.get(route('production.items.show', item.id), {
+            ...bomFilters,
+            bom_page: page
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['whereUsedBoms'],
+            onFinish: () => setBomLoading(false)
+        });
+    };
+
+    const handleBomPerPageChange = (perPage: number) => {
+        if (!item?.id) return;
+
+        setBomLoading(true);
+        router.get(route('production.items.show', item.id), {
+            ...bomFilters,
+            bom_per_page: perPage
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['whereUsedBoms'],
+            onFinish: () => setBomLoading(false)
+        });
+    };
+
+    // Manufacturing Orders search and pagination handlers
+    const moDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+    const performMoSearch = useCallback((searchValue: string) => {
+        if (!item?.id) return;
+
+        setMoLoading(true);
+        router.get(route('production.items.show', item.id), {
+            mo_search: searchValue,
+            mo_per_page: moFilters.mo_per_page
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['manufacturingOrders'],
+            onFinish: () => setMoLoading(false)
+        });
+    }, [item?.id, moFilters.mo_per_page]);
+
+    const handleMoSearchChange = useCallback((value: string) => {
+        setMoSearchValue(value);
+
+        if (moDebounceTimer.current) {
+            clearTimeout(moDebounceTimer.current);
+        }
+
+        moDebounceTimer.current = setTimeout(() => {
+            performMoSearch(value);
+        }, 300);
+    }, [performMoSearch]);
+
+    const handleMoPageChange = (page: number) => {
+        if (!item?.id) return;
+
+        setMoLoading(true);
+        router.get(route('production.items.show', item.id), {
+            ...moFilters,
+            mo_page: page
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['manufacturingOrders'],
+            onFinish: () => setMoLoading(false)
+        });
+    };
+
+    const handleMoPerPageChange = (perPage: number) => {
+        if (!item?.id) return;
+
+        setMoLoading(true);
+        router.get(route('production.items.show', item.id), {
+            ...moFilters,
+            mo_per_page: perPage
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['manufacturingOrders'],
+            onFinish: () => setMoLoading(false)
+        });
+    };
+
+    // Cleanup MO timer on unmount
+    useEffect(() => {
+        return () => {
+            if (moDebounceTimer.current) {
+                clearTimeout(moDebounceTimer.current);
+            }
+        };
+    }, []);
 
     const tabs = [
         {
@@ -706,71 +889,278 @@ export default function ItemShow({
         ...(isCreating
             ? []
             : [
-                ...(item?.can_be_manufactured ? [{
+                {
                     id: 'bom',
-                    label: 'BOM',
+                    label: 'BOMs',
                     content: (
                         <div className="py-6">
-                            {item.primary_bom ? (
+                            {whereUsedBoms ? (
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg font-medium">Lista de Materiais Atual</h3>
-                                        <Button variant="outline" asChild>
-                                            <Link href={route('production.bom.show', item.primary_bom?.id)}>
-                                                Ver BOM Completa
-                                            </Link>
-                                        </Button>
+                                    {/* Search input with real-time debounced search */}
+                                    <div className="relative max-w-sm">
+                                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Buscar BOMs..."
+                                            value={bomSearchValue}
+                                            onChange={(e) => handleBomSearchChange(e.target.value)}
+                                            className="pl-8"
+                                        />
                                     </div>
-                                    <div className="border rounded-lg p-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <DetailItem label="Número da BOM" value={item.primary_bom.bom_number} />
-                                            <DetailItem label="Nome" value={item.primary_bom.name} />
-                                            <DetailItem label="Descrição" value={item.primary_bom.description || '—'} />
-                                            <DetailItem label="Status" value={
-                                                <Badge variant={item.primary_bom.is_active ? 'default' : 'secondary'}>
-                                                    {item.primary_bom.is_active ? 'Ativa' : 'Inativa'}
-                                                </Badge>
-                                            } />
-                                        </div>
-                                    </div>
+
+                                    <EntityDataTable
+                                        data={whereUsedBoms.data as any[]}
+                                        columns={[
+                                            {
+                                                key: 'bom_number',
+                                                label: 'BOM',
+                                                sortable: true,
+                                                render: (value: any, row: any) => {
+                                                    const bom = row as BillOfMaterial;
+                                                    return (
+                                                        <div>
+                                                            <div className="font-medium">{bom.bom_number}</div>
+                                                            <div className="text-sm text-muted-foreground">{bom.name}</div>
+                                                        </div>
+                                                    );
+                                                },
+                                            },
+                                            {
+                                                key: 'output_item',
+                                                label: 'Item Produzido',
+                                                render: (value: any, row: any) => {
+                                                    const bom = row as BillOfMaterial;
+                                                    return (
+                                                        <div>
+                                                            <div className="font-medium">{bom.output_item?.item_number}</div>
+                                                            <div className="text-sm text-muted-foreground">{bom.output_item?.name}</div>
+                                                        </div>
+                                                    );
+                                                },
+                                            },
+                                            {
+                                                key: 'is_active',
+                                                label: 'Status',
+                                                render: (value: any, row: any) => {
+                                                    const bom = row as BillOfMaterial;
+                                                    return (
+                                                        <div className="flex justify-center">
+                                                            <Badge variant={bom.is_active ? 'default' : 'secondary'}>
+                                                                {bom.is_active ? 'Ativa' : 'Inativa'}
+                                                            </Badge>
+                                                        </div>
+                                                    );
+                                                },
+                                                headerAlign: 'center' as const,
+                                            },
+                                            {
+                                                key: 'current_version',
+                                                label: 'Versão',
+                                                render: (value: any, row: any) => {
+                                                    const bom = row as BillOfMaterial;
+                                                    return <div className="text-center">{bom.current_version?.version_number || '1'}</div>;
+                                                },
+                                                headerAlign: 'center' as const,
+                                            },
+                                        ]}
+                                        loading={bomLoading}
+                                        onRowClick={(row: any) => {
+                                            const bom = row as BillOfMaterial;
+                                            router.visit(route('production.bom.show', bom.id));
+                                        }}
+                                        emptyMessage="Este item não é usado em nenhuma BOM no momento."
+                                    />
+
+                                    {whereUsedBoms.total > 0 && (
+                                        <EntityPagination
+                                            pagination={{
+                                                current_page: whereUsedBoms.current_page,
+                                                last_page: whereUsedBoms.last_page,
+                                                per_page: whereUsedBoms.per_page,
+                                                total: whereUsedBoms.total,
+                                                from: whereUsedBoms.from,
+                                                to: whereUsedBoms.to,
+                                            }}
+                                            onPageChange={handleBomPageChange}
+                                            onPerPageChange={handleBomPerPageChange}
+                                        />
+                                    )}
                                 </div>
                             ) : (
                                 <EmptyCard
                                     icon={Package}
-                                    title="Sem BOM definida"
-                                    description="Este item pode ser manufaturado mas ainda não tem uma lista de materiais"
-                                    primaryButtonText="Criar BOM"
-                                    primaryButtonAction={() => router.visit(route('production.bom.create'))}
+                                    title="Não usado em BOMs"
+                                    description="Este item não é usado como componente em nenhuma lista de materiais"
                                 />
                             )}
                         </div>
                     ),
-                }] : []),
+                },
                 {
-                    id: 'where-used',
-                    label: 'Onde é Usado',
+                    id: 'orders',
+                    label: 'Ordens de Manufatura',
                     content: (
                         <div className="py-6">
-                            <EmptyCard
-                                icon={Boxes}
-                                title="Análise de uso"
-                                description="Este item não é usado em nenhuma BOM no momento"
-                            />
+                            {manufacturingOrders ? (
+                                <div className="space-y-4">
+                                    {/* Search input with real-time debounced search */}
+                                    <div className="relative max-w-sm">
+                                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Buscar ordens..."
+                                            value={moSearchValue}
+                                            onChange={(e) => handleMoSearchChange(e.target.value)}
+                                            className="pl-8"
+                                        />
+                                    </div>
+
+                                    <EntityDataTable
+                                        data={manufacturingOrders.data as any[]}
+                                        columns={[
+                                            {
+                                                key: 'order_number',
+                                                label: 'Número da Ordem',
+                                                sortable: true,
+                                            },
+                                            {
+                                                key: 'status',
+                                                label: 'Status',
+                                                render: (value: any, row: any) => {
+                                                    const mo = row as ManufacturingOrder;
+                                                    const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
+                                                        'draft': { label: 'Rascunho', variant: 'secondary' },
+                                                        'planned': { label: 'Planejada', variant: 'outline' },
+                                                        'released': { label: 'Liberada', variant: 'default' },
+                                                        'in_progress': { label: 'Em Progresso', variant: 'default' },
+                                                        'completed': { label: 'Concluída', variant: 'secondary' },
+                                                        'cancelled': { label: 'Cancelada', variant: 'destructive' }
+                                                    };
+                                                    const status = statusMap[mo.status] || { label: mo.status, variant: 'default' as const };
+                                                    return (
+                                                        <div className="flex justify-center">
+                                                            <Badge variant={status.variant}>
+                                                                {status.label}
+                                                            </Badge>
+                                                        </div>
+                                                    );
+                                                },
+                                                headerAlign: 'center' as const,
+                                            },
+                                            {
+                                                key: 'quantity',
+                                                label: 'Quantidade',
+                                                render: (value: any, row: any) => {
+                                                    const mo = row as ManufacturingOrder;
+                                                    return (
+                                                        <div className="text-center">
+                                                            {mo.quantity_completed || 0} / {mo.quantity} {mo.unit_of_measure || 'EA'}
+                                                        </div>
+                                                    );
+                                                },
+                                                headerAlign: 'center' as const,
+                                            },
+                                            {
+                                                key: 'bill_of_material',
+                                                label: 'BOM',
+                                                render: (value: any, row: any) => {
+                                                    const mo = row as ManufacturingOrder;
+                                                    return mo.bill_of_material ? (
+                                                        <div>
+                                                            <div className="font-medium">{mo.bill_of_material.bom_number}</div>
+                                                            <div className="text-sm text-muted-foreground">{mo.bill_of_material.name}</div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">—</span>
+                                                    );
+                                                },
+                                            },
+                                            {
+                                                key: 'planned_start_date',
+                                                label: 'Data Planejada',
+                                                render: (value: any, row: any) => {
+                                                    const mo = row as ManufacturingOrder;
+                                                    if (!mo.planned_start_date) return <div className="text-center">—</div>;
+                                                    return <div className="text-center">{new Date(mo.planned_start_date).toLocaleDateString('pt-BR')}</div>;
+                                                },
+                                                headerAlign: 'center' as const,
+                                            },
+                                            {
+                                                key: 'created_at',
+                                                label: 'Criada em',
+                                                render: (value: any, row: any) => {
+                                                    const mo = row as ManufacturingOrder;
+                                                    return <div className="text-center">{new Date(mo.created_at).toLocaleDateString('pt-BR')}</div>;
+                                                },
+                                                headerAlign: 'center' as const,
+                                            },
+                                        ]}
+                                        loading={moLoading}
+                                        onRowClick={(row: any) => {
+                                            const mo = row as ManufacturingOrder;
+                                            router.visit(route('production.manufacturing-orders.show', mo.id));
+                                        }}
+                                        emptyMessage="Este item não possui ordens de manufatura."
+                                    />
+
+                                    {manufacturingOrders.total > 0 && (
+                                        <EntityPagination
+                                            pagination={{
+                                                current_page: manufacturingOrders.current_page,
+                                                last_page: manufacturingOrders.last_page,
+                                                per_page: manufacturingOrders.per_page,
+                                                total: manufacturingOrders.total,
+                                                from: manufacturingOrders.from,
+                                                to: manufacturingOrders.to,
+                                            }}
+                                            onPageChange={handleMoPageChange}
+                                            onPerPageChange={handleMoPerPageChange}
+                                        />
+                                    )}
+                                </div>
+                            ) : (
+                                <EmptyCard
+                                    icon={Factory}
+                                    title="Nenhuma ordem"
+                                    description="Este item não possui ordens de manufatura associadas"
+                                />
+                            )}
                         </div>
                     ),
                 },
                 {
-                    id: 'files',
-                    label: 'Arquivos',
+                    id: 'images',
+                    label: 'Imagens',
                     content: (
-                        <div className="py-6">
-                            <EmptyCard
-                                icon={FileText}
-                                title="Nenhum arquivo"
-                                description="Anexe arquivos relacionados a este item"
-                                primaryButtonText="Adicionar arquivo"
-                                primaryButtonAction={() => { }}
-                            />
+                        <div className="py-6 space-y-8">
+                            <div>
+                                {item?.images && item.images.length > 0 ? (
+                                    <ItemImageGrid
+                                        itemId={item.id.toString()}
+                                        images={item.images}
+                                        canEdit={can?.update || false}
+                                        itemName={item.name}
+                                    />
+                                ) : (
+                                    <EmptyCard
+                                        icon={Camera}
+                                        title="Nenhuma imagem"
+                                        description="Ainda não há imagens enviadas para este item"
+                                    />
+                                )}
+                            </div>
+
+                            {can?.update && (
+                                <div>
+                                    <h3 className="text-lg font-medium mb-2">Enviar Imagens</h3>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Adicione imagens para ajudar a identificar este item. Você pode enviar até 5 imagens.
+                                    </p>
+                                    <ItemImageUploader
+                                        itemId={item?.id.toString() || ''}
+                                        maxImages={5}
+                                        currentImageCount={item?.images?.length || 0}
+                                    />
+                                </div>
+                            )}
                         </div>
                     ),
                 },

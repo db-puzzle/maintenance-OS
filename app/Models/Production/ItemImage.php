@@ -38,6 +38,8 @@ class ItemImage extends Model
         'display_order' => 'integer',
     ];
     
+    protected $appends = ['url', 'thumbnail_url', 'medium_url', 'large_url'];
+    
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);
@@ -55,13 +57,31 @@ class ItemImage extends Model
     
     public function getUrlAttribute(): string
     {
-        return Storage::url($this->storage_path);
+        return route('production.items.images.serve', ['item' => $this->item_id, 'image' => $this->id]);
     }
     
     public function getVariantUrl(string $variant = 'medium'): string
     {
-        $variant = $this->variants()->where('variant_type', $variant)->first();
-        return $variant ? Storage::url($variant->storage_path) : $this->url;
+        $variantModel = $this->variants()->where('variant_type', $variant)->first();
+        if ($variantModel) {
+            return route('production.items.images.serve-variant', ['item' => $this->item_id, 'image' => $this->id, 'variant' => $variant]);
+        }
+        return $this->url;
+    }
+    
+    public function getThumbnailUrlAttribute(): string
+    {
+        return $this->getVariantUrl('thumbnail');
+    }
+    
+    public function getMediumUrlAttribute(): string
+    {
+        return $this->getVariantUrl('medium');
+    }
+    
+    public function getLargeUrlAttribute(): string
+    {
+        return $this->getVariantUrl('large');
     }
     
     protected static function booted()
