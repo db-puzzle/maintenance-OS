@@ -8,7 +8,7 @@ interface ItemImagePreviewProps {
     primaryImageUrl?: string;
     imageCount: number;
     className?: string;
-    onClick?: () => void;
+    onClick?: (e?: React.MouseEvent) => void;
 }
 
 export function ItemImagePreview({
