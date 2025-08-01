@@ -180,8 +180,12 @@ class QrTagPdfService
 
     private function generatePdf(string $template, array $data): string
     {
+        // Use landscape orientation for order tags, portrait for item tags
+        $width = ($template === 'order-tag') ? 140 : 70;
+        $height = ($template === 'order-tag') ? 70 : 140;
+        
         $pdf = Pdf::view("pdf.qr-tags.{$template}", $data)
-            ->paperSize(70, 140, 'mm') // 70mm x 140mm
+            ->paperSize($width, $height, 'mm') // 140mm x 70mm for orders (landscape), 70mm x 140mm for items (portrait)
             ->margins(3, 3, 3, 3); // 3mm margins on all sides
             
         // Generate descriptive filename with item/order number and UTC timestamp
@@ -204,8 +208,12 @@ class QrTagPdfService
 
     private function generateBatchPdf(array $tags, string $type, int $count = 0): string
     {
+        // For order tags, use landscape orientation; for items, use portrait
+        $paperWidth = $type === 'order' ? 140 : 70;
+        $paperHeight = $type === 'order' ? 70 : 140;
+        
         $pdf = Pdf::view("pdf.qr-tags.batch", ['tags' => $tags, 'type' => $type])
-            ->paperSize(70, 140, 'mm') // 70mm x 140mm per page
+            ->paperSize($paperWidth, $paperHeight, 'mm') // 140mm x 70mm for orders (landscape), 70mm x 140mm for items (portrait)
             ->margins(3, 3, 3, 3);
             
         // Generate descriptive filename for batch with UTC timestamp and count

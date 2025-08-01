@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page {
-            size: 100mm 100mm;
+            size: 140mm 70mm;
             margin: 3mm;
         }
         
@@ -12,21 +12,21 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            width: 94mm;
-            height: 94mm;
+            width: 134mm;
+            height: 64mm;
         }
         
         .container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 40mm auto;
             gap: 2mm;
             height: 100%;
             width: 100%;
         }
         
-        /* Top-left quadrant: QR Code */
-        .qr-quadrant {
+        /* QR Code Cell */
+        .qr-cell {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -37,12 +37,12 @@
         }
         
         .qr-code img {
-            width: 35mm;
-            height: 35mm;
+            width: 30mm;
+            height: 30mm;
         }
         
         .order-number {
-            font-size: 10pt;
+            font-size: 9pt;
             font-weight: bold;
             margin-top: 2mm;
             background: #333;
@@ -51,8 +51,8 @@
             border-radius: 2mm;
         }
         
-        /* Top-right quadrant: Item Image */
-        .item-image-quadrant {
+        /* Image Cells */
+        .image-cell {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -62,50 +62,35 @@
             position: relative;
         }
         
-        .quadrant-label {
+        .cell-label {
             position: absolute;
             top: 2mm;
             left: 2mm;
-            font-size: 8pt;
+            font-size: 7pt;
             color: #666;
             font-weight: bold;
         }
         
-        .item-image-quadrant img {
-            max-width: 38mm;
-            max-height: 35mm;
+        .image-cell img {
+            max-width: 40mm;
+            max-height: 30mm;
             object-fit: contain;
         }
         
         .item-name {
-            font-size: 8pt;
+            font-size: 7pt;
             margin-top: 2mm;
             text-align: center;
             color: #333;
+            max-width: 28mm;
+            word-wrap: break-word;
         }
         
-        /* Bottom-left quadrant: Parent Image */
-        .parent-image-quadrant {
+        /* Details Section - spans all 3 columns */
+        .details-section {
+            grid-column: 1 / -1;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #ddd;
-            padding: 2mm;
-            position: relative;
-        }
-        
-        .parent-image-quadrant img {
-            max-width: 38mm;
-            max-height: 35mm;
-            object-fit: contain;
-        }
-        
-        /* Bottom-right quadrant: Details */
-        .details-quadrant {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
             border: 1px solid #ddd;
             padding: 3mm;
             background: #f8f8f8;
@@ -118,6 +103,13 @@
             text-align: center;
             border-bottom: 1px solid #ccc;
             padding-bottom: 2mm;
+        }
+        
+        .detail-rows {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         
         .detail-row {
@@ -134,6 +126,9 @@
         
         .detail-value {
             color: #333;
+            text-align: right;
+            flex: 1;
+            margin-left: 3mm;
         }
         
         .generated-date {
@@ -148,43 +143,43 @@
 </head>
 <body>
     <div class="container">
-        <!-- Top-left quadrant: QR Code -->
-        <div class="qr-quadrant">
+        <!-- First cell: QR Code -->
+        <div class="qr-cell">
             <div class="qr-code">
                 <img src="data:image/png;base64,{{ $qrCode }}" alt="QR Code">
             </div>
             <div class="order-number">{{ $order->order_number }}</div>
         </div>
         
-        <!-- Top-right quadrant: Item Image -->
-        <div class="item-image-quadrant">
-            <span class="quadrant-label">Item</span>
+        <!-- Second cell: Item Image -->
+        <div class="image-cell">
+            <span class="cell-label">Item</span>
             @if(isset($itemImageBase64) && $itemImageBase64)
                 <img src="{{ $itemImageBase64 }}" alt="{{ $item->name }}">
                 <div class="item-name">{{ \Illuminate\Support\Str::limit($item->name, 25) }}</div>
             @else
-                <div style="color: #999; font-size: 9pt;">Sem imagem</div>
+                <div style="color: #999; font-size: 8pt;">Sem imagem</div>
             @endif
         </div>
         
-        <!-- Bottom-left quadrant: Parent Image -->
-        <div class="parent-image-quadrant">
-            <span class="quadrant-label">Roteamento via</span>
+        <!-- Third cell: Routing Image -->
+        <div class="image-cell">
+            <span class="cell-label">Roteamento via</span>
             @if(isset($parentImageBase64) && $parentImageBase64)
                 <img src="{{ $parentImageBase64 }}" alt="{{ $parentItem->name }}">
                 <div class="item-name">{{ \Illuminate\Support\Str::limit($parentItem->name, 25) }}</div>
             @else
-                <div style="color: #999; font-size: 9pt;">Sem roteamento</div>
+                <div style="color: #999; font-size: 8pt;">Sem roteamento</div>
             @endif
         </div>
         
-        <!-- Bottom-right quadrant: Details -->
-        <div class="details-quadrant">
+        <!-- Bottom section spanning all columns: Details -->
+        <div class="details-section">
             <div class="title">Ordem de Manufatura</div>
-            <div>
+            <div class="detail-rows">
                 <div class="detail-row">
                     <span class="detail-label">Item:</span>
-                    <span class="detail-value">{{ \Illuminate\Support\Str::limit($item->name, 20) }}</span>
+                    <span class="detail-value">{{ $item->name }}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Quantidade:</span>

@@ -1,10 +1,8 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import {
-    WorkOrderStatusBadge,
-    WorkOrderPriorityIndicator
-} from '@/components/work-orders';
+import { WorkOrderStatusBadge } from '../WorkOrderStatusBadge';
+import { WorkOrderPriorityIndicator } from '../WorkOrderPriorityIndicator';
 import { Button } from '@/components/ui/button';
 import {
     Edit,

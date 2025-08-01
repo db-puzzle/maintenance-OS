@@ -1,6 +1,6 @@
 import React from 'react';
 import { router } from '@inertiajs/react';
-import { WorkOrderFormComponent } from '@/components/work-orders';
+import { WorkOrderFormComponent } from '../WorkOrderFormComponent';
 import { toast } from 'sonner';
 
 interface WorkOrderGeneralTabProps {
