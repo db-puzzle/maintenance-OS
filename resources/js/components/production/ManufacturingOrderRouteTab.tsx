@@ -37,6 +37,7 @@ interface Props {
     workCells?: WorkCell[];
     stepTypes?: Record<string, string>;
     forms?: Form[];
+    openRouteBuilder?: string | null;
 }
 
 interface RouteTemplate {
@@ -58,14 +59,14 @@ export default function ManufacturingOrderRouteTab({
     templates = [],
     workCells = [],
     stepTypes = {},
-    forms = []
+    forms = [],
+    openRouteBuilder
 }: Props) {
     const { props } = usePage();
     const flash = props.flash as any;
 
-    // Check URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    const openRouteBuilderParam = urlParams.get('openRouteBuilder');
+    // Check URL params from props
+    const openRouteBuilderParam = openRouteBuilder || null;
 
     // Check if we should start in builder mode (e.g., after creating a new route)
     const shouldStartInBuilder = (order.manufacturing_route &&
@@ -100,10 +101,12 @@ export default function ManufacturingOrderRouteTab({
     // Clean up URL param after using it
     useEffect(() => {
         if (openRouteBuilderParam === '1') {
-            // Remove the query parameter from URL without page reload
-            const url = new URL(window.location.href);
-            url.searchParams.delete('openRouteBuilder');
-            window.history.replaceState({}, '', url.toString());
+            // Navigate to the same page without the query parameter
+            router.visit(route('production.orders.show', { order: order.id }), {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true
+            });
         }
     }, []);
 

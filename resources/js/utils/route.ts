@@ -40,6 +40,8 @@ export function route(name: string, params: Record<string, string | number | boo
 
     // Add query parameters if any
     if (Object.keys(queryParams).length > 0) {
+        // Note: window.location.origin is acceptable here as this is a utility function
+        // that builds absolute URLs for various purposes
         const url = new URL(window.location.origin);
         url.pathname = path;
         Object.entries(queryParams).forEach(([key, value]) => {

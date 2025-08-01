@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
 const sidebarNavItems: NavItem[] = [
@@ -35,7 +35,8 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
         return null;
     }
 
-    const currentPath = window.location.pathname;
+    const { url } = usePage();
+    const currentPath = url;
 
     return (
         <div className="px-4 py-6">

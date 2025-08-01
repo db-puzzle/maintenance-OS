@@ -11,14 +11,14 @@ Route::prefix('maintenance/work-orders')
     ->middleware(['auth', 'verified'])
     ->group(function () {
         Route::get('/', [WorkOrderController::class, 'index'])->name('index');
-        Route::get('/create', [WorkOrderController::class, 'createNew'])->name('create');
+        // Route::get('/create', [WorkOrderController::class, 'createNew'])->name('create'); // Temporarily disabled - page not implemented
         Route::post('/', [WorkOrderController::class, 'store'])->name('store');
         Route::get('/{workOrder}/edit', [WorkOrderController::class, 'edit'])->name('edit');
         Route::put('/{workOrder}', [WorkOrderController::class, 'update'])->name('update');
         Route::delete('/{workOrder}', [WorkOrderController::class, 'destroy'])->name('destroy');
         
         // Approval routes
-        Route::get('/{workOrder}/approve', [WorkOrderController::class, 'showApproval'])->name('approve');
+        // Route::get('/{workOrder}/approve', [WorkOrderController::class, 'showApproval'])->name('approve'); // Temporarily disabled - page not implemented
         Route::post('/{workOrder}/approve', [WorkOrderController::class, 'approve'])->name('approve.store');
         Route::post('/{workOrder}/reject', [WorkOrderController::class, 'reject'])->name('reject');
         
@@ -29,7 +29,7 @@ Route::prefix('maintenance/work-orders')
         Route::post('/{workOrder}/planning/complete', [WorkOrderPlanningController::class, 'complete'])->name('planning.complete');
         
         // Execution routes
-        Route::get('/{workOrder}/execute', [WorkOrderExecutionController::class, 'show'])->name('execute');
+        // Route::get('/{workOrder}/execute', [WorkOrderExecutionController::class, 'execute'])->name('execute'); // Temporarily disabled - page not implemented
         Route::post('/{workOrder}/execute', [WorkOrderExecutionController::class, 'store'])->name('execute.store');
         Route::post('/{workOrder}/execute/start', [WorkOrderExecutionController::class, 'start'])->name('execute.start');
         Route::post('/{workOrder}/execute/pause', [WorkOrderExecutionController::class, 'pause'])->name('execute.pause');
@@ -45,9 +45,10 @@ Route::prefix('maintenance/work-orders')
         Route::post('/{workOrder}/resume', [WorkOrderController::class, 'resumeFromHold'])->name('resume');
         
         // Validation routes
-        Route::get('/{workOrder}/validate', [WorkOrderController::class, 'showValidation'])->name('validate');
-        Route::post('/{workOrder}/validate', [WorkOrderController::class, 'validate'])->name('validate.store');
-        Route::post('/{workOrder}/validate/rework', [WorkOrderController::class, 'requestRework'])->name('validate.rework');
+        // TODO: Implement validation page or redirect to show page with validation tab
+        // Route::get('/{workOrder}/validate', [WorkOrderController::class, 'showValidation'])->name('validate');
+        // Route::post('/{workOrder}/validate', [WorkOrderController::class, 'validate'])->name('validate.store');
+        // Route::post('/{workOrder}/validate/rework', [WorkOrderController::class, 'requestRework'])->name('validate.rework');
         
         // Analysis routes (for corrective work orders)
         Route::get('/{workOrder}/analysis', [WorkOrderController::class, 'showAnalysis'])->name('analysis');

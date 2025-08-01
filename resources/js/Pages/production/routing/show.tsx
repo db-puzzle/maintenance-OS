@@ -119,6 +119,7 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
                 workCells={workCells}
                 stepTypes={stepTypes}
                 forms={forms}
+                openRouteBuilder={props.openRouteBuilder}
             />
         },
     ];

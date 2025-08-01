@@ -14,6 +14,7 @@ export function downloadFile(url: string, filename?: string): void {
 
     // For cross-origin downloads, we might need to open in new tab
     // Check if URL is from the same origin
+    // Note: window.location.origin is required here for security checks in file downloads
     try {
         const urlObj = new URL(url, window.location.origin);
         if (urlObj.origin !== window.location.origin) {

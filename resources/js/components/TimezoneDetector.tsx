@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -68,7 +69,7 @@ export default function TimezoneDetector({ currentTimezone, userId, forceShow = 
             if (response.data.success) {
                 setShowModal(false);
                 // Reload the page to apply the new timezone
-                window.location.reload();
+                router.reload();
             } else {
                 setIsUpdating(false);
             }

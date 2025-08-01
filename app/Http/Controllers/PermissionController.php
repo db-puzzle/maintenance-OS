@@ -188,11 +188,8 @@ class PermissionController extends Controller
         $actions = $allPermissions->map(fn($p) => $p->action)->filter()->unique()->sort()->values();
         $scopeTypes = ['global', 'plant', 'area', 'sector', 'asset', 'owned'];
 
-        return Inertia::render('Permissions/Create', [
-            'resources' => $resources,
-            'actions' => $actions,
-            'scopeTypes' => $scopeTypes,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
 
     /**
@@ -228,9 +225,8 @@ class PermissionController extends Controller
         $permission->load(['roles.users', 'users']);
         $permission->append(['resource', 'action', 'scope_type', 'roles_count', 'users_count']);
 
-        return Inertia::render('Permissions/Show', [
-            'permission' => $permission,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
 
     /**
@@ -243,12 +239,8 @@ class PermissionController extends Controller
         $actions = $allPermissions->map(fn($p) => $p->action)->filter()->unique()->sort()->values();
         $scopeTypes = ['global', 'plant', 'area', 'sector', 'asset', 'owned'];
 
-        return Inertia::render('Permissions/Edit', [
-            'permission' => $permission,
-            'resources' => $resources,
-            'actions' => $actions,
-            'scopeTypes' => $scopeTypes,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
 
     /**

@@ -181,22 +181,8 @@ class WorkOrderController extends Controller
         $skills = Skill::orderBy('name')->get();
         $certifications = Certification::where('active', true)->orderBy('name')->get();
 
-        return Inertia::render('work-orders/create', [
-            'plants' => $plants,
-            'areas' => $areas,
-            'sectors' => $sectors,
-            'assets' => $assets,
-            'categories' => $categories,
-            'workOrderTypes' => $workOrderTypes,
-            'forms' => $forms,
-            'teams' => $teams,
-            'technicians' => $technicians,
-            'skills' => $skills,
-            'certifications' => $certifications,
-            'source' => $source,
-            'sourceId' => $sourceId,
-            'discipline' => $discipline,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -447,22 +433,8 @@ class WorkOrderController extends Controller
         $forms = Form::where('is_active', true)->orderBy('name')->get();
         $users = User::orderBy('name')->get(['id', 'name']);
 
-        return Inertia::render('work-orders/create', [
-            'workOrder' => $workOrder->load(['type', 'asset.plant', 'asset.area', 'asset.sector', 'form', 'assignedTechnician']),
-            'workOrderTypes' => $workOrderTypes,
-            'assets' => $assets,
-            'plants' => $plants,
-            'areas' => $areas,
-            'sectors' => $sectors,
-            'forms' => $forms,
-            'users' => $users,
-            'priorities' => [
-                'critical' => 'Crítica',
-                'high' => 'Alta',
-                'medium' => 'Média',
-                'low' => 'Baixa',
-            ],
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -578,11 +550,8 @@ class WorkOrderController extends Controller
                             'maxPriorityScore' => $this->getUserApprovalPriorityLimit($user),
         ];
 
-        return Inertia::render('work-orders/approve', [
-            'workOrder' => $workOrder,
-            'canApprove' => $user->can('approve', $workOrder),
-            'approvalThreshold' => $approvalThreshold,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -624,15 +593,8 @@ class WorkOrderController extends Controller
         $skills = Skill::pluck('name')->toArray();
         $certifications = Certification::pluck('name')->toArray();
 
-        return Inertia::render('work-orders/planning', [
-            'workOrder' => $workOrder,
-            'technicians' => $technicians,
-            'teams' => $teams,
-            'parts' => $parts,
-            'skills' => $skills,
-            'certifications' => $certifications,
-            'canPlan' => auth()->user()->can('plan', $workOrder),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**

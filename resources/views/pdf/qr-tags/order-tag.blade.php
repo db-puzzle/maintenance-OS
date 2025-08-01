@@ -4,23 +4,23 @@
     <meta charset="utf-8">
     <style>
         @page {
-            size: 140mm 70mm;
-            margin: 3mm;
+            size: 150mm 100mm;
+            margin: 1mm;
         }
         
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            width: 134mm;
-            height: 64mm;
+            width: 148mm;
+            height: 98mm;
         }
         
         .container {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            grid-template-rows: 40mm auto;
-            gap: 2mm;
+            grid-template-rows: 60mm auto;
+            gap: 1mm;
             height: 100%;
             width: 100%;
         }
@@ -32,23 +32,23 @@
             align-items: center;
             justify-content: center;
             border: 1px solid #ddd;
-            padding: 2mm;
+            padding: 1mm;
             background: #fafafa;
         }
         
         .qr-code img {
-            width: 30mm;
-            height: 30mm;
+            width: 40mm;
+            height: 40mm;
         }
         
         .order-number {
-            font-size: 9pt;
+            font-size: 8pt;
             font-weight: bold;
-            margin-top: 2mm;
+            margin-top: 1mm;
             background: #333;
             color: white;
-            padding: 1mm 3mm;
-            border-radius: 2mm;
+            padding: 0.5mm 2mm;
+            border-radius: 1mm;
         }
         
         /* Image Cells */
@@ -58,32 +58,33 @@
             align-items: center;
             justify-content: center;
             border: 1px solid #ddd;
-            padding: 2mm;
+            padding: 1mm;
             position: relative;
         }
         
         .cell-label {
             position: absolute;
-            top: 2mm;
-            left: 2mm;
-            font-size: 7pt;
+            top: 1mm;
+            left: 1mm;
+            font-size: 6pt;
             color: #666;
             font-weight: bold;
         }
         
         .image-cell img {
-            max-width: 40mm;
-            max-height: 30mm;
+            max-width: 45mm;
+            max-height: 50mm;
             object-fit: contain;
         }
         
         .item-name {
-            font-size: 7pt;
-            margin-top: 2mm;
+            font-size: 6pt;
+            margin-top: 1mm;
             text-align: center;
             color: #333;
             max-width: 28mm;
             word-wrap: break-word;
+            line-height: 1.1;
         }
         
         /* Details Section - spans all 3 columns */
@@ -92,17 +93,17 @@
             display: flex;
             flex-direction: column;
             border: 1px solid #ddd;
-            padding: 3mm;
+            padding: 1.5mm;
             background: #f8f8f8;
         }
         
         .title {
-            font-size: 10pt;
+            font-size: 8pt;
             font-weight: bold;
-            margin-bottom: 3mm;
+            margin-bottom: 1mm;
             text-align: center;
             border-bottom: 1px solid #ccc;
-            padding-bottom: 2mm;
+            padding-bottom: 1mm;
         }
         
         .detail-rows {
@@ -115,8 +116,9 @@
         .detail-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 2mm;
-            font-size: 9pt;
+            margin-bottom: 1mm;
+            font-size: 7pt;
+            line-height: 1.2;
         }
         
         .detail-label {
@@ -128,16 +130,16 @@
             color: #333;
             text-align: right;
             flex: 1;
-            margin-left: 3mm;
+            margin-left: 2mm;
         }
         
         .generated-date {
-            font-size: 7pt;
+            font-size: 6pt;
             color: #666;
-            margin-top: 3mm;
+            margin-top: 1mm;
             text-align: center;
             border-top: 1px dashed #ccc;
-            padding-top: 2mm;
+            padding-top: 1mm;
         }
     </style>
 </head>
@@ -158,7 +160,7 @@
                 <img src="{{ $itemImageBase64 }}" alt="{{ $item->name }}">
                 <div class="item-name">{{ \Illuminate\Support\Str::limit($item->name, 25) }}</div>
             @else
-                <div style="color: #999; font-size: 8pt;">Sem imagem</div>
+                <div style="color: #999; font-size: 6pt;">Sem imagem</div>
             @endif
         </div>
         

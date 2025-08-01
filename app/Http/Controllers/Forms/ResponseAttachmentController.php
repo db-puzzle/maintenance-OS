@@ -16,13 +16,8 @@ class ResponseAttachmentController extends Controller
      */
     public function index(TaskResponse $taskResponse)
     {
-        $attachments = $taskResponse->attachments;
-        $taskResponse->load('formExecution');
-
-        return Inertia::render('Forms/Attachments/Index', [
-            'taskResponse' => $taskResponse,
-            'attachments' => $attachments,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
 
     /**
@@ -58,9 +53,8 @@ class ResponseAttachmentController extends Controller
     {
         $attachment->load('taskResponse.formExecution');
 
-        return Inertia::render('Forms/Attachments/Show', [
-            'attachment' => $attachment,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
 
     /**

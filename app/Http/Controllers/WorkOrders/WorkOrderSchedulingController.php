@@ -44,16 +44,8 @@ class WorkOrderSchedulingController extends Controller
             $query->where('name', 'execute_work_orders');
         })->get();
         
-        return Inertia::render('WorkOrders/Scheduling/Index', [
-            'calendar' => $calendar,
-            'unscheduledWorkOrders' => $unscheduledWorkOrders,
-            'technicians' => $technicians,
-            'filters' => $filters,
-            'dateRange' => [
-                'start' => $startDate->format('Y-m-d'),
-                'end' => $endDate->format('Y-m-d'),
-            ],
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
     
     public function schedule(Request $request, WorkOrder $workOrder)
@@ -148,13 +140,7 @@ class WorkOrderSchedulingController extends Controller
             Carbon::parse($validated['end_date'])
         );
         
-        return Inertia::render('WorkOrders/Scheduling/Optimize', [
-            'optimization' => $optimization,
-            'workOrders' => $workOrders,
-            'dateRange' => [
-                'start' => $validated['start_date'],
-                'end' => $validated['end_date'],
-            ],
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 }

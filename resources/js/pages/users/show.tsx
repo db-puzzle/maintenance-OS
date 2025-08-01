@@ -443,7 +443,7 @@ export default function UserShow({
                             title="No permissions assigned"
                             description="This user has not been assigned any permissions yet"
                             primaryButtonText="Manage Permissions"
-                            primaryButtonAction={() => window.location.href = `/users/${user.id}/permissions`}
+                            primaryButtonAction={() => router.visit(route('users.permissions.index', { user: user.id }))}
                         />
                     )}
                 </div>

@@ -72,7 +72,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     // BOM Versions
     Route::post('bom/{bom}/versions', [BillOfMaterialController::class, 'createVersion'])->name('bom.versions.create');
     Route::post('bom/{bom}/versions/{version}/set-current', [BillOfMaterialController::class, 'setCurrentVersion'])->name('bom.versions.set-current');
-    Route::get('bom/{bom}/compare', [BillOfMaterialController::class, 'compare'])->name('bom.compare');
+    // Route::get('bom/{bom}/compare', [BillOfMaterialController::class, 'compare'])->name('bom.compare'); // Temporarily disabled - page not implemented
     
     // BOM Analysis
     Route::get('bom/{bom}/cost-rollup', [BillOfMaterialController::class, 'costRollup'])->name('bom.cost-rollup');
@@ -91,7 +91,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     });
 
     // Routing Management
-    Route::resource('routing', ProductionRoutingController::class);
+    Route::resource('routing', ProductionRoutingController::class)->except(['edit']);
     // DEPRECATED: Route removed as builder functionality is no longer needed
     // Route::get('routing/{routing}/builder', [ProductionRoutingController::class, 'builder'])->name('routing.builder');
     Route::post('routing/{routing}/steps', [ProductionRoutingController::class, 'storeStep'])->name('routing.steps.store');
@@ -111,7 +111,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('steps/{step}/executions/{execution}/complete', [ManufacturingStepController::class, 'complete'])->name('steps.complete');
 
     // Manufacturing Orders
-    Route::resource('orders', ManufacturingOrderController::class);
+    Route::resource('orders', ManufacturingOrderController::class)->except(['edit']);
     Route::post('orders/{order}/release', [ManufacturingOrderController::class, 'release'])->name('orders.release');
     Route::post('orders/{order}/cancel', [ManufacturingOrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('orders/{order}/apply-template', [ManufacturingOrderController::class, 'applyTemplate'])->name('orders.apply-template');
@@ -119,23 +119,23 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     // Order Routes
     Route::get('orders/{order}/routes/create', [ManufacturingOrderController::class, 'createRoute'])->name('orders.routes.create');
     Route::post('orders/{order}/routes', [ManufacturingOrderController::class, 'storeRoute'])->name('orders.routes.store');
-    Route::get('orders/{order}/children', [ManufacturingOrderController::class, 'children'])->name('orders.children');
+    // Route::get('orders/{order}/children', [ManufacturingOrderController::class, 'children'])->name('orders.children'); // Temporarily disabled - page not implemented
 
     // Production Planning
     Route::prefix('planning')->name('planning.')->group(function () {
         Route::get('/', [ProductionScheduleController::class, 'index'])->name('index');
-        Route::get('/calendar', [ProductionScheduleController::class, 'calendar'])->name('calendar');
-        Route::get('/workload', [ProductionScheduleController::class, 'workload'])->name('workload');
+        // Route::get('/calendar', [ProductionScheduleController::class, 'calendar'])->name('calendar'); // Temporarily disabled - page not implemented
+        // Route::get('/workload', [ProductionScheduleController::class, 'workload'])->name('workload'); // Temporarily disabled - page not implemented
         Route::post('/optimize', [ProductionScheduleController::class, 'optimize'])->name('optimize');
     });
 
     // Production Schedules
     Route::prefix('schedules')->name('schedules.')->group(function () {
         Route::get('/', [ProductionScheduleController::class, 'index'])->name('index');
-        Route::get('/create', [ProductionScheduleController::class, 'create'])->name('create');
+        // Route::get('/create', [ProductionScheduleController::class, 'create'])->name('create'); // Temporarily disabled - page not implemented
         Route::post('/', [ProductionScheduleController::class, 'store'])->name('store');
         Route::get('/{schedule}', [ProductionScheduleController::class, 'show'])->name('show');
-        Route::get('/{schedule}/edit', [ProductionScheduleController::class, 'edit'])->name('edit');
+        // Route::get('/{schedule}/edit', [ProductionScheduleController::class, 'edit'])->name('edit'); // Temporarily disabled - page not implemented
         Route::put('/{schedule}', [ProductionScheduleController::class, 'update'])->name('update');
         Route::post('/{schedule}/start', [ProductionScheduleController::class, 'start'])->name('start');
         Route::post('/{schedule}/complete', [ProductionScheduleController::class, 'complete'])->name('complete');

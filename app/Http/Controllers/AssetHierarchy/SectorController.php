@@ -165,15 +165,7 @@ class SectorController extends Controller
         ]);
     }
 
-    public function create()
-    {
-        $this->authorize('create', Sector::class);
-        $plants = Plant::with('areas')->get();
 
-        return Inertia::render('asset-hierarchy/sectors/create', [
-            'plants' => $plants,
-        ]);
-    }
 
     public function store(Request $request)
     {
@@ -208,16 +200,7 @@ class SectorController extends Controller
             ->with('success', "Setor {$sector->name} criado com sucesso.");
     }
 
-    public function edit(Sector $setor)
-    {
-        $this->authorize('update', $setor);
-        $plants = Plant::with('areas')->get();
 
-        return Inertia::render('asset-hierarchy/sectors/edit', [
-            'sector' => $setor->load('area.plant'),
-            'plants' => $plants,
-        ]);
-    }
 
     public function show(Sector $setor)
     {

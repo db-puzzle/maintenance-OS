@@ -22,10 +22,8 @@ class TaskResponseController extends Controller
             ->with(['attachments', 'formTask'])
             ->get();
 
-        return Inertia::render('Forms/Responses/Index', [
-            'execution' => $formExecution->load('formVersion.form'),
-            'responses' => $responses,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
 
     /**
@@ -113,10 +111,8 @@ class TaskResponseController extends Controller
 
         $taskResponse->load(['attachments', 'formTask.instructions']);
 
-        return Inertia::render('Forms/Responses/Show', [
-            'execution' => $formExecution->load('formVersion.form'),
-            'response' => $taskResponse,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
 
     /**

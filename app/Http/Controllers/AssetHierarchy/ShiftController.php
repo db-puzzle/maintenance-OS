@@ -729,12 +729,12 @@ class ShiftController extends Controller
                 ->with('info', "O turno {$shift->name} pode ser excluído com segurança.");
         }
 
-        // Se há dependências, mostrar página com detalhes das dependências
-        return Inertia::render('asset-hierarchy/shifts/dependencies', [
-            'shift' => $shift,
+        // Se há dependências, retornar erro como JSON
+        return response()->json([
+            'message' => "O turno {$shift->name} não pode ser excluído pois possui dependências.",
             'dependencies' => $dependencies,
             'hasDependencies' => $hasDependencies,
-        ]);
+        ], 422);
     }
 
     /**

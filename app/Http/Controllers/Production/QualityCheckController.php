@@ -51,12 +51,8 @@ class QualityCheckController extends Controller
         ->paginate(20)
         ->withQueryString();
 
-        return Inertia::render('Production/QualityChecks/Index', [
-            'qualityChecks' => $qualityChecks,
-            'statuses' => ManufacturingStepExecution::STATUSES,
-            'qualityResults' => ManufacturingStepExecution::QUALITY_RESULTS,
-            'filters' => $request->only(['status', 'quality_result', 'work_cell_id', 'date_from', 'date_to']),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -82,9 +78,8 @@ class QualityCheckController extends Controller
         ->orderBy('step_number')
         ->get();
 
-        return Inertia::render('Production/QualityChecks/Pending', [
-            'pendingChecks' => $pendingChecks,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -159,10 +154,8 @@ class QualityCheckController extends Controller
             'executedBy',
         ]);
 
-        return Inertia::render('Production/QualityChecks/ReworkDecision', [
-            'execution' => $execution,
-            'failureActions' => ManufacturingStepExecution::FAILURE_ACTIONS,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -259,22 +252,7 @@ class QualityCheckController extends Controller
             ->groupBy('work_cell_id')
             ->get();
 
-        return Inertia::render('Production/QualityChecks/Metrics', [
-            'metrics' => [
-                'totalChecks' => $totalChecks,
-                'passedChecks' => $passedChecks,
-                'failedChecks' => $failedChecks,
-                'scrappedParts' => $scrappedParts,
-                'reworkedParts' => $reworkedParts,
-                'passRate' => $totalChecks > 0 ? round(($passedChecks / $totalChecks) * 100, 2) : 0,
-                'failRate' => $totalChecks > 0 ? round(($failedChecks / $totalChecks) * 100, 2) : 0,
-            ],
-            'trends' => $qualityTrends,
-            'byWorkCell' => $qualityByWorkCell,
-            'filters' => [
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
-            ],
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 }

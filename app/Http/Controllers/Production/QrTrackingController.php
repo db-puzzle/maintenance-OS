@@ -100,18 +100,8 @@ class QrTrackingController extends Controller
             ->paginate($request->input('per_page', 10))
             ->withQueryString();
 
-        return Inertia::render('production/qr-tracking/index', [
-            'events' => $events,
-            'filters' => $request->only(['search', 'event_type', 'scanned_by', 'date_from', 'date_to', 'per_page']),
-            'eventTypes' => [
-                'generated' => 'QR Code Generated',
-                'printed' => 'Label Printed',
-                'scan' => 'Scanned',
-                'start_production' => 'Production Started',
-                'complete_production' => 'Production Completed',
-                'ship' => 'Shipped',
-            ],
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -126,9 +116,8 @@ class QrTrackingController extends Controller
             ->with(['product', 'billOfMaterial.currentVersion.items'])
             ->get();
 
-        return Inertia::render('production/qr-tracking/generate', [
-            'activeOrders' => $activeOrders,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -245,14 +234,8 @@ class QrTrackingController extends Controller
             ])->find($request->input('order_id'));
         }
 
-        return Inertia::render('production/qr-tracking/labels', [
-            'order' => $order,
-            'labelFormats' => [
-                'standard' => '2" x 1" Standard',
-                'large' => '4" x 2" Large',
-                'sheet' => '8.5" x 11" Sheet (30 labels)',
-            ],
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**

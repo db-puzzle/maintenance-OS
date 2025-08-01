@@ -40,6 +40,8 @@ import { ColumnConfig } from '@/types/shared';
 interface Invitation extends Record<string, unknown> {
     id: number;
     email: string;
+    token: string;
+    url: string;
     invited_by: {
         id: number;
         name: string;
@@ -162,8 +164,8 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
     };
 
     const copyInvitationLink = (invitation: Invitation) => {
-        // In a real implementation, you would generate the signed URL
-        const invitationUrl = `${window.location.origin}/invitations/${invitation.id}`;
+        // Use the URL provided by the backend
+        const invitationUrl = invitation.url || route('invitations.accept', { token: invitation.token });
         navigator.clipboard.writeText(invitationUrl);
         toast.success('O link do convite foi copiado para a área de transferência.');
     };
@@ -410,7 +412,7 @@ function InvitationDetailsModal({
     onResend: (invitation: Invitation) => void;
 }) {
     const copyInvitationLink = () => {
-        const invitationUrl = `${window.location.origin}/invitations/${invitation.id}`;
+        const invitationUrl = invitation.url || route('invitations.accept', { token: invitation.token });
         navigator.clipboard.writeText(invitationUrl);
         toast.success('O link do convite foi copiado para a área de transferência.');
     };
@@ -462,7 +464,7 @@ function InvitationDetailsModal({
                             <div className="flex items-center gap-2">
                                 <Input
                                     readOnly
-                                    value={`${window.location.origin}/invitations/${invitation.id}`}
+                                    value={invitation.url || route('invitations.accept', { token: invitation.token })}
                                     className="text-xs"
                                 />
                                 <Button size="icon" variant="outline" onClick={copyInvitationLink}>

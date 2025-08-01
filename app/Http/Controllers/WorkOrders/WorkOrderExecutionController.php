@@ -55,11 +55,8 @@ class WorkOrderExecutionController extends Controller
             'execution.taskResponses',
         ]);
 
-        return Inertia::render('work-orders/execute', [
-            'workOrder' => $workOrder,
-            'execution' => $workOrder->execution,
-            'formVersion' => $workOrder->form?->getFormVersionForExecution(),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**

@@ -298,7 +298,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
     };
 
     const handleCreateClick = () => {
-        router.visit(route(`${discipline}.work-orders.create`));
+        router.visit(route(`${discipline}.work-orders.show`, { workOrder: 'new' }));
     };
 
     return (

@@ -51,10 +51,7 @@ class AssetTypeController extends Controller
         ]);
     }
 
-    public function create()
-    {
-        return Inertia::render('asset-hierarchy/asset-types/create');
-    }
+
 
     public function show(AssetType $assetType)
     {
@@ -122,16 +119,7 @@ class AssetTypeController extends Controller
             ->with('success', "Tipo de ativo {$assetType->name} criado com sucesso.");
     }
 
-    public function edit(AssetType $assetType)
-    {
-        if (! $assetType->exists) {
-            abort(404);
-        }
 
-        return Inertia::render('asset-hierarchy/asset-types/edit', [
-            'assetType' => $assetType,
-        ]);
-    }
 
     public function update(Request $request, AssetType $assetType)
     {

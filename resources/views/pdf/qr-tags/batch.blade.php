@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page {
-            size: 70mm 140mm;
+            size: 100mm 150mm;
             margin: 3mm;
         }
         
@@ -19,8 +19,8 @@
         }
         
         .container {
-            width: 64mm;
-            height: 134mm;
+            width: 94mm;
+            height: 144mm;
             display: flex;
             flex-direction: column;
             text-align: center;

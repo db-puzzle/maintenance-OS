@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth'])->group(function () {
     // Import/Export routes (must come before dynamic routes)
     Route::prefix('parts')->group(function () {
-        Route::get('/import', [PartsImportExportController::class, 'import'])->name('parts.import');
+
         Route::post('/import/analyze', [PartsImportExportController::class, 'analyzeCsv'])->name('parts.import.analyze');
         Route::post('/import/data', [PartsImportExportController::class, 'importData'])->name('parts.import.data');
         
-        Route::get('/export', [PartsImportExportController::class, 'export'])->name('parts.export');
+
         Route::post('/export/data', [PartsImportExportController::class, 'exportData'])->name('parts.export.data');
     });
     

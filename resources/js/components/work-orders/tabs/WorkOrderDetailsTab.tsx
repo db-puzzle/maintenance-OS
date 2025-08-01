@@ -1,8 +1,10 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { WorkOrderStatusBadge } from '../WorkOrderStatusBadge';
-import { WorkOrderPriorityIndicator } from '../WorkOrderPriorityIndicator';
+import {
+    WorkOrderStatusBadge,
+    WorkOrderPriorityIndicator
+} from '@/components/work-orders';
 import { Button } from '@/components/ui/button';
 import {
     Edit,
@@ -54,27 +56,29 @@ export default function WorkOrderDetailsTab({
 
         // Planning is now done through the Planning tab, not a separate page
 
-        if (workOrder.status === 'scheduled' && canExecute) {
-            actions.push(
-                <Button key="execute" onClick={() => router.visit(route(`${discipline}.work-orders.execute`, workOrder.id))}>
-                    <Play className="mr-2 h-4 w-4" />
-                    Executar
-                </Button>
-            );
-        }
+        // TODO: Implement execution page or use show page with execution tab
+        // if (workOrder.status === 'scheduled' && canExecute) {
+        //     actions.push(
+        //         <Button key="execute" onClick={() => router.visit(route(`${discipline}.work-orders.execute`, workOrder.id))}>
+        //             <Play className="mr-2 h-4 w-4" />
+        //             Executar
+        //         </Button>
+        //     );
+        // }
 
-        if (workOrder.status === 'completed' && canValidate) {
-            actions.push(
-                <Button key="validate" onClick={() => router.visit(route(`${discipline}.work-orders.validate`, workOrder.id))}>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Validar
-                </Button>
-            );
-        }
+        // TODO: Implement validation functionality
+        // if (workOrder.status === 'completed' && canValidate) {
+        //     actions.push(
+        //         <Button key="validate" onClick={() => router.visit(route(`${discipline}.work-orders.validate`, workOrder.id))}>
+        //             <CheckCircle className="mr-2 h-4 w-4" />
+        //             Validar
+        //         </Button>
+        //     );
+        // }
 
         if (canEdit && workOrder.status === 'requested') {
             actions.push(
-                <Button key="edit" variant="outline" onClick={() => router.visit(route(`${discipline}.work-orders.edit`, workOrder.id))}>
+                <Button key="edit" variant="outline" onClick={() => router.visit(route(`${discipline}.work-orders.show`, { id: workOrder.id, mode: 'edit' }))}>
                     <Edit className="mr-2 h-4 w-4" />
                     Editar
                 </Button>

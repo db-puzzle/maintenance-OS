@@ -16,13 +16,15 @@ class PartsImportExportController extends Controller
     public function import()
     {
         $this->authorize('import', Part::class);
-        return Inertia::render('parts/import');
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
     
     public function export()
     {
         $this->authorize('export', Part::class);
-        return Inertia::render('parts/export');
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
     
     public function exportData(Request $request)

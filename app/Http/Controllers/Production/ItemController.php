@@ -203,10 +203,8 @@ class ItemController extends Controller
 
         $categories = ItemCategory::active()->orderBy('name')->get();
 
-        return Inertia::render('production/items/edit', [
-            'item' => $item,
-            'categories' => $categories,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     public function update(Request $request, Item $item)

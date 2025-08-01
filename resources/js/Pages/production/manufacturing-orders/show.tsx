@@ -85,9 +85,8 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
     const auth = props.auth as any;
     const [generatingQr, setGeneratingQr] = useState(false);
 
-    // Check URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    const openRouteBuilderParam = urlParams.get('openRouteBuilder');
+    // Check URL params - passed from backend
+    const openRouteBuilderParam = props.openRouteBuilder || null;
     // Create a form instance for view-only display
     const inertiaForm = useForm({
         order_number: order.order_number,
@@ -455,6 +454,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                     workCells={workCells}
                     stepTypes={stepTypes}
                     forms={forms}
+                    openRouteBuilder={openRouteBuilderParam}
                 />
             )
         },

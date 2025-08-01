@@ -175,7 +175,7 @@ class ManufacturingOrderController extends Controller
         /**
      * Display the specified manufacturing order.
      */
-    public function show(ManufacturingOrder $order)
+    public function show(Request $request, ManufacturingOrder $order)
     {
         $this->authorize('view', $order);
 
@@ -226,6 +226,7 @@ class ManufacturingOrderController extends Controller
             'workCells' => WorkCell::where('is_active', true)->get(),
             'stepTypes' => ManufacturingStep::STEP_TYPES,
             'forms' => Form::where('is_active', true)->get(['id', 'name']),
+            'openRouteBuilder' => $request->get('openRouteBuilder'),
         ]);
     }
 
@@ -255,10 +256,8 @@ class ManufacturingOrderController extends Controller
                 ->with('error', 'Only draft or planned orders can be edited.');
         }
 
-        return Inertia::render('production/manufacturing-orders/edit', [
-            'order' => $order->load(['item', 'billOfMaterial']),
-            'sourceTypes' => ManufacturingOrder::SOURCE_TYPES,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -358,10 +357,8 @@ class ManufacturingOrderController extends Controller
             ->with(['item', 'manufacturingRoute.steps'])
             ->paginate(20);
 
-        return Inertia::render('production/manufacturing-orders/children', [
-            'parent' => $order,
-            'children' => $children,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**

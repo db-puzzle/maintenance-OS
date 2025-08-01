@@ -52,15 +52,8 @@ class RoleController extends Controller
             return $role;
         });
 
-        return Inertia::render('Roles/Index', [
-            'roles' => $roles,
-            'filters' => $request->only(['search', 'type']),
-            'stats' => [
-                'total' => Role::count(),
-                'system' => Role::system()->count(),
-                'custom' => Role::custom()->count(),
-            ]
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -73,9 +66,8 @@ class RoleController extends Controller
             ->get()
             ->groupBy('resource');
 
-        return Inertia::render('Roles/Create', [
-            'permissions' => $permissions,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -125,10 +117,8 @@ class RoleController extends Controller
 
         $permissions = $role->permissions->groupBy('resource');
 
-        return Inertia::render('Roles/Show', [
-            'role' => $role,
-            'permissions' => $permissions,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -145,11 +135,8 @@ class RoleController extends Controller
 
         $rolePermissionIds = $role->permissions->pluck('id')->toArray();
 
-        return Inertia::render('Roles/Edit', [
-            'role' => $role,
-            'permissions' => $allPermissions,
-            'rolePermissions' => $rolePermissionIds,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**

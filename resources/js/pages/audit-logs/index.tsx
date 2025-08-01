@@ -128,6 +128,7 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
     };
 
     const exportLogs = () => {
+        // Using window.location.href for file download - Inertia router doesn't handle file downloads
         window.location.href = route('audit-logs.export', localFilters);
     };
 

@@ -33,14 +33,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Permission Management (Admin only)
     Route::middleware('can:users.manage-permissions')->group(function () {
-        Route::resource('permissions', PermissionController::class);
+        // Route::resource('permissions', PermissionController::class); // Temporarily disabled - pages not implemented
         Route::post('permissions/sync-matrix', [PermissionController::class, 'syncMatrix'])->name('permissions.sync-matrix');
         Route::post('permissions/check', [PermissionController::class, 'check'])->name('permissions.check');
         Route::post('permissions/check-bulk', [PermissionController::class, 'checkBulk'])->name('permissions.check-bulk');
     });
 
     // Role Management
-    Route::resource('roles', RoleController::class);
+    // Route::resource('roles', RoleController::class); // Temporarily disabled - pages not implemented
     Route::get('roles/{role}/permissions', [RoleController::class, 'permissions'])->name('roles.permissions');
     Route::post('roles/{role}/assign-user', [RoleController::class, 'assignUser'])->name('roles.assign-user');
     Route::post('roles/{role}/remove-user/{user}', [RoleController::class, 'removeUser'])->name('roles.remove-user');

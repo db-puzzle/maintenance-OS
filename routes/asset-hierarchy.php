@@ -59,10 +59,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/assets/{asset}', [AssetController::class, 'show'])->name('asset-hierarchy.assets.show');
 
     Route::get('asset-hierarchy/sectors', [SectorController::class, 'index'])->name('asset-hierarchy.sectors');
-    Route::get('asset-hierarchy/sectors/create', [SectorController::class, 'create'])->name('asset-hierarchy.sectors.create');
+
     Route::post('asset-hierarchy/sectors', [SectorController::class, 'store'])->name('asset-hierarchy.sectors.store');
     Route::get('asset-hierarchy/sectors/{setor}', [SectorController::class, 'show'])->name('asset-hierarchy.sectors.show');
-    Route::get('asset-hierarchy/sectors/{setor}/edit', [SectorController::class, 'edit'])->name('asset-hierarchy.sectors.edit');
+
     Route::put('asset-hierarchy/sectors/{setor}', [SectorController::class, 'update'])->name('asset-hierarchy.sectors.update');
     Route::delete('asset-hierarchy/sectors/{setor}', [SectorController::class, 'destroy'])->name('asset-hierarchy.sectors.destroy');
     Route::get('asset-hierarchy/sectors/{setor}/check-dependencies', [SectorController::class, 'checkDependencies'])->name('asset-hierarchy.sectors.check-dependencies');
@@ -83,10 +83,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('asset-hierarchy/plants/{plant}/check-dependencies', [PlantsController::class, 'checkDependencies'])->name('asset-hierarchy.plants.check-dependencies');
 
     Route::get('asset-hierarchy/asset-types', [AssetTypeController::class, 'index'])->name('asset-hierarchy.asset-types');
-Route::get('asset-hierarchy/asset-types/create', [AssetTypeController::class, 'create'])->name('asset-hierarchy.asset-types.create');
+
 Route::post('asset-hierarchy/asset-types', [AssetTypeController::class, 'store'])->name('asset-hierarchy.asset-types.store');
 Route::get('asset-hierarchy/asset-types/{assetType}', [AssetTypeController::class, 'show'])->name('asset-hierarchy.asset-types.show');
-Route::get('asset-hierarchy/asset-types/{assetType}/edit', [AssetTypeController::class, 'edit'])->name('asset-hierarchy.asset-types.edit');
+
 Route::put('asset-hierarchy/asset-types/{assetType}', [AssetTypeController::class, 'update'])->name('asset-hierarchy.asset-types.update');
 Route::delete('asset-hierarchy/asset-types/{assetType}', [AssetTypeController::class, 'destroy'])->name('asset-hierarchy.asset-types.destroy');
 Route::get('asset-hierarchy/asset-types/{assetType}/check-dependencies', [AssetTypeController::class, 'checkDependencies'])->name('asset-hierarchy.asset-types.check-dependencies');

@@ -97,10 +97,8 @@ class ProductionScheduleController extends Controller
             ])
             ->get();
 
-        return Inertia::render('production/schedule/calendar', [
-            'schedules' => $schedules,
-            'workCells' => WorkCell::active()->get(['id', 'name']),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -110,13 +108,8 @@ class ProductionScheduleController extends Controller
     {
         $this->authorize('create', ManufacturingOrder::class);
 
-        return Inertia::render('production/schedule/create', [
-            'manufacturingOrders' => ManufacturingOrder::query()
-                ->whereIn('status', ['draft', 'planned'])
-                ->with('item')
-                ->get(),
-            'workCells' => WorkCell::active()->get(['id', 'name']),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -177,10 +170,8 @@ class ProductionScheduleController extends Controller
             'workCell',
         ]);
 
-        return Inertia::render('production/schedule/edit', [
-            'schedule' => $schedule,
-            'workCells' => WorkCell::active()->get(['id', 'name']),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -395,10 +386,7 @@ class ProductionScheduleController extends Controller
             $validated['work_cell_ids'] ?? []
         );
 
-        return Inertia::render('production/schedule/workload', [
-            'workload' => $workload,
-            'filters' => $validated,
-            'workCells' => WorkCell::active()->get(['id', 'name']),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 } 

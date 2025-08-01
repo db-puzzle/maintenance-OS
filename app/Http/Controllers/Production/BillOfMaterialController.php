@@ -683,12 +683,8 @@ class BillOfMaterialController extends Controller
             abort(403, 'Versions do not belong to this BOM.');
         }
 
-        return Inertia::render('production/bom/compare', [
-            'bom' => $bom,
-            'version1' => $version1,
-            'version2' => $version2,
-            'differences' => $this->compareVersions($version1, $version2),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
 
     /**
@@ -814,11 +810,8 @@ class BillOfMaterialController extends Controller
             })
             ->get();
 
-        return Inertia::render('production/bom/print-labels', [
-            'bom' => $bom,
-            'items' => $items,
-            'format' => $validated['format'],
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(['message' => 'This feature is not yet implemented'], 501);
     }
 
     /**

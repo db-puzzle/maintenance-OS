@@ -66,13 +66,8 @@ class ProductionExecutionController extends Controller
             ->paginate($request->input('per_page', 10))
             ->withQueryString();
 
-        return Inertia::render('production/executions/index', [
-            'executions' => $executions,
-            'filters' => $request->only(['search', 'status', 'operator_id', 'date_from', 'date_to', 'per_page']),
-            'operators' => \App\Models\User::whereHas('roles', function ($query) {
-                $query->where('name', 'operator');
-            })->get(['id', 'name']),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -98,9 +93,8 @@ class ProductionExecutionController extends Controller
             ])
             ->get();
 
-        return Inertia::render('production/executions/scan', [
-            'activeExecutions' => $activeExecutions,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -171,14 +165,8 @@ class ProductionExecutionController extends Controller
             ->orderBy('scanned_at', 'desc')
             ->get();
 
-        return Inertia::render('production/executions/show', [
-            'execution' => $execution,
-            'qrEvents' => $qrEvents,
-            'can' => [
-                'update' => auth()->user()->can('update', $execution),
-                'complete' => auth()->user()->can('complete', $execution),
-            ],
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**

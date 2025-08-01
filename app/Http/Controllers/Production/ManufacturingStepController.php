@@ -44,12 +44,8 @@ class ManufacturingStepController extends Controller
         ->paginate(20)
         ->withQueryString();
 
-        return Inertia::render('Production/Steps/Index', [
-            'steps' => $steps,
-            'statuses' => ManufacturingStep::STATUSES,
-            'stepTypes' => ManufacturingStep::STEP_TYPES,
-            'filters' => $request->only(['route_id', 'status', 'work_cell_id']),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -84,11 +80,8 @@ class ManufacturingStepController extends Controller
             $canExecute = $user->can('production.steps.execute');
         }
 
-        return Inertia::render('Production/Steps/Show', [
-            'step' => $step,
-            'canExecute' => $canExecute && $step->canStart(),
-            'qualityCheckModes' => ManufacturingStep::QUALITY_CHECK_MODES,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -181,10 +174,8 @@ class ManufacturingStepController extends Controller
             },
         ]);
 
-        return Inertia::render('Production/Steps/QualityCheck', [
-            'step' => $step,
-            'pendingExecutions' => $step->executions,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
@@ -237,10 +228,8 @@ class ManufacturingStepController extends Controller
             },
         ]);
 
-        return Inertia::render('Production/Steps/Rework', [
-            'step' => $step,
-            'failedExecutions' => $step->dependency->executions,
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**

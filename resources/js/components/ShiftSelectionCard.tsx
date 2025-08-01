@@ -168,10 +168,11 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                 // The asset is already associated with the new shift by the backend
                 // Reloading will refresh the shifts list, runtime data, and select the new shift
                 setTimeout(() => {
-                    // Get current URL and ensure we stay on the shifts-runtime tab
-                    const currentUrl = new URL(window.location.href);
-                    currentUrl.searchParams.set('tab', 'shifts-runtime');
-                    router.visit(currentUrl.toString(), {
+                    // Reload the page and ensure we stay on the shifts-runtime tab
+                    router.visit(route('asset-hierarchy.assets.show', {
+                        asset: assetId,
+                        tab: 'shifts-runtime'
+                    }), {
                         preserveScroll: true,
                         preserveState: false,
                     });

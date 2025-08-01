@@ -111,7 +111,7 @@ class ProductionRoutingController extends Controller
     /**
      * Display the specified routing.
      */
-    public function show(ManufacturingRoute $routing): Response
+    public function show(Request $request, ManufacturingRoute $routing): Response
     {
         $this->authorize('view', $routing);
 
@@ -160,6 +160,7 @@ class ProductionRoutingController extends Controller
                 'manage_steps' => auth()->user()->can('manageSteps', $routing),
                 'execute_steps' => auth()->user()->can('production.steps.execute'),
             ],
+            'openRouteBuilder' => $request->get('openRouteBuilder'),
         ]);
     }
 
@@ -172,10 +173,8 @@ class ProductionRoutingController extends Controller
 
         $routing->load(['manufacturingOrder', 'item', 'steps.workCell']);
 
-        return Inertia::render('production/routing/edit', [
-            'routing' => $routing,
-            'workCells' => WorkCell::where('is_active', true)->get(),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**

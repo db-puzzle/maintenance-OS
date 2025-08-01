@@ -24,6 +24,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     const startCamera = useCallback(async () => {
         try {
             // Verifica se está usando HTTPS
+            // Note: window.location is required here for security checks - camera access requires HTTPS
             if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
                 throw new Error('A câmera só pode ser acessada em conexões seguras (HTTPS)');
             }

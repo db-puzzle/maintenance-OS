@@ -52,9 +52,11 @@ class UserInvitationController extends Controller
 
         $invitations = $query->paginate(20)->withQueryString();
 
-        // Add can attributes
+        // Add can attributes and url
         $invitations->getCollection()->transform(function ($invitation) {
-            $invitation->append('can');
+            $invitation->append(['can', 'url']);
+            // Make token visible for generating URLs
+            $invitation->makeVisible('token');
             return $invitation;
         });
 

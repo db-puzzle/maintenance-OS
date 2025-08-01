@@ -57,15 +57,8 @@ class WorkOrderPlanningController extends Controller
         $skills = Skill::orderBy('name')->pluck('name')->toArray();
         $certifications = Certification::where('active', true)->orderBy('name')->pluck('name')->toArray();
 
-        return Inertia::render('work-orders/planning', [
-            'workOrder' => $workOrder,
-            'technicians' => $technicians,
-            'teams' => $teams,
-            'parts' => $parts,
-            'skills' => $skills,
-            'certifications' => $certifications,
-            'canPlan' => auth()->user()->can('plan', $workOrder),
-        ]);
+        // Method temporarily disabled - page not implemented yet
+        return response()->json(["message" => "This feature is not yet implemented"], 501);
     }
 
     /**
