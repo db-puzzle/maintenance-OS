@@ -1,7 +1,7 @@
-import ItemSelect from '@/components/ItemSelect';
+import { ItemSelect } from '@/components/ItemSelect';
 import TaskDescriptionInput from '@/components/TaskDescriptionInput';
 import AddTaskButton from '@/components/tasks/AddTaskButton';
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import {
     AlertDialog,
     AlertDialogCancel,

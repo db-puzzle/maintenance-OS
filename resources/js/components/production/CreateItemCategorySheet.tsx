@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';

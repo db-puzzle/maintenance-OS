@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
-import ItemSelect from '@/components/ItemSelect';
-import TextInput from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
 import { Area } from '@/types/entities/area';
 
 interface AreaForm {
@@ -114,7 +114,7 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
                             data,
                             setData,
                             errors,
-                            clearErrors: () => {},
+                            clearErrors: () => { },
                         }}
                         name="name"
                         label="Nome da Área"

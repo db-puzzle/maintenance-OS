@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
-import TextInput from '@/components/TextInput';
-import ItemSelect from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
 import StateButton from '@/components/StateButton';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -453,4 +453,4 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
     );
 };
 
-export default CreateItemSheet; 
+export { CreateItemSheet }; 

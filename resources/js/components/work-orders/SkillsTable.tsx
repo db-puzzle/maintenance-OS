@@ -18,7 +18,7 @@ interface SkillsTableProps {
     onRemoveSkill: (skillId: number) => void;
 }
 
-export default function SkillsTable({
+export function SkillsTable({
     selectedSkills,
     isViewMode,
     onRemoveSkill

@@ -1,5 +1,5 @@
 import React from 'react';
-import ItemSelect from '@/components/ItemSelect';
+import { ItemSelect } from '@/components/ItemSelect';
 
 interface RequirementItem {
     id: number;

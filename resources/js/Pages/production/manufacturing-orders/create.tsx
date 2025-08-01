@@ -24,7 +24,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import ItemSelect from '@/components/ItemSelect';
+import { ItemSelect } from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
 import AppLayout from '@/layouts/app-layout';
 import { Item, BillOfMaterial, RouteTemplate, ManufacturingOrder } from '@/types/production';

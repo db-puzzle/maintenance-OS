@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import ItemSelect from '@/components/ItemSelect';
+import { ItemSelect } from '@/components/ItemSelect';
 import CreateWorkCellSheet from '@/components/CreateWorkCellSheet';
 import { ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/production';
 import { Form } from '@/types/work-order';

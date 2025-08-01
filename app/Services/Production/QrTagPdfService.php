@@ -229,7 +229,7 @@ class QrTagPdfService
             return null;
         }
         
-        $imagePath = storage_path('app/public/' . $image->storage_path);
+        $imagePath = storage_path('app/private/' . $image->storage_path);
         if (!file_exists($imagePath)) {
             return null;
         }

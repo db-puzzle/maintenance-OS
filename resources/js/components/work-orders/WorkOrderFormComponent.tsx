@@ -12,10 +12,10 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import ItemSelect from '@/components/ItemSelect';
-import TextInput from '@/components/TextInput';
-import AssetSearchDialog from '@/components/work-orders/AssetSearchDialog';
-import DeleteWorkOrder from '@/components/work-orders/delete-work-order';
+import { ItemSelect } from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
+import { AssetSearchDialog } from '@/components/work-orders/AssetSearchDialog';
+import { DeleteWorkOrder } from '@/components/work-orders/delete-work-order';
 import { toast } from 'sonner';
 import { Pencil, Save, ChevronDownIcon, Search, Settings2 } from 'lucide-react';
 import { MAINTENANCE_CATEGORIES, QUALITY_CATEGORIES } from '@/types/work-order';
@@ -109,7 +109,7 @@ interface WorkOrderFormComponentProps {
     preselectedAsset?: { id: number; tag: string; name: string; plant_id: number; area_id: number; sector_id?: number };
 }
 
-export default function WorkOrderFormComponent({
+export function WorkOrderFormComponent({
     workOrder,
     categories,
     workOrderTypes,

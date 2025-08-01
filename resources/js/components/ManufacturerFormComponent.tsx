@@ -1,5 +1,5 @@
 import InputError from '@/components/input-error';
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

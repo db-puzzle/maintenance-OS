@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';

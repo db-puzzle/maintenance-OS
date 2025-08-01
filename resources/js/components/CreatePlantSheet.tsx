@@ -3,7 +3,7 @@ import { Check, ChevronsUpDown } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';

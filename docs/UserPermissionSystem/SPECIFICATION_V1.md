@@ -1162,7 +1162,7 @@ import { useForm, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
+import { TextInput } from '@/Components/TextInput';
 import SelectInput from '@/Components/SelectInput';
 import TextArea from '@/Components/TextArea';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -1269,7 +1269,7 @@ import { useForm } from '@inertiajs/react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
+import { TextInput } from '@/Components/TextInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 
 interface Props {

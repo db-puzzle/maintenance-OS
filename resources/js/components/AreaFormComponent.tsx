@@ -1,6 +1,6 @@
 import CreatePlantSheet from '@/components/CreatePlantSheet';
-import ItemSelect from '@/components/ItemSelect';
-import TextInput from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
 import { type Area, type Plant } from '@/types/asset-hierarchy';
 import { router, useForm } from '@inertiajs/react';

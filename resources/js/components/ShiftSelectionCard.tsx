@@ -1,5 +1,5 @@
 import CreateShiftSheet from '@/components/CreateShiftSheet';
-import ItemSelect from '@/components/ItemSelect';
+import { ItemSelect } from '@/components/ItemSelect';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/react';

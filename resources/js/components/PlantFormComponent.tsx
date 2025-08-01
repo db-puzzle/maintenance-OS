@@ -1,5 +1,5 @@
 import MapComponent from '@/components/map';
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { type Plant } from '@/types/entities/plant';

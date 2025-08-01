@@ -32,8 +32,8 @@ import {
 } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
-import TextInput from '@/components/TextInput';
-import ItemSelect from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
 import { ManufacturingOrder } from '@/types/production';
 import { cn } from '@/lib/utils';
 import { useForm } from '@inertiajs/react';

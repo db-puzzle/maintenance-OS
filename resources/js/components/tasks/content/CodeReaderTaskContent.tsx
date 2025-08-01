@@ -1,4 +1,4 @@
-import ItemSelect from '@/components/ItemSelect';
+import { ItemSelect } from '@/components/ItemSelect';
 import { Button } from '@/components/ui/button';
 import { Barcode, Check, QrCode, ScanBarcode } from 'lucide-react';
 import { memo, useEffect, useRef } from 'react';

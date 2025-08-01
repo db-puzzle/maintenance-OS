@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import { AssetType } from '@/types/entities/asset-type';
 
 interface AssetTypeForm {

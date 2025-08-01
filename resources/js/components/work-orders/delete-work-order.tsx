@@ -14,7 +14,7 @@ interface Props {
     discipline: 'maintenance' | 'quality';
 }
 
-export default function DeleteWorkOrder({ workOrderId, workOrderNumber, discipline }: Props) {
+export function DeleteWorkOrder({ workOrderId, workOrderNumber, discipline }: Props) {
     const confirmationInput = useRef<HTMLInputElement>(null);
     const {
         data,

@@ -8,7 +8,7 @@ import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import CreateItemSheet from '@/components/CreateItemSheet';
+import { CreateItemSheet } from '@/components/CreateItemSheet';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { ItemImageCarouselDialog } from '@/components/production/ItemImageCarouselDialog';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';

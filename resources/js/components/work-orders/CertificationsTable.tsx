@@ -20,7 +20,7 @@ interface CertificationsTableProps {
     onRemoveCertification: (certificationId: number) => void;
 }
 
-export default function CertificationsTable({
+export function CertificationsTable({
     selectedCertifications,
     isViewMode,
     onRemoveCertification

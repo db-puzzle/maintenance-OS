@@ -6,8 +6,8 @@ import { Package, History, Factory, FileText, Plus, Download, QrCode, Copy, Sett
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import TextInput from '@/components/TextInput';
-import ItemSelect from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';

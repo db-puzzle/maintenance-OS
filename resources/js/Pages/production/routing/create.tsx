@@ -2,13 +2,13 @@ import React from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import ItemSelect from '@/components/ItemSelect';
+import { ItemSelect } from '@/components/ItemSelect';
 import { ManufacturingOrder, Item } from '@/types/production';
 
 interface Props {

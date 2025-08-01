@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
-import ItemSelect from '@/components/ItemSelect';
-import TextInput from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';

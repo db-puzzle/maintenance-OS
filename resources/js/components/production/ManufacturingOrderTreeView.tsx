@@ -58,7 +58,7 @@ interface ManufacturingOrderTreeViewProps {
 
 
 
-export default function ManufacturingOrderTreeView({
+export function ManufacturingOrderTreeView({
     orders,
     showActions = true,
     onOrderClick,

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Manufacturer } from '@/types/entities/manufacturer';
@@ -95,7 +95,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                             data,
                             setData,
                             errors,
-                            clearErrors: () => {},
+                            clearErrors: () => { },
                         }}
                         name="name"
                         label="Nome do Fabricante"
@@ -109,7 +109,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                             data,
                             setData,
                             errors,
-                            clearErrors: () => {},
+                            clearErrors: () => { },
                         }}
                         name="website"
                         label="Website"
@@ -123,7 +123,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {},
+                                clearErrors: () => { },
                             }}
                             name="email"
                             label="E-mail"
@@ -134,7 +134,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                                 data,
                                 setData,
                                 errors,
-                                clearErrors: () => {},
+                                clearErrors: () => { },
                             }}
                             name="phone"
                             label="Telefone"
@@ -148,7 +148,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                             data,
                             setData,
                             errors,
-                            clearErrors: () => {},
+                            clearErrors: () => { },
                         }}
                         name="country"
                         label="País"

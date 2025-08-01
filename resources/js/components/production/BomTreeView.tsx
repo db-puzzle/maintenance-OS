@@ -42,7 +42,7 @@ interface BomTreeViewProps {
     onToggleExpand?: (id: string) => void;
 }
 
-export default function BomTreeView({
+export function BomTreeView({
     items,
     canEdit = false,
     onEditItem,

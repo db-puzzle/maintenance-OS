@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import TextInput from '@/components/TextInput';
-import ItemSelect from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
 import AppLayout from '@/layouts/app-layout';
 import { Item } from '@/types/production';
 import { cn } from '@/lib/utils';

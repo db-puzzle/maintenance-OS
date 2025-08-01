@@ -1,4 +1,4 @@
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import TimeSelect from '@/components/TimeSelect';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';

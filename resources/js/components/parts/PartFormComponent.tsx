@@ -3,13 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import TextInput from '@/components/TextInput';
+import { TextInput } from '@/components/TextInput';
 import { toast } from 'sonner';
 import { Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { route } from '@/utils/route';
-import ItemSelect from '@/components/ItemSelect';
+import { ItemSelect } from '@/components/ItemSelect';
 import CreateManufacturerSheet from '@/components/CreateManufacturerSheet';
 
 interface Manufacturer {

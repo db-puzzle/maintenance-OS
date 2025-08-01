@@ -229,4 +229,4 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
 
 ItemSelect.displayName = 'ItemSelect';
 
-export default ItemSelect;
+export { ItemSelect };

@@ -39,7 +39,7 @@ interface AssetSearchDialogProps {
     onSelectAsset: (assetId: string) => void;
 }
 
-export default function AssetSearchDialog({
+export function AssetSearchDialog({
     open,
     onOpenChange,
     assets,

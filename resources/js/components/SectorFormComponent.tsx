@@ -1,7 +1,7 @@
 import CreateAreaSheet from '@/components/CreateAreaSheet';
 import CreatePlantSheet from '@/components/CreatePlantSheet';
-import ItemSelect from '@/components/ItemSelect';
-import TextInput from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';

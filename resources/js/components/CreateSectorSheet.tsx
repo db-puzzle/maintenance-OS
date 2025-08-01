@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
-import ItemSelect from '@/components/ItemSelect';
-import TextInput from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
 import { type Plant } from '@/types/asset-hierarchy';
 import { Sector } from '@/types/entities/sector';
 

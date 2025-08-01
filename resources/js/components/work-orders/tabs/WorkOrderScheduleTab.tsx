@@ -11,7 +11,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import EmptyCard from '@/components/ui/empty-card';
-import ItemSelect from '@/components/ItemSelect';
+import { ItemSelect } from '@/components/ItemSelect';
 import {
     Calendar as CalendarIcon,
     AlertCircle,

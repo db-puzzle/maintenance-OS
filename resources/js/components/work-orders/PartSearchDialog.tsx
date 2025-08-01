@@ -33,7 +33,7 @@ interface PartSearchDialogProps {
     selectedParts?: number[];
 }
 
-export default function PartSearchDialog({
+export function PartSearchDialog({
     open,
     onOpenChange,
     parts,
@@ -141,7 +141,7 @@ export default function PartSearchDialog({
                                 <div className="space-y-2">
                                     {filteredParts.map((part) => {
                                         const isAlreadyAdded = selectedParts.includes(part.id);
-                                        
+
                                         return (
                                             <button
                                                 key={part.id}
@@ -150,8 +150,8 @@ export default function PartSearchDialog({
                                                 disabled={isAlreadyAdded}
                                                 className={cn(
                                                     "w-full rounded-lg border p-3 text-left transition-colors",
-                                                    isAlreadyAdded 
-                                                        ? "cursor-not-allowed opacity-50" 
+                                                    isAlreadyAdded
+                                                        ? "cursor-not-allowed opacity-50"
                                                         : "hover:bg-accent",
                                                     selectedId === part.id && !isAlreadyAdded && "border-primary bg-accent"
                                                 )}

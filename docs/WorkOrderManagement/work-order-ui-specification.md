@@ -1015,7 +1015,7 @@ Icons used throughout the system:
 
 #### 1. **ItemSelect Component**
 ```tsx
-import ItemSelect from '@/components/ItemSelect';
+import { ItemSelect } from '@/components/ItemSelect';
 
 // Usage for Work Order Type selection
 <ItemSelect

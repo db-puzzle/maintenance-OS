@@ -22,8 +22,8 @@ import { Textarea } from '@/components/ui/textarea';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import TextInput from '@/components/TextInput';
-import ItemSelect from '@/components/ItemSelect';
+import { TextInput } from '@/components/TextInput';
+import { ItemSelect } from '@/components/ItemSelect';
 import { ManufacturingOrder, ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/production';
 import { Form } from '@/types/work-order';
 import { toast } from 'sonner';
