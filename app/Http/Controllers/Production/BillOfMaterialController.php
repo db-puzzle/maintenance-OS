@@ -323,10 +323,11 @@ class BillOfMaterialController extends Controller
             return $this->exportExcel($bom);
         }
 
-        return response()->json($exportData, 200, [
-            'Content-Type' => 'application/json',
-            'Content-Disposition' => 'attachment; filename="' . $bom->bom_number . '.json"'
-        ]);
+        $jsonContent = json_encode($exportData, JSON_PRETTY_PRINT);
+        
+        return response($jsonContent)
+            ->header('Content-Type', 'application/json')
+            ->header('Content-Disposition', 'attachment; filename="' . $bom->bom_number . '-' . date('Y-m-d') . '.json"');
     }
 
     /**
@@ -766,7 +767,7 @@ class BillOfMaterialController extends Controller
 
         return response($output)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $bom->bom_number . '.csv"');
+            ->header('Content-Disposition', 'attachment; filename="' . $bom->bom_number . '-' . date('Y-m-d') . '.csv"');
     }
 
     /**

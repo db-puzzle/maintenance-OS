@@ -25,7 +25,15 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
 
     // Items Management
+    // Define specific routes before resource routes to avoid conflicts
+    Route::get('items/export', [ItemController::class, 'export'])->name('items.export');
+    Route::get('items/import/wizard', [ItemController::class, 'importWizard'])->name('items.import.wizard');
+    Route::post('items/import', [ItemController::class, 'import'])->name('items.import');
+    
+    // Resource routes come after specific routes
     Route::resource('items', ItemController::class)->except(['edit']);
+    
+    // Item-specific routes
     Route::get('items/{item}/bom', [ItemController::class, 'bom'])->name('items.bom');
     Route::get('items/{item}/bom-history', [ItemController::class, 'bomHistory'])->name('items.bom-history');
     Route::get('items/{item}/where-used', [ItemController::class, 'whereUsed'])->name('items.where-used');

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Package, History, GitBranch } from 'lucide-react';
+import { Package, History, GitBranch, Download, Upload, FileText } from 'lucide-react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import CreateItemSheet from '@/components/CreateItemSheet';
 import ListLayout from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
@@ -28,6 +30,11 @@ interface Props {
         type?: string; // Keep for backward compatibility, but won't be used
     };
     categories?: ItemCategory[];
+    can?: {
+        create?: boolean;
+        import?: boolean;
+        export?: boolean;
+    };
 }
 
 // DEPRECATED: item_type is no longer used
@@ -37,7 +44,7 @@ interface Props {
 //     'manufactured-purchased': 'Manufaturado/Comprado'
 // };
 
-export default function ItemsIndex({ items, filters, categories }: Props) {
+export default function ItemsIndex({ items, filters, categories, can }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteItem, setDeleteItem] = useState<Item | null>(null);
     const [loading, setLoading] = useState(false);
@@ -98,6 +105,19 @@ export default function ItemsIndex({ items, filters, categories }: Props) {
     const handleEditSuccess = () => {
         setEditItem(null);
         router.reload({ only: ['items'] });
+    };
+
+    const handleExport = (format: 'json' | 'csv') => {
+        const params = new URLSearchParams({
+            format,
+            ...filters
+        });
+
+        window.open(`${route('production.items.export')}?${params.toString()}`, '_blank');
+    };
+
+    const handleImport = () => {
+        router.visit(route('production.items.import.wizard'));
     };
 
     const columns: ColumnConfig[] = [
@@ -195,6 +215,39 @@ export default function ItemsIndex({ items, filters, categories }: Props) {
                 onSearchChange={handleSearchChange}
                 createRoute={route('production.items.create')}
                 createButtonText="Novo Item"
+                actions={
+                    <div className="flex items-center gap-2">
+                        {can?.import && (
+                            <Button
+                                variant="outline"
+                                onClick={handleImport}
+                            >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Import
+                            </Button>
+                        )}
+                        {can?.export && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline">
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Export
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleExport('json')}>
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Export as JSON
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleExport('csv')}>
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Export as CSV
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
+                }
             >
                 <div className="space-y-4">
                     <EntityDataTable

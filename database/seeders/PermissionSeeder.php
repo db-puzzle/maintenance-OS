@@ -451,79 +451,125 @@ class PermissionSeeder extends Seeder
                 ]
             ];
 
+            // Production Item permissions
+            $itemPermissions = [
+                [
+                    'name' => 'production.items.viewAny',
+                    'display_name' => 'View Items List',
+                    'description' => 'View list of all items',
+                    'sort_order' => 100
+                ],
+                [
+                    'name' => 'production.items.view',
+                    'display_name' => 'View Item Details',
+                    'description' => 'View item details',
+                    'sort_order' => 101
+                ],
+                [
+                    'name' => 'production.items.create',
+                    'display_name' => 'Create Items',
+                    'description' => 'Create new items',
+                    'sort_order' => 102
+                ],
+                [
+                    'name' => 'production.items.update',
+                    'display_name' => 'Update Items',
+                    'description' => 'Update item information',
+                    'sort_order' => 103
+                ],
+                [
+                    'name' => 'production.items.delete',
+                    'display_name' => 'Delete Items',
+                    'description' => 'Delete items',
+                    'sort_order' => 104
+                ],
+                [
+                    'name' => 'production.items.import',
+                    'display_name' => 'Import Items',
+                    'description' => 'Import items from CSV or JSON files',
+                    'sort_order' => 105
+                ],
+                [
+                    'name' => 'production.items.export',
+                    'display_name' => 'Export Items',
+                    'description' => 'Export items to CSV or JSON files',
+                    'sort_order' => 106
+                ]
+            ];
+
             // Production QR Code permissions
             $qrCodePermissions = [
                 [
                     'name' => 'production.qr-tags.view',
                     'display_name' => 'View QR Tag Generator',
                     'description' => 'Access the QR tag generator interface',
-                    'sort_order' => 100
+                    'sort_order' => 110
                 ],
                 [
                     'name' => 'production.qr-tags.generate',
                     'display_name' => 'Generate QR Tags',
                     'description' => 'Generate QR code tags for items and manufacturing orders',
-                    'sort_order' => 101
+                    'sort_order' => 111
                 ],
                 [
                     'name' => 'production.qr-scan-logs.view',
                     'display_name' => 'View QR Scan Logs',
                     'description' => 'View QR code scan history and analytics',
-                    'sort_order' => 102
+                    'sort_order' => 112
                 ],
                 [
                     'name' => 'production.orders.create',
                     'display_name' => 'Create Manufacturing Orders',
                     'description' => 'Create new manufacturing orders',
-                    'sort_order' => 103
+                    'sort_order' => 113
                 ],
                 [
                     'name' => 'production.orders.release',
                     'display_name' => 'Release Manufacturing Orders',
                     'description' => 'Release manufacturing orders for production',
-                    'sort_order' => 104
+                    'sort_order' => 114
                 ],
                 [
                     'name' => 'production.orders.cancel',
                     'display_name' => 'Cancel Manufacturing Orders',
                     'description' => 'Cancel manufacturing orders',
-                    'sort_order' => 105
+                    'sort_order' => 115
                 ],
                 [
                     'name' => 'production.routes.create',
                     'display_name' => 'Create Production Routes',
                     'description' => 'Create production routes for manufacturing orders',
-                    'sort_order' => 106
+                    'sort_order' => 116
                 ],
                 [
                     'name' => 'production.steps.execute',
                     'display_name' => 'Execute Manufacturing Steps',
                     'description' => 'Execute steps in the manufacturing process',
-                    'sort_order' => 107
+                    'sort_order' => 117
                 ],
                 [
                     'name' => 'production.quality.executeCheck',
                     'display_name' => 'Execute Quality Checks',
                     'description' => 'Execute quality checks on manufacturing orders',
-                    'sort_order' => 108
+                    'sort_order' => 118
                 ],
                 [
                     'name' => 'production.quality.recordResult',
                     'display_name' => 'Record Quality Results',
                     'description' => 'Record quality check results',
-                    'sort_order' => 109
+                    'sort_order' => 119
                 ],
                 [
                     'name' => 'production.quality.initiateRework',
                     'display_name' => 'Initiate Rework',
                     'description' => 'Initiate rework for failed quality checks',
-                    'sort_order' => 110
+                    'sort_order' => 120
                 ],
                 [
                     'name' => 'production.reports.viewQualityMetrics',
                     'display_name' => 'View Quality Metrics',
                     'description' => 'View quality metrics and reports',
-                    'sort_order' => 111
+                    'sort_order' => 121
                 ]
             ];
 
@@ -539,6 +585,7 @@ class PermissionSeeder extends Seeder
                 $certificationsPermissions,
                 $workCellPermissions,
                 $itemCategoryPermissions,
+                $itemPermissions,
                 $qrCodePermissions
             );
 

@@ -96,6 +96,14 @@ class RoleSeeder extends Seeder
                 'production.work-cells.create',
                 'production.work-cells.update',
                 'production.work-cells.delete',
+                // Production Item permissions
+                'production.items.viewAny',
+                'production.items.view',
+                'production.items.create',
+                'production.items.update',
+                'production.items.delete',
+                'production.items.import',
+                'production.items.export',
             ];
             $plantManager->syncPermissions($plantManagerPermissions);
 
@@ -193,6 +201,14 @@ class RoleSeeder extends Seeder
                 'production.work-cells.create',
                 'production.work-cells.update',
                 'production.work-cells.delete',
+                // Production Item permissions
+                'production.items.viewAny',
+                'production.items.view',
+                'production.items.create',
+                'production.items.update',
+                'production.items.delete',
+                'production.items.import',
+                'production.items.export',
             ];
             $maintenanceSupervisor->syncPermissions($maintenanceSupervisorPermissions);
 
@@ -228,6 +244,12 @@ class RoleSeeder extends Seeder
                 // Work Cell permissions
                 'production.work-cells.viewAny',
                 'production.work-cells.view',
+                // Production Item permissions
+                'production.items.viewAny',
+                'production.items.view',
+                'production.items.create',
+                'production.items.update',
+                'production.items.export',
             ];
             $planner->syncPermissions($plannerPermissions);
 
@@ -262,6 +284,9 @@ class RoleSeeder extends Seeder
                 // Work Cell permissions (view only)
                 'production.work-cells.viewAny',
                 'production.work-cells.view',
+                // Production Item permissions (view only)
+                'production.items.viewAny',
+                'production.items.view',
             ];
             $technician->syncPermissions($technicianPermissions);
 
@@ -313,6 +338,9 @@ class RoleSeeder extends Seeder
                 // Work Cell permissions (view only)
                 'production.work-cells.viewAny',
                 'production.work-cells.view',
+                // Production Item permissions (view only)
+                'production.items.viewAny',
+                'production.items.view',
             ];
             $viewer->syncPermissions($viewerPermissions);
 

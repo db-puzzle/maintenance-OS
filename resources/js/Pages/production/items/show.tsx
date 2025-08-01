@@ -19,6 +19,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { ColumnConfig } from '@/types/shared';
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
 import { toast } from 'sonner';
+import axios from 'axios';
 import {
     Dialog,
     DialogContent,
@@ -107,8 +108,6 @@ export default function ItemShow({
     isCreating = false
 }: Props) {
     // Get shared data from page props
-    const { props } = usePage<any>();
-    const { qrTag } = props;
     const page = usePage<{
         flash?: {
             success?: string;
@@ -223,26 +222,23 @@ export default function ItemShow({
         });
     };
 
-    const handleGenerateQrTag = () => {
+    const handleGenerateQrTag = async () => {
         if (!item?.id) return;
 
         setGeneratingQr(true);
-        router.post(route('production.qr-tags.item', item.id), {}, {
-            preserveState: true,
-            preserveScroll: true,
-            onFinish: () => {
-                setGeneratingQr(false);
-            },
-        });
-    };
+        try {
+            const response = await axios.post(route('production.qr-tags.item', item.id));
 
-    // Handle QR tag response
-    useEffect(() => {
-        if (qrTag?.success && qrTag?.pdf_url) {
-            window.open(qrTag.pdf_url, '_blank');
-            toast.success('Etiqueta QR gerada com sucesso!');
+            if (response.data.success && response.data.pdf_url) {
+                window.open(response.data.pdf_url, '_blank');
+                toast.success('Etiqueta QR gerada com sucesso!');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
+        } finally {
+            setGeneratingQr(false);
         }
-    }, [qrTag]);
+    };
 
     const submitForm = () => {
         if (isCreating) {

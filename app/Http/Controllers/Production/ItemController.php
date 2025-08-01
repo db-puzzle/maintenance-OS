@@ -76,8 +76,13 @@ class ItemController extends Controller
 
         $categories = ItemCategory::active()->orderBy('name')->get();
 
-        return Inertia::render('production/items/create', [
+        return Inertia::render('production/items/show', [
             'categories' => $categories,
+            'isCreating' => true,
+            'can' => [
+                'update' => true, // Allow editing during creation
+                'delete' => false,
+            ],
         ]);
     }
 
@@ -281,10 +286,11 @@ class ItemController extends Controller
             })
         ];
 
-        return response()->json($exportData, 200, [
-            'Content-Type' => 'application/json',
-            'Content-Disposition' => 'attachment; filename="items-' . date('Y-m-d') . '.json"'
-        ]);
+        $jsonContent = json_encode($exportData, JSON_PRETTY_PRINT);
+        
+        return response($jsonContent)
+            ->header('Content-Type', 'application/json')
+            ->header('Content-Disposition', 'attachment; filename="items-' . date('Y-m-d') . '.json"');
     }
 
     /**

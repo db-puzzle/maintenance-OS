@@ -21,12 +21,14 @@ class ItemImportService
             $errors = [];
 
             // Process items
-            foreach ($data['items'] ?? [] as $itemData) {
+            $items = isset($data['items']) ? $data['items'] : [];
+            foreach ($items as $itemData) {
                 try {
                     $item = $this->processItem($itemData);
                     $imported[] = $item;
                 } catch (\Exception $e) {
-                    $errors[] = "Failed to import item {$itemData['item_number'] ?? 'unknown'}: " . $e->getMessage();
+                    $itemNumber = isset($itemData['item_number']) ? $itemData['item_number'] : 'unknown';
+                    $errors[] = "Failed to import item {$itemNumber}: " . $e->getMessage();
                 }
             }
 
@@ -88,30 +90,30 @@ class ItemImportService
         // Prepare item data
         $itemData = [
             'name' => $data['name'],
-            'description' => $data['description'] ?? null,
+            'description' => isset($data['description']) ? $data['description'] : null,
             'item_category_id' => $categoryId,
-            'can_be_sold' => $data['can_be_sold'] ?? false,
-            'can_be_purchased' => $data['can_be_purchased'] ?? true,
-            'can_be_manufactured' => $data['can_be_manufactured'] ?? false,
-            'is_phantom' => $data['is_phantom'] ?? false,
-            'is_active' => $data['is_active'] ?? true,
-            'status' => $data['status'] ?? 'active',
-            'unit_of_measure' => $data['unit_of_measure'] ?? 'UN',
-            'weight' => $data['weight'] ?? null,
-            'dimensions' => $data['dimensions'] ?? null,
-            'list_price' => $data['list_price'] ?? null,
-            'manufacturing_cost' => $data['manufacturing_cost'] ?? null,
-            'manufacturing_lead_time_days' => $data['manufacturing_lead_time_days'] ?? null,
-            'purchase_price' => $data['purchase_price'] ?? null,
-            'purchase_lead_time_days' => $data['purchase_lead_time_days'] ?? null,
-            'track_inventory' => $data['track_inventory'] ?? true,
-            'min_stock_level' => $data['min_stock_level'] ?? null,
-            'max_stock_level' => $data['max_stock_level'] ?? null,
-            'reorder_point' => $data['reorder_point'] ?? null,
-            'preferred_vendor' => $data['preferred_vendor'] ?? null,
-            'vendor_item_number' => $data['vendor_item_number'] ?? null,
-            'tags' => $data['tags'] ?? [],
-            'custom_attributes' => $data['custom_attributes'] ?? [],
+            'can_be_sold' => isset($data['can_be_sold']) ? $data['can_be_sold'] : false,
+            'can_be_purchased' => isset($data['can_be_purchased']) ? $data['can_be_purchased'] : true,
+            'can_be_manufactured' => isset($data['can_be_manufactured']) ? $data['can_be_manufactured'] : false,
+            'is_phantom' => isset($data['is_phantom']) ? $data['is_phantom'] : false,
+            'is_active' => isset($data['is_active']) ? $data['is_active'] : true,
+            'status' => isset($data['status']) ? $data['status'] : 'active',
+            'unit_of_measure' => isset($data['unit_of_measure']) ? $data['unit_of_measure'] : 'UN',
+            'weight' => isset($data['weight']) ? $data['weight'] : null,
+            'dimensions' => isset($data['dimensions']) ? $data['dimensions'] : null,
+            'list_price' => isset($data['list_price']) ? $data['list_price'] : null,
+            'manufacturing_cost' => isset($data['manufacturing_cost']) ? $data['manufacturing_cost'] : null,
+            'manufacturing_lead_time_days' => isset($data['manufacturing_lead_time_days']) ? $data['manufacturing_lead_time_days'] : null,
+            'purchase_price' => isset($data['purchase_price']) ? $data['purchase_price'] : null,
+            'purchase_lead_time_days' => isset($data['purchase_lead_time_days']) ? $data['purchase_lead_time_days'] : null,
+            'track_inventory' => isset($data['track_inventory']) ? $data['track_inventory'] : true,
+            'min_stock_level' => isset($data['min_stock_level']) ? $data['min_stock_level'] : null,
+            'max_stock_level' => isset($data['max_stock_level']) ? $data['max_stock_level'] : null,
+            'reorder_point' => isset($data['reorder_point']) ? $data['reorder_point'] : null,
+            'preferred_vendor' => isset($data['preferred_vendor']) ? $data['preferred_vendor'] : null,
+            'vendor_item_number' => isset($data['vendor_item_number']) ? $data['vendor_item_number'] : null,
+            'tags' => isset($data['tags']) ? $data['tags'] : [],
+            'custom_attributes' => isset($data['custom_attributes']) ? $data['custom_attributes'] : [],
             'created_by' => auth()->id(),
         ];
 
@@ -141,7 +143,7 @@ class ItemImportService
             $row = [];
             
             foreach ($headers as $index => $header) {
-                $row[$header] = $values[$index] ?? '';
+                $row[$header] = isset($values[$index]) ? $values[$index] : '';
             }
             
             $rows[] = $row;
@@ -158,9 +160,9 @@ class ItemImportService
         $data = [];
 
         foreach ($mapping as $csvField => $itemField) {
-            if (empty($itemField)) continue;
+            if (empty($itemField) || $itemField === '_ignore') continue;
 
-            $value = $row[$csvField] ?? '';
+            $value = isset($row[$csvField]) ? $row[$csvField] : '';
 
             // Handle boolean fields
             if (in_array($itemField, ['can_be_sold', 'can_be_purchased', 'can_be_manufactured', 'is_phantom', 'is_active', 'track_inventory'])) {
