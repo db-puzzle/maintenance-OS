@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import CreateItemSheet from '@/components/CreateItemSheet';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { ItemImageCarouselDialog } from '@/components/production/ItemImageCarouselDialog';
-import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
 import { Item, ItemCategory } from '@/types/production';

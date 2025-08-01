@@ -8,7 +8,7 @@ import { EntityPagination } from '@/components/shared/EntityPagination';
 import { useEntityOperations } from '@/hooks/useEntityOperations';
 import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
-import ListLayout from '@/layouts/production/list-layout';
+import { ListLayout } from '@/layouts/production/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { ItemCategory } from '@/types/production';
 import { ColumnConfig } from '@/types/shared';

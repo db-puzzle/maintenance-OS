@@ -8,7 +8,7 @@ import { EntityPagination } from '@/components/shared/EntityPagination';
 import { useEntityOperations } from '@/hooks/useEntityOperations';
 import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
-import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type Plant } from '@/types/asset-hierarchy';
 import { Sector } from '@/types/entities/sector';

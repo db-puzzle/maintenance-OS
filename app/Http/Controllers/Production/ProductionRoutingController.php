@@ -487,13 +487,10 @@ class ProductionRoutingController extends Controller
                     ->delete();
             }
             
-            // First, temporarily set all existing steps to high step numbers to avoid conflicts
-            $existingStepIds = collect($validated['steps'])
-                ->filter(fn($step) => !empty($step['id']) && empty($step['is_new']))
-                ->pluck('id');
-            
-            ManufacturingStep::whereIn('id', $existingStepIds)
-                ->where('manufacturing_route_id', $routing->id)
+            // First, temporarily set ALL existing steps to high step numbers to avoid conflicts
+            // This prevents unique constraint violations when reordering steps
+            ManufacturingStep::where('manufacturing_route_id', $routing->id)
+                ->orderBy('step_number')
                 ->get()
                 ->each(function ($step, $index) {
                     $step->update(['step_number' => 1000 + $index]);

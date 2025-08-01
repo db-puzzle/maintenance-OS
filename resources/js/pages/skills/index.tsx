@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useEntityOperations } from '@/hooks/useEntityOperations';
 import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
-import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';

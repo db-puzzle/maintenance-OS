@@ -6,7 +6,7 @@ import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
-import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
 import { BillOfMaterial } from '@/types/production';

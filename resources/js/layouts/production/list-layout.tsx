@@ -18,7 +18,7 @@ interface ListLayoutProps {
     onCompressedChange?: (compressed: boolean) => void;
 }
 
-export default function ListLayout({
+export function ListLayout({
     children,
     title,
     description,

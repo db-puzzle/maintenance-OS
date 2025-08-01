@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { Button } from '@/components/ui/button';
 
 import {

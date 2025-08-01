@@ -1,7 +1,7 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Card } from '@/components/ui/card';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

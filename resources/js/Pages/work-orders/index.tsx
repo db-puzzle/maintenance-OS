@@ -20,7 +20,7 @@ import { WorkOrderStatusBadge } from '@/components/work-orders/WorkOrderStatusBa
 import { useEntityOperations } from '@/hooks/useEntityOperations';
 import { useSorting } from '@/hooks/useSorting';
 import AppLayout from '@/layouts/app-layout';
-import ListLayout from '@/layouts/asset-hierarchy/list-layout';
+import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
 import { WorkOrder } from '@/types/work-order';
