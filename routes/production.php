@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Production\ItemController;
 use App\Http\Controllers\Production\ItemCategoryController;
+use App\Http\Controllers\Production\ItemImageController;
 use App\Http\Controllers\Production\BillOfMaterialController;
 use App\Http\Controllers\Production\ProductionRoutingController;
 use App\Http\Controllers\Production\ProductionScheduleController;
@@ -37,6 +38,15 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::get('items/{item}/bom', [ItemController::class, 'bom'])->name('items.bom');
     Route::get('items/{item}/bom-history', [ItemController::class, 'bomHistory'])->name('items.bom-history');
     Route::get('items/{item}/where-used', [ItemController::class, 'whereUsed'])->name('items.where-used');
+    
+    // Item Images Management
+    Route::prefix('items/{item}/images')->name('items.images.')->group(function () {
+        Route::post('/', [ItemImageController::class, 'store'])->name('store');
+        Route::patch('/{image}', [ItemImageController::class, 'update'])->name('update');
+        Route::delete('/{image}', [ItemImageController::class, 'destroy'])->name('destroy');
+        Route::post('/reorder', [ItemImageController::class, 'reorder'])->name('reorder');
+        Route::post('/bulk-delete', [ItemImageController::class, 'bulkDelete'])->name('bulk-delete');
+    });
 
     // BOMs Management
     Route::resource('bom', BillOfMaterialController::class);

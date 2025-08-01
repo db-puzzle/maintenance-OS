@@ -70,4 +70,12 @@ class ItemPolicy
     {
         return $user->hasPermissionTo('production.items.export');
     }
+
+    /**
+     * Determine whether the user can manage images for the item.
+     */
+    public function manageImages(User $user, Item $item): bool
+    {
+        return $user->hasPermissionTo('production.items.images.manage');
+    }
 } 

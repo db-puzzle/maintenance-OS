@@ -60,6 +60,9 @@ return new class extends Migration
             $table->json('tags')->nullable();
             $table->json('custom_attributes')->nullable();
             
+            // Image relationship
+            $table->foreignUuid('primary_image_id')->nullable();
+            
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->timestamps();
             

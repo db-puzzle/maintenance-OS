@@ -76,6 +76,22 @@ class Item extends Model
     }
 
     /**
+     * Get all images associated with this item.
+     */
+    public function images(): HasMany
+    {
+        return $this->hasMany(ItemImage::class)->orderBy('display_order');
+    }
+
+    /**
+     * Get the primary image for this item.
+     */
+    public function primaryImage(): BelongsTo
+    {
+        return $this->belongsTo(ItemImage::class, 'primary_image_id');
+    }
+
+    /**
      * Get the primary BOM for this item.
      */
     public function primaryBom(): HasOne
@@ -166,6 +182,40 @@ class Item extends Model
             ->first();
 
         return $history?->billOfMaterial;
+    }
+
+    // Image-related accessors
+    
+    /**
+     * Get the primary image URL for this item.
+     */
+    public function getPrimaryImageUrlAttribute(): ?string
+    {
+        if ($this->primaryImage) {
+            return $this->primaryImage->getVariantUrl('medium');
+        }
+        
+        $firstImage = $this->images()->where('is_primary', true)->first() 
+            ?? $this->images()->first();
+        
+        return $firstImage ? $firstImage->getVariantUrl('medium') : null;
+    }
+
+    /**
+     * Get all image URLs for this item.
+     */
+    public function getImageUrlsAttribute(): array
+    {
+        return $this->images->map(function ($image) {
+            return [
+                'id' => $image->id,
+                'url' => $image->url,
+                'thumbnail' => $image->getVariantUrl('thumbnail'),
+                'medium' => $image->getVariantUrl('medium'),
+                'is_primary' => $image->is_primary,
+                'caption' => $image->caption,
+            ];
+        })->toArray();
     }
 
     // Business logic

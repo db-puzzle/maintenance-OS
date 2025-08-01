@@ -494,6 +494,12 @@ class PermissionSeeder extends Seeder
                     'display_name' => 'Export Items',
                     'description' => 'Export items to CSV or JSON files',
                     'sort_order' => 106
+                ],
+                [
+                    'name' => 'production.items.images.manage',
+                    'display_name' => 'Manage Item Images',
+                    'description' => 'Upload, edit, and delete item images',
+                    'sort_order' => 107
                 ]
             ];
 

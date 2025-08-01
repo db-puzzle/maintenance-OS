@@ -104,6 +104,7 @@ class RoleSeeder extends Seeder
                 'production.items.delete',
                 'production.items.import',
                 'production.items.export',
+                'production.items.images.manage',
             ];
             $plantManager->syncPermissions($plantManagerPermissions);
 
@@ -209,6 +210,7 @@ class RoleSeeder extends Seeder
                 'production.items.delete',
                 'production.items.import',
                 'production.items.export',
+                'production.items.images.manage',
             ];
             $maintenanceSupervisor->syncPermissions($maintenanceSupervisorPermissions);
 
@@ -250,6 +252,7 @@ class RoleSeeder extends Seeder
                 'production.items.create',
                 'production.items.update',
                 'production.items.export',
+                'production.items.images.manage',
             ];
             $planner->syncPermissions($plannerPermissions);
 
