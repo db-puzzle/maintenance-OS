@@ -54,11 +54,51 @@
             height: 25mm;
         }
         
-        .item-details {
+        .images-section {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            gap: 3mm;
+            margin: 3mm 0;
+        }
+        
+        .item-image {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .item-image img {
+            max-width: 45mm;
+            max-height: 30mm;
+            object-fit: contain;
+        }
+        
+        .parent-image {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top: 1px dashed #ccc;
+            padding-top: 3mm;
+        }
+        
+        .parent-image img {
+            max-width: 35mm;
+            max-height: 25mm;
+            object-fit: contain;
+        }
+        
+        .parent-label {
+            font-size: 8pt;
+            color: #666;
+            margin-bottom: 2mm;
+            text-align: center;
+        }
+        
+        .item-details {
+            display: flex;
+            flex-direction: column;
             padding: 0 3mm;
         }
         
@@ -108,6 +148,28 @@
             
             <div class="qr-code">
                 <img src="data:image/png;base64,{{ $tag['qrCode'] }}" alt="QR Code">
+            </div>
+            
+            <div class="images-section">
+                @if($tag['type'] === 'item')
+                    @if(isset($tag['item_image_url']) && $tag['item_image_url'])
+                        <div class="item-image">
+                            <img src="{{ $tag['item_image_url'] }}" alt="{{ $tag['item']->name }}">
+                        </div>
+                    @endif
+                @else
+                    @if(isset($tag['item_image_url']) && $tag['item_image_url'])
+                        <div class="item-image">
+                            <img src="{{ $tag['item_image_url'] }}" alt="{{ $tag['item']->name }}">
+                        </div>
+                    @endif
+                    @if(isset($tag['parent_item_image_url']) && $tag['parent_item_image_url'] && $tag['parentItem'])
+                        <div class="parent-label">Roteamento via: {{ $tag['parentItem']->name }}</div>
+                        <div class="parent-image">
+                            <img src="{{ $tag['parent_item_image_url'] }}" alt="{{ $tag['parentItem']->name }}">
+                        </div>
+                    @endif
+                @endif
             </div>
             
             <div class="item-details">

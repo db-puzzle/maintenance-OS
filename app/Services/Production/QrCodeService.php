@@ -44,8 +44,8 @@ class QrCodeService
     {
         $current = $order;
         
-        while ($current->parent_order_id) {
-            $current = $current->parentOrder;
+        while ($current->parent_id) {
+            $current = $current->parent;
             if ($current->has_route) {
                 return $current;
             }

@@ -97,9 +97,9 @@
             <img src="data:image/png;base64,{{ $qrCode }}" alt="QR Code">
         </div>
         
-        @if($item->image_url ?? false)
+        @if($item->primary_image_url)
             <div class="item-image">
-                <img src="{{ $item->image_url }}" alt="{{ $item->name }}">
+                <img src="{{ $item->primary_image_url }}" alt="{{ $item->name }}">
             </div>
         @endif
         

@@ -19,6 +19,9 @@ class QrTagPdfService
 
     public function generateItemTag(Item $item): string
     {
+        // Load the primary image relationship to get the image URL
+        $item->load('primaryImage');
+        
         $url = $this->qrCodeService->generateItemUrl($item);
         $qrCode = $this->qrCodeService->generateQrCode($url);
         
@@ -30,11 +33,17 @@ class QrTagPdfService
             'generatedAt' => now()
         ];
         
+        // Add item image URL using the primary_image_url accessor
+        $data['item']->image_url = $item->primary_image_url;
+        
         return $this->generatePdf('item-tag', $data);
     }
 
     public function generateOrderTag(ManufacturingOrder $order): string
     {
+        // Load relationships for images
+        $order->load(['item.primaryImage', 'manufacturingRoute']);
+        
         $url = $this->qrCodeService->generateOrderUrl($order);
         $qrCode = $this->qrCodeService->generateQrCode($url);
         
@@ -42,6 +51,9 @@ class QrTagPdfService
         $parentWithRoute = null;
         if (!$order->has_route) {
             $parentWithRoute = $this->qrCodeService->findClosestParentWithRoute($order);
+            if ($parentWithRoute) {
+                $parentWithRoute->load('item.primaryImage');
+            }
         }
         
         $data = [
@@ -53,6 +65,15 @@ class QrTagPdfService
             'url' => $url,
             'generatedAt' => now()
         ];
+        
+        // Add image URLs
+        if ($order->item) {
+            $data['item']->image_url = $order->item->primary_image_url;
+        }
+        
+        if ($parentWithRoute && $parentWithRoute->item) {
+            $data['parentItem']->image_url = $parentWithRoute->item->primary_image_url;
+        }
         
         return $this->generatePdf('order-tag', $data);
     }
@@ -75,6 +96,11 @@ class QrTagPdfService
 
     private function prepareItemTagData(Item $item): array
     {
+        // Load the primary image relationship if not already loaded
+        if (!$item->relationLoaded('primaryImage')) {
+            $item->load('primaryImage');
+        }
+        
         $url = $this->qrCodeService->generateItemUrl($item);
         $qrCode = $this->qrCodeService->generateQrCode($url);
         
@@ -83,21 +109,30 @@ class QrTagPdfService
             'item' => $item,
             'qrCode' => base64_encode($qrCode),
             'url' => $url,
-            'generatedAt' => now()
+            'generatedAt' => now(),
+            'item_image_url' => $item->primary_image_url
         ];
     }
 
     private function prepareOrderTagData(ManufacturingOrder $order): array
     {
+        // Load relationships for images
+        if (!$order->relationLoaded('item.primaryImage')) {
+            $order->load(['item.primaryImage', 'manufacturingRoute']);
+        }
+        
         $url = $this->qrCodeService->generateOrderUrl($order);
         $qrCode = $this->qrCodeService->generateQrCode($url);
         
         $parentWithRoute = null;
         if (!$order->has_route) {
             $parentWithRoute = $this->qrCodeService->findClosestParentWithRoute($order);
+            if ($parentWithRoute) {
+                $parentWithRoute->load('item.primaryImage');
+            }
         }
         
-        return [
+        $data = [
             'type' => 'order',
             'order' => $order,
             'item' => $order->item,
@@ -106,6 +141,17 @@ class QrTagPdfService
             'url' => $url,
             'generatedAt' => now()
         ];
+        
+        // Add image URLs
+        if ($order->item) {
+            $data['item_image_url'] = $order->item->primary_image_url;
+        }
+        
+        if ($parentWithRoute && $parentWithRoute->item) {
+            $data['parent_item_image_url'] = $parentWithRoute->item->primary_image_url;
+        }
+        
+        return $data;
     }
 
     private function generatePdf(string $template, array $data): string
