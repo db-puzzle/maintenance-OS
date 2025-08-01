@@ -10,8 +10,12 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) => {
+        console.log('Resolving page:', name); // Debug logging
         const pages = import.meta.glob('./pages/**/*.tsx', { eager: true });
-        return pages[`./pages/${name}.tsx`];
+        const page = pages[`./pages/${name}.tsx`];
+        console.log('Found page:', page); // This will show if undefined
+        console.log('Available pages:', Object.keys(pages)); // Show all available pages
+        return page;
     },
     setup({ el, App, props }) {
         const root = createRoot(el);
