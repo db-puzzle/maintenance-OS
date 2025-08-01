@@ -120,17 +120,17 @@
         </div>
         
         <div class="images-section">
-            @if($item && $item->primary_image_url)
+            @if(isset($itemImageBase64) && $itemImageBase64)
                 <div class="item-image">
-                    <img src="{{ $item->primary_image_url }}" alt="{{ $item->name }}">
+                    <img src="{{ $itemImageBase64 }}" alt="{{ $item->name }}">
                 </div>
             @endif
             
-            @if($parentItem && $parentItem->primary_image_url)
+            @if(isset($parentImageBase64) && $parentImageBase64)
                 <div class="parent-section">
                     <div class="parent-label">Roteamento via:</div>
                     <div class="parent-image">
-                        <img src="{{ $parentItem->primary_image_url }}" alt="{{ $parentItem->name }}">
+                        <img src="{{ $parentImageBase64 }}" alt="{{ $parentItem->name }}">
                     </div>
                 </div>
             @endif

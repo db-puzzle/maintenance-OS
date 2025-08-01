@@ -3,6 +3,7 @@
 namespace App\Services\Production;
 
 use App\Models\Production\Item;
+use App\Models\Production\ItemImage;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\QrTagTemplate;
 use Spatie\LaravelPdf\Facades\Pdf;
@@ -33,8 +34,10 @@ class QrTagPdfService
             'generatedAt' => now()
         ];
         
-        // Add item image URL using the primary_image_url accessor
-        $data['item']->image_url = $item->primary_image_url;
+        // Get base64 encoded image if available
+        // Use the first primary marked image or just the first image
+        $primaryImage = $item->images()->where('is_primary', true)->first() ?? $item->images()->first();
+        $data['itemImageBase64'] = $this->getImageAsBase64($primaryImage);
         
         return $this->generatePdf('item-tag', $data);
     }
@@ -66,13 +69,21 @@ class QrTagPdfService
             'generatedAt' => now()
         ];
         
-        // Add image URLs
+        // Get base64 encoded images if available
         if ($order->item) {
-            $data['item']->image_url = $order->item->primary_image_url;
+            $itemPrimaryImage = $order->item->images()->where('is_primary', true)->first() 
+                ?? $order->item->images()->first();
+            $data['itemImageBase64'] = $this->getImageAsBase64($itemPrimaryImage);
+        } else {
+            $data['itemImageBase64'] = null;
         }
         
         if ($parentWithRoute && $parentWithRoute->item) {
-            $data['parentItem']->image_url = $parentWithRoute->item->primary_image_url;
+            $parentPrimaryImage = $parentWithRoute->item->images()->where('is_primary', true)->first() 
+                ?? $parentWithRoute->item->images()->first();
+            $data['parentImageBase64'] = $this->getImageAsBase64($parentPrimaryImage);
+        } else {
+            $data['parentImageBase64'] = null;
         }
         
         return $this->generatePdf('order-tag', $data);
@@ -104,14 +115,19 @@ class QrTagPdfService
         $url = $this->qrCodeService->generateItemUrl($item);
         $qrCode = $this->qrCodeService->generateQrCode($url);
         
-        return [
+        // Get primary image
+        $primaryImage = $item->images()->where('is_primary', true)->first() ?? $item->images()->first();
+        
+        $data = [
             'type' => 'item',
             'item' => $item,
             'qrCode' => base64_encode($qrCode),
             'url' => $url,
             'generatedAt' => now(),
-            'item_image_url' => $item->primary_image_url
+            'itemImageBase64' => $this->getImageAsBase64($primaryImage)
         ];
+        
+        return $data;
     }
 
     private function prepareOrderTagData(ManufacturingOrder $order): array
@@ -142,13 +158,21 @@ class QrTagPdfService
             'generatedAt' => now()
         ];
         
-        // Add image URLs
+        // Get base64 encoded images if available
         if ($order->item) {
-            $data['item_image_url'] = $order->item->primary_image_url;
+            $itemPrimaryImage = $order->item->images()->where('is_primary', true)->first() 
+                ?? $order->item->images()->first();
+            $data['itemImageBase64'] = $this->getImageAsBase64($itemPrimaryImage);
+        } else {
+            $data['itemImageBase64'] = null;
         }
         
         if ($parentWithRoute && $parentWithRoute->item) {
-            $data['parent_item_image_url'] = $parentWithRoute->item->primary_image_url;
+            $parentPrimaryImage = $parentWithRoute->item->images()->where('is_primary', true)->first() 
+                ?? $parentWithRoute->item->images()->first();
+            $data['parentImageBase64'] = $this->getImageAsBase64($parentPrimaryImage);
+        } else {
+            $data['parentImageBase64'] = null;
         }
         
         return $data;
@@ -194,5 +218,34 @@ class QrTagPdfService
         Storage::disk('public')->put($path, base64_decode($pdfContent));
         
         return Storage::disk('public')->url($path);
+    }
+    
+    /**
+     * Convert image to base64 with optional resizing for PDF optimization
+     */
+    private function getImageAsBase64(?ItemImage $image, int $maxWidth = 800): ?string
+    {
+        if (!$image) {
+            return null;
+        }
+        
+        $imagePath = storage_path('app/public/' . $image->storage_path);
+        if (!file_exists($imagePath)) {
+            return null;
+        }
+        
+        try {
+            // Read the image file
+            $imageData = file_get_contents($imagePath);
+            
+            // For now, we'll use the original image
+            // In production, you might want to resize using Intervention Image
+            $base64 = base64_encode($imageData);
+            
+            return 'data:' . $image->mime_type . ';base64,' . $base64;
+        } catch (\Exception $e) {
+            \Log::error('Error processing image for QR tag: ' . $e->getMessage());
+            return null;
+        }
     }
 }

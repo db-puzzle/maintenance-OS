@@ -152,21 +152,21 @@
             
             <div class="images-section">
                 @if($tag['type'] === 'item')
-                    @if(isset($tag['item_image_url']) && $tag['item_image_url'])
+                    @if(isset($tag['itemImageBase64']) && $tag['itemImageBase64'])
                         <div class="item-image">
-                            <img src="{{ $tag['item_image_url'] }}" alt="{{ $tag['item']->name }}">
+                            <img src="{{ $tag['itemImageBase64'] }}" alt="{{ $tag['item']->name }}">
                         </div>
                     @endif
                 @else
-                    @if(isset($tag['item_image_url']) && $tag['item_image_url'])
+                    @if(isset($tag['itemImageBase64']) && $tag['itemImageBase64'])
                         <div class="item-image">
-                            <img src="{{ $tag['item_image_url'] }}" alt="{{ $tag['item']->name }}">
+                            <img src="{{ $tag['itemImageBase64'] }}" alt="{{ $tag['item']->name }}">
                         </div>
                     @endif
-                    @if(isset($tag['parent_item_image_url']) && $tag['parent_item_image_url'] && $tag['parentItem'])
+                    @if(isset($tag['parentImageBase64']) && $tag['parentImageBase64'] && $tag['parentItem'])
                         <div class="parent-label">Roteamento via: {{ $tag['parentItem']->name }}</div>
                         <div class="parent-image">
-                            <img src="{{ $tag['parent_item_image_url'] }}" alt="{{ $tag['parentItem']->name }}">
+                            <img src="{{ $tag['parentImageBase64'] }}" alt="{{ $tag['parentItem']->name }}">
                         </div>
                     @endif
                 @endif
