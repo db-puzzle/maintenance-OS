@@ -71,6 +71,7 @@ export interface Item {
     images?: ItemImage[];
     images_count?: number;
     primary_image_url?: string;
+    primary_image_thumbnail_url?: string;
     created_by?: User;
     created_at: string;
     updated_at: string;

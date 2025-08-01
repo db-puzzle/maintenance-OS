@@ -31,6 +31,7 @@ interface Props {
         search?: string;
         status?: string;
         type?: string; // Keep for backward compatibility, but won't be used
+        per_page?: number;
     };
     categories?: ItemCategory[];
     can?: {
@@ -61,20 +62,19 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         setSearchValue(value);
         router.get(route('production.items.index'), { search: value }, {
             preserveState: true,
-            preserveScroll: true,
-            only: ['items']
+            preserveScroll: true
         });
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('production.items.index'), { ...filters, page }, {
+        router.get(route('production.items.index'), { ...filters, search: searchValue, page }, {
             preserveState: true,
             preserveScroll: true
         });
     };
 
     const handlePerPageChange = (perPage: number) => {
-        router.get(route('production.items.index'), { ...filters, per_page: perPage }, {
+        router.get(route('production.items.index'), { ...filters, search: searchValue, per_page: perPage, page: 1 }, {
             preserveState: true,
             preserveScroll: true
         });

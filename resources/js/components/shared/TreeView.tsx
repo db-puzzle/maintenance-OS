@@ -18,6 +18,8 @@ export interface TreeViewProps<T extends TreeNode> {
     emptyState?: React.ReactNode;
     className?: string;
     defaultExpanded?: boolean | ((node: T) => boolean);
+    expanded?: Record<string, boolean>;
+    onToggleExpand?: (id: string) => void;
     onNodeClick?: (node: T) => void;
 }
 
@@ -95,7 +97,12 @@ function TreeItem<T extends TreeNode>({
                                     handleToggle();
                                 }}
                             >
-                                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                <div className={cn(
+                                    "transition-transform duration-200 ease-in-out",
+                                    isExpanded ? "rotate-90" : "rotate-0"
+                                )}>
+                                    <ChevronRight size={14} />
+                                </div>
                             </Button>
                         )}
                         {!hasChildren && <div className="w-5"></div>}
@@ -106,22 +113,31 @@ function TreeItem<T extends TreeNode>({
                 </div>
             </div>
 
-            {/* Render children */}
-            {hasChildren && isExpanded && (
-                <div>
-                    {node.children!.map((child, index) => (
-                        <TreeItem
-                            key={child.id}
-                            node={child as T}
-                            depth={depth + 1}
-                            isLast={index === node.children!.length - 1}
-                            parentConnectorLines={childConnectorLines}
-                            expanded={expanded}
-                            toggleExpand={toggleExpand}
-                            renderNode={renderNode}
-                            onNodeClick={onNodeClick}
-                        />
-                    ))}
+            {/* Render children with animation */}
+            {hasChildren && (
+                <div
+                    className={cn(
+                        "overflow-hidden transition-all duration-300 ease-in-out",
+                        isExpanded
+                            ? "max-h-[10000px] opacity-100"
+                            : "max-h-0 opacity-0"
+                    )}
+                >
+                    <div className="transition-transform duration-300 ease-in-out">
+                        {node.children!.map((child, index) => (
+                            <TreeItem
+                                key={child.id}
+                                node={child as T}
+                                depth={depth + 1}
+                                isLast={index === node.children!.length - 1}
+                                parentConnectorLines={childConnectorLines}
+                                expanded={expanded}
+                                toggleExpand={toggleExpand}
+                                renderNode={renderNode}
+                                onNodeClick={onNodeClick}
+                            />
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
@@ -134,38 +150,55 @@ export default function TreeView<T extends TreeNode>({
     emptyState,
     className,
     defaultExpanded = false,
+    expanded: controlledExpanded,
+    onToggleExpand,
     onNodeClick,
 }: TreeViewProps<T>) {
-    const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+    const [internalExpanded, setInternalExpanded] = useState<Record<string, boolean>>({});
 
-    // Initialize expanded state
+    // Use controlled expanded state if provided, otherwise use internal state
+    const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
+    const setExpanded = controlledExpanded !== undefined
+        ? (updater: any) => {
+            // For controlled mode, we don't update state directly
+            console.warn('TreeView is in controlled mode. Use onToggleExpand to update expanded state.');
+        }
+        : setInternalExpanded;
+
+    // Initialize expanded state only for uncontrolled mode
     useEffect(() => {
-        const initialExpanded: Record<string, boolean> = {};
+        if (controlledExpanded === undefined) {
+            const initialExpanded: Record<string, boolean> = {};
 
-        const processNodes = (nodes: T[]) => {
-            nodes.forEach(node => {
-                const nodeId = String(node.id);
-                if (typeof defaultExpanded === 'function') {
-                    initialExpanded[nodeId] = defaultExpanded(node);
-                } else if (defaultExpanded) {
-                    initialExpanded[nodeId] = true;
-                }
+            const processNodes = (nodes: T[]) => {
+                nodes.forEach(node => {
+                    const nodeId = String(node.id);
+                    if (typeof defaultExpanded === 'function') {
+                        initialExpanded[nodeId] = defaultExpanded(node);
+                    } else if (defaultExpanded) {
+                        initialExpanded[nodeId] = true;
+                    }
 
-                if (node.children && node.children.length > 0) {
-                    processNodes(node.children as T[]);
-                }
-            });
-        };
+                    if (node.children && node.children.length > 0) {
+                        processNodes(node.children as T[]);
+                    }
+                });
+            };
 
-        processNodes(data);
-        setExpanded(initialExpanded);
-    }, [data, defaultExpanded]);
+            processNodes(data);
+            setInternalExpanded(initialExpanded);
+        }
+    }, [data, defaultExpanded, controlledExpanded]);
 
     const toggleExpand = (id: string) => {
-        setExpanded(prev => ({
-            ...prev,
-            [id]: !prev[id]
-        }));
+        if (onToggleExpand) {
+            onToggleExpand(id);
+        } else {
+            setInternalExpanded(prev => ({
+                ...prev,
+                [id]: !prev[id]
+            }));
+        }
     };
 
     if (data.length === 0 && emptyState) {

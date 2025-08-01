@@ -57,7 +57,8 @@ class ItemController extends Controller
             ->with(['category', 'createdBy', 'primaryImage'])
             ->withCount('images')
             ->orderBy('item_number')
-            ->paginate($request->input('per_page', 10));
+            ->paginate($request->input('per_page', 10))
+            ->withQueryString();
 
         $categories = ItemCategory::active()->orderBy('name')->get();
 

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import TreeView, { TreeNode } from '@/components/shared/TreeView';
 import { BomItem, Item } from '@/types/production';
+import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 
 interface BomTreeNode extends TreeNode {
     id: string;
@@ -36,6 +37,9 @@ interface BomTreeViewProps {
     showActions?: boolean;
     emptyState?: React.ReactNode;
     headerColumns?: React.ReactNode;
+    showImages?: boolean;
+    expanded?: Record<string, boolean>;
+    onToggleExpand?: (id: string) => void;
 }
 
 export default function BomTreeView({
@@ -51,7 +55,10 @@ export default function BomTreeView({
     draggingId,
     showActions = true,
     emptyState,
-    headerColumns
+    headerColumns,
+    showImages = false,
+    expanded,
+    onToggleExpand
 }: BomTreeViewProps) {
     const defaultEmptyState = (
         <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -70,12 +77,16 @@ export default function BomTreeView({
     );
 
     const defaultHeaderColumns = (
-        <div className="bg-muted/50 p-3 rounded-lg grid grid-cols-12 gap-2 font-semibold text-sm mb-2">
-            <div className="col-span-3">Código do Item</div>
-            <div className="col-span-4">Descrição</div>
-            <div className="col-span-1 text-center">Qtd</div>
-            <div className="col-span-2 text-center">Unidade</div>
-            <div className="col-span-2 text-right">Ações</div>
+        <div className={cn(
+            "bg-muted/50 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2",
+            showImages ? "grid-cols-[60px_1fr_1fr_80px_100px_80px]" : "grid-cols-12"
+        )}>
+            {showImages && <div className="text-center">Imagem</div>}
+            <div className={showImages ? "" : "col-span-3"}>Código do Item</div>
+            <div className={showImages ? "" : "col-span-4"}>Descrição</div>
+            <div className="text-center">Qtd</div>
+            <div className="text-center">Unidade</div>
+            <div className="text-right">Ações</div>
         </div>
     );
 
@@ -107,21 +118,56 @@ export default function BomTreeView({
                     )}
 
                     {/* Item details */}
-                    <div className="flex-grow grid grid-cols-12 gap-2 items-center">
-                        <div className="col-span-3 font-medium">
+                    <div className={cn(
+                        "flex-grow grid gap-2 items-center",
+                        showImages ? "grid-cols-[60px_1fr_1fr_80px_100px_80px]" : "grid-cols-12"
+                    )}>
+                        {showImages && (
+                            <div className="flex items-center justify-center">
+                                <ItemImagePreview
+                                    primaryImageUrl={node.item.primary_image_thumbnail_url || node.item.primary_image_url}
+                                    imageCount={node.item.images?.length || 0}
+                                    className="w-12 h-12 cursor-pointer"
+                                    onClick={(e) => {
+                                        e?.stopPropagation();
+                                        if (node.item.id) {
+                                            router.visit(route('production.items.show', node.item.id));
+                                        }
+                                    }}
+                                />
+                            </div>
+                        )}
+                        <div className={cn(
+                            "font-medium",
+                            !showImages && "col-span-3"
+                        )}>
                             <div className="text-sm">{node.item.item_number}</div>
                             {node.reference_designators && (
                                 <div className="text-xs text-muted-foreground">Ref: {node.reference_designators}</div>
                             )}
                         </div>
-                        <div className="col-span-4 text-foreground text-sm">{node.item.name}</div>
-                        <div className="col-span-1 text-center text-sm text-foreground">
+                        <div className={cn(
+                            "text-foreground text-sm",
+                            !showImages && "col-span-4"
+                        )}>
+                            {node.item.name}
+                        </div>
+                        <div className={cn(
+                            "text-center text-sm text-foreground",
+                            !showImages && "col-span-1"
+                        )}>
                             {node.quantity}
                         </div>
-                        <div className="col-span-2 text-center text-sm text-foreground">
+                        <div className={cn(
+                            "text-center text-sm text-foreground",
+                            !showImages && "col-span-2"
+                        )}>
                             {node.unit_of_measure}
                         </div>
-                        <div className="col-span-2 flex justify-end gap-1">
+                        <div className={cn(
+                            "flex justify-end gap-1",
+                            !showImages && "col-span-2"
+                        )}>
                             {canEdit && showActions && (
                                 <>
                                     {onEditItem && (
@@ -174,6 +220,8 @@ export default function BomTreeView({
                 renderNode={renderBomNode}
                 emptyState={emptyState || defaultEmptyState}
                 defaultExpanded={true}
+                expanded={expanded}
+                onToggleExpand={onToggleExpand}
             />
         </div>
     );

@@ -32,6 +32,8 @@ import { BomItem, Item, ItemCategory, ManufacturingOrder, RouteTemplate } from '
 import CreateItemSheet from '@/components/CreateItemSheet';
 import BomTreeView from './BomTreeView';
 import ManufacturingOrderTreeView from './ManufacturingOrderTreeView';
+import { ItemImagePreview } from '@/components/production/ItemImagePreview';
+import { Image } from 'lucide-react';
 
 type ConfigurationType = 'bom' | 'manufacturing-order';
 
@@ -96,7 +98,10 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
     const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isCreateItemSheetOpen, setIsCreateItemSheetOpen] = useState(false);
+    const [maxDepth, setMaxDepth] = useState<number>(0);
+    const [currentLevel, setCurrentLevel] = useState<number>(1);
     const [saving, setSaving] = useState(false);
+    const [showImages, setShowImages] = useState(false);
 
     // Transform flat BOM items to hierarchical structure
     useEffect(() => {
@@ -119,6 +124,10 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
 
             const hierarchicalItems = buildHierarchy(bomProps.bomItems);
             setBomItems(hierarchicalItems);
+
+            // Calculate max depth
+            const depth = calculateMaxDepth(hierarchicalItems);
+            setMaxDepth(depth);
 
             // Auto-expand first level
             const initialExpanded: Record<string, boolean> = {};
@@ -171,6 +180,53 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
 
             return [...acc, item];
         }, []);
+    };
+
+    // Calculate the maximum depth of the BOM tree
+    const calculateMaxDepth = (items: any[], currentDepth: number = 0): number => {
+        if (!items || items.length === 0) return currentDepth;
+
+        let maxChildDepth = currentDepth;
+        items.forEach(item => {
+            if (item.children && item.children.length > 0) {
+                const childDepth = calculateMaxDepth(item.children, currentDepth + 1);
+                maxChildDepth = Math.max(maxChildDepth, childDepth);
+            }
+        });
+
+        return maxChildDepth;
+    };
+
+    // Expand/collapse all items to a specific level
+    const expandToLevel = (level: number) => {
+        const newExpanded: Record<string, boolean> = {};
+
+        const processItems = (items: any[], currentLevel: number = 0) => {
+            items.forEach(item => {
+                // Expand if current level is less than target level
+                newExpanded[item.id] = currentLevel < level;
+
+                if (item.children && item.children.length > 0) {
+                    processItems(item.children, currentLevel + 1);
+                }
+            });
+        };
+
+        processItems(bomItems);
+
+        // Add a slight delay for smoother visual feedback
+        setTimeout(() => {
+            setExpanded(newExpanded);
+            setCurrentLevel(level);
+        }, 50);
+    };
+
+    // Toggle individual item expansion
+    const toggleItemExpanded = (id: string) => {
+        setExpanded(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
     };
 
     const addChildToItem = (items: any[], parentId: string, newChild: any): any[] => {
@@ -463,6 +519,39 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                         )}
                     </div>
                     <div className="flex gap-2">
+                        {/* Level controls */}
+                        {maxDepth > 0 && (
+                            <div className="flex items-center gap-1 border rounded-md px-2">
+                                <span className="text-sm text-muted-foreground mr-1">Níveis:</span>
+                                {Array.from({ length: maxDepth }, (_, i) => i + 1).map((level) => {
+                                    const isActive = level <= currentLevel;
+                                    return (
+                                        <Button
+                                            key={level}
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => expandToLevel(level)}
+                                            className={`h-7 w-7 p-0 text-xs border transition-colors ${isActive
+                                                ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100 hover:border-blue-400'
+                                                : 'border-transparent hover:bg-blue-50/50 hover:text-blue-500 hover:border-blue-200'
+                                                }`}
+                                            title={`Expandir até nível ${level}`}
+                                        >
+                                            {level}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowImages(!showImages)}
+                            className={showImages ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground' : ''}
+                        >
+                            <Image className="h-4 w-4 mr-2" />
+                            {showImages ? 'Ocultar Imagens' : 'Mostrar Imagens'}
+                        </Button>
                         <Button variant="outline" size="sm" onClick={handleExportBOM}>
                             <Download className="h-4 w-4 mr-2" />
                             Exportar BOM
@@ -506,6 +595,9 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
                     draggingId={dragging}
+                    showImages={showImages}
+                    expanded={expanded}
+                    onToggleExpand={toggleItemExpanded}
                 />
             );
         }
