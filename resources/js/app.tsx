@@ -11,12 +11,19 @@ createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) => {
         console.log('Resolving page:', name); // Debug logging
-        // Use a more explicit glob pattern
+
+        // Import all pages explicitly including missing directories
         const pages = import.meta.glob([
-            './pages/**/*.tsx',
-            './pages/**/**/*.tsx',
-            './pages/**/**/**/*.tsx'
+            './pages/*.tsx',
+            './pages/*/*.tsx',
+            './pages/*/*/*.tsx',
+            './pages/*/*/*/*.tsx',
+            './pages/work-orders/*.tsx',
+            './pages/production/**/*.tsx',
+            './pages/maintenance/**/*.tsx',
+            './pages/forms/*.tsx'
         ], { eager: true });
+
         const page = pages[`./pages/${name}.tsx`];
 
         // If not found, try without .tsx extension in the path
@@ -31,10 +38,12 @@ createInertiaApp({
 
         console.log('Found page:', page); // This will show if undefined
         console.log('Available pages:', Object.keys(pages)); // Show all available pages
+        console.log('Total pages found:', Object.keys(pages).length);
 
         if (!page) {
             console.error(`Page not found: ${name}`);
             console.error(`Looked for: ./pages/${name}.tsx`);
+            console.error(`Also looked for: ./pages/${name}/index.tsx`);
         }
 
         return page;
