@@ -20,7 +20,6 @@ interface MeasurementFormData {
     minValue: string;
     maxValue: string;
     measuredValue: string;
-    [key: string]: string | number | boolean;
 }
 
 function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, disabled }: MeasurementTaskContentProps) {
@@ -210,7 +209,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                     name="targetValue"
                                     label="Valor Alvo"
                                     placeholder="Sem Alvo"
-                                    onBlur={(e) => processBlur('targetValue', e.target.value)}
+                                    onBlur={(e: React.FocusEvent<HTMLInputElement>) => processBlur('targetValue', e.target.value)}
                                 />
                             </div>
 
@@ -220,7 +219,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                     name="minValue"
                                     label="Valor Mínimo"
                                     placeholder="Sem Min"
-                                    onBlur={(e) => processBlur('minValue', e.target.value)}
+                                    onBlur={(e: React.FocusEvent<HTMLInputElement>) => processBlur('minValue', e.target.value)}
                                 />
                             </div>
 
@@ -230,7 +229,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                     name="maxValue"
                                     label="Valor Máximo"
                                     placeholder="Sem Max"
-                                    onBlur={(e) => processBlur('maxValue', e.target.value)}
+                                    onBlur={(e: React.FocusEvent<HTMLInputElement>) => processBlur('maxValue', e.target.value)}
                                 />
                             </div>
                         </div>
@@ -269,7 +268,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                                     setResponse({ ...response, measuredValue: e.target.value });
                                                 }
                                             }}
-                                            onBlur={(e) => processBlur('measuredValue', e.target.value)}
+                                            onBlur={(e: React.FocusEvent<HTMLInputElement>) => processBlur('measuredValue', e.target.value)}
                                             className={`${isValueOutOfRange ? 'border-red-500 focus-visible:ring-red-500' : isValueAtTarget ? 'border-green-500 focus-visible:ring-green-500' : ''}`}
                                             disabled={disabled}
                                         />

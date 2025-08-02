@@ -1,8 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
-import { Head, Link } from '@inertiajs/react';
-import { Package, History, Factory, FileText, Plus, Download, QrCode, Copy, Settings } from 'lucide-react';
+import { Head } from '@inertiajs/react';
+import {
+    Box,
+    ArrowUpDown,
+    Download,
+    Upload,
+    AlertTriangle,
+    Check,
+    X,
+    Trash2,
+    Calculator,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +26,10 @@ import EmptyCard from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import BomConfiguration from '@/components/production/BomConfiguration';
-import { BillOfMaterial, BomItem, BomVersion, Item, ItemCategory } from '@/types/production';
+import {
+    BillOfMaterial,
+    BomFormData,
+} from '@/types/production';
 import { ColumnConfig } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
 import { toast } from 'sonner';
@@ -39,7 +52,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
 
 
 
-    const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm<BomFormData>({
         name: bom?.name || '',
         description: bom?.description || '',
         external_reference: bom?.external_reference || '',
@@ -264,7 +277,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                 {
                     id: 'configuration',
                     label: 'Configuração',
-                    icon: <Settings className="h-4 w-4" />,
+                    icon: <Box className="h-4 w-4" />,
                     content: (
                         <div className="h-[calc(100vh-300px)]">
                             <BomConfiguration
@@ -299,7 +312,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                         <h3 className="text-lg font-medium">Histórico de Versões</h3>
                                         {can.update && (
                                             <Button onClick={() => {/* TODO: Create version */ }}>
-                                                <Plus className="h-4 w-4 mr-2" />
+                                                <ArrowUpDown className="h-4 w-4 mr-2" />
                                                 Nova Versão
                                             </Button>
                                         )}
@@ -326,7 +339,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 </div>
                             ) : (
                                 <EmptyCard
-                                    icon={History}
+                                    icon={Box}
                                     title="Nenhuma versão criada"
                                     description="Versões serão listadas aqui conforme forem criadas"
                                 />
@@ -360,7 +373,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 </div>
                             ) : (
                                 <EmptyCard
-                                    icon={Factory}
+                                    icon={Box}
                                     title="Produto não definido"
                                     description="Esta BOM não tem um produto final associado"
                                 />
@@ -405,7 +418,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                     </Button>
                     {can.manageItems && (
                         <Button variant="outline" onClick={handleGenerateQr}>
-                            <QrCode className="h-4 w-4 mr-2" />
+                            <Calculator className="h-4 w-4 mr-2" />
                             Gerar QR Codes
                         </Button>
                     )}
@@ -415,7 +428,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                         additionalActions={[
                             {
                                 label: 'Duplicar',
-                                icon: <Copy className="h-4 w-4" />,
+                                icon: <Upload className="h-4 w-4" />,
                                 onClick: handleDuplicate
                             }
                         ]}
