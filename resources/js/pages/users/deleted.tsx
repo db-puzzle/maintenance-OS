@@ -12,12 +12,9 @@ import { toast } from 'sonner';
 import { type BreadcrumbItem } from '@/types';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
-
 import { ColumnConfig } from '@/types/shared';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -32,7 +29,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: route('users.deleted'),
     },
 ];
-
 interface DeletedUser {
     id: number;
     name: string;
@@ -41,7 +37,6 @@ interface DeletedUser {
     roles: Array<{ id: number; name: string }>;
     permissions: Array<{ id: number; name: string }>;
 }
-
 interface Props {
     deletedUsers: {
         data: DeletedUser[];
@@ -52,15 +47,12 @@ interface Props {
         search?: string;
     };
 }
-
 export default function DeletedUsers({ deletedUsers, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(route('users.deleted'), { search: value }, { preserveState: true });
     };
-
     const handleRestore = (user: DeletedUser) => {
         router.post(route('users.restore', { user: user.id }), {}, {
             onSuccess: () => {
@@ -71,7 +63,6 @@ export default function DeletedUsers({ deletedUsers, filters }: Props) {
             },
         });
     };
-
     const handleForceDelete = (user: DeletedUser) => {
         router.delete(route('users.force-delete', { user: user.id }), {
             onSuccess: () => {
@@ -82,15 +73,12 @@ export default function DeletedUsers({ deletedUsers, filters }: Props) {
             },
         });
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('users.deleted'), { ...filters, search, page }, { preserveState: true, preserveScroll: true });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(route('users.deleted'), { ...filters, search, per_page: perPage, page: 1 }, { preserveState: true, preserveScroll: true });
     };
-
     // Define columns for EntityDataTable
     const columns: ColumnConfig[] = [
         {
@@ -143,7 +131,6 @@ export default function DeletedUsers({ deletedUsers, filters }: Props) {
             },
         },
     ];
-
     // Prepare pagination data
     const meta = deletedUsers.meta as Record<string, number> | undefined;
     const pagination = meta ? {
@@ -161,11 +148,9 @@ export default function DeletedUsers({ deletedUsers, filters }: Props) {
         from: 1,
         to: deletedUsers.data.length,
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Usuários Excluídos" />
-
             <ListLayout
                 title="Usuários Excluídos"
                 description="Gerencie usuários que foram excluídos do sistema"
@@ -237,7 +222,6 @@ export default function DeletedUsers({ deletedUsers, filters }: Props) {
                             );
                         }}
                     />
-
                     {/* Pagination */}
                     {pagination.last_page > 1 && (
                         <EntityPagination

@@ -23,7 +23,6 @@ import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import CreateManufacturingOrderDialog from '@/components/production/CreateManufacturingOrderDialog';
 import { ColumnConfig } from '@/types/shared';
 import { ManufacturingOrder, Item, BillOfMaterial, RouteTemplate } from '@/types/production';
-
 interface Props {
     orders: {
         data: ManufacturingOrder[];
@@ -45,7 +44,6 @@ interface Props {
     routeTemplates?: RouteTemplate[];
     sourceTypes?: Record<string, string>;
 }
-
 export default function ManufacturingOrders({
     orders,
     statuses,
@@ -61,7 +59,6 @@ export default function ManufacturingOrders({
     const [loading, setLoading] = useState(false);
     const [deleteOrder, setDeleteOrder] = useState<ManufacturingOrder | null>(null);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
-
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.orders.index'), {
@@ -73,7 +70,6 @@ export default function ManufacturingOrders({
             only: ['orders']
         });
     };
-
     const handleStatusFilter = (value: string) => {
         router.get(route('production.orders.index'), {
             ...filters,
@@ -83,7 +79,6 @@ export default function ManufacturingOrders({
             preserveScroll: true,
         });
     };
-
     const handleParentFilter = (value: string) => {
         router.get(route('production.orders.index'), {
             ...filters,
@@ -93,10 +88,8 @@ export default function ManufacturingOrders({
             preserveScroll: true,
         });
     };
-
     const handleDelete = async () => {
         if (!deleteOrder) return;
-
         try {
             await router.delete(route('production.orders.destroy', deleteOrder.id), {
                 preserveScroll: true,
@@ -111,7 +104,6 @@ export default function ManufacturingOrders({
             console.error('Delete error:', error);
         }
     };
-
     const getStatusBadgeVariant = (status: string) => {
         switch (status) {
             case 'draft':
@@ -128,21 +120,19 @@ export default function ManufacturingOrders({
                 return 'secondary';
         }
     };
-
     const getPriorityColor = (priority: number) => {
         if (priority >= 80) return 'text-red-600';
         if (priority >= 60) return 'text-orange-600';
         if (priority >= 40) return 'text-yellow-600';
         return 'text-gray-600';
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'order_number',
             label: 'Order Number',
             sortable: true,
             width: 'w-[150px]',
-            render: (value: any, order: any) => (
+            render: (value: unknown, order: Record<string, unknown>) => (
                 <div className="flex items-center gap-2">
                     <Link
                         href={route('production.orders.show', order.id)}
@@ -174,7 +164,7 @@ export default function ManufacturingOrders({
             key: 'item',
             label: 'Item',
             width: 'w-[250px]',
-            render: (value: any, order: any) => (
+            render: (value: unknown, order: Record<string, unknown>) => (
                 <div>
                     <p className="font-medium">{order.item?.item_number || '-'}</p>
                     <p className="text-sm text-muted-foreground">{order.item?.name || '-'}</p>
@@ -185,7 +175,7 @@ export default function ManufacturingOrders({
             key: 'quantity',
             label: 'Quantity',
             width: 'w-[120px]',
-            render: (value: any, order: any) => (
+            render: (value: unknown, order: Record<string, unknown>) => (
                 <div>
                     <p className="font-medium">
                         {order.quantity} {order.unit_of_measure}
@@ -202,7 +192,7 @@ export default function ManufacturingOrders({
             key: 'status',
             label: 'Status',
             width: 'w-[120px]',
-            render: (value: any) => (
+            render: (value: unknown) => (
                 <Badge variant={getStatusBadgeVariant(value)}>
                     {statuses[value] || value}
                 </Badge>
@@ -212,7 +202,7 @@ export default function ManufacturingOrders({
             key: 'priority',
             label: 'Priority',
             width: 'w-[80px]',
-            render: (value: any) => (
+            render: (value: unknown) => (
                 <span className={`font-medium ${getPriorityColor(value)}`}>
                     {value}
                 </span>
@@ -222,7 +212,7 @@ export default function ManufacturingOrders({
             key: 'requested_date',
             label: 'Requested',
             width: 'w-[120px]',
-            render: (value: any) => (
+            render: (value: unknown) => (
                 <div className="text-sm">
                     {value ? new Date(value).toLocaleDateString() : '-'}
                 </div>
@@ -232,11 +222,10 @@ export default function ManufacturingOrders({
             key: 'progress',
             label: 'Progress',
             width: 'w-[120px]',
-            render: (value: any, order: any) => {
+            render: (value: unknown, order: Record<string, unknown>) => {
                 const progress = order.quantity > 0
                     ? Math.round((order.quantity_completed / order.quantity) * 100)
                     : 0;
-
                 return (
                     <div className="w-24">
                         <div className="flex items-center justify-between text-sm mb-1">
@@ -253,13 +242,11 @@ export default function ManufacturingOrders({
             },
         },
     ];
-
     const stats = React.useMemo(() => {
         const statusCounts = orders.data.reduce((acc, order) => {
             acc[order.status] = (acc[order.status] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
-
         return [
             {
                 title: 'Total Orders',
@@ -287,12 +274,10 @@ export default function ManufacturingOrders({
             },
         ];
     }, [orders]);
-
     const breadcrumbs = [
         { title: 'Production', href: '/production' },
         { title: 'Manufacturing Orders', href: '' }
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <ListLayout
@@ -353,7 +338,6 @@ export default function ManufacturingOrders({
                         );
                     })}
                 </div>
-
                 {/* Data Table */}
                 <div className="space-y-4">
                     <EntityDataTable
@@ -390,7 +374,6 @@ export default function ManufacturingOrders({
                             />
                         )}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: orders.current_page,
@@ -405,7 +388,6 @@ export default function ManufacturingOrders({
                     />
                 </div>
             </ListLayout>
-
             {/* Create Order Dialog */}
             <CreateManufacturingOrderDialog
                 open={showCreateDialog}
@@ -415,7 +397,6 @@ export default function ManufacturingOrders({
                 routeTemplates={routeTemplates}
                 sourceTypes={sourceTypes}
             />
-
             {/* Delete Dialog */}
             <EntityDeleteDialog
                 open={!!deleteOrder}

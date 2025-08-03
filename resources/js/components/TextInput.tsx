@@ -2,7 +2,6 @@ import InputError from '@/components/input-error';
 import SmartInput from '@/components/smart-input';
 import { Label } from '@/components/ui/label';
 import { forwardRef } from 'react';
-
 interface TextInputProps {
     form: {
         data: Record<string, any>;
@@ -21,12 +20,10 @@ interface TextInputProps {
     onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
     validateInput?: (value: string) => boolean;
 }
-
 const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
     ({ form, name, label, placeholder, required = false, disabled = false, view = false, onBlur, validateInput }, ref) => {
         const value = form.data[name];
         const hasValue = value !== null && value !== undefined && value !== '';
-
         return (
             <div className="grid gap-2">
                 <Label htmlFor={String(name)}>
@@ -56,7 +53,5 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
         );
     },
 );
-
 TextInput.displayName = 'TextInput';
-
 export { TextInput };

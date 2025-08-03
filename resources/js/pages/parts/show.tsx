@@ -10,7 +10,6 @@ import { StatCard } from '@/components/StatCard';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { Package, DollarSign, AlertTriangle, Factory } from 'lucide-react';
 import { Link } from '@inertiajs/react';
-
 interface Manufacturer {
     id: number;
     name: string;
@@ -20,7 +19,6 @@ interface Manufacturer {
     country?: string;
     notes?: string;
 }
-
 interface Part {
     id: number;
     part_number: string;
@@ -38,7 +36,6 @@ interface Part {
     updated_at: string;
     work_order_parts?: WorkOrderPart[];
 }
-
 interface WorkOrderPart {
     id: number;
     work_order_id: number;
@@ -57,22 +54,18 @@ interface WorkOrderPart {
         status: string;
     };
 }
-
 interface Statistics {
     total_used: number;
     total_reserved: number;
     work_order_count: number;
 }
-
 interface PartShowProps {
     part?: Part | null;
     statistics: Statistics;
     isCreating?: boolean;
     manufacturers?: Manufacturer[];
 }
-
 export default function PartShow({ part, statistics, isCreating = false, manufacturers = [] }: PartShowProps) {
-
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Home',
@@ -87,14 +80,12 @@ export default function PartShow({ part, statistics, isCreating = false, manufac
             href: isCreating ? '#' : `/parts/${part?.id}`
         }
     ];
-
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
             currency: 'BRL',
         }).format(value);
     };
-
     const getStockStatus = () => {
         if (!part) return 'in-stock';
         if (!part.active) return 'inactive';
@@ -102,7 +93,6 @@ export default function PartShow({ part, statistics, isCreating = false, manufac
         if (part.available_quantity < part.minimum_quantity) return 'low-stock';
         return 'in-stock';
     };
-
     const stockStatus = getStockStatus();
     const stockStatusConfig = {
         'in-stock': { label: 'Em Estoque', variant: 'default' as const },
@@ -110,7 +100,6 @@ export default function PartShow({ part, statistics, isCreating = false, manufac
         'out-of-stock': { label: 'Sem Estoque', variant: 'secondary' as const },
         'inactive': { label: 'Inativo', variant: 'secondary' as const },
     };
-
     const handleEditSuccess = () => {
         if (isCreating && part) {
             // Redirect to the part show page after creation
@@ -120,12 +109,10 @@ export default function PartShow({ part, statistics, isCreating = false, manufac
             router.reload();
         }
     };
-
     const handleCreateSuccess = () => {
         // The PartFormComponent will handle the redirect after creation
         // since it knows the new part ID from the response
     };
-
     const subtitle = isCreating ? (
         <span className="text-muted-foreground text-sm">Criação de nova peça</span>
     ) : (
@@ -163,7 +150,6 @@ export default function PartShow({ part, statistics, isCreating = false, manufac
             )}
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -223,7 +209,6 @@ export default function PartShow({ part, statistics, isCreating = false, manufac
                                 description="Valor total"
                             />
                         </div>
-
                         <Card>
                             <CardHeader>
                                 <CardTitle>Movimentação de Estoque</CardTitle>
@@ -366,11 +351,9 @@ export default function PartShow({ part, statistics, isCreating = false, manufac
             },
         ]),
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isCreating ? 'Nova Peça' : `Peça - ${part?.part_number || ''}`} />
-
             <ShowLayout
                 title={isCreating ? 'Nova Peça' : (part?.part_number || '')}
                 subtitle={subtitle}

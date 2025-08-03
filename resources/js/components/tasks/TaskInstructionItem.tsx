@@ -4,7 +4,6 @@ import { ImageInstruction, Instruction, InstructionType, TextInstruction, VideoI
 import { Edit, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { EditInstructionModal } from './EditInstructionModal';
-
 interface TaskInstructionItemProps {
     /** A instrução a ser renderizada */
     instruction: Instruction;
@@ -15,16 +14,13 @@ interface TaskInstructionItemProps {
     /** Callback para remover a instrução */
     onRemove: () => void;
 }
-
 export function TaskInstructionItem({ instruction, mode, onUpdate, onRemove }: TaskInstructionItemProps) {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const isEditing = mode === 'edit';
-
     const handleSaveEdit = (updatedInstruction: Instruction) => {
         onUpdate(updatedInstruction);
         setIsEditModalOpen(false);
     };
-
     const renderTextInstruction = (textInstruction: TextInstruction) => (
         <Card className="h-full overflow-hidden rounded-xl">
             <CardContent className="relative flex items-start justify-between gap-4">
@@ -34,7 +30,6 @@ export function TaskInstructionItem({ instruction, mode, onUpdate, onRemove }: T
             </CardContent>
         </Card>
     );
-
     const renderImageInstruction = (imageInstruction: ImageInstruction) => (
         <Card className="h-full overflow-hidden rounded-xl">
             <img
@@ -49,7 +44,6 @@ export function TaskInstructionItem({ instruction, mode, onUpdate, onRemove }: T
             </CardContent>
         </Card>
     );
-
     const renderVideoInstruction = (videoInstruction: VideoInstruction) => (
         <Card className="h-full overflow-hidden rounded-xl">
             <video src={videoInstruction.videoUrl} controls className="h-full max-h-[280px] w-full object-cover" />
@@ -60,7 +54,6 @@ export function TaskInstructionItem({ instruction, mode, onUpdate, onRemove }: T
             </CardContent>
         </Card>
     );
-
     const renderEditButtons = () => (
         <>
             <Button variant="ghost" size="icon" onClick={() => setIsEditModalOpen(true)} className="h-7 w-7 opacity-70 hover:opacity-100">
@@ -71,7 +64,6 @@ export function TaskInstructionItem({ instruction, mode, onUpdate, onRemove }: T
             </Button>
         </>
     );
-
     const renderInstructionContent = () => {
         switch (instruction.type) {
             case InstructionType.Text:
@@ -84,11 +76,9 @@ export function TaskInstructionItem({ instruction, mode, onUpdate, onRemove }: T
                 return null;
         }
     };
-
     return (
         <>
             {renderInstructionContent()}
-
             {isEditModalOpen && (
                 <EditInstructionModal
                     open={isEditModalOpen}

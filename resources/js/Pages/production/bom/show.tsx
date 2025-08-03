@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
-import { router, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { Head } from '@inertiajs/react';
 import {
     Box,
     ArrowUpDown,
     Download,
     Upload,
-    AlertTriangle,
-    Check,
-    X,
-    Trash2,
     Calculator,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,7 +29,6 @@ import {
 import { ColumnConfig } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
 import { toast } from 'sonner';
-
 interface Props {
     bom?: BillOfMaterial;
     items: Item[];
@@ -45,13 +40,9 @@ interface Props {
     };
     isCreating?: boolean;
 }
-
 export default function BomShow({ bom, items = [], categories, can = { update: false, delete: false, manageItems: false }, isCreating = false }: Props) {
     const [isEditMode, setIsEditMode] = useState(isCreating);
     const [isCompressed, setIsCompressed] = useState(false);
-
-
-
     const { data, setData, post, put, processing, errors, clearErrors } = useForm<BomFormData>({
         name: bom?.name || '',
         description: bom?.description || '',
@@ -59,7 +50,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
         output_item_id: bom?.output_item_id?.toString() || '',
         is_active: bom?.is_active ?? true,
     });
-
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Home',
@@ -74,7 +64,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
             href: isCreating ? route('production.bom.create') : (bom ? route('production.bom.show', bom.id) : '#'),
         },
     ];
-
     // Column configurations
     const versionColumns: ColumnConfig[] = [
         { key: 'version_number', label: 'Versão', sortable: true },
@@ -82,17 +71,8 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
         { key: 'revision_notes', label: 'Notas de Revisão' },
         { key: 'is_current', label: 'Status', format: (value: boolean) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> } as any,
     ];
-
-    const itemMasterColumns: ColumnConfig[] = [
-        { key: 'item_number', label: 'Código', sortable: true },
-        { key: 'name', label: 'Descrição', sortable: true },
-        { key: 'category', label: 'Categoria' },
-        { key: 'status', label: 'Status', format: (value: string) => <Badge variant={value === 'active' ? 'default' : 'secondary'}>{value}</Badge> } as any,
-    ];
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         if (isCreating) {
             post(route('production.bom.store'), {
                 onSuccess: () => {
@@ -116,37 +96,30 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
             });
         }
     };
-
     const handleDelete = () => {
         if (!bom || !confirm('Tem certeza que deseja excluir esta BOM?')) return;
-
         router.delete(route('production.bom.destroy', bom.id), {
             onSuccess: () => {
                 toast.success('BOM excluída com sucesso');
             }
         });
     };
-
     const handleDuplicate = () => {
         if (!bom) return;
-
         router.post(route('production.bom.duplicate', bom.id), {}, {
             onSuccess: () => {
                 toast.success('BOM duplicada com sucesso');
             }
         });
     };
-
     const handleGenerateQr = () => {
         if (!bom) return;
-
         router.post(route('production.bom.generate-qr', bom.id), {}, {
             onSuccess: () => {
                 toast.success('QR Codes gerados com sucesso');
             }
         });
     };
-
     const tabs = [
         {
             id: 'informacoes',
@@ -180,7 +153,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 view={!isEditMode}
                             />
                         </div>
-
                         <ItemSelect
                             label="Produto Final"
                             items={items.filter(item => item.can_be_manufactured).map(item => ({
@@ -196,7 +168,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                             required
                             searchable
                         />
-
                         <TextInput
                             form={{ data, setData, errors, clearErrors: clearErrors as any }}
                             name="name"
@@ -206,7 +177,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                             disabled={!isEditMode || processing}
                             view={!isEditMode}
                         />
-
                         <div className="space-y-2">
                             <Label htmlFor="description">Descrição</Label>
                             <Textarea
@@ -222,7 +192,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 <p className="text-sm text-destructive">{errors.description}</p>
                             )}
                         </div>
-
                         {/* Status */}
                         <div className="space-y-4">
                             <h3 className="text-sm font-medium">Status</h3>
@@ -241,7 +210,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 </Badge>
                             )}
                         </div>
-
                         {isEditMode && (
                             <div className="flex justify-end gap-4 pt-4">
                                 {!isCreating && (
@@ -260,7 +228,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                             </div>
                         )}
                     </form>
-
                     {!isEditMode && !isCreating && can.update && (
                         <div className="flex justify-end mt-6">
                             <Button onClick={() => setIsEditMode(true)}>
@@ -383,11 +350,9 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                 },
             ]),
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isCreating ? 'Nova BOM' : `BOM ${(bom as any)?.bom_number}`} />
-
             <ShowLayout
                 title={isCreating ? 'Nova BOM' : (bom as any)?.bom_number || 'BOM'}
                 subtitle={
@@ -408,7 +373,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                 defaultCompressed={isCompressed}
                 onCompressedChange={setIsCompressed}
             />
-
             {/* Action buttons for existing BOMs */}
             {!isCreating && bom && (
                 <div className="fixed bottom-6 right-6 flex gap-2">

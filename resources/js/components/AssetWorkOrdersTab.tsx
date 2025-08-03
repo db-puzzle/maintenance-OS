@@ -14,14 +14,12 @@ import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-
 interface Props {
     assetId: number;
     discipline?: 'maintenance' | 'quality';
     userPermissions: string[];
     isCompressed?: boolean;
 }
-
 interface WorkOrder extends Record<string, unknown> {
     id: number;
     work_order_number: string;
@@ -53,7 +51,6 @@ interface WorkOrder extends Record<string, unknown> {
     };
     executor_name?: string;
 }
-
 interface PaginatedResponse {
     data: WorkOrder[];
     current_page: number;
@@ -63,7 +60,6 @@ interface PaginatedResponse {
     from: number;
     to: number;
 }
-
 export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance', userPermissions, isCompressed = false }: Props) {
     const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
     const [loading, setLoading] = useState(true);
@@ -76,10 +72,8 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
         from: 0,
         to: 0,
     });
-
     const canCreateWorkOrder = userPermissions.includes('work-orders.create');
     const canViewWorkOrder = userPermissions.includes('work-orders.view');
-
     // Column visibility state
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
@@ -98,7 +92,6 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
             created_at: true,
         };
     });
-
     // Fetch work orders for this asset
     const fetchWorkOrders = async (page = 1, searchQuery = search) => {
         setLoading(true);
@@ -110,7 +103,6 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
                     search: searchQuery,
                 },
             });
-
             // Check if response.data.data exists and is an array
             if (!response.data.data || !Array.isArray(response.data.data)) {
                 setWorkOrders([]);
@@ -124,9 +116,8 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
                 });
                 return;
             }
-
             // Transform the response data to match our interface
-            const transformedData = response.data.data.map((item: any) => ({
+            const transformedData = response.data.data.map((item: Record<string, unknown>) => ({
                 id: item.work_order_id || item.id,
                 work_order_number: item.work_order_number || `#${item.work_order_id || item.id}`,
                 title: item.routine_name || item.title || 'Ordem de Serviço',
@@ -143,7 +134,6 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
                     name: item.executor.name,
                 } : undefined,
             }));
-
             setWorkOrders(transformedData);
             setPagination({
                 current_page: response.data.current_page,
@@ -160,11 +150,9 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
             setLoading(false);
         }
     };
-
     useEffect(() => {
         fetchWorkOrders();
     }, [assetId]);
-
     // Column configuration
     const columns: ColumnConfig[] = [
         {
@@ -183,7 +171,7 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
         {
             key: 'priority_score',
             label: 'Prioridade',
-            render: (value: any) => (
+            render: (value: unknown) => (
                 <WorkOrderPriorityIndicator
                     priorityScore={value || 50}
                     showLabel={false}
@@ -194,19 +182,19 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
         {
             key: 'status',
             label: 'Status',
-            render: (value: any) => <WorkOrderStatusBadge status={value} />,
+            render: (value: unknown) => <WorkOrderStatusBadge status={value} />,
             width: 'w-[150px]',
         },
         {
             key: 'executor_name',
             label: 'Executor',
-            render: (value: any, row: any) => (row.assignedTechnician?.name || value || '-') as React.ReactNode,
+            render: (value: unknown, row: Record<string, unknown>) => (row.assignedTechnician?.name || value || '-') as React.ReactNode,
             width: 'w-[150px]',
         },
         {
             key: 'scheduled_start_date',
             label: 'Data Programada',
-            render: (value: any) => {
+            render: (value: unknown) => {
                 if (!value) return '-';
                 try {
                     const date = new Date(value);
@@ -222,7 +210,7 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
         {
             key: 'created_at',
             label: 'Criada em',
-            render: (value: any) => {
+            render: (value: unknown) => {
                 if (!value) return '-';
                 try {
                     const date = new Date(value);
@@ -236,22 +224,18 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
             width: 'w-[130px]',
         },
     ];
-
     const handlePageChange = (page: number) => {
         fetchWorkOrders(page);
     };
-
     const handleSort = (columnKey: string) => {
         // TODO: Implement sorting
         console.log('Sort by:', columnKey);
     };
-
     const handleRowClick = (workOrder: WorkOrder) => {
         if (canViewWorkOrder) {
             router.visit(route(`${discipline}.work-orders.show`, workOrder.id));
         }
     };
-
     const handleNewWorkOrder = () => {
         // Navigate to work order creation with the asset pre-selected
         router.visit(route(`${discipline}.work-orders.show`, {
@@ -259,12 +243,10 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
             asset_id: assetId
         }));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         fetchWorkOrders(1, value);
     };
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -273,9 +255,6 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
         setColumnVisibility(newVisibility);
         localStorage.setItem('workOrderColumnsVisibility', JSON.stringify(newVisibility));
     };
-
-
-
     return (
         <div className="space-y-6">
             {/* Header with search and actions */}
@@ -316,7 +295,6 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
                     )}
                 </div>
             </div>
-
             {/* Work orders table */}
             <div className="space-y-4">
                 <EntityDataTable
@@ -328,7 +306,6 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
                     onSort={handleSort}
                     columnVisibility={columnVisibility}
                 />
-
                 <EntityPagination
                     pagination={{
                         current_page: pagination.current_page,

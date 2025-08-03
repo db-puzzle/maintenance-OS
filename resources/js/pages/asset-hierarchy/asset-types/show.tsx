@@ -3,13 +3,11 @@ import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
 import { router } from '@inertiajs/react';
 import { Cog, Settings } from 'lucide-react';
-
 import AssetTypeFormComponent from '@/components/AssetTypeFormComponent';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-
 interface Props {
     assetType: {
         id: number;
@@ -26,7 +24,6 @@ interface Props {
         total: number;
     };
 }
-
 export default function Show({ assetType, asset }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -46,7 +43,6 @@ export default function Show({ assetType, asset }: Props) {
             href: '#',
         },
     ];
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
@@ -60,7 +56,6 @@ export default function Show({ assetType, asset }: Props) {
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -118,7 +113,6 @@ export default function Show({ assetType, asset }: Props) {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show',  (row as any).id))}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: asset.current_page,
@@ -138,7 +132,6 @@ export default function Show({ assetType, asset }: Props) {
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <ShowLayout title={assetType.name} subtitle={subtitle} editRoute={route('asset-hierarchy.asset-types.edit', assetType.id)} tabs={tabs} />

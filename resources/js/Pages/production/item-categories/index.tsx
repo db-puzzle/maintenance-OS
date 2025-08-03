@@ -15,10 +15,8 @@ import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { Check, X } from 'lucide-react';
 import { useState } from 'react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -33,7 +31,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/production/categories',
     },
 ];
-
 interface Props {
     categories: {
         data: ItemCategory[];
@@ -51,12 +48,10 @@ interface Props {
         per_page: number;
     };
 }
-
 export default function ItemCategories({ categories: initialCategories, filters }: Props) {
     // State for editing
     const [editingItem, setEditingItem] = useState<ItemCategory | null>(null);
     const [isEditSheetOpen, setEditSheetOpen] = useState(false);
-
     // Use entityOps only for delete operations
     const entityOps = useEntityOperations<ItemCategory>({
         entityName: 'category',
@@ -69,15 +64,12 @@ export default function ItemCategories({ categories: initialCategories, filters 
         },
         routeParameterName: 'category',
     });
-
     const [search, setSearch] = useState(filters.search || '');
-
     // Handle edit without AJAX
     const handleEdit = (category: ItemCategory) => {
         setEditingItem(category);
         setEditSheetOpen(true);
     };
-
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'production.categories',
@@ -88,7 +80,6 @@ export default function ItemCategories({ categories: initialCategories, filters 
             per_page: filters.per_page,
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('itemCategoriesColumnsVisibility');
@@ -104,7 +95,6 @@ export default function ItemCategories({ categories: initialCategories, filters 
             created_by: true,
         };
     });
-
     // Use data from server
     const data = initialCategories.data;
     const pagination = {
@@ -115,7 +105,6 @@ export default function ItemCategories({ categories: initialCategories, filters 
         from: initialCategories.from,
         to: initialCategories.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
@@ -181,7 +170,6 @@ export default function ItemCategories({ categories: initialCategories, filters 
             },
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -190,7 +178,6 @@ export default function ItemCategories({ categories: initialCategories, filters 
         setColumnVisibility(newVisibility);
         localStorage.setItem('itemCategoriesColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -199,11 +186,9 @@ export default function ItemCategories({ categories: initialCategories, filters 
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('production.categories'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('production.categories'),
@@ -211,11 +196,9 @@ export default function ItemCategories({ categories: initialCategories, filters 
             { preserveState: true, preserveScroll: true },
         );
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Categorias de Itens" />
-
             <ListLayout
                 title="Categorias de Itens"
                 description="Gerencie as categorias de itens do sistema"
@@ -253,25 +236,21 @@ export default function ItemCategories({ categories: initialCategories, filters 
                             <EntityActionDropdown onEdit={() => handleEdit(category)} onDelete={() => entityOps.handleDelete(category)} />
                         )}
                     />
-
                     <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
-
             <CreateItemCategorySheet
                 category={editingItem || undefined}
                 open={isEditSheetOpen}
                 onOpenChange={setEditSheetOpen}
                 mode={editingItem ? 'edit' : 'create'}
             />
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

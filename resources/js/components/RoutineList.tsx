@@ -28,7 +28,6 @@ import {
 } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
 export interface Routine {
     id?: number;
     name: string;
@@ -54,7 +53,6 @@ export interface Routine {
         };
     };
 }
-
 interface ShiftSchedule {
     weekday: string;
     shifts: Array<{
@@ -67,13 +65,11 @@ interface ShiftSchedule {
         }>;
     }>;
 }
-
 interface Shift {
     id: number;
     name: string;
     schedules: ShiftSchedule[];
 }
-
 interface RoutineListProps {
     routine?: Routine;
     onSave?: (routine: Routine) => void;
@@ -87,78 +83,59 @@ interface RoutineListProps {
     shift?: Shift | null;
     userPermissions?: string[];
 }
-
 // Helper function to calculate shift work hours per week
 const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => {
     if (!shift?.schedules) return 0;
-
     let totalMinutes = 0;
-
     shift.schedules.forEach((schedule) => {
         schedule.shifts.forEach((shiftTime) => {
             if (shiftTime.active) {
                 const [startHours, startMinutes] = shiftTime.start_time.split(':').map(Number);
                 const [endHours, endMinutes] = shiftTime.end_time.split(':').map(Number);
-
                 const startTotalMinutes = startHours * 60 + startMinutes;
                 let endTotalMinutes = endHours * 60 + endMinutes;
-
                 // Handle shifts that cross midnight
                 if (endTotalMinutes < startTotalMinutes) {
                     endTotalMinutes += 24 * 60;
                 }
-
                 const shiftDuration = endTotalMinutes - startTotalMinutes;
                 totalMinutes += shiftDuration;
-
                 // Subtract break time
                 shiftTime.breaks.forEach((breakTime) => {
                     const [breakStartHours, breakStartMinutes] = breakTime.start_time.split(':').map(Number);
                     const [breakEndHours, breakEndMinutes] = breakTime.end_time.split(':').map(Number);
-
                     const breakStartTotalMinutes = breakStartHours * 60 + breakStartMinutes;
                     let breakEndTotalMinutes = breakEndHours * 60 + breakEndMinutes;
-
                     if (breakEndTotalMinutes < breakStartTotalMinutes) {
                         breakEndTotalMinutes += 24 * 60;
                     }
-
                     totalMinutes -= breakEndTotalMinutes - breakStartTotalMinutes;
                 });
             }
         });
     });
-
     return totalMinutes / 60; // Return hours
 };
-
 const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListProps>(
     ({ routine, onSave, onDelete, isNew = false, assetId, onEditForm, onFillForm, isCompressed = false, shift, userPermissions = [] }, ref) => {
         // Referência para o trigger do sheet
         const editSheetTriggerRef = useRef<HTMLButtonElement>(null);
         const [isSheetOpen, setIsSheetOpen] = useState(false);
-
         // Referência para o botão "Adicionar Tarefas"
         const addTasksButtonRef = useRef<HTMLButtonElement>(null);
-
         // Estados para controle do modal de exclusão
         const [showDeleteDialog, setShowDeleteDialog] = useState(false);
         const [confirmationText, setConfirmationText] = useState('');
         const [isDeleting, setIsDeleting] = useState(false);
-
         // Estado para controlar o dropdown
         const [dropdownOpen, setDropdownOpen] = useState(false);
-
         // Estado para armazenar dados completos da rotina com formulário
         const [routineWithForm, setRoutineWithForm] = useState<Routine | null>(null);
         const [loadingForm, setLoadingForm] = useState(false);
-
         // Estado para controlar o modal de histórico de versões
         const [showVersionHistory, setShowVersionHistory] = useState(false);
-
         // Estado para controlar o modal de aviso de nova versão
         const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);
-
         // Dados da rotina ou dados vazios para nova rotina
         const routineData = routineWithForm ||
             routine || {
@@ -168,7 +145,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
             description: '',
             form: undefined,
         };
-
         // Get form state for conditional rendering
         const formState = routineData.form
             ? getFormState({
@@ -176,10 +152,8 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 current_version_id: routineData.form.current_version_id ?? null,
             })
             : null;
-
         const fetchRoutineFormData = useCallback(async () => {
             if (!routine?.id) return;
-
             setLoadingForm(true);
             try {
                 const response = await axios.get(route('maintenance.routines.form-data', routine.id));
@@ -190,26 +164,21 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 setLoadingForm(false);
             }
         }, [routine?.id]);
-
         // Fetch form data when component mounts if routine has a form
         useEffect(() => {
             if (routine?.id && routine?.form_id && !isNew) {
                 fetchRoutineFormData();
             }
         }, [routine?.id, routine?.form_id, isNew, fetchRoutineFormData]);
-
         const formatTriggerHours = (hours: number) => {
             const shiftHoursPerWeek = calculateShiftHoursPerWeek(shift);
-
             // Base hours format - always show in hours as stored in database
             const hoursText = `${hours} hora${hours !== 1 ? 's' : ''}`;
-
             // Work days estimate
             let workDaysText = null;
             if (shift && shiftHoursPerWeek > 0) {
                 const shiftHoursPerDay = shiftHoursPerWeek / 7;
                 const workDays = hours / shiftHoursPerDay;
-
                 if (workDays < 1) {
                     workDaysText = 'menos de 1 dia de trabalho';
                 } else {
@@ -217,15 +186,12 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                     workDaysText = `${days} dia${days !== 1 ? 's' : ''} de trabalho`;
                 }
             }
-
             return { hoursText, workDaysText };
         };
-
         const handleEditClick = () => {
             setIsSheetOpen(true);
             editSheetTriggerRef.current?.click();
         };
-
         const handleSheetSuccess = (updatedRoutine: Routine) => {
             setIsSheetOpen(false);
             if (onSave) {
@@ -236,20 +202,16 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 fetchRoutineFormData();
             }
         };
-
         const handleSheetOpenChange = (open: boolean) => {
             setIsSheetOpen(open);
         };
-
         const handleDelete = () => {
             if (!routine?.id) return;
             setDropdownOpen(false);
             setShowDeleteDialog(true);
         };
-
         const confirmDelete = () => {
             if (!routine?.id) return;
-
             setIsDeleting(true);
             router.delete(route('maintenance.routines.destroy', { routine: routine.id }), {
                 onSuccess: () => {
@@ -268,14 +230,11 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 },
             });
         };
-
         const cancelDelete = () => {
             setShowDeleteDialog(false);
             setConfirmationText('');
         };
-
         const isConfirmationValid = confirmationText === 'EXCLUIR';
-
         const handlePublishForm = async () => {
             router.post(
                 route('maintenance.assets.routines.forms.publish', {
@@ -295,11 +254,9 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 }
             );
         };
-
         const handleEditFormClick = () => {
             // Close the dropdown menu first to avoid aria-hidden focus issues
             setDropdownOpen(false);
-
             // Small delay to ensure dropdown is closed before opening dialog
             setTimeout(() => {
                 // Check if form is published (not unpublished and not already in draft)
@@ -312,12 +269,10 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 }
             }, 100);
         };
-
         const confirmEditForm = () => {
             setShowNewVersionDialog(false);
             if (onEditForm) onEditForm();
         };
-
         // Expose method to focus the add tasks button
         useImperativeHandle(ref, () => ({
             focusAddTasksButton: () => {
@@ -331,7 +286,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 }
             },
         }));
-
         // Se for nova rotina, renderizar um card especial
         if (isNew) {
             return (
@@ -347,7 +301,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                             </Button>
                         </CardContent>
                     </Card>
-
                     {/* EditRoutineSheet com SheetTrigger interno */}
                     <div style={{ display: 'none' }}>
                         <EditRoutineSheet
@@ -367,7 +320,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 </>
             );
         }
-
         return (
             <>
                 <div
@@ -653,7 +605,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         )}
                     </div>
                 </div>
-
                 {/* Modal de Confirmação de Exclusão */}
                 <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                     <DialogContent>
@@ -684,7 +635,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-
                 {/* EditRoutineSheet com SheetTrigger interno */}
                 <div style={{ display: 'none' }}>
                     <EditRoutineSheet
@@ -701,7 +651,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         userPermissions={userPermissions}
                     />
                 </div>
-
                 {/* Modal de Histórico de Versões */}
                 {routineData.form && (
                     <FormVersionHistory
@@ -711,7 +660,6 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         onClose={() => setShowVersionHistory(false)}
                     />
                 )}
-
                 {/* Modal de Aviso de Nova Versão */}
                 <Dialog open={showNewVersionDialog} onOpenChange={setShowNewVersionDialog}>
                     <DialogContent>
@@ -744,5 +692,4 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
         );
     },
 );
-
 export default RoutineList;

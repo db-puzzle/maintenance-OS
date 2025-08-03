@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Instruction } from '@/types/task';
 import { useState } from 'react';
 import { InstructionForm } from './InstructionForm';
-
 interface EditInstructionModalProps {
     /** Indica se o modal está aberto */
     open: boolean;
@@ -14,32 +13,25 @@ interface EditInstructionModalProps {
     /** Instrução a ser editada */
     instruction: Instruction;
 }
-
 export function EditInstructionModal({ open, onClose, onSave, instruction: initialInstruction }: EditInstructionModalProps) {
     const [instruction, setInstruction] = useState<Instruction>(initialInstruction);
-
     const handleFormChange = (updatedInstruction: Instruction) => {
         setInstruction(updatedInstruction);
     };
-
     const handleTypeChange = () => {
         // Não implementamos troca de tipo na edição, pois exigiria
         // recriar a instrução com novos campos
     };
-
     const handleSave = () => {
         onSave(instruction);
     };
-
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-[95vw] lg:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Editar Instrução</DialogTitle>
                 </DialogHeader>
-
                 <InstructionForm instruction={instruction} onChange={handleFormChange} onTypeChange={handleTypeChange} disableTypeChange />
-
                 <DialogFooter className="mt-4 flex-col gap-2 sm:flex-row">
                     <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
                         Cancelar

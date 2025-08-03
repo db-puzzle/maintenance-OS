@@ -8,7 +8,6 @@ import CertificationFormComponent from '@/components/certifications/Certificatio
 import { ColumnConfig } from '@/types/shared';
 import { User, Building2, Users, AlertCircle } from 'lucide-react';
 import { type BreadcrumbItem } from '@/types';
-
 interface CertificationUser {
     id: number;
     name: string;
@@ -18,7 +17,6 @@ interface CertificationUser {
     certificate_number: string | null;
     is_expired: boolean;
 }
-
 interface Certification {
     id: number;
     name: string;
@@ -30,7 +28,6 @@ interface Certification {
     updated_at: string;
     users: CertificationUser[];
 }
-
 interface PageProps {
     certification: Certification;
     can: {
@@ -39,7 +36,6 @@ interface PageProps {
     };
     activeTab?: string;
 }
-
 export default function CertificationShow({ certification, can, activeTab = 'informacoes' }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -55,12 +51,10 @@ export default function CertificationShow({ certification, can, activeTab = 'inf
             href: '#',
         },
     ];
-
     const handleEditSuccess = () => {
         // Reload the page to refresh the data
         router.reload();
     };
-
     const userColumns: ColumnConfig[] = [
         {
             key: 'name',
@@ -100,7 +94,6 @@ export default function CertificationShow({ certification, can, activeTab = 'inf
                 if (!value) return '-';
                 const date = new Date(value as string);
                 const dateString = date.toLocaleDateString('pt-BR');
-
                 if (user.is_expired) {
                     return (
                         <div className="flex items-center gap-1">
@@ -126,10 +119,8 @@ export default function CertificationShow({ certification, can, activeTab = 'inf
             },
         },
     ];
-
     const validUsers = certification.users.filter(u => !u.is_expired).length;
     const expiredUsers = certification.users.filter(u => u.is_expired).length;
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
@@ -160,7 +151,6 @@ export default function CertificationShow({ certification, can, activeTab = 'inf
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -202,11 +192,9 @@ export default function CertificationShow({ certification, can, activeTab = 'inf
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Certificação ${certification.name}`} />
-
             <ShowLayout
                 title={certification.name}
                 subtitle={subtitle}

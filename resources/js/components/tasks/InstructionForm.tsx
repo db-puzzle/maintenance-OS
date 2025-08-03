@@ -5,7 +5,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { ImageInstruction, Instruction, InstructionType, TextInstruction, VideoInstruction } from '@/types/task';
 import { FileText, Image, Video } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
 interface InstructionFormProps {
     /** Instrução atual */
     instruction: Instruction;
@@ -16,23 +15,18 @@ interface InstructionFormProps {
     /** Desabilita a troca de tipo */
     disableTypeChange?: boolean;
 }
-
 export function InstructionForm({ instruction, onChange, onTypeChange, disableTypeChange = false }: InstructionFormProps) {
     const [activeTab, setActiveTab] = useState<string>(instruction.type);
-
     // Atualiza a aba ativa se o tipo de instrução mudar externamente
     useEffect(() => {
         setActiveTab(instruction.type);
     }, [instruction.type]);
-
     const handleTabChange = (value: string) => {
         setActiveTab(value);
         onTypeChange(value as InstructionType);
     };
-
     const renderTextForm = () => {
         const textInstruction = instruction as TextInstruction;
-
         return (
             <div className="space-y-4">
                 <div className="space-y-2">
@@ -53,10 +47,8 @@ export function InstructionForm({ instruction, onChange, onTypeChange, disableTy
             </div>
         );
     };
-
     const renderImageForm = () => {
         const imageInstruction = instruction as ImageInstruction;
-
         return (
             <div className="space-y-4">
                 <div className="space-y-2">
@@ -73,7 +65,6 @@ export function InstructionForm({ instruction, onChange, onTypeChange, disableTy
                         placeholder="https://exemplo.com/imagem.jpg"
                     />
                 </div>
-
                 <div className="space-y-2">
                     <Label htmlFor="image-caption">Legenda</Label>
                     <Input
@@ -88,7 +79,6 @@ export function InstructionForm({ instruction, onChange, onTypeChange, disableTy
                         placeholder="Descreva a imagem"
                     />
                 </div>
-
                 {imageInstruction.imageUrl && (
                     <div className="mt-4">
                         <p className="text-muted-foreground mb-2 text-sm">Visualização:</p>
@@ -104,10 +94,8 @@ export function InstructionForm({ instruction, onChange, onTypeChange, disableTy
             </div>
         );
     };
-
     const renderVideoForm = () => {
         const videoInstruction = instruction as VideoInstruction;
-
         return (
             <div className="space-y-4">
                 <div className="space-y-2">
@@ -124,7 +112,6 @@ export function InstructionForm({ instruction, onChange, onTypeChange, disableTy
                         placeholder="https://exemplo.com/video.mp4"
                     />
                 </div>
-
                 <div className="space-y-2">
                     <Label htmlFor="video-caption">Legenda</Label>
                     <Input
@@ -139,7 +126,6 @@ export function InstructionForm({ instruction, onChange, onTypeChange, disableTy
                         placeholder="Descreva o vídeo"
                     />
                 </div>
-
                 {videoInstruction.videoUrl && (
                     <div className="mt-4">
                         <p className="text-muted-foreground mb-2 text-sm">Visualização:</p>
@@ -151,7 +137,6 @@ export function InstructionForm({ instruction, onChange, onTypeChange, disableTy
             </div>
         );
     };
-
     const renderContentForm = () => {
         switch (instruction.type) {
             case InstructionType.Text:
@@ -164,7 +149,6 @@ export function InstructionForm({ instruction, onChange, onTypeChange, disableTy
                 return null;
         }
     };
-
     return (
         <div className="space-y-6 pt-4">
             {!disableTypeChange && (
@@ -185,7 +169,6 @@ export function InstructionForm({ instruction, onChange, onTypeChange, disableTy
                     </TabsList>
                 </Tabs>
             )}
-
             {disableTypeChange && (
                 <div className="mb-4 flex items-center gap-2">
                     <div className="text-primary mr-2">
@@ -200,7 +183,6 @@ export function InstructionForm({ instruction, onChange, onTypeChange, disableTy
                     </h3>
                 </div>
             )}
-
             {renderContentForm()}
         </div>
     );

@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PaginationMeta } from '@/types/shared';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-
 interface EntityPaginationProps {
     pagination?: PaginationMeta;
     onPageChange: (page: number) => void;
@@ -10,7 +9,6 @@ interface EntityPaginationProps {
     perPageOptions?: number[];
     compact?: boolean;
 }
-
 export function EntityPagination({
     pagination,
     onPageChange,
@@ -22,18 +20,14 @@ export function EntityPagination({
     if (!pagination) {
         return null;
     }
-
     const { current_page, last_page, per_page, total } = pagination;
-
     // Ensure per_page is a valid option, default to 10 if not
     const validPerPage = perPageOptions.includes(per_page) ? per_page : 10;
-
     return (
         <div className="flex items-center justify-between px-2">
             <div className="text-muted-foreground flex-1 text-sm">
                 {total} registro{total !== 1 ? 's' : ''} no total
             </div>
-
             <div className="flex items-center space-x-6 lg:space-x-8">
                 {onPerPageChange && (
                     <div className="flex items-center space-x-2">
@@ -52,11 +46,9 @@ export function EntityPagination({
                         </Select>
                     </div>
                 )}
-
                 <div className="flex w-[100px] items-center justify-center text-sm font-medium">
                     Página {current_page} de {last_page}
                 </div>
-
                 <div className="flex items-center space-x-2">
                     {!compact && (
                         <Button variant="outline" className="hidden h-8 w-8 p-0 lg:flex" onClick={() => onPageChange(1)} disabled={current_page === 1}>

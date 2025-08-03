@@ -2,7 +2,6 @@ import { DataTable, type Column } from '@/components/data-table';
 import { ColumnConfig } from '@/types/shared';
 import { ArrowUpDown } from 'lucide-react';
 import React from 'react';
-
 interface EntityDataTableProps<T> {
     data: T[];
     columns: ColumnConfig[];
@@ -13,7 +12,6 @@ interface EntityDataTableProps<T> {
     columnVisibility?: Record<string, boolean>;
     onSort?: (columnKey: string) => void;
 }
-
 export function EntityDataTable<T extends Record<string, unknown>>({
     data,
     columns,
@@ -26,12 +24,10 @@ export function EntityDataTable<T extends Record<string, unknown>>({
 }: EntityDataTableProps<T>) {
     // Columns that should have centered headers
     const centeredHeaderColumns = ['execution_mode', 'trigger_info', 'last_execution', 'tasks_count', 'version', 'form_status'];
-
     // Convert ColumnConfig to DataTable Column format
     const dataTableColumns: Column<T>[] = columns.map((col) => {
         const shouldCenterHeader = centeredHeaderColumns.includes(col.key) || col.headerAlign === 'center';
         const headerAlign = col.headerAlign || (shouldCenterHeader ? 'center' : 'left');
-
         const getAlignmentClass = (align: string) => {
             switch (align) {
                 case 'center': return 'justify-center';
@@ -39,7 +35,6 @@ export function EntityDataTable<T extends Record<string, unknown>>({
                 default: return '';
             }
         };
-
         return {
             id: col.key,
             header:
@@ -64,7 +59,6 @@ export function EntityDataTable<T extends Record<string, unknown>>({
             width: col.width,
         };
     });
-
     // Add actions column if provided
     if (actions) {
         dataTableColumns.push({
@@ -78,7 +72,6 @@ export function EntityDataTable<T extends Record<string, unknown>>({
             width: 'w-[80px]',
         });
     }
-
     // Handle column visibility - ensure all columns are visible by default
     const effectiveColumnVisibility = React.useMemo(() => {
         const visibility: Record<string, boolean> = {};
@@ -90,7 +83,6 @@ export function EntityDataTable<T extends Record<string, unknown>>({
         }
         return visibility;
     }, [columns, columnVisibility, actions]);
-
     if (loading) {
         // Return loading skeleton using the same DataTable structure
         const skeletonData = Array(5)
@@ -105,10 +97,8 @@ export function EntityDataTable<T extends Record<string, unknown>>({
                 });
                 return item as T;
             });
-
         return <DataTable data={skeletonData} columns={dataTableColumns} columnVisibility={effectiveColumnVisibility} emptyMessage={emptyMessage} />;
     }
-
     return (
         <DataTable
             data={data}

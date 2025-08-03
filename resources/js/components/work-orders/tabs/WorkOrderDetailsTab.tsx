@@ -16,7 +16,6 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { router } from '@inertiajs/react';
-
 interface Props {
     workOrder: any;
     discipline: 'maintenance' | 'quality';
@@ -26,7 +25,6 @@ interface Props {
     canExecute: boolean;
     canValidate: boolean;
 }
-
 export default function WorkOrderDetailsTab({
     workOrder,
     discipline,
@@ -38,7 +36,6 @@ export default function WorkOrderDetailsTab({
 }: Props) {
     const getStatusActions = () => {
         const actions = [];
-
         if (workOrder.status === 'requested' && canApprove) {
             actions.push(
                 <Button key="approve" onClick={() => {
@@ -53,9 +50,7 @@ export default function WorkOrderDetailsTab({
                 </Button>
             );
         }
-
         // Planning is now done through the Planning tab, not a separate page
-
         // TODO: Implement execution page or use show page with execution tab
         // if (workOrder.status === 'scheduled' && canExecute) {
         //     actions.push(
@@ -65,7 +60,6 @@ export default function WorkOrderDetailsTab({
         //         </Button>
         //     );
         // }
-
         // TODO: Implement validation functionality
         // if (workOrder.status === 'completed' && canValidate) {
         //     actions.push(
@@ -75,7 +69,6 @@ export default function WorkOrderDetailsTab({
         //         </Button>
         //     );
         // }
-
         if (canEdit && workOrder.status === 'requested') {
             actions.push(
                 <Button key="edit" variant="outline" onClick={() => router.visit(route(`${discipline}.work-orders.show`, { id: workOrder.id, mode: 'edit' }))}>
@@ -84,10 +77,8 @@ export default function WorkOrderDetailsTab({
                 </Button>
             );
         }
-
         return actions;
     };
-
     return (
         <div className="space-y-6 py-6">
             {/* Status Bar */}
@@ -116,9 +107,7 @@ export default function WorkOrderDetailsTab({
                     {getStatusActions()}
                 </div>
             </div>
-
             <Separator />
-
             {/* Asset Information */}
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Informações do Ativo</h3>
@@ -153,9 +142,7 @@ export default function WorkOrderDetailsTab({
                     </div>
                 </div>
             </div>
-
             <Separator />
-
             {/* Scheduling and Assignment */}
             <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Agendamento e Atribuição</h3>
@@ -201,7 +188,6 @@ export default function WorkOrderDetailsTab({
                     </div>
                 </div>
             </div>
-
             {workOrder.description && (
                 <>
                     <Separator />
@@ -211,7 +197,6 @@ export default function WorkOrderDetailsTab({
                     </div>
                 </>
             )}
-
             {/* Planning Information */}
             {workOrder.status !== 'requested' && (
                 <>
@@ -251,7 +236,6 @@ export default function WorkOrderDetailsTab({
                                 </p>
                             </div>
                         </div>
-
                         {workOrder.downtime_required && (
                             <div className="pt-2">
                                 <Badge variant="destructive">
@@ -260,7 +244,6 @@ export default function WorkOrderDetailsTab({
                                 </Badge>
                             </div>
                         )}
-
                         {workOrder.other_requirements && workOrder.other_requirements.length > 0 && (
                             <div className="space-y-2">
                                 <p className="text-sm font-medium">Outros Requisitos:</p>

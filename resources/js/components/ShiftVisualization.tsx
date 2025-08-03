@@ -1,23 +1,19 @@
 import { Calendar, Clock, Coffee } from 'lucide-react';
 import React from 'react';
-
 interface Break {
     start_time: string;
     end_time: string;
 }
-
 interface Shift {
     start_time: string;
     end_time: string;
     active: boolean;
     breaks: Break[];
 }
-
 interface Schedule {
     weekday: string;
     shifts: Shift[];
 }
-
 interface ShiftData {
     id: number;
     name: string;
@@ -31,35 +27,27 @@ interface ShiftData {
     total_break_hours?: number;
     total_break_minutes?: number;
 }
-
 interface ShiftVisualizationProps {
     shift: ShiftData | null;
 }
-
 const weekdayOrder = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-
 const timeToMinutes = (time: string): number => {
     const [hours, minutes] = time.split(':').map(Number);
     return hours * 60 + minutes;
 };
-
 const calculateDuration = (start: string, end: string): number => {
     const startMinutes = timeToMinutes(start);
     let endMinutes = timeToMinutes(end);
-
     if (endMinutes < startMinutes) {
         endMinutes += 24 * 60;
     }
-
     return endMinutes - startMinutes;
 };
-
 const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h${mins > 0 ? ` ${mins}min` : ''}`;
 };
-
 const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
     if (!shift) {
         return (
@@ -70,17 +58,14 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
             </div>
         );
     }
-
     // Calculate totals
     let totalWorkMinutes = 0;
     let totalBreakMinutes = 0;
-
     shift.schedules.forEach((schedule) => {
         schedule.shifts.forEach((shift) => {
             if (shift.active) {
                 const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
                 totalWorkMinutes += shiftDuration;
-
                 shift.breaks.forEach((breakTime) => {
                     const breakDuration = calculateDuration(breakTime.start_time, breakTime.end_time);
                     totalBreakMinutes += breakDuration;
@@ -88,9 +73,7 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
             }
         });
     });
-
     const netWorkMinutes = totalWorkMinutes - totalBreakMinutes;
-
     return (
         <div className="space-y-6">
             {/* Header with summary */}
@@ -116,7 +99,6 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
                     </div>
                 </div>
             </div>
-
             {/* Weekly schedule */}
             <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <h4 className="mb-4 text-base font-semibold text-gray-900">Programação Semanal</h4>
@@ -124,9 +106,7 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
                     {weekdayOrder.map((weekday) => {
                         const schedule = shift.schedules.find((s) => s.weekday === weekday);
                         if (!schedule) return null;
-
                         const hasActiveShifts = schedule.shifts.some((s) => s.active);
-
                         return (
                             <div key={weekday} className="rounded-lg border p-4">
                                 <div className="flex items-start justify-between">
@@ -140,12 +120,10 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
                                             <div className="space-y-2">
                                                 {schedule.shifts.map((shift, shiftIndex) => {
                                                     if (!shift.active) return null;
-
                                                     const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
                                                     const breakDuration = shift.breaks.reduce((total, breakTime) => {
                                                         return total + calculateDuration(breakTime.start_time, breakTime.end_time);
                                                     }, 0);
-
                                                     return (
                                                         <div key={shiftIndex} className="flex items-start gap-4">
                                                             <div className="flex items-center gap-2 text-sm">
@@ -157,7 +135,6 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
                                                                     ({formatDuration(shiftDuration - breakDuration)} líquidas)
                                                                 </span>
                                                             </div>
-
                                                             {shift.breaks.length > 0 && (
                                                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                                                     <Coffee className="h-4 w-4 text-gray-400" />
@@ -201,5 +178,4 @@ const ShiftVisualization: React.FC<ShiftVisualizationProps> = ({ shift }) => {
         </div>
     );
 };
-
 export default ShiftVisualization;

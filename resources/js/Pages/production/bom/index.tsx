@@ -10,7 +10,6 @@ import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
 import { BillOfMaterial } from '@/types/production';
-
 interface Props {
     boms: {
         data: BillOfMaterial[];
@@ -26,12 +25,9 @@ interface Props {
         status?: string;
     };
 }
-
 export default function BomIndex({ boms, filters }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteBom, setDeleteBom] = useState<BillOfMaterial | null>(null);
-    const [loading, setLoading] = useState(false);
-
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.bom.index'), { search: value }, {
@@ -40,21 +36,18 @@ export default function BomIndex({ boms, filters }: Props) {
             only: ['boms']
         });
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('production.bom.index'), { ...filters, page }, {
             preserveState: true,
             preserveScroll: true
         });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(route('production.bom.index'), { ...filters, per_page: perPage }, {
             preserveState: true,
             preserveScroll: true
         });
     };
-
     // Use data from server
     const data = boms.data;
     const pagination = {
@@ -65,10 +58,8 @@ export default function BomIndex({ boms, filters }: Props) {
         from: boms.from,
         to: boms.to,
     };
-
     const handleDelete = async () => {
         if (!deleteBom) return;
-
         try {
             await router.delete(route('production.bom.destroy', deleteBom.id), {
                 preserveScroll: true,
@@ -83,31 +74,28 @@ export default function BomIndex({ boms, filters }: Props) {
             console.error('Delete error:', error);
         }
     };
-
     const handleDuplicate = (bom: BillOfMaterial) => {
         router.post(route('production.bom.duplicate', bom.id), {}, {
             preserveScroll: true
         });
     };
-
     const handleExport = (bom: BillOfMaterial) => {
         window.open(route('production.bom.export', bom.id), '_blank');
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'bom_number',
             label: 'Número',
             sortable: true,
             width: 'w-[150px]',
-            render: (value: any) => value || '-'
+            render: (value: unknown) => value || '-'
         },
         {
             key: 'name',
             label: 'Nome',
             sortable: true,
             width: 'w-[300px]',
-            render: (value: any, bom: any) => (
+            render: (value: unknown, bom: BillOfMaterial) => (
                 <div>
                     <div className="font-medium">{value}</div>
                     {bom.description && (
@@ -122,7 +110,7 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'version',
             label: 'Versão',
             width: 'w-[100px]',
-            render: (value: any, bom: any) => {
+            render: (value: unknown, bom: BillOfMaterial) => {
                 const currentVersion = bom.current_version?.version_number;
                 return currentVersion ? `v${currentVersion}` : '-';
             }
@@ -132,7 +120,7 @@ export default function BomIndex({ boms, filters }: Props) {
             label: 'Status',
             sortable: true,
             width: 'w-[120px]',
-            render: (value: any) => {
+            render: (value: unknown) => {
                 const labels: Record<string, string> = {
                     'active': 'Ativa',
                     'inactive': 'Inativa',
@@ -145,21 +133,19 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'versions_count',
             label: 'Versões',
             width: 'w-[100px]',
-            render: (value: any, bom: any) => bom.versions_count || 0
+            render: (value: unknown, bom: BillOfMaterial) => bom.versions_count || 0
         },
         {
             key: 'item_masters_count',
             label: 'Componentes',
             width: 'w-[120px]',
-            render: (value: any, bom: any) => bom.item_masters_count || 0
+            render: (value: unknown, bom: BillOfMaterial) => bom.item_masters_count || 0
         }
     ];
-
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'BOMs', href: '' }
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <ListLayout
@@ -182,8 +168,8 @@ export default function BomIndex({ boms, filters }: Props) {
                         data={data as unknown as Record<string, unknown>[]}
                         columns={columns}
                         loading={loading}
-                        onRowClick={(bom: any) => router.visit(route('production.bom.show', bom.id))}
-                        actions={(bom: any) => (
+                        onRowClick={(bom: BillOfMaterial) => router.visit(route('production.bom.show', bom.id))}
+                        actions={(bom: BillOfMaterial) => (
                             <EntityActionDropdown
                                 onEdit={() => router.visit(route('production.bom.edit', bom.id))}
                                 onDelete={() => setDeleteBom(bom as BillOfMaterial)}
@@ -214,7 +200,6 @@ export default function BomIndex({ boms, filters }: Props) {
                     />
                 </div>
             </ListLayout>
-
             <EntityDeleteDialog
                 open={!!deleteBom}
                 onOpenChange={(open) => !open && setDeleteBom(null)}
@@ -224,4 +209,3 @@ export default function BomIndex({ boms, filters }: Props) {
         </AppLayout>
     );
 }
-

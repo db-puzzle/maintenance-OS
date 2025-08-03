@@ -13,11 +13,9 @@ import { ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/product
 import { Form } from '@/types/work-order';
 import { cn } from '@/lib/utils';
 import { router } from '@inertiajs/react';
-
 interface ExtendedManufacturingStep extends ManufacturingStep {
     isNew?: boolean;
 }
-
 interface Props {
     selectedStep: ExtendedManufacturingStep | null;
     steps: ExtendedManufacturingStep[];
@@ -46,7 +44,6 @@ interface Props {
     isOpen: boolean;
     viewMode?: boolean;
 }
-
 export default function StepPropertiesPanel({
     selectedStep,
     steps,
@@ -66,14 +63,12 @@ export default function StepPropertiesPanel({
     const [lastSelectedStep, setLastSelectedStep] = useState<ExtendedManufacturingStep | null>(null);
     const [workCellSheetOpen, setWorkCellSheetOpen] = useState(false);
     const workCellSelectRef = useRef<HTMLButtonElement>(null);
-
     // Keep track of the last selected step for animation purposes
     useEffect(() => {
         if (selectedStep) {
             setLastSelectedStep(selectedStep);
         }
     }, [selectedStep]);
-
     useEffect(() => {
         if (isOpen) {
             // Show the component
@@ -93,20 +88,16 @@ export default function StepPropertiesPanel({
             return () => clearTimeout(timer);
         }
     }, [isOpen]);
-
     // Don't render if not supposed to
     if (!shouldRender) {
         return null;
     }
-
     // Use the current selected step or the last one during exit animation
     const displayStep = selectedStep || lastSelectedStep;
-
     // Safety check
     if (!displayStep) {
         return null;
     }
-
     return (
         <div className={cn(
             "w-[35rem] h-full flex-shrink-0 border-l bg-background flex flex-col overflow-hidden",
@@ -115,8 +106,6 @@ export default function StepPropertiesPanel({
                 ? "translate-x-0 opacity-100"
                 : "translate-x-full opacity-0"
         )}>
-
-
             <ScrollArea className="flex-1 overflow-y-auto">
                 <div className={cn(
                     "p-4 space-y-4 transition-all duration-300 delay-100",
@@ -132,7 +121,6 @@ export default function StepPropertiesPanel({
                                     onChange={(e) => {
                                         const newName = e.target.value;
                                         stepForm.setData('name', newName);
-
                                         // Update local state immediately
                                         if (displayStep) {
                                             onLocalStepUpdate(displayStep.id, { name: newName });
@@ -142,7 +130,6 @@ export default function StepPropertiesPanel({
                                     className={cn((isSaving || viewMode) && "opacity-50")}
                                 />
                             </div>
-
                             <div className="space-y-2">
                                 <Label>Tipo de Etapa</Label>
                                 <Select
@@ -168,9 +155,6 @@ export default function StepPropertiesPanel({
                                 </Select>
                             </div>
                         </div>
-
-
-
                         <div className="space-y-2">
                             <ItemSelect
                                 ref={workCellSelectRef}
@@ -197,7 +181,6 @@ export default function StepPropertiesPanel({
                                 view={viewMode}
                             />
                         </div>
-
                         {/* Quality Check Settings */}
                         {stepForm.data.step_type === 'quality_check' && (
                             <div className="space-y-3">
@@ -226,7 +209,6 @@ export default function StepPropertiesPanel({
                                             </SelectContent>
                                         </Select>
                                     </div>
-
                                     {stepForm.data.quality_check_mode === 'sampling' && (
                                         <div className="space-y-2">
                                             <Label>Tamanho da Amostra</Label>
@@ -253,7 +235,6 @@ export default function StepPropertiesPanel({
                             </div>
                         )}
                     </div>
-
                     {/* Form Association */}
                     <div className="space-y-3">
                         <div className="space-y-2">
@@ -278,7 +259,6 @@ export default function StepPropertiesPanel({
                             />
                         </div>
                     </div>
-
                     {/* Time Settings */}
                     <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-4">
@@ -297,7 +277,6 @@ export default function StepPropertiesPanel({
                                     disabled={viewMode}
                                 />
                             </div>
-
                             <div className="space-y-2">
                                 <Label>Tempo de Ciclo (min)</Label>
                                 <Input
@@ -314,7 +293,6 @@ export default function StepPropertiesPanel({
                                 />
                             </div>
                         </div>
-
                         <div className="bg-muted rounded-lg p-3">
                             <p className="text-sm">
                                 <span className="text-muted-foreground">Tempo total estimado:</span>{' '}
@@ -324,7 +302,6 @@ export default function StepPropertiesPanel({
                             </p>
                         </div>
                     </div>
-
                     {/* Description */}
                     <div className="space-y-3">
                         <div className="space-y-2">
@@ -343,7 +320,6 @@ export default function StepPropertiesPanel({
                             />
                         </div>
                     </div>
-
                     {/* Dependencies */}
                     <div className="space-y-3">
                         <div className="space-y-2">
@@ -362,11 +338,8 @@ export default function StepPropertiesPanel({
                             </div>
                         </div>
                     </div>
-
-
                 </div>
             </ScrollArea>
-
             {/* CreateWorkCellSheet */}
             <CreateWorkCellSheet
                 open={workCellSheetOpen}
@@ -376,7 +349,6 @@ export default function StepPropertiesPanel({
             />
         </div>
     );
-
     // Handler functions
     function handleCreateWorkCellClick() {
         // Blur the current active element to release focus
@@ -385,7 +357,6 @@ export default function StepPropertiesPanel({
         }
         setWorkCellSheetOpen(true);
     }
-
     function handleWorkCellCreated() {
         setWorkCellSheetOpen(false);
         // Reload the parent component to get updated work cells
@@ -396,10 +367,8 @@ export default function StepPropertiesPanel({
                 const updatedWorkCells = page.props.workCells;
                 if (updatedWorkCells && updatedWorkCells.length > 0) {
                     const newestWorkCell = updatedWorkCells[updatedWorkCells.length - 1];
-
                     // Set the new work cell in the form
                     stepForm.setData('work_cell_id', newestWorkCell.id.toString());
-
                     // Update local state
                     if (selectedStep || lastSelectedStep) {
                         const step = selectedStep || lastSelectedStep;
@@ -410,7 +379,6 @@ export default function StepPropertiesPanel({
                             });
                         }
                     }
-
                     // Focus and highlight the work cell select field
                     setTimeout(() => {
                         const selectButton = workCellSelectRef.current;

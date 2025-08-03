@@ -41,11 +41,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import RouteTemplateSelectionDialog from '@/components/production/RouteTemplateSelectionDialog';
 import { toast } from 'sonner';
-
 interface ManufacturingOrderTreeNode extends ManufacturingOrder {
     children?: ManufacturingOrderTreeNode[];
 }
-
 interface ManufacturingOrderTreeViewProps {
     orders: ManufacturingOrderTreeNode[];
     showActions?: boolean;
@@ -55,9 +53,6 @@ interface ManufacturingOrderTreeViewProps {
     routeTemplates?: RouteTemplate[];
     canManageRoutes?: boolean;
 }
-
-
-
 export function ManufacturingOrderTreeView({
     orders,
     showActions = true,
@@ -70,27 +65,22 @@ export function ManufacturingOrderTreeView({
     const { props } = usePage();
     const auth = props.auth as any;
     const userPermissions = auth?.permissions || [];
-
     const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
     const [selectedOrderForRoute, setSelectedOrderForRoute] = useState<ManufacturingOrderTreeNode | null>(null);
     const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [selectedOrderForAction, setSelectedOrderForAction] = useState<ManufacturingOrderTreeNode | null>(null);
-
     // Check permissions
     const canReleaseOrders = userPermissions.includes('production.orders.release');
     const canCancelOrders = userPermissions.includes('production.orders.cancel');
     const canUpdateOrders = userPermissions.includes('production.orders.update');
     const canDeleteOrders = userPermissions.includes('production.orders.delete');
-
     const handleApplyTemplate = (order: ManufacturingOrderTreeNode) => {
         setSelectedOrderForRoute(order);
         setTemplateDialogOpen(true);
     };
-
     const handleTemplateSelect = (templateId: number) => {
         if (!selectedOrderForRoute) return;
-
         router.post(route('production.orders.apply-template', selectedOrderForRoute.id), {
             template_id: templateId
         }, {
@@ -106,15 +96,12 @@ export function ManufacturingOrderTreeView({
             }
         });
     };
-
     const handleCreateCustomRoute = (order: ManufacturingOrderTreeNode) => {
         // Navigate to the order's show page, specifically to the routes tab
         router.visit(route('production.orders.show', order.id) + '?openRouteBuilder=1');
     };
-
     const handleRemoveRoute = (order: ManufacturingOrderTreeNode) => {
         if (!order.manufacturing_route) return;
-
         if (confirm('Tem certeza que deseja remover a rota desta ordem de manufatura?')) {
             router.delete(route('production.routing.destroy', order.manufacturing_route.id), {
                 preserveScroll: true,
@@ -127,15 +114,12 @@ export function ManufacturingOrderTreeView({
             });
         }
     };
-
     const handleReleaseOrder = (order: ManufacturingOrderTreeNode) => {
         setSelectedOrderForAction(order);
         setReleaseDialogOpen(true);
     };
-
     const confirmReleaseOrder = () => {
         if (!selectedOrderForAction) return;
-
         router.post(route('production.orders.release', selectedOrderForAction.id), {}, {
             preserveScroll: true,
             onSuccess: () => {
@@ -148,15 +132,12 @@ export function ManufacturingOrderTreeView({
             }
         });
     };
-
     const handleCancelOrder = (order: ManufacturingOrderTreeNode) => {
         setSelectedOrderForAction(order);
         setCancelDialogOpen(true);
     };
-
     const confirmCancelOrder = () => {
         if (!selectedOrderForAction) return;
-
         router.post(route('production.orders.cancel', selectedOrderForAction.id), {
             reason: 'Cancelled from tree view'
         }, {
@@ -171,7 +152,6 @@ export function ManufacturingOrderTreeView({
             }
         });
     };
-
     const canBeReleased = (order: ManufacturingOrderTreeNode): boolean => {
         // Check if order is in draft or planned status and has a route with steps
         return ['draft', 'planned'].includes(order.status) &&
@@ -179,18 +159,15 @@ export function ManufacturingOrderTreeView({
             !!order.manufacturing_route.steps &&
             order.manufacturing_route.steps.length > 0;
     };
-
     const canBeCancelled = (order: ManufacturingOrderTreeNode): boolean => {
         // Order can be cancelled only if it's past draft status and not completed or already cancelled
         // Draft orders should be deleted, not cancelled
         return !['draft', 'completed', 'cancelled'].includes(order.status);
     };
-
     const canBeDeleted = (order: ManufacturingOrderTreeNode): boolean => {
         // Only draft orders without children can be deleted
         return order.status === 'draft' && (!order.children || order.children.length === 0);
     };
-
     const defaultEmptyState = (
         <div className="flex flex-col items-center justify-center h-64 text-center">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
@@ -200,7 +177,6 @@ export function ManufacturingOrderTreeView({
             </p>
         </div>
     );
-
     const defaultHeaderColumns = (
         <div className="bg-muted/50 p-3 rounded-lg grid grid-cols-12 gap-2 font-semibold text-sm mb-2">
             <div className="col-span-3">Order Number</div>
@@ -212,11 +188,9 @@ export function ManufacturingOrderTreeView({
             <div className="col-span-1 text-center">Actions</div>
         </div>
     );
-
     const renderOrderNode = (node: ManufacturingOrderTreeNode, isExpanded: boolean, toggleExpand: () => void) => {
         // Check if this specific node can have routes managed
         const canManageNodeRoute = canManageRoutes && ['draft', 'planned'].includes(node.status);
-
         return (
             <div
                 className={cn(
@@ -240,23 +214,19 @@ export function ManufacturingOrderTreeView({
                             </div>
                         )}
                     </div>
-
                     {/* Item Details */}
                     <div className="col-span-3">
                         <div className="text-sm font-medium">{node.item?.item_number}</div>
                         <div className="text-xs text-muted-foreground">{node.item?.name}</div>
                     </div>
-
                     {/* Quantity */}
                     <div className="col-span-1 text-right">
                         <div className="text-sm font-medium">{node.quantity}</div>
                     </div>
-
                     {/* Unit of Measure */}
                     <div className="col-span-1">
                         <div className="text-sm text-muted-foreground">{node.unit_of_measure}</div>
                     </div>
-
                     {/* Route Name */}
                     <div className="col-span-2">
                         <div className="text-sm text-center">
@@ -271,12 +241,10 @@ export function ManufacturingOrderTreeView({
                             )}
                         </div>
                     </div>
-
                     {/* Status */}
                     <div className="col-span-1 flex items-center justify-center">
                         <span className="text-sm font-medium">{node.status.toUpperCase()}</span>
                     </div>
-
                     {/* Route */}
                     <div className="col-span-1 flex items-center justify-center">
                         {canManageNodeRoute || canReleaseOrders || canCancelOrders || canUpdateOrders || canDeleteOrders ? (
@@ -299,7 +267,6 @@ export function ManufacturingOrderTreeView({
                                             Ver Detalhes
                                         </Link>
                                     </DropdownMenuItem>
-
                                     {/* Edit (only for draft/planned) */}
                                     {canUpdateOrders && ['draft', 'planned'].includes(node.status) && (
                                         <DropdownMenuItem asChild>
@@ -309,7 +276,6 @@ export function ManufacturingOrderTreeView({
                                             </Link>
                                         </DropdownMenuItem>
                                     )}
-
                                     {/* Route Management Section */}
                                     {canManageNodeRoute && (
                                         <>
@@ -343,12 +309,10 @@ export function ManufacturingOrderTreeView({
                                             )}
                                         </>
                                     )}
-
                                     {/* Status Change Actions */}
                                     {(canReleaseOrders || canCancelOrders || canDeleteOrders) && (
                                         <>
                                             <DropdownMenuSeparator />
-
                                             {/* Release Order (for draft/planned with route) */}
                                             {canReleaseOrders && canBeReleased(node) && (
                                                 <DropdownMenuItem onClick={() => handleReleaseOrder(node)}>
@@ -356,7 +320,6 @@ export function ManufacturingOrderTreeView({
                                                     Liberar para Produção
                                                 </DropdownMenuItem>
                                             )}
-
                                             {/* Delete Order (only for draft orders without children) */}
                                             {canDeleteOrders && canBeDeleted(node) && (
                                                 <DropdownMenuItem
@@ -374,7 +337,6 @@ export function ManufacturingOrderTreeView({
                                                     Excluir Ordem
                                                 </DropdownMenuItem>
                                             )}
-
                                             {/* Cancel Order (only for non-draft, non-completed, non-cancelled) */}
                                             {canCancelOrders && canBeCancelled(node) && (
                                                 <DropdownMenuItem
@@ -421,7 +383,6 @@ export function ManufacturingOrderTreeView({
                         )}
                     </div>
                 </div>
-
                 {/* Additional info row */}
                 {(node.planned_start_date || node.actual_start_date) && (
                     <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
@@ -439,7 +400,6 @@ export function ManufacturingOrderTreeView({
                         </div>
                     </div>
                 )}
-
                 {/* Actions */}
                 {showActions && (
                     <div className="mt-2 flex justify-end">
@@ -459,7 +419,6 @@ export function ManufacturingOrderTreeView({
             </div>
         );
     };
-
     return (
         <>
             <div className="w-full">
@@ -472,7 +431,6 @@ export function ManufacturingOrderTreeView({
                     onNodeClick={onOrderClick}
                 />
             </div>
-
             {/* Template Selection Dialog */}
             {selectedOrderForRoute && (
                 <RouteTemplateSelectionDialog
@@ -484,7 +442,6 @@ export function ManufacturingOrderTreeView({
                     onSelectTemplate={handleTemplateSelect}
                 />
             )}
-
             {/* Release Confirmation Dialog */}
             <AlertDialog open={releaseDialogOpen} onOpenChange={setReleaseDialogOpen}>
                 <AlertDialogContent>
@@ -504,7 +461,6 @@ export function ManufacturingOrderTreeView({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
             {/* Cancel Confirmation Dialog */}
             <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
                 <AlertDialogContent>

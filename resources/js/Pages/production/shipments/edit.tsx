@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
-
 interface ShipmentItem {
     id: string;
     manufacturing_order_id: string;
@@ -29,7 +28,6 @@ interface ShipmentItem {
         };
     };
 }
-
 interface Shipment {
     id: string;
     shipment_number: string;
@@ -45,18 +43,15 @@ interface Shipment {
     notes: string | null;
     items: ShipmentItem[];
 }
-
 interface Props {
     shipment: Shipment;
 }
-
 const typeLabels: Record<string, string> = {
     customer: 'Customer Shipment',
     internal: 'Internal Transfer',
     vendor: 'Vendor Return',
     other: 'Other',
 };
-
 export default function ShipmentEdit({ shipment }: Props) {
     const { data, setData, put, processing, errors } = useForm({
         destination: shipment.destination,
@@ -78,29 +73,24 @@ export default function ShipmentEdit({ shipment }: Props) {
             notes: item.notes || '',
         })),
     });
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         put(route('production.shipments.update', shipment.id));
     };
-
     const updateItem = (index: number, field: string, value: any) => {
         const newItems = [...data.items];
         newItems[index] = { ...newItems[index], [field]: value };
         setData('items', newItems);
     };
-
     const breadcrumbs = [
         { title: 'Production', href: route('home') },
         { title: 'Shipments', href: route('production.shipments.index') },
         { title: shipment.shipment_number, href: route('production.shipments.show', shipment.id) },
         { title: 'Edit', href: '' },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Edit Shipment ${shipment.shipment_number}`} />
-
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -118,7 +108,6 @@ export default function ShipmentEdit({ shipment }: Props) {
                         </Button>
                     </div>
                 </div>
-
                 {/* Shipment Details */}
                 <Card>
                     <CardHeader>
@@ -147,7 +136,6 @@ export default function ShipmentEdit({ shipment }: Props) {
                                 <p className="text-sm text-red-600">{errors.shipment_type}</p>
                             )}
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="customer_name">Customer Name</Label>
                             <Input
@@ -159,7 +147,6 @@ export default function ShipmentEdit({ shipment }: Props) {
                                 <p className="text-sm text-red-600">{errors.customer_name}</p>
                             )}
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="destination">Destination</Label>
                             <Input
@@ -171,7 +158,6 @@ export default function ShipmentEdit({ shipment }: Props) {
                                 <p className="text-sm text-red-600">{errors.destination}</p>
                             )}
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="scheduled_date">Scheduled Date</Label>
                             <Input
@@ -184,7 +170,6 @@ export default function ShipmentEdit({ shipment }: Props) {
                                 <p className="text-sm text-red-600">{errors.scheduled_date}</p>
                             )}
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="carrier">Carrier</Label>
                             <Input
@@ -196,7 +181,6 @@ export default function ShipmentEdit({ shipment }: Props) {
                                 <p className="text-sm text-red-600">{errors.carrier}</p>
                             )}
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="tracking_number">Tracking Number</Label>
                             <Input
@@ -208,7 +192,6 @@ export default function ShipmentEdit({ shipment }: Props) {
                                 <p className="text-sm text-red-600">{errors.tracking_number}</p>
                             )}
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="shipping_method">Shipping Method</Label>
                             <Input
@@ -220,7 +203,6 @@ export default function ShipmentEdit({ shipment }: Props) {
                                 <p className="text-sm text-red-600">{errors.shipping_method}</p>
                             )}
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="cost">Cost</Label>
                             <Input
@@ -234,7 +216,6 @@ export default function ShipmentEdit({ shipment }: Props) {
                                 <p className="text-sm text-red-600">{errors.cost}</p>
                             )}
                         </div>
-
                         <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="notes">Notes</Label>
                             <Textarea
@@ -249,7 +230,6 @@ export default function ShipmentEdit({ shipment }: Props) {
                         </div>
                     </CardContent>
                 </Card>
-
                 {/* Shipment Items */}
                 <Card>
                     <CardHeader>

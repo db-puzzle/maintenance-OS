@@ -2,14 +2,12 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { BarChart3, Boxes, ChevronRight, ClipboardList, Route, Package } from 'lucide-react';
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
         href: '/home',
     },
 ];
-
 export default function Dashboard() {
     // Cards para a seção Quick Start (parte superior)
     const quickStartCards = {
@@ -38,7 +36,6 @@ export default function Dashboard() {
             href: '/parts',
         },
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
@@ -50,7 +47,6 @@ export default function Dashboard() {
                         {Object.entries(quickStartCards).map(([key, card]) => {
                             const IconComponent = card.icon;
                             const hasLink = !!card.href;
-
                             return (
                                 <button
                                     key={key}
@@ -74,10 +70,8 @@ export default function Dashboard() {
                         })}
                     </div>
                 </div>
-
                 {/* ActionShortcuts Component */}
                 {/* <ActionShortcuts paths={paths} /> */}
-
                 {/* Footer Info */}
                 {/* <div className="text-muted-foreground mt-12 text-center text-sm">
                     <p>Precisa de ajuda? Entre em contato com o administrador do sistema ou consulte a documentação.</p>

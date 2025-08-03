@@ -37,33 +37,26 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
 interface FormData {
     // Order type
     order_type: 'item' | 'bom';
-
     // Item/BOM selection
     item_id: number | null;
     bill_of_material_id: number | null;
-
     // Order details
     quantity: number;
     unit_of_measure: string;
     priority: number;
     requested_date: string;
-
     // Source
     source_type: string;
     source_reference: string;
-
     // Parent-child options
     auto_complete_on_children: boolean;
-
     // Route configuration
     route_creation_mode: 'manual' | 'template' | 'auto';
     route_template_id: number | null;
 }
-
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -73,7 +66,6 @@ interface Props {
     sourceTypes: Record<string, string>;
     selectedBomId?: number;
 }
-
 interface StepIndicatorProps {
     steps: Array<{
         number: number;
@@ -82,7 +74,6 @@ interface StepIndicatorProps {
     }>;
     currentStep: number;
 }
-
 function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
     return (
         <div className="flex items-center justify-between px-2">
@@ -125,7 +116,6 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
         </div>
     );
 }
-
 export default function CreateManufacturingOrderDialog({
     open,
     onOpenChange,
@@ -136,7 +126,6 @@ export default function CreateManufacturingOrderDialog({
     selectedBomId
 }: Props) {
     const [currentStep, setCurrentStep] = useState(1);
-
     const { data, setData, post, processing, errors, reset } = useForm<FormData>({
         order_type: selectedBomId ? 'bom' : 'item',
         item_id: null,
@@ -151,52 +140,44 @@ export default function CreateManufacturingOrderDialog({
         route_creation_mode: 'manual',
         route_template_id: null,
     });
-
     const steps = [
         { number: 1, title: 'Type', icon: <Factory className="h-4 w-4" /> },
         { number: 2, title: 'Item', icon: <Package className="h-4 w-4" /> },
         { number: 3, title: 'Details', icon: <Calendar className="h-4 w-4" /> },
         { number: 4, title: 'Config', icon: <Settings className="h-4 w-4" /> },
     ];
-
     const selectedItem = useMemo(() => {
         if (data.order_type === 'item' && data.item_id) {
             return items.find(i => i.id === data.item_id);
         }
         return null;
     }, [data.item_id, data.order_type, items]);
-
     const selectedBOM = useMemo(() => {
         if (data.order_type === 'bom' && data.bill_of_material_id) {
             return billsOfMaterial.find(b => b.id === data.bill_of_material_id);
         }
         return null;
     }, [data.bill_of_material_id, data.order_type, billsOfMaterial]);
-
     const bomItems = useMemo(() => {
         if (!selectedBOM?.current_version?.items) return [];
         return selectedBOM.current_version.items;
     }, [selectedBOM]);
-
     const filteredRouteTemplates = useMemo(() => {
         if (!selectedItem?.category) return routeTemplates;
         return routeTemplates.filter(t =>
             !t.item_category || t.item_category === selectedItem.category
         );
     }, [selectedItem, routeTemplates]);
-
     const handleNext = () => {
         if (currentStep < steps.length) {
             setCurrentStep(currentStep + 1);
         }
     };
-
     const handlePrevious = () => {
         if (currentStep > 1) {
             setCurrentStep(currentStep - 1);
         }
     };
-
     const handleSubmit = () => {
         post(route('production.orders.store'), {
             onSuccess: () => {
@@ -209,7 +190,6 @@ export default function CreateManufacturingOrderDialog({
             },
         });
     };
-
     const isStepValid = (step: number) => {
         switch (step) {
             case 1:
@@ -228,7 +208,6 @@ export default function CreateManufacturingOrderDialog({
                 return false;
         }
     };
-
     const handleOpenChange = (open: boolean) => {
         if (!open) {
             reset();
@@ -236,7 +215,6 @@ export default function CreateManufacturingOrderDialog({
         }
         onOpenChange(open);
     };
-
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="max-w-4xl h-165 flex flex-col p-0">
@@ -246,11 +224,9 @@ export default function CreateManufacturingOrderDialog({
                         Create a new manufacturing order for production
                     </DialogDescription>
                 </DialogHeader>
-
                 <div className="px-6 py-4 border-b">
                     <StepIndicator steps={steps} currentStep={currentStep} />
                 </div>
-
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <ScrollArea className="flex-1 px-6">
                         <div className="py-2">
@@ -299,7 +275,6 @@ export default function CreateManufacturingOrderDialog({
                                     </div>
                                 </div>
                             )}
-
                             {/* Step 2: Item/BOM Selection */}
                             {currentStep === 2 && (
                                 <div className="space-y-6">
@@ -323,7 +298,6 @@ export default function CreateManufacturingOrderDialog({
                                                 error={errors.item_id}
                                                 required
                                             />
-
                                             {selectedItem && (
                                                 <div className="mt-4 p-4 bg-muted/20 rounded-lg">
                                                     <p className="text-sm font-medium">{selectedItem.name}</p>
@@ -352,7 +326,6 @@ export default function CreateManufacturingOrderDialog({
                                                 error={errors.bill_of_material_id}
                                                 required
                                             />
-
                                             {selectedBOM && (
                                                 <div className="mt-4 space-y-4">
                                                     <div className="p-4 bg-muted/20 rounded-lg">
@@ -375,7 +348,6 @@ export default function CreateManufacturingOrderDialog({
                                                             </Badge>
                                                         </div>
                                                     </div>
-
                                                     <Alert>
                                                         <Info className="h-4 w-4" />
                                                         <AlertDescription>
@@ -389,7 +361,6 @@ export default function CreateManufacturingOrderDialog({
                                     )}
                                 </div>
                             )}
-
                             {/* Step 3: Order Details */}
                             {currentStep === 3 && (
                                 <div className="space-y-6">
@@ -407,7 +378,6 @@ export default function CreateManufacturingOrderDialog({
                                             />
                                             <InputError message={errors.quantity} />
                                         </div>
-
                                         <div>
                                             <Label htmlFor="unit_of_measure">Unit of Measure</Label>
                                             <Input
@@ -419,7 +389,6 @@ export default function CreateManufacturingOrderDialog({
                                             <InputError message={errors.unit_of_measure} />
                                         </div>
                                     </div>
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <Label htmlFor="priority">Priority (0-100)</Label>
@@ -441,7 +410,6 @@ export default function CreateManufacturingOrderDialog({
                                                 Higher values indicate higher priority
                                             </p>
                                         </div>
-
                                         <div>
                                             <Label htmlFor="requested_date">Requested Date</Label>
                                             <Input
@@ -453,7 +421,6 @@ export default function CreateManufacturingOrderDialog({
                                             <InputError message={errors.requested_date} />
                                         </div>
                                     </div>
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <ItemSelect
                                             label="Source Type"
@@ -465,7 +432,6 @@ export default function CreateManufacturingOrderDialog({
                                             onValueChange={(value) => setData('source_type', value)}
                                             displayValue={(item) => item.name}
                                         />
-
                                         <div>
                                             <Label htmlFor="source_reference">Source Reference</Label>
                                             <Input
@@ -477,7 +443,6 @@ export default function CreateManufacturingOrderDialog({
                                             <InputError message={errors.source_reference} />
                                         </div>
                                     </div>
-
                                     {/* Child Orders Preview for BOM */}
                                     {data.order_type === 'bom' && bomItems.length > 0 && (
                                         <div className="space-y-4">
@@ -524,11 +489,9 @@ export default function CreateManufacturingOrderDialog({
                                     )}
                                 </div>
                             )}
-
                             {/* Step 4: Configuration */}
                             {currentStep === 4 && (
                                 <div className="space-y-6">
-
                                     {/* Route Configuration */}
                                     <div>
                                         <h3 className="font-medium mb-4">Manufacturing Route</h3>
@@ -550,7 +513,6 @@ export default function CreateManufacturingOrderDialog({
                                                     </Label>
                                                 </div>
                                             </div>
-
                                             <div className="flex items-start space-x-3">
                                                 <RadioGroupItem value="template" id="template" className="mt-1" />
                                                 <div className="flex-1">
@@ -560,7 +522,6 @@ export default function CreateManufacturingOrderDialog({
                                                             Apply a predefined route template
                                                         </p>
                                                     </Label>
-
                                                     {data.route_creation_mode === 'template' && (
                                                         <div className="mt-3">
                                                             <ItemSelect
@@ -573,7 +534,6 @@ export default function CreateManufacturingOrderDialog({
                                                                 placeholder="Select a route template..."
                                                                 displayValue={(template) => template.name}
                                                             />
-
                                                             {data.route_template_id && (
                                                                 <div className="mt-3 p-3 bg-muted/20 rounded-lg">
                                                                     <p className="text-sm">
@@ -587,7 +547,6 @@ export default function CreateManufacturingOrderDialog({
                                                     )}
                                                 </div>
                                             </div>
-
                                             <div className="flex items-start space-x-3">
                                                 <RadioGroupItem value="auto" id="auto" className="mt-1" />
                                                 <div>
@@ -601,7 +560,6 @@ export default function CreateManufacturingOrderDialog({
                                             </div>
                                         </RadioGroup>
                                     </div>
-
                                     {/* Parent-Child Configuration */}
                                     {data.order_type === 'bom' && (
                                         <div>
@@ -619,12 +577,10 @@ export default function CreateManufacturingOrderDialog({
                                             />
                                         </div>
                                     )}
-
                                 </div>
                             )}
                         </div>
                     </ScrollArea>
-
                     <DialogFooter className="px-6 py-4">
                         <Button
                             type="button"
@@ -635,7 +591,6 @@ export default function CreateManufacturingOrderDialog({
                             <ChevronLeft className="h-4 w-4 mr-2" />
                             Previous
                         </Button>
-
                         {currentStep < steps.length ? (
                             <Button
                                 type="button"

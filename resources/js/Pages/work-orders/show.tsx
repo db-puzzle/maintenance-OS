@@ -38,7 +38,6 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-
 interface Props {
     workOrder?: any; // Using any for now to avoid complex type definitions
     discipline: 'maintenance' | 'quality';
@@ -67,7 +66,6 @@ interface Props {
     preselectedAssetId?: string | number;
     preselectedAsset?: any;
 }
-
 export default function ShowWorkOrder({
     workOrder,
     discipline,
@@ -94,20 +92,16 @@ export default function ShowWorkOrder({
     preselectedAsset
 }: Props) {
     const [activeTab, setActiveTab] = useState('details');
-
     useEffect(() => {
         // Add error event listener to catch React errors
         const handleError = (event: ErrorEvent) => {
             // Error handling without logging
         };
-
         window.addEventListener('error', handleError);
-
         return () => {
             window.removeEventListener('error', handleError);
         };
     }, [workOrder?.id, workOrder?.status, isCreating]);
-
     const handleStatusAction = (action: string) => {
         router.post(route(`${discipline}.work-orders.${action}`, workOrder.id), {}, {
             onSuccess: () => {
@@ -118,12 +112,10 @@ export default function ShowWorkOrder({
             },
         });
     };
-
     const handleWorkOrderCreated = () => {
         // This will be called after successful work order creation
         // The WorkOrderFormComponent will handle the redirect
     };
-
     // Define breadcrumbs
     const breadcrumbs: BreadcrumbItem[] = useMemo(() => [
         {
@@ -139,7 +131,6 @@ export default function ShowWorkOrder({
             href: '#',
         },
     ], [discipline, workOrder?.work_order_number, isCreating]);
-
     // Helper function to get tab label by ID
     const getTabLabelById = (tabId: string): string => {
         const tabMapping: Record<string, string> = {
@@ -155,10 +146,8 @@ export default function ShowWorkOrder({
         };
         return tabMapping[tabId] || tabId;
     };
-
     // Define tabs
     const tabs: any[] = [];
-
     if (isCreating) {
         // Only show the details tab when creating
         tabs.push({
@@ -201,7 +190,6 @@ export default function ShowWorkOrder({
                 </div>
             ),
         });
-
         // 2. Informações Gerais - using WorkOrderGeneralTab component
         tabs.push({
             id: 'details',
@@ -222,7 +210,6 @@ export default function ShowWorkOrder({
                 />
             ),
         });
-
         // 3. Aprovação (always shown)
         tabs.push({
             id: 'approval',
@@ -237,7 +224,6 @@ export default function ShowWorkOrder({
                 />
             ),
         });
-
         // 4. Planejamento (always shown)
         tabs.push({
             id: 'planning',
@@ -259,7 +245,6 @@ export default function ShowWorkOrder({
                 />
             ),
         });
-
         // 5. Agendamento (always shown)
         tabs.push({
             id: 'schedule',
@@ -275,7 +260,6 @@ export default function ShowWorkOrder({
                 />
             ),
         });
-
         // 6. Execução (always shown)
         tabs.push({
             id: 'execution',
@@ -283,7 +267,6 @@ export default function ShowWorkOrder({
             icon: <Play className="h-4 w-4" />,
             content: <WorkOrderExecutionTab workOrder={workOrder} />,
         });
-
         // Add failure analysis tab if it exists
         if (workOrder.failure_analysis) {
             tabs.push({
@@ -293,7 +276,6 @@ export default function ShowWorkOrder({
                 content: <WorkOrderFailureAnalysisTab workOrder={workOrder} />,
             });
         }
-
         // Additional tabs (Histórico and Peças)
         tabs.push({
             id: 'history',
@@ -301,7 +283,6 @@ export default function ShowWorkOrder({
             icon: <Activity className="h-4 w-4" />,
             content: <WorkOrderHistoryTab workOrder={workOrder} />,
         });
-
         tabs.push({
             id: 'parts',
             label: 'Peças',
@@ -309,11 +290,9 @@ export default function ShowWorkOrder({
             content: <WorkOrderPartsTab workOrder={workOrder} />,
         });
     }
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isCreating ? 'Nova Ordem de Serviço' : `Ordem de Serviço ${workOrder?.work_order_number}`} />
-
             <ShowLayout
                 title={isCreating ? 'Nova Ordem de Serviço' : workOrder?.work_order_number}
                 subtitle={

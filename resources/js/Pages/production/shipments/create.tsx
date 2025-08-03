@@ -13,17 +13,14 @@ import { ItemSelect } from '@/components/ItemSelect';
 import AppLayout from '@/layouts/app-layout';
 import { Item } from '@/types/production';
 import { cn } from '@/lib/utils';
-
 interface Props {
     items: Item[];
 }
-
 interface ShipmentItem {
     item_id: number;
     quantity: number;
     unit_of_measure: string;
 }
-
 interface StepIndicatorProps {
     steps: Array<{
         number: number;
@@ -32,7 +29,6 @@ interface StepIndicatorProps {
     }>;
     currentStep: number;
 }
-
 function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
     return (
         <div className="flex items-center justify-between">
@@ -77,12 +73,10 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
         </div>
     );
 }
-
 export default function ShipmentCreate({ items }: Props) {
     const [step, setStep] = useState(1);
     const [shipmentItems, setShipmentItems] = useState<ShipmentItem[]>([]);
     const [photos, setPhotos] = useState<File[]>([]);
-
     const { data, setData, errors, processing, post, clearErrors } = useForm({
         items: [] as ShipmentItem[],
         destination_name: '',
@@ -95,7 +89,6 @@ export default function ShipmentCreate({ items }: Props) {
         notes: '',
         photos: [] as File[]
     });
-
     const steps = [
         { number: 1, title: 'Itens', icon: <Package className="h-4 w-4" /> },
         { number: 2, title: 'Destino', icon: <MapPin className="h-4 w-4" /> },
@@ -103,34 +96,27 @@ export default function ShipmentCreate({ items }: Props) {
         { number: 4, title: 'Fotos', icon: <Camera className="h-4 w-4" /> },
         { number: 5, title: 'Confirmação', icon: <Check className="h-4 w-4" /> }
     ];
-
     const handleCreateShipment = () => {
         const formData = new FormData();
-
         // Add regular data
         Object.entries(data).forEach(([key, value]) => {
             if (key !== 'photos' && key !== 'items') {
                 formData.append(key, value as string);
             }
         });
-
         // Add items as JSON
         formData.append('items', JSON.stringify(shipmentItems));
-
         // Add photos
         photos.forEach((photo, index) => {
             formData.append(`photos[${index}]`, photo);
         });
-
         router.post(route('production.shipments.store'), formData);
     };
-
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'Remessas', href: route('production.shipments.index') },
         { title: 'Nova Remessa', href: '' }
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <div className="max-w-4xl mx-auto py-6 px-4">
@@ -138,7 +124,6 @@ export default function ShipmentCreate({ items }: Props) {
                 <div className="mb-8">
                     <StepIndicator steps={steps} currentStep={step} />
                 </div>
-
                 {/* Step Content */}
                 <Card>
                     <CardContent className="p-6">
@@ -212,7 +197,6 @@ export default function ShipmentCreate({ items }: Props) {
         </AppLayout>
     );
 }
-
 // Step 1: Items Selection
 function ShipmentItemsStep({
     items,
@@ -225,32 +209,25 @@ function ShipmentItemsStep({
 }) {
     const [selectedItemId, setSelectedItemId] = useState('');
     const [quantity, setQuantity] = useState('1');
-
     const addItem = () => {
         if (!selectedItemId || !quantity) return;
-
         const item = items.find(i => i.id.toString() === selectedItemId);
         if (!item) return;
-
         const newItem: ShipmentItem = {
             item_id: item.id,
             quantity: parseInt(quantity),
             unit_of_measure: item.unit_of_measure
         };
-
         onItemsChange([...shipmentItems, newItem]);
         setSelectedItemId('');
         setQuantity('1');
     };
-
     const removeItem = (index: number) => {
         onItemsChange(shipmentItems.filter((_, i) => i !== index));
     };
-
     const getItemDetails = (itemId: number) => {
         return items.find(i => i.id === itemId);
     };
-
     return (
         <div className="space-y-6">
             <div>
@@ -259,7 +236,6 @@ function ShipmentItemsStep({
                     Adicione os itens que serão enviados nesta remessa
                 </p>
             </div>
-
             <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-2">
@@ -294,7 +270,6 @@ function ShipmentItemsStep({
                     Adicionar Item
                 </Button>
             </div>
-
             {shipmentItems.length > 0 && (
                 <div className="space-y-2">
                     <h4 className="font-medium">Itens Selecionados</h4>
@@ -331,7 +306,6 @@ function ShipmentItemsStep({
         </div>
     );
 }
-
 // Step 2: Destination
 function DestinationStep({ data, setData, errors, clearErrors }: any) {
     return (
@@ -342,7 +316,6 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
                     Preencha os dados do destinatário
                 </p>
             </div>
-
             <div className="space-y-4">
                 <TextInput
                     form={{ data, setData, errors, clearErrors: clearErrors as any }}
@@ -351,7 +324,6 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
                     placeholder="Nome da empresa ou pessoa"
                     required
                 />
-
                 <TextInput
                     form={{ data, setData, errors, clearErrors: clearErrors as any }}
                     name="destination_address"
@@ -359,7 +331,6 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
                     placeholder="Rua, número, complemento"
                     required
                 />
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-2">
                         <TextInput
@@ -378,7 +349,6 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
                         required
                     />
                 </div>
-
                 <TextInput
                     form={{ data, setData, errors, clearErrors: clearErrors as any }}
                     name="destination_zip"
@@ -389,7 +359,6 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
         </div>
     );
 }
-
 // Step 3: Carrier
 function CarrierStep({ data, setData, errors, clearErrors }: any) {
     return (
@@ -400,7 +369,6 @@ function CarrierStep({ data, setData, errors, clearErrors }: any) {
                     Preencha os dados da transportadora
                 </p>
             </div>
-
             <div className="space-y-4">
                 <TextInput
                     form={{ data, setData, errors, clearErrors: clearErrors as any }}
@@ -408,14 +376,12 @@ function CarrierStep({ data, setData, errors, clearErrors }: any) {
                     label="Transportadora"
                     placeholder="Nome da transportadora"
                 />
-
                 <TextInput
                     form={{ data, setData, errors, clearErrors: clearErrors as any }}
                     name="carrier_contact"
                     label="Contato"
                     placeholder="Telefone ou email de contato"
                 />
-
                 <div>
                     <Label>Observações</Label>
                     <textarea
@@ -430,7 +396,6 @@ function CarrierStep({ data, setData, errors, clearErrors }: any) {
         </div>
     );
 }
-
 // Step 4: Photos
 function PhotosStep({
     photos,
@@ -443,11 +408,9 @@ function PhotosStep({
         const files = Array.from(e.target.files || []);
         onPhotosChange([...photos, ...files]);
     };
-
     const removePhoto = (index: number) => {
         onPhotosChange(photos.filter((_, i) => i !== index));
     };
-
     return (
         <div className="space-y-6">
             <div>
@@ -456,7 +419,6 @@ function PhotosStep({
                     Adicione fotos dos itens embalados para documentação
                 </p>
             </div>
-
             <div className="space-y-4">
                 <div className="border-2 border-dashed rounded-lg p-6 text-center">
                     <Camera className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -477,7 +439,6 @@ function PhotosStep({
                         ou arraste e solte as imagens aqui
                     </p>
                 </div>
-
                 {photos.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {photos.map((photo, index) => (
@@ -506,7 +467,6 @@ function PhotosStep({
         </div>
     );
 }
-
 // Step 5: Confirmation
 function ConfirmationStep({
     data,
@@ -522,7 +482,6 @@ function ConfirmationStep({
     const getItemDetails = (itemId: number) => {
         return items.find(i => i.id === itemId);
     };
-
     return (
         <div className="space-y-6">
             <div>
@@ -531,7 +490,6 @@ function ConfirmationStep({
                     Revise as informações antes de criar a remessa
                 </p>
             </div>
-
             <div className="space-y-4">
                 {/* Items Summary */}
                 <Card>
@@ -554,7 +512,6 @@ function ConfirmationStep({
                         </div>
                     </CardContent>
                 </Card>
-
                 {/* Destination Summary */}
                 <Card>
                     <CardHeader>
@@ -568,7 +525,6 @@ function ConfirmationStep({
                         </div>
                     </CardContent>
                 </Card>
-
                 {/* Carrier Summary */}
                 {(data.carrier || data.carrier_contact) && (
                     <Card>
@@ -583,7 +539,6 @@ function ConfirmationStep({
                         </CardContent>
                     </Card>
                 )}
-
                 {/* Photos Summary */}
                 {photos.length > 0 && (
                     <Card>
@@ -597,7 +552,6 @@ function ConfirmationStep({
                         </CardContent>
                     </Card>
                 )}
-
                 {/* Notes */}
                 {data.notes && (
                     <Card>

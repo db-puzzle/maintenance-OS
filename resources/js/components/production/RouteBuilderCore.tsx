@@ -14,7 +14,6 @@ import { cn } from '@/lib/utils';
 import RouteBuilderCanvas from './RouteBuilderCanvas';
 import StepPropertiesPanel from './StepPropertiesPanel';
 import { StepDeleteDialog } from './StepDeleteDialog';
-
 interface Props {
     routing: ManufacturingRoute & {
         steps: ManufacturingStep[];
@@ -31,11 +30,9 @@ interface Props {
     viewMode?: boolean;
     onEdit?: () => void;
 }
-
 interface ExtendedManufacturingStep extends ManufacturingStep {
     isNew?: boolean;
 }
-
 export default function RouteBuilderCore({
     routing,
     workCells,
@@ -56,23 +53,18 @@ export default function RouteBuilderCore({
     const [isDragging, setIsDragging] = useState(false);
     const [draggedStep, setDraggedStep] = useState<ExtendedManufacturingStep | null>(null);
     const [isSaving, setIsSaving] = useState(false);
-
     // Track deleted steps
     const [deletedStepIds, setDeletedStepIds] = useState<number[]>([]);
-
     // Track if there are unsaved changes
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
     // Delete dialog state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [stepToDelete, setStepToDelete] = useState<ExtendedManufacturingStep | null>(null);
-
     const form = useForm({
         name: routing.name,
         description: routing.description || '',
         is_active: routing.is_active,
     });
-
     const stepForm = useForm<{
         name: string;
         description: string;
@@ -98,7 +90,6 @@ export default function RouteBuilderCore({
         sampling_size: 0,
         form_id: '',
     });
-
     useEffect(() => {
         if (selectedStep) {
             stepForm.setData({
@@ -116,7 +107,6 @@ export default function RouteBuilderCore({
             });
         }
     }, [selectedStep]);
-
     const handleSave = () => {
         // Validate that all non-first steps have dependencies
         const invalidSteps = steps.filter(step => step.step_number > 1 && !step.depends_on_step_id);
@@ -124,19 +114,15 @@ export default function RouteBuilderCore({
             toast.error(`As seguintes etapas precisam ter dependências: ${invalidSteps.map(s => s.name).join(', ')}`);
             return;
         }
-
         setIsSaving(true);
-
         // Prepare the data for batch save
         const saveData = {
             // Route info
             route_name: form.data.name,
             route_description: form.data.description,
             is_active: form.data.is_active,
-
             // Steps to delete
             deleted_step_ids: deletedStepIds,
-
             // Steps to create/update
             steps: steps.map(step => ({
                 id: step.isNew ? null : step.id,
@@ -155,14 +141,12 @@ export default function RouteBuilderCore({
                 is_new: step.isNew || false,
             }))
         };
-
         // Make a single request to save everything
         router.post(route('production.routing.batch-update', routing.id), saveData, {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success('Roteiro salvo com sucesso');
                 setHasUnsavedChanges(false);
-
                 // If we have an onSave callback, call it instead of reloading
                 if (onSave) {
                     onSave();
@@ -180,7 +164,6 @@ export default function RouteBuilderCore({
             }
         });
     };
-
     const handleCancel = () => {
         if (embedded && onCancel) {
             onCancel();
@@ -188,19 +171,16 @@ export default function RouteBuilderCore({
         }
         window.history.back();
     };
-
     const handleAddStep = () => {
         // Find the maximum step number to ensure uniqueness
         const maxStepNumber = steps.reduce((max, step) =>
             Math.max(max, step.step_number), 0
         );
-
         // Find the step with the highest step_number to use as dependency
         const previousStep = steps.reduce((prev, current) =>
             (!prev || current.step_number > prev.step_number) ? current : prev,
             null as ExtendedManufacturingStep | null
         );
-
         const newStep: ExtendedManufacturingStep = {
             id: Date.now(), // Temporary ID
             manufacturing_route_id: routing.id,
@@ -214,19 +194,16 @@ export default function RouteBuilderCore({
             can_start_when_dependency: 'completed',
             isNew: true, // Mark as new step
         };
-
         setSteps([...steps, newStep]);
         setSelectedStep(newStep);
         setHasUnsavedChanges(true);
     };
-
     const updateStepInLocalState = (stepId: number, updates: Partial<ExtendedManufacturingStep>) => {
         const updatedSteps = steps.map(step =>
             step.id === stepId ? { ...step, ...updates } : step
         );
         setSteps(updatedSteps);
         setHasUnsavedChanges(true);
-
         // Update selected step if it's the one being modified
         if (selectedStep?.id === stepId) {
             const updatedStep = updatedSteps.find(s => s.id === stepId);
@@ -235,38 +212,30 @@ export default function RouteBuilderCore({
             }
         }
     };
-
     const handleShowDeleteDialog = (step: ExtendedManufacturingStep) => {
         setStepToDelete(step);
         setDeleteDialogOpen(true);
     };
-
     const handleConfirmDelete = async () => {
         if (!stepToDelete) return;
-
         const stepId = stepToDelete.id;
-
         if (!stepToDelete.isNew) {
             // Track existing step for deletion on save
             setDeletedStepIds([...deletedStepIds, stepId]);
         }
-
         // Find the step before the one being deleted to update dependencies
         const deletedStepNumber = stepToDelete.step_number;
         const previousStep = steps
             .filter(s => s.step_number < deletedStepNumber)
             .sort((a, b) => b.step_number - a.step_number)[0];
-
         // Remove from local state and update dependencies
         const updatedSteps = steps
             .filter(step => step.id !== stepId)
             .map((step, index) => {
                 const newStep = { ...step, step_number: index + 1 };
-
                 // If this step depended on the deleted step, update its dependency
                 if (step.depends_on_step_id === stepId) {
                     newStep.depends_on_step_id = previousStep?.id || undefined;
-
                     // If this is now the second step and has no dependency, that's an error
                     if (newStep.step_number > 1 && !newStep.depends_on_step_id) {
                         // Find the step with step_number = 1
@@ -276,25 +245,19 @@ export default function RouteBuilderCore({
                         }
                     }
                 }
-
                 return newStep;
             });
-
         setSteps(updatedSteps);
         setHasUnsavedChanges(true);
-
         if (selectedStep?.id === stepId) {
             setSelectedStep(null);
         }
-
         setStepToDelete(null);
     };
-
     const handleStepReorder = (updatedSteps: ExtendedManufacturingStep[]) => {
         setSteps(updatedSteps);
         setHasUnsavedChanges(true);
     };
-
     return (
         <div className={embedded ? "flex flex-col h-full overflow-hidden" : "h-[calc(100vh-8rem)] flex flex-col overflow-hidden"}>
             {/* Fixed Header Bar */}
@@ -332,7 +295,6 @@ export default function RouteBuilderCore({
                         </div>
                     )}
                 </div>
-
                 <div className="flex items-center gap-2">
                     <Button
                         variant="ghost"
@@ -401,7 +363,6 @@ export default function RouteBuilderCore({
                     </div>
                 </div>
             </div>
-
             <div className="flex-1 flex overflow-hidden relative">
                 {/* Main Canvas with transition */}
                 <div className={cn(
@@ -425,7 +386,6 @@ export default function RouteBuilderCore({
                         viewMode={viewMode}
                     />
                 </div>
-
                 {/* Right Sidebar - Properties Panel */}
                 <div className="absolute inset-y-0 right-0 z-10">
                     <StepPropertiesPanel
@@ -444,7 +404,6 @@ export default function RouteBuilderCore({
                     />
                 </div>
             </div>
-
             {/* Delete Confirmation Dialog */}
             <StepDeleteDialog
                 open={deleteDialogOpen}

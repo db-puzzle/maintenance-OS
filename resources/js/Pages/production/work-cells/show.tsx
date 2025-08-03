@@ -2,14 +2,12 @@ import { type BreadcrumbItem } from '@/types';
 import { type WorkCell, type ManufacturingStep, type ProductionSchedule } from '@/types/production';
 import { Head, Link, router } from '@inertiajs/react';
 import { Factory, Clock, Calendar, Gauge } from 'lucide-react';
-
 import WorkCellFormComponent from '@/components/production/WorkCellFormComponent';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
-
 interface Props {
     workCell: WorkCell & {
         plant?: { id: number; name: string };
@@ -50,7 +48,6 @@ interface Props {
         };
     };
 }
-
 export default function Show({
     workCell,
     plants,
@@ -82,10 +79,8 @@ export default function Show({
             href: '#',
         },
     ];
-
     const handleSort = (section: 'steps' | 'schedules', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
-
         router.get(
             route('production.work-cells.show', {
                 work_cell: workCell.id,
@@ -98,7 +93,6 @@ export default function Show({
             { preserveState: true },
         );
     };
-
     // Verificações de segurança para evitar erros de undefined
     if (!workCell) {
         return (
@@ -109,7 +103,6 @@ export default function Show({
             </AppLayout>
         );
     }
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
@@ -133,7 +126,6 @@ export default function Show({
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -199,7 +191,6 @@ export default function Show({
                         ]}
                         onSort={(columnKey) => handleSort('steps', columnKey)}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: routingSteps.current_page,
@@ -314,7 +305,6 @@ export default function Show({
                         ]}
                         onSort={(columnKey) => handleSort('schedules', columnKey)}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: productionSchedules.current_page,
@@ -336,7 +326,6 @@ export default function Show({
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Célula de Trabalho ${workCell.name}`} />

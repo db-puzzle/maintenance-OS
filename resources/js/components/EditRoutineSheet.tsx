@@ -1,11 +1,9 @@
 import { router } from '@inertiajs/react';
 import React from 'react';
 import { toast } from 'sonner';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -13,7 +11,6 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Textarea } from '@/components/ui/textarea';
 import { FileText, Save, X, Clock, Hand, Calendar, AlertTriangle, Lock, Info } from 'lucide-react';
 import StateButton from '@/components/StateButton';
-
 // Updated Routine interface to match the specifications
 interface Routine {
     id?: number;
@@ -33,7 +30,6 @@ interface Routine {
     last_execution_form_version_id?: number;
     [key: string]: unknown;
 }
-
 interface RoutineForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -46,7 +42,6 @@ interface RoutineForm {
     auto_approve_work_orders: boolean;
     priority_score: number;
 }
-
 interface EditRoutineSheetProps {
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -63,7 +58,6 @@ interface EditRoutineSheetProps {
     // User permissions
     userPermissions?: string[];
 }
-
 const PRIORITY_OPTIONS = [
     { value: 'emergency', label: 'Emergência', score: 90 },
     { value: 'urgent', label: 'Urgente', score: 75 },
@@ -71,7 +65,6 @@ const PRIORITY_OPTIONS = [
     { value: 'normal', label: 'Normal', score: 50 },
     { value: 'low', label: 'Baixa', score: 25 },
 ];
-
 const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
     isOpen,
     onOpenChange,
@@ -97,19 +90,14 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
         auto_approve_work_orders: routine?.auto_approve_work_orders || false,
         priority_score: routine?.priority_score || 50,
     });
-
     const [processing, setProcessing] = React.useState(false);
     const [errors, setErrors] = React.useState<Partial<Record<keyof RoutineForm, string>>>({});
-
     const [internalSheetOpen, setInternalSheetOpen] = React.useState(false);
-
     // Check if user has work order approval permission
     const canApproveWorkOrders = userPermissions.includes('work-orders.approve');
-
     // Determina se deve usar controle interno ou externo
     const sheetOpen = isOpen !== undefined ? isOpen : internalSheetOpen;
     const setSheetOpen = isOpen !== undefined && onOpenChange ? onOpenChange : setInternalSheetOpen;
-
     // Atualiza os dados quando a routine muda
     React.useEffect(() => {
         if (routine && routine.id) {
@@ -125,27 +113,20 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                     auto_approve_work_orders: routine.auto_approve_work_orders || false,
                     priority_score: routine.priority_score || 50,
                 };
-
                 // Check if data actually changed to prevent unnecessary updates
                 if (JSON.stringify(prevData) === JSON.stringify(newData)) {
                     return prevData;
                 }
-
                 return newData;
             });
         }
     }, [routine?.id, routine?.name, routine?.trigger_type, routine?.trigger_runtime_hours, routine?.trigger_calendar_days, routine?.execution_mode, routine?.description, routine?.advance_generation_days, routine?.auto_approve_work_orders, routine?.priority_score]);
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         // Validação básica
         const newErrors: Partial<Record<keyof RoutineForm, string>> = {};
-
         if (!data.name) newErrors.name = 'Nome é obrigatório';
-
         if (!data.trigger_type) newErrors.trigger_type = 'Tipo de gatilho é obrigatório';
-
         if (data.trigger_type === 'runtime_hours') {
             if (!data.trigger_runtime_hours || data.trigger_runtime_hours <= 0) {
                 newErrors.trigger_runtime_hours = 'Intervalo de horas deve ser maior que zero';
@@ -153,7 +134,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 newErrors.trigger_runtime_hours = 'Intervalo de horas deve ser menor que 10.000';
             }
         }
-
         if (data.trigger_type === 'calendar_days') {
             if (!data.trigger_calendar_days || data.trigger_calendar_days <= 0) {
                 newErrors.trigger_calendar_days = 'Intervalo de dias deve ser maior que zero';
@@ -161,51 +141,40 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 newErrors.trigger_calendar_days = 'Intervalo de dias deve ser menor que 365';
             }
         }
-
         if (data.advance_generation_days < 1 || data.advance_generation_days > 180) {
             newErrors.advance_generation_days = 'Dias de antecedência deve estar entre 1 e 180 horas';
         }
-
         if (data.priority_score < 0 || data.priority_score > 100) {
             newErrors.priority_score = 'Pontuação de prioridade deve estar entre 0 e 100';
         }
-
         if (data.auto_approve_work_orders && !canApproveWorkOrders) {
             newErrors.auto_approve_work_orders = 'Você não tem permissão para habilitar aprovação automática';
         }
-
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
         }
-
         setProcessing(true);
-
         const url = isNew
             ? route('maintenance.routines.store')
             : route('maintenance.routines.update', { routine: routine?.id });
-
         const method = isNew ? 'post' : 'put';
-
         const payload: any = {
             ...data,
             asset_id: assetId || routine?.asset_id,
         };
-
         // Only include the relevant trigger field based on trigger type
         if (data.trigger_type === 'runtime_hours') {
             delete payload.trigger_calendar_days;
         } else {
             delete payload.trigger_runtime_hours;
         }
-
         router[method](url, payload, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: (page) => {
                 toast.success(isNew ? 'Rotina criada com sucesso!' : 'Rotina atualizada com sucesso!');
                 setSheetOpen(false);
-
                 // Reset form if creating new
                 if (isNew) {
                     setData({
@@ -220,7 +189,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                         priority_score: 50,
                     });
                 }
-
                 // Call onSuccess callback if provided
                 if (onSuccess) {
                     const routineData = (page.props as any).routine || routine;
@@ -237,7 +205,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             },
         });
     };
-
     const handleCancel = () => {
         // Reset form to original values
         if (routine) {
@@ -268,7 +235,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
         setErrors({});
         setSheetOpen(false);
     };
-
     const updateData = (key: keyof RoutineForm, value: string | number | boolean | null | undefined) => {
         setData(prev => ({ ...prev, [key]: value }));
         // Clear error for this field when user starts typing
@@ -276,7 +242,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             setErrors(prev => ({ ...prev, [key]: undefined }));
         }
     };
-
     const sheetContent = (
         <SheetContent className="w-full overflow-y-auto sm:max-w-[650px]">
             <form onSubmit={handleSubmit}>
@@ -286,7 +251,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                         {isNew ? 'Preencha os dados para criar uma nova rotina de manutenção.' : 'Atualize os dados da rotina de manutenção.'}
                     </SheetDescription>
                 </SheetHeader>
-
                 <div className="space-y-6 px-4">
                     {/* Basic Information */}
                     <div className="space-y-4">
@@ -301,7 +265,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                             />
                             {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="description">Descrição</Label>
                             <Textarea
@@ -314,11 +277,9 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                             />
                         </div>
                     </div>
-
                     {/* Trigger Configuration */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Trigger de Execução</h3>
-
                         <div className="space-y-3">
                             <div className="space-y-3">
                                 <StateButton
@@ -352,7 +313,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                         </div>
                                     </div>
                                 )}
-
                                 <StateButton
                                     icon={Calendar}
                                     title="Dias Calendário"
@@ -364,7 +324,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                             </div>
                             {errors.trigger_type && <p className="text-sm text-destructive">{errors.trigger_type}</p>}
                         </div>
-
                         {data.trigger_type === 'calendar_days' && (
                             <div className="border-l border-gray-200">
                                 <div className="ml-6 space-y-2">
@@ -389,11 +348,9 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                             </div>
                         )}
                     </div>
-
                     {/* Execution Mode */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Criação de Ordens</h3>
-
                         <div className="space-y-3">
                             <div className="space-y-3">
                                 <StateButton
@@ -423,7 +380,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                                 Gerar ordem de serviço essa quantidade de dias antes do vencimento (1-180 dias)
                                             </p>
                                             {errors.advance_generation_days && <p className="text-sm text-destructive">{errors.advance_generation_days}</p>}
-
                                             {/* Automatic Approval Switch */}
                                             <div className="flex items-center justify-between mt-4 space-y-2">
                                                 <div className="space-y-0.5 flex-1 ">
@@ -455,7 +411,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                                     className={!canApproveWorkOrders ? 'opacity-50 cursor-not-allowed' : ''}
                                                 />
                                             </div>
-
                                             {errors.auto_approve_work_orders && (
                                                 <Alert variant="destructive" className="mt-2">
                                                     <AlertDescription>
@@ -466,7 +421,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                                         </div>
                                     </div>
                                 )}
-
                                 <StateButton
                                     icon={Hand}
                                     title="Manual"
@@ -479,15 +433,9 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                             </div>
                         </div>
                     </div>
-
-
-
                     {/* Priority Configuration */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Prioridade</h3>
-
-
-
                         <div className="space-y-2">
                             <Label htmlFor="priority_score">Pontuação de Prioridade (0-100)*</Label>
                             <Input
@@ -506,10 +454,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                             {errors.priority_score && <p className="text-sm text-destructive">{errors.priority_score}</p>}
                         </div>
                     </div>
-
-
                 </div>
-
                 <SheetFooter className="px-6">
                     <Button type="submit" disabled={processing}>
                         <Save className="mr-2 h-4 w-4" />
@@ -523,7 +468,6 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             </form>
         </SheetContent>
     );
-
     if (showTrigger) {
         return (
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -537,12 +481,10 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             </Sheet>
         );
     }
-
     return (
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             {sheetContent}
         </Sheet>
     );
 };
-
 export default EditRoutineSheet;

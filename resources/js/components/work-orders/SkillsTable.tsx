@@ -4,28 +4,22 @@ import { ColumnConfig } from '@/types/shared';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Wrench } from 'lucide-react';
-
 interface Skill {
     id: number;
     name: string;
     description?: string | null;
     category: string;
 }
-
 interface SkillsTableProps {
     selectedSkills: Skill[];
     isViewMode: boolean;
     onRemoveSkill: (skillId: number) => void;
 }
-
 export function SkillsTable({
     selectedSkills,
     isViewMode,
     onRemoveSkill
 }: SkillsTableProps) {
-
-
-
     // Define columns for the skills table
     const skillsColumns: ColumnConfig[] = [
         {
@@ -52,7 +46,6 @@ export function SkillsTable({
             },
         },
     ];
-
     // Actions for each row (remove button)
     const skillsActions = !isViewMode ? (row: Record<string, unknown>) => {
         const skill = row as unknown as Skill;
@@ -68,7 +61,6 @@ export function SkillsTable({
             </Button>
         );
     } : undefined;
-
     if (selectedSkills.length > 0) {
         return (
             <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
@@ -81,7 +73,6 @@ export function SkillsTable({
             </div>
         );
     }
-
     return (
         <div className="text-center py-4 text-muted-foreground border rounded-lg min-h-[60px] flex flex-col justify-center">
             <Wrench className="h-6 w-6 mx-auto mb-1" />

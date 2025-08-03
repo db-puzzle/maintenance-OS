@@ -21,7 +21,6 @@ import { Badge } from '@/components/ui/badge';
 import { Task } from '@/types/task';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-
 interface Shift {
     id: number;
     name: string;
@@ -42,7 +41,6 @@ interface Shift {
         }>;
     }>;
 }
-
 interface Routine {
     id: number;
     name: string;
@@ -78,7 +76,6 @@ interface Routine {
     };
     [key: string]: unknown;
 }
-
 interface AssetRoutinesTabProps {
     assetId: number;
     routines: Routine[];
@@ -87,7 +84,6 @@ interface AssetRoutinesTabProps {
     userPermissions?: string[];
     isCompressed?: boolean;
 }
-
 export default function AssetRoutinesTab({
     assetId,
     routines: initialRoutines,
@@ -96,65 +92,50 @@ export default function AssetRoutinesTab({
     userPermissions = [],
     isCompressed = false
 }: AssetRoutinesTabProps) {
-
     // Estado para gerenciar as rotinas
     const [routines, setRoutines] = useState<Routine[]>(() => {
         // Validate initial routines to ensure they have required properties
         return (initialRoutines || []).filter(r => r && r.id && r.name);
     });
-
     // Update routines when prop changes
     useEffect(() => {
         // Validate routines before setting them
         const validRoutines = (initialRoutines || []).filter(r => r && r.id && r.name);
         setRoutines(validRoutines);
     }, [initialRoutines]);
-
     // Estado para controlar qual rotina está sendo editada
     const [editingRoutineFormId, setEditingRoutineFormId] = useState<number | null>(null);
-
     // Estado para busca de rotinas
     const [searchTerm, setSearchTerm] = useState('');
-
     // Estado para rastrear a rotina recém-criada (apenas para ordenação)
     const [newlyCreatedRoutineId, setNewlyCreatedRoutineId] = useState<number | null>(null);
-
-
-
     // Estado para controlar o carregamento do formulário
     const [loadingFormEditor, setLoadingFormEditor] = useState(false);
-
     // Estado para controlar o modal de histórico de versões
     const [showVersionHistory, setShowVersionHistory] = useState(false);
     const [selectedRoutineForHistory, setSelectedRoutineForHistory] = useState<number | null>(null);
-
     // Estado para controlar o modal de aviso de nova versão
     const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);
     const [routineToEdit, setRoutineToEdit] = useState<number | null>(null);
-
     // Estados para controle do modal de exclusão
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [confirmationText, setConfirmationText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [routineToDelete, setRoutineToDelete] = useState<any>(null);
-
     // Estado para controlar o EditRoutineSheet
     const [editSheetOpen, setEditSheetOpen] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [routineToEditInSheet, setRoutineToEditInSheet] = useState<any>(null);
-
     // Estado para controlar o diálogo de nova rotina
     const [showNewRoutineDialog, setShowNewRoutineDialog] = useState(false);
     const [newRoutineForTasks, setNewRoutineForTasks] = useState<Routine | null>(null);
     const [shownDialogForRoutineIds, setShownDialogForRoutineIds] = useState<Set<number>>(new Set());
-
     // Estado para controlar o modal de última execução
     const [showLastExecutionDialog, setShowLastExecutionDialog] = useState(false);
     const [routineForLastExecution, setRoutineForLastExecution] = useState<Routine | null>(null);
     const [lastExecutionDate, setLastExecutionDate] = useState('');
     const [isUpdatingLastExecution, setIsUpdatingLastExecution] = useState(false);
-
     // Create a stable default routine object
     const defaultRoutine = {
         name: '',
@@ -162,17 +143,14 @@ export default function AssetRoutinesTab({
         status: 'Active' as const,
         description: '',
     };
-
     // Refs
     const createRoutineButtonRef = useRef<HTMLButtonElement>(null);
     const addTasksButtonRef = useRef<HTMLButtonElement>(null);
-
     // Check for new routine
     useEffect(() => {
         if (newRoutineId && !shownDialogForRoutineIds.has(newRoutineId)) {
             // Set the newly created routine ID for sorting
             setNewlyCreatedRoutineId(newRoutineId);
-
             // Find the newly created routine in the routines array
             const newRoutine = routines.find(r => r.id === newRoutineId);
             if (newRoutine) {
@@ -182,7 +160,6 @@ export default function AssetRoutinesTab({
                 // Mark this routine ID as having shown the dialog
                 setShownDialogForRoutineIds(prev => new Set(prev).add(newRoutineId));
             }
-
             // Small delay to ensure the UI is ready
             setTimeout(() => {
                 // Focus the "Adicionar Tarefas" button for the new routine
@@ -193,7 +170,6 @@ export default function AssetRoutinesTab({
             }, 500);
         }
     }, [newRoutineId, routines, shownDialogForRoutineIds]);
-
     // Filtrar rotinas baseado no termo de busca
     const filteredRoutines = routines.filter(
         (routine) => {
@@ -203,7 +179,6 @@ export default function AssetRoutinesTab({
             return nameMatch || descriptionMatch;
         }
     );
-
     // Ordenar rotinas para colocar a recém-criada no topo
     const sortedRoutines = [...filteredRoutines].sort((a, b) => {
         // Se uma das rotinas é a recém-criada, ela vai para o topo
@@ -212,65 +187,49 @@ export default function AssetRoutinesTab({
         // Caso contrário, manter a ordem original
         return 0;
     });
-
     // Helper function to calculate shift work hours per week
     const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => {
         if (!shift?.schedules) return 0;
-
         let totalMinutes = 0;
-
         shift.schedules.forEach((schedule) => {
             schedule.shifts.forEach((shiftTime) => {
                 if (shiftTime.active) {
                     const [startHours, startMinutes] = shiftTime.start_time.split(':').map(Number);
                     const [endHours, endMinutes] = shiftTime.end_time.split(':').map(Number);
-
                     const startTotalMinutes = startHours * 60 + startMinutes;
                     let endTotalMinutes = endHours * 60 + endMinutes;
-
                     // Handle shifts that cross midnight
                     if (endTotalMinutes < startTotalMinutes) {
                         endTotalMinutes += 24 * 60;
                     }
-
                     const shiftDuration = endTotalMinutes - startTotalMinutes;
                     totalMinutes += shiftDuration;
-
                     // Subtract break time
                     shiftTime.breaks.forEach((breakTime) => {
                         const [breakStartHours, breakStartMinutes] = breakTime.start_time.split(':').map(Number);
                         const [breakEndHours, breakEndMinutes] = breakTime.end_time.split(':').map(Number);
-
                         const breakStartTotalMinutes = breakStartHours * 60 + breakStartMinutes;
                         let breakEndTotalMinutes = breakEndHours * 60 + breakEndMinutes;
-
                         if (breakEndTotalMinutes < breakStartTotalMinutes) {
                             breakEndTotalMinutes += 24 * 60;
                         }
-
                         totalMinutes -= breakEndTotalMinutes - breakStartTotalMinutes;
                     });
                 }
             });
         });
-
         return totalMinutes / 60; // Return hours
     };
-
     const formatTriggerHours = (hours: number | undefined) => {
         if (!hours) return { hoursText: 'N/A', workDaysText: null };
-
         const shiftHoursPerWeek = calculateShiftHoursPerWeek(selectedShift);
-
         // Base hours format - always show in hours as stored in database
         const hoursText = `${hours} hora${hours !== 1 ? 's' : ''}`;
-
         // Work days estimate
         let workDaysText = null;
         if (selectedShift && shiftHoursPerWeek > 0) {
             const shiftHoursPerDay = shiftHoursPerWeek / 7;
             const workDays = hours / shiftHoursPerDay;
-
             if (workDays < 1) {
                 workDaysText = 'menos de 1 dia de trabalho';
             } else {
@@ -278,10 +237,8 @@ export default function AssetRoutinesTab({
                 workDaysText = `${days} dia${days !== 1 ? 's' : ''} de trabalho`;
             }
         }
-
         return { hoursText, workDaysText };
     };
-
     const getRoutineColumns = (): ColumnConfig[] => [
         {
             key: 'name',
@@ -300,7 +257,6 @@ export default function AssetRoutinesTab({
             render: (value, row) => {
                 const routine = row as Routine;
                 const priority = routine.priority_score;
-
                 return (
                     <div className="text-center">
                         <span className="text-sm">
@@ -343,7 +299,6 @@ export default function AssetRoutinesTab({
                     ? routine.trigger_runtime_hours
                     : routine.trigger_calendar_days;
                 const triggerUnit = routine.trigger_type === 'runtime_hours' ? 'horas operação' : 'dias calendário';
-
                 return (
                     <div className="space-y-1 text-center">
                         <div className="flex items-center justify-center gap-1 text-sm">
@@ -370,13 +325,11 @@ export default function AssetRoutinesTab({
                 if (!routine.last_execution_completed_at) {
                     return <div className="text-center"><span className="text-muted-foreground text-sm">Nunca executada</span></div>;
                 }
-
                 // Parse the date string to show the correct date without timezone shifting
                 // The date comes as ISO string, we need to extract just the date part
                 const dateStr = routine.last_execution_completed_at.split('T')[0];
                 const [year, month, day] = dateStr.split('-');
                 const displayDate = `${day}/${month}/${year}`;
-
                 return (
                     <div className="space-y-1 text-center">
                         <div className="text-sm">
@@ -432,24 +385,20 @@ export default function AssetRoutinesTab({
                     }
                     return <div className="text-center"><span className="text-muted-foreground text-sm">-</span></div>;
                 }
-
                 // Parse the date correctly to avoid timezone issues
                 const nextDateStr = routine.next_execution_date.split('T')[0];
                 const [year, month, day] = nextDateStr.split('-');
                 const displayDate = `${day}/${month}/${year}`;
-
                 // For comparison, we need to work with UTC dates
                 const nextDateUTC = new Date(routine.next_execution_date);
                 const nowUTC = new Date();
                 const isOverdue = nextDateUTC < nowUTC;
                 const daysUntilDue = Math.ceil((nextDateUTC.getTime() - nowUTC.getTime()) / (1000 * 60 * 60 * 24));
-
                 // Determine status icon and color
                 let StatusIcon = CheckCircle;
                 let statusColor = 'text-green-600';
                 let bgColor = 'bg-green-50';
                 let borderColor = 'border-green-200';
-
                 if (isOverdue) {
                     StatusIcon = AlertCircle;
                     statusColor = 'text-red-600';
@@ -461,7 +410,6 @@ export default function AssetRoutinesTab({
                     bgColor = 'bg-amber-50';
                     borderColor = 'border-amber-200';
                 }
-
                 return (
                     <div className="flex justify-center">
                         <TooltipProvider>
@@ -508,7 +456,6 @@ export default function AssetRoutinesTab({
             render: (value, row) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const form = (row as any).form;
-
                 if (!form || !form.tasks || form.tasks.length === 0) {
                     return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
                 }
@@ -529,11 +476,9 @@ export default function AssetRoutinesTab({
             render: (value, row) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const form = (row as any).form;
-
                 if (!form) {
                     return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
                 }
-
                 if (form.current_version) {
                     return (
                         <div className="text-center">
@@ -543,7 +488,6 @@ export default function AssetRoutinesTab({
                         </div>
                     );
                 }
-
                 return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
             },
         },
@@ -563,7 +507,6 @@ export default function AssetRoutinesTab({
                         </div>
                     );
                 }
-
                 return (
                     <div className="text-center">
                         <FormStatusBadge
@@ -579,7 +522,6 @@ export default function AssetRoutinesTab({
             },
         },
     ];
-
     // Handlers
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleCreateSuccess = (routine: any) => {
@@ -591,21 +533,17 @@ export default function AssetRoutinesTab({
             setShowNewRoutineDialog(true);
         }
     };
-
     const handleEditRoutineForm = async (routineId: number) => {
         // First, fetch the complete routine data with form
         setLoadingFormEditor(true);
         try {
             const url = route('maintenance.routines.form-data', routineId);
-
             const response = await axios.get(url);
             const routineWithForm = response.data.routine;
-
             // Update the routine in the state with the fetched data
             setRoutines((prevRoutines) =>
                 prevRoutines.map((r) => (r.id === routineId ? { ...r, ...routineWithForm } : r))
             );
-
             // Then set the editing state
             setEditingRoutineFormId(routineId);
         } catch (error) {
@@ -622,11 +560,9 @@ export default function AssetRoutinesTab({
             setLoadingFormEditor(false);
         }
     };
-
     const handleCloseFormEditor = () => {
         setEditingRoutineFormId(null);
     };
-
     const handleFormSaved = (formData: unknown) => {
         // Atualizar a rotina com o novo formulário
         setRoutines((prevRoutines) =>
@@ -640,13 +576,11 @@ export default function AssetRoutinesTab({
         setEditingRoutineFormId(null);
         toast.success('Formulário da rotina atualizado com sucesso!');
     };
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleEditRoutine = (routine: any) => {
         setRoutineToEditInSheet(routine);
         setEditSheetOpen(true);
     };
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleEditRoutineSuccess = (updatedRoutine: any) => {
         setEditSheetOpen(false);
@@ -659,19 +593,16 @@ export default function AssetRoutinesTab({
         // Reload to refresh form data
         router.reload();
     };
-
     const handleSheetOpenChange = (open: boolean) => {
         setEditSheetOpen(open);
         if (!open) {
             setRoutineToEditInSheet(null);
         }
     };
-
     const handleShowVersionHistory = (routineId: number) => {
         setSelectedRoutineForHistory(routineId);
         setShowVersionHistory(true);
     };
-
     const handlePublishForm = async (routineId: number) => {
         router.post(
             route('maintenance.routines.forms.publish', {
@@ -690,12 +621,10 @@ export default function AssetRoutinesTab({
             }
         );
     };
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleEditFormClick = (routine: any) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const formState = routine.form ? getFormState(routine.form as any) : null;
-
         // Check if form is published (not unpublished and not already in draft)
         if (formState === 'published') {
             // Show warning dialog for published forms
@@ -706,7 +635,6 @@ export default function AssetRoutinesTab({
             handleEditRoutineForm(routine.id);
         }
     };
-
     const confirmEditForm = () => {
         if (routineToEdit) {
             handleEditRoutineForm(routineToEdit);
@@ -714,16 +642,13 @@ export default function AssetRoutinesTab({
         setShowNewVersionDialog(false);
         setRoutineToEdit(null);
     };
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleDeleteClick = (routine: any) => {
         setRoutineToDelete(routine);
         setShowDeleteDialog(true);
     };
-
     const confirmDelete = () => {
         if (!routineToDelete?.id) return;
-
         setIsDeleting(true);
         router.delete(route('maintenance.routines.destroy', { routine: routineToDelete.id }), {
             onSuccess: () => {
@@ -741,13 +666,11 @@ export default function AssetRoutinesTab({
             },
         });
     };
-
     const cancelDelete = () => {
         setShowDeleteDialog(false);
         setConfirmationText('');
         setRoutineToDelete(null);
     };
-
     const handleAddTasksToNewRoutine = () => {
         if (newRoutineForTasks?.id) {
             // Set the newly created routine ID for sorting
@@ -758,22 +681,18 @@ export default function AssetRoutinesTab({
         setShowNewRoutineDialog(false);
         setNewRoutineForTasks(null);
     };
-
     const handleSkipAddingTasks = () => {
         setShowNewRoutineDialog(false);
         setNewRoutineForTasks(null);
         toast.success('Rotina criada com sucesso! Você pode adicionar tarefas mais tarde.');
     };
-
     const isConfirmationValid = confirmationText === 'EXCLUIR';
-
     const handleCreateWorkOrder = async (routineId: number) => {
         try {
             const response = await axios.post(route('maintenance.assets.routines.create-work-order', {
                 asset: assetId,
                 routine: routineId
             }));
-
             if (response.data.success) {
                 toast.success('Ordem de serviço criada com sucesso!');
                 if (response.data.redirect) {
@@ -784,7 +703,6 @@ export default function AssetRoutinesTab({
             toast.error(error.response?.data?.error || 'Erro ao criar ordem de serviço');
         }
     };
-
     const isRoutineDue = (routine: Routine): boolean => {
         // This is a simplified check - ideally this would come from the backend
         if (!routine.last_execution_runtime_hours) {
@@ -793,17 +711,14 @@ export default function AssetRoutinesTab({
         // You might want to add more logic here based on current runtime vs trigger hours
         return true;
     };
-
     const handleSetLastExecution = (routine: Routine) => {
         setRoutineForLastExecution(routine);
         // Set default date to today
         setLastExecutionDate(new Date().toISOString().split('T')[0]);
         setShowLastExecutionDialog(true);
     };
-
     const confirmUpdateLastExecution = async () => {
         if (!routineForLastExecution || !lastExecutionDate) return;
-
         setIsUpdatingLastExecution(true);
         try {
             // Ensure the date is sent as start of day to prevent timezone issues
@@ -815,10 +730,8 @@ export default function AssetRoutinesTab({
                     last_execution_date: lastExecutionDate,
                 }
             );
-
             if (response.data.success) {
                 toast.success(response.data.message);
-
                 // Update the routine in the state with the new data
                 setRoutines((prevRoutines) =>
                     prevRoutines.map((r) => {
@@ -833,7 +746,6 @@ export default function AssetRoutinesTab({
                         return r;
                     })
                 );
-
                 // Close dialog and reset state
                 setShowLastExecutionDialog(false);
                 setRoutineForLastExecution(null);
@@ -845,7 +757,6 @@ export default function AssetRoutinesTab({
             setIsUpdatingLastExecution(false);
         }
     };
-
     if (loadingFormEditor) {
         // Show loading state while fetching form data
         return (
@@ -857,12 +768,10 @@ export default function AssetRoutinesTab({
             </div>
         );
     }
-
     if (editingRoutineFormId) {
         // Mostrar o editor de formulário inline
         const routine = routines.find((r) => r.id === editingRoutineFormId);
         if (!routine) return null;
-
         return (
             <InlineRoutineFormEditor
                 routine={routine}
@@ -872,9 +781,6 @@ export default function AssetRoutinesTab({
             />
         );
     }
-
-
-
     return (
         <>
             {/* Lista de rotinas existentes */}
@@ -905,7 +811,6 @@ export default function AssetRoutinesTab({
                         userPermissions={userPermissions}
                     />
                 </div>
-
                 {/* Routines table */}
                 <EntityDataTable
                     data={sortedRoutines}
@@ -1020,7 +925,6 @@ export default function AssetRoutinesTab({
                         </div>
                     )}
                 />
-
                 {/* Pagination if needed */}
                 {sortedRoutines.length > 10 && (
                     <EntityPagination
@@ -1037,7 +941,6 @@ export default function AssetRoutinesTab({
                     />
                 )}
             </div>
-
             {/* EditRoutineSheet - Always rendered but controlled via isOpen */}
             <EditRoutineSheet
                 showTrigger={false}
@@ -1049,7 +952,6 @@ export default function AssetRoutinesTab({
                 onOpenChange={handleSheetOpenChange}
                 userPermissions={userPermissions}
             />
-
             {/* Modal de Confirmação de Exclusão */}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>
@@ -1082,7 +984,6 @@ export default function AssetRoutinesTab({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
             {/* Modal de Histórico de Versões */}
             {showVersionHistory && selectedRoutineForHistory && (
                 <FormVersionHistory
@@ -1094,7 +995,6 @@ export default function AssetRoutinesTab({
                     }}
                 />
             )}
-
             {/* Modal de aviso de nova versão */}
             <Dialog open={showNewVersionDialog} onOpenChange={setShowNewVersionDialog}>
                 <DialogContent>
@@ -1118,7 +1018,6 @@ export default function AssetRoutinesTab({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
             {/* Modal para adicionar tarefas à nova rotina */}
             <Dialog open={showNewRoutineDialog} onOpenChange={setShowNewRoutineDialog}>
                 <DialogContent className="gap-4">
@@ -1139,7 +1038,6 @@ export default function AssetRoutinesTab({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
             {/* CreateRoutineButton oculto para ser acionado programaticamente */}
             <div style={{ display: 'none' }}>
                 <CreateRoutineButton
@@ -1150,7 +1048,6 @@ export default function AssetRoutinesTab({
                     userPermissions={userPermissions}
                 />
             </div>
-
             {/* Modal para definir última execução */}
             <Dialog open={showLastExecutionDialog} onOpenChange={setShowLastExecutionDialog}>
                 <DialogContent className="gap-4">

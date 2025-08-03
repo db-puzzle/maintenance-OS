@@ -1,6 +1,5 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-
 interface ImageWithBlurEffectProps {
     src: string;
     alt?: string;
@@ -8,7 +7,6 @@ interface ImageWithBlurEffectProps {
     containerClassName?: string;
     onClick?: (e?: React.MouseEvent) => void;
 }
-
 export function ImageWithBlurEffect({
     src,
     alt = '',
@@ -40,7 +38,6 @@ export function ImageWithBlurEffect({
                     }}
                 />
             </div>
-
             {/* Main image */}
             <img
                 src={src}

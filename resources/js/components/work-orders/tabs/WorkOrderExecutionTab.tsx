@@ -5,11 +5,9 @@ import EmptyCard from '@/components/ui/empty-card';
 import { Clock, Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
 interface Props {
     workOrder: any;
 }
-
 export default function WorkOrderExecutionTab({ workOrder }: Props) {
     return (
         <div className="space-y-6 py-6">
@@ -21,9 +19,7 @@ export default function WorkOrderExecutionTab({ workOrder }: Props) {
                             Informações sobre a execução da ordem de serviço
                         </p>
                     </div>
-
                     <Separator />
-
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         <div className="space-y-2">
                             <p className="text-sm font-medium text-muted-foreground">Status da Execução</p>
@@ -58,7 +54,6 @@ export default function WorkOrderExecutionTab({ workOrder }: Props) {
                             </div>
                         )}
                     </div>
-
                     {workOrder.execution.completion_notes && (
                         <>
                             <Separator />

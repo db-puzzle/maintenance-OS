@@ -1,7 +1,6 @@
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { forwardRef } from 'react';
-
 interface SmartInputProps {
     form: {
         data: Record<string, string | number | boolean | File | null | undefined>;
@@ -20,11 +19,9 @@ interface SmartInputProps {
     onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
     validateInput?: (value: string) => boolean;
 }
-
 const SmartInput = forwardRef<HTMLInputElement, SmartInputProps>(
     ({ form, name, placeholder, type = 'text', className, disabled = false, view = false, onBlur, validateInput }, ref) => {
         const { data, setData, errors, clearErrors } = form;
-
         return (
             <Input
                 ref={ref}
@@ -34,14 +31,11 @@ const SmartInput = forwardRef<HTMLInputElement, SmartInputProps>(
                 onChange={(e) => {
                     // Prevent changes in view mode
                     if (view) return;
-
                     const value = e.target.value;
-
                     // Se há uma função de validação, verificar se o valor é válido
                     if (validateInput && !validateInput(value)) {
                         return;
                     }
-
                     setData(name, value);
                     if (value) {
                         clearErrors(name);
@@ -56,7 +50,5 @@ const SmartInput = forwardRef<HTMLInputElement, SmartInputProps>(
         );
     },
 );
-
 SmartInput.displayName = 'SmartInput';
-
 export default SmartInput;

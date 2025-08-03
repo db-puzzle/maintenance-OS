@@ -34,16 +34,13 @@ import { BomTreeView } from './BomTreeView';
 import { ManufacturingOrderTreeView } from './ManufacturingOrderTreeView';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { Image } from 'lucide-react';
-
 type ConfigurationType = 'bom' | 'manufacturing-order';
-
 interface BaseHierarchicalConfigurationProps {
     type: ConfigurationType;
     canEdit?: boolean;
     onUpdate?: () => void;
     className?: string;
 }
-
 interface BomConfigurationProps extends BaseHierarchicalConfigurationProps {
     type: 'bom';
     bomId: number;
@@ -61,7 +58,6 @@ interface BomConfigurationProps extends BaseHierarchicalConfigurationProps {
         versions?: any[];
     };
 }
-
 interface ManufacturingOrderConfigurationProps extends BaseHierarchicalConfigurationProps {
     type: 'manufacturing-order';
     orders: ManufacturingOrder[];
@@ -70,9 +66,7 @@ interface ManufacturingOrderConfigurationProps extends BaseHierarchicalConfigura
     routeTemplates?: RouteTemplate[];
     canManageRoutes?: boolean;
 }
-
 type HierarchicalConfigurationProps = BomConfigurationProps | ManufacturingOrderConfigurationProps;
-
 interface EditingItem {
     id?: string;
     item_id?: number;
@@ -83,10 +77,8 @@ interface EditingItem {
     bom_notes?: any;
     assembly_instructions?: any;
 }
-
 export default function HierarchicalConfiguration(props: HierarchicalConfigurationProps) {
     const { type, canEdit = false, onUpdate, className } = props;
-
     // BOM-specific state
     const [bomItems, setBomItems] = useState<any[]>([]);
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -102,7 +94,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
     const [currentLevel, setCurrentLevel] = useState<number>(1);
     const [saving, setSaving] = useState(false);
     const [showImages, setShowImages] = useState(false);
-
     // Transform flat BOM items to hierarchical structure
     useEffect(() => {
         if (type === 'bom') {
@@ -121,14 +112,11 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                         children: buildHierarchy(items, item.id)
                     }));
             };
-
             const hierarchicalItems = buildHierarchy(bomProps.bomItems);
             setBomItems(hierarchicalItems);
-
             // Calculate max depth
             const depth = calculateMaxDepth(hierarchicalItems);
             setMaxDepth(depth);
-
             // Auto-expand first level
             const initialExpanded: Record<string, boolean> = {};
             hierarchicalItems.forEach(item => {
@@ -137,7 +125,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             setExpanded(initialExpanded);
         }
     }, [type, props]);
-
     // Helper functions for BOM
     const findItemById = (items: any[], id: string): any => {
         for (const item of items) {
@@ -151,8 +138,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         }
         return null;
     };
-
-    const updateItemsTree = (items: any[], id: string, updateFn: (item: any) => any): any[] => {
+    const updateItemsTree = (items: any[], id: string, updateFn: (item: Record<string, unknown>) => any): any[] => {
         return items.map(item => {
             if (item.id === id) {
                 return updateFn(item);
@@ -166,26 +152,21 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             return item;
         });
     };
-
     const removeItemFromTree = (items: any[], id: string): any[] => {
         return items.reduce((acc, item) => {
             if (item.id === id) {
                 return acc;
             }
-
             if (item.children && item.children.length > 0) {
                 const newChildren = removeItemFromTree(item.children, id);
                 return [...acc, { ...item, children: newChildren }];
             }
-
             return [...acc, item];
         }, []);
     };
-
     // Calculate the maximum depth of the BOM tree
     const calculateMaxDepth = (items: any[], currentDepth: number = 0): number => {
         if (!items || items.length === 0) return currentDepth;
-
         let maxChildDepth = currentDepth;
         items.forEach(item => {
             if (item.children && item.children.length > 0) {
@@ -193,34 +174,27 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                 maxChildDepth = Math.max(maxChildDepth, childDepth);
             }
         });
-
         return maxChildDepth;
     };
-
     // Expand/collapse all items to a specific level
     const expandToLevel = (level: number) => {
         const newExpanded: Record<string, boolean> = {};
-
         const processItems = (items: any[], currentLevel: number = 0) => {
             items.forEach(item => {
                 // Expand if current level is less than target level
                 newExpanded[item.id] = currentLevel < level;
-
                 if (item.children && item.children.length > 0) {
                     processItems(item.children, currentLevel + 1);
                 }
             });
         };
-
         processItems(bomItems);
-
         // Add a slight delay for smoother visual feedback
         setTimeout(() => {
             setExpanded(newExpanded);
             setCurrentLevel(level);
         }, 50);
     };
-
     // Toggle individual item expansion
     const toggleItemExpanded = (id: string) => {
         setExpanded(prev => ({
@@ -228,7 +202,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             [id]: !prev[id]
         }));
     };
-
     const addChildToItem = (items: any[], parentId: string, newChild: any): any[] => {
         return items.map(item => {
             if (item.id === parentId) {
@@ -246,80 +219,61 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             return item;
         });
     };
-
     // Drag and drop handlers (BOM only)
     const handleDragStart = (e: React.DragEvent, id: string) => {
         if (!canEdit || type !== 'bom') return;
-
         e.stopPropagation();
-
         const dragGhost = document.createElement('div');
         dragGhost.style.position = 'absolute';
         dragGhost.style.top = '-1000px';
         document.body.appendChild(dragGhost);
         e.dataTransfer.setDragImage(dragGhost, 0, 0);
-
         setDragging(id);
         e.dataTransfer.setData('text/plain', id);
         e.dataTransfer.effectAllowed = 'move';
-
         setTimeout(() => {
             document.body.removeChild(dragGhost);
         }, 0);
     };
-
     const handleDragOver = (e: React.DragEvent, targetId: string) => {
         e.preventDefault();
-
         if (!canEdit || type !== 'bom' || dragging === targetId) return;
-
         // Check for circular reference
         const isChildOfDragged = (draggedId: string, targetId: string): boolean => {
             const draggedItem = findItemById(bomItems, draggedId);
-
-            const checkChildren = (item: any): boolean => {
+            const checkChildren = (item: Record<string, unknown>): boolean => {
                 if (item.id === targetId) return true;
                 if (item.children && item.children.length > 0) {
                     return item.children.some((child: any) => checkChildren(child));
                 }
                 return false;
             };
-
             return draggedItem ? draggedItem.children.some((child: any) => checkChildren(child)) : false;
         };
-
         if (dragging && isChildOfDragged(dragging, targetId)) {
             return;
         }
-
         e.dataTransfer.dropEffect = 'move';
     };
-
     const handleDrop = async (e: React.DragEvent, targetId: string) => {
         e.preventDefault();
-
         if (!canEdit || type !== 'bom' || !dragging) return;
-
         const bomProps = props as BomConfigurationProps;
         const draggedId = e.dataTransfer.getData('text/plain');
-
         if (draggedId === targetId) {
             setDragging(null);
             return;
         }
-
         // Update locally first for immediate feedback
         const draggedItem = findItemById(bomItems, draggedId);
         const newItems = removeItemFromTree(bomItems, draggedId);
         const updatedItems = addChildToItem(newItems, targetId, draggedItem);
         setBomItems(updatedItems);
-
         // Expand target to show newly added item
         setExpanded(prev => ({
             ...prev,
             [targetId]: true
         }));
-
         // Save to backend
         try {
             await router.post(route('production.bom.items.move', {
@@ -346,14 +300,11 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         } catch (error) {
             setBomItems(bomItems);
         }
-
         setDragging(null);
     };
-
     // CRUD operations (BOM only)
-    const handleEditItem = (item: any) => {
+    const handleEditItem = (item: Record<string, unknown>) => {
         if (!canEdit || type !== 'bom') return;
-
         setEditingItem({
             id: item.id,
             item_id: item.item_id,
@@ -366,13 +317,10 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         });
         setIsEditDialogOpen(true);
     };
-
     const handleSaveEdit = async () => {
         if (!editingItem || !canEdit || type !== 'bom') return;
-
         const bomProps = props as BomConfigurationProps;
         setSaving(true);
-
         try {
             await router.put(route('production.bom.items.update', {
                 bom: bomProps.bomId,
@@ -403,10 +351,8 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             setSaving(false);
         }
     };
-
     const handleAddItem = (parentId: string | null) => {
         if (!canEdit || type !== 'bom') return;
-
         setNewItemParentId(parentId);
         setSelectedItemId(null);
         setItemSearchQuery('');
@@ -419,13 +365,10 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         });
         setIsAddItemDialogOpen(true);
     };
-
     const handleSaveNewItem = async () => {
         if (!selectedItemId || !editingItem || !canEdit || type !== 'bom') return;
-
         const bomProps = props as BomConfigurationProps;
         setSaving(true);
-
         try {
             await router.post(route('production.bom.items.add', bomProps.bomId), {
                 bom_version_id: bomProps.versionId,
@@ -457,16 +400,12 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             setSaving(false);
         }
     };
-
     const handleDeleteItem = async (id: string) => {
         if (!canEdit || type !== 'bom') return;
-
         if (!confirm('Tem certeza que deseja remover este item e todos os seus sub-itens?')) {
             return;
         }
-
         const bomProps = props as BomConfigurationProps;
-
         try {
             await router.delete(route('production.bom.items.remove', {
                 bom: bomProps.bomId,
@@ -489,14 +428,12 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             console.error(error);
         }
     };
-
     const handleExportBOM = () => {
         if (type === 'bom') {
             const bomProps = props as BomConfigurationProps;
             window.open(route('production.bom.export', bomProps.bomId), '_blank');
         }
     };
-
     // Render header based on type
     const renderHeader = () => {
         if (type === 'bom') {
@@ -566,19 +503,15 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                 </div>
             );
         }
-
         if (type === 'manufacturing-order') {
             const moProps = props as ManufacturingOrderConfigurationProps;
             return (
                 <div className="p-2">
-
                 </div>
             );
         }
-
         return null;
     };
-
     // Render tree view based on type
     const renderTreeView = () => {
         if (type === 'bom') {
@@ -601,10 +534,8 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                 />
             );
         }
-
         if (type === 'manufacturing-order') {
             const moProps = props as ManufacturingOrderConfigurationProps;
-
             return (
                 <ManufacturingOrderTreeView
                     orders={moProps.orders}
@@ -615,20 +546,16 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                 />
             );
         }
-
         return null;
     };
-
     // Render dialogs (BOM only)
     const renderDialogs = () => {
         if (type !== 'bom') return null;
-
         const bomProps = props as BomConfigurationProps;
         const filteredItems = bomProps.availableItems.filter(item =>
             item.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) ||
             item.item_number.toLowerCase().includes(itemSearchQuery.toLowerCase())
         );
-
         return (
             <>
                 {/* Add Item Dialog */}
@@ -640,7 +567,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                 Selecione um item e configure suas propriedades
                             </DialogDescription>
                         </DialogHeader>
-
                         <div className="space-y-4 py-4">
                             {/* Item selection */}
                             <div className="space-y-2">
@@ -654,7 +580,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                         className="pl-9"
                                     />
                                 </div>
-
                                 {/* Items list */}
                                 <div className="border rounded-lg max-h-48 overflow-y-auto">
                                     {filteredItems.length > 0 ? (
@@ -687,7 +612,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                     )}
                                 </div>
                             </div>
-
                             {/* Item configuration */}
                             {selectedItemId && editingItem && (
                                 <>
@@ -706,7 +630,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                                 })}
                                             />
                                         </div>
-
                                         <div className="space-y-2">
                                             <Label htmlFor="unit">Unidade</Label>
                                             <Select
@@ -730,7 +653,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                             </Select>
                                         </div>
                                     </div>
-
                                     <div className="space-y-2">
                                         <Label htmlFor="reference">Designadores de Referência</Label>
                                         <Input
@@ -743,7 +665,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                             })}
                                         />
                                     </div>
-
                                     <div className="space-y-2">
                                         <Label htmlFor="notes">Notas da BOM</Label>
                                         <Textarea
@@ -759,7 +680,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                 </>
                             )}
                         </div>
-
                         <DialogFooter>
                             <Button
                                 variant="outline"
@@ -781,7 +701,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-
                 {/* Edit Item Dialog */}
                 <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                     <DialogContent className="sm:max-w-[500px]">
@@ -791,7 +710,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                 {editingItem?.item?.item_number} - {editingItem?.item?.name}
                             </DialogDescription>
                         </DialogHeader>
-
                         {editingItem && (
                             <div className="space-y-4 py-4">
                                 <div className="grid grid-cols-2 gap-4">
@@ -809,7 +727,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                             })}
                                         />
                                     </div>
-
                                     <div className="space-y-2">
                                         <Label htmlFor="edit-unit">Unidade</Label>
                                         <Select
@@ -833,7 +750,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                         </Select>
                                     </div>
                                 </div>
-
                                 <div className="space-y-2">
                                     <Label htmlFor="edit-reference">Designadores de Referência</Label>
                                     <Input
@@ -846,7 +762,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                         })}
                                     />
                                 </div>
-
                                 <div className="space-y-2">
                                     <Label htmlFor="edit-notes">Notas da BOM</Label>
                                     <Textarea
@@ -861,7 +776,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                 </div>
                             </div>
                         )}
-
                         <DialogFooter>
                             <Button
                                 variant="outline"
@@ -882,7 +796,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-
                 {/* Create Item Sheet */}
                 <CreateItemSheet
                     open={isCreateItemSheetOpen}
@@ -898,16 +811,13 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             </>
         );
     };
-
     return (
         <div className={cn("w-full h-full flex flex-col", className)}>
             {renderHeader()}
-
             {/* Tree view */}
             <div className="flex-grow overflow-auto px-4 pb-4">
                 {renderTreeView()}
             </div>
-
             {/* Dialogs */}
             {renderDialogs()}
         </div>

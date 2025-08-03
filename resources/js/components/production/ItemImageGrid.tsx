@@ -18,20 +18,17 @@ import { ItemImageCarouselDialog } from '@/components/production/ItemImageCarous
 import { ImageWithBlurEffect } from '@/components/production/ImageWithBlurEffect';
 import { cn } from '@/lib/utils';
 import { ItemImage } from '@/types/production';
-
 interface ItemImageGridProps {
     itemId: string;
     images: ItemImage[];
     canEdit: boolean;
     itemName?: string;
 }
-
 export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGridProps) {
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [editingImage, setEditingImage] = useState<ItemImage | null>(null);
     const [carouselOpen, setCarouselOpen] = useState(false);
     const [carouselStartIndex, setCarouselStartIndex] = useState(0);
-
     const handleSelectImage = (imageId: string) => {
         setSelectedImages(prev =>
             prev.includes(imageId)
@@ -39,19 +36,16 @@ export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGr
                 : [...prev, imageId]
         );
     };
-
     const handleSetPrimary = (image: ItemImage) => {
         router.patch(route('production.items.images.update', [itemId, image.id]), {
             is_primary: true,
         });
     };
-
     const handleDeleteImage = (image: ItemImage) => {
         if (confirm('Tem certeza que deseja excluir esta imagem?')) {
             router.delete(route('production.items.images.destroy', [itemId, image.id]));
         }
     };
-
     const handleBulkDelete = () => {
         if (confirm(`Tem certeza que deseja excluir ${selectedImages.length} imagens?`)) {
             router.post(route('production.items.images.bulk-delete', itemId), {
@@ -61,10 +55,8 @@ export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGr
             });
         }
     };
-
     const handleSaveEdit = () => {
         if (!editingImage) return;
-
         router.patch(route('production.items.images.update', [itemId, editingImage.id]), {
             alt_text: editingImage.alt_text,
             caption: editingImage.caption,
@@ -72,12 +64,10 @@ export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGr
             onSuccess: () => setEditingImage(null),
         });
     };
-
     const openCarousel = (index: number) => {
         setCarouselStartIndex(index);
         setCarouselOpen(true);
     };
-
     return (
         <>
             {canEdit && selectedImages.length > 0 && (
@@ -95,7 +85,6 @@ export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGr
                     </Button>
                 </div>
             )}
-
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {images.map((image, index) => (
                     <div
@@ -111,7 +100,6 @@ export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGr
                             containerClassName="w-full h-48"
                             onClick={() => openCarousel(index)}
                         />
-
                         {canEdit && (
                             <div className="absolute top-2 left-2 z-20">
                                 <Checkbox
@@ -121,14 +109,12 @@ export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGr
                                 />
                             </div>
                         )}
-
                         {image.is_primary && (
                             <div className="absolute top-2 right-2 z-20 bg-primary text-white px-2 py-1 rounded text-xs flex items-center">
                                 <Star className="h-3 w-3 mr-1" />
                                 Principal
                             </div>
                         )}
-
                         <div className="p-3">
                             <p className="text-sm font-medium truncate">{image.filename}</p>
                             <p className="text-xs text-gray-500">
@@ -140,7 +126,6 @@ export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGr
                                 </p>
                             )}
                         </div>
-
                         {canEdit && (
                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                 {!image.is_primary && (
@@ -180,7 +165,6 @@ export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGr
                     </div>
                 ))}
             </div>
-
             <Dialog open={!!editingImage} onOpenChange={() => setEditingImage(null)}>
                 <DialogContent>
                     <DialogHeader>
@@ -228,7 +212,6 @@ export function ItemImageGrid({ itemId, images, canEdit, itemName }: ItemImageGr
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
             <ItemImageCarouselDialog
                 images={images}
                 open={carouselOpen}

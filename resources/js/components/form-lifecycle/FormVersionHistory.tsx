@@ -8,7 +8,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
-
 interface Version {
     id: number;
     version_number: string;
@@ -20,23 +19,19 @@ interface Version {
     tasks_count: number;
     is_current: boolean;
 }
-
 interface FormVersionHistoryProps {
     routineId: number;
     isOpen: boolean;
     onClose: () => void;
 }
-
 export default function FormVersionHistory({ routineId, isOpen, onClose }: FormVersionHistoryProps) {
     const [versions, setVersions] = useState<Version[]>([]);
     const [loading, setLoading] = useState(false);
-
     useEffect(() => {
         if (isOpen) {
             fetchVersions();
         }
     }, [isOpen, routineId]);
-
     const fetchVersions = async () => {
         setLoading(true);
         try {
@@ -49,11 +44,9 @@ export default function FormVersionHistory({ routineId, isOpen, onClose }: FormV
             setLoading(false);
         }
     };
-
     const handleViewVersion = (versionId: number) => {
         router.visit(route('maintenance.routines.view-version', { routine: routineId, versionId }));
     };
-
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
@@ -66,7 +59,6 @@ export default function FormVersionHistory({ routineId, isOpen, onClose }: FormV
                         Clique em uma versão para visualizar suas tarefas
                     </DialogDescription>
                 </DialogHeader>
-
                 <div className="flex-1 overflow-y-auto">
                     {loading ? (
                         <div className="flex items-center justify-center py-8">
@@ -104,7 +96,6 @@ export default function FormVersionHistory({ routineId, isOpen, onClose }: FormV
                                             {version.tasks_count} {version.tasks_count === 1 ? 'tarefa' : 'tarefas'}
                                         </Badge>
                                     </div>
-
                                     <div className="w-full flex items-center gap-4 text-xs text-gray-600">
                                         <div className="flex items-center gap-1">
                                             <Calendar className="h-3 w-3" />
@@ -124,7 +115,6 @@ export default function FormVersionHistory({ routineId, isOpen, onClose }: FormV
                         </div>
                     )}
                 </div>
-
                 <div className="flex justify-end pt-4 border-t">
                     <Button variant="outline" onClick={onClose}>
                         Fechar

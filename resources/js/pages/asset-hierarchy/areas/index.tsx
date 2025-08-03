@@ -14,10 +14,8 @@ import { Area } from '@/types/entities/area';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -32,7 +30,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy/areas',
     },
 ];
-
 interface Props {
     areas: {
         data: Area[];
@@ -54,7 +51,6 @@ interface Props {
         name: string;
     }[];
 }
-
 export default function Areas({ areas: initialAreas, filters, plants }: Props) {
     const entityOps = useEntityOperations<Area>({
         entityName: 'area',
@@ -66,9 +62,7 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
             checkDependencies: 'asset-hierarchy.areas.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search || '');
-
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'asset-hierarchy.areas',
@@ -79,7 +73,6 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
             per_page: filters.per_page,
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('areasColumnsVisibility');
@@ -94,7 +87,6 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
             asset_count: true,
         };
     });
-
     // Use data from server
     const data = initialAreas.data;
     const pagination = {
@@ -105,7 +97,6 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
         from: initialAreas.from,
         to: initialAreas.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
@@ -147,7 +138,6 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
             render: (value) => (value as number) || 0,
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -156,7 +146,6 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
         setColumnVisibility(newVisibility);
         localStorage.setItem('areasColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -165,11 +154,9 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('asset-hierarchy.areas'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('asset-hierarchy.areas'),
@@ -177,11 +164,9 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
             { preserveState: true, preserveScroll: true },
         );
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Áreas" />
-
             <ListLayout
                 title="Áreas"
                 description="Gerencie as áreas do sistema"
@@ -216,11 +201,9 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
                             <EntityActionDropdown onEdit={() => entityOps.handleEdit(area)} onDelete={() => entityOps.handleDelete(area)} />
                         )}
                     />
-
                     <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
-
             <CreateAreaSheet
                 area={entityOps.editingItem || undefined}
                 open={entityOps.isEditSheetOpen}
@@ -228,14 +211,12 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
                 mode={entityOps.editingItem ? 'edit' : 'create'}
                 plants={plants}
             />
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

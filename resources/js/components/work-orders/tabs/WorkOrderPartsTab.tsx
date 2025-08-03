@@ -2,11 +2,9 @@ import React from 'react';
 import { Separator } from '@/components/ui/separator';
 import EmptyCard from '@/components/ui/empty-card';
 import { Package } from 'lucide-react';
-
 interface Props {
     workOrder: any;
 }
-
 export default function WorkOrderPartsTab({ workOrder }: Props) {
     return (
         <div className="space-y-6 py-6">
@@ -16,9 +14,7 @@ export default function WorkOrderPartsTab({ workOrder }: Props) {
                     Lista de peças e componentes utilizados na ordem de serviço
                 </p>
             </div>
-
             <Separator />
-
             {workOrder.parts && workOrder.parts.length > 0 ? (
                 <div className="space-y-4">
                     {workOrder.parts.map((part: any, index: number) => (

@@ -22,13 +22,11 @@ import {
 } from 'lucide-react';
 import { useInitials } from '@/hooks/use-initials';
 import { format } from 'date-fns';
-
 interface User {
     id: number;
     name: string;
     email: string;
 }
-
 interface ActivityLog {
     id: number;
     action: string;
@@ -37,7 +35,6 @@ interface ActivityLog {
     created_at: string;
     details: Record<string, unknown>;
 }
-
 interface Props {
     user: User;
     activities: {
@@ -52,36 +49,29 @@ interface Props {
     };
     availableActions: string[];
 }
-
 export default function UserActivity({ user, activities, filters, availableActions }: Props) {
     const getInitials = useInitials();
     const initials = getInitials(user.name);
-
     const [localFilters, setLocalFilters] = useState({
         action: filters.action || 'all',
         date_from: filters.date_from || '',
         date_to: filters.date_to || '',
     });
-
     const handleFilterChange = (key: string, value: string) => {
         const newFilters = { ...localFilters, [key]: value };
         setLocalFilters(newFilters);
     };
-
     const applyFilters = () => {
         const params: Record<string, string> = {};
         if (localFilters.action && localFilters.action !== 'all') params.action = localFilters.action;
         if (localFilters.date_from) params.date_from = localFilters.date_from;
         if (localFilters.date_to) params.date_to = localFilters.date_to;
-
         router.get(`/users/${user.id}/activity`, params, { preserveState: true });
     };
-
     const clearFilters = () => {
         setLocalFilters({ action: '', date_from: '', date_to: '' });
         router.get(`/users/${user.id}/activity`);
     };
-
     const getActionLabel = (action: string) => {
         const labels: Record<string, string> = {
             'permission.granted': 'Permission Granted',
@@ -96,7 +86,6 @@ export default function UserActivity({ user, activities, filters, availableActio
         };
         return labels[action] || action;
     };
-
     const getActionColor = (action: string) => {
         if (action.includes('granted') || action.includes('assigned') || action.includes('created')) {
             return 'bg-green-100 text-green-800';
@@ -109,16 +98,12 @@ export default function UserActivity({ user, activities, filters, availableActio
         }
         return 'bg-gray-100 text-gray-800';
     };
-
     const formatDetails = (details: Record<string, unknown>) => {
         if (!details || typeof details !== 'object') return null;
-
         const entries = Object.entries(details).filter(([key]) =>
             !['user_id', 'affected_user_id', 'created_at', 'updated_at'].includes(key)
         );
-
         if (entries.length === 0) return null;
-
         return (
             <div className="mt-2 space-y-1">
                 {entries.map(([key, value]) => (
@@ -130,11 +115,9 @@ export default function UserActivity({ user, activities, filters, availableActio
             </div>
         );
     };
-
     return (
         <AppLayout>
             <Head title={`Activity - ${user.name}`} />
-
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center gap-4">
@@ -152,7 +135,6 @@ export default function UserActivity({ user, activities, filters, availableActio
                         <p className="text-muted-foreground">{user.name} • {user.email}</p>
                     </div>
                 </div>
-
                 {/* Filters */}
                 <Card>
                     <CardHeader>
@@ -182,7 +164,6 @@ export default function UserActivity({ user, activities, filters, availableActio
                                     </SelectContent>
                                 </Select>
                             </div>
-
                             <div className="space-y-2">
                                 <Label htmlFor="date_from">From Date</Label>
                                 <Input
@@ -192,7 +173,6 @@ export default function UserActivity({ user, activities, filters, availableActio
                                     onChange={(e) => handleFilterChange('date_from', e.target.value)}
                                 />
                             </div>
-
                             <div className="space-y-2">
                                 <Label htmlFor="date_to">To Date</Label>
                                 <Input
@@ -202,7 +182,6 @@ export default function UserActivity({ user, activities, filters, availableActio
                                     onChange={(e) => handleFilterChange('date_to', e.target.value)}
                                 />
                             </div>
-
                             <div className="flex items-end gap-2">
                                 <Button onClick={applyFilters} className="flex-1">
                                     Apply Filters
@@ -214,7 +193,6 @@ export default function UserActivity({ user, activities, filters, availableActio
                         </div>
                     </CardContent>
                 </Card>
-
                 {/* Activity List */}
                 <Card>
                     <CardHeader>
@@ -246,7 +224,6 @@ export default function UserActivity({ user, activities, filters, availableActio
                                                         {format(new Date(activity.created_at), 'PPp')}
                                                     </span>
                                                 </div>
-
                                                 <p className="text-sm">
                                                     <span className="font-medium">{activity.user.name}</span>
                                                     {activity.action.includes('granted') && ' granted '}
@@ -266,10 +243,8 @@ export default function UserActivity({ user, activities, filters, availableActio
                                                         </>
                                                     )}
                                                 </p>
-
                                                 {formatDetails(activity.details)}
                                             </div>
-
                                             <Activity className="h-4 w-4 text-muted-foreground" />
                                         </div>
                                     </div>
@@ -282,7 +257,6 @@ export default function UserActivity({ user, activities, filters, availableActio
                         )}
                     </CardContent>
                 </Card>
-
                 {/* Pagination */}
                 {((activities.meta as Record<string, unknown>).last_page as number) > 1 && (
                     <div className="flex items-center justify-between">

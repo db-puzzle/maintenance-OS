@@ -12,7 +12,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Search, Package, DollarSign, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
 interface Part {
     id: number;
     part_number: string;
@@ -24,7 +23,6 @@ interface Part {
     category?: string;
     status?: 'active' | 'inactive' | 'discontinued';
 }
-
 interface PartSearchDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -32,7 +30,6 @@ interface PartSearchDialogProps {
     onSelectPart: (part: Part) => void;
     selectedParts?: number[];
 }
-
 export function PartSearchDialog({
     open,
     onOpenChange,
@@ -42,13 +39,11 @@ export function PartSearchDialog({
 }: PartSearchDialogProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedId, setSelectedId] = useState<number | null>(null);
-
     // Filter parts based on search query
     const filteredParts = useMemo(() => {
         if (!searchQuery.trim()) {
             return parts;
         }
-
         const query = searchQuery.toLowerCase();
         return parts.filter(part => {
             return (
@@ -59,14 +54,12 @@ export function PartSearchDialog({
             );
         });
     }, [parts, searchQuery]);
-
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Escape') {
             e.preventDefault();
             handleCancel();
         }
     };
-
     const handleSelect = () => {
         if (selectedId !== null) {
             const selectedPart = parts.find(p => p.id === selectedId);
@@ -78,32 +71,27 @@ export function PartSearchDialog({
             }
         }
     };
-
     const handleCancel = () => {
         onOpenChange(false);
         setSearchQuery('');
         setSelectedId(null);
     };
-
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
             currency: 'BRL'
         }).format(value);
     };
-
     const getAvailabilityColor = (quantity: number) => {
         if (quantity === 0) return 'text-red-600';
         if (quantity < 10) return 'text-yellow-600';
         return 'text-green-600';
     };
-
     const getAvailabilityText = (quantity: number) => {
         if (quantity === 0) return 'Sem estoque';
         if (quantity < 10) return `Apenas ${quantity} disponível`;
         return `${quantity} disponível`;
     };
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl" onKeyDown={handleKeyDown}>
@@ -113,7 +101,6 @@ export function PartSearchDialog({
                         Busque e selecione uma peça para adicionar ao planejamento
                     </DialogDescription>
                 </DialogHeader>
-
                 <div className="space-y-4">
                     {/* Search Input */}
                     <div className="relative">
@@ -127,7 +114,6 @@ export function PartSearchDialog({
                             onKeyDown={handleKeyDown}
                         />
                     </div>
-
                     {/* Results */}
                     <ScrollArea className="h-[400px] rounded-md border">
                         <div className="p-2">
@@ -141,7 +127,6 @@ export function PartSearchDialog({
                                 <div className="space-y-2">
                                     {filteredParts.map((part) => {
                                         const isAlreadyAdded = selectedParts.includes(part.id);
-
                                         return (
                                             <button
                                                 key={part.id}
@@ -176,7 +161,6 @@ export function PartSearchDialog({
                                                             </p>
                                                         </div>
                                                     </div>
-
                                                     {/* Additional info */}
                                                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                                         {part.manufacturer && (
@@ -186,7 +170,6 @@ export function PartSearchDialog({
                                                             <span>Categoria: {part.category}</span>
                                                         )}
                                                     </div>
-
                                                     {part.description && (
                                                         <p className="text-xs text-muted-foreground line-clamp-2">
                                                             {part.description}
@@ -200,7 +183,6 @@ export function PartSearchDialog({
                             )}
                         </div>
                     </ScrollArea>
-
                     {/* Footer */}
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">

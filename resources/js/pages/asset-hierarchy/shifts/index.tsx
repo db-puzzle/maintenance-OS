@@ -12,24 +12,20 @@ import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-
 interface Break {
     start_time: string;
     end_time: string;
 }
-
 interface Shift {
     start_time: string;
     end_time: string;
     active: boolean;
     breaks: Break[];
 }
-
 interface Schedule {
     weekday: string;
     shifts: Shift[];
 }
-
 interface ShiftData {
     id: number;
     name: string;
@@ -43,7 +39,6 @@ interface ShiftData {
     total_break_hours?: number;
     total_break_minutes?: number;
 }
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -58,7 +53,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy/shifts',
     },
 ];
-
 interface Props {
     shifts: {
         data: ShiftData[];
@@ -76,7 +70,6 @@ interface Props {
         per_page: number;
     };
 }
-
 export default function Shifts({ shifts: initialShifts, filters }: Props) {
     const entityOps = useEntityOperations<ShiftData>({
         entityName: 'shift',
@@ -88,9 +81,7 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
             checkDependencies: 'asset-hierarchy.shifts.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search || '');
-
     const { sort, direction, handleSort } = useSorting({
         routeName: 'asset-hierarchy.shifts',
         initialSort: filters.sort || 'name',
@@ -100,7 +91,6 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
             per_page: filters.per_page,
         },
     });
-
     const data = initialShifts.data;
     const pagination = {
         current_page: initialShifts.current_page,
@@ -110,7 +100,6 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
         from: initialShifts.from,
         to: initialShifts.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
@@ -163,7 +152,6 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
             },
         },
     ];
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -172,7 +160,6 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(
             route('asset-hierarchy.shifts'),
@@ -180,7 +167,6 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
             { preserveState: true, preserveScroll: true }
         );
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('asset-hierarchy.shifts'),
@@ -188,21 +174,17 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handleShiftCreated = () => {
         // Refresh the page to show the new shift
         router.reload();
     };
-
     const handleShiftUpdated = () => {
         // Refresh the page to show the updated shift
         router.reload();
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Turnos" />
-
             <ListLayout
                 title="Turnos"
                 description="Gerencie os turnos de trabalho"
@@ -226,7 +208,6 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
                         )}
                         emptyMessage="Nenhum turno cadastrado"
                     />
-
                     <EntityPagination
                         pagination={pagination}
                         onPageChange={handlePageChange}
@@ -234,7 +215,6 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
                     />
                 </div>
             </ListLayout>
-
             <CreateShiftSheet
                 initialShift={entityOps.editingItem ? {
                     id: entityOps.editingItem.id,
@@ -245,14 +225,12 @@ export default function Shifts({ shifts: initialShifts, filters }: Props) {
                 onOpenChange={entityOps.setEditSheetOpen}
                 onSuccess={entityOps.editingItem ? handleShiftUpdated : handleShiftCreated}
             />
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

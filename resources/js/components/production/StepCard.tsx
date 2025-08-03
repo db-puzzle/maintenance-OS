@@ -4,7 +4,6 @@ import { ManufacturingStep } from '@/types/production';
 import { Clock, MapPin, CheckCircle, AlertCircle, Timer, Trash2 } from 'lucide-react';
 import { StepStatusBadge } from './StepStatusBadge';
 import { StepTypeBadge } from './StepTypeBadge';
-
 interface StepCardProps {
     step: ManufacturingStep;
     onClick?: () => void;
@@ -18,7 +17,6 @@ interface StepCardProps {
     className?: string;
     canDelete?: boolean;
 }
-
 export function StepCard({
     step,
     onClick,
@@ -47,7 +45,6 @@ export function StepCard({
             <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
                 {step.step_number}
             </div>
-
             {/* Delete Button */}
             {canDelete && onDelete && (
                 <button
@@ -61,19 +58,16 @@ export function StepCard({
                     <Trash2 className="h-4 w-4" />
                 </button>
             )}
-
             <div className="space-y-3 pl-2">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2">
                     <h4 className="font-medium text-sm flex-1">{step.name}</h4>
                     {showStatus && <StepStatusBadge status={step.status} />}
                 </div>
-
                 {/* Type Badge */}
                 {showType && step.step_type !== 'standard' && (
                     <StepTypeBadge type={step.step_type} />
                 )}
-
                 {/* Details */}
                 <div className="space-y-2 text-sm text-muted-foreground">
                     {showWorkCell && step.work_cell && (
@@ -82,7 +76,6 @@ export function StepCard({
                             <span>{step.work_cell.name}</span>
                         </div>
                     )}
-
                     {showTime && (
                         <div className="flex items-center gap-2">
                             <Clock className="h-3 w-3" />
@@ -93,7 +86,6 @@ export function StepCard({
                         </div>
                     )}
                 </div>
-
                 {/* Status Indicators */}
                 {step.status === 'completed' && (
                     <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-green-500" />

@@ -10,14 +10,11 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useExportManager } from '@/hooks/use-export-manager';
 import { CheckCircle2, FileDown, Loader2, XCircle } from 'lucide-react';
-
 export function ExportStatusIndicator() {
     const { exports, activeExportsCount, removeExport, clearCompleted, downloadExport } = useExportManager();
-
     if (exports.length === 0) {
         return null;
     }
-
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'processing':
@@ -30,19 +27,16 @@ export function ExportStatusIndicator() {
                 return null;
         }
     };
-
     const getRelativeTime = (date: Date) => {
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const minutes = Math.floor(diff / 60000);
-
         if (minutes < 1) return 'just now';
         if (minutes < 60) return `${minutes}m ago`;
         const hours = Math.floor(minutes / 60);
         if (hours < 24) return `${hours}h ago`;
         return date.toLocaleDateString();
     };
-
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>

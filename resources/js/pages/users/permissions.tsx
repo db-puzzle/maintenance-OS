@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-
 import {
     Dialog,
     DialogContent,
@@ -43,7 +42,6 @@ import {
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import axios from 'axios';
-
 interface User {
     id: number;
     name: string;
@@ -51,13 +49,11 @@ interface User {
     roles: Array<{ id: number; name: string }>;
     permissions: Array<{ id: number; name: string }>;
 }
-
 interface Permission {
     id: number;
     name: string;
     exists?: boolean;
 }
-
 interface PermissionNode {
     id: number;
     name: string;
@@ -65,7 +61,6 @@ interface PermissionNode {
     permissions: string[];
     children?: PermissionNode[];
 }
-
 interface HistoryItem {
     id: number;
     action: string;
@@ -74,7 +69,6 @@ interface HistoryItem {
     role?: string;
     created_at: string;
 }
-
 interface Props {
     user: User;
     permissionHierarchy: PermissionNode[];
@@ -84,7 +78,6 @@ interface Props {
     users: User[];
     canGrantPermissions: boolean;
 }
-
 export default function UserPermissions({
     user,
     permissionHierarchy,
@@ -95,7 +88,6 @@ export default function UserPermissions({
 }: Props) {
     const getInitials = useInitials();
     const initials = getInitials(user.name);
-
     const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
@@ -103,27 +95,22 @@ export default function UserPermissions({
     const [showCopyDialog, setShowCopyDialog] = useState(false);
     const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
     const [entities, setEntities] = useState<{ plants: Record<string, unknown>[], areas: Record<string, unknown>[], sectors: Record<string, unknown>[] }>({ plants: [], areas: [], sectors: [] });
-
     const { data: roleData, setData: setRoleData, post: postRole, processing: processingRole } = useForm({
         role_id: '',
         entity_type: '',
         entity_id: '',
         assign_role: true,
     });
-
     const { data: copyData, setData: setCopyData, post: postCopy, processing: processingCopy } = useForm({
         source_user_id: '',
         merge: false,
     });
-
     useEffect(() => {
         // Load available permissions
         axios.get(`/users/${user.id}/permissions/available`)
             .then(response => setAvailablePermissions(response.data.permissions))
             .catch(error => console.error('Error loading available permissions:', error));
-
         // Roles are already provided via props, no need to load them
-
         // Load entities
         Promise.all([
             axios.get('/asset-hierarchy/plants'),
@@ -136,10 +123,8 @@ export default function UserPermissions({
                 sectors: sectors.data.sectors || []
             });
         }).catch(error => console.error('Error loading entities:', error));
-
         // Users are already provided via props, no need to load them
     }, [user.id]);
-
     const toggleNode = (nodeId: string) => {
         setExpandedNodes(prev => {
             const next = new Set(prev);
@@ -151,7 +136,6 @@ export default function UserPermissions({
             return next;
         });
     };
-
     const handleGrantPermissions = () => {
         const permissions = Array.from(selectedPermissions);
         router.post(`/users/${user.id}/permissions/grant`, { permissions }, {
@@ -163,29 +147,23 @@ export default function UserPermissions({
             }
         });
     };
-
     const handleRevokePermission = (permission: string) => {
         if (confirm(`Are you sure you want to revoke the permission "${permission}"?`)) {
             router.post(`/users/${user.id}/permissions/revoke`, { permissions: [permission] });
         }
     };
-
-
-
     const handleRoleApplication = (e: React.FormEvent) => {
         e.preventDefault();
         postRole(`/users/${user.id}/roles/apply`, {
             onSuccess: () => setShowRoleDialog(false)
         });
     };
-
     const handleCopyPermissions = (e: React.FormEvent) => {
         e.preventDefault();
         postCopy(`/users/${user.id}/permissions/copy/${user.id}`, {
             onSuccess: () => setShowCopyDialog(false)
         });
     };
-
     const getNodeIcon = (type: string) => {
         switch (type) {
             case 'plant':
@@ -198,12 +176,10 @@ export default function UserPermissions({
                 return <Shield className="h-4 w-4" />;
         }
     };
-
     const renderPermissionNode = (node: PermissionNode, depth = 0) => {
         const nodeKey = `${node.type}-${node.id}`;
         const isExpanded = expandedNodes.has(nodeKey);
         const hasChildren = node.children && node.children.length > 0;
-
         return (
             <div key={nodeKey} className={cn('space-y-2', depth > 0 && 'ml-6')}>
                 <div className="flex items-start gap-2">
@@ -222,7 +198,6 @@ export default function UserPermissions({
                         </Button>
                     )}
                     {!hasChildren && <div className="w-6" />}
-
                     <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
                             {getNodeIcon(node.type)}
@@ -234,7 +209,6 @@ export default function UserPermissions({
                                 {node.permissions.length} permissions
                             </Badge>
                         </div>
-
                         {node.permissions.length > 0 && (
                             <div className="grid gap-2 ml-6">
                                 {node.permissions.map((permission) => (
@@ -256,7 +230,6 @@ export default function UserPermissions({
                         )}
                     </div>
                 </div>
-
                 {hasChildren && isExpanded && (
                     <div className="space-y-2">
                         {node.children!.map((child) => renderPermissionNode(child, depth + 1))}
@@ -265,18 +238,15 @@ export default function UserPermissions({
             </div>
         );
     };
-
     const filterPermissions = (permissions: Permission[]) => {
         if (!searchQuery) return permissions;
         return permissions.filter(p =>
             p.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
     };
-
     return (
         <AppLayout>
             <Head title={`Permissions - ${user.name}`} />
-
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -295,7 +265,6 @@ export default function UserPermissions({
                             <p className="text-muted-foreground">{user.name} • {user.email}</p>
                         </div>
                     </div>
-
                     {canGrantPermissions && (
                         <div className="flex gap-2">
                             <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
@@ -332,7 +301,6 @@ export default function UserPermissions({
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-
                                             <div className="space-y-2">
                                                 <Label htmlFor="entity-type">Entity Type</Label>
                                                 <Select
@@ -349,7 +317,6 @@ export default function UserPermissions({
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-
                                             {roleData.entity_type && (
                                                 <div className="space-y-2">
                                                     <Label htmlFor="entity">Entity</Label>
@@ -372,7 +339,6 @@ export default function UserPermissions({
                                                     </Select>
                                                 </div>
                                             )}
-
                                             <div className="flex items-center space-x-2">
                                                 <Checkbox
                                                     id="assign-role"
@@ -395,7 +361,6 @@ export default function UserPermissions({
                                     </form>
                                 </DialogContent>
                             </Dialog>
-
                             <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline">
@@ -430,7 +395,6 @@ export default function UserPermissions({
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-
                                             <div className="flex items-center space-x-2">
                                                 <Checkbox
                                                     id="merge"
@@ -456,7 +420,6 @@ export default function UserPermissions({
                         </div>
                     )}
                 </div>
-
                 {/* Stats */}
                 <div className="grid gap-4 md:grid-cols-3">
                     <Card>
@@ -469,7 +432,6 @@ export default function UserPermissions({
                             <p className="text-2xl font-bold">{user.permissions.length}</p>
                         </CardContent>
                     </Card>
-
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -486,7 +448,6 @@ export default function UserPermissions({
                             </div>
                         </CardContent>
                     </Card>
-
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -498,7 +459,6 @@ export default function UserPermissions({
                         </CardContent>
                     </Card>
                 </div>
-
                 {/* Tabs */}
                 <Tabs defaultValue="current" className="space-y-4">
                     <TabsList>
@@ -506,7 +466,6 @@ export default function UserPermissions({
                         <TabsTrigger value="grant">Grant Permissions</TabsTrigger>
                         <TabsTrigger value="history">History</TabsTrigger>
                     </TabsList>
-
                     <TabsContent value="current" className="space-y-4">
                         <Card>
                             <CardHeader>
@@ -530,7 +489,6 @@ export default function UserPermissions({
                             </CardContent>
                         </Card>
                     </TabsContent>
-
                     <TabsContent value="grant" className="space-y-4">
                         <Card>
                             <CardHeader>
@@ -549,7 +507,6 @@ export default function UserPermissions({
                                         className="max-w-sm"
                                     />
                                 </div>
-
                                 <ScrollArea className="h-[400px] pr-4">
                                     <div className="space-y-2">
                                         {filterPermissions(availablePermissions).map((permission) => (
@@ -577,7 +534,6 @@ export default function UserPermissions({
                                         ))}
                                     </div>
                                 </ScrollArea>
-
                                 {selectedPermissions.size > 0 && (
                                     <>
                                         <Separator />
@@ -597,7 +553,6 @@ export default function UserPermissions({
                             </CardContent>
                         </Card>
                     </TabsContent>
-
                     <TabsContent value="history" className="space-y-4">
                         <Card>
                             <CardHeader>

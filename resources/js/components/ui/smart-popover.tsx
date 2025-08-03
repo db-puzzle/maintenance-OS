@@ -15,7 +15,6 @@ import {
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InputError } from "@/components/ui/input-error";
-
 interface SmartPopoverProps {
     id: string;
     value: string | undefined;
@@ -29,7 +28,6 @@ interface SmartPopoverProps {
     className?: string;
     disabled?: boolean;
 }
-
 export function SmartPopover({
     id,
     value,
@@ -44,19 +42,16 @@ export function SmartPopover({
     disabled = false,
 }: SmartPopoverProps) {
     const [open, setOpen] = useState(false);
-
     const selectedOption = useMemo(() =>
         options.find((option) => option.id.toString() === value),
         [options, value]
     );
-
     const sortedOptions = useMemo(() =>
         [...options].sort((a, b) =>
             a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
         ),
         [options]
     );
-
     return (
         <div className="w-full">
             <Popover open={open} onOpenChange={setOpen}>

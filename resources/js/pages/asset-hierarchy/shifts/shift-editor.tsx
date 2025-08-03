@@ -17,13 +17,11 @@ import { Head, useForm } from '@inertiajs/react';
 import { AlertCircle, Clock, Copy, Plus, Table, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-
 // Interface para representar um intervalo de descanso
 interface Break {
     start_time: string;
     end_time: string;
 }
-
 // Interface para representar um turno de trabalho
 interface Shift {
     start_time: string;
@@ -31,24 +29,20 @@ interface Shift {
     active: boolean;
     breaks: Break[];
 }
-
 // Interface para representar a programação de um dia da semana
 interface Schedule {
     weekday: string;
     shifts: Shift[];
 }
-
 // This interface is currently empty but reserved for future shift editor specific props
 // interface ShiftEditorProps {
 //     // Future shift editor specific props will be added here
 //     [key: string]: unknown;
 // }
-
 type CreateProps = {
     // Props for create functionality will be added here as needed
     [key: string]: unknown;
 };
-
 interface ShiftData {
     id: number;
     name: string;
@@ -58,7 +52,6 @@ interface ShiftData {
     };
     schedules: Schedule[];
 }
-
 const weekdays = [
     { key: 'Monday', label: 'Segunda' },
     { key: 'Tuesday', label: 'Terça' },
@@ -68,7 +61,6 @@ const weekdays = [
     { key: 'Saturday', label: 'Sábado' },
     { key: 'Sunday', label: 'Domingo' },
 ];
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Cadastro',
@@ -83,59 +75,48 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy/shifts/shift-editor',
     },
 ];
-
 // Função para validar se um intervalo está dentro do horário do turno
 const isBreakValid = (shift: Shift, breakTime: Break): boolean => {
     const shiftStart = new Date(`2000-01-01T${shift.start_time}`);
     const shiftEnd = new Date(`2000-01-01T${shift.end_time}`);
     const breakStart = new Date(`2000-01-01T${breakTime.start_time}`);
     const breakEnd = new Date(`2000-01-01T${breakTime.end_time}`);
-
     // Se o turno termina no dia seguinte
     if (shiftEnd < shiftStart) {
         shiftEnd.setDate(shiftEnd.getDate() + 1);
     }
-
     // Se o intervalo termina no dia seguinte
     if (breakEnd < breakStart) {
         breakEnd.setDate(breakEnd.getDate() + 1);
     }
-
     return breakStart >= shiftStart && breakEnd <= shiftEnd;
 };
-
 // Função para converter horário em minutos
 const timeToMinutes = (time: string): number => {
     const [hours, minutes] = time.split(':').map(Number);
     return hours * 60 + minutes;
 };
-
 // Função para converter minutos em horário
 const minutesToTime = (minutes: number): string => {
     const hours = Math.floor(minutes / 60) % 24;
     const mins = minutes % 60;
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 };
-
 // Função para calcular a duração entre dois horários
 const calculateDuration = (start: string, end: string): number => {
     const startMinutes = timeToMinutes(start);
     const endMinutes = timeToMinutes(end);
-
     // Se o horário final for menor que o inicial, significa que atravessou a meia-noite
     if (endMinutes < startMinutes) {
         return 24 * 60 - startMinutes + endMinutes;
     }
-
     return endMinutes - startMinutes;
 };
-
 // Função para adicionar minutos a um horário
 const addMinutes = (time: string, minutes: number): string => {
     const totalMinutes = timeToMinutes(time) + minutes;
     return minutesToTime(totalMinutes);
 };
-
 // Função para encontrar o maior período sem intervalo
 const findLargestGap = (shift: Shift): { start: string; end: string } | null => {
     if (shift.breaks.length === 0) {
@@ -144,14 +125,11 @@ const findLargestGap = (shift: Shift): { start: string; end: string } | null => 
             end: shift.end_time,
         };
     }
-
     // Ordena os intervalos por horário de início
     const sortedBreaks = [...shift.breaks].sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time));
-
     let largestGap = 0;
     let gapStart = shift.start_time;
     let gapEnd = shift.end_time;
-
     // Verifica o período antes do primeiro intervalo
     const firstGap = calculateDuration(shift.start_time, sortedBreaks[0].start_time);
     if (firstGap > largestGap) {
@@ -159,7 +137,6 @@ const findLargestGap = (shift: Shift): { start: string; end: string } | null => 
         gapStart = shift.start_time;
         gapEnd = sortedBreaks[0].start_time;
     }
-
     // Verifica os períodos entre intervalos
     for (let i = 0; i < sortedBreaks.length - 1; i++) {
         const currentGap = calculateDuration(sortedBreaks[i].end_time, sortedBreaks[i + 1].start_time);
@@ -169,7 +146,6 @@ const findLargestGap = (shift: Shift): { start: string; end: string } | null => 
             gapEnd = sortedBreaks[i + 1].start_time;
         }
     }
-
     // Verifica o período após o último intervalo
     const lastGap = calculateDuration(sortedBreaks[sortedBreaks.length - 1].end_time, shift.end_time);
     if (lastGap > largestGap) {
@@ -177,17 +153,14 @@ const findLargestGap = (shift: Shift): { start: string; end: string } | null => 
         gapStart = sortedBreaks[sortedBreaks.length - 1].end_time;
         gapEnd = shift.end_time;
     }
-
     return largestGap > 0 ? { start: gapStart, end: gapEnd } : null;
 };
-
 // Função para verificar se dois turnos se sobrepõem
 const hasOverlappingShifts = (shift1: Shift, shift2: Shift): boolean => {
     const shift1Start = timeToMinutes(shift1.start_time);
     const shift1End = timeToMinutes(shift1.end_time);
     const shift2Start = timeToMinutes(shift2.start_time);
     const shift2End = timeToMinutes(shift2.end_time);
-
     // Se algum dos turnos atravessa a meia-noite
     if (shift1End < shift1Start) {
         // Verifica se o turno 2 começa antes do turno 1 terminar
@@ -207,31 +180,25 @@ const hasOverlappingShifts = (shift1: Shift, shift2: Shift): boolean => {
         // Caso nenhum dos turnos atravesse a meia-noite
         return shift1Start < shift2End && shift2Start < shift1End;
     }
-
     return false;
 };
-
 // Função para encontrar turnos sobrepostos
 const findOverlappingShifts = (shifts: Shift[], currentShiftIndex: number): number[] => {
     const currentShift = shifts[currentShiftIndex];
     const overlappingIndices: number[] = [];
-
     for (let i = 0; i < shifts.length; i++) {
         if (i !== currentShiftIndex && hasOverlappingShifts(currentShift, shifts[i])) {
             overlappingIndices.push(i);
         }
     }
-
     return overlappingIndices;
 };
-
 // Função para verificar se dois intervalos se sobrepõem
 const hasOverlappingBreaks = (break1: Break, break2: Break): boolean => {
     const break1Start = timeToMinutes(break1.start_time);
     const break1End = timeToMinutes(break1.end_time);
     const break2Start = timeToMinutes(break2.start_time);
     const break2End = timeToMinutes(break2.end_time);
-
     // Se algum dos intervalos atravessa a meia-noite
     if (break1End < break1Start) {
         // Verifica se o intervalo 2 começa antes do intervalo 1 terminar
@@ -251,20 +218,16 @@ const hasOverlappingBreaks = (break1: Break, break2: Break): boolean => {
         // Caso nenhum dos intervalos atravesse a meia-noite
         return break1Start < break2End && break2Start < break1End;
     }
-
     return false;
 };
-
 // Função para verificar se um intervalo está sobrepondo com outros intervalos do mesmo turno
 const isBreakOverlapping = (shift: Shift, currentBreak: Break, currentBreakIndex: number): boolean => {
     return shift.breaks.some((breakTime, index) => index !== currentBreakIndex && hasOverlappingBreaks(currentBreak, breakTime));
 };
-
 interface ShiftFormProps extends CreateProps {
     mode?: 'create' | 'edit';
     shift?: ShiftData;
 }
-
 const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
     const { data, setData, post, put, processing, errors, clearErrors } = useForm<ShiftForm>({
         name: shift?.name || '',
@@ -285,16 +248,13 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                         ],
             })),
     });
-
     const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
     const [selectedDays, setSelectedDays] = useState<string[]>([]);
     const [viewMode, setViewMode] = useState<'timeline' | 'table'>('timeline');
-
     // Função para adicionar um novo turno em um dia específico
     const addShift = (dayIndex: number) => {
         const newSchedules = [...data.schedules];
         const existingShifts = newSchedules[dayIndex].shifts;
-
         // Se não houver turnos, usa o padrão
         if (existingShifts.length === 0) {
             newSchedules[dayIndex].shifts.push({
@@ -307,18 +267,15 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             // Pega o último turno
             const lastShift = existingShifts[existingShifts.length - 1];
             const lastEndTime = lastShift.end_time;
-
             // Calcula o novo horário
             const [lastEndHour, lastEndMinute] = lastEndTime.split(':').map(Number);
             const newStartHour = lastEndHour;
             const newStartMinute = lastEndMinute;
-
             // Calcula o horário de término (9 horas depois)
             let newEndHour = newStartHour + 9;
             if (newEndHour >= 24) {
                 newEndHour -= 24;
             }
-
             // Calcula o horário do intervalo (4 horas depois do início)
             let breakStartHour = newStartHour + 4;
             if (breakStartHour >= 24) {
@@ -328,12 +285,10 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             if (breakEndHour >= 24) {
                 breakEndHour -= 24;
             }
-
             // Formata os horários
             const formatTime = (hour: number, minute: number) => {
                 return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
             };
-
             newSchedules[dayIndex].shifts.push({
                 start_time: formatTime(newStartHour, newStartMinute),
                 end_time: formatTime(newEndHour, newStartMinute),
@@ -346,10 +301,8 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                 ],
             });
         }
-
         setData('schedules', newSchedules);
     };
-
     // Função para remover um turno de um dia específico
     const removeShift = (dayIndex: number, shiftIndex: number) => {
         const newSchedules = data.schedules.map((day, idx) => {
@@ -361,21 +314,17 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             }
             return day;
         });
-
         setData('schedules', newSchedules);
     };
-
     // Função para adicionar um intervalo em um turno específico
     const addBreak = (dayIndex: number, shiftIndex: number) => {
         const newSchedules = [...data.schedules];
         const shift = newSchedules[dayIndex].shifts[shiftIndex];
-
         if (shift.breaks.length === 0) {
             // Se não houver intervalos, adiciona um intervalo de 30 minutos no meio do turno
             const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
             const breakStart = addMinutes(shift.start_time, Math.floor(shiftDuration / 2) - 15);
             const breakEnd = addMinutes(breakStart, 30);
-
             newSchedules[dayIndex].shifts[shiftIndex].breaks.push({
                 start_time: breakStart,
                 end_time: breakEnd,
@@ -383,22 +332,18 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
         } else {
             // Encontra o maior período sem intervalo
             const largestGap = findLargestGap(shift);
-
             if (largestGap) {
                 const gapDuration = calculateDuration(largestGap.start, largestGap.end);
                 const breakStart = addMinutes(largestGap.start, Math.floor(gapDuration / 2) - 7);
                 const breakEnd = addMinutes(breakStart, 15);
-
                 newSchedules[dayIndex].shifts[shiftIndex].breaks.push({
                     start_time: breakStart,
                     end_time: breakEnd,
                 });
             }
         }
-
         setData('schedules', newSchedules);
     };
-
     const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
         const newSchedules = data.schedules.map((day, idx) => {
             if (idx === dayIndex) {
@@ -417,20 +362,16 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             }
             return day;
         });
-
         setData('schedules', newSchedules);
     };
-
     const updateBreak = (dayIndex: number, shiftIndex: number, breakIndex: number, field: keyof Break, value: string) => {
         const newSchedules = [...data.schedules];
         newSchedules[dayIndex].shifts[shiftIndex].breaks[breakIndex][field] = value;
         setData('schedules', newSchedules);
     };
-
     const applyToSelectedDays = () => {
         const sourceDay = data.schedules.find((s) => s.weekday === selectedDay);
         if (!sourceDay) return;
-
         const newSchedules = data.schedules.map((schedule) => {
             if (selectedDays.includes(schedule.weekday)) {
                 // Cria uma cópia profunda do dia de origem
@@ -445,11 +386,9 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             }
             return schedule;
         });
-
         setData('schedules', newSchedules);
         setSelectedDays([]);
     };
-
     const handleSave = () => {
         // Remove os segundos de todos os horários antes de enviar
         const formattedData = {
@@ -467,10 +406,8 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                 })),
             })),
         };
-
         // Atualiza os dados do formulário com os valores formatados
         setData(formattedData);
-
         if (mode === 'create') {
             post(route('asset-hierarchy.shifts.store'), {
                 onSuccess: () => {
@@ -495,16 +432,13 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             });
         }
     };
-
     const isEditing = mode === 'edit';
     const title = isEditing ? 'Editar Turno' : 'Cadastrar Turno';
     const subtitle = isEditing ? 'Edite as configurações do turno' : 'Configure os turnos de trabalho';
     const saveButtonText = isEditing ? 'Salvar Alterações' : 'Salvar';
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={title} />
-
             <CreateLayout
                 title={title}
                 subtitle={subtitle}
@@ -539,7 +473,6 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                     required
                                 />
                             </div>
-
                             {/* Seletor de dias da semana */}
                             <Tabs value={selectedDay} onValueChange={setSelectedDay}>
                                 <TabsList className="grid grid-cols-7 gap-2">
@@ -549,7 +482,6 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                         </TabsTrigger>
                                     ))}
                                 </TabsList>
-
                                 {/* Conteúdo de cada dia da semana */}
                                 {weekdays.map((day, dayIndex) => (
                                     <TabsContent key={day.key} value={day.key} className="!pr-0 !pl-2">
@@ -616,7 +548,6 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                 </Button>
                                             </div>
                                         </div>
-
                                         {/* Lista de turnos do dia */}
                                         {data.schedules[dayIndex].shifts.length === 0 ? (
                                             <div className="bg-muted/50 rounded-lg border p-6 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
@@ -631,7 +562,6 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                         ) : (
                                             data.schedules[dayIndex].shifts.map((shift, shiftIndex) => {
                                                 const overlappingShifts = findOverlappingShifts(data.schedules[dayIndex].shifts, shiftIndex);
-
                                                 return (
                                                     <Card
                                                         key={`shift-${dayIndex}-${shiftIndex}-${shift.start_time}-${shift.end_time}`}
@@ -729,7 +659,6 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                                                 const isOverlapping =
                                                                                     isValidInShift &&
                                                                                     isBreakOverlapping(shift, breakTime, breakIndex);
-
                                                                                 return (
                                                                                     <Card
                                                                                         key={`break-${dayIndex}-${shiftIndex}-${breakIndex}-${breakTime.start_time}-${breakTime.end_time}`}
@@ -817,7 +746,6 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                     </TabsContent>
                                 ))}
                             </Tabs>
-
                             {/* Seção de visualização */}
                             <div className="space-y-4">
                                 {/* Seletor de modo de visualização */}
@@ -833,7 +761,6 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                         </TabsTrigger>
                                     </TabsList>
                                 </Tabs>
-
                                 {/* Visualização dos turnos */}
                                 <div className="relative">
                                     {/* Visualização em timeline */}
@@ -871,5 +798,4 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
         </AppLayout>
     );
 };
-
 export default ShiftForm;

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
 import { Head, Link } from '@inertiajs/react';
-import { ShoppingCart, Factory, Package, History, FileText, BarChart3, Boxes, Ghost, QrCode, Lightbulb, Camera, Search } from 'lucide-react';
+import { ShoppingCart, Factory, Package, Ghost, QrCode, Lightbulb, Camera, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +32,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-
 import { Label } from '@/components/ui/label';
 import {
     Tooltip,
@@ -40,7 +39,6 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-
 interface Props {
     item?: Item;
     whereUsedBoms?: {
@@ -78,9 +76,7 @@ interface Props {
     };
     isCreating?: boolean;
 }
-
 const defaultCategories: ItemCategory[] = [];
-
 // DEPRECATED: item_type is no longer used
 // const defaultItemTypes = [
 //     { id: 1, name: 'Manufaturado', value: 'manufactured' },
@@ -88,14 +84,12 @@ const defaultCategories: ItemCategory[] = [];
 //     { id: 3, name: 'Fantasma', value: 'phantom' },
 //     { id: 4, name: 'Serviço', value: 'service' }
 // ];
-
 const defaultItemStatuses = [
     { id: 1, name: 'Ativo', value: 'active' },
     { id: 2, name: 'Inativo', value: 'inactive' },
     { id: 3, name: 'Protótipo', value: 'prototype' },
     { id: 4, name: 'Descontinuado', value: 'discontinued' }
 ];
-
 // Detail Item Component
 function DetailItem({ label, value, className = "" }: { label: string; value: React.ReactNode; className?: string }) {
     return (
@@ -105,7 +99,6 @@ function DetailItem({ label, value, className = "" }: { label: string; value: Re
         </div>
     );
 }
-
 // Status Badge Component
 function StatusBadge({ status }: { status: string }) {
     const variants: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
@@ -114,21 +107,18 @@ function StatusBadge({ status }: { status: string }) {
         'prototype': 'outline',
         'discontinued': 'destructive'
     };
-
     const labels: Record<string, string> = {
         'active': 'Ativo',
         'inactive': 'Inativo',
         'prototype': 'Protótipo',
         'discontinued': 'Descontinuado'
     };
-
     return (
         <Badge variant={variants[status] || 'default'}>
             {labels[status] || status}
         </Badge>
     );
 }
-
 export default function ItemShow({
     item,
     whereUsedBoms,
@@ -153,15 +143,11 @@ export default function ItemShow({
         };
     }>();
     const userPermissions = page.props.auth?.permissions || [];
-
-
-
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'Itens', href: route('production.items.index') },
         { title: isCreating ? 'Novo Item' : (item?.item_number || 'Item'), href: '' }
     ];
-
     // Form state for creation/editing
     const { data, setData, errors, processing, post, patch, clearErrors } = useForm({
         item_number: item?.item_number || '',
@@ -184,58 +170,44 @@ export default function ItemShow({
         preferred_vendor: item?.preferred_vendor || '',
         vendor_item_number: item?.vendor_item_number || '',
     });
-
     const [isEditMode, setIsEditMode] = useState(isCreating);
     const [isCompressed, setIsCompressed] = useState(false);
     const [categorySheetOpen, setCategorySheetOpen] = useState(false);
     const [generatingQr, setGeneratingQr] = useState(false);
     const [showCategoryWarning, setShowCategoryWarning] = useState(false);
     const [skipWarningChecked, setSkipWarningChecked] = useState(false);
-
     // BOM search and pagination state
     const [bomSearchValue, setBomSearchValue] = useState(bomFilters.bom_search || '');
     const [bomLoading, setBomLoading] = useState(false);
-
     // MO search and pagination state
     const [moSearchValue, setMoSearchValue] = useState(moFilters.mo_search || '');
     const [moLoading, setMoLoading] = useState(false);
-
     // Use categories from props instead of loading via AJAX
     const itemCategories = categories || [];
-
     // Ref for auto-focusing the item number input during creation
     const itemNumberInputRef = useRef<HTMLInputElement>(null);
-
     // Ref for category select
     const categorySelectRef = useRef<HTMLButtonElement>(null);
-
-
-
     // Update edit mode when isCreating prop changes (e.g., after redirect from creation)
     useEffect(() => {
         setIsEditMode(isCreating);
     }, [isCreating]);
-
     // Auto-focus on item number input when creating a new item
     useEffect(() => {
         if (isCreating && itemNumberInputRef.current) {
             itemNumberInputRef.current.focus();
         }
     }, [isCreating]);
-
     // Handle category sheet success - Inertia will reload the page with updated categories
     const handleCategorySheetSuccess = () => {
         setCategorySheetOpen(false);
-
         // Check if we're coming from the warning dialog flow
         const wasFromWarning = showCategoryWarning;
-
         router.reload({
             only: ['categories'],
             onSuccess: (page) => {
                 const updatedCategories = page.props.categories as ItemCategory[];
                 const createdCategoryId = (page.props as any).flash?.created_category_id;
-
                 if (createdCategoryId) {
                     // If we have the created category ID from flash data, use it directly
                     setData('item_category_id', createdCategoryId.toString());
@@ -246,7 +218,6 @@ export default function ItemShow({
                     );
                     setData('item_category_id', newestCategory.id.toString());
                 }
-
                 // If we came from the warning dialog, submit the form automatically
                 if (wasFromWarning) {
                     setShowCategoryWarning(false);
@@ -263,14 +234,11 @@ export default function ItemShow({
             },
         });
     };
-
     const handleGenerateQrTag = async () => {
         if (!item?.id) return;
-
         setGeneratingQr(true);
         try {
             const response = await axios.post(route('production.qr-tags.item', item.id));
-
             if (response.data.success && response.data.pdf_url) {
                 window.open(response.data.pdf_url, '_blank');
                 toast.success('Etiqueta QR gerada com sucesso!');
@@ -281,7 +249,6 @@ export default function ItemShow({
             setGeneratingQr(false);
         }
     };
-
     const submitForm = () => {
         if (isCreating) {
             post(route('production.items.store'), {
@@ -301,31 +268,25 @@ export default function ItemShow({
             });
         }
     };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         // Check if category is empty and warning not skipped
         const skipWarning = localStorage.getItem('skipCategoryWarning') === 'true';
         if (!data.item_category_id && !skipWarning) {
             setShowCategoryWarning(true);
             return;
         }
-
         submitForm();
     };
-
     const handleDelete = () => {
         if (item && confirm('Tem certeza que deseja excluir este item?')) {
             router.delete(route('production.items.destroy', item.id));
         }
     };
-
     const handleCategoryWarningAction = (action: 'continue' | 'select' | 'create') => {
         if (skipWarningChecked) {
             localStorage.setItem('skipCategoryWarning', 'true');
         }
-
         switch (action) {
             case 'continue':
                 // Continue without category
@@ -355,13 +316,10 @@ export default function ItemShow({
                 break;
         }
     };
-
     // Debounced search implementation
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
     const performBomSearch = useCallback((searchValue: string) => {
         if (!item?.id) return;
-
         setBomLoading(true);
         router.get(route('production.items.show', item.id), {
             bom_search: searchValue,
@@ -373,22 +331,18 @@ export default function ItemShow({
             onFinish: () => setBomLoading(false)
         });
     }, [item?.id, bomFilters.bom_per_page]);
-
     // BOM search handler with debounce
     const handleBomSearchChange = useCallback((value: string) => {
         setBomSearchValue(value);
-
         // Clear previous timer
         if (debounceTimer.current) {
             clearTimeout(debounceTimer.current);
         }
-
         // Set new timer for 300ms delay
         debounceTimer.current = setTimeout(() => {
             performBomSearch(value);
         }, 300);
     }, [performBomSearch]);
-
     // Cleanup timer on unmount
     useEffect(() => {
         return () => {
@@ -397,10 +351,8 @@ export default function ItemShow({
             }
         };
     }, []);
-
     const handleBomPageChange = (page: number) => {
         if (!item?.id) return;
-
         setBomLoading(true);
         router.get(route('production.items.show', item.id), {
             ...bomFilters,
@@ -412,10 +364,8 @@ export default function ItemShow({
             onFinish: () => setBomLoading(false)
         });
     };
-
     const handleBomPerPageChange = (perPage: number) => {
         if (!item?.id) return;
-
         setBomLoading(true);
         router.get(route('production.items.show', item.id), {
             ...bomFilters,
@@ -427,13 +377,10 @@ export default function ItemShow({
             onFinish: () => setBomLoading(false)
         });
     };
-
     // Manufacturing Orders search and pagination handlers
     const moDebounceTimer = useRef<NodeJS.Timeout | null>(null);
-
     const performMoSearch = useCallback((searchValue: string) => {
         if (!item?.id) return;
-
         setMoLoading(true);
         router.get(route('production.items.show', item.id), {
             mo_search: searchValue,
@@ -445,22 +392,17 @@ export default function ItemShow({
             onFinish: () => setMoLoading(false)
         });
     }, [item?.id, moFilters.mo_per_page]);
-
     const handleMoSearchChange = useCallback((value: string) => {
         setMoSearchValue(value);
-
         if (moDebounceTimer.current) {
             clearTimeout(moDebounceTimer.current);
         }
-
         moDebounceTimer.current = setTimeout(() => {
             performMoSearch(value);
         }, 300);
     }, [performMoSearch]);
-
     const handleMoPageChange = (page: number) => {
         if (!item?.id) return;
-
         setMoLoading(true);
         router.get(route('production.items.show', item.id), {
             ...moFilters,
@@ -472,10 +414,8 @@ export default function ItemShow({
             onFinish: () => setMoLoading(false)
         });
     };
-
     const handleMoPerPageChange = (perPage: number) => {
         if (!item?.id) return;
-
         setMoLoading(true);
         router.get(route('production.items.show', item.id), {
             ...moFilters,
@@ -487,7 +427,6 @@ export default function ItemShow({
             onFinish: () => setMoLoading(false)
         });
     };
-
     // Cleanup MO timer on unmount
     useEffect(() => {
         return () => {
@@ -496,7 +435,6 @@ export default function ItemShow({
             }
         };
     }, []);
-
     const tabs = [
         {
             id: 'overview',
@@ -527,7 +465,6 @@ export default function ItemShow({
                                     view={!isEditMode}
                                 />
                             </div>
-
                             {/* Description */}
                             <div className="grid gap-2">
                                 <label className="text-sm font-medium">Descrição</label>
@@ -552,7 +489,6 @@ export default function ItemShow({
                                 )}
                             </div>
                         </div>
-
                         {/* Classification */}
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -606,7 +542,6 @@ export default function ItemShow({
                                 />
                             </div>
                         </div>
-
                         {/* Physical & Operational Attributes */}
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -628,7 +563,6 @@ export default function ItemShow({
                                 />
                             </div>
                         </div>
-
                         {/* Capabilities and Associated Fields */}
                         <div className="grid grid-cols-1 lg:grid-cols-4">
                             {/* Manufacturing Capability */}
@@ -664,7 +598,6 @@ export default function ItemShow({
                                         variant="default"
                                     />
                                 )}
-
                                 {data.can_be_manufactured && (
                                     <div className="space-y-3">
                                         <TextInput
@@ -686,7 +619,6 @@ export default function ItemShow({
                                     </div>
                                 )}
                             </div>
-
                             {/* Purchasing Capability */}
                             <div className={cn(
                                 "space-y-4 lg:px-4",
@@ -720,7 +652,6 @@ export default function ItemShow({
                                         variant="default"
                                     />
                                 )}
-
                                 {data.can_be_purchased && (
                                     <div className="space-y-3">
                                         <TextInput
@@ -758,7 +689,6 @@ export default function ItemShow({
                                     </div>
                                 )}
                             </div>
-
                             {/* Sales Capability */}
                             <div className={cn(
                                 "space-y-4 lg:px-4",
@@ -792,7 +722,6 @@ export default function ItemShow({
                                         variant="default"
                                     />
                                 )}
-
                                 {data.can_be_sold && (
                                     <div className="space-y-3">
                                         <TextInput
@@ -806,7 +735,6 @@ export default function ItemShow({
                                     </div>
                                 )}
                             </div>
-
                             {/* Phantom Item Capability */}
                             <div className="space-y-4 lg:pl-4">
                                 {isEditMode ? (
@@ -846,7 +774,6 @@ export default function ItemShow({
                                         variant="default"
                                     />
                                 )}
-
                                 {data.is_phantom && (
                                     <div className="p-3 bg-muted/50 rounded-md">
                                         <p className="text-sm text-muted-foreground">
@@ -856,7 +783,6 @@ export default function ItemShow({
                                 )}
                             </div>
                         </div>
-
                         {isEditMode && (
                             <div className="flex justify-end gap-4 pt-4">
                                 {!isCreating && (
@@ -875,7 +801,6 @@ export default function ItemShow({
                             </div>
                         )}
                     </form>
-
                     {!isEditMode && !isCreating && can.update && (
                         <div className="flex justify-end mt-6">
                             <Button onClick={() => setIsEditMode(true)}>
@@ -906,7 +831,6 @@ export default function ItemShow({
                                             className="pl-8"
                                         />
                                     </div>
-
                                     <EntityDataTable
                                         data={whereUsedBoms.data as any[]}
                                         columns={[
@@ -914,7 +838,7 @@ export default function ItemShow({
                                                 key: 'bom_number',
                                                 label: 'BOM',
                                                 sortable: true,
-                                                render: (value: any, row: any) => {
+                                                render: (value: unknown, row: Record<string, unknown>) => {
                                                     const bom = row as BillOfMaterial;
                                                     return (
                                                         <div>
@@ -927,7 +851,7 @@ export default function ItemShow({
                                             {
                                                 key: 'output_item',
                                                 label: 'Item Produzido',
-                                                render: (value: any, row: any) => {
+                                                render: (value: unknown, row: Record<string, unknown>) => {
                                                     const bom = row as BillOfMaterial;
                                                     return (
                                                         <div>
@@ -940,7 +864,7 @@ export default function ItemShow({
                                             {
                                                 key: 'is_active',
                                                 label: 'Status',
-                                                render: (value: any, row: any) => {
+                                                render: (value: unknown, row: Record<string, unknown>) => {
                                                     const bom = row as BillOfMaterial;
                                                     return (
                                                         <div className="flex justify-center">
@@ -955,7 +879,7 @@ export default function ItemShow({
                                             {
                                                 key: 'current_version',
                                                 label: 'Versão',
-                                                render: (value: any, row: any) => {
+                                                render: (value: unknown, row: Record<string, unknown>) => {
                                                     const bom = row as BillOfMaterial;
                                                     return <div className="text-center">{bom.current_version?.version_number || '1'}</div>;
                                                 },
@@ -963,13 +887,12 @@ export default function ItemShow({
                                             },
                                         ]}
                                         loading={bomLoading}
-                                        onRowClick={(row: any) => {
+                                        onRowClick={(row: Record<string, unknown>) => {
                                             const bom = row as BillOfMaterial;
                                             router.visit(route('production.bom.show', bom.id));
                                         }}
                                         emptyMessage="Este item não é usado em nenhuma BOM no momento."
                                     />
-
                                     {whereUsedBoms.total > 0 && (
                                         <EntityPagination
                                             pagination={{
@@ -1012,7 +935,6 @@ export default function ItemShow({
                                             className="pl-8"
                                         />
                                     </div>
-
                                     <EntityDataTable
                                         data={manufacturingOrders.data as any[]}
                                         columns={[
@@ -1024,7 +946,7 @@ export default function ItemShow({
                                             {
                                                 key: 'status',
                                                 label: 'Status',
-                                                render: (value: any, row: any) => {
+                                                render: (value: unknown, row: Record<string, unknown>) => {
                                                     const mo = row as ManufacturingOrder;
                                                     const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
                                                         'draft': { label: 'Rascunho', variant: 'secondary' },
@@ -1048,7 +970,7 @@ export default function ItemShow({
                                             {
                                                 key: 'quantity',
                                                 label: 'Quantidade',
-                                                render: (value: any, row: any) => {
+                                                render: (value: unknown, row: Record<string, unknown>) => {
                                                     const mo = row as ManufacturingOrder;
                                                     return (
                                                         <div className="text-center">
@@ -1061,7 +983,7 @@ export default function ItemShow({
                                             {
                                                 key: 'bill_of_material',
                                                 label: 'BOM',
-                                                render: (value: any, row: any) => {
+                                                render: (value: unknown, row: Record<string, unknown>) => {
                                                     const mo = row as ManufacturingOrder;
                                                     return mo.bill_of_material ? (
                                                         <div>
@@ -1076,7 +998,7 @@ export default function ItemShow({
                                             {
                                                 key: 'planned_start_date',
                                                 label: 'Data Planejada',
-                                                render: (value: any, row: any) => {
+                                                render: (value: unknown, row: Record<string, unknown>) => {
                                                     const mo = row as ManufacturingOrder;
                                                     if (!mo.planned_start_date) return <div className="text-center">—</div>;
                                                     return <div className="text-center">{new Date(mo.planned_start_date).toLocaleDateString('pt-BR')}</div>;
@@ -1086,7 +1008,7 @@ export default function ItemShow({
                                             {
                                                 key: 'created_at',
                                                 label: 'Criada em',
-                                                render: (value: any, row: any) => {
+                                                render: (value: unknown, row: Record<string, unknown>) => {
                                                     const mo = row as ManufacturingOrder;
                                                     return <div className="text-center">{new Date(mo.created_at).toLocaleDateString('pt-BR')}</div>;
                                                 },
@@ -1094,13 +1016,12 @@ export default function ItemShow({
                                             },
                                         ]}
                                         loading={moLoading}
-                                        onRowClick={(row: any) => {
+                                        onRowClick={(row: Record<string, unknown>) => {
                                             const mo = row as ManufacturingOrder;
                                             router.visit(route('production.manufacturing-orders.show', mo.id));
                                         }}
                                         emptyMessage="Este item não possui ordens de manufatura."
                                     />
-
                                     {manufacturingOrders.total > 0 && (
                                         <EntityPagination
                                             pagination={{
@@ -1147,7 +1068,6 @@ export default function ItemShow({
                                     />
                                 )}
                             </div>
-
                             {can?.update && (
                                 <div>
                                     <h3 className="text-lg font-medium mb-2">Enviar Imagens</h3>
@@ -1166,7 +1086,6 @@ export default function ItemShow({
                 },
             ]),
     ];
-
     // DEPRECATED: item_type is no longer used
     // Item type labels
     // const itemTypeLabels: Record<string, string> = {
@@ -1176,11 +1095,9 @@ export default function ItemShow({
     //     phantom: 'Fantasma',
     //     service: 'Serviço'
     // };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isCreating ? 'Novo Item' : `Item ${item?.item_number}`} />
-
             <ShowLayout
                 title={isCreating ? 'Novo Item' : item?.name || 'Item'}
                 subtitle={
@@ -1208,7 +1125,6 @@ export default function ItemShow({
                     )
                 }
             />
-
             {/* Category Creation Sheet */}
             <CreateItemCategorySheet
                 open={categorySheetOpen}
@@ -1216,7 +1132,6 @@ export default function ItemShow({
                 onSuccess={handleCategorySheetSuccess}
                 mode="create"
             />
-
             {/* Category Warning Dialog */}
             <Dialog open={showCategoryWarning} onOpenChange={setShowCategoryWarning}>
                 <DialogContent className="sm:max-w-[500px]">
@@ -1230,13 +1145,11 @@ export default function ItemShow({
                             atribuindo rotas de produção baseadas em templates pré-configurados.
                         </DialogDescription>
                     </DialogHeader>
-
                     <div className="space-y-2 pt-4">
                         <p className="text-sm text-muted-foreground">
                             Deseja continuar sem categoria?
                         </p>
                     </div>
-
                     <div className="py-4 space-y-3">
                         <Button
                             className="w-full justify-start"
@@ -1259,7 +1172,6 @@ export default function ItemShow({
                         >
                             Criar nova categoria
                         </Button>
-
                         <div className="flex items-center space-x-2 pt-2">
                             <Checkbox
                                 id="skip-warning"
@@ -1274,7 +1186,6 @@ export default function ItemShow({
                             </Label>
                         </div>
                     </div>
-
                     <DialogFooter>
                         <Button
                             variant="outline"

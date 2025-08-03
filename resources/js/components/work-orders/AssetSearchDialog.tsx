@@ -12,7 +12,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Search, MapPin, Clock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
 interface Asset {
     id: number;
     tag: string;
@@ -27,7 +26,6 @@ interface Asset {
     last_maintenance_at?: string;
     pending_work_orders_count?: number;
 }
-
 interface AssetSearchDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -38,7 +36,6 @@ interface AssetSearchDialogProps {
     selectedAssetId?: string;
     onSelectAsset: (assetId: string) => void;
 }
-
 export function AssetSearchDialog({
     open,
     onOpenChange,
@@ -51,31 +48,26 @@ export function AssetSearchDialog({
 }: AssetSearchDialogProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedId, setSelectedId] = useState<string>(selectedAssetId || '');
-
     // Reset selected ID when dialog opens with a new selection
     useEffect(() => {
         if (open && selectedAssetId) {
             setSelectedId(selectedAssetId);
         }
     }, [open, selectedAssetId]);
-
     // Build complete asset data with location names
     const enrichedAssets = useMemo(() => {
         if (!assets || !Array.isArray(assets)) {
             return [];
         }
-
         return assets.filter(asset => asset && typeof asset.id !== 'undefined').map(asset => {
             const plant = plants?.find(p => p.id === asset.plant_id);
             const area = areas?.find(a => a.id === asset.area_id);
             const sector = asset.sector_id ? sectors?.find(s => s.id === asset.sector_id) : null;
-
             const locationParts = [
                 plant?.name,
                 area?.name,
                 sector?.name
             ].filter(Boolean);
-
             return {
                 ...asset,
                 tag: asset.tag || 'N/A',
@@ -87,13 +79,11 @@ export function AssetSearchDialog({
             };
         });
     }, [assets, plants, areas, sectors]);
-
     // Filter assets based on search query
     const filteredAssets = useMemo(() => {
         if (!searchQuery.trim()) {
             return enrichedAssets;
         }
-
         const query = searchQuery.toLowerCase();
         return enrichedAssets.filter(asset => {
             return (
@@ -103,14 +93,12 @@ export function AssetSearchDialog({
             );
         });
     }, [enrichedAssets, searchQuery]);
-
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Escape') {
             e.preventDefault();
             handleCancel();
         }
     };
-
     const handleSelect = () => {
         if (selectedId) {
             onSelectAsset(selectedId);
@@ -118,13 +106,11 @@ export function AssetSearchDialog({
             setSearchQuery('');
         }
     };
-
     const handleCancel = () => {
         onOpenChange(false);
         setSearchQuery('');
         setSelectedId(selectedAssetId || '');
     };
-
     const getStatusColor = (status?: string) => {
         switch (status) {
             case 'operational':
@@ -137,7 +123,6 @@ export function AssetSearchDialog({
                 return 'bg-gray-400';
         }
     };
-
     const getStatusLabel = (status?: string) => {
         switch (status) {
             case 'operational':
@@ -150,7 +135,6 @@ export function AssetSearchDialog({
                 return 'Desconhecido';
         }
     };
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl" onKeyDown={handleKeyDown}>
@@ -160,7 +144,6 @@ export function AssetSearchDialog({
                         Busque e selecione um ativo para a ordem de serviço
                     </DialogDescription>
                 </DialogHeader>
-
                 <div className="space-y-4">
                     {/* Search Input */}
                     <div className="relative">
@@ -174,7 +157,6 @@ export function AssetSearchDialog({
                             onKeyDown={handleKeyDown}
                         />
                     </div>
-
                     {/* Results */}
                     <ScrollArea className="h-[400px] rounded-md border">
                         <div className="p-2">
@@ -214,14 +196,12 @@ export function AssetSearchDialog({
                                                         </Badge>
                                                     )}
                                                 </div>
-
                                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                                     <div className="flex items-center gap-1">
                                                         <MapPin className="h-3 w-3" />
                                                         <span>{asset.locationPath}</span>
                                                     </div>
                                                 </div>
-
                                                 {/* Additional info if available */}
                                                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                                     {asset.last_maintenance_at && (
@@ -248,7 +228,6 @@ export function AssetSearchDialog({
                             )}
                         </div>
                     </ScrollArea>
-
                     {/* Footer */}
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">

@@ -21,7 +21,6 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-
 interface WorkOrderScheduleTabProps {
     workOrder: any;
     technicians?: any[];
@@ -29,7 +28,6 @@ interface WorkOrderScheduleTabProps {
     canSchedule: boolean;
     discipline: 'maintenance' | 'quality';
 }
-
 export function WorkOrderScheduleTab({
     workOrder,
     technicians = [],
@@ -37,9 +35,18 @@ export function WorkOrderScheduleTab({
     canSchedule,
     discipline,
 }: WorkOrderScheduleTabProps) {
+    // Initialize hooks before any conditional returns
+    const [startDatePickerOpen, setStartDatePickerOpen] = useState(false);
+    const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
+    const { data, setData, post, put, processing, errors } = useForm({
+        scheduled_start_date: workOrder.scheduled_start_date || '',
+        scheduled_end_date: workOrder.scheduled_end_date || '',
+        assigned_team_id: workOrder.assigned_team_id?.toString() || '',
+        assigned_technician_id: workOrder.assigned_technician_id?.toString() || '',
+    });
+    const isViewMode = !canSchedule || !['planned', 'scheduled'].includes(workOrder.status);
     // Check if work order is in a state that allows scheduling
     const canShowSchedule = ['planned', 'scheduled', 'in_progress', 'completed'].includes(workOrder.status);
-
     if (!canShowSchedule) {
         return (
             <div className="py-12">
@@ -51,19 +58,6 @@ export function WorkOrderScheduleTab({
             </div>
         );
     }
-
-    const [startDatePickerOpen, setStartDatePickerOpen] = useState(false);
-    const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
-
-    const { data, setData, post, put, processing, errors } = useForm({
-        scheduled_start_date: workOrder.scheduled_start_date || '',
-        scheduled_end_date: workOrder.scheduled_end_date || '',
-        assigned_team_id: workOrder.assigned_team_id?.toString() || '',
-        assigned_technician_id: workOrder.assigned_technician_id?.toString() || '',
-    });
-
-    const isViewMode = !canSchedule || !['planned', 'scheduled'].includes(workOrder.status);
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (workOrder.status === 'planned') {
@@ -72,14 +66,11 @@ export function WorkOrderScheduleTab({
             put(route(`${discipline}.work-orders.schedule.update`, workOrder.id));
         }
     };
-
     const handleCompleteScheduling = () => {
         const saveRoute = workOrder.status === 'planned'
             ? route(`${discipline}.work-orders.schedule.store`, workOrder.id)
             : route(`${discipline}.work-orders.schedule.update`, workOrder.id);
-
         const saveMethod = workOrder.status === 'planned' ? post : put;
-
         saveMethod(saveRoute, {
             ...data,
             preserveScroll: true,
@@ -88,18 +79,14 @@ export function WorkOrderScheduleTab({
             }
         });
     };
-
     // Helper functions for date/time handling
     const parseDateTime = (dateTimeString: string) => {
         if (!dateTimeString) return { date: undefined, time: '' };
-
         // Parse datetime-local format directly without timezone conversion
         const [datePart, timePart] = dateTimeString.split('T');
         const [year, month, day] = datePart.split('-').map(Number);
-
         // Create date using local timezone (no conversion)
         const date = new Date(year, month - 1, day);
-
         // Clean up time part - remove timezone indicator and microseconds
         let cleanTime = timePart || '12:00:00';
         if (cleanTime) {
@@ -110,29 +97,22 @@ export function WorkOrderScheduleTab({
                 cleanTime = `${timeParts[0]}:${timeParts[1]}:00`;
             }
         }
-
         return {
             date: date,
             time: cleanTime
         };
     };
-
     const combineDateTime = (date: Date | undefined, time: string) => {
         if (!date || !time) return '';
-
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
-
         const [hours, minutes, seconds = '00'] = time.split(':');
         const formattedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
-
         return `${year}-${month}-${day}T${formattedTime}`;
     };
-
     const startDateTime = parseDateTime(data.scheduled_start_date);
     const endDateTime = parseDateTime(data.scheduled_end_date);
-
     return (
         <div className="space-y-6 py-6">
             {!canSchedule && ['planned', 'scheduled'].includes(workOrder.status) && (
@@ -143,7 +123,6 @@ export function WorkOrderScheduleTab({
                     </AlertDescription>
                 </Alert>
             )}
-
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Schedule Planning */}
                 <div className="space-y-4">
@@ -153,7 +132,6 @@ export function WorkOrderScheduleTab({
                             Defina quando e quem executará o trabalho
                         </p>
                     </div>
-
                     <div className="grid gap-4 md:grid-cols-2">
                         {/* Start Date/Time */}
                         <div className="space-y-2">
@@ -218,7 +196,6 @@ export function WorkOrderScheduleTab({
                                 <span className="text-sm text-red-500">{errors.scheduled_start_date}</span>
                             )}
                         </div>
-
                         {/* End Date/Time */}
                         <div className="space-y-2">
                             <Label htmlFor="scheduled_end_date">
@@ -283,7 +260,6 @@ export function WorkOrderScheduleTab({
                             )}
                         </div>
                     </div>
-
                     <div className="grid gap-4 md:grid-cols-2">
                         <ItemSelect
                             label="Equipe Responsável"
@@ -298,7 +274,6 @@ export function WorkOrderScheduleTab({
                             canClear
                             icon={Users}
                         />
-
                         <ItemSelect
                             label="Técnico Principal"
                             items={technicians.map(tech => ({
@@ -314,7 +289,6 @@ export function WorkOrderScheduleTab({
                         />
                     </div>
                 </div>
-
                 {/* Action Buttons */}
                 {canSchedule && ['planned', 'scheduled'].includes(workOrder.status) && (
                     <div className="flex justify-end gap-2 pt-4">

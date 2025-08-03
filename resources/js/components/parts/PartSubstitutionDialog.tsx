@@ -8,7 +8,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, AlertCircle } from 'lucide-react';
-
 interface Part {
     id: number;
     part_number: string;
@@ -16,14 +15,12 @@ interface Part {
     available_quantity: number;
     minimum_quantity: number;
 }
-
 interface WorkOrder {
     id: number;
     title: string;
     status: string;
     quantity: number;
 }
-
 interface DependencyResult {
     can_delete: boolean;
     dependencies: {
@@ -33,7 +30,6 @@ interface DependencyResult {
         };
     };
 }
-
 interface PartSubstitutionDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -42,7 +38,6 @@ interface PartSubstitutionDialogProps {
     availableParts: Part[];
     onConfirm: (substitutePart: Part, updateMode: 'all' | 'selected', selectedIds: number[]) => void;
 }
-
 export function PartSubstitutionDialog({ 
     open, 
     onOpenChange, 
@@ -55,15 +50,11 @@ export function PartSubstitutionDialog({
     const [updateMode, setUpdateMode] = useState<'all' | 'selected'>('all');
     const [selectedWorkOrderIds, setSelectedWorkOrderIds] = useState<number[]>([]);
     const [processing, setProcessing] = useState(false);
-    
     // Filter out the current part from available substitutes
     const substituteParts = availableParts.filter(p => p.id !== part.id);
-    
     const workOrders = dependencies.dependencies.work_orders?.items || [];
-    
     const handleConfirm = async () => {
         if (!substitutePart) return;
-        
         setProcessing(true);
         try {
             await onConfirm(
@@ -76,7 +67,6 @@ export function PartSubstitutionDialog({
             setProcessing(false);
         }
     };
-
     const toggleWorkOrderSelection = (workOrderId: number) => {
         setSelectedWorkOrderIds(current => {
             if (current.includes(workOrderId)) {
@@ -85,7 +75,6 @@ export function PartSubstitutionDialog({
             return [...current, workOrderId];
         });
     };
-
     const toggleAllWorkOrders = () => {
         if (selectedWorkOrderIds.length === workOrders.length) {
             setSelectedWorkOrderIds([]);
@@ -93,7 +82,6 @@ export function PartSubstitutionDialog({
             setSelectedWorkOrderIds(workOrders.map(wo => wo.id));
         }
     };
-    
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-3xl">
@@ -107,7 +95,6 @@ export function PartSubstitutionDialog({
                         Selecione uma peça substituta antes de excluir.
                     </DialogDescription>
                 </DialogHeader>
-                
                 <div className="space-y-4">
                     {/* Part selection */}
                     <div>
@@ -139,7 +126,6 @@ export function PartSubstitutionDialog({
                             </SelectContent>
                         </Select>
                     </div>
-                    
                     {/* Update mode selection */}
                     <div className="space-y-3">
                         <Label>Modo de Atualização</Label>
@@ -153,7 +139,6 @@ export function PartSubstitutionDialog({
                                     </div>
                                 </label>
                             </div>
-                            
                             <div className="flex items-start space-x-3">
                                 <RadioGroupItem value="selected" id="update-selected" />
                                 <label htmlFor="update-selected" className="cursor-pointer">
@@ -165,7 +150,6 @@ export function PartSubstitutionDialog({
                             </div>
                         </RadioGroup>
                     </div>
-                    
                     {/* Work order selection (when mode is 'selected') */}
                     {updateMode === 'selected' && (
                         <div className="space-y-2">
@@ -179,7 +163,6 @@ export function PartSubstitutionDialog({
                                     {selectedWorkOrderIds.length === workOrders.length ? 'Desmarcar Todas' : 'Selecionar Todas'}
                                 </Button>
                             </div>
-                            
                             <div className="max-h-48 overflow-y-auto space-y-2 border rounded-lg p-2">
                                 {workOrders.map((wo) => (
                                     <label
@@ -201,7 +184,6 @@ export function PartSubstitutionDialog({
                             </div>
                         </div>
                     )}
-                    
                     {/* Warning message */}
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
@@ -211,7 +193,6 @@ export function PartSubstitutionDialog({
                         </AlertDescription>
                     </Alert>
                 </div>
-                
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
                         Cancelar

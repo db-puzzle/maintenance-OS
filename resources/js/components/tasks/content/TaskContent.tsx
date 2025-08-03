@@ -6,9 +6,7 @@ import MeasurementTaskContent from './MeasurementTaskContent';
 import MultipleChoiceTaskContent from './MultipleChoiceTaskContent';
 import PhotoTaskContent from './PhotoTaskContent';
 import QuestionTaskContent from './QuestionTaskContent';
-
 export type TaskCardMode = 'edit' | 'preview' | 'respond';
-
 interface TaskContentProps {
     /** A tarefa a ser exibida */
     task: Task;
@@ -29,15 +27,12 @@ interface TaskContentProps {
     /** Callback para navegar para próxima tarefa */
     onNext?: () => void;
 }
-
 function TaskContent({ task, mode, onUpdate, onIconChange, onSave, showSaveButton, disabled, isLastTask, onNext }: TaskContentProps) {
     // Verifica se a tarefa existe
     if (!task) {
         return <div className="text-muted-foreground p-4">Tarefa não encontrada</div>;
     }
-
     const props = { task, mode, onUpdate, onSave, showSaveButton, disabled, isLastTask, onNext };
-
     // Seleciona o componente com base no tipo de tarefa
     switch (task.type) {
         case 'question':
@@ -61,5 +56,4 @@ function TaskContent({ task, mode, onUpdate, onIconChange, onSave, showSaveButto
             );
     }
 }
-
 export default memo(TaskContent);

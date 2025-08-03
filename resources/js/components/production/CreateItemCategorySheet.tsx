@@ -6,14 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ItemCategory } from '@/types/production';
-
 interface ItemCategoryForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
     description: string;
     is_active: boolean;
 }
-
 interface CreateItemCategorySheetProps {
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -25,7 +23,6 @@ interface CreateItemCategorySheetProps {
     category?: ItemCategory;
     mode?: 'create' | 'edit';
 }
-
 const CreateItemCategorySheet: React.FC<CreateItemCategorySheetProps> = ({
     open: controlledOpen,
     onOpenChange,
@@ -38,7 +35,6 @@ const CreateItemCategorySheet: React.FC<CreateItemCategorySheetProps> = ({
     mode = 'create',
 }) => {
     const nameInputRef = useRef<HTMLInputElement>(null);
-
     // Auto-focus the name input when sheet opens for creation
     useEffect(() => {
         if (controlledOpen && mode === 'create') {
@@ -51,24 +47,20 @@ const CreateItemCategorySheet: React.FC<CreateItemCategorySheetProps> = ({
                     }
                 });
             };
-
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
             const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
-
             // Cleanup timeouts
             return () => {
                 timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [controlledOpen, mode]);
-
     // Handle onOpenChange to focus when sheet opens
     const handleOpenChange = (open: boolean) => {
         if (onOpenChange) {
             onOpenChange(open);
         }
-
         // Focus the input when opening in create mode
         if (open && mode === 'create') {
             setTimeout(() => {
@@ -76,7 +68,6 @@ const CreateItemCategorySheet: React.FC<CreateItemCategorySheetProps> = ({
             }, 100);
         }
     };
-
     return (
         <BaseEntitySheet<ItemCategoryForm>
             entity={category}
@@ -117,7 +108,6 @@ const CreateItemCategorySheet: React.FC<CreateItemCategorySheetProps> = ({
                         placeholder="Nome da categoria"
                         required
                     />
-
                     {/* Descrição */}
                     <div className="space-y-2">
                         <Label htmlFor="description" className="text-muted-foreground text-sm">
@@ -132,7 +122,6 @@ const CreateItemCategorySheet: React.FC<CreateItemCategorySheetProps> = ({
                         />
                         {errors.description && <p className="text-destructive text-sm">{errors.description}</p>}
                     </div>
-
                     {/* Status */}
                     <div className="flex items-center space-x-2">
                         <Checkbox
@@ -152,5 +141,4 @@ const CreateItemCategorySheet: React.FC<CreateItemCategorySheetProps> = ({
         </BaseEntitySheet>
     );
 };
-
 export default CreateItemCategorySheet; 

@@ -12,7 +12,6 @@ import { useForm } from '@inertiajs/react';
 import { AlertCircle, AlertTriangle, Clock, Copy, Plus, Table, Trash2, ChevronsUpDown, Check } from 'lucide-react';
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
 import ShiftCalendarView from '@/components/ShiftCalendarView';
 import ShiftTableView from '@/components/ShiftTableView';
 import axios from 'axios';
@@ -22,24 +21,20 @@ import { cn } from '@/lib/utils';
 import InputError from '@/components/input-error';
 import { ShiftUpdateConfirmationDialog } from '@/components/work-orders/ShiftUpdateConfirmationDialog';
 import { Checkbox } from '@/components/ui/checkbox';
-
 interface Break {
     start_time: string;
     end_time: string;
 }
-
 interface Shift {
     start_time: string;
     end_time: string;
     active: boolean;
     breaks: Break[];
 }
-
 interface Schedule {
     weekday: string;
     shifts: Shift[];
 }
-
 interface AffectedAsset {
     id: number;
     tag: string;
@@ -50,7 +45,6 @@ interface AffectedAsset {
     sector: string | null;
     current_runtime_hours: number;
 }
-
 interface CreateShiftSheetProps {
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -66,12 +60,10 @@ interface CreateShiftSheetProps {
     };
     currentAssetId?: number;
 }
-
 // Create a proper type for the form data
 interface ShiftFormWithTimezone extends ShiftForm {
     timezone: string;
 }
-
 const weekdays = [
     { key: 'Monday', label: 'Segunda' },
     { key: 'Tuesday', label: 'Terça' },
@@ -81,55 +73,44 @@ const weekdays = [
     { key: 'Saturday', label: 'Sábado' },
     { key: 'Sunday', label: 'Domingo' },
 ];
-
 // Helper functions from shift-editor.tsx
 const isBreakValid = (shift: Shift, breakTime: Break): boolean => {
     const shiftStart = new Date(`2000-01-01T${shift.start_time}`);
     const shiftEnd = new Date(`2000-01-01T${shift.end_time}`);
     const breakStart = new Date(`2000-01-01T${breakTime.start_time}`);
     const breakEnd = new Date(`2000-01-01T${breakTime.end_time}`);
-
     // Se o turno termina no dia seguinte
     if (shiftEnd < shiftStart) {
         shiftEnd.setDate(shiftEnd.getDate() + 1);
     }
-
     // Se o intervalo termina no dia seguinte
     if (breakEnd < breakStart) {
         breakEnd.setDate(breakEnd.getDate() + 1);
     }
-
     return breakStart >= shiftStart && breakEnd <= shiftEnd;
 };
-
 const timeToMinutes = (time: string): number => {
     const [hours, minutes] = time.split(':').map(Number);
     return hours * 60 + minutes;
 };
-
 const minutesToTime = (minutes: number): string => {
     const hours = Math.floor(minutes / 60) % 24;
     const mins = minutes % 60;
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 };
-
 const calculateDuration = (start: string, end: string): number => {
     const startMinutes = timeToMinutes(start);
     const endMinutes = timeToMinutes(end);
-
     // Se o horário final for menor que o inicial, significa que atravessou a meia-noite
     if (endMinutes < startMinutes) {
         return 24 * 60 - startMinutes + endMinutes;
     }
-
     return endMinutes - startMinutes;
 };
-
 const addMinutes = (time: string, minutes: number): string => {
     const totalMinutes = timeToMinutes(time) + minutes;
     return minutesToTime(totalMinutes);
 };
-
 const findLargestGap = (shift: Shift): { start: string; end: string } | null => {
     if (shift.breaks.length === 0) {
         return {
@@ -137,14 +118,11 @@ const findLargestGap = (shift: Shift): { start: string; end: string } | null => 
             end: shift.end_time,
         };
     }
-
     // Ordena os intervalos por horário de início
     const sortedBreaks = [...shift.breaks].sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time));
-
     let largestGap = 0;
     let gapStart = shift.start_time;
     let gapEnd = shift.end_time;
-
     // Verifica o período antes do primeiro intervalo
     const firstGap = calculateDuration(shift.start_time, sortedBreaks[0].start_time);
     if (firstGap > largestGap) {
@@ -152,7 +130,6 @@ const findLargestGap = (shift: Shift): { start: string; end: string } | null => 
         gapStart = shift.start_time;
         gapEnd = sortedBreaks[0].start_time;
     }
-
     // Verifica os períodos entre intervalos
     for (let i = 0; i < sortedBreaks.length - 1; i++) {
         const currentGap = calculateDuration(sortedBreaks[i].end_time, sortedBreaks[i + 1].start_time);
@@ -162,7 +139,6 @@ const findLargestGap = (shift: Shift): { start: string; end: string } | null => 
             gapEnd = sortedBreaks[i + 1].start_time;
         }
     }
-
     // Verifica o período após o último intervalo
     const lastGap = calculateDuration(sortedBreaks[sortedBreaks.length - 1].end_time, shift.end_time);
     if (lastGap > largestGap) {
@@ -170,16 +146,13 @@ const findLargestGap = (shift: Shift): { start: string; end: string } | null => 
         gapStart = sortedBreaks[sortedBreaks.length - 1].end_time;
         gapEnd = shift.end_time;
     }
-
     return largestGap > 0 ? { start: gapStart, end: gapEnd } : null;
 };
-
 const hasOverlappingShifts = (shift1: Shift, shift2: Shift): boolean => {
     const shift1Start = timeToMinutes(shift1.start_time);
     const shift1End = timeToMinutes(shift1.end_time);
     const shift2Start = timeToMinutes(shift2.start_time);
     const shift2End = timeToMinutes(shift2.end_time);
-
     // Se algum dos turnos atravessa a meia-noite
     if (shift1End < shift1Start) {
         // Verifica se o turno 2 começa antes do turno 1 terminar
@@ -199,29 +172,23 @@ const hasOverlappingShifts = (shift1: Shift, shift2: Shift): boolean => {
         // Caso nenhum dos turnos atravesse a meia-noite
         return shift1Start < shift2End && shift2Start < shift1End;
     }
-
     return false;
 };
-
 const findOverlappingShifts = (shifts: Shift[], currentShiftIndex: number): number[] => {
     const currentShift = shifts[currentShiftIndex];
     const overlappingIndices: number[] = [];
-
     for (let i = 0; i < shifts.length; i++) {
         if (i !== currentShiftIndex && hasOverlappingShifts(currentShift, shifts[i])) {
             overlappingIndices.push(i);
         }
     }
-
     return overlappingIndices;
 };
-
 const hasOverlappingBreaks = (break1: Break, break2: Break): boolean => {
     const break1Start = timeToMinutes(break1.start_time);
     const break1End = timeToMinutes(break1.end_time);
     const break2Start = timeToMinutes(break2.start_time);
     const break2End = timeToMinutes(break2.end_time);
-
     // Se algum dos intervalos atravessa a meia-noite
     if (break1End < break1Start) {
         // Verifica se o intervalo 2 começa antes do intervalo 1 terminar
@@ -241,27 +208,21 @@ const hasOverlappingBreaks = (break1: Break, break2: Break): boolean => {
         // Caso nenhum dos intervalos atravesse a meia-noite
         return break1Start < break2End && break2Start < break1End;
     }
-
     return false;
 };
-
 const isBreakOverlapping = (shift: Shift, currentBreak: Break, currentBreakIndex: number): boolean => {
     return shift.breaks.some((breakTime, index) => index !== currentBreakIndex && hasOverlappingBreaks(currentBreak, breakTime));
 };
-
 const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
     ({ isOpen, onOpenChange, onSuccess, triggerText = 'Novo Turno', triggerVariant = 'outline', showTrigger = false, initialShift, currentAssetId }, ref) => {
         // eslint-disable @typescript-eslint/no-explicit-any -- Complex form state management with deeply nested structures
         const [open, setOpen] = useState(false);
         const buttonRef = useRef<HTMLButtonElement>(null);
         const nameInputRef = useRef<HTMLInputElement>(null);
-
         // Expose button click to parent component
         useImperativeHandle(ref, () => buttonRef.current!, []);
-
         // Get user's timezone
         const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
         // Initialize form data based on whether we're editing or creating
         const getInitialFormData = () => {
             if (initialShift) {
@@ -271,7 +232,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                     schedules: initialShift.schedules,
                 };
             }
-
             return {
                 name: '5x10',
                 timezone: userTimezone,
@@ -291,23 +251,19 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 })),
             };
         };
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data, setData, processing, errors, clearErrors, setError } = useForm(getInitialFormData() as any);
-
         // Create a wrapper for setData to match the TextInput expected signature
         const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setData(name as any, value);
         };
-
         // Update the schedules
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateSchedules = (newSchedules: any) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setData('schedules' as any, newSchedules);
         };
-
         // Get the label for the selected timezone
         const getTimezoneLabel = (value: string) => {
             for (const zones of Object.values(TIMEZONE_GROUPS)) {
@@ -316,22 +272,18 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             }
             return value;
         };
-
         const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
         const [selectedDays, setSelectedDays] = useState<string[]>([]);
         const [viewMode, setViewMode] = useState<'timeline' | 'table'>('timeline');
         const [copyPopoverOpen, setCopyPopoverOpen] = useState(false);
         const [showConfirmDialog, setShowConfirmDialog] = useState(false);
         const [affectedAssets, setAffectedAssets] = useState<AffectedAsset[]>([]);
-
         const [pendingSubmitData, setPendingSubmitData] = useState<ShiftFormWithTimezone | null>(null);
         const [updateMode, setUpdateMode] = useState<'all' | 'selected'>('all');
         const [selectedAssetIds, setSelectedAssetIds] = useState<number[]>([]);
         const [timezoneOpen, setTimezoneOpen] = useState(false);
-
         const effectiveOpen = isOpen !== undefined ? isOpen : open;
         const effectiveSetOpen = onOpenChange || setOpen;
-
         // Auto-focus name input when sheet opens
         useEffect(() => {
             if (effectiveOpen && nameInputRef.current) {
@@ -344,7 +296,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 });
             }
         }, [effectiveOpen]);
-
         // Additional focus attempt when the component mounts and sheet is open
         useEffect(() => {
             if (effectiveOpen) {
@@ -359,12 +310,10 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 });
             }
         }, [effectiveOpen]);
-
         const addShift = (dayIndex: number) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newSchedules = [...(data as any).schedules];
             const existingShifts = newSchedules[dayIndex].shifts;
-
             // Se não houver turnos, usa o padrão
             if (existingShifts.length === 0) {
                 newSchedules[dayIndex].shifts.push({
@@ -377,18 +326,15 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 // Pega o último turno
                 const lastShift = existingShifts[existingShifts.length - 1];
                 const lastEndTime = lastShift.end_time;
-
                 // Calcula o novo horário
                 const [lastEndHour, lastEndMinute] = lastEndTime.split(':').map(Number);
                 const newStartHour = lastEndHour;
                 const newStartMinute = lastEndMinute;
-
                 // Calcula o horário de término (9 horas depois)
                 let newEndHour = newStartHour + 9;
                 if (newEndHour >= 24) {
                     newEndHour -= 24;
                 }
-
                 // Calcula o horário do intervalo (4 horas depois do início)
                 let breakStartHour = newStartHour + 4;
                 if (breakStartHour >= 24) {
@@ -398,12 +344,10 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 if (breakEndHour >= 24) {
                     breakEndHour -= 24;
                 }
-
                 // Formata os horários
                 const formatTime = (hour: number, minute: number) => {
                     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                 };
-
                 newSchedules[dayIndex].shifts.push({
                     start_time: formatTime(newStartHour, newStartMinute),
                     end_time: formatTime(newEndHour, newStartMinute),
@@ -416,10 +360,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                     ],
                 });
             }
-
             updateSchedules(newSchedules);
         };
-
         const removeShift = (dayIndex: number, shiftIndex: number) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newSchedules = (data as any).schedules.map((day: any, idx: number) => {
@@ -432,21 +374,17 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 }
                 return day;
             });
-
             updateSchedules(newSchedules);
         };
-
         const addBreak = (dayIndex: number, shiftIndex: number) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newSchedules = [...(data as any).schedules];
             const shift = newSchedules[dayIndex].shifts[shiftIndex];
-
             if (shift.breaks.length === 0) {
                 // Se não houver intervalos, adiciona um intervalo de 30 minutos no meio do turno
                 const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
                 const breakStart = addMinutes(shift.start_time, Math.floor(shiftDuration / 2) - 15);
                 const breakEnd = addMinutes(breakStart, 30);
-
                 newSchedules[dayIndex].shifts[shiftIndex].breaks.push({
                     start_time: breakStart,
                     end_time: breakEnd,
@@ -454,22 +392,18 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             } else {
                 // Encontra o maior período sem intervalo
                 const largestGap = findLargestGap(shift);
-
                 if (largestGap) {
                     const gapDuration = calculateDuration(largestGap.start, largestGap.end);
                     const breakStart = addMinutes(largestGap.start, Math.floor(gapDuration / 2) - 7);
                     const breakEnd = addMinutes(breakStart, 15);
-
                     newSchedules[dayIndex].shifts[shiftIndex].breaks.push({
                         start_time: breakStart,
                         end_time: breakEnd,
                     });
                 }
             }
-
             updateSchedules(newSchedules);
         };
-
         const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newSchedules = (data as any).schedules.map((day: any, idx: number) => {
@@ -491,22 +425,18 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 }
                 return day;
             });
-
             updateSchedules(newSchedules);
         };
-
         const updateBreak = (dayIndex: number, shiftIndex: number, breakIndex: number, field: keyof Break, value: string) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newSchedules = [...(data as any).schedules];
             newSchedules[dayIndex].shifts[shiftIndex].breaks[breakIndex][field] = value;
             updateSchedules(newSchedules);
         };
-
         const applyToSelectedDays = () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const sourceDay = (data as any).schedules.find((s: any) => s.weekday === selectedDay);
             if (!sourceDay) return;
-
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newSchedules = (data as any).schedules.map((schedule: any) => {
                 if (selectedDays.includes(schedule.weekday)) {
@@ -524,15 +454,12 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 }
                 return schedule;
             });
-
             updateSchedules(newSchedules);
             setSelectedDays([]);
             setCopyPopoverOpen(false);
         };
-
         const handleSubmit = (e: React.FormEvent) => {
             e.preventDefault();
-
             // Remove os segundos de todos os horários antes de enviar
             const formattedData = {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -555,9 +482,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                     })),
                 })),
             };
-
             const isEditing = !!initialShift;
-
             // If editing, check for affected assets first
             if (isEditing) {
                 axios
@@ -581,7 +506,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 performCreate(formattedData);
             }
         };
-
         const performCreate = (formattedData: ShiftFormWithTimezone) => {
             axios
                 .post(route('asset-hierarchy.shifts.store'), formattedData, {
@@ -602,13 +526,11 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                     if (error.response && error.response.data && error.response.data.errors) {
                         // Handle validation errors
                         const validationErrors = error.response.data.errors;
-
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             setError(key as any, validationErrors[key][0]);
                         });
-
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
                         toast.error(validationErrors[firstErrorKey][0]);
@@ -619,7 +541,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                     }
                 });
         };
-
         const performUpdate = (formattedData: ShiftFormWithTimezone) => {
             axios
                 .put(route('asset-hierarchy.shifts.update', { shift: initialShift!.id }), formattedData, {
@@ -643,13 +564,11 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                     if (error.response && error.response.data && error.response.data.errors) {
                         // Handle validation errors
                         const validationErrors = error.response.data.errors;
-
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             setError(key as any, validationErrors[key][0]);
                         });
-
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
                         toast.error(validationErrors[firstErrorKey][0]);
@@ -660,13 +579,11 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                     }
                 });
         };
-
         const performCopyAndUpdate = (formattedData: ShiftFormWithTimezone) => {
             const dataWithAssets = {
                 ...formattedData,
                 asset_ids: selectedAssetIds,
             };
-
             axios
                 .post(route('asset-hierarchy.shifts.copy-and-update', { shift: initialShift!.id }), dataWithAssets, {
                     headers: {
@@ -691,13 +608,11 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                     if (error.response && error.response.data && error.response.data.errors) {
                         // Handle validation errors
                         const validationErrors = error.response.data.errors;
-
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             setError(key as any, validationErrors[key][0]);
                         });
-
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
                         toast.error(validationErrors[firstErrorKey][0]);
@@ -710,7 +625,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                     }
                 });
         };
-
         const handleConfirmUpdate = () => {
             if (pendingSubmitData) {
                 if (updateMode === 'all') {
@@ -720,7 +634,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 }
             }
         };
-
         const handleCancelUpdate = () => {
             setShowConfirmDialog(false);
             setPendingSubmitData(null);
@@ -728,14 +641,12 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             setSelectedAssetIds([]);
             setUpdateMode('all');
         };
-
         const handleCancel = () => {
             clearErrors();
             effectiveSetOpen(false);
             setSelectedDays([]);
             setCopyPopoverOpen(false);
         };
-
         return (
             <>
                 {showTrigger && (
@@ -744,7 +655,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         {triggerText}
                     </Button>
                 )}
-
                 <Sheet open={effectiveOpen} onOpenChange={effectiveSetOpen}>
                     <SheetContent
                         className="w-full overflow-y-auto sm:max-w-[950px]"
@@ -762,7 +672,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                     : 'Configure os horários de trabalho e intervalos para cada dia da semana.'}
                             </SheetDescription>
                         </SheetHeader>
-
                         <form onSubmit={handleSubmit} className="mr-4 ml-4 space-y-4">
                             <div className="grid grid-cols-1 justify-items-start">
                                 <div className="w-full space-y-6">
@@ -777,7 +686,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                             </AlertDescription>
                                         </Alert>
                                     )}
-
                                     {/* Campo de nome do turno */}
                                     <div className="w-full space-y-2">
                                         <TextInput
@@ -794,11 +702,9 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                             ref={nameInputRef}
                                         />
                                     </div>
-
                                     {/* Timezone selector */}
                                     <div className="w-full space-y-2">
                                         <Label htmlFor="timezone">Fuso Horário</Label>
-
                                         <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" role="combobox" aria-expanded={timezoneOpen} className="w-full justify-between">
@@ -843,11 +749,9 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                 </Command>
                                             </PopoverContent>
                                         </Popover>
-
                                         {errors.timezone && <InputError className="mt-2" message={errors.timezone} />}
                                         <p className="text-muted-foreground text-xs">Os horários do turno serão configurados neste fuso horário</p>
                                     </div>
-
                                     {/* Seletor de dias da semana */}
                                     <Tabs value={selectedDay} onValueChange={setSelectedDay}>
                                         <TabsList className="grid grid-cols-7 gap-2">
@@ -857,7 +761,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                 </TabsTrigger>
                                             ))}
                                         </TabsList>
-
                                         {/* Conteúdo de cada dia da semana */}
                                         {weekdays.map((day, dayIndex) => (
                                             <TabsContent key={day.key} value={day.key} className="!pr-0 !pl-2">
@@ -927,7 +830,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                         </Button>
                                                     </div>
                                                 </div>
-
                                                 {/* Lista de turnos do dia */}
                                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                                 {((data as any).schedules[dayIndex].shifts.length === 0) ? (
@@ -947,7 +849,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                     (data as any).schedules[dayIndex].shifts.map((shift: any, shiftIndex: number) => {
                                                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                         const overlappingShifts = findOverlappingShifts((data as any).schedules[dayIndex].shifts, shiftIndex);
-
                                                         return (
                                                             <Card
                                                                 key={`shift-${dayIndex}-${shiftIndex}-${shift.start_time}-${shift.end_time}`}
@@ -1048,7 +949,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                                         const isOverlapping =
                                                                                             isValidInShift &&
                                                                                             isBreakOverlapping(shift, breakTime, breakIndex);
-
                                                                                         return (
                                                                                             <Card
                                                                                                 key={`break-${dayIndex}-${shiftIndex}-${breakIndex}-${breakTime.start_time}-${breakTime.end_time}`}
@@ -1142,7 +1042,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                             </TabsContent>
                                         ))}
                                     </Tabs>
-
                                     {/* Seção de visualização */}
                                     <div className="space-y-4">
                                         {/* Seletor de modo de visualização */}
@@ -1158,7 +1057,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                 </TabsTrigger>
                                             </TabsList>
                                         </Tabs>
-
                                         {/* Visualização dos turnos */}
                                         <div className="relative">
                                             {/* Visualização em timeline */}
@@ -1193,7 +1091,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                     </div>
                                 </div>
                             </div>
-
                             <div className="flex justify-end gap-3 pt-6">
                                 <Button type="button" variant="outline" onClick={handleCancel} disabled={processing}>
                                     Cancelar
@@ -1205,7 +1102,6 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         </form>
                     </SheetContent>
                 </Sheet>
-
                 {/* Confirmation Dialog for Affected Assets */}
                 <ShiftUpdateConfirmationDialog
                     open={showConfirmDialog}
@@ -1225,7 +1121,5 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         // eslint-enable @typescript-eslint/no-explicit-any
     },
 );
-
 CreateShiftSheet.displayName = 'CreateShiftSheet';
-
 export default CreateShiftSheet;

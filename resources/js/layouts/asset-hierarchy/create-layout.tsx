@@ -1,9 +1,7 @@
 'use client';
-
 import { Button } from '@/components/ui/button';
 import { Link } from '@inertiajs/react';
 import { type ReactNode } from 'react';
-
 interface CreateLayoutProps {
     title: string;
     subtitle?: string | ReactNode;
@@ -15,7 +13,6 @@ interface CreateLayoutProps {
     contentClassName?: string;
     saveButtonText?: string;
 }
-
 export default function CreateLayout({
     title,
     subtitle,
@@ -28,7 +25,6 @@ export default function CreateLayout({
     saveButtonText = 'Criar',
 }: CreateLayoutProps) {
     const containerClass = contentWidth === 'custom' ? contentClassName : 'w-full';
-
     return (
         <div className="space-y-6 p-5">
             <div className={`${containerClass}`}>

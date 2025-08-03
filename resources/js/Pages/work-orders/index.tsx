@@ -28,10 +28,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -42,7 +40,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/maintenance/work-orders',
     },
 ];
-
 interface Props {
     workOrders: {
         data: WorkOrder[];
@@ -63,7 +60,6 @@ interface Props {
     canCreate: boolean;
     discipline: 'maintenance' | 'quality';
 }
-
 // Status labels mapping
 const statusLabels: Record<string, string> = {
     'All': 'Todos',
@@ -80,7 +76,6 @@ const statusLabels: Record<string, string> = {
     'closed': 'Fechado',
     'cancelled': 'Cancelado',
 };
-
 export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters, canCreate, discipline = 'maintenance' }: Props) {
     const entityOps = useEntityOperations<WorkOrder>({
         entityName: 'work-order',
@@ -92,10 +87,8 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             checkDependencies: `${discipline}.work-orders.check-dependencies`,
         },
     });
-
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'open');
-
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: `${discipline}.work-orders.index`,
@@ -107,7 +100,6 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             ...(statusFilter !== 'open' && { status: statusFilter }),
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('workOrdersColumnsVisibility');
@@ -127,7 +119,6 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             scheduled_start_date: true,
         };
     });
-
     // Use data from server
     const data = initialWorkOrders.data;
     const pagination = {
@@ -138,7 +129,6 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
         from: initialWorkOrders.from,
         to: initialWorkOrders.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'work_order_number',
@@ -165,17 +155,17 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
         ...(discipline === 'maintenance' ? [{
             key: 'asset',
             label: 'Ativo',
-            render: (_: any, row: any) => (row.asset?.tag || '-') as React.ReactNode,
+            render: (_: any, row: Record<string, unknown>) => (row.asset?.tag || '-') as React.ReactNode,
         }] : [{
             key: 'instrument',
             label: 'Instrumento',
-            render: (_: any, row: any) => (row.instrument?.tag || '-') as React.ReactNode,
+            render: (_: any, row: Record<string, unknown>) => (row.instrument?.tag || '-') as React.ReactNode,
         }]),
         {
             key: 'work_order_category',
             label: 'Categoria',
             headerAlign: 'center',
-            render: (_: any, row: any) => {
+            render: (_: any, row: Record<string, unknown>) => {
                 // Use the category relationship if available
                 if (row.work_order_category_obj) {
                     return (
@@ -189,13 +179,11 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                         </div>
                     );
                 }
-
                 // Handle category as object or string
                 let categoryCode = row.work_order_category;
                 if (typeof categoryCode === 'object' && categoryCode !== null) {
                     categoryCode = categoryCode.code || categoryCode.name || '';
                 }
-
                 // Fallback to category code
                 const categoryLabels: Record<string, string> = {
                     preventive: 'Preventiva',
@@ -214,13 +202,13 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             key: 'type',
             label: 'Tipo',
             headerAlign: 'center',
-            render: (_: any, row: any) => <div className="text-center">{row.type?.name || '-'}</div>,
+            render: (_: any, row: Record<string, unknown>) => <div className="text-center">{row.type?.name || '-'}</div>,
         },
         {
             key: 'priority_score',
             label: 'Prioridade',
             headerAlign: 'center',
-            render: (value: any) => (
+            render: (value: unknown) => (
                 <div className="text-center">
                     {value || 50}
                 </div>
@@ -231,7 +219,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             key: 'status',
             label: 'Status',
             headerAlign: 'center',
-            render: (value: any) => (
+            render: (value: unknown) => (
                 <div className="flex justify-center">
                     <WorkOrderStatusBadge status={value} />
                 </div>
@@ -242,12 +230,11 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             key: 'scheduled_start_date',
             label: 'Data Programada',
             headerAlign: 'center',
-            render: (value: any) => <div className="text-center">{value ? format(new Date(value), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</div>,
+            render: (value: unknown) => <div className="text-center">{value ? format(new Date(value), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</div>,
             sortable: true,
             width: 'w-[130px]',
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -256,7 +243,6 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
         setColumnVisibility(newVisibility);
         localStorage.setItem('workOrdersColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -265,7 +251,6 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handleStatusFilterChange = (newStatus: string) => {
         setStatusFilter(newStatus);
         router.get(
@@ -280,7 +265,6 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(
             route(`${discipline}.work-orders.index`),
@@ -288,7 +272,6 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             { preserveState: true, preserveScroll: true }
         );
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route(`${discipline}.work-orders.index`),
@@ -296,15 +279,12 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handleCreateClick = () => {
         router.visit(route(`${discipline}.work-orders.show`, { workOrder: 'new' }));
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={discipline === 'maintenance' ? 'Ordens de Manutenção' : 'Ordens de Qualidade'} />
-
             <ListLayout
                 title={discipline === 'maintenance' ? 'Ordens de Manutenção' : 'Ordens de Qualidade'}
                 description={discipline === 'maintenance'
@@ -366,7 +346,6 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
                     />
-
                     <EntityPagination
                         pagination={pagination}
                         onPageChange={handlePageChange}
@@ -374,14 +353,12 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                     />
                 </div>
             </ListLayout>
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={`Ordem #${entityOps.deletingItem?.work_order_number || ''}`}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

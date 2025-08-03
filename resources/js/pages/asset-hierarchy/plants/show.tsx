@@ -9,7 +9,6 @@ import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Building2, Cog, Map } from 'lucide-react';
-
 interface Plant {
     id: number;
     name: string;
@@ -20,7 +19,6 @@ interface Plant {
     zip_code?: string;
     gps_coordinates?: string;
 }
-
 interface Area {
     id: number;
     name: string;
@@ -28,7 +26,6 @@ interface Area {
     asset_count: number;
     sectors_count: number;
 }
-
 interface Props {
     plant: Plant;
     areas: {
@@ -90,7 +87,6 @@ interface Props {
         };
     };
 }
-
 export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, totalAsset, activeTab, filters }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -110,15 +106,12 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
             href: '#',
         },
     ];
-
     const handleEditSuccess = () => {
         // Reload the page to refresh the data
         router.reload();
     };
-
     const handleSort = (section: 'areas' | 'sectors' | 'asset', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
-
         router.get(
             route('asset-hierarchy.plants.show', {
                 plant: plant.id,
@@ -131,9 +124,6 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
             { preserveState: true },
         );
     };
-
-
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
@@ -152,7 +142,6 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -211,7 +200,6 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                         onRowClick={(row) => router.get(route('asset-hierarchy.areas.show', row.id))}
                         onSort={(columnKey) => handleSort('areas', columnKey)}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: areas.current_page,
@@ -278,7 +266,6 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                         onRowClick={(row) => router.get(route('asset-hierarchy.sectors.show', row.id))}
                         onSort={(columnKey) => handleSort('sectors', columnKey)}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: sectors.current_page,
@@ -364,7 +351,6 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                             handleSort('asset', columnMap[columnKey] || columnKey);
                         }}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: asset.current_page,
@@ -386,11 +372,9 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Planta ${plant.name}`} />
-
             <ShowLayout title={plant.name} subtitle={subtitle} editRoute="" tabs={tabs} />
         </AppLayout>
     );

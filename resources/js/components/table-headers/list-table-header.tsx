@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
 import { Maximize2, Minimize2, Plus, Search } from 'lucide-react';
 import { ReactNode } from 'react';
-
 interface ListTableHeaderProps {
     title: string;
     description: string;
@@ -19,7 +18,6 @@ interface ListTableHeaderProps {
     isCompressed?: boolean;
     onToggleCompressed?: () => void;
 }
-
 export function ListTableHeader({
     title,
     description,
@@ -56,7 +54,6 @@ export function ListTableHeader({
                             <p className="text-muted-foreground text-sm leading-5">{description}</p>
                         )}
                     </div>
-
                     {/* Compress/Expand button */}
                     {onToggleCompressed && (
                         <TooltipProvider>
@@ -83,7 +80,6 @@ export function ListTableHeader({
                     )}
                 </div>
             </div>
-
             {/* Search and buttons section */}
             <div className={cn(
                 "transition-all duration-200 ease-in-out",
@@ -109,7 +105,6 @@ export function ListTableHeader({
                             {actions}
                         </div>
                     )}
-
                     {/* Desktop layout */}
                     <div className="hidden items-center justify-between lg:flex">
                         <div className={cn(
@@ -159,7 +154,6 @@ export function ListTableHeader({
                             ) : null}
                         </div>
                     </div>
-
                     {/* Mobile search and compressed mobile buttons */}
                     <div className="lg:hidden">
                         {isCompressed && (

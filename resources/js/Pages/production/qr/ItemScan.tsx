@@ -16,18 +16,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
 interface ItemCategory {
     id: number;
     name: string;
 }
-
 interface BillOfMaterial {
     id: number;
     name: string;
     version: string;
 }
-
 interface Item {
     id: number;
     item_number: string;
@@ -38,14 +35,12 @@ interface Item {
     unit_of_measure: string;
     created_at: string;
 }
-
 interface Action {
     label: string;
     route: string;
     icon: string;
     primary?: boolean;
 }
-
 interface Props {
     item: Item;
     can: {
@@ -55,7 +50,6 @@ interface Props {
     };
     actions: Action[];
 }
-
 const getIconComponent = (iconName: string) => {
     const icons: Record<string, React.ElementType> = {
         Factory,
@@ -65,12 +59,10 @@ const getIconComponent = (iconName: string) => {
     };
     return icons[iconName] || ChevronRight;
 };
-
 export default function ItemScan({ item, can, actions }: Props) {
     return (
         <>
             <Head title={`Item - ${item.item_number}`} />
-
             <div className="min-h-screen bg-gray-50 p-4">
                 <div className="max-w-lg mx-auto space-y-4">
                     {/* Header Card */}
@@ -89,7 +81,6 @@ export default function ItemScan({ item, can, actions }: Props) {
                                         <p className="text-sm text-gray-600 mt-1">{item.description}</p>
                                     )}
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-3 text-sm">
                                     <div>
                                         <span className="text-gray-500">Categoria:</span>
@@ -111,7 +102,6 @@ export default function ItemScan({ item, can, actions }: Props) {
                             </div>
                         </CardContent>
                     </Card>
-
                     {/* Actions */}
                     {actions.length > 0 && (
                         <Card>
@@ -140,7 +130,6 @@ export default function ItemScan({ item, can, actions }: Props) {
                             </CardContent>
                         </Card>
                     )}
-
                     {/* Quick Info */}
                     <Card>
                         <CardContent className="pt-6">
@@ -150,7 +139,6 @@ export default function ItemScan({ item, can, actions }: Props) {
                             </div>
                         </CardContent>
                     </Card>
-
                     {/* View Details Link */}
                     {can.view && (
                         <div className="text-center">

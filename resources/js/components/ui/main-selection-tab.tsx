@@ -1,9 +1,7 @@
 import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 import { ChevronDown } from 'lucide-react'
-
 import { cn } from "@/lib/utils"
-
 function MainSelectionTab({
   className,
   ...props
@@ -16,20 +14,17 @@ function MainSelectionTab({
     />
   )
 }
-
 // Helper function to extract text content from MainSelectionTabTrigger children
 const extractTextContent = (children: React.ReactNode): string => {
   if (typeof children === 'string') {
     return children;
   }
-
   if (Array.isArray(children)) {
     return children
       .map(child => extractTextContent(child))
       .filter(text => text.trim() !== '')
       .join(' ');
   }
-
   if (React.isValidElement(children)) {
     // If it's a React element, try to extract text from its children
     const element = children as React.ReactElement<{ children?: React.ReactNode }>;
@@ -38,17 +33,14 @@ const extractTextContent = (children: React.ReactNode): string => {
     }
     return '';
   }
-
   return '';
 };
-
 function MainSelectionTabList({
   className,
   children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List>) {
   const [selectedTab, setSelectedTab] = React.useState<string>("")
-
   // Get the current active tab from children
   React.useEffect(() => {
     const activeTab = React.Children.toArray(children).find((child) => {
@@ -67,7 +59,6 @@ function MainSelectionTabList({
       }
     }
   }, [children])
-
   return (
     <>
       {/* Mobile dropdown */}
@@ -106,7 +97,6 @@ function MainSelectionTabList({
           className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-gray-500"
         />
       </div>
-
       {/* Desktop tabs */}
       <div className="hidden sm:block">
         <div className="relative border-b border-t border-gray-200 dark:border-gray-800">
@@ -125,7 +115,6 @@ function MainSelectionTabList({
     </>
   )
 }
-
 function MainSelectionTabTrigger({
   className,
   ...props
@@ -150,7 +139,6 @@ function MainSelectionTabTrigger({
     />
   )
 }
-
 function MainSelectionTabContent({
   className,
   ...props
@@ -163,5 +151,4 @@ function MainSelectionTabContent({
     />
   )
 }
-
 export { MainSelectionTab, MainSelectionTabList, MainSelectionTabTrigger, MainSelectionTabContent }

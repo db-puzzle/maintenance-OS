@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Gauge, Clock } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import axios from 'axios';
-
 interface RuntimeData {
     current_hours: number;
     last_measurement?: {
@@ -14,24 +13,18 @@ interface RuntimeData {
     };
     user_timezone?: string;
 }
-
 interface AssetRuntimeInputProps {
     assetId?: number;
     runtimeData?: RuntimeData;
     onRuntimeUpdated?: (data: RuntimeData) => void;
 }
-
 export default function AssetRuntimeInput({ assetId, runtimeData: initialRuntimeData, onRuntimeUpdated }: AssetRuntimeInputProps) {
     const reportSheetRef = useRef<HTMLButtonElement>(null);
     const [runtimeData, setRuntimeData] = useState<RuntimeData | undefined>(initialRuntimeData);
-
     // Update runtime data when initialRuntimeData changes
     useEffect(() => {
         setRuntimeData(initialRuntimeData);
     }, [initialRuntimeData]);
-
-
-
     const formatLastMeasurement = (datetime: string, userTimezone?: string) => {
         try {
             const date = new Date(datetime);
@@ -48,15 +41,12 @@ export default function AssetRuntimeInput({ assetId, runtimeData: initialRuntime
             return datetime;
         }
     };
-
     const handleReportClick = () => {
         reportSheetRef.current?.click();
     };
-
     const currentHours = runtimeData?.current_hours || 0;
     const lastMeasurement = runtimeData?.last_measurement;
     const userTimezone = runtimeData?.user_timezone;
-
     return (
         <div className="h-full space-y-4">
             <div className="flex h-full flex-col rounded-lg border border-gray-200 p-6">
@@ -68,7 +58,6 @@ export default function AssetRuntimeInput({ assetId, runtimeData: initialRuntime
                         Reportar Horimetro
                     </Button>
                 </div>
-
                 {/* Current Runtime - More compact */}
                 <div className="mb-4">
                     <div className="mb-1 flex items-center gap-2">
@@ -77,7 +66,6 @@ export default function AssetRuntimeInput({ assetId, runtimeData: initialRuntime
                     </div>
                     <p className="text-2xl font-bold text-gray-900">{currentHours.toFixed(1)} horas</p>
                 </div>
-
                 {/* Last Measurement - More compact */}
                 {lastMeasurement ? (
                     <div className="">
@@ -101,7 +89,6 @@ export default function AssetRuntimeInput({ assetId, runtimeData: initialRuntime
                         <p className="text-center text-xs text-gray-500">Nenhuma medição registrada</p>
                     </div>
                 )}
-
                 {/* Hidden ReportRuntimeSheet for programmatic triggering */}
                 <div style={{ display: 'none' }}>
                     <ReportRuntimeSheet

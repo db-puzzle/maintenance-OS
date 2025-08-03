@@ -8,21 +8,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-
 interface Skill {
     id: number;
     name: string;
     description: string | null;
     category: string;
 }
-
 interface SkillSheetProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     skill?: Skill | null;
     onClose: () => void;
 }
-
 const categories = [
     'Técnica',
     'Elétrica',
@@ -35,14 +32,12 @@ const categories = [
     'Idiomas',
     'Outras',
 ];
-
 export default function SkillSheet({ open, onOpenChange, skill, onClose }: SkillSheetProps) {
     const { data, setData, post, put, processing, errors, reset } = useForm({
         name: '',
         description: '',
         category: 'Técnica',
     });
-
     useEffect(() => {
         if (skill) {
             setData({
@@ -54,10 +49,8 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
             reset();
         }
     }, [skill]);
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         if (skill) {
             put(route('skills.update', skill.id), {
                 preserveScroll: true,
@@ -76,14 +69,12 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
             });
         }
     };
-
     const handleOpenChange = (newOpen: boolean) => {
         if (!newOpen) {
             reset();
         }
         onOpenChange(newOpen);
     };
-
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
             <SheetContent>
@@ -95,7 +86,6 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
                             : 'Preencha as informações para criar uma nova habilidade'}
                     </SheetDescription>
                 </SheetHeader>
-
                 <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="name">Nome *</Label>
@@ -110,7 +100,6 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
                             <p className="text-sm text-destructive">{errors.name}</p>
                         )}
                     </div>
-
                     <div className="space-y-2">
                         <Label htmlFor="category">Categoria *</Label>
                         <Select value={data.category} onValueChange={(value) => setData('category', value)}>
@@ -129,7 +118,6 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
                             <p className="text-sm text-destructive">{errors.category}</p>
                         )}
                     </div>
-
                     <div className="space-y-2">
                         <Label htmlFor="description">Descrição</Label>
                         <Textarea
@@ -143,7 +131,6 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
                             <p className="text-sm text-destructive">{errors.description}</p>
                         )}
                     </div>
-
                     {Object.keys(errors).length > 0 && (
                         <Alert variant="destructive">
                             <AlertCircle className="h-4 w-4" />
@@ -152,7 +139,6 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
                             </AlertDescription>
                         </Alert>
                     )}
-
                     <div className="flex gap-2 pt-4">
                         <Button type="submit" disabled={processing} className="flex-1">
                             {processing ? 'Salvando...' : skill ? 'Atualizar' : 'Criar'}

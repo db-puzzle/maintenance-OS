@@ -4,7 +4,6 @@ import ShiftCalendarView from '@/components/ShiftCalendarView';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Calendar, Cog, Map, Table, Pencil } from 'lucide-react';
-
 import CreateShiftSheet from '@/components/CreateShiftSheet';
 import ShiftTableView from '@/components/ShiftTableView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,24 +11,20 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
-
 interface Break {
     start_time: string;
     end_time: string;
 }
-
 interface Shift {
     start_time: string;
     end_time: string;
     active: boolean;
     breaks: Break[];
 }
-
 interface Schedule {
     weekday: string;
     shifts: Shift[];
 }
-
 interface ShiftData {
     id: number;
     name: string;
@@ -44,7 +39,6 @@ interface ShiftData {
     total_break_hours?: number;
     total_break_minutes?: number;
 }
-
 interface Asset {
     id: number;
     tag: string;
@@ -60,7 +54,6 @@ interface Asset {
     sector: string | null;
     current_runtime_hours: number;
 }
-
 interface Props {
     shift: ShiftData;
     assets: {
@@ -78,11 +71,9 @@ interface Props {
         };
     };
 }
-
 export default function ShowShift({ shift, assets, activeTab, filters }: Props) {
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
-
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Home',
@@ -101,16 +92,13 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
             href: '#',
         },
     ];
-
     const handleEditSuccess = () => {
         // Reload the page to refresh the data
         router.reload();
         setIsEditSheetOpen(false);
     };
-
     const handleSort = (section: 'assets', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
-
         router.get(
             route('asset-hierarchy.shifts.show', {
                 shift: shift.id,
@@ -123,7 +111,6 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
             { preserveState: true },
         );
     };
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             {shift.plant_count > 0 && (
@@ -159,7 +146,6 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -186,7 +172,6 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
                                 </div>
                             </div>
                         </div>
-
                         <div className="mt-8">
                             <h3 className="text-lg font-semibold mb-4">Horários de Trabalho</h3>
                             <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'calendar' | 'table')}>
@@ -200,7 +185,6 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
                                         Tabela
                                     </TabsTrigger>
                                 </TabsList>
-
                                 <TabsContent value="calendar" className="mt-2">
                                     {shift.timezone && (
                                         <p className="text-muted-foreground text-sm mb-4">Fuso Horário: {shift.timezone}</p>
@@ -215,7 +199,6 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
                                 </TabsContent>
                             </Tabs>
                         </div>
-
                         {/* Action Buttons */}
                         <div className="flex justify-end gap-2">
                             <Button onClick={() => setIsEditSheetOpen(true)} variant="default">
@@ -292,7 +275,6 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
                             handleSort('assets', columnMap[columnKey] || columnKey);
                         }}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: assets.current_page,
@@ -314,11 +296,9 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Turno ${shift.name}`} />
-
             <ShowLayout
                 title={shift.name}
                 subtitle={subtitle}
@@ -327,7 +307,6 @@ export default function ShowShift({ shift, assets, activeTab, filters }: Props) 
                 tabs={tabs}
             >
             </ShowLayout>
-
             <CreateShiftSheet
                 initialShift={{
                     id: shift.id,

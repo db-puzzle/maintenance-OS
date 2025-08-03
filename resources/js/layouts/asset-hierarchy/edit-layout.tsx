@@ -1,9 +1,7 @@
 'use client';
-
 import { Button } from '@/components/ui/button';
 import { Link } from '@inertiajs/react';
 import { type ReactNode } from 'react';
-
 interface EditLayoutProps {
     title: string;
     subtitle?: string | ReactNode;
@@ -12,7 +10,6 @@ interface EditLayoutProps {
     onSave?: () => void;
     isSaving?: boolean;
 }
-
 export default function EditLayout({ title, subtitle, backRoute, children, onSave, isSaving }: EditLayoutProps) {
     return (
         <div className="bg-background pt-4 md:pt-6">

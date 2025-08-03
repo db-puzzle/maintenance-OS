@@ -10,12 +10,10 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { ItemSelect } from '@/components/ItemSelect';
 import { ManufacturingOrder, Item } from '@/types/production';
-
 interface Props {
     items: Item[];
     orders: ManufacturingOrder[];
 }
-
 export default function CreateRouting({ items, orders }: Props) {
     const { data, setData, post, processing, errors, clearErrors } = useForm({
         name: '',
@@ -24,12 +22,10 @@ export default function CreateRouting({ items, orders }: Props) {
         manufacturing_order_id: '',
         is_active: true,
     });
-
     // Create a wrapper for setData to match the expected signature
     const handleSetData = (name: string, value: any) => {
         setData(name as any, value);
     };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('production.routing.store'), {
@@ -41,17 +37,14 @@ export default function CreateRouting({ items, orders }: Props) {
             }
         });
     };
-
     const breadcrumbs = [
         { title: 'Produção', href: '/production' },
         { title: 'Roteiros', href: route('production.routing.index') },
         { title: 'Novo Roteiro', href: '' }
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Novo Roteiro" />
-
             <div className="max-w-2xl mx-auto">
                 <form onSubmit={handleSubmit}>
                     <Card>
@@ -72,7 +65,6 @@ export default function CreateRouting({ items, orders }: Props) {
                                 placeholder="Ex: Roteiro de Montagem Principal"
                                 required
                             />
-
                             {/* Descrição */}
                             <div className="space-y-2">
                                 <Label htmlFor="description">Descrição</Label>
@@ -87,7 +79,6 @@ export default function CreateRouting({ items, orders }: Props) {
                                     <p className="text-sm text-red-600">{errors.description}</p>
                                 )}
                             </div>
-
                             {/* Item */}
                             <ItemSelect
                                 label="Item"
@@ -97,7 +88,6 @@ export default function CreateRouting({ items, orders }: Props) {
                                 placeholder="Selecione um item (opcional)"
                                 error={errors.item_id}
                             />
-
                             {/* Ordem de Produção */}
                             <div className="space-y-2">
                                 <ItemSelect
@@ -115,7 +105,6 @@ export default function CreateRouting({ items, orders }: Props) {
                                     Apenas ordens liberadas podem receber roteiros
                                 </p>
                             </div>
-
                             {/* Status Ativo */}
                             <div className="flex items-center space-x-2">
                                 <Switch
@@ -125,7 +114,6 @@ export default function CreateRouting({ items, orders }: Props) {
                                 />
                                 <Label htmlFor="is_active">Roteiro Ativo</Label>
                             </div>
-
                             {/* Botões de Ação */}
                             <div className="flex justify-end space-x-4 pt-6">
                                 <Button

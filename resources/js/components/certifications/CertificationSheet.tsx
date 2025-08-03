@@ -9,7 +9,6 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-
 interface Certification {
     id: number;
     name: string;
@@ -18,14 +17,12 @@ interface Certification {
     validity_period_days: number | null;
     active: boolean;
 }
-
 interface CertificationSheetProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     certification?: Certification | null;
     onClose: () => void;
 }
-
 const validityOptions = [
     { label: 'Sem validade', value: '0' },
     { label: '6 meses', value: '180' },
@@ -35,7 +32,6 @@ const validityOptions = [
     { label: '5 anos', value: '1825' },
     { label: 'Personalizado', value: 'custom' },
 ];
-
 export default function CertificationSheet({ open, onOpenChange, certification, onClose }: CertificationSheetProps) {
     const { data, setData, post, put, processing, errors, reset } = useForm({
         name: '',
@@ -45,12 +41,10 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
         validity_option: '0',
         active: true,
     });
-
     useEffect(() => {
         if (certification) {
             const validityDays = certification.validity_period_days?.toString() || '0';
             const validityOption = validityOptions.find(opt => opt.value === validityDays)?.value || 'custom';
-            
             setData({
                 name: certification.name,
                 description: certification.description || '',
@@ -63,17 +57,14 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
             reset();
         }
     }, [certification]);
-
     const handleValidityOptionChange = (value: string) => {
         setData('validity_option', value);
         if (value !== 'custom') {
             setData('validity_period_days', value);
         }
     };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         const submitData = {
             name: data.name,
             description: data.description,
@@ -81,7 +72,6 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
             validity_period_days: data.validity_period_days === '0' ? null : parseInt(data.validity_period_days),
             active: data.active,
         };
-
         if (certification) {
             put(route('certifications.update', certification.id), submitData, {
                 preserveScroll: true,
@@ -100,14 +90,12 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
             });
         }
     };
-
     const handleOpenChange = (newOpen: boolean) => {
         if (!newOpen) {
             reset();
         }
         onOpenChange(newOpen);
     };
-
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
             <SheetContent className="sm:max-w-[425px]">
@@ -119,7 +107,6 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                             : 'Preencha as informações para criar uma nova certificação'}
                     </SheetDescription>
                 </SheetHeader>
-
                 <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="name">Nome *</Label>
@@ -134,7 +121,6 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                             <p className="text-sm text-destructive">{errors.name}</p>
                         )}
                     </div>
-
                     <div className="space-y-2">
                         <Label htmlFor="issuing_organization">Organização Emissora *</Label>
                         <Input
@@ -147,7 +133,6 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                             <p className="text-sm text-destructive">{errors.issuing_organization}</p>
                         )}
                     </div>
-
                     <div className="space-y-2">
                         <Label htmlFor="validity">Período de Validade</Label>
                         <Select value={data.validity_option} onValueChange={handleValidityOptionChange}>
@@ -162,7 +147,6 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                                 ))}
                             </SelectContent>
                         </Select>
-                        
                         {data.validity_option === 'custom' && (
                             <Input
                                 type="number"
@@ -173,12 +157,10 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                                 className="mt-2"
                             />
                         )}
-                        
                         {errors.validity_period_days && (
                             <p className="text-sm text-destructive">{errors.validity_period_days}</p>
                         )}
                     </div>
-
                     <div className="space-y-2">
                         <Label htmlFor="description">Descrição</Label>
                         <Textarea
@@ -192,7 +174,6 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                             <p className="text-sm text-destructive">{errors.description}</p>
                         )}
                     </div>
-
                     <div className="flex items-center justify-between space-x-2">
                         <div className="space-y-0.5">
                             <Label htmlFor="active">Status</Label>
@@ -206,7 +187,6 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                             onCheckedChange={(checked) => setData('active', checked)}
                         />
                     </div>
-
                     {Object.keys(errors).length > 0 && (
                         <Alert variant="destructive">
                             <AlertCircle className="h-4 w-4" />
@@ -215,7 +195,6 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                             </AlertDescription>
                         </Alert>
                     )}
-
                     <div className="flex gap-2 pt-4">
                         <Button type="submit" disabled={processing} className="flex-1">
                             {processing ? 'Salvando...' : certification ? 'Atualizar' : 'Criar'}

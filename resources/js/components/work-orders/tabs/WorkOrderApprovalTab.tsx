@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
 interface WorkOrderApprovalTabProps {
     workOrder: any;
     canApprove: boolean;
@@ -26,7 +25,6 @@ interface WorkOrderApprovalTabProps {
     };
     discipline: 'maintenance' | 'quality';
 }
-
 export function WorkOrderApprovalTab({
     workOrder,
     canApprove,
@@ -36,27 +34,21 @@ export function WorkOrderApprovalTab({
     const [decision, setDecision] = useState('');
     const [reason, setReason] = useState('');
     const [processing, setProcessing] = useState(false);
-
     const isApproved = workOrder.status !== 'requested';
-
     // Find the most recent approval or rejection entry (could be multiple)
     const approvalEntries = workOrder.status_history?.filter((entry: any) =>
         entry.from_status === 'requested' && (entry.to_status === 'approved' || entry.to_status === 'rejected')
     ) || [];
-
     // Get the most recent one (last in the array since they should be ordered by created_at)
     const approvalEntry = approvalEntries.length > 0 ? approvalEntries[approvalEntries.length - 1] : null;
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isApproved || !decision) return;
-
         // Validate that rejection has a reason
         if (decision === 'reject' && !reason.trim()) {
             alert('Por favor, forneça uma razão para a rejeição.');
             return;
         }
-
         setProcessing(true);
         const data = {
             decision,
@@ -65,21 +57,18 @@ export function WorkOrderApprovalTab({
             notes: decision === 'approve' ? reason.trim() : undefined,
             rejection_reason: decision === 'reject' ? reason.trim() : undefined
         };
-
         let url = '';
         if (decision === 'approve') {
             url = route(`${discipline}.work-orders.approve.store`, workOrder.id);
         } else if (decision === 'reject') {
             url = route(`${discipline}.work-orders.reject`, workOrder.id);
         }
-
         if (url) {
             router.post(url, data, {
                 onFinish: () => setProcessing(false)
             });
         }
     };
-
     return (
         <div className="space-y-6 py-6">
             {isApproved && approvalEntry ? (
@@ -99,7 +88,6 @@ export function WorkOrderApprovalTab({
                                 </>
                             )}
                         </div>
-
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                                 <Label>{approvalEntry.to_status === 'approved' ? 'Aprovado por' : 'Rejeitado por'}</Label>
@@ -108,7 +96,6 @@ export function WorkOrderApprovalTab({
                                     <span className="font-medium">{approvalEntry.changed_by?.name || approvalEntry.user?.name || 'Sistema'}</span>
                                 </div>
                             </div>
-
                             <div className="space-y-2">
                                 <Label>Data da {approvalEntry.to_status === 'approved' ? 'aprovação' : 'rejeição'}</Label>
                                 <div className="rounded-md border bg-muted/20 p-2 text-sm flex items-center gap-2">
@@ -119,7 +106,6 @@ export function WorkOrderApprovalTab({
                                 </div>
                             </div>
                         </div>
-
                         <div className="space-y-2">
                             <Label>Razão da {approvalEntry.to_status === 'approved' ? 'aprovação' : 'rejeição'}</Label>
                             <div className="rounded-md border bg-muted/20 p-3 text-sm min-h-[100px] flex items-start">
@@ -147,7 +133,6 @@ export function WorkOrderApprovalTab({
                     {/* Approval Decision Section */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold">Decisão de Aprovação</h3>
-
                         {!canApprove ? (
                             <Alert>
                                 <AlertCircle className="h-4 w-4" />
@@ -158,7 +143,6 @@ export function WorkOrderApprovalTab({
                         ) : (
                             <>
                                 <Separator />
-
                                 <form onSubmit={handleSubmit} className="space-y-6">
                                     {/* Decision Buttons */}
                                     <div className="space-y-2">
@@ -182,7 +166,6 @@ export function WorkOrderApprovalTab({
                                             />
                                         </div>
                                     </div>
-
                                     {/* Reason */}
                                     <div className="space-y-2">
                                         <Label htmlFor="reason">
@@ -205,7 +188,6 @@ export function WorkOrderApprovalTab({
                                             <p className="text-sm text-red-500">A razão da rejeição é obrigatória</p>
                                         )}
                                     </div>
-
                                     {/* Action Buttons */}
                                     <div className="flex justify-end pt-4">
                                         <Button

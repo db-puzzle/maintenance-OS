@@ -3,13 +3,11 @@ import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
 import { router } from '@inertiajs/react';
 import { Cog, Factory, Map } from 'lucide-react';
-
 import SectorFormComponent from '@/components/SectorFormComponent';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-
 interface Props {
     sector: {
         id: number;
@@ -40,7 +38,6 @@ interface Props {
         };
     };
 }
-
 export default function Show({ sector, plants, asset, activeTab, filters }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -60,10 +57,8 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             href: '#',
         },
     ];
-
     const handleSort = (column: string) => {
         const direction = filters.asset.sort === column && filters.asset.direction === 'asc' ? 'desc' : 'asc';
-
         router.get(
             route('asset-hierarchy.sectors.show', {
                 setor: sector.id,
@@ -76,7 +71,6 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             { preserveState: true },
         );
     };
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
@@ -95,7 +89,6 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -162,7 +155,6 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                             handleSort(columnMap[columnKey] || columnKey);
                         }}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: asset.current_page,
@@ -184,7 +176,6 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <ShowLayout title={sector.name} subtitle={subtitle} editRoute={route('asset-hierarchy.sectors.edit', sector.id)} tabs={tabs} />

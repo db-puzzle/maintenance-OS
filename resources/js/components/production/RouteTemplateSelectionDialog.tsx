@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Clock, Layers, Settings, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RouteTemplate } from '@/types/production';
-
 interface RouteTemplateSelectionDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -22,7 +21,6 @@ interface RouteTemplateSelectionDialogProps {
     itemCategoryId?: number;
     onSelectTemplate: (templateId: number) => void;
 }
-
 export default function RouteTemplateSelectionDialog({
     open,
     onOpenChange,
@@ -33,11 +31,9 @@ export default function RouteTemplateSelectionDialog({
 }: RouteTemplateSelectionDialogProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedId, setSelectedId] = useState<number | null>(null);
-
     // Filter templates based on search query and category
     const filteredTemplates = useMemo(() => {
         let filtered = templates;
-
         // Filter by search query
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
@@ -46,7 +42,6 @@ export default function RouteTemplateSelectionDialog({
                 (template.description || '').toLowerCase().includes(query)
             );
         }
-
         // Sort templates: category-specific first, then general templates
         return filtered.sort((a, b) => {
             // If both have same relevance, sort by name
@@ -57,14 +52,12 @@ export default function RouteTemplateSelectionDialog({
             return a.item_category === itemCategoryId ? -1 : 1;
         });
     }, [templates, searchQuery, itemCategoryId]);
-
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Escape') {
             e.preventDefault();
             handleCancel();
         }
     };
-
     const handleSelect = () => {
         if (selectedId) {
             onSelectTemplate(selectedId);
@@ -73,13 +66,11 @@ export default function RouteTemplateSelectionDialog({
             setSelectedId(null);
         }
     };
-
     const handleCancel = () => {
         onOpenChange(false);
         setSearchQuery('');
         setSelectedId(null);
     };
-
     const getCategoryIcon = (template: RouteTemplate) => {
         // You can customize this based on actual category types
         if (template.item_category) {
@@ -87,7 +78,6 @@ export default function RouteTemplateSelectionDialog({
         }
         return <Settings className="h-4 w-4" />;
     };
-
     const formatTime = (minutes: number) => {
         if (minutes < 60) {
             return `${minutes} min`;
@@ -96,7 +86,6 @@ export default function RouteTemplateSelectionDialog({
         const remainingMinutes = minutes % 60;
         return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
     };
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl" onKeyDown={handleKeyDown}>
@@ -106,7 +95,6 @@ export default function RouteTemplateSelectionDialog({
                         Escolha um template de rota para a OM #{orderNumber}
                     </DialogDescription>
                 </DialogHeader>
-
                 <div className="space-y-4">
                     {/* Search Input */}
                     <div className="relative">
@@ -119,7 +107,6 @@ export default function RouteTemplateSelectionDialog({
                             autoFocus
                         />
                     </div>
-
                     {/* Results */}
                     <ScrollArea className="h-[400px] rounded-md border">
                         <div className="p-2">
@@ -162,7 +149,6 @@ export default function RouteTemplateSelectionDialog({
                                                         </Badge>
                                                     )}
                                                 </div>
-
                                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                                     {template.steps_count !== undefined && (
                                                         <div className="flex items-center gap-1">
@@ -193,7 +179,6 @@ export default function RouteTemplateSelectionDialog({
                             )}
                         </div>
                     </ScrollArea>
-
                     {/* Footer */}
                     <div className="flex justify-between items-center">
                         <p className="text-sm text-muted-foreground">

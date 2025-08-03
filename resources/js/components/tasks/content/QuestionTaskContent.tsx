@@ -1,12 +1,10 @@
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
-
 // This type alias extends WithSaveFunctionalityProps and is reserved for future question task specific props
 type QuestionTaskContentProps = WithSaveFunctionalityProps & {
     // Future question task specific props will be added here
 };
-
 function QuestionTaskContent({ task, mode, response, setResponse, disabled }: QuestionTaskContentProps) {
     return (
         <div>
@@ -34,5 +32,4 @@ function QuestionTaskContent({ task, mode, response, setResponse, disabled }: Qu
         </div>
     );
 }
-
 export default withSaveFunctionality(QuestionTaskContent);

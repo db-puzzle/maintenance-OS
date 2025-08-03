@@ -3,18 +3,15 @@ import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { ColumnConfig } from '@/types/shared';
 import { Button } from '@/components/ui/button';
 import { Trash2, Shield } from 'lucide-react';
-
 interface Role {
     id: number;
     name: string;
 }
-
 interface RolesTableProps {
     selectedRoles: Role[];
     isViewMode: boolean;
     onRemoveRole: (roleId: number) => void;
 }
-
 export default function RolesTable({
     selectedRoles,
     isViewMode,
@@ -33,7 +30,6 @@ export default function RolesTable({
             },
         },
     ];
-
     // Actions for each row (remove button)
     const rolesActions = !isViewMode ? (row: Record<string, unknown>) => {
         const role = row as unknown as Role;
@@ -49,7 +45,6 @@ export default function RolesTable({
             </Button>
         );
     } : undefined;
-
     if (selectedRoles.length > 0) {
         return (
             <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
@@ -62,7 +57,6 @@ export default function RolesTable({
             </div>
         );
     }
-
     return (
         <div className="text-center py-4 text-muted-foreground border rounded-lg min-h-[60px] flex flex-col justify-center">
             <Shield className="h-6 w-6 mx-auto mb-1" />

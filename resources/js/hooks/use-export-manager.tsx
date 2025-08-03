@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button';
 import { downloadFile } from '@/utils/download';
 import { toast } from 'sonner';
 import { create } from 'zustand';
-
 export interface ExportTask {
     id: number;
     type: 'single' | 'batch';
@@ -14,7 +13,6 @@ export interface ExportTask {
     completedAt?: Date;
     error?: string;
 }
-
 interface ExportManagerStore {
     exports: ExportTask[];
     activeExportsCount: number;
@@ -24,22 +22,18 @@ interface ExportManagerStore {
     clearCompleted: () => void;
     downloadExport: (id: number) => void;
 }
-
 export const useExportManager = create<ExportManagerStore>((set, get) => ({
     exports: [],
     activeExportsCount: 0,
-
     addExport: (exportTask) => {
         const newExport: ExportTask = {
             ...exportTask,
             createdAt: new Date(),
         };
-
         set((state) => ({
             exports: [newExport, ...state.exports],
             activeExportsCount: state.activeExportsCount + 1,
         }));
-
         // Show initial toast
         toast.info(
             <div className="w-full">
@@ -53,14 +47,11 @@ export const useExportManager = create<ExportManagerStore>((set, get) => ({
             },
         );
     },
-
     updateExport: (id, updates) => {
         set((state) => {
             const exports = state.exports.map((exp) => (exp.id === id ? { ...exp, ...updates } : exp));
-
             // Calculate active exports
             const activeExportsCount = exports.filter((exp) => exp.status === 'processing').length;
-
             // Handle status-specific notifications
             const exportTask = exports.find((exp) => exp.id === id);
             if (exportTask) {
@@ -143,39 +134,33 @@ export const useExportManager = create<ExportManagerStore>((set, get) => ({
                     }
                 }
             }
-
             return {
                 exports,
                 activeExportsCount,
             };
         });
     },
-
     removeExport: (id) => {
         set((state) => {
             const exportToRemove = state.exports.find((exp) => exp.id === id);
             const wasActive = exportToRemove?.status === 'processing';
-
             return {
                 exports: state.exports.filter((exp) => exp.id !== id),
                 activeExportsCount: wasActive ? state.activeExportsCount - 1 : state.activeExportsCount,
             };
         });
     },
-
     clearCompleted: () => {
         set((state) => ({
             exports: state.exports.filter((exp) => exp.status === 'processing'),
         }));
     },
-
     downloadExport: (id) => {
         const exportTask = get().exports.find((exp) => exp.id === id);
         if (exportTask?.downloadUrl) {
             // Extract a meaningful filename from the export description
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
             let filename = 'export.pdf';
-
             if (exportTask.description.includes('Execution #')) {
                 // Single execution export
                 const match = exportTask.description.match(/Execution #(\d+)/);
@@ -186,10 +171,8 @@ export const useExportManager = create<ExportManagerStore>((set, get) => ({
                 // Batch export from history
                 filename = `history_report_${timestamp}.pdf`;
             }
-
             // Use the download utility
             downloadFile(exportTask.downloadUrl, filename);
-
             // Optional: Mark as downloaded or remove from list
             // set((state) => ({
             //     exports: state.exports.filter((exp) => exp.id !== id),

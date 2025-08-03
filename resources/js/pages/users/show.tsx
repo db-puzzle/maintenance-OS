@@ -33,7 +33,6 @@ import { ItemRequirementsSelector } from '@/components/work-orders/ItemRequireme
 import SkillSheet from '@/components/skills/SkillSheet';
 import CertificationSheet from '@/components/certifications/CertificationSheet';
 import { toast } from 'sonner';
-
 interface User {
     id: number;
     name: string;
@@ -45,14 +44,12 @@ interface User {
     created_at: string;
     updated_at: string;
 }
-
 interface Skill {
     id: number;
     name: string;
     description?: string | null;
     category: string;
 }
-
 interface Certification {
     id: number;
     name: string;
@@ -61,7 +58,6 @@ interface Certification {
     validity_period_days?: number | null;
     active: boolean;
 }
-
 interface PermissionNode {
     id: number;
     name: string;
@@ -69,7 +65,6 @@ interface PermissionNode {
     permissions: string[];
     children?: PermissionNode[];
 }
-
 interface ActivityLog {
     id: number;
     action: string;
@@ -77,7 +72,6 @@ interface ActivityLog {
     created_at: string;
     details: Record<string, unknown> | null;
 }
-
 interface Props {
     user: User;
     permissionHierarchy: PermissionNode[];
@@ -87,7 +81,6 @@ interface Props {
     canEditUser: boolean;
     canManagePermissions: boolean;
 }
-
 export default function UserShow({
     user,
     permissionHierarchy,
@@ -105,15 +98,12 @@ export default function UserShow({
     const [selectedSkills, setSelectedSkills] = useState<Skill[]>(user.skills || []);
     const [selectedCertifications, setSelectedCertifications] = useState<Certification[]>(user.certifications || []);
     const [isEditingSkillsCerts, setIsEditingSkillsCerts] = useState(false);
-
     const { data: skillsData, setData: setSkillsData, put: putSkills, processing: processingSkills } = useForm({
         skills: selectedSkills.map(s => s.id)
     });
-
     const { data: certificationsData, setData: setCertificationsData, put: putCertifications, processing: processingCertifications } = useForm({
         certifications: selectedCertifications.map(c => c.id)
     });
-
     const toggleNode = (nodeId: string) => {
         setExpandedNodes(prev => {
             const next = new Set(prev);
@@ -125,7 +115,6 @@ export default function UserShow({
             return next;
         });
     };
-
     const getRoleBadgeColor = (roleName: string) => {
         switch (roleName) {
             case 'Administrator':
@@ -146,7 +135,6 @@ export default function UserShow({
                 return 'bg-gray-200 text-gray-800 hover:bg-gray-300';
         }
     };
-
     const getNodeIcon = (type: string) => {
         switch (type) {
             case 'plant':
@@ -159,12 +147,10 @@ export default function UserShow({
                 return <Eye className="h-4 w-4" />;
         }
     };
-
     const renderPermissionNode = (node: PermissionNode, depth = 0) => {
         const nodeKey = `${node.type}-${node.id}`;
         const isExpanded = expandedNodes.has(nodeKey);
         const hasChildren = node.children && node.children.length > 0;
-
         return (
             <div key={nodeKey} className={cn('space-y-2', depth > 0 && 'ml-6')}>
                 <div className="flex items-start gap-2">
@@ -179,7 +165,6 @@ export default function UserShow({
                         </Button>
                     )}
                     {!hasChildren && <div className="w-6" />}
-
                     <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
                             {getNodeIcon(node.type)}
@@ -188,7 +173,6 @@ export default function UserShow({
                                 {node.type}
                             </Badge>
                         </div>
-
                         {node.permissions.length > 0 && (
                             <div className="flex flex-wrap gap-1 ml-6">
                                 {node.permissions.map((permission) => (
@@ -200,7 +184,6 @@ export default function UserShow({
                         )}
                     </div>
                 </div>
-
                 {hasChildren && isExpanded && (
                     <div className="space-y-2">
                         {node.children!.map((child) => renderPermissionNode(child, depth + 1))}
@@ -209,13 +192,11 @@ export default function UserShow({
             </div>
         );
     };
-
     const formatActivityTime = (timestamp: string) => {
         const date = new Date(timestamp);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const hours = Math.floor(diff / (1000 * 60 * 60));
-
         if (hours < 1) {
             const minutes = Math.floor(diff / (1000 * 60));
             return `${minutes} minutes ago`;
@@ -225,35 +206,29 @@ export default function UserShow({
             return date.toLocaleDateString();
         }
     };
-
     // Handlers for skills
     const handleAddSkill = (skill: Skill) => {
         if (!selectedSkills.find(s => s.id === skill.id)) {
             setSelectedSkills([...selectedSkills, skill]);
         }
     };
-
     const handleRemoveSkill = (skillId: number) => {
         setSelectedSkills(selectedSkills.filter(s => s.id !== skillId));
     };
-
     // Handlers for certifications
     const handleAddCertification = (certification: Certification) => {
         if (!selectedCertifications.find(c => c.id === certification.id)) {
             setSelectedCertifications([...selectedCertifications, certification]);
         }
     };
-
     const handleRemoveCertification = (certificationId: number) => {
         setSelectedCertifications(selectedCertifications.filter(c => c.id !== certificationId));
     };
-
     // Save handlers
     const handleSaveSkillsCertifications = () => {
         // Update form data before saving
         setSkillsData('skills', selectedSkills.map(s => s.id));
         setCertificationsData('certifications', selectedCertifications.map(c => c.id));
-
         // Save skills
         putSkills(route('users.skills.update', user.id), {
             onSuccess: () => {
@@ -274,14 +249,12 @@ export default function UserShow({
             }
         });
     };
-
     const handleCancelSkillsCertifications = () => {
         // Reset to original values
         setSelectedSkills(user.skills || []);
         setSelectedCertifications(user.certifications || []);
         setIsEditingSkillsCerts(false);
     };
-
     // Define breadcrumbs
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -297,7 +270,6 @@ export default function UserShow({
             href: '#',
         },
     ];
-
     const tabs = [
         {
             id: 'info',
@@ -310,14 +282,12 @@ export default function UserShow({
                         canUpdate={canEditUser}
                         onSuccess={() => router.reload()}
                     />
-
                     <div className="space-y-4">
                         <RolesTable
                             selectedRoles={user.roles}
                             isViewMode={true}
                             onRemoveRole={() => { }} // Not used in view mode
                         />
-
                         {canManagePermissions && (
                             <div className="flex justify-end">
                                 <Button
@@ -360,7 +330,6 @@ export default function UserShow({
                                 onRemoveSkill={handleRemoveSkill}
                             />
                         </ItemRequirementsSelector>
-
                         {/* Certifications Column */}
                         <ItemRequirementsSelector
                             title="Certificações"
@@ -379,7 +348,6 @@ export default function UserShow({
                             />
                         </ItemRequirementsSelector>
                     </div>
-
                     {/* Action Buttons */}
                     {canEditUser && (
                         <div className="flex justify-end pt-4">
@@ -413,7 +381,6 @@ export default function UserShow({
                             )}
                         </div>
                     )}
-
                     {/* Removed Manage Permissions button section */}
                 </div>
             ),
@@ -430,9 +397,7 @@ export default function UserShow({
                             Permissions organized by entity hierarchy
                         </p>
                     </div>
-
                     <Separator />
-
                     {permissionHierarchy.length > 0 ? (
                         <div className="space-y-4">
                             {permissionHierarchy.map((node) => renderPermissionNode(node))}
@@ -461,9 +426,7 @@ export default function UserShow({
                             Permission changes and user actions
                         </p>
                     </div>
-
                     <Separator />
-
                     {activityLogs.length > 0 ? (
                         <div className="space-y-4">
                             {activityLogs.map((log) => (
@@ -496,11 +459,9 @@ export default function UserShow({
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`User - ${user.name}`} />
-
             <ShowLayout
                 title={user.name}
                 subtitle={`${user.email} • ${user.roles.map(role => role.name).join(', ')}`}
@@ -508,7 +469,6 @@ export default function UserShow({
                 tabs={tabs}
                 defaultActiveTab="info"
             />
-
             {/* Skill Sheet for creating new skills */}
             <SkillSheet
                 open={skillSheetOpen}
@@ -520,7 +480,6 @@ export default function UserShow({
                     router.reload();
                 }}
             />
-
             {/* Certification Sheet for creating new certifications */}
             <CertificationSheet
                 open={certificationSheetOpen}

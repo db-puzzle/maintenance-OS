@@ -13,7 +13,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import React, { forwardRef, useState } from 'react';
-
 interface ReportRuntimeSheetProps {
     assetId?: number;
     currentRuntime: number;
@@ -24,7 +23,6 @@ interface ReportRuntimeSheetProps {
         user_timezone?: string;
     }) => void;
 }
-
 const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps>(
     ({ assetId, currentRuntime, showTrigger = false, onSuccess }, ref) => {
         const [isOpen, setIsOpen] = useState(false);
@@ -32,41 +30,32 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
         const [notes, setNotes] = useState('');
         const [isSubmitting, setIsSubmitting] = useState(false);
         const [error, setError] = useState<string | null>(null);
-
         // Initialize with current date and time
         const [measurementDate, setMeasurementDate] = useState<Date>(new Date());
         const [measurementTime, setMeasurementTime] = useState(format(new Date(), 'HH:mm'));
         const [calendarOpen, setCalendarOpen] = useState(false);
-
         const handleSubmit = async (e: React.FormEvent) => {
             e.preventDefault();
-
             if (!assetId) {
                 setError('ID do ativo não encontrado');
                 return;
             }
-
             const reportedHoursValue = parseFloat(reportedHours);
-
             if (isNaN(reportedHoursValue) || reportedHoursValue < 0) {
                 setError('Por favor, insira um valor válido de horas');
                 return;
             }
-
             // Combine date and time into a single datetime
             const [timeHours, timeMinutes] = measurementTime.split(':').map(Number);
             const measurementDateTime = new Date(measurementDate);
             measurementDateTime.setHours(timeHours, timeMinutes, 0, 0);
-
             // Check if the measurement datetime is in the future
             if (measurementDateTime > new Date()) {
                 setError('A data e hora da medição não pode ser no futuro');
                 return;
             }
-
             setIsSubmitting(true);
             setError(null);
-
             try {
                 const response = await axios.post(`/asset-hierarchy/assets/${assetId}/runtime`, {
                     reported_hours: reportedHoursValue,
@@ -75,15 +64,12 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                     // The user selects in their local time, but we send UTC to the backend
                     measurement_datetime: measurementDateTime.toISOString(),
                 });
-
                 if (response.data.success) {
                     setIsOpen(false);
                     setNotes('');
-
                     if (onSuccess) {
                         onSuccess(response.data.runtime_data);
                     }
-
                     // Reload the page to refresh all data with Inertia
                     router.reload();
                 }
@@ -98,7 +84,6 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                 setIsSubmitting(false);
             }
         };
-
         return (
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 {showTrigger && (
@@ -119,7 +104,6 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                             <Label htmlFor="current-hours">Horímetro Atual</Label>
                             <div className="text-muted-foreground text-sm">{currentRuntime.toFixed(1)} horas</div>
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="reported-hours">Novo Horímetro</Label>
                             <Input
@@ -132,7 +116,6 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                                 required
                             />
                         </div>
-
                         {/* Date Selection */}
                         <div className="space-y-2">
                             <Label>Data da Medição</Label>
@@ -162,7 +145,6 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                                 </PopoverContent>
                             </Popover>
                         </div>
-
                         {/* Time Selection */}
                         <div className="space-y-2">
                             <TimeSelect label="Hora da Medição" value={measurementTime} onChange={setMeasurementTime} />
@@ -171,7 +153,6 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                                 <p className="text-muted-foreground text-xs">Nota: A hora selecionada não pode ser no futuro</p>
                             )}
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="notes">Observações (opcional)</Label>
                             <Textarea
@@ -182,9 +163,7 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
                                 rows={3}
                             />
                         </div>
-
                         {error && <div className="text-sm text-red-600">{error}</div>}
-
                         <div className="flex gap-2 pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting} className="flex-1">
                                 Cancelar
@@ -199,7 +178,5 @@ const ReportRuntimeSheet = forwardRef<HTMLButtonElement, ReportRuntimeSheetProps
         );
     },
 );
-
 ReportRuntimeSheet.displayName = 'ReportRuntimeSheet';
-
 export default ReportRuntimeSheet;

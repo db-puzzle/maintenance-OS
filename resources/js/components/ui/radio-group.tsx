@@ -1,9 +1,7 @@
 import * as React from "react"
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
 import { CircleIcon } from "lucide-react"
-
 import { cn } from "@/lib/utils"
-
 function RadioGroup({
   className,
   ...props
@@ -16,7 +14,6 @@ function RadioGroup({
     />
   )
 }
-
 function RadioGroupItem({
   className,
   ...props
@@ -39,5 +36,4 @@ function RadioGroupItem({
     </RadioGroupPrimitive.Item>
   )
 }
-
 export { RadioGroup, RadioGroupItem }

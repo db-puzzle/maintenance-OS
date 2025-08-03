@@ -32,7 +32,6 @@ import RoutingStepsTab from '@/components/production/RoutingStepsTab';
 import RoutingStepsTableTab from '@/components/production/RoutingStepsTableTab';
 import { ManufacturingStep, WorkCell } from '@/types/production';
 import { Form } from '@/types/work-order';
-
 interface Props {
     routing: any;
     effectiveSteps: any[];
@@ -48,10 +47,8 @@ interface Props {
         execute_steps: boolean;
     };
 }
-
 export default function RoutingShow({ routing, effectiveSteps, templates, workCells, stepTypes, forms, openRouteBuilder, can }: Props) {
     const [activeTab, setActiveTab] = useState('overview');
-
     const form = useForm({
         name: routing.name || '',
         description: routing.description || '',
@@ -60,17 +57,14 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
         route_template_id: routing.route_template?.id?.toString() || '',
         is_active: routing.is_active
     });
-
     // Calculate route progress
     const completedSteps = effectiveSteps.filter(step => step.status === 'completed').length;
     const totalSteps = effectiveSteps.length;
     const progressPercentage = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
-
     // Calculate total times
     const totalEstimatedTime = effectiveSteps.reduce((sum, step) =>
         sum + (step.setup_time_minutes || 0) + (step.cycle_time_minutes || 0), 0
     );
-
     const totalActualTime = effectiveSteps.reduce((sum, step) => {
         if (step.actual_start_time && step.actual_end_time) {
             const start = new Date(step.actual_start_time);
@@ -79,7 +73,6 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
         }
         return sum;
     }, 0);
-
     const tabs = [
         {
             id: 'overview',
@@ -124,19 +117,14 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
             />
         },
     ];
-
     const breadcrumbs = [
         { title: 'Produção', href: '/production' },
         { title: 'Roteiros', href: route('production.routing.index') },
         { title: routing.name, href: '' }
     ];
-
-
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Roteiro - ${routing.name}`} />
-
             <ShowLayout
                 title={routing.name}
                 subtitle={
@@ -161,7 +149,6 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
         </AppLayout>
     );
 }
-
 // Overview Tab Component
 function RoutingOverviewTab({
     routing,
@@ -180,19 +167,14 @@ function RoutingOverviewTab({
         const mins = minutes % 60;
         return mins > 0 ? `${hours}h ${Math.round(mins)}min` : `${hours}h`;
     };
-
     const totalSetupTime = effectiveSteps?.reduce((sum: number, step: any) =>
         sum + (step.setup_time_minutes || 0), 0) || 0;
-
     const totalCycleTime = effectiveSteps?.reduce((sum: number, step: any) =>
         sum + (step.cycle_time_minutes || 0), 0) || 0;
-
     return (
         <div className="space-y-6 py-6">
-
             {/* Process Summary Section */}
             <div className="space-y-4">
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <SummaryCard
                         icon={<Workflow className="h-5 w-5" />}
@@ -218,7 +200,6 @@ function RoutingOverviewTab({
                     />
                 </div>
             </div>
-
             {/* Main Information Section */}
             <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -229,7 +210,6 @@ function RoutingOverviewTab({
                         placeholder="Nome do roteiro"
                         view={true}
                     />
-
                     <ItemSelect
                         label="Status"
                         items={[
@@ -241,7 +221,6 @@ function RoutingOverviewTab({
                         view={true}
                     />
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {routing.manufacturing_order && (
                         <div className="grid gap-2">
@@ -258,7 +237,6 @@ function RoutingOverviewTab({
                             </div>
                         </div>
                     )}
-
                     {routing.item && (
                         <div className="grid gap-2">
                             <Label>Item</Label>
@@ -275,7 +253,6 @@ function RoutingOverviewTab({
                         </div>
                     )}
                 </div>
-
                 {routing.route_template && (
                     <div className="grid gap-2">
                         <Label>Template de Roteiro</Label>
@@ -286,7 +263,6 @@ function RoutingOverviewTab({
                         </div>
                     </div>
                 )}
-
                 {routing.description && (
                     <div className="grid gap-2">
                         <Label>Descrição</Label>
@@ -301,10 +277,8 @@ function RoutingOverviewTab({
                     </div>
                 )}
             </div>
-
             {/* Metadata Section */}
             <div className="space-y-4">
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                         <Label>Criado por</Label>
@@ -314,7 +288,6 @@ function RoutingOverviewTab({
                             </div>
                         </div>
                     </div>
-
                     <div className="grid gap-2">
                         <Label>Criado em</Label>
                         <div className="bg-background">
@@ -334,9 +307,7 @@ function RoutingOverviewTab({
         </div>
     );
 }
-
 // Steps Tab Component
-
 // Helper Components
 function SummaryCard({ icon, label, value, onClick, clickable }: any) {
     return (

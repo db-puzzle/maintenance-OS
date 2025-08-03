@@ -9,7 +9,6 @@ import { Item, ItemCategory } from '@/types/production';
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
 import { Factory, Package, ShoppingCart, Ghost } from 'lucide-react';
 import { router } from '@inertiajs/react';
-
 interface ItemForm {
     [key: string]: string | number | boolean | null | undefined;
     item_number: string;
@@ -31,7 +30,6 @@ interface ItemForm {
     preferred_vendor: string;
     vendor_item_number: string;
 }
-
 interface CreateItemSheetProps {
     item?: Item;
     open: boolean;
@@ -41,14 +39,12 @@ interface CreateItemSheetProps {
     categories?: ItemCategory[];
     onCategoriesRefresh?: () => void;
 }
-
 const itemStatuses = [
     { id: 1, name: 'Ativo', value: 'active' },
     { id: 2, name: 'Inativo', value: 'inactive' },
     { id: 3, name: 'Protótipo', value: 'prototype' },
     { id: 4, name: 'Descontinuado', value: 'discontinued' }
 ];
-
 const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
     item,
     open,
@@ -60,15 +56,12 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
 }) => {
     const itemNumberRef = useRef<HTMLInputElement>(null);
     const [categorySheetOpen, setCategorySheetOpen] = useState(false);
-
     // Use categories from props
     const categories = propCategories || [];
     const loadingCategories = false;
-
     // Handle category sheet success
     const handleCategorySheetSuccess = () => {
         setCategorySheetOpen(false);
-
         // If parent provided a refresh callback, use it
         if (onCategoriesRefresh) {
             onCategoriesRefresh();
@@ -79,7 +72,6 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
             });
         }
     };
-
     // Auto-focus the item number input when sheet opens for creation
     useEffect(() => {
         if (open && mode === 'create') {
@@ -92,24 +84,20 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                     }
                 });
             };
-
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
             const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
-
             // Cleanup timeouts
             return () => {
                 timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [open, mode]);
-
     // Handle onOpenChange to focus when sheet opens
     const handleOpenChange = (open: boolean) => {
         if (onOpenChange) {
             onOpenChange(open);
         }
-
         // Focus the input when opening in create mode
         if (open && mode === 'create') {
             setTimeout(() => {
@@ -117,7 +105,6 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
             }, 100);
         }
     };
-
     return (
         <>
             <BaseEntitySheet<ItemForm>
@@ -184,7 +171,6 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                                     required
                                 />
                             </div>
-
                             {/* Description */}
                             <div className="grid gap-2">
                                 <Label htmlFor="description" className="text-sm font-medium">
@@ -200,7 +186,6 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                                 {errors.description && <p className="text-destructive text-sm">{errors.description}</p>}
                             </div>
                         </div>
-
                         {/* Classification */}
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -230,7 +215,6 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                                 />
                             </div>
                         </div>
-
                         {/* Physical & Operational Attributes */}
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -258,11 +242,9 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                                 />
                             </div>
                         </div>
-
                         {/* Capabilities and Associated Fields */}
                         <div className="space-y-4">
                             <h3 className="text-sm font-medium">Capacidades do Item</h3>
-
                             <div className="space-y-3">
                                 {/* Manufacturing Capability */}
                                 <StateButton
@@ -307,7 +289,6 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                                         </div>
                                     </div>
                                 )}
-
                                 {/* Purchasing Capability */}
                                 <StateButton
                                     icon={Package}
@@ -373,7 +354,6 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                                         </div>
                                     </div>
                                 )}
-
                                 {/* Sales Capability */}
                                 <StateButton
                                     icon={ShoppingCart}
@@ -406,7 +386,6 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                                         </div>
                                     </div>
                                 )}
-
                                 {/* Phantom Item Capability */}
                                 <StateButton
                                     icon={Ghost}
@@ -441,7 +420,6 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                     </div>
                 )}
             </BaseEntitySheet>
-
             {/* Category Creation Sheet */}
             <CreateItemCategorySheet
                 open={categorySheetOpen}
@@ -452,5 +430,4 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
         </>
     );
 };
-
 export { CreateItemSheet }; 

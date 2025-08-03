@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Plus, Trash2, Save, Download, ChevronRight, ChevronDown, Edit, GripVertical } from 'lucide-react';
 
 const VisualBOMBuilder = () => {
@@ -37,8 +37,6 @@ const VisualBOMBuilder = () => {
   
   const [expanded, setExpanded] = useState({ '1': true, '1-1': true, '1-2': true });
   const [dragging, setDragging] = useState(null);
-  const [dragPreview, setDragPreview] = useState(null);
-  const [hoverTarget, setHoverTarget] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
   const [newItemParentId, setNewItemParentId] = useState(null);
 

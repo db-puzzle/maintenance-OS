@@ -9,12 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { TextInput } from '@/components/TextInput';
 import InputError from '@/components/input-error';
 import { toast } from 'sonner';
-
 interface Manufacturer {
     id: number;
     name: string;
 }
-
 interface Part {
     id: number;
     part_number: string;
@@ -29,17 +27,14 @@ interface Part {
     manufacturer?: Manufacturer | null;
     active: boolean;
 }
-
 interface CreatePartSheetProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     part?: Part | null;
     onSuccess?: () => void;
 }
-
 export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreatePartSheetProps) {
     const [stayOpen, setStayOpen] = useState(false);
-
     const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm({
         part_number: '',
         name: '',
@@ -52,12 +47,10 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
         manufacturer_id: null as number | null,
         active: true as boolean,
     });
-
     // Create a wrapper to handle the typing issue
     const handleClearErrors = (...fields: string[]) => {
         clearErrors(...(fields as any));
     };
-
     useEffect(() => {
         if (part) {
             setData('part_number', part.part_number);
@@ -74,15 +67,12 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
             reset();
         }
     }, [part]);
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         const submitData = {
             ...data,
             maximum_quantity: data.maximum_quantity || null,
         };
-
         if (part) {
             put(route('parts.update', part.id), {
                 onSuccess: () => {
@@ -113,17 +103,14 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
             });
         }
     };
-
     const formatCurrency = (value: number) => {
         return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
-
     const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
         const numericValue = parseFloat(value) || 0;
         setData('unit_cost', numericValue);
     };
-
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="sm:max-w-[540px] overflow-y-auto">
@@ -133,7 +120,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                         {part ? 'Atualize as informações da peça' : 'Preencha os dados para criar uma nova peça'}
                     </SheetDescription>
                 </SheetHeader>
-
                 <form onSubmit={handleSubmit} className="space-y-6 mt-6">
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
@@ -148,7 +134,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                             placeholder="EX-001"
                             required
                         />
-
                         <TextInput
                             form={{
                                 data,
@@ -162,7 +147,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                             required
                         />
                     </div>
-
                     <div className="grid gap-2">
                         <Label htmlFor="description">Descrição</Label>
                         <Textarea
@@ -174,7 +158,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                         />
                         <InputError message={errors.description} />
                     </div>
-
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
                             form={{
@@ -188,7 +171,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                             placeholder="0.00"
                             required
                         />
-
                         <TextInput
                             form={{
                                 data,
@@ -202,7 +184,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                             required
                         />
                     </div>
-
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
                             form={{
@@ -216,7 +197,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                             placeholder="0"
                             required
                         />
-
                         <TextInput
                             form={{
                                 data,
@@ -229,7 +209,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                             placeholder="Opcional"
                         />
                     </div>
-
                     <TextInput
                         form={{
                             data,
@@ -241,7 +220,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                         label="Localização"
                         placeholder="Ex: Almoxarifado A, Prateleira 3"
                     />
-
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
                             form={{
@@ -255,7 +233,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                             placeholder="Nome do fabricante"
                         />
                     </div>
-
                     <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                         <div>
                             <Label htmlFor="active">Status</Label>
@@ -269,7 +246,6 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                             onCheckedChange={(checked) => setData('active', checked as boolean)}
                         />
                     </div>
-
                     <SheetFooter className="flex-col sm:flex-row gap-2">
                         {!part && (
                             <div className="flex items-center space-x-2">

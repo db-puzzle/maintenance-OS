@@ -3,9 +3,7 @@ import { type NavGroup, type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
-
 const STORAGE_KEY = 'nav_open_items';
-
 export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
     const page = usePage();
     const [openItems, setOpenItems] = useState<Record<string, boolean>>(() => {
@@ -15,28 +13,23 @@ export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
         }
         return {};
     });
-
     const isItemActive = (href: string, activePattern?: RegExp) => {
         if (activePattern) {
             return activePattern.test(page.url);
         }
-
         // Extrai o caminho e os parâmetros da URL atual
         const [currentPath] = page.url.split('?');
         const [itemPath] = href.split('?');
-
         // Se os caminhos são diferentes, verifica se é apenas uma questão de parâmetros de busca
         if (currentPath !== itemPath) {
             // Se o caminho atual é diferente do caminho do item (ignorando parâmetros),
             // então não é o item ativo
             return false;
         }
-
         // Se os caminhos são iguais, o item está ativo
         // Não importa quais parâmetros de busca, paginação ou filtros estão presentes
         return true;
     };
-
     const toggleItem = (title: string) => {
         setOpenItems((prev) => {
             const newState = {
@@ -47,11 +40,9 @@ export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
             return newState;
         });
     };
-
     const renderNavItem = (item: NavItem) => {
         if (item.items && item.items.length > 0) {
             const isOpen = openItems[item.title] || false;
-
             return (
                 <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton onClick={() => toggleItem(item.title)}>
@@ -75,7 +66,6 @@ export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
                 </SidebarMenuItem>
             );
         }
-
         return (
             <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild isActive={isItemActive(item.href, item.activePattern)}>
@@ -87,7 +77,6 @@ export function NavMain({ items = [] }: { items: (NavItem | NavGroup)[] }) {
             </SidebarMenuItem>
         );
     };
-
     return (
         <>
             {items.map((item) => {

@@ -29,7 +29,6 @@ import InputError from '@/components/input-error';
 import AppLayout from '@/layouts/app-layout';
 import { Item, BillOfMaterial, RouteTemplate, ManufacturingOrder } from '@/types/production';
 import { cn } from '@/lib/utils';
-
 interface Props {
     items?: Item[];
     billsOfMaterial?: BillOfMaterial[];
@@ -37,33 +36,26 @@ interface Props {
     sourceTypes: Record<string, string>;
     selectedBomId?: number;
 }
-
 interface FormData {
     // Order type
     order_type: 'item' | 'bom';
-
     // Item/BOM selection
     item_id: number | null;
     bill_of_material_id: number | null;
-
     // Order details
     quantity: number;
     unit_of_measure: string;
     priority: number;
     requested_date: string;
-
     // Source
     source_type: string;
     source_reference: string;
-
     // Parent-child options
     auto_complete_on_children: boolean;
-
     // Route configuration
     route_creation_mode: 'manual' | 'template' | 'auto';
     route_template_id: number | null;
 }
-
 interface StepIndicatorProps {
     steps: Array<{
         number: number;
@@ -72,7 +64,6 @@ interface StepIndicatorProps {
     }>;
     currentStep: number;
 }
-
 function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
     return (
         <div className="flex items-center justify-between">
@@ -115,7 +106,6 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
         </div>
     );
 }
-
 export default function CreateManufacturingOrder({
     items = [],
     billsOfMaterial = [],
@@ -124,7 +114,6 @@ export default function CreateManufacturingOrder({
     selectedBomId
 }: Props) {
     const [currentStep, setCurrentStep] = useState(1);
-
     const { data, setData, post, processing, errors } = useForm<FormData>({
         order_type: selectedBomId ? 'bom' : 'item',
         item_id: null,
@@ -139,55 +128,46 @@ export default function CreateManufacturingOrder({
         route_creation_mode: 'manual',
         route_template_id: null,
     });
-
     const steps = [
         { number: 1, title: 'Type', icon: <Factory className="h-5 w-5" /> },
         { number: 2, title: 'Item', icon: <Package className="h-5 w-5" /> },
         { number: 3, title: 'Details', icon: <Calendar className="h-5 w-5" /> },
         { number: 4, title: 'Configuration', icon: <Settings className="h-5 w-5" /> },
     ];
-
     const selectedItem = useMemo(() => {
         if (data.order_type === 'item' && data.item_id) {
             return items.find(i => i.id === data.item_id);
         }
         return null;
     }, [data.item_id, data.order_type, items]);
-
     const selectedBOM = useMemo(() => {
         if (data.order_type === 'bom' && data.bill_of_material_id) {
             return billsOfMaterial.find(b => b.id === data.bill_of_material_id);
         }
         return null;
     }, [data.bill_of_material_id, data.order_type, billsOfMaterial]);
-
     const bomItems = useMemo(() => {
         if (!selectedBOM?.current_version?.items) return [];
         return selectedBOM.current_version.items;
     }, [selectedBOM]);
-
     const filteredRouteTemplates = useMemo(() => {
         if (!selectedItem?.category) return routeTemplates;
         return routeTemplates.filter(t =>
             !t.item_category || t.item_category === selectedItem.category
         );
     }, [selectedItem, routeTemplates]);
-
     const handleNext = () => {
         if (currentStep < steps.length) {
             setCurrentStep(currentStep + 1);
         }
     };
-
     const handlePrevious = () => {
         if (currentStep > 1) {
             setCurrentStep(currentStep - 1);
         }
     };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         post(route('production.orders.store'), {
             onSuccess: () => {
                 // Success is handled by controller redirect
@@ -197,7 +177,6 @@ export default function CreateManufacturingOrder({
             },
         });
     };
-
     const isStepValid = (step: number) => {
         switch (step) {
             case 1:
@@ -216,7 +195,6 @@ export default function CreateManufacturingOrder({
                 return false;
         }
     };
-
     return (
         <AppLayout
             breadcrumbs={[
@@ -232,12 +210,10 @@ export default function CreateManufacturingOrder({
                         Create a new manufacturing order for production
                     </p>
                 </div>
-
                 <Card>
                     <CardHeader>
                         <StepIndicator steps={steps} currentStep={currentStep} />
                     </CardHeader>
-
                     <form onSubmit={handleSubmit}>
                         <CardContent className="space-y-6">
                             {/* Step 1: Order Type Selection */}
@@ -285,7 +261,6 @@ export default function CreateManufacturingOrder({
                                     </div>
                                 </div>
                             )}
-
                             {/* Step 2: Item/BOM Selection */}
                             {currentStep === 2 && (
                                 <div className="space-y-6">
@@ -309,7 +284,6 @@ export default function CreateManufacturingOrder({
                                                 error={errors.item_id}
                                                 required
                                             />
-
                                             {selectedItem && (
                                                 <div className="mt-4 p-4 bg-muted/20 rounded-lg">
                                                     <p className="text-sm font-medium">{selectedItem.name}</p>
@@ -338,7 +312,6 @@ export default function CreateManufacturingOrder({
                                                 error={errors.bill_of_material_id}
                                                 required
                                             />
-
                                             {selectedBOM && (
                                                 <div className="mt-4 space-y-4">
                                                     <div className="p-4 bg-muted/20 rounded-lg">
@@ -361,7 +334,6 @@ export default function CreateManufacturingOrder({
                                                             </Badge>
                                                         </div>
                                                     </div>
-
                                                     <Alert>
                                                         <Info className="h-4 w-4" />
                                                         <AlertDescription>
@@ -375,7 +347,6 @@ export default function CreateManufacturingOrder({
                                     )}
                                 </div>
                             )}
-
                             {/* Step 3: Order Details */}
                             {currentStep === 3 && (
                                 <div className="space-y-6">
@@ -393,7 +364,6 @@ export default function CreateManufacturingOrder({
                                             />
                                             <InputError message={errors.quantity} />
                                         </div>
-
                                         <div>
                                             <Label htmlFor="unit_of_measure">Unit of Measure</Label>
                                             <Input
@@ -405,7 +375,6 @@ export default function CreateManufacturingOrder({
                                             <InputError message={errors.unit_of_measure} />
                                         </div>
                                     </div>
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <Label htmlFor="priority">Priority (0-100)</Label>
@@ -427,7 +396,6 @@ export default function CreateManufacturingOrder({
                                                 Higher values indicate higher priority
                                             </p>
                                         </div>
-
                                         <div>
                                             <Label htmlFor="requested_date">Requested Date</Label>
                                             <Input
@@ -439,9 +407,7 @@ export default function CreateManufacturingOrder({
                                             <InputError message={errors.requested_date} />
                                         </div>
                                     </div>
-
                                     <Separator />
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <ItemSelect
                                             label="Source Type"
@@ -453,7 +419,6 @@ export default function CreateManufacturingOrder({
                                             onValueChange={(value) => setData('source_type', value)}
                                             displayValue={(item) => item.name}
                                         />
-
                                         <div>
                                             <Label htmlFor="source_reference">Source Reference</Label>
                                             <Input
@@ -465,7 +430,6 @@ export default function CreateManufacturingOrder({
                                             <InputError message={errors.source_reference} />
                                         </div>
                                     </div>
-
                                     {/* Child Orders Preview for BOM */}
                                     {data.order_type === 'bom' && bomItems.length > 0 && (
                                         <div className="space-y-4">
@@ -512,7 +476,6 @@ export default function CreateManufacturingOrder({
                                     )}
                                 </div>
                             )}
-
                             {/* Step 4: Configuration */}
                             {currentStep === 4 && (
                                 <div className="space-y-6">
@@ -545,7 +508,6 @@ export default function CreateManufacturingOrder({
                                             </Card>
                                         </div>
                                     )}
-
                                     {/* Route Configuration */}
                                     <div>
                                         <h3 className="font-medium mb-4">Manufacturing Route</h3>
@@ -569,7 +531,6 @@ export default function CreateManufacturingOrder({
                                                             </Label>
                                                         </div>
                                                     </div>
-
                                                     <div className="flex items-start space-x-3">
                                                         <RadioGroupItem value="template" id="template" className="mt-1" />
                                                         <div className="flex-1">
@@ -579,7 +540,6 @@ export default function CreateManufacturingOrder({
                                                                     Apply a predefined route template
                                                                 </p>
                                                             </Label>
-
                                                             {data.route_creation_mode === 'template' && (
                                                                 <div className="mt-3">
                                                                     <ItemSelect
@@ -592,7 +552,6 @@ export default function CreateManufacturingOrder({
                                                                         placeholder="Select a route template..."
                                                                         displayValue={(template) => template.name}
                                                                     />
-
                                                                     {data.route_template_id && (
                                                                         <div className="mt-3 p-3 bg-muted/20 rounded-lg">
                                                                             <p className="text-sm">
@@ -606,7 +565,6 @@ export default function CreateManufacturingOrder({
                                                             )}
                                                         </div>
                                                     </div>
-
                                                     <div className="flex items-start space-x-3">
                                                         <RadioGroupItem value="auto" id="auto" className="mt-1" />
                                                         <div>
@@ -625,7 +583,6 @@ export default function CreateManufacturingOrder({
                                 </div>
                             )}
                         </CardContent>
-
                         <CardFooter className="flex justify-between">
                             <Button
                                 type="button"
@@ -636,7 +593,6 @@ export default function CreateManufacturingOrder({
                                 <ChevronLeft className="h-4 w-4 mr-2" />
                                 Previous
                             </Button>
-
                             {currentStep < steps.length ? (
                                 <Button
                                     type="button"

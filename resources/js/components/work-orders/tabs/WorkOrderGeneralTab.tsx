@@ -2,7 +2,6 @@ import React from 'react';
 import { router } from '@inertiajs/react';
 import { WorkOrderFormComponent } from '@/components/work-orders';
 import { toast } from 'sonner';
-
 interface WorkOrderGeneralTabProps {
     workOrder?: any;
     categories: any[];
@@ -18,7 +17,6 @@ interface WorkOrderGeneralTabProps {
     preselectedAsset?: any;
     onWorkOrderCreated?: () => void;
 }
-
 export default function WorkOrderGeneralTab({
     workOrder,
     categories,
@@ -39,12 +37,10 @@ export default function WorkOrderGeneralTab({
             onWorkOrderCreated();
         }
     };
-
     const handleWorkOrderUpdated = () => {
         toast.success('Ordem de serviço atualizada com sucesso!');
         router.reload();
     };
-
     return (
         <div className="py-8">
             <WorkOrderFormComponent

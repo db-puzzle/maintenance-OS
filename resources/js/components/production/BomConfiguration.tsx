@@ -1,7 +1,6 @@
 import React from 'react';
 import HierarchicalConfiguration from './HierarchicalConfiguration';
 import { BomItem, Item, ItemCategory } from '@/types/production';
-
 interface BomConfigurationProps {
   bomId: number;
   versionId: number;
@@ -20,7 +19,6 @@ interface BomConfigurationProps {
     versions?: any[];
   };
 }
-
 /**
  * BomConfiguration component - wrapper for HierarchicalConfiguration
  * This component maintains backward compatibility while delegating

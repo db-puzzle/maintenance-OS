@@ -8,20 +8,17 @@ import { DefaultMeasurement } from '@/types/task';
 import { MeasurementUnitCategories, UnitCategory } from '@/types/units';
 import { useEffect, useState } from 'react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
-
 // This type alias extends WithSaveFunctionalityProps and is reserved for future measurement-specific props
 type MeasurementTaskContentProps = WithSaveFunctionalityProps & {
     // Future measurement-specific props will be added here
     [key: string]: unknown;
 };
-
 interface MeasurementFormData {
     targetValue: string;
     minValue: string;
     maxValue: string;
     measuredValue: string;
 }
-
 function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, disabled }: MeasurementTaskContentProps) {
     const [category, setCategory] = useState<UnitCategory>('Comprimento');
     const [selectedUnit, setSelectedUnit] = useState<string>('m');
@@ -32,15 +29,12 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
     const [isValueAtTarget, setIsValueAtTarget] = useState<boolean>(false);
     const [formErrors, setFormErrors] = useState<Partial<Record<keyof MeasurementFormData, string>>>({});
     const measurement = task.measurement || DefaultMeasurement;
-
     useEffect(() => {
         if (!response) {
             setResponse({ value: 0, measuredValue: '0' });
         }
     }, [response, setResponse]);
-
     const defaultCategory = 'Comprimento';
-
     useEffect(() => {
         if (measurement) {
             const initialCategory = measurement.category || defaultCategory;
@@ -51,7 +45,6 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             setTargetValue(measurement.target);
         }
     }, [measurement]);
-
     useEffect(() => {
         const newErrors: Partial<Record<keyof MeasurementFormData, string>> = {};
         if (targetValue !== undefined && minValue !== undefined && targetValue < minValue) {
@@ -66,27 +59,21 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
         }
         setFormErrors(newErrors);
     }, [targetValue, minValue, maxValue]);
-
     const stringifyValue = (val: number | undefined): string => {
         return val !== undefined ? String(val) : '';
     };
-
     const validateInput = (value: string): boolean => {
         return value === '' || /^-?\d*[.,]?\d*$/.test(value);
     };
-
     const processBlur = (name: keyof MeasurementFormData, value: string) => {
         const normalizedValue = value.replace(',', '.');
         const numValue = parseFloat(normalizedValue);
-
         if (name === 'measuredValue') {
             const finalValue = isNaN(numValue) ? 0 : numValue;
             setResponse({ ...response, value: finalValue, measuredValue: String(finalValue) });
-
             const newErrors: Partial<Record<keyof MeasurementFormData, string>> = { ...formErrors };
             delete newErrors.measuredValue;
             let outOfRange = false;
-
             if (minValue !== undefined && finalValue < minValue) {
                 newErrors.measuredValue = `O valor está abaixo do mínimo (${minValue})`;
                 outOfRange = true;
@@ -109,9 +96,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             );
         }
     };
-
     const safeCategory = Object.keys(MeasurementUnitCategories).includes(category) ? category : defaultCategory;
-
     const form = {
         data: {
             ...response,
@@ -131,14 +116,12 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
         validateInput,
         processBlur,
     };
-
     const handleUpdate = (target: number | undefined, min: number | undefined, max: number | undefined) => {
         onUpdate?.({
             ...task,
             measurement: { ...measurement, category, unit: selectedUnit, min, max, target },
         });
     };
-
     const handleCategoryChange = (value: string) => {
         if (value && Object.keys(MeasurementUnitCategories).includes(value)) {
             const newCategory = value as UnitCategory;
@@ -154,7 +137,6 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             }
         }
     };
-
     const handleUnitChange = (value: string) => {
         if (value) {
             setSelectedUnit(value);
@@ -164,7 +146,6 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             });
         }
     };
-
     if (mode === 'edit') {
         return (
             <div className="space-y-3 lg:space-y-4">
@@ -181,7 +162,6 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                 canCreate={false}
                             />
                         </div>
-
                         <div className="col-span-1 space-y-2 lg:col-span-7">
                             <ItemSelect
                                 label="Unidade"
@@ -193,15 +173,12 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                 canCreate={false}
                             />
                         </div>
-
                         <div className="hidden items-center justify-center lg:col-span-1 lg:flex">
                             <Separator orientation="vertical" className="h-auto" />
                         </div>
-
                         <div className="my-2 lg:hidden">
                             <Separator className="w-full" />
                         </div>
-
                         <div className="col-span-1 grid grid-cols-3 gap-3 lg:col-span-12 lg:gap-4">
                             <div className="col-span-1 space-y-2">
                                 <TextInput
@@ -212,7 +189,6 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                     onBlur={(e: React.FocusEvent<HTMLInputElement>) => processBlur('targetValue', e.target.value)}
                                 />
                             </div>
-
                             <div className="col-span-1 space-y-2">
                                 <TextInput
                                     form={form}
@@ -222,7 +198,6 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                     onBlur={(e: React.FocusEvent<HTMLInputElement>) => processBlur('minValue', e.target.value)}
                                 />
                             </div>
-
                             <div className="col-span-1 space-y-2">
                                 <TextInput
                                     form={form}
@@ -238,9 +213,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             </div>
         );
     }
-
     const displayedUnit = measurement.unit || '';
-
     return (
         <div className="space-y-3 lg:space-y-4">
             <div className="rounded-md pr-4 pb-4 pl-4">
@@ -279,15 +252,12 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                             </>
                         )}
                     </div>
-
                     <div className="hidden items-center justify-center lg:col-span-1 lg:flex">
                         <Separator orientation="vertical" className="h-auto" />
                     </div>
-
                     <div className="my-2 lg:hidden">
                         <Separator className="w-full" />
                     </div>
-
                     <div className="col-span-1 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:col-span-19 lg:gap-4">
                         <div className="col-span-1 space-y-2">
                             <Label className="text-sm font-medium">Valor Alvo</Label>
@@ -296,7 +266,6 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                 <span className="text-muted-foreground text-sm font-medium whitespace-nowrap">{displayedUnit}</span>
                             </div>
                         </div>
-
                         <div className="col-span-1 space-y-2">
                             <Label className="text-sm font-medium">Valor Mínimo</Label>
                             <div className="flex items-center gap-2">
@@ -304,7 +273,6 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                 <span className="text-muted-foreground text-sm font-medium whitespace-nowrap">{displayedUnit}</span>
                             </div>
                         </div>
-
                         <div className="col-span-1 space-y-2">
                             <Label className="text-sm font-medium">Valor Máximo</Label>
                             <div className="flex items-center gap-2">
@@ -318,5 +286,4 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
         </div>
     );
 }
-
 export default withSaveFunctionality(MeasurementTaskContent);

@@ -20,7 +20,6 @@ import { toast } from 'sonner';
 import { Pencil, Save, ChevronDownIcon, Search, Settings2 } from 'lucide-react';
 import { MAINTENANCE_CATEGORIES, QUALITY_CATEGORIES } from '@/types/work-order';
 import type { WorkOrder, WorkOrderCategory } from '@/types/work-order';
-
 // Icon imports for work order types
 import {
     Clock,
@@ -36,7 +35,6 @@ import {
     Zap,
     type LucideIcon
 } from 'lucide-react';
-
 // Icon mapping for work order types
 const iconMap: Record<string, LucideIcon> = {
     'clock': Clock,
@@ -51,39 +49,32 @@ const iconMap: Record<string, LucideIcon> = {
     'trending-up': TrendingUp,
     'zap': Zap,
 };
-
 interface WorkOrderFormData {
     // Basic Information
     work_order_type_id: string;
     work_order_category_id: string;
     title: string;
     description: string;
-
     // Asset/Location
     plant_id: string;
     area_id: string;
     sector_id: string;
     asset_id: string;
-
     // Priority & Scheduling
     priority_score: number;
     requested_due_date: string;
     downtime_required: boolean;
-
     // Additional Information
     form_id: string;
     external_reference: string;
     warranty_claim: boolean;
     tags: string[];
-
     // Hidden fields
     source_type: 'manual';
     discipline: 'maintenance' | 'quality';
-
     // Index signature for form compatibility
     [key: string]: string | number | boolean | string[] | 'manual' | 'maintenance' | 'quality';
 }
-
 interface WorkOrderFormComponentProps {
     workOrder?: WorkOrder;
     categories: WorkOrderCategory[];
@@ -108,7 +99,6 @@ interface WorkOrderFormComponentProps {
     preselectedAssetId?: string | number;
     preselectedAsset?: { id: number; tag: string; name: string; plant_id: number; area_id: number; sector_id?: number };
 }
-
 export function WorkOrderFormComponent({
     workOrder,
     categories,
@@ -128,18 +118,14 @@ export function WorkOrderFormComponent({
     const isEditing = !!workOrder;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
-
     // Date picker state
     const [datePickerOpen, setDatePickerOpen] = useState(false);
-
     // Asset search dialog state
     const [assetSearchOpen, setAssetSearchOpen] = useState(false);
-
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     // Initialize form data
     const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm<WorkOrderFormData>({
         work_order_type_id: workOrder?.work_order_type_id?.toString() || '',
@@ -160,7 +146,6 @@ export function WorkOrderFormComponent({
         source_type: 'manual',
         discipline: discipline,
     });
-
     // Transform categories for ItemSelect
     const categoriesForSelect = useMemo(() => {
         return (categories || []).map(category => ({
@@ -169,9 +154,6 @@ export function WorkOrderFormComponent({
             value: category.code,
         }));
     }, [categories]);
-
-
-
     // Filter work order types based on selected category
     const filteredWorkOrderTypes = useMemo(() => {
         if (!data.work_order_category_id) return workOrderTypes || [];
@@ -179,7 +161,6 @@ export function WorkOrderFormComponent({
             type.work_order_category_id === parseInt(data.work_order_category_id)
         );
     }, [workOrderTypes, data.work_order_category_id]);
-
     // Transform workOrderTypes to include actual icon components
     const workOrderTypesWithIcons = useMemo(() => {
         return filteredWorkOrderTypes.map(type => ({
@@ -187,17 +168,14 @@ export function WorkOrderFormComponent({
             icon: type.icon && iconMap[type.icon] ? iconMap[type.icon] : undefined
         }));
     }, [filteredWorkOrderTypes]);
-
     // Filter areas based on selected plant
     const filteredAreas = useMemo(() => {
         return (areas || []).filter(area => area.plant_id === parseInt(data.plant_id));
     }, [areas, data.plant_id]);
-
     // Filter sectors based on selected area
     const filteredSectors = useMemo(() => {
         return (sectors || []).filter(sector => sector.area_id === parseInt(data.area_id));
     }, [sectors, data.area_id]);
-
     // Filter assets based on selections
     const filteredAssets = useMemo(() => {
         return (assets || []).filter(asset => {
@@ -213,13 +191,11 @@ export function WorkOrderFormComponent({
             return true;
         });
     }, [assets, data.plant_id, data.area_id, data.sector_id]);
-
     // Get the selected asset details
     const selectedAsset = useMemo(() => {
         if (!data.asset_id) return null;
         return (assets || []).find(asset => asset.id === parseInt(data.asset_id));
     }, [data.asset_id, assets]);
-
     // Handle asset selection from dialog
     const handleAssetSelect = (assetId: string) => {
         const asset = (assets || []).find(a => a.id === parseInt(assetId));
@@ -233,18 +209,14 @@ export function WorkOrderFormComponent({
             });
         }
     };
-
     // Helper functions for date/time handling
     const parseDateTime = (dateTimeString: string) => {
         if (!dateTimeString) return { date: undefined, time: '' };
-
         // Parse datetime-local format directly without timezone conversion
         const [datePart, timePart] = dateTimeString.split('T');
         const [year, month, day] = datePart.split('-').map(Number);
-
         // Create date using local timezone (no conversion)
         const date = new Date(year, month - 1, day);
-
         // Clean up time part - remove timezone indicator and microseconds
         let cleanTime = timePart || '12:00:00';
         if (cleanTime) {
@@ -258,32 +230,25 @@ export function WorkOrderFormComponent({
                 cleanTime = `${timeParts[0]}:${timeParts[1]}:00`;
             }
         }
-
         return {
             date: date,
             time: cleanTime
         };
     };
-
     const combineDateTime = (date: Date | undefined, time: string) => {
         if (!date || !time) return '';
-
         // Format date as YYYY-MM-DD
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
-
         // Ensure time has seconds
         const [hours, minutes, seconds = '00'] = time.split(':');
         const formattedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
-
         // Return in datetime-local format
         return `${year}-${month}-${day}T${formattedTime}`;
     };
-
     // Parse current datetime value
     const currentDateTime = parseDateTime(data.requested_due_date);
-
     const handleSave = () => {
         if (isEditing) {
             // Update existing work order
@@ -316,7 +281,6 @@ export function WorkOrderFormComponent({
             });
         }
     };
-
     const handleCancel = () => {
         if (isEditing && mode === 'edit') {
             // Reset form to original data
@@ -329,7 +293,6 @@ export function WorkOrderFormComponent({
             router.visit(route(`${discipline}.work-orders.index`));
         }
     };
-
     const handleEdit = () => {
         // Only allow editing if work order is in 'requested' status
         if (workOrder && workOrder.status !== 'requested') {
@@ -338,7 +301,6 @@ export function WorkOrderFormComponent({
         }
         setMode('edit');
     };
-
     return (
         <form
             onSubmit={(e) => {
@@ -349,10 +311,8 @@ export function WorkOrderFormComponent({
         >
             {/* Basic Information Section */}
             <div className="space-y-4">
-
                 {/* Title and Asset Selection Row */}
                 <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr] -mt-2">
-
                     {/* Asset Selection */}
                     <div className="space-y-2">
                         <Label>Ativo{discipline === 'maintenance' && !isViewMode ? '*' : ''}</Label>
@@ -393,7 +353,6 @@ export function WorkOrderFormComponent({
                             </>
                         )}
                     </div>
-
                     {/* Title - spans 3 columns */}
                     <div className="md:col-span-3">
                         <TextInput
@@ -405,12 +364,9 @@ export function WorkOrderFormComponent({
                             view={isViewMode}
                         />
                     </div>
-
                 </div>
-
                 {/* Category, Type, Priority and Due Date Row */}
                 <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr]">
-
                     {/* Category */}
                     <div className="space-y-2">
                         <ItemSelect
@@ -434,7 +390,6 @@ export function WorkOrderFormComponent({
                             canCreate={false}
                         />
                     </div>
-
                     {/* Work Order Type */}
                     <ItemSelect
                         label="Tipo de Ordem"
@@ -484,7 +439,6 @@ export function WorkOrderFormComponent({
                         )}
                         {errors.priority_score && <span className="text-sm text-red-500">{errors.priority_score}</span>}
                     </div>
-
                     {/* Due Date */}
                     <div className="space-y-2 min-w-0">
                         <Label>Data de Vencimento Solicitada</Label>
@@ -547,9 +501,7 @@ export function WorkOrderFormComponent({
                             <span className="text-sm text-red-500">{errors.requested_due_date}</span>
                         )}
                     </div>
-
                 </div>
-
                 {/* Description Row */}
                 <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr]">
                     <div className="space-y-2 md:col-span-4">
@@ -569,7 +521,6 @@ export function WorkOrderFormComponent({
                         )}
                     </div>
                 </div>
-
                 {/* Additional Information Row */}
                 <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr]">
                     {/* Form Template */}
@@ -584,7 +535,6 @@ export function WorkOrderFormComponent({
                             view={isViewMode}
                         />
                     </div>
-
                     {/* External Reference */}
                     <div className="space-y-2">
                         <Label htmlFor="external_reference">Referência Externa</Label>
@@ -601,7 +551,6 @@ export function WorkOrderFormComponent({
                             />
                         )}
                     </div>
-
                     {/* Downtime Required */}
                     <div className="space-y-2">
                         <Label htmlFor="downtime_required">Parada Requerida</Label>
@@ -623,7 +572,6 @@ export function WorkOrderFormComponent({
                             </div>
                         )}
                     </div>
-
                     {/* Warranty Claim */}
                     <div className="space-y-2">
                         <Label htmlFor="warranty_claim">Garantia</Label>
@@ -647,7 +595,6 @@ export function WorkOrderFormComponent({
                     </div>
                 </div>
             </div>
-
             {/* Asset Search Dialog */}
             <AssetSearchDialog
                 open={assetSearchOpen}
@@ -659,7 +606,6 @@ export function WorkOrderFormComponent({
                 selectedAssetId={data.asset_id}
                 onSelectAsset={handleAssetSelect}
             />
-
             {/* Action Buttons */}
             {isEditing && (
                 <div className="flex justify-between pt-4">
@@ -673,7 +619,6 @@ export function WorkOrderFormComponent({
                             />
                         )}
                     </div>
-
                     {/* Right side - action buttons */}
                     <div className="flex gap-2">
                         {isViewMode ? (
@@ -707,7 +652,6 @@ export function WorkOrderFormComponent({
                     </div>
                 </div>
             )}
-
             {/* Action buttons for create mode */}
             {!isEditing && (
                 <div className="flex justify-end pt-4">

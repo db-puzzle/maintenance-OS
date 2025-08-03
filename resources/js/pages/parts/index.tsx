@@ -17,10 +17,8 @@ import axios from 'axios';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PartSubstitutionDialog } from '@/components/parts/PartSubstitutionDialog';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -31,12 +29,10 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/parts',
     },
 ];
-
 interface Manufacturer {
     id: number;
     name: string;
 }
-
 interface Part {
     id: number;
     part_number: string;
@@ -53,7 +49,6 @@ interface Part {
     created_at: string;
     updated_at: string;
 }
-
 // Simplified Part interface for substitution dialog
 interface SimplePart {
     id: number;
@@ -62,7 +57,6 @@ interface SimplePart {
     available_quantity: number;
     minimum_quantity: number;
 }
-
 interface Props {
     parts: {
         data: Part[];
@@ -80,7 +74,6 @@ interface Props {
         per_page: number;
     };
 }
-
 export default function PartsIndex({ parts: initialParts, filters }: Props) {
     const entityOps = useEntityOperations<Part>({
         entityName: 'part',
@@ -92,12 +85,9 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             checkDependencies: 'parts.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search || '');
-
     const [showSubstitutionDialog, setShowSubstitutionDialog] = useState(false);
     const [availableParts, setAvailableParts] = useState<Part[]>([]);
-
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'parts.index',
@@ -108,7 +98,6 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             per_page: filters.per_page,
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('partsColumnsVisibility');
@@ -127,7 +116,6 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             active: true,
         };
     });
-
     // Use data from server
     const data = initialParts.data;
     const pagination = {
@@ -138,7 +126,6 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
         from: initialParts.from,
         to: initialParts.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'part_number',
@@ -247,7 +234,6 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             },
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -256,7 +242,6 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
         setColumnVisibility(newVisibility);
         localStorage.setItem('partsColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -265,11 +250,9 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('parts.index'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('parts.index'),
@@ -277,22 +260,18 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handleEdit = (part: Part) => {
         router.get(route('parts.show', { part: part.id }));
     };
-
     const handleCreate = () => {
         router.get(route('parts.create'));
     };
-
     const handleSubstitutionConfirm = (
         substitutePart: SimplePart,
         updateMode: 'all' | 'selected',
         selectedIds: number[]
     ) => {
         if (!entityOps.deletingItem) return;
-
         axios.post(route('parts.substitute-and-delete', { part: entityOps.deletingItem.id }), {
             substitute_part_id: substitutePart.id,
             update_mode: updateMode,
@@ -305,11 +284,9 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             toast.error('Erro ao substituir peça');
         });
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Peças" />
-
             <ListLayout
                 title="Peças"
                 description="Gerencie as peças e estoque do sistema"
@@ -353,13 +330,9 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
                             );
                         }}
                     />
-
                     <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
-
-
-
             {entityOps.deletingItem && entityOps.dependencies && showSubstitutionDialog && (
                 <PartSubstitutionDialog
                     open={showSubstitutionDialog}
@@ -382,7 +355,6 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
                     onConfirm={handleSubstitutionConfirm}
                 />
             )}
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
@@ -391,7 +363,6 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
                 confirmationValue={entityOps.deletingItem?.part_number}
                 confirmationLabel={`Digite o Part Number (${entityOps.deletingItem?.part_number}) para confirmar`}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

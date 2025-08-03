@@ -7,41 +7,34 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-
 // Define a local form type with index signature
 interface AssetTypeFormData {
     name: string;
     description: string;
     [key: string]: string | number | boolean | null | undefined;
 }
-
 interface AssetTypeFormComponentProps {
     assetType?: AssetType;
     initialMode?: 'view' | 'edit';
     onCancel?: () => void;
     onSuccess?: () => void;
 }
-
 export default function AssetTypeFormComponent({ assetType, initialMode = 'view', onCancel, onSuccess }: AssetTypeFormComponentProps) {
     const isEditing = !!assetType;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
-
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm<AssetTypeFormData>({
         name: assetType?.name || '',
         description: assetType?.description || '',
     });
-
     // Create a wrapper for setData to match the expected signature
     const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
         setData(name as keyof AssetTypeFormData, value as AssetTypeFormData[keyof AssetTypeFormData]);
     };
-
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.asset-types.update', { assetType: assetType.id }), {
@@ -62,7 +55,6 @@ export default function AssetTypeFormComponent({ assetType, initialMode = 'view'
             });
         }
     };
-
     const handleCancel = () => {
         if (isEditing && mode === 'edit') {
             // Reset form to original data
@@ -72,11 +64,9 @@ export default function AssetTypeFormComponent({ assetType, initialMode = 'view'
             onCancel();
         }
     };
-
     const handleEdit = () => {
         setMode('edit');
     };
-
     return (
         <div className="space-y-6">
             {/* Form Fields */}
@@ -95,7 +85,6 @@ export default function AssetTypeFormComponent({ assetType, initialMode = 'view'
                     required={!isViewMode}
                     view={isViewMode}
                 />
-
                 {/* Descrição */}
                 <div className="grid gap-2">
                     <Label htmlFor="description">Descrição</Label>
@@ -115,7 +104,6 @@ export default function AssetTypeFormComponent({ assetType, initialMode = 'view'
                     )}
                 </div>
             </div>
-
             {/* Action Buttons */}
             {isEditing && (
                 <div className="flex justify-end gap-2">

@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ColumnConfig } from '@/types/shared';
-
 interface Shipment {
     id: string;
     shipment_number: string;
@@ -36,7 +35,6 @@ interface Shipment {
     created_at: string;
     updated_at: string;
 }
-
 interface Props {
     shipments: {
         data: Shipment[];
@@ -61,7 +59,6 @@ interface Props {
         create: boolean;
     };
 }
-
 const statusConfig = {
     draft: { icon: Clock, color: 'text-gray-500', bgColor: 'bg-gray-100' },
     ready: { icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-100' },
@@ -69,12 +66,10 @@ const statusConfig = {
     delivered: { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100' },
     cancelled: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
 };
-
 export default function ShipmentsIndex({ shipments, filters, statuses, shipmentTypes, can }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteShipment, setDeleteShipment] = useState<Shipment | null>(null);
     const [loading, setLoading] = useState(false);
-
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.shipments.index'), { ...filters, search: value }, {
@@ -82,7 +77,6 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             preserveScroll: true,
         });
     };
-
     const handleFilter = (key: string, value: string | null) => {
         const newFilters: Record<string, any> = { ...filters };
         if (value) {
@@ -95,37 +89,32 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             preserveScroll: true,
         });
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('production.shipments.index'), { ...filters, page }, {
             preserveState: true,
             preserveScroll: true,
         });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(route('production.shipments.index'), { ...filters, per_page: perPage }, {
             preserveState: true,
             preserveScroll: true,
         });
     };
-
     const handleDelete = async () => {
         if (!deleteShipment) return;
-
         router.delete(route('production.shipments.destroy', deleteShipment.id), {
             onSuccess: () => {
                 setDeleteShipment(null);
             },
         });
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'shipment_number',
             label: 'Shipment #',
             sortable: true,
-            render: (value: any, shipment: any) => (
+            render: (value: unknown, shipment: any) => (
                 <Link
                     href={route('production.shipments.show', shipment.id)}
                     className="font-medium text-blue-600 hover:underline"
@@ -138,7 +127,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             key: 'status',
             label: 'Status',
             sortable: true,
-            render: (value: any) => {
+            render: (value: unknown) => {
                 const config = statusConfig[value as keyof typeof statusConfig];
                 const Icon = config.icon;
                 return (
@@ -153,7 +142,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             key: 'shipment_type',
             label: 'Type',
             sortable: true,
-            render: (value: any) => shipmentTypes[value] || value,
+            render: (value: unknown) => shipmentTypes[value] || value,
         },
         {
             key: 'customer_name',
@@ -169,27 +158,25 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             key: 'scheduled_date',
             label: 'Scheduled Date',
             sortable: true,
-            render: (value: any) => format(new Date(value), 'MMM dd, yyyy'),
+            render: (value: unknown) => format(new Date(value), 'MMM dd, yyyy'),
         },
         {
             key: 'items_count',
             label: 'Items',
-            render: (value: any) => (
+            render: (value: unknown) => (
                 <span className="text-sm text-muted-foreground">{value} items</span>
             ),
         },
         {
             key: 'tracking_number',
             label: 'Tracking',
-            render: (value: any) => value || '-',
+            render: (value: unknown) => value || '-',
         },
     ];
-
     const breadcrumbs = [
         { title: 'Production', href: '/' },
         { title: 'Shipments', href: '' }
     ];
-
     const pagination = {
         current_page: shipments.current_page,
         last_page: shipments.last_page,
@@ -198,9 +185,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
         from: shipments.from,
         to: shipments.to,
     };
-
     const data = shipments.data;
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Shipments" />
@@ -283,7 +268,6 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
                     />
                 </div>
             </ListLayout>
-
             <EntityDeleteDialog
                 open={!!deleteShipment}
                 onOpenChange={(open) => !open && setDeleteShipment(null)}

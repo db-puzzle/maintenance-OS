@@ -13,20 +13,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { ColumnConfig } from '@/types/shared';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Permissions',
         href: '/settings/permissions',
     },
 ];
-
 interface Role {
     id: number;
     name: string;
     is_system: boolean;
 }
-
 interface Permission {
     id: number;
     name: string;
@@ -42,7 +39,6 @@ interface Permission {
     created_at: string;
     updated_at: string;
 }
-
 interface Props {
     userRoles: Role[];
     userPermissions: Record<string, Permission[]>;
@@ -66,13 +62,11 @@ interface Props {
         scope?: string;
     };
 }
-
 export default function Permissions({ userRoles, isAdministrator, permissions, resources, actions, scopes, filters }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [selectedResource, setSelectedResource] = useState(filters.resource || 'all');
     const [selectedAction, setSelectedAction] = useState(filters.action || 'all');
     const [selectedScope, setSelectedScope] = useState(filters.scope || 'all');
-
     // Parse permission name to extract resource, action, and scope
     const parsePermission = (permission: Permission) => {
         const parts = permission.name.split('.');
@@ -82,7 +76,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
             scope: parts.slice(2).join('.') || 'global'
         };
     };
-
     // Define columns for EntityDataTable
     const columns: ColumnConfig[] = [
         {
@@ -93,12 +86,10 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
             render: (value, row) => {
                 const permission = row as unknown as Permission;
                 const parsed = parsePermission(permission);
-
                 // Check if we have a scope_entity_name (for both direct and scoped permissions)
                 if (permission.scope_entity_name) {
                     // Determine the scope type to display
                     let scopeType = '';
-
                     if (permission.scope && permission.scope !== 'global' && !(/^\d+$/.test(permission.scope))) {
                         // Use the scope from the permission object (set by backend)
                         scopeType = permission.scope.charAt(0).toUpperCase() + permission.scope.slice(1);
@@ -112,20 +103,16 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
                         const resource = permission.resource;
                         scopeType = resource ? resource.slice(0, -1).charAt(0).toUpperCase() + resource.slice(0, -1).slice(1) : 'Entity';
                     }
-
                     // Extract just the name part from scope_entity_name (remove ID if present)
                     // Format is typically "ID: Name" so we split by ": " and take the last part
                     const entityNameParts = permission.scope_entity_name.split(': ');
                     const entityName = entityNameParts.length > 1 ? entityNameParts.slice(1).join(': ') : permission.scope_entity_name;
-
                     return <Badge variant="default">{`${scopeType}: ${entityName}`}</Badge>;
                 }
-
                 // Check for global permissions
                 if (!parsed.scope || parsed.scope === 'global') {
                     return <Badge variant="default">Global</Badge>;
                 }
-
                 // Fallback for permissions without entity names
                 return <Badge variant="default">{parsed.scope}</Badge>;
             },
@@ -170,11 +157,9 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
             },
         },
     ];
-
     // Custom table component with centered headers for specific columns
     const PermissionsTable = ({ data }: { data: Permission[]; loading?: boolean }) => {
         const visibleColumns = columns;
-
         return (
             <div className="w-full overflow-hidden rounded-md border">
                 <Table>
@@ -233,7 +218,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
             </div>
         );
     };
-
     // Handle search with server-side filtering
     const handleSearch = (value: string) => {
         setSearchTerm(value);
@@ -243,7 +227,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
             { preserveState: true, preserveScroll: true }
         );
     };
-
     // Handle filter changes
     const handleFilterChange = (filterType: string, value: string) => {
         const newFilters: Record<string, string | undefined> = {
@@ -252,7 +235,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
             action: selectedAction === 'all' ? undefined : selectedAction,
             scope: selectedScope === 'all' ? undefined : selectedScope,
         };
-
         if (filterType === 'resource') {
             setSelectedResource(value);
             newFilters.resource = value === 'all' ? undefined : value;
@@ -263,10 +245,8 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
             setSelectedScope(value);
             newFilters.scope = value === 'all' ? undefined : value;
         }
-
         router.get(route('settings.permissions'), newFilters, { preserveState: true, preserveScroll: true });
     };
-
     // Handle pagination
     const handlePageChange = (page: number) => {
         router.get(
@@ -282,7 +262,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
             { preserveState: true, preserveScroll: true }
         );
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('settings.permissions'),
@@ -298,20 +277,15 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
             { preserveState: true, preserveScroll: true }
         );
     };
-
-
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Permissions" />
-
             <SettingsLayout>
                 <div className="space-y-6">
                     <HeadingSmall
                         title="Permissions"
                         description="View your assigned roles and permissions in the system"
                     />
-
                     {/* Administrator Badge */}
                     {isAdministrator && (
                         <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
@@ -321,7 +295,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
                             </AlertDescription>
                         </Alert>
                     )}
-
                     {/* Roles Section */}
                     <Card>
                         <CardHeader>
@@ -352,7 +325,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
                             )}
                         </CardContent>
                     </Card>
-
                     {/* Permissions Section with Table */}
                     <div className="space-y-6">
                         <div>
@@ -364,7 +336,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
                                 Browse and filter all permissions available in the system
                             </p>
                         </div>
-
                         {/* Filters */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <Select value={selectedScope} onValueChange={(value) => handleFilterChange('scope', value)}>
@@ -378,7 +349,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
                                     ))}
                                 </SelectContent>
                             </Select>
-
                             <Select value={selectedResource} onValueChange={(value) => handleFilterChange('resource', value)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="All Resources" />
@@ -390,7 +360,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
                                     ))}
                                 </SelectContent>
                             </Select>
-
                             <Select value={selectedAction} onValueChange={(value) => handleFilterChange('action', value)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="All Actions" />
@@ -402,7 +371,6 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
                                     ))}
                                 </SelectContent>
                             </Select>
-
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                                 <Input
@@ -414,10 +382,8 @@ export default function Permissions({ userRoles, isAdministrator, permissions, r
                                 />
                             </div>
                         </div>
-
                         {/* Permissions Table */}
                         <PermissionsTable data={permissions.data} loading={false} />
-
                         <EntityPagination
                             pagination={{
                                 current_page: permissions.current_page,
