@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { router, Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
@@ -86,7 +86,7 @@ export default function SkillShow({ skill, can, activeTab = 'informacoes' }: Pag
                 const level = value as string | null;
                 if (!level) return '-';
                 return (
-                    <Badge variant={proficiencyVariants[level] as any || 'default'}>
+                    <Badge variant={proficiencyVariants[level] || 'default'}>
                         {proficiencyLabels[level] || level}
                     </Badge>
                 );

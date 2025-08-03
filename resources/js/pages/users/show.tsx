@@ -6,10 +6,9 @@ import UserFormComponent from '@/components/users/UserFormComponent';
 import RolesTable from '@/components/users/RolesTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 import { Separator } from '@/components/ui/separator';
 import {
-    Key,
     Shield,
     Activity,
     ChevronRight,
@@ -17,8 +16,6 @@ import {
     MapPin,
     Hash,
     Eye,
-    Plus,
-    Wrench,
     Award,
     Save,
 } from 'lucide-react';
@@ -26,7 +23,7 @@ import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import EmptyCard from '@/components/ui/empty-card';
 import { type BreadcrumbItem } from '@/types';
-import { ItemSelect } from '@/components/ItemSelect';
+
 import { SkillsTable } from '@/components/work-orders/SkillsTable';
 import { CertificationsTable } from '@/components/work-orders/CertificationsTable';
 import { ItemRequirementsSelector } from '@/components/work-orders/ItemRequirementsSelector';
@@ -91,17 +88,17 @@ export default function UserShow({
     canManagePermissions
 }: Props) {
     const getInitials = useInitials();
-    const initials = getInitials(user.name);
+
     const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
     const [skillSheetOpen, setSkillSheetOpen] = useState(false);
     const [certificationSheetOpen, setCertificationSheetOpen] = useState(false);
     const [selectedSkills, setSelectedSkills] = useState<Skill[]>(user.skills || []);
     const [selectedCertifications, setSelectedCertifications] = useState<Certification[]>(user.certifications || []);
     const [isEditingSkillsCerts, setIsEditingSkillsCerts] = useState(false);
-    const { data: skillsData, setData: setSkillsData, put: putSkills, processing: processingSkills } = useForm({
+    const { setData: setSkillsData, put: putSkills, processing: processingSkills } = useForm({
         skills: selectedSkills.map(s => s.id)
     });
-    const { data: certificationsData, setData: setCertificationsData, put: putCertifications, processing: processingCertifications } = useForm({
+    const { setData: setCertificationsData, put: putCertifications, processing: processingCertifications } = useForm({
         certifications: selectedCertifications.map(c => c.id)
     });
     const toggleNode = (nodeId: string) => {
@@ -115,26 +112,7 @@ export default function UserShow({
             return next;
         });
     };
-    const getRoleBadgeColor = (roleName: string) => {
-        switch (roleName) {
-            case 'Administrator':
-                return 'bg-red-500 text-white hover:bg-red-600';
-            case 'Plant Manager':
-                return 'bg-blue-500 text-white hover:bg-blue-600';
-            case 'Area Manager':
-                return 'bg-green-500 text-white hover:bg-green-600';
-            case 'Sector Manager':
-                return 'bg-yellow-500 text-white hover:bg-yellow-600';
-            case 'Maintenance Supervisor':
-                return 'bg-purple-500 text-white hover:bg-purple-600';
-            case 'Technician':
-                return 'bg-orange-500 text-white hover:bg-orange-600';
-            case 'Viewer':
-                return 'bg-gray-500 text-white hover:bg-gray-600';
-            default:
-                return 'bg-gray-200 text-gray-800 hover:bg-gray-300';
-        }
-    };
+
     const getNodeIcon = (type: string) => {
         switch (type) {
             case 'plant':

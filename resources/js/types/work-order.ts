@@ -110,7 +110,7 @@ export interface WorkOrder {
     calibration_due_date?: string;
     certificate_number?: string;
     compliance_standard?: string;
-    tolerance_specs?: any;
+    tolerance_specs?: Record<string, unknown>;
 
     // Related data
     type?: WorkOrderType;
@@ -275,7 +275,7 @@ export interface TaskResponse {
     form_task_id?: number;
     custom_task_id?: string;
     response_type: string;
-    response_value?: any;
+    response_value?: Record<string, unknown>;
     completed: boolean;
     completed_at?: string;
     notes?: string;
@@ -425,7 +425,7 @@ export interface CreateWorkOrderData {
     calibration_due_date?: string;
     certificate_number?: string;
     compliance_standard?: string;
-    tolerance_specs?: any;
+    tolerance_specs?: Record<string, unknown>;
 }
 
 export interface UpdateWorkOrderData extends Partial<CreateWorkOrderData> {

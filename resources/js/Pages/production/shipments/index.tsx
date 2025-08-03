@@ -114,7 +114,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             key: 'shipment_number',
             label: 'Shipment #',
             sortable: true,
-            render: (value: unknown, shipment: any) => (
+            render: (error: unknown) => (
                 <Link
                     href={route('production.shipments.show', shipment.id)}
                     className="font-medium text-blue-600 hover:underline"

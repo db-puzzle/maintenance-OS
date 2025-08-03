@@ -25,6 +25,7 @@ import BomConfiguration from '@/components/production/BomConfiguration';
 import {
     BillOfMaterial,
     BomFormData,
+    BomItem,
 } from '@/types/production';
 import { ColumnConfig } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
@@ -67,9 +68,9 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
     // Column configurations
     const versionColumns: ColumnConfig[] = [
         { key: 'version_number', label: 'Versão', sortable: true },
-        { key: 'published_at', label: 'Publicado em', format: 'date', sortable: true } as any,
+        { key: 'published_at', label: 'Publicado em', sortable: true, render: (value) => value ? new Date(value as string).toLocaleDateString('pt-BR') : '-' },
         { key: 'revision_notes', label: 'Notas de Revisão' },
-        { key: 'is_current', label: 'Status', format: (value: boolean) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> } as any,
+        { key: 'is_current', label: 'Status', render: (value) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> },
     ];
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -145,7 +146,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 </div>
                             )}
                             <TextInput
-                                form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                                form={{ data, setData, errors, clearErrors }}
                                 name="external_reference"
                                 label="Referência Externa"
                                 placeholder="Número do desenho no Inventor"
@@ -169,7 +170,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                             searchable
                         />
                         <TextInput
-                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                            form={{ data, setData, errors, clearErrors }}
                             name="name"
                             label="Nome"
                             placeholder="Nome da BOM"
@@ -250,7 +251,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                             <BomConfiguration
                                 bomId={bom?.id || 0}
                                 versionId={bom?.current_version?.id || 0}
-                                bomItems={(bom?.current_version?.items || []).filter(item => item.item) as any[]}
+                                bomItems={(bom?.current_version?.items || []).filter(item => item.item) as BomItem[]}
                                 availableItems={items}
                                 categories={categories}
                                 canEdit={can.manageItems}
@@ -288,7 +289,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                         data={bom.versions as unknown as Record<string, unknown>[]}
                                         columns={versionColumns}
                                         loading={false}
-                                        actions={(version: any) => (
+                                        actions={(error: unknown) => (
                                             can.update && !version.is_current ? (
                                                 <Button
                                                     variant="outline"
@@ -352,9 +353,9 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
     ];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={isCreating ? 'Nova BOM' : `BOM ${(bom as any)?.bom_number}`} />
+            <Head title={isCreating ? 'Nova BOM' : `BOM ${bom?.bom_number}`} />
             <ShowLayout
-                title={isCreating ? 'Nova BOM' : (bom as any)?.bom_number || 'BOM'}
+                title={isCreating ? 'Nova BOM' : bom?.bom_number || 'BOM'}
                 subtitle={
                     isCreating ? (
                         'Criação de nova lista de materiais'

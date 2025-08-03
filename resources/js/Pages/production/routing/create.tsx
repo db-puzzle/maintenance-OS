@@ -23,7 +23,7 @@ export default function CreateRouting({ items, orders }: Props) {
         is_active: true,
     });
     // Create a wrapper for setData to match the expected signature
-    const handleSetData = (name: string, value: any) => {
+    const handleSetData = (error: unknown) => {
         setData(name as any, value);
     };
     const handleSubmit = (e: React.FormEvent) => {

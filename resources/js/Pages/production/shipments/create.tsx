@@ -307,7 +307,7 @@ function ShipmentItemsStep({
     );
 }
 // Step 2: Destination
-function DestinationStep({ data, setData, errors, clearErrors }: any) {
+function DestinationStep(error: unknown) {
     return (
         <div className="space-y-6">
             <div>
@@ -360,7 +360,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
     );
 }
 // Step 3: Carrier
-function CarrierStep({ data, setData, errors, clearErrors }: any) {
+function CarrierStep(error: unknown) {
     return (
         <div className="space-y-6">
             <div>

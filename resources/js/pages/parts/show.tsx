@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { BreadcrumbItem } from '@/types';
@@ -8,8 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { PartFormComponent } from '@/components/parts/PartFormComponent';
 import { StatCard } from '@/components/StatCard';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { Package, DollarSign, AlertTriangle, Factory } from 'lucide-react';
-import { Link } from '@inertiajs/react';
+import { Package, AlertTriangle, Factory } from 'lucide-react';
 interface Manufacturer {
     id: number;
     name: string;

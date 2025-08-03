@@ -362,7 +362,7 @@ export default function StepPropertiesPanel({
         // Reload the parent component to get updated work cells
         router.reload({
             only: ['workCells'],
-            onSuccess: (page: any) => {
+            onSuccess: (error: unknown) => {
                 // Find the newly created work cell (it should be the last one)
                 const updatedWorkCells = page.props.workCells;
                 if (updatedWorkCells && updatedWorkCells.length > 0) {

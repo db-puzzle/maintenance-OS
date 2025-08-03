@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useForm } from '@inertiajs/react';
-import { router } from '@inertiajs/react';
-import { Link } from '@inertiajs/react';
+
 import {
     Factory,
     Package,
@@ -11,12 +10,10 @@ import {
     ChevronLeft,
     ChevronRight,
     Info,
-    GitBranch,
-    Layers,
-    AlertCircle
+
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { ItemSelect } from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
 import AppLayout from '@/layouts/app-layout';
-import { Item, BillOfMaterial, RouteTemplate, ManufacturingOrder } from '@/types/production';
+import { Item, BillOfMaterial, RouteTemplate, BomItem } from '@/types/production';
 import { cn } from '@/lib/utils';
 interface Props {
     items?: Item[];
@@ -447,7 +444,7 @@ export default function CreateManufacturingOrder({
                                                                 </tr>
                                                             </thead>
                                                             <tbody className="divide-y">
-                                                                {bomItems.map((bomItem: any, index: number) => (
+                                                                {bomItems.map((bomItem: BomItem, index: number) => (
                                                                     <tr key={index} className="text-sm">
                                                                         <td className="p-3">
                                                                             <div>

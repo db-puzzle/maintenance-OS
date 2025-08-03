@@ -48,7 +48,7 @@ interface Props {
 export default function ItemsIndex({ items, filters, categories, can }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteItem, setDeleteItem] = useState<Item | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading] = useState(false);
     const [editItem, setEditItem] = useState<Item | null>(null);
     const [showImages, setShowImages] = useState(true);
     const [carouselItem, setCarouselItem] = useState<Item | null>(null);

@@ -523,8 +523,8 @@ export default function AssetRoutinesTab({
         },
     ];
     // Handlers
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleCreateSuccess = (routine: any) => {
+     
+    const handleCreateSuccess = (error: unknown) => {
         // Add the new routine to the state
         if (routine && routine.id) {
             setRoutines((prevRoutines) => [...prevRoutines, routine]);
@@ -576,13 +576,13 @@ export default function AssetRoutinesTab({
         setEditingRoutineFormId(null);
         toast.success('Formulário da rotina atualizado com sucesso!');
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleEditRoutine = (routine: any) => {
+     
+    const handleEditRoutine = (error: unknown) => {
         setRoutineToEditInSheet(routine);
         setEditSheetOpen(true);
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleEditRoutineSuccess = (updatedRoutine: any) => {
+     
+    const handleEditRoutineSuccess = (error: unknown) => {
         setEditSheetOpen(false);
         setRoutineToEditInSheet(null);
         // Update the routine in the state
@@ -621,8 +621,8 @@ export default function AssetRoutinesTab({
             }
         );
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleEditFormClick = (routine: any) => {
+     
+    const handleEditFormClick = (error: unknown) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const formState = routine.form ? getFormState(routine.form as any) : null;
         // Check if form is published (not unpublished and not already in draft)
@@ -642,8 +642,8 @@ export default function AssetRoutinesTab({
         setShowNewVersionDialog(false);
         setRoutineToEdit(null);
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleDeleteClick = (routine: any) => {
+     
+    const handleDeleteClick = (error: unknown) => {
         setRoutineToDelete(routine);
         setShowDeleteDialog(true);
     };
@@ -699,7 +699,7 @@ export default function AssetRoutinesTab({
                     router.visit(response.data.redirect);
                 }
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.response?.data?.error || 'Erro ao criar ordem de serviço');
         }
     };
@@ -751,7 +751,7 @@ export default function AssetRoutinesTab({
                 setRoutineForLastExecution(null);
                 setLastExecutionDate('');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.response?.data?.error || 'Erro ao atualizar data da última execução');
         } finally {
             setIsUpdatingLastExecution(false);

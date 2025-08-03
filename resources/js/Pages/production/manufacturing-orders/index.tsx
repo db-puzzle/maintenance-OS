@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import {
-    Plus,
     Factory,
     Package,
     GitBranch,
@@ -10,7 +9,6 @@ import {
     AlertCircle,
     Workflow
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -54,9 +52,9 @@ export default function ManufacturingOrders({
     sourceTypes = {}
 }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
-    const [statusFilter, setStatusFilter] = useState(filters.status || '');
-    const [parentFilter, setParentFilter] = useState(filters.parent_id || '');
-    const [loading, setLoading] = useState(false);
+    const [statusFilter] = useState(filters.status || '');
+    const [parentFilter] = useState(filters.parent_id || '');
+    const [loading] = useState(false);
     const [deleteOrder, setDeleteOrder] = useState<ManufacturingOrder | null>(null);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const handleSearchChange = (value: string) => {

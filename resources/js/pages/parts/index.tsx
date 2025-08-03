@@ -87,7 +87,7 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
     });
     const [search, setSearch] = useState(filters.search || '');
     const [showSubstitutionDialog, setShowSubstitutionDialog] = useState(false);
-    const [availableParts, setAvailableParts] = useState<Part[]>([]);
+    const [availableParts] = useState<Part[]>([]);
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'parts.index',

@@ -5,7 +5,7 @@ import { forwardRef } from 'react';
 interface TextInputProps {
     form: {
         data: Record<string, any>;
-        setData: (name: string, value: any) => void;
+        setData: (error: unknown) => void;
         errors: Partial<Record<string, string>>;
         clearErrors: (...fields: string[]) => void;
         validateInput?: (value: string) => boolean;

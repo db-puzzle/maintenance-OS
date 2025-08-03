@@ -101,7 +101,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
     // Create a wrapper that matches the TextInput interface
     const form = {
         data: inertiaForm.data as Record<string, any>,
-        setData: (name: string, value: any) => inertiaForm.setData(name as any, value),
+        setData: (name: string, value: unknown) => inertiaForm.setData(name as any, value),
         errors: inertiaForm.errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...(fields as any)),
     };
@@ -169,7 +169,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 window.open(response.data.pdf_url, '_blank');
                 toast.success('Etiqueta QR gerada com sucesso!');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
         } finally {
             setGeneratingQr(false);

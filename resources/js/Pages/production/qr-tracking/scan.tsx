@@ -70,8 +70,8 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                 setSuccess(null);
                 setScannedItem(null);
             }, 5000);
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to process scan');
+        } catch (err: unknown) {
+            setError((err as any).response?.data?.message || 'Failed to process scan');
         } finally {
             setIsProcessing(false);
         }

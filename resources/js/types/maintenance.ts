@@ -202,7 +202,7 @@ export interface AssetExecutionSummary {
 
 export interface ExecutionIndexPageProps {
     executions: {
-        data: any[]; // Replace with appropriate work order execution type
+        data: unknown[]; // Replace with appropriate work order execution type
         current_page: number;
         last_page: number;
         per_page: number;

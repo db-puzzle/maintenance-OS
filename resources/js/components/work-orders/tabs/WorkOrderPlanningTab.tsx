@@ -50,10 +50,81 @@ interface Certification {
     active: boolean;
 }
 interface WorkOrderPlanningTabProps {
-    workOrder: any;
-    technicians?: any[];
-    teams?: any[];
-    parts?: any[];
+    workOrder: {
+        id: number;
+        work_order_number: string;
+        status: string;
+        parts?: Array<{
+            id?: string | number;
+            part_id: number;
+            part_number: string;
+            part_name: string;
+            estimated_quantity: number;
+            unit_cost: number;
+            total_cost: number;
+            available_quantity?: number;
+        }>;
+        required_skills?: Array<{
+            skill_id?: number;
+            id?: number;
+            skill_name?: string;
+            name?: string;
+            description?: string;
+        }>;
+        required_certifications?: Array<{
+            certification_id?: number;
+            id?: number;
+            certification_name?: string;
+            name?: string;
+            description?: string;
+            validity_days?: number | null;
+        }>;
+        status_history?: Array<{
+            from_status: string;
+            to_status: string;
+            changed_by?: string;
+            user?: string;
+            created_at?: string;
+        }>;
+        planned_start_date?: string;
+        planned_end_date?: string;
+        estimated_hours?: number;
+        priority?: string;
+        team_id?: number | null;
+        assigned_to?: number | null;
+        other_requirements?: string[];
+        notes?: string;
+        labor_cost_per_hour?: number;
+        estimated_labor_cost?: number;
+        downtime_required?: boolean;
+        number_of_people?: number;
+        estimated_parts_cost?: number;
+        estimated_total_cost?: number;
+        planned_by?: string;
+        updated_by?: string;
+        planned_at?: string;
+        updated_at?: string;
+    };
+    technicians?: Array<{
+        id: number;
+        name: string;
+        labor_cost?: number;
+        skills?: Array<{
+            id: number;
+            name: string;
+        }>;
+    }>;
+    teams?: Array<{
+        id: number;
+        name: string;
+    }>;
+    parts?: Array<{
+        id: number;
+        part_number: string;
+        name: string;
+        unit_cost: number;
+        available_quantity?: number;
+    }>;
     skills: Skill[];
     certifications: Certification[];
     canPlan: boolean;
@@ -161,7 +232,7 @@ export function WorkOrderPlanningTab({
 }: WorkOrderPlanningTabProps) {
     // Initialize all hooks before any conditional returns
     const [plannedParts, setPlannedParts] = useState<PlanningPart[]>(
-        workOrder.parts?.map((part: any) => ({
+        workOrder.parts?.map((part) => ({
             id: part.id?.toString(),
             part_id: part.part_id,
             part_number: part.part_number,
@@ -182,7 +253,7 @@ export function WorkOrderPlanningTab({
     const [selectedSkills, setSelectedSkills] = useState<Skill[]>(() => {
         if (!workOrder.required_skills || workOrder.required_skills.length === 0) return [];
         // Ensure we have the full skill objects
-        return workOrder.required_skills.map((skill: any) => ({
+        return workOrder.required_skills.map((skill) => ({
             id: skill.skill_id || skill.id,
             name: skill.skill_name || skill.name,
             description: skill.description || ''
@@ -192,7 +263,7 @@ export function WorkOrderPlanningTab({
     const [selectedCertifications, setSelectedCertifications] = useState<Certification[]>(() => {
         if (!workOrder.required_certifications || workOrder.required_certifications.length === 0) return [];
         // Ensure we have the full certification objects
-        return workOrder.required_certifications.map((cert: any) => ({
+        return workOrder.required_certifications.map((cert) => ({
             id: cert.certification_id || cert.id,
             name: cert.certification_name || cert.name,
             description: cert.description || '',
@@ -207,8 +278,8 @@ export function WorkOrderPlanningTab({
         priority: workOrder.priority || 'medium',
         team_id: workOrder.team_id || null,
         assigned_to: workOrder.assigned_to || null,
-        required_skills: workOrder.required_skills?.map((skill: any) => skill.skill_id || skill.id) || [],
-        required_certifications: workOrder.required_certifications?.map((cert: any) => cert.certification_id || cert.id) || [],
+        required_skills: workOrder.required_skills?.map((skill) => skill.skill_id || skill.id) || [],
+        required_certifications: workOrder.required_certifications?.map((cert) => cert.certification_id || cert.id) || [],
         other_requirements: workOrder.other_requirements || [],
         notes: workOrder.notes || '',
         parts: plannedParts,
@@ -271,11 +342,11 @@ export function WorkOrderPlanningTab({
     // Check if planning is complete (status is scheduled or beyond)
     const isPlanned = ['planned', 'scheduled', 'in_progress', 'completed', 'verified', 'closed'].includes(workOrder.status);
     // Find the planning completion entry in status history
-    const planningEntry = workOrder.status_history?.find((entry: any) =>
+    const planningEntry = workOrder.status_history?.find((entry) =>
         entry.from_status === 'planned' && entry.to_status === 'scheduled'
     );
     // Also check for any entry that shows the work order was planned
-    const planningRelatedEntry = planningEntry || workOrder.status_history?.find((entry: any) =>
+    const planningRelatedEntry = planningEntry || workOrder.status_history?.find((entry) =>
         (entry.from_status === 'approved' && entry.to_status === 'planned') ||
         (entry.from_status === 'planned' && entry.to_status === 'scheduled')
     );
@@ -366,7 +437,7 @@ export function WorkOrderPlanningTab({
         setSelectedCertifications(newSelectedCertifications);
         setData('required_certifications', newSelectedCertifications.map(c => c.name));
     };
-    const handleAddPart = (part: any) => {
+    const handleAddPart = (part: { id: number; part_number: string; name: string; unit_cost: number; available_quantity?: number }) => {
         const unitCost = Number(part.unit_cost) || 0;
         const newPart: PlanningPart = {
             id: `new-${Date.now()}`,

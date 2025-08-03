@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { ShoppingCart, Factory, Package, Ghost, QrCode, Lightbulb, Camera, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { Item, BillOfMaterial, ItemCategory, ManufacturingOrder } from '@/types/production';
 import { formatCurrency, cn } from '@/lib/utils';
-import { ColumnConfig } from '@/types/shared';
+
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
 import { ItemImageUploader } from '@/components/production/ItemImageUploader';
 import { ItemImageGrid } from '@/components/production/ItemImageGrid';
@@ -90,35 +90,7 @@ const defaultItemStatuses = [
     { id: 3, name: 'Protótipo', value: 'prototype' },
     { id: 4, name: 'Descontinuado', value: 'discontinued' }
 ];
-// Detail Item Component
-function DetailItem({ label, value, className = "" }: { label: string; value: React.ReactNode; className?: string }) {
-    return (
-        <div className={className}>
-            <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
-            <dd className="mt-1 text-sm">{value || '—'}</dd>
-        </div>
-    );
-}
-// Status Badge Component
-function StatusBadge({ status }: { status: string }) {
-    const variants: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-        'active': 'default',
-        'inactive': 'secondary',
-        'prototype': 'outline',
-        'discontinued': 'destructive'
-    };
-    const labels: Record<string, string> = {
-        'active': 'Ativo',
-        'inactive': 'Inativo',
-        'prototype': 'Protótipo',
-        'discontinued': 'Descontinuado'
-    };
-    return (
-        <Badge variant={variants[status] || 'default'}>
-            {labels[status] || status}
-        </Badge>
-    );
-}
+
 export default function ItemShow({
     item,
     whereUsedBoms,
@@ -138,11 +110,15 @@ export default function ItemShow({
             created_category_id?: number;
         };
         auth: {
-            user: any;
+            user: {
+                id: number;
+                name: string;
+                email: string;
+            };
             permissions: string[];
         };
     }>();
-    const userPermissions = page.props.auth?.permissions || [];
+
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'Itens', href: route('production.items.index') },
@@ -243,8 +219,8 @@ export default function ItemShow({
                 window.open(response.data.pdf_url, '_blank');
                 toast.success('Etiqueta QR gerada com sucesso!');
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
+        } catch (error) {
+            toast.error((error as any).response?.data?.message || 'Erro ao gerar etiqueta QR');
         } finally {
             setGeneratingQr(false);
         }
@@ -278,11 +254,7 @@ export default function ItemShow({
         }
         submitForm();
     };
-    const handleDelete = () => {
-        if (item && confirm('Tem certeza que deseja excluir este item?')) {
-            router.delete(route('production.items.destroy', item.id));
-        }
-    };
+
     const handleCategoryWarningAction = (action: 'continue' | 'select' | 'create') => {
         if (skipWarningChecked) {
             localStorage.setItem('skipCategoryWarning', 'true');

@@ -146,7 +146,7 @@ export default function TreeView<T extends TreeNode>({
     // Use controlled expanded state if provided, otherwise use internal state
     const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
     const setExpanded = controlledExpanded !== undefined
-        ? (updater: any) => {
+        ? (error: unknown) => {
             // For controlled mode, we don't update state directly
             console.warn('TreeView is in controlled mode. Use onToggleExpand to update expanded state.');
         }

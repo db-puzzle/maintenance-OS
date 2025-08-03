@@ -202,7 +202,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             [id]: !prev[id]
         }));
     };
-    const addChildToItem = (items: any[], parentId: string, newChild: any): any[] => {
+    const addChildToItem = (error: unknown): any[] => {
         return items.map(item => {
             if (item.id === parentId) {
                 return {
@@ -244,11 +244,11 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             const checkChildren = (item: Record<string, unknown>): boolean => {
                 if (item.id === targetId) return true;
                 if (item.children && item.children.length > 0) {
-                    return item.children.some((child: any) => checkChildren(child));
+                    return item.children.some(error: unknown) => checkChildren(child));
                 }
                 return false;
             };
-            return draggedItem ? draggedItem.children.some((child: any) => checkChildren(child)) : false;
+            return draggedItem ? draggedItem.children.some(error: unknown) => checkChildren(child)) : false;
         };
         if (dragging && isChildOfDragged(dragging, targetId)) {
             return;
