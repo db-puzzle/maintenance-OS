@@ -3,14 +3,14 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "build:ssr": "vite build --ssr",
+        "build:ssr": "vite build && vite build --ssr",
         "dev": "vite",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
         "types": "tsc --noEmit",
         "prod": "vite build && vite build --ssr",
-        "production": "vite build && vite build --ssr"
+        "": "vite build && vite build --ssr"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",
