@@ -381,11 +381,8 @@ export default function ManufacturingOrders({
                                     ...(((order as any).status === 'draft' || (order as any).status === 'planned') && (order as any).manufacturing_route ? [{
                                         label: 'Release',
                                         onClick: () => router.post(route('production.orders.release', (order as any).id))
-                                    }] : []),
-                                    ...((order as any).child_orders_count > 0 ? [{
-                                        label: 'View Children',
-                                        onClick: () => router.visit(route('production.orders.children', (order as any).id))
                                     }] : [])
+                                    // View Children action temporarily disabled - route not implemented yet
                                 ]}
                             />
                         )}

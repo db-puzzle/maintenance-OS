@@ -399,11 +399,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                                     {order.completed_child_orders_count || 0} of {order.child_orders_count || (order.children?.length || 0)} completed
                                                 </p>
                                             </div>
-                                            <Button asChild variant="outline" size="sm">
-                                                <Link href={route('production.orders.children', order.id)}>
-                                                    View All
-                                                </Link>
-                                            </Button>
+                                            {/* View All button temporarily disabled - route not implemented yet */}
                                         </div>
 
                                         {order.auto_complete_on_children && (
@@ -516,7 +512,8 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
 
     // Determine if we should show the edit button
     const showEditButton = order.status === 'draft';
-    const editRoute = route('production.orders.edit', order.id);
+    // Edit route is not implemented yet, pass empty string when edit is not available
+    const editRoute = '';
 
     // Check if order has a route
     const hasRoute = (order as any).has_route || (order.manufacturing_route && order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0);
@@ -574,6 +571,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 tabs={tabs}
                 defaultActiveTab={(flash?.openRouteBuilder || openRouteBuilderParam === '1') ? "routes" : "overview"}
                 actions={headerActions}
+                showEditButton={false}
             />
         </AppLayout>
     );
