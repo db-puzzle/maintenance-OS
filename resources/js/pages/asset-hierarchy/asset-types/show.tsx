@@ -81,7 +81,7 @@ export default function Show({ assetType, asset }: Props) {
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={asset.data as Record<string, unknown>[]}
+                        data={asset.data.map(a => ({ ...a } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'tag',
@@ -89,7 +89,7 @@ export default function Show({ assetType, asset }: Props) {
                                 sortable: false,
                                 width: 'w-[25%]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <div className="font-medium">{ (row as any).tag}</div>,
+                                render: (value, row) => <div className="font-medium">{(row as any).tag}</div>,
                             },
                             {
                                 key: 'area',
@@ -97,7 +97,7 @@ export default function Show({ assetType, asset }: Props) {
                                 sortable: false,
                                 width: 'w-[25%]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).area?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).area?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturer',
@@ -105,7 +105,7 @@ export default function Show({ assetType, asset }: Props) {
                                 sortable: false,
                                 width: 'w-[25%]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).manufacturer?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).manufacturer?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturing_year',
@@ -116,7 +116,7 @@ export default function Show({ assetType, asset }: Props) {
                             },
                         ]}
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show',  (row as any).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as any).id))}
                     />
 
                     <EntityPagination

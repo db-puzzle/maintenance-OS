@@ -184,14 +184,14 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={areas.data as Record<string, unknown>[]}
+                        data={areas.data.map(area => ({ ...area } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'name',
                                 label: 'Nome',
                                 sortable: true,
                                 width: 'w-[300px]',
-                                render: (value, row) => <div className="font-medium">{(row as Area).name}</div>,
+                                render: (value, row) => <div className="font-medium">{(row as Record<string, unknown>).name as React.ReactNode}</div>,
                             },
                             {
                                 key: 'asset_count',
@@ -208,7 +208,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 render: (value) => <div className="text-center">{value as number || 0}</div>,
                             },
                         ]}
-                        onRowClick={(row) => router.get(route('asset-hierarchy.areas.show', row.id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.areas.show', { id: (row as Record<string, unknown>).id }))}
                         onSort={(columnKey) => handleSort('areas', columnKey)}
                     />
 
@@ -275,7 +275,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 render: (value) => <div className="text-center">{value as number || 0}</div>,
                             },
                         ]}
-                        onRowClick={(row) => router.get(route('asset-hierarchy.sectors.show', row.id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.sectors.show', { id: (row as Record<string, unknown>).id }))}
                         onSort={(columnKey) => handleSort('sectors', columnKey)}
                     />
 
@@ -313,7 +313,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 sortable: true,
                                 width: 'w-[300px]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <div className="font-medium">{ (row as any).tag}</div>,
+                                render: (value, row) => <div className="font-medium">{(row as any).tag}</div>,
                             },
                             {
                                 key: 'asset_type_name',
@@ -321,7 +321,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 sortable: true,
                                 width: 'w-[200px]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).asset_type?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).asset_type?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'location',
@@ -354,7 +354,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
-                        onRowClick={(row) => router.get(route('asset-hierarchy.assets.show', row.id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', { id: (row as Record<string, unknown>).id }))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {
                                 asset_type_name: 'type',

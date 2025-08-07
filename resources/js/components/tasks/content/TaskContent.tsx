@@ -28,15 +28,28 @@ interface TaskContentProps {
     isLastTask?: boolean;
     /** Callback para navegar para próxima tarefa */
     onNext?: () => void;
+    response?: Record<string, unknown> | null;
+    setResponse?: (response: Record<string, unknown> | null) => void;
 }
 
-function TaskContent({ task, mode, onUpdate, onIconChange, onSave, showSaveButton, disabled, isLastTask, onNext }: TaskContentProps) {
+function TaskContent({ task, mode, onUpdate, onIconChange, onSave, showSaveButton, disabled, isLastTask, onNext, response, setResponse }: TaskContentProps) {
     // Verifica se a tarefa existe
     if (!task) {
         return <div className="text-muted-foreground p-4">Tarefa não encontrada</div>;
     }
 
-    const props = { task, mode, onUpdate, onSave, showSaveButton, disabled, isLastTask, onNext };
+    const props = {
+        task,
+        mode,
+        onUpdate,
+        onSave,
+        showSaveButton,
+        disabled,
+        isLastTask,
+        onNext,
+        response: response || null,
+        setResponse: setResponse || (() => { })
+    };
 
     // Seleciona o componente com base no tipo de tarefa
     switch (task.type) {

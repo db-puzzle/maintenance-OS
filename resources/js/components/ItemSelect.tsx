@@ -9,7 +9,7 @@ import { forwardRef, useEffect, useMemo, useState } from 'react';
 export interface ItemSelectProps extends SelectProps {
     label?: string;
     items: ReadonlyArray<{
-        readonly id: number;
+        readonly id: number | string;
         readonly name: string;
         readonly icon?: LucideIcon;
         readonly value?: string;

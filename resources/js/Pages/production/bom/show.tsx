@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
-import { router, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { Head } from '@inertiajs/react';
 import {
     Box,
     ArrowUpDown,
     Download,
     Upload,
-    AlertTriangle,
-    Check,
-    X,
-    Trash2,
     Calculator,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,7 +24,10 @@ import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import BomConfiguration from '@/components/production/BomConfiguration';
 import {
     BillOfMaterial,
-    BomFormData,
+    Item,
+    ItemCategory,
+    BomItem,
+    BomVersion,
 } from '@/types/production';
 import { ColumnConfig } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
@@ -52,7 +51,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
 
 
 
-    const { data, setData, post, put, processing, errors, clearErrors } = useForm<BomFormData>({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm({
         name: bom?.name || '',
         description: bom?.description || '',
         external_reference: bom?.external_reference || '',
@@ -78,16 +77,16 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
     // Column configurations
     const versionColumns: ColumnConfig[] = [
         { key: 'version_number', label: 'Versão', sortable: true },
-        { key: 'published_at', label: 'Publicado em', format: 'date', sortable: true } as any,
+        { key: 'published_at', label: 'Publicado em', sortable: true, render: (value) => new Date(value as string).toLocaleDateString('pt-BR') },
         { key: 'revision_notes', label: 'Notas de Revisão' },
-        { key: 'is_current', label: 'Status', format: (value: boolean) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> } as any,
+        { key: 'is_current', label: 'Status', render: (value) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> },
     ];
 
     const itemMasterColumns: ColumnConfig[] = [
         { key: 'item_number', label: 'Código', sortable: true },
         { key: 'name', label: 'Descrição', sortable: true },
         { key: 'category', label: 'Categoria' },
-        { key: 'status', label: 'Status', format: (value: string) => <Badge variant={value === 'active' ? 'default' : 'secondary'}>{value}</Badge> } as any,
+        { key: 'status', label: 'Status', render: (value) => <Badge variant={(value as string) === 'active' ? 'default' : 'secondary'}>{value as string}</Badge> },
     ];
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -172,7 +171,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 </div>
                             )}
                             <TextInput
-                                form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                                form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
                                 name="external_reference"
                                 label="Referência Externa"
                                 placeholder="Número do desenho no Inventor"
@@ -198,7 +197,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                         />
 
                         <TextInput
-                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                            form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
                             name="name"
                             label="Nome"
                             placeholder="Nome da BOM"
@@ -283,7 +282,9 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                             <BomConfiguration
                                 bomId={bom?.id || 0}
                                 versionId={bom?.current_version?.id || 0}
-                                bomItems={(bom?.current_version?.items || []).filter(item => item.item) as any[]}
+                                bomItems={(bom?.current_version?.items || [])
+                                    .filter(item => item.item)
+                                    .map(item => ({ ...item, item: item.item! }))}
                                 availableItems={items}
                                 categories={categories}
                                 canEdit={can.manageItems}
@@ -321,7 +322,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                         data={bom.versions as unknown as Record<string, unknown>[]}
                                         columns={versionColumns}
                                         loading={false}
-                                        actions={(version: any) => (
+                                        actions={(version) => (
                                             can.update && !version.is_current ? (
                                                 <Button
                                                     variant="outline"
@@ -386,10 +387,10 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={isCreating ? 'Nova BOM' : `BOM ${(bom as any)?.bom_number}`} />
+            <Head title={isCreating ? 'Nova BOM' : `BOM ${bom?.bom_number}`} />
 
             <ShowLayout
-                title={isCreating ? 'Nova BOM' : (bom as any)?.bom_number || 'BOM'}
+                title={isCreating ? 'Nova BOM' : bom?.bom_number || 'BOM'}
                 subtitle={
                     isCreating ? (
                         'Criação de nova lista de materiais'

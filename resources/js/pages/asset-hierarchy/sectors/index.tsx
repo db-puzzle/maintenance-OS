@@ -1,3 +1,4 @@
+import React from 'react';
 import CreateSectorSheet from '@/components/CreateSectorSheet';
 import { ColumnVisibility } from '@/components/data-table';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
@@ -112,8 +113,8 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             width: 'w-[300px]',
             render: (value, row) => (
                 <div>
-                    <div className="font-medium">{row.name}</div>
-                    {row.description && <div className="text-muted-foreground text-sm">{row.description}</div>}
+                    <div className="font-medium">{row.name as React.ReactNode}</div>
+                    {row.description ? <div className="text-muted-foreground text-sm">{String(row.description)}</div> : null}
                 </div>
             ),
         },
@@ -122,21 +123,21 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             label: 'Planta',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.area?.plant?.name || '-',
+            render: (value, row) => <>{((row.area as Record<string, unknown>)?.plant as Record<string, unknown>)?.name || '-'}</>,
         },
         {
             key: 'area',
             label: 'Área',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.area?.name || '-',
+            render: (value, row) => ((row.area as Record<string, unknown>)?.name || '-') as React.ReactNode,
         },
         {
             key: 'asset_count',
             label: 'Ativos',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => value || 0,
+            render: (value) => <>{value || 0}</>,
         },
     ];
 
@@ -198,14 +199,14 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data.map(sector => ({ ...sector } as Record<string, unknown>))}
                         columns={columns}
                         loading={false}
-                        onRowClick={(sector) => router.visit(route('asset-hierarchy.sectors.show', { id: sector.id }))}
+                        onRowClick={(sector) => router.visit(route('asset-hierarchy.sectors.show', { id: sector.id as string | number }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
                         actions={(sector) => (
-                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(sector)} onDelete={() => entityOps.handleDelete(sector)} />
+                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(sector as unknown as Sector)} onDelete={() => entityOps.handleDelete(sector as unknown as Sector)} />
                         )}
                     />
 

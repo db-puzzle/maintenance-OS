@@ -118,18 +118,18 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             targetValue: stringifyValue(targetValue),
             minValue: stringifyValue(minValue),
             maxValue: stringifyValue(maxValue),
-        },
-        setData: (name: string, value: string) => {
+        } as Record<string, any>,
+        setData: (name: string, value: any) => {
             setResponse({ ...response, [name]: value });
         },
-        errors: formErrors,
-        clearErrors: (...fields: (keyof MeasurementFormData)[]) => {
+        errors: formErrors as Partial<Record<string, string>>,
+        clearErrors: (...fields: string[]) => {
             const newErrors = { ...formErrors };
-            fields.forEach((field) => delete newErrors[field]);
+            fields.forEach((field) => delete newErrors[field as keyof MeasurementFormData]);
             setFormErrors(newErrors);
         },
         validateInput,
-        processBlur,
+        processBlur: (name: string, value: string) => processBlur(name as keyof MeasurementFormData, value),
     };
 
     const handleUpdate = (target: number | undefined, min: number | undefined, max: number | undefined) => {
@@ -250,7 +250,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium">Valor Medido</Label>
                                 <div className="flex items-center gap-2">
-                                    <Input value={response?.value || 0} className="bg-muted/50" readOnly />
+                                    <Input value={(response?.value as string | number) || 0} className="bg-muted/50" readOnly />
                                     <span className="text-muted-foreground text-sm font-medium whitespace-nowrap">{displayedUnit}</span>
                                 </div>
                             </div>
@@ -262,7 +262,7 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
                                         <Input
                                             type="text"
                                             inputMode="decimal"
-                                            value={response?.measuredValue || '0'}
+                                            value={(response?.measuredValue as string) || '0'}
                                             onChange={(e) => {
                                                 if (validateInput(e.target.value)) {
                                                     setResponse({ ...response, measuredValue: e.target.value });

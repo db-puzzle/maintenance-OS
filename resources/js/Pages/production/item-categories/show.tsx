@@ -138,7 +138,7 @@ export default function Show({ category, items, activeTab, filters }: Props) {
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={items.data as Record<string, unknown>[]}
+                        data={items.data.map(item => ({ ...item } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'code',
@@ -147,7 +147,7 @@ export default function Show({ category, items, activeTab, filters }: Props) {
                                 width: 'w-[15%]',
                                 render: (value, row) => (
                                     <Link
-                                        href={route('production.items.show', (row as Record<string, unknown>).id)}
+                                        href={route('production.items.show', { item: (row as Record<string, unknown>).id })}
                                         className="hover:text-primary font-medium"
                                     >
                                         {(row as Record<string, unknown>).code as string}
@@ -162,9 +162,9 @@ export default function Show({ category, items, activeTab, filters }: Props) {
                                 render: (value, row) => (
                                     <div>
                                         <div className="font-medium">{(row as Record<string, unknown>).name as string}</div>
-                                        {(row as Record<string, unknown>).description && (
-                                            <div className="text-muted-foreground text-sm">{(row as Record<string, unknown>).description as string}</div>
-                                        )}
+                                        {(row as Record<string, unknown>).description ? (
+                                            <div className="text-muted-foreground text-sm">{String((row as Record<string, unknown>).description)}</div>
+                                        ) : null}
                                     </div>
                                 ),
                             },
@@ -198,7 +198,7 @@ export default function Show({ category, items, activeTab, filters }: Props) {
                                 ),
                             },
                         ]}
-                        onRowClick={(row) => router.visit(route('production.items.show', (row as Record<string, unknown>).id))}
+                        onRowClick={(row) => router.visit(route('production.items.show', { item: (row as Record<string, unknown>).id }))}
                         onSort={handleSort}
                     />
 

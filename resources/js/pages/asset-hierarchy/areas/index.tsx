@@ -206,14 +206,14 @@ export default function Areas({ areas: initialAreas, filters, plants }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data.map(area => ({ ...area } as Record<string, unknown>))}
                         columns={columns}
                         loading={false}
-                        onRowClick={(area) => router.visit(route('asset-hierarchy.areas.show', { id: area.id }))}
+                        onRowClick={(area) => router.visit(route('asset-hierarchy.areas.show', { id: area.id as string | number }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
                         actions={(area) => (
-                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(area)} onDelete={() => entityOps.handleDelete(area)} />
+                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(area as unknown as Area)} onDelete={() => entityOps.handleDelete(area as unknown as Area)} />
                         )}
                     />
 

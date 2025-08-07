@@ -44,7 +44,7 @@ function PhotoTaskContent({ task, mode, response, setResponse, disabled }: Photo
             ) : (
                 <PhotoUploader
                     label=""
-                    value={response?.files?.[0] || null}
+                    value={(response?.files as File[] | undefined)?.[0] || null}
                     onChange={handlePhotoChange}
                     minHeight="min-h-[200px]"
                     maxHeight="max-h-[200px]"

@@ -117,7 +117,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={asset.data as Record<string, unknown>[]}
+                        data={asset.data.map(a => ({ ...a } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'tag',
@@ -125,7 +125,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 sortable: true,
                                 width: 'w-[25%]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <div className="font-medium">{ (row as any).tag}</div>,
+                                render: (value, row) => <div className="font-medium">{(row as any).tag}</div>,
                             },
                             {
                                 key: 'asset_type_name',
@@ -133,7 +133,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 sortable: true,
                                 width: 'w-[25%]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).asset_type?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).asset_type?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturer_name',
@@ -141,7 +141,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 sortable: true,
                                 width: 'w-[25%]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).manufacturer?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).manufacturer?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturing_year',
@@ -152,7 +152,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                             },
                         ]}
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show',  (row as any).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as any).id))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {
                                 asset_type_name: 'type',

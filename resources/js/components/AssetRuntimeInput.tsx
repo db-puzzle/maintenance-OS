@@ -2,7 +2,6 @@ import ReportRuntimeSheet from '@/components/ReportRuntimeSheet';
 import { Button } from '@/components/ui/button';
 import { Gauge, Clock } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
-import axios from 'axios';
 
 interface RuntimeData {
     current_hours: number;

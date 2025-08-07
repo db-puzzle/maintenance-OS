@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -10,15 +10,15 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
+
 import { Switch } from '@/components/ui/switch';
 import { ItemSelect } from '@/components/ItemSelect';
 import { TextInput } from '@/components/TextInput';
 import { AssetSearchDialog } from '@/components/work-orders/AssetSearchDialog';
 import { DeleteWorkOrder } from '@/components/work-orders/delete-work-order';
 import { toast } from 'sonner';
-import { Pencil, Save, ChevronDownIcon, Search, Settings2 } from 'lucide-react';
-import { MAINTENANCE_CATEGORIES, QUALITY_CATEGORIES } from '@/types/work-order';
+import { Pencil, ChevronDownIcon, Search } from 'lucide-react';
+
 import type { WorkOrder, WorkOrderCategory } from '@/types/work-order';
 
 // Icon imports for work order types
@@ -188,31 +188,7 @@ export function WorkOrderFormComponent({
         }));
     }, [filteredWorkOrderTypes]);
 
-    // Filter areas based on selected plant
-    const filteredAreas = useMemo(() => {
-        return (areas || []).filter(area => area.plant_id === parseInt(data.plant_id));
-    }, [areas, data.plant_id]);
 
-    // Filter sectors based on selected area
-    const filteredSectors = useMemo(() => {
-        return (sectors || []).filter(sector => sector.area_id === parseInt(data.area_id));
-    }, [sectors, data.area_id]);
-
-    // Filter assets based on selections
-    const filteredAssets = useMemo(() => {
-        return (assets || []).filter(asset => {
-            if (data.sector_id) {
-                return asset.sector_id === parseInt(data.sector_id);
-            }
-            if (data.area_id) {
-                return asset.area_id === parseInt(data.area_id);
-            }
-            if (data.plant_id) {
-                return asset.plant_id === parseInt(data.plant_id);
-            }
-            return true;
-        });
-    }, [assets, data.plant_id, data.area_id, data.sector_id]);
 
     // Get the selected asset details
     const selectedAsset = useMemo(() => {

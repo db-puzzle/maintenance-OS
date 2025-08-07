@@ -32,14 +32,21 @@ import { toast } from 'sonner';
 export interface Routine {
     id?: number;
     name: string;
-    trigger_hours: number;
+    trigger_hours?: number;
+    trigger_type?: 'runtime_hours' | 'calendar_days';
+    trigger_runtime_hours?: number;
+    trigger_calendar_days?: number;
     execution_mode: 'automatic' | 'manual';
     description?: string;
     form_id?: number;
     asset_id?: number;
+    advance_generation_days?: number;
+    auto_approve_work_orders?: boolean;
+    priority_score?: number;
     last_execution_runtime_hours?: number;
     last_execution_completed_at?: string;
     last_execution_form_version_id?: number;
+    status?: 'Active' | 'Inactive';
     form?: {
         id: number;
         name: string;
@@ -160,20 +167,31 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
         const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);
 
         // Dados da rotina ou dados vazios para nova rotina
-        const routineData = routineWithForm ||
+        const routineData: Routine = routineWithForm ||
             routine || {
             name: '',
-            trigger_hours: 0,
+            trigger_type: 'runtime_hours' as const,
+            trigger_runtime_hours: 0,
+            execution_mode: 'manual' as const,
             status: 'Active' as const,
             description: '',
             form: undefined,
+            advance_generation_days: 0,
+            auto_approve_work_orders: false,
+            priority_score: 50,
         };
 
         // Get form state for conditional rendering
-        const formState = routineData.form
+        const formState: 'unpublished' | 'draft' | 'published' | null = routineData.form
             ? getFormState({
                 ...routineData.form,
                 current_version_id: routineData.form.current_version_id ?? null,
+                tasks: routineData.form.tasks.map(task => ({
+                    ...task,
+                    id: parseInt(task.id),
+                    name: task.description,
+                    type: task.type as string
+                }))
             })
             : null;
 
@@ -355,7 +373,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                             triggerText="Trigger Oculto"
                             triggerVariant="outline"
                             triggerRef={editSheetTriggerRef}
-                            routine={routineData}
+                            routine={routineData.id && routineData.trigger_type ? routineData as any : undefined}
                             isNew={true}
                             assetId={assetId}
                             onSuccess={handleSheetSuccess}
@@ -391,6 +409,12 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                     form={{
                                         ...routineData.form,
                                         current_version_id: routineData.form.current_version_id ?? null,
+                                        tasks: routineData.form.tasks.map(task => ({
+                                            ...task,
+                                            id: parseInt(task.id) || 0,
+                                            name: task.description,
+                                            type: task.type
+                                        }))
                                     }}
                                     size="sm"
                                 />
@@ -408,16 +432,16 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         <div className="mt-1 flex items-center gap-x-2 text-xs text-gray-500">
                             <p className="flex items-center gap-1 whitespace-nowrap">
                                 <Clock className="h-3 w-3" />
-                                {formatTriggerHours(routineData.trigger_hours).hoursText}
+                                {formatTriggerHours(routineData.trigger_runtime_hours || routineData.trigger_hours || 0).hoursText}
                             </p>
-                            {formatTriggerHours(routineData.trigger_hours).workDaysText && (
+                            {formatTriggerHours(routineData.trigger_runtime_hours || routineData.trigger_hours || 0).workDaysText && (
                                 <>
                                     <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
                                         <circle r={1} cx={1} cy={1} />
                                     </svg>
                                     <p className="flex items-center gap-1 whitespace-nowrap">
                                         <CalendarRange className="h-3 w-3" />
-                                        {formatTriggerHours(routineData.trigger_hours).workDaysText}
+                                        {formatTriggerHours(routineData.trigger_runtime_hours || routineData.trigger_hours || 0).workDaysText}
                                     </p>
                                 </>
                             )}
@@ -470,6 +494,12 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                     form={{
                                         ...routineData.form,
                                         current_version_id: routineData.form.current_version_id ?? null,
+                                        tasks: routineData.form.tasks.map(task => ({
+                                            ...task,
+                                            id: parseInt(task.id) || 0,
+                                            name: task.description,
+                                            type: task.type
+                                        }))
                                     }}
                                     onExecute={() => {
                                         if (onFillForm) onFillForm();
@@ -544,7 +574,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                                     </>
                                                 </DropdownMenuItem>
                                                 {/* Show "View Published Version" option when there are draft changes */}
-                                                {formState === 'draft' && routineData.form?.current_version_id && (
+                                                {(formState as string) === 'draft' && routineData.form?.current_version_id && (
                                                     <DropdownMenuItem
                                                         onClick={() => router.visit(route('maintenance.routines.view-published-version', { routine: routineData.id }))}
                                                         className="flex items-center"
@@ -624,7 +654,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                         </>
                                     )}
                                     <DropdownMenuItem
-                                        onClick={() => router.visit(`/maintenance/work-orders?source_type=routine&source_id=${routineData.id}&asset_id=${assetId}`)}
+                                        onClick={() => routineData.id && router.visit(`/maintenance/work-orders?source_type=routine&source_id=${routineData.id}&asset_id=${assetId}`)}
                                         className="flex items-center cursor-pointer"
                                     >
                                         <Eye className="mr-2 h-4 w-4" />
@@ -692,7 +722,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         triggerText="Trigger Oculto"
                         triggerVariant="outline"
                         triggerRef={editSheetTriggerRef}
-                        routine={routineData}
+                        routine={routineData.trigger_type ? routineData as any : undefined}
                         isNew={false}
                         assetId={assetId}
                         onSuccess={handleSheetSuccess}
@@ -705,8 +735,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 {/* Modal de Histórico de Versões */}
                 {routineData.form && (
                     <FormVersionHistory
-                        formId={routineData.form.id}
-                        currentVersionId={routineData.form.current_version_id}
+                        routineId={routineData.id || 0}
                         isOpen={showVersionHistory}
                         onClose={() => setShowVersionHistory(false)}
                     />

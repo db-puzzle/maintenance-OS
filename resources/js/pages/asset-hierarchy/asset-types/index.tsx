@@ -109,8 +109,8 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             width: 'w-[300px]',
             render: (value, row) => (
                 <div>
-                    <div className="font-medium">{row.name}</div>
-                    {row.description && <div className="text-muted-foreground text-sm">{row.description}</div>}
+                    <div className="font-medium">{row.name as React.ReactNode}</div>
+                    {row.description ? <div className="text-muted-foreground text-sm">{String(row.description)}</div> : null}
                 </div>
             ),
         },
@@ -119,14 +119,14 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             label: 'Descrição',
             sortable: true,
             width: 'w-[300px]',
-            render: (value, row) => row.description || '-',
+            render: (value, row) => (row.description || '-') as React.ReactNode,
         },
         {
             key: 'asset_count',
             label: 'Ativos',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => value || 0,
+            render: (value) => (value || 0) as React.ReactNode,
         },
     ];
 
@@ -192,16 +192,14 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data.map(assetType => ({ ...assetType } as Record<string, unknown>))}
                         columns={columns}
                         loading={false}
-                        onRowClick={(assetType) => router.visit(route('asset-hierarchy.asset-types.show', { id: assetType.id }))}
+                        onRowClick={(assetType) => router.visit(route('asset-hierarchy.asset-types.show', { id: assetType.id as string | number }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
-                        sortColumn={sort}
-                        sortDirection={direction}
                         actions={(assetType) => (
-                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(assetType)} onDelete={() => entityOps.handleDelete(assetType)} />
+                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(assetType as unknown as AssetType)} onDelete={() => entityOps.handleDelete(assetType as unknown as AssetType)} />
                         )}
                     />
 
@@ -219,7 +217,6 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
-                entityName="tipo de ativo"
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />

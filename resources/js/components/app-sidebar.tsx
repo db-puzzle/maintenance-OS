@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ChartGantt, ClipboardList, LayoutGrid, Shield, Package, Wrench, Award, Factory, Boxes, Truck, BarChart3, QrCode, GitBranch } from 'lucide-react';
+import { ChartGantt, ClipboardList, LayoutGrid, Shield, Award, Factory } from 'lucide-react';
 import AppLogo from './app-logo';
 
 interface NavGroup {

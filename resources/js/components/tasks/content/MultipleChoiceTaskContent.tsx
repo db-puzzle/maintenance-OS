@@ -116,10 +116,10 @@ function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse
                             <div key={index} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={`option-${task.id}-${index}`}
-                                    checked={response?.value?.includes(option)}
+                                    checked={(response?.value as string[] | undefined)?.includes(option)}
                                     onCheckedChange={(checked) => {
                                         if (isResponding) {
-                                            const currentValue = response?.value || [];
+                                            const currentValue = (response?.value as string[]) || [];
                                             const newValue = checked
                                                 ? [...currentValue, option]
                                                 : currentValue.filter((item: string) => item !== option);
@@ -141,7 +141,7 @@ function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse
         return (
             <div className="space-y-4">
                 <RadioGroup
-                    value={response?.value}
+                    value={(response?.value as string) || undefined}
                     onValueChange={(value) => isResponding && setResponse({ value })}
                     disabled={!isResponding || disabled}
                 >

@@ -82,7 +82,7 @@ export default function PermissionsIndex({ permissions, roles }: Props) {
                     </TabsList>
 
                     <TabsContent value="roles">
-                        <RoleManagement roles={roles} />
+                        <RoleManagement roles={roles as any} />
                     </TabsContent>
 
                     <TabsContent value="matrix">

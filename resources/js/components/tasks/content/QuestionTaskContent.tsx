@@ -16,7 +16,7 @@ function QuestionTaskContent({ task, mode, response, setResponse, disabled }: Qu
             {mode === 'respond' ? (
                 <Textarea
                     id={`response-${task.id}`}
-                    value={response?.value || ''}
+                    value={(response?.value as string) || ''}
                     onChange={(e) => setResponse({ value: e.target.value })}
                     placeholder="Digite sua resposta aqui..."
                     className="min-h-[100px]"
@@ -25,7 +25,7 @@ function QuestionTaskContent({ task, mode, response, setResponse, disabled }: Qu
             ) : (
                 <Textarea
                     id={`response-${task.id}`}
-                    value={response?.value || ''}
+                    value={(response?.value as string) || ''}
                     readOnly
                     placeholder="O campo de resposta estará disponível quando o formulário for liberado para preenchimento..."
                     className="bg-muted/50 min-h-[100px] cursor-not-allowed"

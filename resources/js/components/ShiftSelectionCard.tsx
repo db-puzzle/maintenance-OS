@@ -170,7 +170,7 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                 setTimeout(() => {
                     // Reload the page and ensure we stay on the shifts-runtime tab
                     router.visit(route('asset-hierarchy.assets.show', {
-                        asset: assetId,
+                        asset: currentAssetId,
                         tab: 'shifts-runtime'
                     }), {
                         preserveScroll: true,

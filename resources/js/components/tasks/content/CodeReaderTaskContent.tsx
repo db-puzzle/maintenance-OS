@@ -88,7 +88,7 @@ function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange, response, s
                         <Check className="h-5 w-5 text-green-500" />
                         <div>
                             <p className="font-medium text-green-700">{codeType} lido com sucesso</p>
-                            <p className="text-sm text-green-600">{response.value}</p>
+                            <p className="text-sm text-green-600">{response.value as string}</p>
                         </div>
                     </div>
 

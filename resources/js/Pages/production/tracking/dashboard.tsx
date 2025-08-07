@@ -70,7 +70,7 @@ function WorkCellCard({
     onClick: () => void;
 }) {
     const getStatusColor = () => {
-        switch (workCell.status) {
+        switch ((workCell as any).status) {
             case 'active':
                 return 'bg-green-500';
             case 'maintenance':
@@ -83,7 +83,7 @@ function WorkCellCard({
     };
 
     const getStatusLabel = () => {
-        switch (workCell.status) {
+        switch ((workCell as any).status) {
             case 'active':
                 return 'Ativa';
             case 'maintenance':
@@ -91,7 +91,7 @@ function WorkCellCard({
             case 'inactive':
                 return 'Inativa';
             default:
-                return workCell.status;
+                return (workCell as any).status;
         }
     };
 
@@ -103,7 +103,7 @@ function WorkCellCard({
             <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                     <div>
-                        <h4 className="font-semibold text-lg">{workCell.code}</h4>
+                        <h4 className="font-semibold text-lg">{(workCell as any).code || workCell.name}</h4>
                         <p className="text-sm text-muted-foreground">{workCell.name}</p>
                     </div>
                     <div className="flex items-center gap-2">

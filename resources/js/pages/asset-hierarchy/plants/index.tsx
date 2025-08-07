@@ -110,8 +110,8 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             width: 'w-[300px]',
             render: (value, row) => (
                 <div>
-                    <div className="font-medium">{row.name}</div>
-                    {row.description && <div className="text-muted-foreground text-sm">{row.description}</div>}
+                    <div className="font-medium">{row.name as React.ReactNode}</div>
+                    {row.description ? <div className="text-muted-foreground text-sm">{String(row.description)}</div> : null}
                 </div>
             ),
         },
@@ -120,21 +120,21 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             label: 'Áreas',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => value || 0,
+            render: (value) => (value || 0) as React.ReactNode,
         },
         {
             key: 'sectors_count',
             label: 'Setores',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => value || 0,
+            render: (value) => (value || 0) as React.ReactNode,
         },
         {
             key: 'asset_count',
             label: 'Ativos',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => value || 0,
+            render: (value) => (value || 0) as React.ReactNode,
         },
     ];
 
@@ -196,14 +196,14 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data.map(plant => ({ ...plant } as Record<string, unknown>))}
                         columns={columns}
                         loading={false}
-                        onRowClick={(plant) => router.visit(route('asset-hierarchy.plants.show', { id: plant.id }))}
+                        onRowClick={(plant) => router.visit(route('asset-hierarchy.plants.show', { id: plant.id as string | number }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
                         actions={(plant) => (
-                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(plant)} onDelete={() => entityOps.handleDelete(plant)} />
+                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(plant as unknown as Plant)} onDelete={() => entityOps.handleDelete(plant as unknown as Plant)} />
                         )}
                     />
 

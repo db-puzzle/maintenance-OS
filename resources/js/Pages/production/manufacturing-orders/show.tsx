@@ -454,7 +454,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                     workCells={workCells}
                     stepTypes={stepTypes}
                     forms={forms}
-                    openRouteBuilder={openRouteBuilderParam}
+                    openRouteBuilder={openRouteBuilderParam as string | null | undefined}
                 />
             )
         },

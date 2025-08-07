@@ -58,7 +58,7 @@ export default function TaskEditorCard({
     onNewTask,
     updateTask,
 }: TaskEditorCardProps) {
-    const { data, setData, errors, clearErrors } = useForm<TaskForm>({
+    const { data, setData, errors, clearErrors } = useForm({
         description: initialTask?.description || '',
         codeReaderType: initialTask?.codeReaderType,
         codeReaderInstructions: initialTask?.codeReaderInstructions || '',
@@ -152,14 +152,17 @@ export default function TaskEditorCard({
             <CardHeader>
                 <div className="flex items-center justify-between">
                     {taskType && taskLabels && (
-                        <TaskDescriptionInput<TaskForm>
+                        <TaskDescriptionInput
                             mode="edit"
                             icon={taskLabels.icon}
                             form={{
-                                data,
+                                data: {
+                                    ...data,
+                                    options: undefined, // Remove options from the data passed to TaskDescriptionInput
+                                } as Record<string, string | number | boolean | File | null | undefined>,
                                 setData,
                                 errors,
-                                clearErrors,
+                                clearErrors: clearErrors as (...fields: string[]) => void,
                             }}
                             name="description"
                             value={data.description}
@@ -217,12 +220,12 @@ export default function TaskEditorCard({
 
                     {taskType ? (
                         <div className="grid gap-2">
-                            <TextInput<TaskForm>
+                            <TextInput
                                 form={{
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors,
+                                    clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}
                                 name="description"
                                 label={taskLabels?.label || ''}
@@ -271,7 +274,7 @@ export default function TaskEditorCard({
                                             <Card key={index} className="bg-background shadow-none">
                                                 <CardContent className="flex items-center space-x-2">
                                                     <div className="flex-1">
-                                                        <TextInput<TaskForm>
+                                                        <TextInput
                                                             form={{
                                                                 data: {
                                                                     ...data,
@@ -285,7 +288,7 @@ export default function TaskEditorCard({
                                                                     }
                                                                 },
                                                                 errors,
-                                                                clearErrors,
+                                                                clearErrors: clearErrors as (...fields: string[]) => void,
                                                             }}
                                                             name={`option-${index}`}
                                                             label={`Opção ${index + 1}`}
@@ -419,12 +422,12 @@ export default function TaskEditorCard({
 
                     {taskType === 'code_reader' && (
                         <div>
-                            <TextInput<TaskForm>
+                            <TextInput
                                 form={{
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors,
+                                    clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}
                                 name="codeReaderInstructions"
                                 label="Instruções para Leitura de Código"
@@ -435,12 +438,12 @@ export default function TaskEditorCard({
 
                     {taskType === 'file_upload' && (
                         <div>
-                            <TextInput<TaskForm>
+                            <TextInput
                                 form={{
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors,
+                                    clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}
                                 name="fileUploadInstructions"
                                 label="Instruções para Upload de Arquivo"
@@ -474,7 +477,6 @@ export default function TaskEditorCard({
                         <div className="flex gap-2">
                             <AddTaskButton
                                 label="Nova Tarefa Abaixo"
-                                taskTypes={TaskTypes}
                                 tasks={initialTask ? [initialTask] : undefined}
                                 currentIndex={0}
                                 onTaskAdded={(newTask) => {

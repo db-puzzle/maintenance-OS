@@ -51,7 +51,7 @@ const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
             <div className="grid gap-6">
                 {/* Nome */}
                 <TextInput
-                    form={{ data, setData, errors, clearErrors }}
+                    form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
                     name="name"
                     label="Nome"
                     placeholder="Nome da categoria"

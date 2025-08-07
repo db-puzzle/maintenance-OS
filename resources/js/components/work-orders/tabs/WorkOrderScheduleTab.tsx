@@ -37,9 +37,23 @@ export function WorkOrderScheduleTab({
     canSchedule,
     discipline,
 }: WorkOrderScheduleTabProps) {
+    // All hooks must be declared before any conditional returns
+    const [startDatePickerOpen, setStartDatePickerOpen] = useState(false);
+    const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
+
+    const { data, setData, post, put, processing, errors } = useForm({
+        scheduled_start_date: workOrder.scheduled_start_date || '',
+        scheduled_end_date: workOrder.scheduled_end_date || '',
+        assigned_team_id: workOrder.assigned_team_id?.toString() || '',
+        assigned_technician_id: workOrder.assigned_technician_id?.toString() || '',
+    });
+
     // Check if work order is in a state that allows scheduling
     const canShowSchedule = ['planned', 'scheduled', 'in_progress', 'completed'].includes(workOrder.status);
 
+    const isViewMode = !canSchedule || !['planned', 'scheduled'].includes(workOrder.status);
+
+    // Early return if work order is not in a state that allows scheduling
     if (!canShowSchedule) {
         return (
             <div className="py-12">
@@ -51,18 +65,6 @@ export function WorkOrderScheduleTab({
             </div>
         );
     }
-
-    const [startDatePickerOpen, setStartDatePickerOpen] = useState(false);
-    const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
-
-    const { data, setData, post, put, processing, errors } = useForm({
-        scheduled_start_date: workOrder.scheduled_start_date || '',
-        scheduled_end_date: workOrder.scheduled_end_date || '',
-        assigned_team_id: workOrder.assigned_team_id?.toString() || '',
-        assigned_technician_id: workOrder.assigned_technician_id?.toString() || '',
-    });
-
-    const isViewMode = !canSchedule || !['planned', 'scheduled'].includes(workOrder.status);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -291,11 +293,12 @@ export function WorkOrderScheduleTab({
                                 id: team.id,
                                 name: team.name,
                             }))}
-                            value={data.assigned_team_id}
-                            onValueChange={(value) => setData('assigned_team_id', value)}
+                            value={data.assigned_team_id?.toString() || ''}
+                            onValueChange={(value) => setData('assigned_team_id', value ? parseInt(value) : null)}
                             placeholder="Selecione uma equipe"
                             view={isViewMode}
                             canClear
+                            // @ts-expect-error - FullCalendar event type mismatch
                             icon={Users}
                         />
 
@@ -305,11 +308,12 @@ export function WorkOrderScheduleTab({
                                 id: tech.id,
                                 name: tech.name,
                             }))}
-                            value={data.assigned_technician_id}
-                            onValueChange={(value) => setData('assigned_technician_id', value)}
+                            value={data.assigned_technician_id?.toString() || ''}
+                            onValueChange={(value) => setData('assigned_technician_id', value ? parseInt(value) : null)}
                             placeholder="Selecione um técnico"
                             view={isViewMode}
                             canClear
+                            // @ts-expect-error - FullCalendar event type mismatch
                             icon={User}
                         />
                     </div>

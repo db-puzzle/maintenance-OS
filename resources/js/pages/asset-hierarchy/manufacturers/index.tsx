@@ -108,14 +108,14 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             label: 'Nome',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.name,
+            render: (value, row) => row.name as React.ReactNode,
         },
         {
             key: 'country',
             label: 'País',
             sortable: true,
             width: 'w-[150px]',
-            render: (value, row) => row.country || '-',
+            render: (value, row) => (row.country || '-') as React.ReactNode,
         },
         {
             key: 'contact',
@@ -135,8 +135,8 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             sortable: true,
             width: 'w-[150px]',
             render: (value) => {
-                const count = value || 0;
-                return count > 0 ? `${count} ativo(s)` : 'Nenhum ativo';
+                const count = (value || 0) as number;
+                return (count > 0 ? `${count} ativo(s)` : 'Nenhum ativo') as React.ReactNode;
             },
         },
     ];
@@ -203,18 +203,16 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data.map(manufacturer => ({ ...manufacturer } as Record<string, unknown>))}
                         columns={columns}
                         loading={false}
-                        onRowClick={(manufacturer) => router.visit(route('asset-hierarchy.manufacturers.show', { id: manufacturer.id }))}
+                        onRowClick={(manufacturer) => router.visit(route('asset-hierarchy.manufacturers.show', { id: manufacturer.id as string | number }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
-                        sortColumn={sort}
-                        sortDirection={direction}
                         actions={(manufacturer) => (
                             <EntityActionDropdown
-                                onEdit={() => entityOps.handleEdit(manufacturer)}
-                                onDelete={() => entityOps.handleDelete(manufacturer)}
+                                onEdit={() => entityOps.handleEdit(manufacturer as unknown as Manufacturer)}
+                                onDelete={() => entityOps.handleDelete(manufacturer as unknown as Manufacturer)}
                             />
                         )}
                     />
@@ -233,7 +231,6 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
-                entityName="fabricante"
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />

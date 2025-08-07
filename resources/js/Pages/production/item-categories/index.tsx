@@ -243,14 +243,14 @@ export default function ItemCategories({ categories: initialCategories, filters 
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data.map(category => ({ ...category } as Record<string, unknown>))}
                         columns={columns}
                         loading={false}
-                        onRowClick={(category) => router.visit(route('production.categories.show', { category: category.id }))}
+                        onRowClick={(category) => router.visit(route('production.categories.show', { category: category.id as string | number }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
                         actions={(category) => (
-                            <EntityActionDropdown onEdit={() => handleEdit(category)} onDelete={() => entityOps.handleDelete(category)} />
+                            <EntityActionDropdown onEdit={() => handleEdit(category as unknown as ItemCategory)} onDelete={() => entityOps.handleDelete(category as unknown as ItemCategory)} />
                         )}
                     />
 

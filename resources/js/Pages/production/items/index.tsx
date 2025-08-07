@@ -115,9 +115,12 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
     };
 
     const handleExport = (format: 'json' | 'csv') => {
-        const params = new URLSearchParams({
-            format,
-            ...filters
+        const params = new URLSearchParams();
+        params.append('format', format);
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                params.append(key, String(value));
+            }
         });
 
         window.open(`${route('production.items.export')}?${params.toString()}`, '_blank');

@@ -146,10 +146,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, ope
                             name="available_hours_per_day"
                             label="Horas/Dia"
                             placeholder="8"
-                            type="number"
-                            min="0.01"
-                            max="24"
-                            step="0.01"
                             required
                         />
                         <TextInput
@@ -162,10 +158,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, ope
                             name="efficiency_percentage"
                             label="Eficiência (%)"
                             placeholder="85"
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
                             required
                         />
                     </div>

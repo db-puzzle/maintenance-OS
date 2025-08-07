@@ -68,15 +68,12 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
         e.preventDefault();
 
         post(route('production.items.images.store', itemId), {
-            images: data.images,
-            set_primary: data.set_primary,
-        }, {
             forceFormData: true,
             onSuccess: () => {
                 setPreviews([]);
                 setData('images', []);
             },
-            onError: (errors) => {
+            onError: (errors: any) => {
                 console.error('Upload errors:', errors);
             }
         });

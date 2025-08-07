@@ -88,8 +88,8 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
         additionalParams: {
             search,
             per_page: filters.per_page,
-            cell_type: filters.cell_type,
-            is_active: filters.is_active,
+            ...(filters.cell_type && { cell_type: filters.cell_type }),
+            ...(filters.is_active && { is_active: filters.is_active }),
         },
     });
 

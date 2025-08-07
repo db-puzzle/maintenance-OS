@@ -195,7 +195,6 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
                     <div className="flex justify-end gap-2">
                         <AddTaskButton
                             label="Nova Tarefa Abaixo"
-                            taskTypes={TaskTypes}
                             tasks={[task]}
                             currentIndex={0}
                             onTaskAdded={(newTask) => {

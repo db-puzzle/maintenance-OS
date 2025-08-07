@@ -243,7 +243,6 @@ export default function TaskBaseCard({
                             <div className="order-2 w-full lg:order-none lg:w-auto">
                                 <AddTaskButton
                                     label="Nova Tarefa Abaixo"
-                                    taskTypes={taskTypes || TaskTypes}
                                     tasks={tasks}
                                     currentIndex={currentIndex || 0}
                                     onTaskAdded={onNewTask}

@@ -108,12 +108,12 @@ export default function UserPermissions({
         role_id: '',
         entity_type: '',
         entity_id: '',
-        assign_role: true,
+        assign_role: true as boolean,
     });
 
     const { data: copyData, setData: setCopyData, post: postCopy, processing: processingCopy } = useForm({
         source_user_id: '',
-        merge: false,
+        merge: false as boolean,
     });
 
     useEffect(() => {
@@ -377,7 +377,7 @@ export default function UserPermissions({
                                                 <Checkbox
                                                     id="assign-role"
                                                     checked={roleData.assign_role}
-                                                    onCheckedChange={(checked) => setRoleData('assign_role', checked === true)}
+                                                    onCheckedChange={(checked) => setRoleData('assign_role', !!checked)}
                                                 />
                                                 <Label htmlFor="assign-role" className="text-sm font-normal">
                                                     Also assign the role to the user
@@ -435,7 +435,7 @@ export default function UserPermissions({
                                                 <Checkbox
                                                     id="merge"
                                                     checked={copyData.merge}
-                                                    onCheckedChange={(checked) => setCopyData('merge', checked === true)}
+                                                    onCheckedChange={(checked) => setCopyData('merge', !!checked)}
                                                 />
                                                 <Label htmlFor="merge" className="text-sm font-normal">
                                                     Merge with existing permissions (keep current permissions)

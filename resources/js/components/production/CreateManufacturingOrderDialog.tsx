@@ -26,7 +26,7 @@ import { Separator } from '@/components/ui/separator';
 import { ItemSelect } from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
 import StateButton from '@/components/StateButton';
-import { Item, BillOfMaterial, RouteTemplate, ManufacturingOrder } from '@/types/production';
+import { Item, BillOfMaterial, RouteTemplate, ManufacturingOrder, BomItem } from '@/types/production';
 import { cn } from '@/lib/utils';
 import {
     Dialog,
@@ -43,8 +43,8 @@ interface FormData {
     order_type: 'item' | 'bom';
 
     // Item/BOM selection
-    item_id: number | null;
-    bill_of_material_id: number | null;
+    item_id: string;
+    bill_of_material_id: string;
 
     // Order details
     quantity: number;
@@ -61,7 +61,7 @@ interface FormData {
 
     // Route configuration
     route_creation_mode: 'manual' | 'template' | 'auto';
-    route_template_id: number | null;
+    route_template_id: string;
 }
 
 interface Props {
@@ -137,19 +137,19 @@ export default function CreateManufacturingOrderDialog({
 }: Props) {
     const [currentStep, setCurrentStep] = useState(1);
 
-    const { data, setData, post, processing, errors, reset } = useForm<FormData>({
+    const { data, setData, post, processing, errors, reset } = useForm({
         order_type: selectedBomId ? 'bom' : 'item',
-        item_id: null,
-        bill_of_material_id: selectedBomId || null,
+        item_id: '',
+        bill_of_material_id: selectedBomId ? selectedBomId.toString() : '',
         quantity: 1,
         unit_of_measure: 'EA',
         priority: 50,
         requested_date: '',
         source_type: 'manual',
         source_reference: '',
-        auto_complete_on_children: true,
+        auto_complete_on_children: true as boolean,
         route_creation_mode: 'manual',
-        route_template_id: null,
+        route_template_id: '',
     });
 
     const steps = [
@@ -161,14 +161,14 @@ export default function CreateManufacturingOrderDialog({
 
     const selectedItem = useMemo(() => {
         if (data.order_type === 'item' && data.item_id) {
-            return items.find(i => i.id === data.item_id);
+            return items.find(i => i.id === parseInt(data.item_id));
         }
         return null;
     }, [data.item_id, data.order_type, items]);
 
     const selectedBOM = useMemo(() => {
         if (data.order_type === 'bom' && data.bill_of_material_id) {
-            return billsOfMaterial.find(b => b.id === data.bill_of_material_id);
+            return billsOfMaterial.find(b => b.id === parseInt(data.bill_of_material_id));
         }
         return null;
     }, [data.bill_of_material_id, data.order_type, billsOfMaterial]);
@@ -181,7 +181,7 @@ export default function CreateManufacturingOrderDialog({
     const filteredRouteTemplates = useMemo(() => {
         if (!selectedItem?.category) return routeTemplates;
         return routeTemplates.filter(t =>
-            !t.item_category || t.item_category === selectedItem.category
+            !t.item_category || t.item_category === selectedItem.category?.name
         );
     }, [selectedItem, routeTemplates]);
 
@@ -198,7 +198,14 @@ export default function CreateManufacturingOrderDialog({
     };
 
     const handleSubmit = () => {
-        post(route('production.orders.store'), {
+        const submitData = {
+            ...data,
+            item_id: data.item_id ? parseInt(data.item_id) : null,
+            bill_of_material_id: data.bill_of_material_id ? parseInt(data.bill_of_material_id) : null,
+            route_template_id: data.route_template_id ? parseInt(data.route_template_id) : null,
+        };
+
+        post(route('production.orders.store', submitData), {
             onSuccess: () => {
                 reset();
                 setCurrentStep(1);
@@ -264,12 +271,9 @@ export default function CreateManufacturingOrderDialog({
                                         <RadioGroup
                                             value={data.order_type}
                                             onValueChange={(value: 'item' | 'bom') => {
-                                                setData({
-                                                    ...data,
-                                                    order_type: value,
-                                                    item_id: null,
-                                                    bill_of_material_id: null,
-                                                });
+                                                setData('order_type', value);
+                                                setData('item_id', '');
+                                                setData('bill_of_material_id', '');
                                             }}
                                             className="space-y-4"
                                         >
@@ -307,10 +311,13 @@ export default function CreateManufacturingOrderDialog({
                                         <div>
                                             <ItemSelect
                                                 label="Select Item"
-                                                items={items.filter(i => i.can_be_manufactured)}
+                                                items={items.filter(i => i.can_be_manufactured).map(item => ({
+                                                    ...item,
+                                                    name: `${item.item_number} - ${item.name}`
+                                                }))}
                                                 value={data.item_id}
                                                 onValueChange={(value) => {
-                                                    const item = items.find(i => i.id === value);
+                                                    const item = items.find(i => i.id === parseInt(value));
                                                     setData({
                                                         ...data,
                                                         item_id: value,
@@ -318,8 +325,8 @@ export default function CreateManufacturingOrderDialog({
                                                     });
                                                 }}
                                                 placeholder="Select an item to manufacture..."
-                                                searchPlaceholder="Search items..."
-                                                displayValue={(item) => `${item.item_number} - ${item.name}`}
+
+
                                                 error={errors.item_id}
                                                 required
                                             />
@@ -331,7 +338,7 @@ export default function CreateManufacturingOrderDialog({
                                                         {selectedItem.description}
                                                     </p>
                                                     <div className="flex gap-4 mt-2">
-                                                        <Badge variant="outline">{selectedItem.category}</Badge>
+                                                        <Badge variant="outline">{selectedItem.category?.name}</Badge>
                                                         <span className="text-sm text-muted-foreground">
                                                             Lead time: {selectedItem.manufacturing_lead_time_days} days
                                                         </span>
@@ -343,12 +350,15 @@ export default function CreateManufacturingOrderDialog({
                                         <div>
                                             <ItemSelect
                                                 label="Select Bill of Materials"
-                                                items={billsOfMaterial}
+                                                items={billsOfMaterial.map(bom => ({
+                                                    ...bom,
+                                                    name: `${bom.bom_number} - ${bom.name}`
+                                                }))}
                                                 value={data.bill_of_material_id}
                                                 onValueChange={(value) => setData('bill_of_material_id', value)}
                                                 placeholder="Select a BOM..."
-                                                searchPlaceholder="Search BOMs..."
-                                                displayValue={(bom) => `${bom.bom_number} - ${bom.name}`}
+
+
                                                 error={errors.bill_of_material_id}
                                                 required
                                             />
@@ -371,7 +381,7 @@ export default function CreateManufacturingOrderDialog({
                                                         )}
                                                         <div className="flex gap-4 mt-2">
                                                             <Badge variant="outline">
-                                                                {selectedBOM.item_masters_count} items
+                                                                {(selectedBOM as any).item_masters_count || 0} items
                                                             </Badge>
                                                         </div>
                                                     </div>
@@ -463,7 +473,7 @@ export default function CreateManufacturingOrderDialog({
                                             }))}
                                             value={data.source_type}
                                             onValueChange={(value) => setData('source_type', value)}
-                                            displayValue={(item) => item.name}
+
                                         />
 
                                         <div>
@@ -495,7 +505,7 @@ export default function CreateManufacturingOrderDialog({
                                                                 </tr>
                                                             </thead>
                                                             <tbody className="divide-y">
-                                                                {bomItems.map((bomItem: any, index: number) => (
+                                                                {bomItems.map((bomItem: BomItem, index: number) => (
                                                                     <tr key={index} className="text-sm">
                                                                         <td className="p-3">
                                                                             <div>
@@ -534,8 +544,8 @@ export default function CreateManufacturingOrderDialog({
                                         <h3 className="font-medium mb-4">Manufacturing Route</h3>
                                         <RadioGroup
                                             value={data.route_creation_mode}
-                                            onValueChange={(value: 'manual' | 'template' | 'auto') =>
-                                                setData('route_creation_mode', value)
+                                            onValueChange={(value) =>
+                                                setData('route_creation_mode', value as 'manual' | 'template' | 'auto')
                                             }
                                             className="space-y-4"
                                         >
@@ -571,14 +581,14 @@ export default function CreateManufacturingOrderDialog({
                                                                     setData('route_template_id', value)
                                                                 }
                                                                 placeholder="Select a route template..."
-                                                                displayValue={(template) => template.name}
+
                                                             />
 
                                                             {data.route_template_id && (
                                                                 <div className="mt-3 p-3 bg-muted/20 rounded-lg">
                                                                     <p className="text-sm">
                                                                         {filteredRouteTemplates.find(
-                                                                            t => t.id === data.route_template_id
+                                                                            t => t.id === parseInt(data.route_template_id)
                                                                         )?.description}
                                                                     </p>
                                                                 </div>

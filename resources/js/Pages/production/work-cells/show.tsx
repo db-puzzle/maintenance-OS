@@ -103,7 +103,7 @@ export default function Show({
     if (!workCell) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
-                <ShowLayout title="Carregando..." tabs={[]}>
+                <ShowLayout title="Carregando..." editRoute="" tabs={[]}>
                     <div>Carregando informações da célula de trabalho...</div>
                 </ShowLayout>
             </AppLayout>
@@ -159,7 +159,7 @@ export default function Show({
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={routingSteps.data as Record<string, unknown>[]}
+                        data={routingSteps.data.map(step => ({ ...step } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'step_number',
@@ -226,7 +226,7 @@ export default function Show({
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={productionSchedules.data as Record<string, unknown>[]}
+                        data={productionSchedules.data.map(schedule => ({ ...schedule } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'order',
@@ -234,7 +234,7 @@ export default function Show({
                                 sortable: true,
                                 width: 'w-[200px]',
                                 render: (value, row) => {
-                                    const schedule = row as ProductionSchedule;
+                                    const schedule = row as any;
                                     if (schedule.manufacturing_order) {
                                         return (
                                             <Link
@@ -254,13 +254,13 @@ export default function Show({
                                 sortable: false,
                                 width: 'w-[250px]',
                                 render: (value, row) => {
-                                    const schedule = row as ProductionSchedule;
+                                    const schedule = row as any;
                                     if (schedule.manufacturing_step) {
                                         return (
                                             <div>
                                                 <div>Etapa #{schedule.manufacturing_step.step_number}</div>
                                                 <div className="text-muted-foreground text-sm">
-                                                    {schedule.manufacturing_step.operation_description}
+                                                    {schedule.manufacturing_step?.operation_description || ''}
                                                 </div>
                                             </div>
                                         );
@@ -343,6 +343,7 @@ export default function Show({
             <ShowLayout
                 title={workCell.name}
                 subtitle={subtitle}
+                editRoute={route('production.work-cells.edit', workCell.id)}
                 tabs={tabs}
             />
         </AppLayout>

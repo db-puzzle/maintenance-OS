@@ -145,7 +145,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={sectors.data as Record<string, unknown>[]}
+                        data={sectors.data.map(sector => ({ ...sector } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'name',
@@ -154,7 +154,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 width: 'w-[30%]',
                                 render: (value, row) => (
                                     <Link
-                                        href={route('asset-hierarchy.sectors.show', (row as Record<string, unknown>).id)}
+                                        href={route('asset-hierarchy.sectors.show', { id: (row as Record<string, unknown>).id })}
                                         className="hover:text-primary font-medium"
                                     >
                                         {(row as Record<string, unknown>).name as string}
@@ -176,7 +176,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as string ?? '-'}</span>,
                             },
                         ]}
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.sectors.show', (row as Record<string, unknown>).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.sectors.show', { id: (row as Record<string, unknown>).id }))}
                         onSort={(columnKey) => handleSort('sectors', columnKey)}
                     />
 
@@ -206,7 +206,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={asset.data as Record<string, unknown>[]}
+                        data={asset.data.map(a => ({ ...a } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'tag',
@@ -215,7 +215,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 width: 'w-[25%]',
                                 render: (value, row) => (
                                     <Link
-                                        href={route('asset-hierarchy.assets.show', (row as Record<string, unknown>).id)}
+                                        href={route('asset-hierarchy.assets.show', { id: (row as Record<string, unknown>).id })}
                                         className="hover:text-primary font-medium"
                                     >
                                         {(row as Record<string, unknown>).tag as string}
@@ -244,7 +244,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as Record<string, unknown>).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', { id: (row as Record<string, unknown>).id }))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {
                                 asset_type_name: 'type',
