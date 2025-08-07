@@ -10,7 +10,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import { useInitials } from '@/hooks/use-initials';
-
 interface User {
     id: number;
     name: string;
@@ -19,29 +18,23 @@ interface User {
     created_at: string;
     updated_at: string;
 }
-
 interface Props {
     user: User;
 }
-
 export default function UserEdit({ user }: Props) {
     const getInitials = useInitials();
     const initials = getInitials(user.name);
-
     const { data, setData, put, processing, errors } = useForm({
         name: user.name,
         email: user.email,
     });
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         put(`/users/${user.id}`);
     };
-
     return (
         <AppLayout>
             <Head title={`Edit User - ${user.name}`} />
-
             <div className="max-w-4xl mx-auto space-y-6">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" asChild>
@@ -60,7 +53,6 @@ export default function UserEdit({ user }: Props) {
                         </div>
                     </div>
                 </div>
-
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <Card>
                         <CardHeader>
@@ -82,7 +74,6 @@ export default function UserEdit({ user }: Props) {
                                         <p className="text-sm text-red-500">{errors.name}</p>
                                     )}
                                 </div>
-
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email Address</Label>
                                     <Input
@@ -98,9 +89,7 @@ export default function UserEdit({ user }: Props) {
                                     )}
                                 </div>
                             </div>
-
                             <Separator />
-
                             <div className="space-y-4">
                                 <div>
                                     <Label className="text-muted-foreground">Roles</Label>
@@ -118,13 +107,11 @@ export default function UserEdit({ user }: Props) {
                                         To manage roles and permissions, use the permissions page
                                     </p>
                                 </div>
-
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div>
                                         <Label className="text-muted-foreground">Created</Label>
                                         <p className="text-sm">{new Date(user.created_at).toLocaleString()}</p>
                                     </div>
-
                                     <div>
                                         <Label className="text-muted-foreground">Last Updated</Label>
                                         <p className="text-sm">{new Date(user.updated_at).toLocaleString()}</p>
@@ -133,7 +120,6 @@ export default function UserEdit({ user }: Props) {
                             </div>
                         </CardContent>
                     </Card>
-
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
@@ -141,7 +127,6 @@ export default function UserEdit({ user }: Props) {
                             They will receive a verification email at the new address.
                         </AlertDescription>
                     </Alert>
-
                     <div className="flex justify-end gap-4">
                         <Button variant="outline" asChild>
                             <Link href={`/users/${user.id}`}>Cancel</Link>

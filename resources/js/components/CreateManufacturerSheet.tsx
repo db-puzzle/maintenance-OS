@@ -1,11 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import { TextInput } from '@/components/TextInput';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Manufacturer } from '@/types/entities/manufacturer';
-
 interface ManufacturerForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -15,7 +13,6 @@ interface ManufacturerForm {
     country: string;
     notes: string;
 }
-
 interface CreateManufacturerSheetProps {
     manufacturer?: Manufacturer;
     open: boolean;
@@ -23,10 +20,8 @@ interface CreateManufacturerSheetProps {
     mode: 'create' | 'edit';
     onSuccess?: () => void;
 }
-
 const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manufacturer, open, onOpenChange, mode, onSuccess }) => {
     const nameInputRef = useRef<HTMLInputElement>(null);
-
     // Auto-focus the name input when sheet opens for creation
     useEffect(() => {
         if (open && mode === 'create') {
@@ -39,24 +34,20 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                     }
                 });
             };
-
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
             const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
-
             // Cleanup timeouts
             return () => {
                 timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [open, mode]);
-
     // Handle onOpenChange to focus when sheet opens
     const handleOpenChange = (open: boolean) => {
         if (onOpenChange) {
             onOpenChange(open);
         }
-
         // Focus the input when opening in create mode
         if (open && mode === 'create') {
             setTimeout(() => {
@@ -64,7 +55,6 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
             }, 100);
         }
     };
-
     return (
         <BaseEntitySheet<ManufacturerForm>
             entity={manufacturer}
@@ -102,7 +92,6 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                         placeholder="Nome do fabricante"
                         required
                     />
-
                     {/* Website */}
                     <TextInput
                         form={{
@@ -115,7 +104,6 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                         label="Website"
                         placeholder="https://www.exemplo.com"
                     />
-
                     {/* Email e Telefone - Grid com 2 colunas */}
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
@@ -141,7 +129,6 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                             placeholder="+55 11 99999-9999"
                         />
                     </div>
-
                     {/* País */}
                     <TextInput
                         form={{
@@ -154,7 +141,6 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                         label="País"
                         placeholder="Brasil"
                     />
-
                     {/* Observações */}
                     <div className="space-y-2">
                         <Label htmlFor="notes" className="text-muted-foreground text-sm">
@@ -174,5 +160,4 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
         </BaseEntitySheet>
     );
 };
-
 export default CreateManufacturerSheet;

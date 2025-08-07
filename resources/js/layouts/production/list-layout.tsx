@@ -2,7 +2,6 @@ import { ListTableHeader } from '@/components/table-headers/list-table-header';
 import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { ReactNode, useEffect, useRef, useState } from 'react';
-
 interface ListLayoutProps {
     children: ReactNode;
     title: string;
@@ -17,7 +16,6 @@ interface ListLayoutProps {
     defaultCompressed?: boolean;
     onCompressedChange?: (compressed: boolean) => void;
 }
-
 export function ListLayout({
     children,
     title,
@@ -34,10 +32,8 @@ export function ListLayout({
 }: ListLayoutProps) {
     const [isCompressed, setIsCompressed] = useState(defaultCompressed);
     const sidebarControls = useSidebar();
-
     // Track previous compression state to detect changes
     const prevIsCompressed = useRef(isCompressed);
-
     useEffect(() => {
         // Only sync sidebar when compression state actually changes
         if (sidebarControls && !sidebarControls.isMobile && prevIsCompressed.current !== isCompressed) {
@@ -52,13 +48,11 @@ export function ListLayout({
             prevIsCompressed.current = isCompressed;
         }
     }, [isCompressed, sidebarControls]);
-
     const handleToggleCompressed = () => {
         const newCompressed = !isCompressed;
         setIsCompressed(newCompressed);
         onCompressedChange?.(newCompressed);
     };
-
     return (
         <div className="relative flex h-[calc(100vh-3rem)] flex-col">
             {/* Fixed Header Section */}
@@ -77,7 +71,6 @@ export function ListLayout({
                     onToggleCompressed={handleToggleCompressed}
                 />
             </div>
-
             {/* Scrollable Content Area */}
             <div className="bg-sidebar-accent/30 flex-1 overflow-y-auto">
                 <div className={cn(

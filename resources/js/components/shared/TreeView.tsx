@@ -5,13 +5,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
 export interface TreeNode {
     id: string | number;
     children?: TreeNode[];
     [key: string]: any;
 }
-
 export interface TreeViewProps<T extends TreeNode> {
     data: T[];
     renderNode: (node: T, isExpanded: boolean, toggleExpand: () => void) => React.ReactNode;
@@ -22,7 +20,6 @@ export interface TreeViewProps<T extends TreeNode> {
     onToggleExpand?: (id: string) => void;
     onNodeClick?: (node: T) => void;
 }
-
 interface TreeItemProps<T extends TreeNode> {
     node: T;
     depth: number;
@@ -33,7 +30,6 @@ interface TreeItemProps<T extends TreeNode> {
     renderNode: (node: T, isExpanded: boolean, toggleExpand: () => void) => React.ReactNode;
     onNodeClick?: (node: T) => void;
 }
-
 function TreeItem<T extends TreeNode>({
     node,
     depth,
@@ -47,18 +43,15 @@ function TreeItem<T extends TreeNode>({
     const nodeId = String(node.id);
     const isExpanded = expanded[nodeId] || false;
     const hasChildren = node.children && node.children.length > 0;
-
     const childConnectorLines = [...parentConnectorLines];
     if (depth > 0) {
         childConnectorLines.push(!isLast);
     }
-
     const handleToggle = () => {
         if (hasChildren) {
             toggleExpand(nodeId);
         }
     };
-
     return (
         <div className="w-full">
             <div className="flex">
@@ -68,7 +61,6 @@ function TreeItem<T extends TreeNode>({
                         {showLine && <div className="absolute h-full w-0 border-l-2 border-gray-300 left-3 top-0"></div>}
                     </div>
                 ))}
-
                 {depth > 0 && (
                     <div className="w-6 relative">
                         <div className="absolute h-1/2 w-0 border-l-2 border-gray-300 left-3 top-0"></div>
@@ -76,7 +68,6 @@ function TreeItem<T extends TreeNode>({
                         {!isLast && <div className="absolute h-1/2 w-0 border-l-2 border-gray-300 left-3 top-1/2"></div>}
                     </div>
                 )}
-
                 {/* Node content */}
                 <div
                     className={cn(
@@ -106,13 +97,11 @@ function TreeItem<T extends TreeNode>({
                             </Button>
                         )}
                         {!hasChildren && <div className="w-5"></div>}
-
                         {/* Render custom node content */}
                         {renderNode(node, isExpanded, handleToggle)}
                     </div>
                 </div>
             </div>
-
             {/* Render children with animation */}
             {hasChildren && (
                 <div
@@ -143,7 +132,6 @@ function TreeItem<T extends TreeNode>({
         </div>
     );
 }
-
 export default function TreeView<T extends TreeNode>({
     data,
     renderNode,
@@ -155,21 +143,18 @@ export default function TreeView<T extends TreeNode>({
     onNodeClick,
 }: TreeViewProps<T>) {
     const [internalExpanded, setInternalExpanded] = useState<Record<string, boolean>>({});
-
     // Use controlled expanded state if provided, otherwise use internal state
     const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
     const setExpanded = controlledExpanded !== undefined
-        ? (updater: any) => {
+        ? (error: unknown) => {
             // For controlled mode, we don't update state directly
             console.warn('TreeView is in controlled mode. Use onToggleExpand to update expanded state.');
         }
         : setInternalExpanded;
-
     // Initialize expanded state only for uncontrolled mode
     useEffect(() => {
         if (controlledExpanded === undefined) {
             const initialExpanded: Record<string, boolean> = {};
-
             const processNodes = (nodes: T[]) => {
                 nodes.forEach(node => {
                     const nodeId = String(node.id);
@@ -178,18 +163,15 @@ export default function TreeView<T extends TreeNode>({
                     } else if (defaultExpanded) {
                         initialExpanded[nodeId] = true;
                     }
-
                     if (node.children && node.children.length > 0) {
                         processNodes(node.children as T[]);
                     }
                 });
             };
-
             processNodes(data);
             setInternalExpanded(initialExpanded);
         }
     }, [data, defaultExpanded, controlledExpanded]);
-
     const toggleExpand = (id: string) => {
         if (onToggleExpand) {
             onToggleExpand(id);
@@ -200,11 +182,9 @@ export default function TreeView<T extends TreeNode>({
             }));
         }
     };
-
     if (data.length === 0 && emptyState) {
         return <>{emptyState}</>;
     }
-
     return (
         <div className={cn("w-full", className)}>
             {data.map((node, index) => (

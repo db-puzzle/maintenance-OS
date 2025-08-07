@@ -1,15 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import { TextInput } from '@/components/TextInput';
 import { AssetType } from '@/types/entities/asset-type';
-
 interface AssetTypeForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
     description: string;
 }
-
 interface CreateAssetTypeSheetProps {
     assetType?: AssetType;
     open: boolean;
@@ -17,10 +14,8 @@ interface CreateAssetTypeSheetProps {
     mode: 'create' | 'edit';
     onSuccess?: () => void;
 }
-
 const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, open, onOpenChange, mode, onSuccess }) => {
     const nameInputRef = useRef<HTMLInputElement>(null);
-
     // Auto-focus the name input when sheet opens for creation
     useEffect(() => {
         if (open && mode === 'create') {
@@ -33,24 +28,20 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
                     }
                 });
             };
-
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
             const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
-
             // Cleanup timeouts
             return () => {
                 timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [open, mode]);
-
     // Handle onOpenChange to focus when sheet opens
     const handleOpenChange = (open: boolean) => {
         if (onOpenChange) {
             onOpenChange(open);
         }
-
         // Focus the input when opening in create mode
         if (open && mode === 'create') {
             setTimeout(() => {
@@ -58,7 +49,6 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
             }, 100);
         }
     };
-
     return (
         <BaseEntitySheet<AssetTypeForm>
             entity={assetType}
@@ -100,7 +90,6 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
                         placeholder="Nome do tipo de ativo"
                         required
                     />
-
                     {/* Descrição */}
                     <TextInput
                         form={{
@@ -118,5 +107,4 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
         </BaseEntitySheet>
     );
 };
-
 export default CreateAssetTypeSheet;

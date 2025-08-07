@@ -7,14 +7,12 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
 // Define a local form type with index signature
 interface AreaFormData {
     name: string;
     plant_id: string;
     [key: string]: string | number | boolean | null | undefined;
 }
-
 interface AreaFormComponentProps {
     area?: Area & {
         plant: Plant;
@@ -24,29 +22,24 @@ interface AreaFormComponentProps {
     onCancel?: () => void;
     onSuccess?: () => void;
 }
-
 export default function AreaFormComponent({ area, plants = [], initialMode = 'view', onCancel, onSuccess }: AreaFormComponentProps) {
     const isEditing = !!area;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
     const [plantSheetOpen, setPlantSheetOpen] = useState(false);
     const plantSelectRef = useRef<HTMLButtonElement | null>(null);
-
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm<AreaFormData>({
         name: area?.name || '',
         plant_id: area?.plant?.id?.toString() || '',
     });
-
     // Create a wrapper for setData to match the expected signature
     const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
         setData(name as keyof AreaFormData, value as AreaFormData[keyof AreaFormData]);
     };
-
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.areas.update', { area: area.id }), {
@@ -67,7 +60,6 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
             });
         }
     };
-
     const handleCancel = () => {
         if (isEditing && mode === 'edit') {
             // Reset form to original data
@@ -77,15 +69,12 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
             onCancel();
         }
     };
-
     const handleEdit = () => {
         setMode('edit');
     };
-
     const handleCreatePlantClick = () => {
         setPlantSheetOpen(true);
     };
-
     const handlePlantCreated = () => {
         setPlantSheetOpen(false);
         router.reload({
@@ -96,7 +85,6 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
                     // Find the newest plant (usually the last one)
                     const newestPlant = updatedPlants[updatedPlants.length - 1];
                     setData('plant_id', newestPlant.id.toString());
-
                     // Focus and highlight the plant select field
                     setTimeout(() => {
                         const selectButton = plantSelectRef.current;
@@ -117,7 +105,6 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
             },
         });
     };
-
     return (
         <div className="space-y-6">
             {/* Form Fields */}
@@ -136,7 +123,6 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
                     required={!isViewMode}
                     view={isViewMode}
                 />
-
                 {/* Planta */}
                 <div className="grid gap-2">
                     <ItemSelect
@@ -157,7 +143,6 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
                     />
                 </div>
             </div>
-
             {/* Action Buttons */}
             {isEditing && (
                 <div className="flex justify-end gap-2">
@@ -178,7 +163,6 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
                     )}
                 </div>
             )}
-
             {/* CreatePlantSheet for creating new plants */}
             <CreatePlantSheet open={plantSheetOpen} onOpenChange={setPlantSheetOpen} onSuccess={handlePlantCreated} />
         </div>

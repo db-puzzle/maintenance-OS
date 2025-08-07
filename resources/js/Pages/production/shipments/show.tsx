@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-
 interface ShipmentItem {
     id: string;
     manufacturing_order_id: string;
@@ -31,14 +30,12 @@ interface ShipmentItem {
         name: string;
     };
 }
-
 interface ShipmentPhoto {
     id: string;
     file_path: string;
     caption: string | null;
     uploaded_at: string;
 }
-
 interface Shipment {
     id: string;
     shipment_number: string;
@@ -63,7 +60,6 @@ interface Shipment {
     created_at: string;
     updated_at: string;
 }
-
 interface Props {
     shipment: Shipment;
     can: {
@@ -75,7 +71,6 @@ interface Props {
         upload_photos: boolean;
     };
 }
-
 const statusConfig = {
     draft: { icon: Clock, color: 'text-gray-500', bgColor: 'bg-gray-100' },
     ready: { icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-100' },
@@ -83,14 +78,12 @@ const statusConfig = {
     delivered: { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100' },
     cancelled: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
 };
-
 const typeLabels: Record<string, string> = {
     customer: 'Customer Shipment',
     internal: 'Internal Transfer',
     vendor: 'Vendor Return',
     other: 'Other',
 };
-
 const statusLabels: Record<string, string> = {
     draft: 'Draft',
     ready: 'Ready to Ship',
@@ -98,14 +91,12 @@ const statusLabels: Record<string, string> = {
     delivered: 'Delivered',
     cancelled: 'Cancelled',
 };
-
 export default function ShipmentShow({ shipment, can }: Props) {
     const handleDelete = () => {
         if (confirm('Are you sure you want to delete this shipment?')) {
             router.delete(route('production.shipments.destroy', shipment.id));
         }
     };
-
     const handleStatusUpdate = (action: 'ready' | 'ship' | 'deliver' | 'cancel') => {
         const routes = {
             ready: 'production.shipments.ready',
@@ -113,19 +104,15 @@ export default function ShipmentShow({ shipment, can }: Props) {
             deliver: 'production.shipments.deliver',
             cancel: 'production.shipments.cancel',
         };
-
         router.post(route(routes[action], shipment.id));
     };
-
     const breadcrumbs = [
         { title: 'Production', href: route('home') },
         { title: 'Shipments', href: route('production.shipments.index') },
         { title: shipment.shipment_number, href: '' },
     ];
-
     const config = statusConfig[shipment.status];
     const StatusIcon = config.icon;
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Shipment ${shipment.shipment_number}`} />
@@ -229,7 +216,6 @@ export default function ShipmentShow({ shipment, can }: Props) {
                             )}
                         </CardContent>
                     </Card>
-
                     {/* Shipment Items */}
                     <Card>
                         <CardHeader>
@@ -280,7 +266,6 @@ export default function ShipmentShow({ shipment, can }: Props) {
                             </div>
                         </CardContent>
                     </Card>
-
                     {/* Photos */}
                     {shipment.photos.length > 0 && (
                         <Card>

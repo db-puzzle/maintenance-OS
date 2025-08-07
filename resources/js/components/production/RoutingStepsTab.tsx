@@ -28,8 +28,6 @@ import { Form } from '@/types/work-order';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import RouteBuilderCore from '@/components/production/RouteBuilderCore';
-
-
 interface Props {
     routing: ManufacturingRoute;
     steps: ManufacturingStep[];
@@ -42,7 +40,6 @@ interface Props {
     forms?: Form[];
     openRouteBuilder?: string | null;
 }
-
 interface RouteTemplate {
     id: number;
     name: string;
@@ -53,9 +50,7 @@ interface RouteTemplate {
     usage_count: number;
     last_used_at?: string;
 }
-
 type ViewMode = 'empty' | 'create' | 'builder' | 'viewer';
-
 export default function RoutingStepsTab({
     routing,
     steps,
@@ -70,28 +65,22 @@ export default function RoutingStepsTab({
 }: Props) {
     const { props } = usePage();
     const flash = props.flash as any;
-
     // Check URL params from props
     const openRouteBuilderParam = openRouteBuilder || null;
-
     // Check if we should start in builder mode
     const shouldStartInBuilder = (!steps || steps.length === 0) ||
         flash?.openRouteBuilder ||
         openRouteBuilderParam === '1';
-
     // Determine the correct view mode
     const determineViewMode = (): ViewMode => {
         if (shouldStartInBuilder && canManage) return 'builder';
         if (steps && steps.length > 0) return 'viewer';
         return 'empty';
     };
-
     const initialViewMode = determineViewMode();
-
     const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
     const [selectedTemplate, setSelectedTemplate] = useState<RouteTemplate | null>(null);
     const [showRouteDialog, setShowRouteDialog] = useState(false);
-
     // Reset view mode when conditions change
     useEffect(() => {
         const correctMode = determineViewMode();
@@ -99,7 +88,6 @@ export default function RoutingStepsTab({
             setViewMode(correctMode);
         }
     }, [steps?.length, openRouteBuilderParam, flash?.openRouteBuilder]);
-
     // Clean up URL param after using it
     useEffect(() => {
         if (openRouteBuilderParam === '1' && routingId) {
@@ -111,23 +99,18 @@ export default function RoutingStepsTab({
             });
         }
     }, []);
-
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         name: '',
         description: '',
         template_id: '',
     });
-
     // Create a wrapper for form compatibility
     const form = {
         data,
-        setData: (name: string, value: any) => setData(name as any, value),
+        setData: (error: unknown) => setData(name as any, value),
         errors: errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => clearErrors(...(fields as any)),
     };
-
-
-
     const handleCreateRoute = () => {
         post(route('production.routing.steps.from-template', routingId), {
             onSuccess: () => {
@@ -141,26 +124,22 @@ export default function RoutingStepsTab({
             }
         });
     };
-
     const handleTemplateSelect = (template: RouteTemplate) => {
         setSelectedTemplate(template);
         setData('template_id', template.id.toString());
         setData('name', `${template.name} - ${routing.name}`);
         setData('description', template.description || '');
     };
-
     const handleOpenCustomStepsDialog = () => {
         if (!canManage) {
             toast.error('Você não tem permissão para gerenciar etapas');
             return;
         }
-
         // If routing already has steps, go directly to builder
         if (steps && steps.length > 0) {
             setViewMode('builder');
             return;
         }
-
         // Otherwise, create empty steps structure and open builder
         router.post(route('production.routing.steps.initialize', routingId), {}, {
             preserveScroll: true,
@@ -184,21 +163,18 @@ export default function RoutingStepsTab({
             }
         });
     };
-
     const handleCloseDialog = () => {
         setShowRouteDialog(false);
         reset();
         setSelectedTemplate(null);
         clearErrors();
     };
-
     const formatTime = (minutes: number): string => {
         if (minutes < 60) return `${minutes}min`;
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         return `${hours}h${mins > 0 ? ` ${mins}min` : ''}`;
     };
-
     // Main content rendering
     return (
         <>
@@ -238,7 +214,6 @@ export default function RoutingStepsTab({
                         </div>
                     );
                 }
-
                 // Viewer mode - show route builder in view-only mode
                 if (viewMode === 'viewer' && steps && steps.length > 0) {
                     return (
@@ -271,10 +246,8 @@ export default function RoutingStepsTab({
                         </div>
                     );
                 }
-
                 // Empty/Create state - no steps exist
                 const canCreate = canManage;
-
                 if (!steps || steps.length === 0) {
                     return (
                         <div className="flex min-h-[400px] items-center justify-center px-6 lg:px-8 py-6">
@@ -290,7 +263,6 @@ export default function RoutingStepsTab({
                                     primaryButtonText={canCreate ? "Configurar Etapas" : undefined}
                                     primaryButtonAction={canCreate ? () => setViewMode('create') : undefined}
                                 />
-
                                 {!canManage && (
                                     <div className="mt-4">
                                         <Alert>
@@ -305,7 +277,6 @@ export default function RoutingStepsTab({
                         </div>
                     );
                 }
-
                 // Create mode - show creation options
                 if (viewMode === 'create') {
                     return (
@@ -321,7 +292,6 @@ export default function RoutingStepsTab({
                                         Cancelar
                                     </Button>
                                 </div>
-
                                 <div className="grid gap-6 md:grid-cols-2">
                                     {/* Template Option */}
                                     <Card className="group cursor-pointer hover:border-ring hover:ring-ring/10 hover:bg-input-focus transition-[color,box-shadow,border-color,background-color]"
@@ -345,7 +315,6 @@ export default function RoutingStepsTab({
                                             </div>
                                         </CardContent>
                                     </Card>
-
                                     {/* Custom Steps Option */}
                                     <Card
                                         className="group cursor-pointer hover:border-ring hover:ring-ring/10 hover:bg-input-focus transition-[color,box-shadow,border-color,background-color]"
@@ -367,7 +336,6 @@ export default function RoutingStepsTab({
                                         </CardContent>
                                     </Card>
                                 </div>
-
                                 {/* Template List */}
                                 {templates.length > 0 && (
                                     <div className="space-y-4">
@@ -416,7 +384,6 @@ export default function RoutingStepsTab({
                     );
                 }
             })()}
-
             {/* Template Selection Dialog */}
             <Dialog open={showRouteDialog} onOpenChange={handleCloseDialog}>
                 <DialogContent className="max-w-2xl">
@@ -426,7 +393,6 @@ export default function RoutingStepsTab({
                             Configure as etapas baseadas no template selecionado
                         </DialogDescription>
                     </DialogHeader>
-
                     <ScrollArea className="max-h-[60vh]">
                         <div className="space-y-6 py-4">
                             {selectedTemplate && (
@@ -452,7 +418,6 @@ export default function RoutingStepsTab({
                                     </CardContent>
                                 </Card>
                             )}
-
                             <Alert>
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>
@@ -461,7 +426,6 @@ export default function RoutingStepsTab({
                             </Alert>
                         </div>
                     </ScrollArea>
-
                     <DialogFooter>
                         <Button
                             type="button"

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import { ArrowLeftRight, Upload, FileText, AlertCircle, Download, CheckCircle2 } from 'lucide-react';
+import { ArrowLeftRight, Upload, FileText, AlertCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,12 +13,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { toast } from 'sonner';
 import { type BreadcrumbItem } from '@/types';
-
 interface Props {
     supportedFormats: string[];
     csvHeaders: Record<string, string>;
 }
-
 // CSV field mappings
 const csvFields = [
     { value: 'item_number', label: 'Código do Item', required: true },
@@ -30,21 +28,17 @@ const csvFields = [
     { value: 'description', label: 'Descrição Detalhada', required: false },
     { value: 'reference_designators', label: 'Designadores de Referência', required: false },
 ];
-
 const normalizeString = (str: string): string => {
     return str.toLowerCase().replace(/\s+/g, '').trim();
 };
-
 const findBestMatch = (header: string, fields: typeof csvFields): string => {
     const normalizedHeader = normalizeString(header);
-
     for (const field of fields) {
         const normalizedFieldLabel = normalizeString(field.label);
         if (normalizedHeader === normalizedFieldLabel) {
             return field.value;
         }
     }
-
     // Additional matches for common variations
     if (normalizedHeader.includes('codigo') || normalizedHeader.includes('code')) return 'item_number';
     if (normalizedHeader.includes('nome') || normalizedHeader.includes('name')) return 'name';
@@ -52,22 +46,19 @@ const findBestMatch = (header: string, fields: typeof csvFields): string => {
     if (normalizedHeader.includes('unidade') || normalizedHeader.includes('unit')) return 'unit_of_measure';
     if (normalizedHeader.includes('nivel') || normalizedHeader.includes('level')) return 'level';
     if (normalizedHeader.includes('pai') || normalizedHeader.includes('parent')) return 'parent';
-
     return '';
 };
-
-export default function BomImport({ supportedFormats, csvHeaders }: Props) {
+export default function BomImport({ supportedFormats }: Props) {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [fileType, setFileType] = useState<string>('');
     const [csvData, setCsvData] = useState<{
         headers: string[];
-        data: Record<string, any>[];
+        data: Record<string, unknown>[];
         totalRows: number;
     } | null>(null);
     const [fieldMapping, setFieldMapping] = useState<Record<string, string>>({});
     const [showPreview, setShowPreview] = useState(false);
-
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         file: null as File | null,
         mapping: {},
         bom_info: JSON.stringify({
@@ -76,13 +67,11 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
             external_reference: '',
         }),
     });
-
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Home', href: '/home' },
         { title: 'BOMs', href: route('production.bom.index') },
         { title: 'Importar BOM', href: route('production.bom.import.wizard') },
     ];
-
     // Get BOM info from form data
     const bomInfo = React.useMemo(() => {
         try {
@@ -91,51 +80,41 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
             return { name: '', description: '', external_reference: '' };
         }
     }, [data.bom_info]);
-
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-
         const extension = file.name.split('.').pop()?.toLowerCase();
         if (!supportedFormats.includes(extension || '')) {
             toast.error(`Formato não suportado. Use: ${supportedFormats.join(', ')}`);
             return;
         }
-
         setSelectedFile(file);
         setFileType(extension || '');
         setData('file', file);
-
         if (extension === 'csv' || extension === 'txt') {
             await processCsvFile(file);
         }
     };
-
     const processCsvFile = async (file: File) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             const text = e.target?.result as string;
             const lines = text.split('\n').filter(line => line.trim());
-
             if (lines.length < 2) {
                 toast.error('Arquivo CSV vazio ou inválido');
                 return;
             }
-
             const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            const data: Record<string, any>[] = [];
-
+            const data: Record<string, unknown>[] = [];
             for (let i = 1; i < lines.length; i++) {
                 const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-                const row: Record<string, any> = {};
+                const row: Record<string, unknown> = {};
                 headers.forEach((header, index) => {
                     row[header] = values[index] || '';
                 });
                 data.push(row);
             }
-
             setCsvData({ headers, data, totalRows: data.length });
-
             // Auto-map fields
             const mapping: Record<string, string> = {};
             headers.forEach((header) => {
@@ -148,35 +127,26 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
             setData('mapping', mapping);
             setShowPreview(true);
         };
-
         reader.readAsText(file);
     };
-
     const isMappingValid = useCallback(() => {
         // Must have a file
         if (!selectedFile) return false;
-
         // Must have a BOM name
         if (!bomInfo.name || bomInfo.name.trim() === '') return false;
-
         // For JSON files, that's all we need
         if (fileType === 'json') {
             return true;
         }
-
         // For CSV files, we need proper field mapping
         if (fileType === 'csv' || fileType === 'txt') {
             if (!csvData || !fieldMapping) return false;
-
             const requiredFields = csvFields.filter(f => f.required).map(f => f.value);
             const mappedValues = Object.values(fieldMapping).filter(v => v);
-
             return requiredFields.every(field => mappedValues.includes(field));
         }
-
         return false;
     }, [selectedFile, fileType, csvData, fieldMapping, bomInfo.name]);
-
     const handleImport = () => {
         if (!selectedFile || !isMappingValid()) {
             console.log('Validation failed:', {
@@ -187,7 +157,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
             });
             return;
         }
-
         // Update the form data before submitting
         setData(prevData => ({
             ...prevData,
@@ -195,7 +164,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
             mapping: fieldMapping,
             bom_info: JSON.stringify(bomInfo)
         }));
-
         post(route('production.bom.import'), {
             forceFormData: true,
             onSuccess: () => {
@@ -208,17 +176,14 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
             }
         });
     };
-
     const updateBomInfo = (field: string, value: string) => {
         const currentInfo = JSON.parse(data.bom_info);
         currentInfo[field] = value;
         setData('bom_info', JSON.stringify(currentInfo));
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Importar BOM" />
-
             <div className="container max-w-6xl mx-auto py-8 space-y-6">
                 <div>
                     <h1 className="text-3xl font-bold">Importar BOM</h1>
@@ -226,13 +191,11 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                         Importe estruturas de produtos a partir de arquivos CSV ou JSON
                     </p>
                 </div>
-
                 <Tabs defaultValue="upload" className="space-y-4">
                     <TabsList>
                         <TabsTrigger value="upload">Upload de Arquivo</TabsTrigger>
                         <TabsTrigger value="instructions">Instruções</TabsTrigger>
                     </TabsList>
-
                     <TabsContent value="upload" className="space-y-6">
                         {/* File Upload */}
                         <Card>
@@ -257,7 +220,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                         </div>
                                     )}
                                 </div>
-
                                 {/* BOM Information */}
                                 {selectedFile && (
                                     <div className="grid gap-4 pt-4 border-t">
@@ -299,7 +261,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                 )}
                             </CardContent>
                         </Card>
-
                         {/* CSV Field Mapping */}
                         {csvData && showPreview && fileType === 'csv' && (
                             <Card>
@@ -343,7 +304,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                 </CardContent>
                             </Card>
                         )}
-
                         {/* Data Preview */}
                         {csvData && showPreview && (
                             <Card>
@@ -386,7 +346,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                 </CardContent>
                             </Card>
                         )}
-
                         {/* Import Progress */}
                         {processing && (
                             <Card>
@@ -400,7 +359,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                 </CardContent>
                             </Card>
                         )}
-
                         {/* Import Errors */}
                         {(errors.file || errors.mapping || errors.bom_info) && (
                             <Alert variant="destructive">
@@ -412,7 +370,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                 </AlertDescription>
                             </Alert>
                         )}
-
                         {/* Validation Message */}
                         {selectedFile && !isMappingValid() && (
                             <Alert>
@@ -433,7 +390,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                 </AlertDescription>
                             </Alert>
                         )}
-
                         {/* Action Buttons */}
                         <div className="flex justify-end gap-4">
                             <Button
@@ -453,7 +409,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                             </Button>
                         </div>
                     </TabsContent>
-
                     <TabsContent value="instructions" className="space-y-6">
                         <Card>
                             <CardHeader>
@@ -503,14 +458,12 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                         ))}
                                     </TableBody>
                                 </Table>
-
                                 <Alert>
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertDescription>
                                         <strong>Dica:</strong> Você pode baixar um modelo de CSV de exemplo para facilitar o preenchimento.
                                     </AlertDescription>
                                 </Alert>
-
                                 <Button variant="outline" asChild>
                                     <a href="/templates/bom-import-template.csv" download>
                                         <Download className="h-4 w-4 mr-2" />
@@ -519,7 +472,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                 </Button>
                             </CardContent>
                         </Card>
-
                         <Card>
                             <CardHeader>
                                 <CardTitle>Formato JSON</CardTitle>
@@ -528,7 +480,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                 <p className="text-sm text-muted-foreground">
                                     O sistema aceita dois formatos JSON:
                                 </p>
-
                                 <div className="space-y-4">
                                     <div>
                                         <h4 className="font-medium mb-2">1. Formato Nativo (Exportado pelo Sistema)</h4>
@@ -562,7 +513,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
 }`}
                                         </pre>
                                     </div>
-
                                     <div>
                                         <h4 className="font-medium mb-2">2. Formato Inventor</h4>
                                         <p className="text-sm text-muted-foreground mb-2">
@@ -584,7 +534,6 @@ export default function BomImport({ supportedFormats, csvHeaders }: Props) {
                                         </pre>
                                     </div>
                                 </div>
-
                                 <Alert>
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertDescription>

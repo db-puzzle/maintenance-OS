@@ -1,17 +1,14 @@
 import PhotoUploader from '@/components/PhotoUploader';
 import { Image } from 'lucide-react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
-
 // This type alias extends WithSaveFunctionalityProps and is reserved for future photo task specific props
 type PhotoTaskContentProps = WithSaveFunctionalityProps & {
     // Future photo task specific props will be added here
 };
-
 function PhotoTaskContent({ task, mode, response, setResponse, disabled }: PhotoTaskContentProps) {
     const handlePhotoChange = (file: File | null) => {
         setResponse({ files: file ? [file] : [] });
     };
-
     if (mode === 'edit') {
         return (
             <div className="space-y-4">
@@ -21,9 +18,7 @@ function PhotoTaskContent({ task, mode, response, setResponse, disabled }: Photo
             </div>
         );
     }
-
     const isPreview = mode === 'preview';
-
     return (
         <div className="space-y-4">
             <div className="p-4">
@@ -31,7 +26,6 @@ function PhotoTaskContent({ task, mode, response, setResponse, disabled }: Photo
                     {isPreview ? 'O usuário deverá tirar uma ou mais fotos durante a execução desta tarefa.' : 'Tire uma foto conforme necessário.'}
                 </p>
             </div>
-
             {isPreview ? (
                 <div className="flex flex-col items-center gap-4">
                     <div className="bg-muted/50 flex h-64 w-full items-center justify-center rounded-md">
@@ -55,5 +49,4 @@ function PhotoTaskContent({ task, mode, response, setResponse, disabled }: Photo
         </div>
     );
 }
-
 export default withSaveFunctionality(PhotoTaskContent);

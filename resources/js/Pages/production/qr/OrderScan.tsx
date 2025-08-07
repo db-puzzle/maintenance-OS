@@ -17,13 +17,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
 interface Item {
     id: number;
     item_number: string;
     name: string;
 }
-
 interface Step {
     id: number;
     step_number: number;
@@ -31,13 +29,11 @@ interface Step {
     status: string;
     step_type: string;
 }
-
 interface Route {
     id: number;
     name: string;
     steps: Step[];
 }
-
 interface ManufacturingOrder {
     id: number;
     order_number: string;
@@ -49,21 +45,18 @@ interface ManufacturingOrder {
     planned_end_date?: string;
     children: ManufacturingOrder[];
 }
-
 interface CurrentStep {
     id: number;
     name: string;
     status: string;
     step_number: number;
 }
-
 interface Action {
     label: string;
     route: string;
     icon: string;
     primary?: boolean;
 }
-
 interface Props {
     order: ManufacturingOrder;
     currentStep: CurrentStep | null;
@@ -74,7 +67,6 @@ interface Props {
     };
     actions: Action[];
 }
-
 const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
         draft: 'secondary',
@@ -86,7 +78,6 @@ const getStatusColor = (status: string) => {
     };
     return colors[status] || 'secondary';
 };
-
 const getIconComponent = (iconName: string) => {
     const icons: Record<string, React.ElementType> = {
         Play,
@@ -96,16 +87,13 @@ const getIconComponent = (iconName: string) => {
     };
     return icons[iconName] || Play;
 };
-
 export default function OrderScan({ order, currentStep, can, actions }: Props) {
     const progress = order.quantity > 0
         ? (order.quantity_completed / order.quantity) * 100
         : 0;
-
     return (
         <>
             <Head title={`Ordem - ${order.order_number}`} />
-
             <div className="min-h-screen bg-gray-50 p-4">
                 <div className="max-w-lg mx-auto space-y-4">
                     {/* Header Card */}
@@ -127,7 +115,6 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                                     </div>
                                     <h2 className="text-lg font-medium">{order.item.name}</h2>
                                 </div>
-
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-500">Progresso:</span>
@@ -137,7 +124,6 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                                     </div>
                                     <Progress value={progress} className="h-2" />
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-3 text-sm">
                                     <div>
                                         <span className="text-gray-500">Entrega:</span>
@@ -155,7 +141,6 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                             </div>
                         </CardContent>
                     </Card>
-
                     {/* Current Step */}
                     {currentStep && (
                         <Card>
@@ -179,7 +164,6 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                             </CardContent>
                         </Card>
                     )}
-
                     {/* Actions */}
                     {actions.length > 0 && (
                         <Card>
@@ -208,7 +192,6 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                             </CardContent>
                         </Card>
                     )}
-
                     {/* Child Orders */}
                     {order.children && order.children.length > 0 && (
                         <Card>
@@ -237,7 +220,6 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                             </CardContent>
                         </Card>
                     )}
-
                     {/* View Details Link */}
                     {can.view && (
                         <div className="text-center">

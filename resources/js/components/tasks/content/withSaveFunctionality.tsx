@@ -3,7 +3,6 @@ import { Task } from '@/types/task';
 import { CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
 import { ComponentType, useState } from 'react';
 import { TaskCardMode } from './TaskContent';
-
 export interface WithSaveFunctionalityProps {
     task: Task;
     mode: TaskCardMode;
@@ -16,7 +15,6 @@ export interface WithSaveFunctionalityProps {
     isLastTask?: boolean;
     onNext?: () => void;
 }
-
 export const withSaveFunctionality = <P extends object>(WrappedComponent: ComponentType<P & WithSaveFunctionalityProps>) => {
     const ComponentWithSave = (
         props: P & {
@@ -30,17 +28,14 @@ export const withSaveFunctionality = <P extends object>(WrappedComponent: Compon
         },
     ) => {
         const [response, setResponse] = useState<Record<string, unknown> | null>(null);
-
         const handleSaveAndNext = () => {
             if (props.onSave && response) {
                 props.onSave(response);
             }
             // The onNext will be called after successful save in the parent component
         };
-
         const buttonText = props.isLastTask ? 'Completar Rotina' : 'Próxima';
         const buttonIcon = props.isLastTask ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <ChevronRight className="mr-2 h-4 w-4" />;
-
         return (
             <div className="space-y-4">
                 <WrappedComponent {...props} response={response} setResponse={setResponse} />

@@ -15,10 +15,8 @@ import { WorkCell } from '@/types/production';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -33,7 +31,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/production/work-cells',
     },
 ];
-
 interface Props {
     workCells: {
         data: WorkCell[];
@@ -65,7 +62,6 @@ interface Props {
         name: string;
     }[];
 }
-
 export default function WorkCells({ workCells: initialWorkCells, filters, plants, shifts, manufacturers }: Props) {
     const entityOps = useEntityOperations<WorkCell>({
         entityName: 'work-cell',
@@ -77,9 +73,7 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             checkDependencies: 'production.work-cells.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search || '');
-
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'production.work-cells',
@@ -92,7 +86,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             ...(filters.is_active && { is_active: filters.is_active }),
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('workCellsColumnsVisibility');
@@ -110,7 +103,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             is_active: true,
         };
     });
-
     // Use data from server
     const data = initialWorkCells.data;
     const pagination = {
@@ -121,7 +113,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
         from: initialWorkCells.from,
         to: initialWorkCells.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
@@ -214,7 +205,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             },
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -223,7 +213,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
         setColumnVisibility(newVisibility);
         localStorage.setItem('workCellsColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -239,7 +228,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(
             route('production.work-cells'),
@@ -247,7 +235,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             { preserveState: true, preserveScroll: true }
         );
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('production.work-cells'),
@@ -255,11 +242,9 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
             { preserveState: true, preserveScroll: true },
         );
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Células de Trabalho" />
-
             <ListLayout
                 title="Células de Trabalho"
                 description="Gerencie as células de trabalho do sistema"
@@ -303,7 +288,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                             );
                         }}
                     />
-
                     <EntityPagination
                         pagination={pagination}
                         onPageChange={handlePageChange}
@@ -311,7 +295,6 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                     />
                 </div>
             </ListLayout>
-
             <CreateWorkCellSheet
                 workCell={entityOps.editingItem || undefined}
                 open={entityOps.isEditSheetOpen}
@@ -321,14 +304,12 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                 shifts={shifts}
                 manufacturers={manufacturers}
             />
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

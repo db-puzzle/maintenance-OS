@@ -3,21 +3,18 @@ import { StatusProgress, type StatusStep } from '@/components/ui/status-progress
 import { type WorkOrderStatus, type WorkOrder } from '@/types/work-order';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
 interface WorkOrderStatusProgressProps {
     currentStatus: WorkOrderStatus;
     workOrder?: WorkOrder;
     onTabChange?: (tabId: string) => void;
     className?: string;
 }
-
 // Map work order tabs to status IDs
 const STATUS_TAB_MAPPING: Record<string, string> = {
     'requested': 'details',
     'approved': 'approval',
     'planned': 'planning',
 };
-
 // Branch statuses configuration
 const BRANCH_STATUS_CONFIG = {
     rejected: {
@@ -33,7 +30,6 @@ const BRANCH_STATUS_CONFIG = {
         description: 'Esta ordem está temporariamente pausada'
     }
 };
-
 // Function to generate work order status steps with dynamic descriptions
 function getWorkOrderStatusSteps(workOrder?: WorkOrder): StatusStep[] {
     const baseSteps: StatusStep[] = [
@@ -78,7 +74,6 @@ function getWorkOrderStatusSteps(workOrder?: WorkOrder): StatusStep[] {
             description: 'Finalizada com toda documentação completa'
         },
     ];
-
     // Enhance with dynamic information if available
     if (workOrder) {
         // Update requested step with requester info
@@ -90,7 +85,6 @@ function getWorkOrderStatusSteps(workOrder?: WorkOrder): StatusStep[] {
                 requestedStep.description = `Solicitada por ${requesterName} em ${requestedDate}`;
             }
         }
-
         // Update approved step with approver info
         if (workOrder.approved_at && workOrder.approver) {
             const approvedStep = baseSteps.find(step => step.id === 'approved');
@@ -100,7 +94,6 @@ function getWorkOrderStatusSteps(workOrder?: WorkOrder): StatusStep[] {
                 approvedStep.description = `Aprovada por ${approverName} em ${approvedDate}`;
             }
         }
-
         // Update planned step with planner info
         if (workOrder.planned_at && workOrder.planner) {
             const plannedStep = baseSteps.find(step => step.id === 'planned');
@@ -109,7 +102,6 @@ function getWorkOrderStatusSteps(workOrder?: WorkOrder): StatusStep[] {
                 plannedStep.description = `Planejada por ${workOrder.planner.name} em ${plannedDate}`;
             }
         }
-
         // Update scheduled step with technician info
         if (workOrder.scheduled_start_date && workOrder.assigned_technician) {
             const scheduledStep = baseSteps.find(step => step.id === 'scheduled');
@@ -119,10 +111,8 @@ function getWorkOrderStatusSteps(workOrder?: WorkOrder): StatusStep[] {
             }
         }
     }
-
     return baseSteps;
 }
-
 export function WorkOrderStatusProgress({
     currentStatus,
     workOrder,
@@ -131,7 +121,6 @@ export function WorkOrderStatusProgress({
 }: WorkOrderStatusProgressProps) {
     // Check if it's a branch status
     const isBranchStatus = ['rejected', 'cancelled', 'on_hold'].includes(currentStatus);
-
     // Get branch status config if applicable
     const branchStatus = isBranchStatus && currentStatus in BRANCH_STATUS_CONFIG
         ? {
@@ -139,22 +128,18 @@ export function WorkOrderStatusProgress({
             ...BRANCH_STATUS_CONFIG[currentStatus as keyof typeof BRANCH_STATUS_CONFIG]
         }
         : undefined;
-
     // Get dynamic steps
     const steps = getWorkOrderStatusSteps(workOrder);
-
     // Determine clickable steps based on whether we have tab navigation
     const clickableSteps = onTabChange
         ? Object.keys(STATUS_TAB_MAPPING)
         : [];
-
     // Handle step clicks
     const handleStepClick = (stepId: string) => {
         if (onTabChange && STATUS_TAB_MAPPING[stepId]) {
             onTabChange(STATUS_TAB_MAPPING[stepId]);
         }
     };
-
     return (
         <StatusProgress
             steps={steps}

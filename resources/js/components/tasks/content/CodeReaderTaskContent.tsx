@@ -3,57 +3,46 @@ import { Button } from '@/components/ui/button';
 import { Barcode, Check, QrCode, ScanBarcode } from 'lucide-react';
 import { memo, useEffect, useRef } from 'react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
-
 interface CodeReaderTaskContentProps extends WithSaveFunctionalityProps {
     onIconChange?: (icon: React.ReactNode) => void;
 }
-
 const CODE_TYPES = [
     { id: 1, name: 'QR Code', value: 'qr_code' },
     { id: 2, name: 'Código de Barras', value: 'barcode' },
 ] as const;
-
 function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange, response, setResponse, disabled }: CodeReaderTaskContentProps) {
     const codeReaderType = task.codeReaderType || 'barcode';
     const hasSetIcon = useRef(false);
-
     useEffect(() => {
         if (!response) {
             setResponse({ value: '', scanned: false });
         }
     }, [response, setResponse]);
-
     const codeType = codeReaderType === 'qr_code' ? 'QR Code' : 'Código de Barras';
     const instructions = task.codeReaderInstructions || `Leia o ${codeType} conforme as instruções.`;
-
     useEffect(() => {
         if (onIconChange && !hasSetIcon.current) {
             hasSetIcon.current = true;
             onIconChange(codeReaderType === 'qr_code' ? <QrCode className="size-5" /> : <Barcode className="size-5" />);
         }
     }, [onIconChange, codeReaderType]);
-
     useEffect(() => {
         if (onIconChange) {
             onIconChange(codeReaderType === 'qr_code' ? <QrCode className="size-5" /> : <Barcode className="size-5" />);
         }
     }, [codeReaderType, onIconChange]);
-
     const handleCodeTypeChange = (selectedId: string) => {
         const selectedType = CODE_TYPES.find((type) => type.id.toString() === selectedId);
         if (selectedType) {
             onUpdate?.({ ...task, codeReaderType: selectedType.value });
         }
     };
-
     const handleScan = () => {
         // Here you would integrate with a real scanner library
         const mockCode = `MOCK-${codeReaderType.toUpperCase()}-${Date.now()}`;
         setResponse({ value: mockCode, scanned: true });
     };
-
     const currentTypeId = CODE_TYPES.find((type) => type.value === codeReaderType)?.id.toString() || '1';
-
     if (mode === 'edit') {
         return (
             <div className="space-y-4">
@@ -73,15 +62,12 @@ function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange, response, s
             </div>
         );
     }
-
     const isPreview = mode === 'preview';
-
     return (
         <div className="space-y-4">
             <div className="p-4">
                 <p>{isPreview ? `O usuário deverá ler um ${codeType} durante a execução desta tarefa.` : instructions}</p>
             </div>
-
             {response?.scanned ? (
                 <div className="flex flex-col items-center gap-4">
                     <div className="flex w-full items-center gap-2 rounded-md border border-green-200 bg-green-50 p-4">
@@ -91,7 +77,6 @@ function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange, response, s
                             <p className="text-sm text-green-600">{response.value as string}</p>
                         </div>
                     </div>
-
                     <Button
                         variant="outline"
                         className="w-full"
@@ -111,5 +96,4 @@ function CodeReaderTaskContent({ task, mode, onUpdate, onIconChange, response, s
         </div>
     );
 }
-
 export default memo(withSaveFunctionality(CodeReaderTaskContent));

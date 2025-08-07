@@ -3,14 +3,12 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChevronDownIcon, ColumnsIcon } from 'lucide-react';
 import * as React from 'react';
-
 export interface Column<T> {
     id: string;
     header: React.ReactNode;
     cell: (row: { original: T }) => React.ReactNode;
     width?: string;
 }
-
 interface DataTableProps<TData> {
     columns: Column<TData>[];
     data: TData[];
@@ -18,7 +16,6 @@ interface DataTableProps<TData> {
     onRowClick?: (row: TData) => void;
     emptyMessage?: string;
 }
-
 export function DataTable<TData>({
     data,
     columns,
@@ -30,7 +27,6 @@ export function DataTable<TData>({
     const visibleColumns = React.useMemo(() => {
         return columns.filter((column) => column.id === 'actions' || columnVisibility[column.id]);
     }, [columns, columnVisibility]);
-
     return (
         <div className="w-full overflow-hidden rounded-md border">
             <Table>
@@ -78,13 +74,11 @@ export function DataTable<TData>({
         </div>
     );
 }
-
 interface ColumnVisibilityProps {
     columns: { id: string; header: React.ReactNode }[];
     columnVisibility: Record<string, boolean>;
     onColumnVisibilityChange: (columnId: string, value: boolean) => void;
 }
-
 export function ColumnVisibility({ columns, columnVisibility, onColumnVisibilityChange }: ColumnVisibilityProps) {
     return (
         <DropdownMenu>

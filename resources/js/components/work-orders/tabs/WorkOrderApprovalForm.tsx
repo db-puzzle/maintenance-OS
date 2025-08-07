@@ -10,14 +10,12 @@ import {
     XCircle,
     AlertCircle
 } from 'lucide-react';
-
 interface WorkOrderApprovalFormProps {
     workOrderId: number;
     discipline: 'maintenance' | 'quality';
     canApprove: boolean;
     onDecisionChange: (decision: string) => void;
 }
-
 export function WorkOrderApprovalForm({
     workOrderId,
     discipline,
@@ -25,16 +23,13 @@ export function WorkOrderApprovalForm({
     onDecisionChange
 }: WorkOrderApprovalFormProps) {
     const [decision, setDecision] = React.useState<'approve' | 'reject' | 'request_info' | ''>('');
-
     const { data, setData, post, processing, errors } = useForm({
         decision: '',
         notes: '',
         rejection_reason: '',
     });
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         if (decision === 'approve') {
             post(route(`${discipline}.work-orders.approve.store`, workOrderId));
         } else if (decision === 'reject') {
@@ -43,13 +38,11 @@ export function WorkOrderApprovalForm({
             post(route(`${discipline}.work-orders.request-info`, workOrderId));
         }
     };
-
     const handleDecisionChange = (value: string) => {
         setDecision(value as any);
         setData('decision', value);
         onDecisionChange(value);
     };
-
     return (
         <Card>
             <CardHeader>
@@ -92,7 +85,6 @@ export function WorkOrderApprovalForm({
                             </Label>
                         </div>
                     </RadioGroup>
-
                     {decision === 'reject' && (
                         <div className="space-y-2">
                             <Label htmlFor="rejection_reason">
@@ -111,7 +103,6 @@ export function WorkOrderApprovalForm({
                             )}
                         </div>
                     )}
-
                     <div className="space-y-2">
                         <Label htmlFor="notes">Comentários</Label>
                         <Textarea
@@ -121,7 +112,6 @@ export function WorkOrderApprovalForm({
                             onChange={(e) => setData('notes', e.target.value)}
                         />
                     </div>
-
                     <div className="flex justify-end gap-2">
                         <Button
                             type="submit"

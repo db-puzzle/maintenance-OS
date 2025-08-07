@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, XCircle, InfoIcon } from 'lucide-react';
-
 interface Props {
     invitation: {
         id: number;
@@ -19,28 +18,23 @@ interface Props {
         expires_at: string;
     };
 }
-
 export default function InvitationsAccept({ invitation }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         password: '',
         password_confirmation: '',
     });
-
     const [passwordFocus, setPasswordFocus] = useState(false);
-
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('invitations.accept', invitation.token));
     };
-
     // Password validation checks
     const passwordChecks = {
         length: data.password.length >= 8,
         uppercase: /[A-Z]/.test(data.password),
         number: /[0-9]/.test(data.password),
     };
-
     const PasswordCheck = ({ valid, text }: { valid: boolean; text: string }) => (
         <div className="flex items-center gap-2 text-sm">
             {valid ? (
@@ -51,7 +45,6 @@ export default function InvitationsAccept({ invitation }: Props) {
             <span className={valid ? 'text-green-600' : 'text-gray-500'}>{text}</span>
         </div>
     );
-
     return (
         <div className="flex min-h-screen flex-col items-center justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -64,7 +57,6 @@ export default function InvitationsAccept({ invitation }: Props) {
                     Complete seu cadastro
                 </h2>
             </div>
-
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
                     <div className="mb-6">
@@ -80,7 +72,6 @@ export default function InvitationsAccept({ invitation }: Props) {
                                 )}
                             </AlertDescription>
                         </Alert>
-
                         {invitation.message && (
                             <div className="mt-4 rounded-md bg-gray-50 p-4">
                                 <p className="text-sm text-gray-700">
@@ -89,7 +80,6 @@ export default function InvitationsAccept({ invitation }: Props) {
                             </div>
                         )}
                     </div>
-
                     <form onSubmit={submit} className="space-y-6">
                         <div>
                             <Label htmlFor="email">Email</Label>
@@ -101,7 +91,6 @@ export default function InvitationsAccept({ invitation }: Props) {
                                 disabled
                             />
                         </div>
-
                         <div>
                             <Label htmlFor="name">Nome completo *</Label>
                             <Input
@@ -119,7 +108,6 @@ export default function InvitationsAccept({ invitation }: Props) {
                                 <p className="mt-1 text-sm text-destructive">{errors.name}</p>
                             )}
                         </div>
-
                         <div>
                             <Label htmlFor="password">Senha *</Label>
                             <Input
@@ -137,7 +125,6 @@ export default function InvitationsAccept({ invitation }: Props) {
                             {errors.password && (
                                 <p className="mt-1 text-sm text-destructive">{errors.password}</p>
                             )}
-
                             {(passwordFocus || data.password) && (
                                 <div className="mt-2 space-y-1">
                                     <p className="text-xs font-medium text-gray-700">Requisitos da senha:</p>
@@ -156,7 +143,6 @@ export default function InvitationsAccept({ invitation }: Props) {
                                 </div>
                             )}
                         </div>
-
                         <div>
                             <Label htmlFor="password_confirmation">Confirmar senha *</Label>
                             <Input
@@ -175,7 +161,6 @@ export default function InvitationsAccept({ invitation }: Props) {
                                 </p>
                             )}
                         </div>
-
                         <div>
                             <Button
                                 type="submit"
@@ -186,7 +171,6 @@ export default function InvitationsAccept({ invitation }: Props) {
                             </Button>
                         </div>
                     </form>
-
                     <div className="mt-6 text-center text-xs text-gray-500">
                         Este convite expira em{' '}
                         {new Date(invitation.expires_at).toLocaleDateString('pt-BR', {

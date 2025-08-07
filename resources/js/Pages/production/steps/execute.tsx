@@ -23,7 +23,6 @@ import { cn } from '@/lib/utils';
 import { StepExecutionTimer } from '@/components/production/StepExecutionTimer';
 import { StepTypeBadge } from '@/components/production/StepTypeBadge';
 import { toast } from 'sonner';
-
 interface Props {
     step: ManufacturingStep & {
         manufacturing_route: {
@@ -52,9 +51,7 @@ interface Props {
     currentUser: User;
     canExecute: boolean;
 }
-
 type ExecutionState = 'starting' | 'in_progress' | 'quality_check' | 'completing' | 'completed';
-
 export default function StepExecute({ step, execution, currentUser, canExecute }: Props) {
     const [state, setState] = useState<ExecutionState>(() => {
         if (execution) {
@@ -64,11 +61,9 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
         }
         return 'starting';
     });
-
     const [showHoldDialog, setShowHoldDialog] = useState(false);
     const [currentPartIndex, setCurrentPartIndex] = useState(0);
     const [formTaskIndex, setFormTaskIndex] = useState(0);
-
     const form = useForm({
         operator_id: execution?.executed_by || currentUser.id,
         work_cell_id: step.work_cell_id?.toString() || '',
@@ -82,13 +77,11 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
         quantity_completed: 0,
         quantity_scrapped: 0,
     });
-
     const totalParts = step.quality_check_mode === 'every_part'
         ? step.manufacturing_route.manufacturing_order?.quantity || 1
         : step.quality_check_mode === 'sampling'
             ? step.sampling_size || 1
             : 1;
-
     const handleBegin = () => {
         router.post(route('production.steps.start', step.id), {
             operator_id: form.data.operator_id,
@@ -102,14 +95,11 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
             },
         });
     };
-
     const handlePause = () => {
         setShowHoldDialog(true);
     };
-
     const handleConfirmHold = () => {
         if (!execution) return;
-
         router.post(route('production.steps.hold', [step.id, execution.id]), {
             reason: form.data.hold_reason,
             notes: form.data.notes,
@@ -121,10 +111,8 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
             },
         });
     };
-
     const handleResume = () => {
         if (!execution) return;
-
         router.post(route('production.steps.resume', [step.id, execution.id]), {
             notes: form.data.notes,
         }, {
@@ -134,15 +122,12 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
             },
         });
     };
-
     const handleQualityResult = (result: 'passed' | 'failed') => {
         if (!execution) return;
-
         if (result === 'failed' && !form.data.failure_action) {
             toast.error('Selecione uma ação para a falha');
             return;
         }
-
         router.post(route('production.steps.quality', [step.id, execution.id]), {
             quality_result: result,
             quality_notes: form.data.quality_notes,
@@ -168,10 +153,8 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
             },
         });
     };
-
     const handleComplete = () => {
         if (!execution) return;
-
         router.post(route('production.steps.complete', [step.id, execution.id]), {
             notes: form.data.notes,
             quantity_completed: form.data.quantity_completed || step.manufacturing_route.manufacturing_order?.quantity || 1,
@@ -186,19 +169,16 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
             },
         });
     };
-
     const breadcrumbs = [
         { title: 'Produção', href: '/production' },
         { title: 'Roteiros', href: route('production.routing.index') },
         { title: step.manufacturing_route.name, href: route('production.routing.show', step.manufacturing_route_id) },
         { title: `Etapa ${step.step_number}`, href: '' }
     ];
-
     if (!canExecute) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
                 <Head title={`Executar - ${step.name}`} />
-
                 <div className="max-w-2xl mx-auto p-4">
                     <Card>
                         <CardHeader>
@@ -212,11 +192,9 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
             </AppLayout>
         );
     }
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Executar - ${step.name}`} />
-
             <div className="max-w-4xl mx-auto p-4 pb-20">
                 {/* Header */}
                 <div className="mb-6">
@@ -228,7 +206,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                         Etapa {step.step_number} de {step.manufacturing_route.steps?.length || '?'}
                     </p>
                 </div>
-
                 {/* Context Bar */}
                 <Card className="mb-6">
                     <CardContent className="pt-6">
@@ -260,7 +237,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                         </div>
                     </CardContent>
                 </Card>
-
                 {/* Main Content based on State */}
                 {state === 'starting' && (
                     <Card>
@@ -277,7 +253,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                     {currentUser.name}
                                 </div>
                             </div>
-
                             {step.work_cell && (
                                 <div className="space-y-2">
                                     <Label>Célula de Trabalho</Label>
@@ -286,7 +261,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                     </div>
                                 </div>
                             )}
-
                             {step.step_type === 'quality_check' && (
                                 <div className="space-y-2">
                                     <Label>Modo de Verificação</Label>
@@ -297,7 +271,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                     </div>
                                 </div>
                             )}
-
                             <Button
                                 size="lg"
                                 className="w-full"
@@ -309,7 +282,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                         </CardContent>
                     </Card>
                 )}
-
                 {state === 'in_progress' && execution && (
                     <div className="space-y-6">
                         {/* Timer */}
@@ -324,7 +296,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                 </div>
                             </CardContent>
                         </Card>
-
                         {/* Form Tasks */}
                         {step.form?.current_version?.tasks && step.form.current_version.tasks.length > 0 && (
                             <Card>
@@ -371,7 +342,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                 </CardContent>
                             </Card>
                         )}
-
                         {/* Actions */}
                         <div className="flex gap-2">
                             <Button
@@ -395,7 +365,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                         </div>
                     </div>
                 )}
-
                 {state === 'quality_check' && (
                     <div className="space-y-6">
                         <Card>
@@ -423,7 +392,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                         rows={3}
                                     />
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-2">
                                     <Button
                                         size="lg"
@@ -450,7 +418,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                         Aprovar
                                     </Button>
                                 </div>
-
                                 {form.data.quality_result === 'failed' && (
                                     <div className="space-y-2 pt-4 border-t">
                                         <Label>Ação para Falha</Label>
@@ -467,7 +434,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                                 <Label htmlFor="rework">Retrabalho</Label>
                                             </div>
                                         </RadioGroup>
-
                                         <Button
                                             className="w-full mt-4"
                                             onClick={() => handleQualityResult('failed')}
@@ -479,7 +445,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                 )}
                             </CardContent>
                         </Card>
-
                         {/* Navigation for multi-part checks */}
                         {(step.quality_check_mode === 'every_part' || step.quality_check_mode === 'sampling') &&
                             currentPartIndex < totalParts - 1 && (
@@ -507,7 +472,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                             )}
                     </div>
                 )}
-
                 {state === 'completing' && (
                     <Card>
                         <CardHeader>
@@ -537,7 +501,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                     )}
                                 </div>
                             )}
-
                             <div className="space-y-2">
                                 <Label>Quantidade Produzida</Label>
                                 <Input
@@ -547,7 +510,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                     placeholder="0"
                                 />
                             </div>
-
                             <div className="space-y-2">
                                 <Label>Quantidade Descartada</Label>
                                 <Input
@@ -557,7 +519,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                     placeholder="0"
                                 />
                             </div>
-
                             <div className="space-y-2">
                                 <Label>Observações</Label>
                                 <Textarea
@@ -567,7 +528,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                     rows={3}
                                 />
                             </div>
-
                             <Button
                                 size="lg"
                                 className="w-full"
@@ -579,7 +539,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                         </CardContent>
                     </Card>
                 )}
-
                 {state === 'completed' && (
                     <Card className="border-green-200 bg-green-50">
                         <CardContent className="pt-6">
@@ -596,7 +555,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                     </Card>
                 )}
             </div>
-
             {/* Hold Dialog */}
             <Dialog open={showHoldDialog} onOpenChange={setShowHoldDialog}>
                 <DialogContent>
@@ -606,7 +564,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                             Informe o motivo para pausar esta etapa
                         </DialogDescription>
                     </DialogHeader>
-
                     <div className="space-y-4">
                         <RadioGroup
                             value={form.data.hold_reason}
@@ -629,7 +586,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                                 <Label htmlFor="other">Outro</Label>
                             </div>
                         </RadioGroup>
-
                         <div className="space-y-2">
                             <Label>Observações (opcional)</Label>
                             <Textarea
@@ -640,7 +596,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                             />
                         </div>
                     </div>
-
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowHoldDialog(false)}>
                             Cancelar

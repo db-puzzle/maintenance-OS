@@ -18,32 +18,26 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { AlertCircle, ArrowLeft, UserPlus, Building2, MapPin, Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
 interface Role {
     id: number;
     name: string;
 }
-
 interface Entity {
     id: number;
     name: string;
 }
-
 interface AssignableEntities {
     plants: Entity[];
     areas: Entity[];
     sectors: Entity[];
 }
-
 interface Props {
     roles: Role[];
     assignableEntities: AssignableEntities;
 }
-
 export default function UserCreate({ roles, assignableEntities }: Props) {
     const [selectedEntityType, setSelectedEntityType] = useState<'Plant' | 'Area' | 'Sector' | null>(null);
     const [showPassword, setShowPassword] = useState(false);
-
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         email: '',
@@ -53,12 +47,10 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
         entity_type: '',
         entity_id: '',
     });
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post('/users');
     };
-
     const generatePassword = () => {
         const length = 12;
         const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
@@ -73,7 +65,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
         });
         setShowPassword(true);
     };
-
     const getEntityOptions = () => {
         switch (selectedEntityType) {
             case 'Plant':
@@ -86,7 +77,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                 return [];
         }
     };
-
     const getRoleDescription = (roleName: string) => {
         const descriptions: Record<string, string> = {
             'Administrator': 'Full system access with all permissions',
@@ -99,11 +89,9 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
         };
         return descriptions[roleName] || '';
     };
-
     return (
         <AppLayout>
             <Head title="Create User" />
-
             <div className="max-w-4xl mx-auto space-y-6">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" asChild>
@@ -116,7 +104,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                         <p className="text-muted-foreground">Add a new user with role-based permissions</p>
                     </div>
                 </div>
-
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Basic Information */}
                     <Card>
@@ -139,7 +126,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                                         <p className="text-sm text-red-500">{errors.name}</p>
                                     )}
                                 </div>
-
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email Address</Label>
                                     <Input
@@ -155,9 +141,7 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                                     )}
                                 </div>
                             </div>
-
                             <Separator />
-
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <Label>Password</Label>
@@ -170,7 +154,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                                         Generate Password
                                     </Button>
                                 </div>
-
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Input
@@ -185,7 +168,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                                             <p className="text-sm text-red-500">{errors.password}</p>
                                         )}
                                     </div>
-
                                     <div className="space-y-2">
                                         <Input
                                             id="password_confirmation"
@@ -196,7 +178,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                                         />
                                     </div>
                                 </div>
-
                                 <div className="flex items-center space-x-2">
                                     <input
                                         type="checkbox"
@@ -212,7 +193,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                             </div>
                         </CardContent>
                     </Card>
-
                     {/* Role Assignment */}
                     <Card>
                         <CardHeader>
@@ -248,11 +228,9 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                                     </p>
                                 )}
                             </div>
-
                             {data.role_id && (
                                 <>
                                     <Separator />
-
                                     <div className="space-y-4">
                                         <div className="space-y-2">
                                             <Label>Assign to Entity (Optional)</Label>
@@ -260,7 +238,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                                                 Select an entity to automatically grant role permissions scoped to that entity
                                             </p>
                                         </div>
-
                                         <RadioGroup
                                             value={selectedEntityType || ''}
                                             onValueChange={(value) => {
@@ -285,7 +262,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                                                         </Label>
                                                     </div>
                                                 )}
-
                                                 {assignableEntities.areas.length > 0 && (
                                                     <div className={cn(
                                                         'flex items-center space-x-2 rounded-lg border p-4 cursor-pointer hover:bg-accent',
@@ -298,7 +274,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                                                         </Label>
                                                     </div>
                                                 )}
-
                                                 {assignableEntities.sectors.length > 0 && (
                                                     <div className={cn(
                                                         'flex items-center space-x-2 rounded-lg border p-4 cursor-pointer hover:bg-accent',
@@ -313,7 +288,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                                                 )}
                                             </div>
                                         </RadioGroup>
-
                                         {selectedEntityType && (
                                             <div className="space-y-2">
                                                 <Label htmlFor="entity">Select {selectedEntityType}</Label>
@@ -339,7 +313,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                             )}
                         </CardContent>
                     </Card>
-
                     {/* Info Alert */}
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
@@ -348,7 +321,6 @@ export default function UserCreate({ roles, assignableEntities }: Props) {
                             the appropriate permissions will be automatically granted upon creation.
                         </AlertDescription>
                     </Alert>
-
                     {/* Actions */}
                     <div className="flex justify-end gap-4">
                         <Button variant="outline" asChild>

@@ -8,16 +8,13 @@ import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Button } from '@/components/ui/button';
 import { ColumnConfig } from '@/types/shared';
 import { toast } from 'sonner';
-
 interface Props {
     routings: any;
     filters: any;
     can: any;
 }
-
 export default function RoutingIndex({ routings, filters, can }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
-
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(
@@ -26,7 +23,6 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             { preserveState: true, replace: true }
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(
             route('production.routing.index'),
@@ -34,7 +30,6 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             { preserveState: true, replace: true }
         );
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('production.routing.index'),
@@ -42,8 +37,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             { preserveState: true, replace: true }
         );
     };
-
-    const handleDelete = (routing: any) => {
+    const handleDelete = (error: unknown) => {
         if (confirm(`Tem certeza que deseja excluir o roteiro ${routing.name}?`)) {
             router.delete(route('production.routing.destroy', routing.id), {
                 onSuccess: () => {
@@ -55,7 +49,6 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             });
         }
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
@@ -145,16 +138,13 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             }
         }
     ];
-
     const breadcrumbs = [
         { title: 'Produção', href: '/production' },
         { title: 'Roteiros', href: '' }
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Roteiros de Produção" />
-
             <ListLayout
                 title="Roteiros de Produção"
                 description="Gerencie os roteiros de fabricação e processos"
@@ -169,15 +159,14 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
                         data={(routings.data || []) as any}
                         columns={columns}
                         loading={false}
-                        onRowClick={(routing: any) => router.visit(route('production.routing.show', routing.id))}
-                        actions={(routing: any) => (
+                        onRowClick={(error: unknown) => router.visit(route('production.routing.show', routing.id))}
+                        actions={(error: unknown) => (
                             <EntityActionDropdown
                                 onEdit={() => router.visit(route('production.routing.edit', routing.id))}
                                 onDelete={() => handleDelete(routing)}
                             />
                         )}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: routings.current_page || 1,

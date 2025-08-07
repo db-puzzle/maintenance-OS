@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-
 interface Permission {
     id: number;
     name: string;
@@ -13,18 +12,15 @@ interface Permission {
     resource: string;
     action: string;
 }
-
 interface Role {
     id: number;
     name: string;
     permissions?: number[];  // Array of permission IDs
 }
-
 interface Props {
     permissions: Permission[];  // Only global permissions are passed here
     roles: Role[];
 }
-
 /**
  * Permission Matrix Component
  * 
@@ -37,7 +33,6 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
     const [loading, setLoading] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     const [initialMatrix, setInitialMatrix] = useState<Record<string, Record<string, boolean>>>({});
-
     // Parse permission name to extract resource and action
     const parsePermission = (permission: Permission) => {
         const parts = permission.name.split('.');
@@ -46,7 +41,6 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
             action: parts[1] || 'unknown'
         };
     };
-
     // Group permissions by resource
     const groupedPermissions = permissions.reduce((acc, perm) => {
         const parsed = parsePermission(perm);
@@ -54,11 +48,9 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
         acc[parsed.resource].push(perm);
         return acc;
     }, {} as Record<string, Permission[]>);
-
     useEffect(() => {
         // Initialize matrix from current role permissions
         const newMatrix: Record<string, Record<string, boolean>> = {};
-
         roles.forEach(role => {
             newMatrix[role.id] = {};
             permissions.forEach(perm => {
@@ -66,11 +58,9 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
                 newMatrix[role.id][perm.id] = hasPermission;
             });
         });
-
         setMatrix(newMatrix);
         setInitialMatrix(JSON.parse(JSON.stringify(newMatrix)));
     }, [roles, permissions]);
-
     const handleToggle = (roleId: number, permissionId: number) => {
         const newMatrix = {
             ...matrix,
@@ -80,15 +70,12 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
             }
         };
         setMatrix(newMatrix);
-
         // Check if there are any changes
         const hasAnyChanges = JSON.stringify(newMatrix) !== JSON.stringify(initialMatrix);
         setHasChanges(hasAnyChanges);
     };
-
     const handleSave = async () => {
         setLoading(true);
-
         // Prepare changes
         const changes = roles.map(role => ({
             role_id: role.id,
@@ -96,7 +83,6 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
                 .filter(perm => matrix[role.id]?.[perm.id])
                 .map(perm => perm.id)
         }));
-
         router.post(route('permissions.sync-matrix'), { changes }, {
             onSuccess: () => {
                 toast.success('Permissions updated successfully');
@@ -110,7 +96,6 @@ export default function PermissionMatrix({ permissions, roles }: Props) {
             }
         });
     };
-
     return (
         <>
             <div className="flex justify-between items-center mb-6">

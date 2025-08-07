@@ -1,6 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-
 interface StatCardProps {
     title: string;
     value: string;
@@ -8,7 +7,6 @@ interface StatCardProps {
     variant?: 'default' | 'destructive';
     className?: string;
 }
-
 export function StatCard({
     title,
     value,

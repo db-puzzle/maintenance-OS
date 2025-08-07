@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/app-layout';
 import { ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/production';
 import { Form } from '@/types/work-order';
 import RouteBuilderCore from '@/components/production/RouteBuilderCore';
-
 interface Props {
     routing: ManufacturingRoute & {
         steps: ManufacturingStep[];
@@ -16,7 +15,6 @@ interface Props {
         manage_steps: boolean;
     };
 }
-
 export default function RouteBuilder({ routing, workCells, stepTypes, forms = [], can }: Props) {
     const breadcrumbs = [
         { title: 'Produção', href: '/production' },
@@ -24,7 +22,6 @@ export default function RouteBuilder({ routing, workCells, stepTypes, forms = []
         { title: routing.name, href: route('production.routing.show', routing.id) },
         { title: 'Editor', href: '' }
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Editor de Roteiro - ${routing.name}`} />

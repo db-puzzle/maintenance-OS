@@ -1,12 +1,10 @@
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderStatus, STATUS_CONFIG } from '@/types/work-order';
 import { cn } from '@/lib/utils';
-
 interface WorkOrderStatusBadgeProps {
     status: WorkOrderStatus;
     className?: string;
 }
-
 const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     gray: 'secondary',
     blue: 'default',
@@ -19,16 +17,12 @@ const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outl
     green: 'default',
     emerald: 'default',
 };
-
 export function WorkOrderStatusBadge({ status, className }: WorkOrderStatusBadgeProps) {
     const config = STATUS_CONFIG[status];
-
     if (!config) {
         return <Badge variant="outline" className={className}>{status}</Badge>;
     }
-
     const variant = variantMap[config.color] || 'default';
-
     // Custom color classes based on the status
     const colorClasses: Record<string, string> = {
         gray: 'bg-gray-100 text-gray-800 hover:bg-gray-200',
@@ -42,7 +36,6 @@ export function WorkOrderStatusBadge({ status, className }: WorkOrderStatusBadge
         green: 'bg-green-100 text-green-800 hover:bg-green-200',
         emerald: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200',
     };
-
     return (
         <Badge
             variant={variant}

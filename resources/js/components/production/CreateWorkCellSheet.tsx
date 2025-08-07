@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import { ItemSelect } from '@/components/ItemSelect';
 import { TextInput } from '@/components/TextInput';
@@ -8,7 +7,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { WorkCell } from '@/types/production';
 import { router } from '@inertiajs/react';
-
 interface WorkCellForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -23,7 +21,6 @@ interface WorkCellForm {
     manufacturer_id: string;
     is_active: boolean;
 }
-
 interface CreateWorkCellSheetProps {
     workCell?: WorkCell;
     open?: boolean;
@@ -48,7 +45,6 @@ interface CreateWorkCellSheetProps {
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
-
 const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
     workCell,
     open,
@@ -69,7 +65,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
     const [cellType, setCellType] = useState<'internal' | 'external'>(workCell?.cell_type || 'internal');
     const [selectedPlantId, setSelectedPlantId] = useState<string>(workCell?.plant_id?.toString() || '');
     const [selectedAreaId, setSelectedAreaId] = useState<string>(workCell?.area_id?.toString() || '');
-
     // Auto-focus the name input when sheet opens for creation
     useEffect(() => {
         if (open && mode === 'create') {
@@ -82,18 +77,15 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                     }
                 });
             };
-
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
             const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
-
             // Cleanup timeouts
             return () => {
                 timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [open, mode]);
-
     // Fetch areas when plant changes
     useEffect(() => {
         if (selectedPlantId) {
@@ -106,7 +98,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             setSectors([]);
         }
     }, [selectedPlantId]);
-
     // Fetch sectors when area changes
     useEffect(() => {
         if (selectedAreaId) {
@@ -118,13 +109,11 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             setSectors([]);
         }
     }, [selectedAreaId]);
-
     // Handle onOpenChange to focus when sheet opens
     const handleOpenChange = (open: boolean) => {
         if (onOpenChange) {
             onOpenChange(open);
         }
-
         // Focus the input when opening in create mode
         if (open && mode === 'create') {
             setTimeout(() => {
@@ -132,7 +121,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             }, 100);
         }
     };
-
     return (
         <BaseEntitySheet<WorkCellForm>
             entity={workCell}
@@ -179,7 +167,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                         placeholder="Nome da célula de trabalho"
                         required
                     />
-
                     {/* Descrição */}
                     <TextInput
                         form={{
@@ -192,7 +179,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                         label="Descrição"
                         placeholder="Descrição da célula de trabalho"
                     />
-
                     {/* Tipo de Célula */}
                     <div className="grid gap-2">
                         <Label>Tipo de Célula <span className="text-destructive">*</span></Label>
@@ -226,7 +212,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                         </RadioGroup>
                         {errors.cell_type && <span className="text-destructive text-sm">{errors.cell_type}</span>}
                     </div>
-
                     {/* Capacidade */}
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
@@ -241,7 +226,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                             placeholder="8"
                             required
                         />
-
                         <TextInput
                             form={{
                                 data,
@@ -255,7 +239,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                             required
                         />
                     </div>
-
                     {/* Turno */}
                     <ItemSelect
                         label="Turno"
@@ -266,7 +249,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                         error={errors.shift_id}
                         canClear
                     />
-
                     {/* Localização - Only for internal cells */}
                     {cellType === 'internal' && (
                         <>
@@ -286,7 +268,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                 error={errors.plant_id}
                                 canClear
                             />
-
                             {selectedPlantId && (
                                 <ItemSelect
                                     label="Área"
@@ -303,7 +284,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                                     canClear
                                 />
                             )}
-
                             {selectedAreaId && (
                                 <ItemSelect
                                     label="Setor"
@@ -317,7 +297,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                             )}
                         </>
                     )}
-
                     {/* Fabricante - Only for external cells */}
                     {cellType === 'external' && (
                         <ItemSelect
@@ -330,7 +309,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                             required
                         />
                     )}
-
                     {/* Status */}
                     <div className="flex items-center justify-between">
                         <Label htmlFor="is_active">Ativa</Label>
@@ -345,5 +323,4 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
         </BaseEntitySheet>
     );
 };
-
 export default CreateWorkCellSheet;

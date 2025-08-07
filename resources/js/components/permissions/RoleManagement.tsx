@@ -7,7 +7,6 @@ import { ViewPermissionsDialog } from './ViewPermissionsDialog';
 import { Edit, Trash2, Shield, Users, ChevronRight } from 'lucide-react';
 import PermissionGuard from '@/components/PermissionGuard';
 import { toast } from 'sonner';
-
 interface Role {
     id: number;
     name: string;
@@ -16,29 +15,24 @@ interface Role {
     users_count: number;
     permissions?: Permission[];
 }
-
 interface Permission {
     id: number;
     name: string;
     resource: string;
     action: string;
 }
-
 interface Props {
     roles: Role[];
 }
-
 export default function RoleManagement({ roles }: Props) {
     const [selectedRole, setSelectedRole] = useState<Role | null>(null);
     const [showPermissionDialog, setShowPermissionDialog] = useState(false);
     const [loadingPermissions, setLoadingPermissions] = useState(false);
-
     const handleDelete = (role: Role) => {
         if (role.is_system) {
             toast.error('System roles cannot be deleted.');
             return;
         }
-
         if (confirm(`Are you sure you want to delete the role "${role.name}"?`)) {
             router.delete(route('roles.destroy', role.id), {
                 onSuccess: () => {
@@ -50,12 +44,10 @@ export default function RoleManagement({ roles }: Props) {
             });
         }
     };
-
     const viewPermissions = async (role: Role) => {
         setSelectedRole(role);
         setShowPermissionDialog(true);
         setLoadingPermissions(true);
-
         try {
             const response = await fetch(route('roles.permissions', role.id));
             const data = await response.json();
@@ -66,7 +58,6 @@ export default function RoleManagement({ roles }: Props) {
             setLoadingPermissions(false);
         }
     };
-
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -107,7 +98,6 @@ export default function RoleManagement({ roles }: Props) {
                                     View Permissions
                                     <ChevronRight className="w-4 h-4 ml-1" />
                                 </Button>
-
                                 <PermissionGuard permission="roles.update">
                                     <Link href={route('roles.edit', role.id)}>
                                         <Button variant="outline" size="sm">
@@ -115,7 +105,6 @@ export default function RoleManagement({ roles }: Props) {
                                         </Button>
                                     </Link>
                                 </PermissionGuard>
-
                                 {!role.is_system && (
                                     <PermissionGuard permission="roles.delete">
                                         <Button
@@ -132,7 +121,6 @@ export default function RoleManagement({ roles }: Props) {
                         </CardContent>
                     </Card>
                 ))}
-
                 <PermissionGuard permission="roles.create">
                     <Link
                         href={route('roles.create')}
@@ -143,7 +131,6 @@ export default function RoleManagement({ roles }: Props) {
                     </Link>
                 </PermissionGuard>
             </div>
-
             {/* Modern Permission Dialog */}
             <ViewPermissionsDialog
                 open={showPermissionDialog}

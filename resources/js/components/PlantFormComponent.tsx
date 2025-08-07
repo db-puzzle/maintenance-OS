@@ -7,7 +7,6 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-
 // Define a local form type with index signature
 interface PlantFormData {
     name: string;
@@ -19,24 +18,20 @@ interface PlantFormData {
     gps_coordinates: string;
     [key: string]: string | number | boolean | null | undefined;
 }
-
 interface PlantFormComponentProps {
     plant?: Plant;
     initialMode?: 'view' | 'edit';
     onCancel?: () => void;
     onSuccess?: () => void;
 }
-
 export default function PlantFormComponent({ plant, initialMode = 'view', onCancel, onSuccess }: PlantFormComponentProps) {
     const isEditing = !!plant;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
-
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm<PlantFormData>({
         name: plant?.name || '',
         street: plant?.street || '',
@@ -46,12 +41,10 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
         zip_code: plant?.zip_code || '',
         gps_coordinates: plant?.gps_coordinates || '',
     });
-
     // Create a wrapper for setData to match the expected signature
     const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
         setData(name as keyof PlantFormData, value as PlantFormData[keyof PlantFormData]);
     };
-
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.plants.update', { plant: plant.id }), {
@@ -72,7 +65,6 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
             });
         }
     };
-
     const handleCancel = () => {
         if (isEditing && mode === 'edit') {
             // Reset form to original data
@@ -82,11 +74,9 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
             onCancel();
         }
     };
-
     const handleEdit = () => {
         setMode('edit');
     };
-
     return (
         <div className="space-y-6">
             {/* Form Fields */}
@@ -105,7 +95,6 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                     required={!isViewMode}
                     view={isViewMode}
                 />
-
                 {/* CEP */}
                 <TextInput
                     form={{
@@ -119,7 +108,6 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                     placeholder={isViewMode ? 'CEP não informado' : 'Digite o CEP'}
                     view={isViewMode}
                 />
-
                 {/* Rua */}
                 <TextInput
                     form={{
@@ -133,7 +121,6 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                     placeholder={isViewMode ? 'Rua não informada' : 'Digite o nome da rua'}
                     view={isViewMode}
                 />
-
                 {/* Número */}
                 <TextInput
                     form={{
@@ -147,7 +134,6 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                     placeholder={isViewMode ? 'Número não informado' : 'Digite o número'}
                     view={isViewMode}
                 />
-
                 {/* Cidade */}
                 <TextInput
                     form={{
@@ -161,7 +147,6 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                     placeholder={isViewMode ? 'Cidade não informada' : 'Digite a cidade'}
                     view={isViewMode}
                 />
-
                 {/* Estado */}
                 <TextInput
                     form={{
@@ -175,7 +160,6 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                     placeholder={isViewMode ? 'Estado não informado' : 'Digite o estado'}
                     view={isViewMode}
                 />
-
                 {/* Coordenadas GPS */}
                 <div className="md:col-span-2">
                     <TextInput
@@ -192,7 +176,6 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                     />
                 </div>
             </div>
-
             {/* Map Preview - Only show if we have coordinates */}
             {data.gps_coordinates && (
                 <div className="space-y-2">
@@ -202,7 +185,6 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                     </div>
                 </div>
             )}
-
             {/* Action Buttons */}
             {isEditing && (
                 <div className="flex justify-end gap-2">

@@ -4,9 +4,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertCircle, CheckCircle, Clock, Edit3, User } from 'lucide-react';
-
 export type FormState = 'unpublished' | 'published' | 'draft';
-
 export interface FormData {
     id: number;
     current_version_id: number | null;
@@ -36,7 +34,6 @@ export interface FormData {
         };
     };
 }
-
 interface FormStatusBadgeProps {
     form: FormData;
     size?: 'sm' | 'md' | 'lg';
@@ -44,12 +41,10 @@ interface FormStatusBadgeProps {
     showSubtitle?: boolean;
     className?: string;
 }
-
 export function getFormState(form: FormStatusBadgeProps['form']): FormState {
     // Handle both naming conventions
     const currentVersionId = form.current_version_id ?? form.currentVersionId;
     const hasDraftChanges = form.has_draft_changes ?? form.isDraft;
-
     if (!currentVersionId) {
         return 'unpublished';
     }
@@ -58,23 +53,19 @@ export function getFormState(form: FormStatusBadgeProps['form']): FormState {
     }
     return 'published';
 }
-
 export default function FormStatusBadge({ form, size = 'md', showDetails = false, showSubtitle = false, className }: FormStatusBadgeProps) {
     const state = getFormState(form);
     const hasDraftChanges = form.has_draft_changes ?? form.isDraft;
-
     const sizeClasses = {
         sm: 'text-xs px-2 py-0.5',
         md: 'text-sm px-2.5 py-0.5',
         lg: 'text-base px-3 py-1',
     };
-
     const iconSizes = {
         sm: 'h-3 w-3',
         md: 'h-3.5 w-3.5',
         lg: 'h-4 w-4',
     };
-
     const configs = {
         unpublished: {
             variant: 'destructive' as const,
@@ -95,14 +86,11 @@ export default function FormStatusBadge({ form, size = 'md', showDetails = false
             className: 'bg-green-100 text-green-700 border-green-200 cursor-default',
         },
     };
-
     const config = configs[state];
     const Icon = config.icon;
-
     // Format additional details
     const getAdditionalInfo = () => {
         const details: string[] = [];
-
         if (state === 'published' && form.last_execution) {
             const timeAgo = formatDistanceToNow(new Date(form.last_execution.completed_at), {
                 addSuffix: true,
@@ -110,7 +98,6 @@ export default function FormStatusBadge({ form, size = 'md', showDetails = false
             });
             details.push(`Executado ${timeAgo}`);
         }
-
         if (state === 'draft' && form.draft_updated_at) {
             const timeAgo = formatDistanceToNow(new Date(form.draft_updated_at), {
                 addSuffix: true,
@@ -119,7 +106,6 @@ export default function FormStatusBadge({ form, size = 'md', showDetails = false
             const editor = form.draft_updated_by?.name || 'alguém';
             details.push(`Editado por ${editor} ${timeAgo}`);
         }
-
         if (state === 'published' && form.current_version?.published_at && showDetails) {
             const timeAgo = formatDistanceToNow(new Date(form.current_version.published_at), {
                 addSuffix: true,
@@ -127,12 +113,9 @@ export default function FormStatusBadge({ form, size = 'md', showDetails = false
             });
             details.push(`Publicado ${timeAgo}`);
         }
-
         return details;
     };
-
     const additionalInfo = getAdditionalInfo();
-
     if (showSubtitle) {
         return (
             <div className="flex flex-col gap-1">
@@ -181,7 +164,6 @@ export default function FormStatusBadge({ form, size = 'md', showDetails = false
             </div>
         );
     }
-
     return (
         <div className="inline-flex items-center gap-1">
             <Badge

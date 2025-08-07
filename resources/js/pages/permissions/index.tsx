@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/app-layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RoleManagement from '@/components/permissions/RoleManagement';
 import PermissionMatrix from '@/components/permissions/PermissionMatrix';
-
 interface Permission {
     id: number;
     name: string;
@@ -20,7 +19,6 @@ interface Permission {
     created_at: string;
     updated_at: string;
 }
-
 interface Role {
     id: number;
     name: string;
@@ -29,7 +27,6 @@ interface Role {
     users_count: number;
     permissions?: number[];  // Add this to match what backend sends
 }
-
 interface Props {
     permissions: {
         data: Permission[];
@@ -51,18 +48,15 @@ interface Props {
         scope?: string;
     };
 }
-
 export default function PermissionsIndex({ permissions, roles }: Props) {
     const breadcrumbs = [
         { title: 'Home', href: '/home' },
         { title: 'Settings', href: '#' },
         { title: 'Permissions', href: '/permissions' },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Permission Management" />
-
             <div className="bg-background flex-shrink-0 border-b">
                 <div className="px-6 py-4">
                     <div className="flex justify-between items-center">
@@ -73,18 +67,15 @@ export default function PermissionsIndex({ permissions, roles }: Props) {
                     </div>
                 </div>
             </div>
-
             <div className="container mx-auto py-6 px-6">
                 <Tabs defaultValue="roles" className="w-full">
                     <TabsList>
                         <TabsTrigger value="roles">Roles</TabsTrigger>
                         <TabsTrigger value="matrix">Permission Matrix</TabsTrigger>
                     </TabsList>
-
                     <TabsContent value="roles">
                         <RoleManagement roles={roles as any} />
                     </TabsContent>
-
                     <TabsContent value="matrix">
                         <PermissionMatrix permissions={permissions.data} roles={roles} />
                     </TabsContent>

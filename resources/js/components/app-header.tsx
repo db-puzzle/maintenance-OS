@@ -15,7 +15,6 @@ import { BookOpen, ClipboardList, Folder, LayoutGrid, Menu, Search } from 'lucid
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
 import { ExportStatusIndicator } from './export-status-indicator';
-
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
@@ -28,7 +27,6 @@ const mainNavItems: NavItem[] = [
         icon: ClipboardList,
     },
 ];
-
 const rightNavItems: NavItem[] = [
     {
         title: 'Repository',
@@ -41,13 +39,10 @@ const rightNavItems: NavItem[] = [
         icon: BookOpen,
     },
 ];
-
 const activeItemStyles = 'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
-
 interface AppHeaderProps {
     breadcrumbs?: BreadcrumbItem[];
 }
-
 export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const page = usePage<SharedData>();
     const { auth } = page.props;
@@ -79,7 +74,6 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                 </Link>
                                             ))}
                                         </div>
-
                                         <div className="flex flex-col space-y-4">
                                             {rightNavItems.map((item) => (
                                                 <a
@@ -99,11 +93,9 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                             </SheetContent>
                         </Sheet>
                     </div>
-
                     <Link href="/home" prefetch className="flex items-center space-x-2">
                         <AppLogo />
                     </Link>
-
                     {/* Desktop Navigation */}
                     <div className="ml-6 hidden h-full items-center space-x-6 lg:flex">
                         <NavigationMenu className="flex h-full items-stretch">
@@ -129,7 +121,6 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                             </NavigationMenuList>
                         </NavigationMenu>
                     </div>
-
                     <div className="ml-auto flex items-center space-x-2">
                         <div className="relative flex items-center space-x-1">
                             <ExportStatusIndicator />

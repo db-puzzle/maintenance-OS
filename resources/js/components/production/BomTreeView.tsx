@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import TreeView, { TreeNode } from '@/components/shared/TreeView';
 import { BomItem, Item } from '@/types/production';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
-
 interface BomTreeNode extends TreeNode {
     id: string;
     item_id: number;
@@ -22,7 +21,6 @@ interface BomTreeNode extends TreeNode {
     reference_designators?: string;
     children?: BomTreeNode[];
 }
-
 interface BomTreeViewProps {
     items: BomTreeNode[];
     canEdit?: boolean;
@@ -41,7 +39,6 @@ interface BomTreeViewProps {
     expanded?: Record<string, boolean>;
     onToggleExpand?: (id: string) => void;
 }
-
 export function BomTreeView({
     items,
     canEdit = false,
@@ -75,7 +72,6 @@ export function BomTreeView({
             )}
         </div>
     );
-
     const defaultHeaderColumns = (
         <div className={cn(
             "bg-muted/50 p-3 rounded-lg grid gap-2 font-semibold text-sm mb-2",
@@ -89,10 +85,8 @@ export function BomTreeView({
             <div className="text-right">Ações</div>
         </div>
     );
-
     const renderBomNode = (node: BomTreeNode) => {
         const isDragging = draggingId === node.id;
-
         return (
             <div
                 className={cn(
@@ -116,7 +110,6 @@ export function BomTreeView({
                             <GripVertical size={14} />
                         </div>
                     )}
-
                     {/* Item details */}
                     <div className={cn(
                         "flex-grow grid gap-2 items-center",
@@ -211,7 +204,6 @@ export function BomTreeView({
             </div>
         );
     };
-
     return (
         <div className="w-full">
             {headerColumns || defaultHeaderColumns}

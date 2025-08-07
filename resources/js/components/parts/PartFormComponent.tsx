@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { route } from '@/utils/route';
 import { ItemSelect } from '@/components/ItemSelect';
 import CreateManufacturerSheet from '@/components/CreateManufacturerSheet';
-
 interface Manufacturer {
     id: number;
     name: string;
@@ -21,7 +20,6 @@ interface Manufacturer {
     country?: string;
     notes?: string;
 }
-
 interface Part {
     id: number;
     part_number: string;
@@ -38,37 +36,31 @@ interface Part {
     created_at: string;
     updated_at: string;
 }
-
 interface PartFormComponentProps {
     part: Part;
     initialMode?: 'view' | 'edit';
     onSuccess?: () => void;
     manufacturers?: Manufacturer[];
 }
-
 export function PartFormComponent({ part, initialMode = 'view', onSuccess, manufacturers: initialManufacturers = [] }: PartFormComponentProps) {
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view';
     const [showCreateManufacturer, setShowCreateManufacturer] = useState(false);
     const [manufacturers, setManufacturers] = useState<Manufacturer[]>(initialManufacturers);
-
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     // Update manufacturers when prop changes
     useEffect(() => {
         setManufacturers(initialManufacturers);
     }, [initialManufacturers]);
-
     // Load manufacturers if not provided
     useEffect(() => {
         if (!initialManufacturers || initialManufacturers.length === 0) {
             fetchManufacturers();
         }
     }, []);
-
     const fetchManufacturers = async () => {
         try {
             const response = await fetch(route('asset-hierarchy.manufacturers.all'));
@@ -78,7 +70,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
             console.error('Error fetching manufacturers:', error);
         }
     };
-
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm({
         part_number: part.part_number,
         name: part.name,
@@ -91,30 +82,23 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
         manufacturer_id: part.manufacturer_id,
         active: part.active,
     });
-
     // Create a wrapper to handle the typing issue
     const handleClearErrors = (...fields: string[]) => {
         clearErrors(...(fields as any));
     };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         if (processing) {
             return;
         }
-
         // Validate maximum quantity
         if (data.maximum_quantity && data.maximum_quantity < data.minimum_quantity) {
             toast.error('A quantidade máxima deve ser maior que a quantidade mínima.');
             return;
         }
-
         // Clear any previous errors
         clearErrors();
-
         const isCreating = part.id === 0;
-
         if (isCreating) {
             // Create new part
             router.post(route('parts.store'), data, {
@@ -158,23 +142,19 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
             });
         }
     };
-
     const handleCancel = () => {
         reset();
         setMode('view');
     };
-
     const handleEdit = () => {
         setMode('edit');
     };
-
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
             currency: 'BRL',
         }).format(value);
     };
-
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('pt-BR', {
             day: '2-digit',
@@ -184,7 +164,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
             minute: '2-digit',
         });
     };
-
     return (
         <>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -193,7 +172,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     <TextInput
                         form={{
                             data,
-                            setData: (key: string, value: any) => setData(key as any, value),
+                            setData: (error: unknown) => setData(key as any, value),
                             errors,
                             clearErrors: handleClearErrors,
                         }}
@@ -203,12 +182,11 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                         required={!isViewMode}
                         view={isViewMode}
                     />
-
                     {/* Nome */}
                     <TextInput
                         form={{
                             data,
-                            setData: (key: string, value: any) => setData(key as any, value),
+                            setData: (error: unknown) => setData(key as any, value),
                             errors,
                             clearErrors: handleClearErrors,
                         }}
@@ -218,7 +196,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                         required={!isViewMode}
                         view={isViewMode}
                     />
-
                     {/* Descrição */}
                     <div className="md:col-span-2">
                         {isViewMode ? (
@@ -244,7 +221,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                             </div>
                         )}
                     </div>
-
                     {/* Custo Unitário */}
                     <div className="grid gap-2">
                         <Label htmlFor="unit_cost">
@@ -273,7 +249,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                             <p className="text-sm text-destructive">{errors.unit_cost}</p>
                         )}
                     </div>
-
                     {/* Quantidade Disponível */}
                     <div className="grid gap-2">
                         <Label htmlFor="available_quantity">
@@ -301,7 +276,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                             <p className="text-sm text-destructive">{errors.available_quantity}</p>
                         )}
                     </div>
-
                     {/* Quantidade Mínima */}
                     <div className="grid gap-2">
                         <Label htmlFor="minimum_quantity">
@@ -329,7 +303,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                             <p className="text-sm text-destructive">{errors.minimum_quantity}</p>
                         )}
                     </div>
-
                     {/* Quantidade Máxima */}
                     <div className="grid gap-2">
                         <Label htmlFor="maximum_quantity">
@@ -355,12 +328,11 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                             <p className="text-sm text-destructive">{errors.maximum_quantity}</p>
                         )}
                     </div>
-
                     {/* Localização */}
                     <TextInput
                         form={{
                             data,
-                            setData: (key: string, value: any) => setData(key as any, value),
+                            setData: (error: unknown) => setData(key as any, value),
                             errors,
                             clearErrors: handleClearErrors,
                         }}
@@ -369,7 +341,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                         placeholder={isViewMode ? 'Localização não informada' : 'Digite a localização'}
                         view={isViewMode}
                     />
-
                     {/* Fabricante */}
                     <ItemSelect
                         label="Fabricante"
@@ -386,7 +357,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                         view={isViewMode}
                         disabled={isViewMode}
                     />
-
                     {/* Status Ativo */}
                     <div className="space-y-2">
                         <Label htmlFor="active">Status</Label>
@@ -411,7 +381,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                             </div>
                         )}
                     </div>
-
                     {/* Datas */}
                     {isViewMode && (
                         <>
@@ -430,7 +399,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                         </>
                     )}
                 </div>
-
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-2">
                     {isViewMode ? (
@@ -450,7 +418,6 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     )}
                 </div>
             </form>
-
             {/* Create Manufacturer Sheet */}
             <CreateManufacturerSheet
                 open={showCreateManufacturer}

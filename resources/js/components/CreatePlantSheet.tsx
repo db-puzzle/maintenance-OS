@@ -1,7 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import { TextInput } from '@/components/TextInput';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { estados } from '@/data/estados';
 import { Plant as ImportedPlant } from '@/types/entities/plant';
-
 interface PlantForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -21,7 +19,6 @@ interface PlantForm {
     zip_code: string;
     gps_coordinates: string;
 }
-
 interface CreatePlantSheetProps {
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -33,7 +30,6 @@ interface CreatePlantSheetProps {
     plant?: ImportedPlant;
     mode?: 'create' | 'edit';
 }
-
 const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
     open: controlledOpen,
     onOpenChange,
@@ -47,7 +43,6 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
 }) => {
     const [open, setOpen] = useState(false);
     const nameInputRef = useRef<HTMLInputElement>(null);
-
     // Auto-focus the name input when sheet opens for creation
     useEffect(() => {
         if (controlledOpen && mode === 'create') {
@@ -61,24 +56,20 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                     }
                 });
             };
-
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
             const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
-
             // Cleanup timeouts
             return () => {
                 timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [controlledOpen, mode]);
-
     // Handle onOpenChange to focus when sheet opens
     const handleOpenChange = (open: boolean) => {
         if (onOpenChange) {
             onOpenChange(open);
         }
-
         // Focus the input when opening in create mode
         if (open && mode === 'create') {
             setTimeout(() => {
@@ -86,7 +77,6 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
             }, 100);
         }
     };
-
     const formatCEP = (value: string) => {
         // Remove todos os caracteres não numéricos
         const numbers = value.replace(/\D/g, '');
@@ -95,7 +85,6 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
         // Adiciona o hífen após os 5 primeiros dígitos
         return cep.replace(/(\d{5})(\d{3})/, '$1-$2');
     };
-
     return (
         <BaseEntitySheet<PlantForm>
             entity={plant}
@@ -139,7 +128,6 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                         placeholder="Nome da planta"
                         required
                     />
-
                     {/* Endereço - Grid com 2 colunas */}
                     <div className="grid gap-2">
                         <div className="grid grid-cols-2 gap-4">
@@ -190,7 +178,6 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                             </div>
                         </div>
                     </div>
-
                     {/* Cidade e Estado - Grid com 2 colunas */}
                     <div className="grid gap-2">
                         <div className="grid grid-cols-2 gap-4">
@@ -250,7 +237,6 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                             </div>
                         </div>
                     </div>
-
                     {/* Coordenadas GPS */}
                     <TextInput
                         form={{
@@ -268,5 +254,4 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
         </BaseEntitySheet>
     );
 };
-
 export default CreatePlantSheet;

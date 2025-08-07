@@ -1,19 +1,16 @@
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
 import { toast } from 'sonner';
-
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
 interface Props {
     workOrderId: number;
     workOrderNumber: string;
     discipline: 'maintenance' | 'quality';
 }
-
 export function DeleteWorkOrder({ workOrderId, workOrderNumber, discipline }: Props) {
     const confirmationInput = useRef<HTMLInputElement>(null);
     const {
@@ -25,10 +22,8 @@ export function DeleteWorkOrder({ workOrderId, workOrderNumber, discipline }: Pr
         errors,
         clearErrors,
     } = useForm<Required<{ confirmation: string }>>({ confirmation: '' });
-
     const deleteWorkOrder: FormEventHandler = (e) => {
         e.preventDefault();
-
         destroy(route(`${discipline}.work-orders.destroy`, workOrderId), {
             preserveScroll: true,
             onSuccess: () => {
@@ -43,12 +38,10 @@ export function DeleteWorkOrder({ workOrderId, workOrderNumber, discipline }: Pr
             onFinish: () => reset(),
         });
     };
-
     const closeModal = () => {
         clearErrors();
         reset();
     };
-
     return (
         <Dialog>
             <DialogTrigger asChild>
@@ -67,7 +60,6 @@ export function DeleteWorkOrder({ workOrderId, workOrderNumber, discipline }: Pr
                         <Label htmlFor="confirmation" className="sr-only">
                             Confirmação
                         </Label>
-
                         <Input
                             id="confirmation"
                             variant="destructive"
@@ -77,17 +69,14 @@ export function DeleteWorkOrder({ workOrderId, workOrderNumber, discipline }: Pr
                             placeholder="Digite o número da ordem"
                             autoComplete="off"
                         />
-
                         <InputError message={errors.confirmation} />
                     </div>
-
                     <DialogFooter className="gap-2">
                         <DialogClose asChild>
                             <Button variant="secondary" onClick={closeModal}>
                                 Cancelar
                             </Button>
                         </DialogClose>
-
                         <Button variant="destructive" disabled={processing || data.confirmation !== workOrderNumber} asChild>
                             <button type="submit">Excluir Ordem</button>
                         </Button>

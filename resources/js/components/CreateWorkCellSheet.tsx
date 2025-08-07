@@ -1,12 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import { TextInput } from '@/components/TextInput';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WorkCell } from '@/types/production';
-
 interface WorkCellForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -21,7 +19,6 @@ interface WorkCellForm {
     manufacturer_id: string;
     is_active: boolean;
 }
-
 interface CreateWorkCellSheetProps {
     workCell?: WorkCell;
     open: boolean;
@@ -29,10 +26,8 @@ interface CreateWorkCellSheetProps {
     mode: 'create' | 'edit';
     onSuccess?: () => void;
 }
-
 const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, open, onOpenChange, mode, onSuccess }) => {
     const nameInputRef = useRef<HTMLInputElement>(null);
-
     // Auto-focus the name input when sheet opens for creation
     useEffect(() => {
         if (open && mode === 'create') {
@@ -45,24 +40,20 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, ope
                     }
                 });
             };
-
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
             const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
-
             // Cleanup timeouts
             return () => {
                 timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [open, mode]);
-
     // Handle onOpenChange to focus when sheet opens
     const handleOpenChange = (open: boolean) => {
         if (onOpenChange) {
             onOpenChange(open);
         }
-
         // Focus the input when opening in create mode
         if (open && mode === 'create') {
             setTimeout(() => {
@@ -70,7 +61,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, ope
             }, 100);
         }
     };
-
     return (
         <BaseEntitySheet<WorkCellForm>
             entity={workCell}
@@ -113,7 +103,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, ope
                         placeholder="Nome da célula de trabalho"
                         required
                     />
-
                     {/* Tipo de Célula */}
                     <div className="space-y-2">
                         <Label htmlFor="cell_type" className="text-sm text-muted-foreground">
@@ -133,7 +122,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, ope
                         </Select>
                         {errors.cell_type && <p className="text-destructive text-sm">{errors.cell_type}</p>}
                     </div>
-
                     {/* Horas Disponíveis e Eficiência - Grid com 2 colunas */}
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
@@ -161,7 +149,6 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, ope
                             required
                         />
                     </div>
-
                     {/* Descrição */}
                     <div className="space-y-2">
                         <Label htmlFor="description" className="text-muted-foreground text-sm">
@@ -181,5 +168,4 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, ope
         </BaseEntitySheet>
     );
 };
-
 export default CreateWorkCellSheet;

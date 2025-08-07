@@ -3,7 +3,6 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-
 interface EntityDeleteDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -12,7 +11,6 @@ interface EntityDeleteDialogProps {
     confirmationValue?: string;
     confirmationLabel?: string;
 }
-
 export function EntityDeleteDialog({
     open,
     onOpenChange,
@@ -23,7 +21,6 @@ export function EntityDeleteDialog({
 }: EntityDeleteDialogProps) {
     const [loading, setLoading] = useState(false);
     const [confirmationText, setConfirmationText] = useState('');
-
     const handleConfirm = async () => {
         setLoading(true);
         try {
@@ -36,26 +33,21 @@ export function EntityDeleteDialog({
             setLoading(false);
         }
     };
-
     const handleOpenChange = (newOpen: boolean) => {
         if (!newOpen) {
             setConfirmationText('');
         }
         onOpenChange(newOpen);
     };
-
     const isConfirmationValid = confirmationText === confirmationValue;
-
     const defaultLabel = confirmationValue === 'EXCLUIR'
         ? 'Digite EXCLUIR para confirmar'
         : `Digite ${confirmationValue} para confirmar`;
-
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent>
                 <DialogTitle>Confirmar exclusão</DialogTitle>
                 <DialogDescription>Tem certeza que deseja excluir {entityLabel}? Esta ação não pode ser desfeita.</DialogDescription>
-
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="confirmation">{confirmationLabel || defaultLabel}</Label>
@@ -73,7 +65,6 @@ export function EntityDeleteDialog({
                         />
                     </div>
                 </div>
-
                 <DialogFooter>
                     <DialogClose asChild>
                         <Button variant="secondary" disabled={loading}>

@@ -25,9 +25,7 @@ import { router } from '@inertiajs/react';
 import { AlertCircle, ClipboardCheck, Save, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-
 import { FormStatusBadge } from '@/components/form-lifecycle';
-
 interface RoutineData {
     id: number;
     name: string;
@@ -44,14 +42,12 @@ interface RoutineData {
         };
     };
 }
-
 interface Props {
     routine: RoutineData;
     assetId: number;
     onClose?: () => void;
     onSuccess?: (formData: { published: boolean }) => void;
 }
-
 export default function InlineRoutineFormEditor({ routine, assetId, onClose, onSuccess }: Props) {
     const [tasks, setTasks] = useState<Task[]>(
         (routine.form?.tasks || []).map((task) => ({
@@ -72,20 +68,16 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
     const [hasDraftChanges, setHasDraftChanges] = useState(routine.form?.has_draft_changes || false);
     const [showExitDialog, setShowExitDialog] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
     // Estados para última categoria e unidade selecionada
     const [lastMeasurementCategory, setLastMeasurementCategory] = useState<UnitCategory>('Comprimento');
     const [lastMeasurementUnit, setLastMeasurementUnit] = useState<string>('m');
-
     // Check if form has a published version
     const hasPublishedVersion = routine.form?.currentVersionId !== null && routine.form?.currentVersionId !== undefined;
-
     // Track unsaved changes
     useEffect(() => {
         const tasksChanged = JSON.stringify(tasks) !== JSON.stringify(originalTasks);
         setHasUnsavedChanges(tasksChanged);
     }, [tasks, originalTasks]);
-
     // Função para atualizar o ícone de uma tarefa específica
     const updateTaskIcon = (taskId: string, icon: React.ReactNode) => {
         setTaskIcons((prev) => ({
@@ -93,7 +85,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             [taskId]: icon,
         }));
     };
-
     // Funções utilitárias para gerenciamento de tarefas
     const taskMethods = {
         update: (index: number, operation: (task: Task) => Task) => {
@@ -101,7 +92,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             updatedTasks[index] = operation(updatedTasks[index]);
             setTasks(updatedTasks);
         },
-
         add: (index: number, task: Task) => {
             const existingIds = new Set(tasks.map((t) => t.id));
             if (existingIds.has(task.id)) {
@@ -110,23 +100,18 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                     id: TaskOperations.generateNextId(tasks),
                 };
             }
-
             const updatedTasks = [...tasks];
             updatedTasks.splice(index + 1, 0, task);
             setTasks(updatedTasks);
         },
-
         remove: (index: number) => {
             const updatedTasks = [...tasks];
             updatedTasks.splice(index, 1);
             setTasks(updatedTasks);
         },
-
         createAt: (index: number, type?: TaskType, newTask?: Task) => {
             if (!type && !newTask) return;
-
             let taskToAdd: Task;
-
             if (newTask) {
                 taskToAdd = newTask;
                 if (taskToAdd.type === 'measurement') {
@@ -138,7 +123,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                 }
             } else if (type) {
                 taskToAdd = TaskOperations.createAtIndex(tasks, index, type);
-
                 if (type === 'measurement') {
                     taskToAdd.measurement = {
                         ...DefaultMeasurement,
@@ -146,30 +130,25 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                         unit: lastMeasurementUnit,
                     };
                 }
-
                 if (type === 'code_reader') {
                     taskToAdd.codeReaderType = 'barcode';
                 }
             } else {
                 return;
             }
-
             taskMethods.add(index, taskToAdd);
         },
-
         setState: (index: number, state: TaskState) => {
             taskMethods.update(index, (task) => ({
                 ...task,
                 state,
             }));
         },
-
         getById: (id: string) => {
             const taskId = parseInt(id.replace('task-', ''));
             return tasks.find((task) => task.id === taskId.toString());
         },
     };
-
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
@@ -180,20 +159,16 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             coordinateGetter: sortableKeyboardCoordinates,
         }),
     );
-
     const handleDragStart = (event: DragStartEvent) => {
         setActiveId(event.active.id.toString());
     };
-
     const handleDragEnd = (event: DragEndEvent) => {
         setActiveId(null);
         const { active, over } = event;
-
         if (active.id !== over?.id && over) {
             setTasks((items) => {
                 const oldIndex = items.findIndex((item) => `task-${item.id}` === active.id);
                 const newIndex = items.findIndex((item) => `task-${item.id}` === over.id);
-
                 if (oldIndex !== -1 && newIndex !== -1) {
                     return arrayMove(items, oldIndex, newIndex);
                 }
@@ -201,14 +176,11 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             });
         }
     };
-
     const handleDragCancel = () => {
         setActiveId(null);
     };
-
     const handleSave = async () => {
         setSaving(true);
-
         const tasksToSave = tasks.map((task) => ({
             ...task,
             measurement: task.measurement
@@ -225,7 +197,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             options: task.options?.map((option) => option) || [],
             instructionImages: task.instructionImages || [],
         }));
-
         router.post(
             route('maintenance.routines.forms.store', {
                 routine: routine.id,
@@ -251,10 +222,8 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             },
         );
     };
-
     const handlePublish = async () => {
         setPublishing(true);
-
         router.post(
             route('maintenance.routines.forms.publish', {
                 routine: routine.id,
@@ -277,11 +246,9 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             },
         );
     };
-
     const handleSaveAndPublish = async () => {
         setSaving(true);
         setPublishing(true);
-
         const tasksToSave = tasks.map((task) => ({
             ...task,
             measurement: task.measurement
@@ -298,7 +265,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             options: task.options?.map((option) => option) || [],
             instructionImages: task.instructionImages || [],
         }));
-
         router.post(
             route('maintenance.routines.forms.save-and-publish', {
                 routine: routine.id,
@@ -329,7 +295,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             },
         );
     };
-
     const handleClose = () => {
         if (hasUnsavedChanges) {
             setShowExitDialog(true);
@@ -337,15 +302,12 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             onClose?.();
         }
     };
-
     const handleConfirmExit = () => {
         setShowExitDialog(false);
         onClose?.();
     };
-
     const handleSaveAndExit = async () => {
         setSaving(true);
-
         const tasksToSave = tasks.map((task) => ({
             ...task,
             measurement: task.measurement
@@ -362,7 +324,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             options: task.options?.map((option) => option) || [],
             instructionImages: task.instructionImages || [],
         }));
-
         router.post(
             route('maintenance.routines.forms.store', {
                 routine: routine.id,
@@ -385,7 +346,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
             },
         );
     };
-
     return (
         <div className="space-y-6">
             <div className="sticky top-0 z-10 -mb-2 flex items-center justify-between bg-white/75 px-4 py-5 backdrop-blur-sm">
@@ -446,7 +406,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                     )}
                 </div>
             </div>
-
             {/* Alert for unpublished changes */}
             {hasDraftChanges && hasPublishedVersion && (
                 <Alert>
@@ -456,7 +415,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                     </AlertDescription>
                 </Alert>
             )}
-
             <div className="mt-4 grid gap-6">
                 <DndContext
                     sensors={sensors}
@@ -502,7 +460,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                                     const icon =
                                         taskIcons[task.id] ||
                                         (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
-
                                     return (
                                         <TaskBaseCard
                                             key={`task-${task.id}`}
@@ -574,7 +531,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                             )}
                         </SortableContext>
                     </div>
-
                     <DragOverlay
                         dropAnimation={{
                             sideEffects: defaultDropAnimationSideEffects({
@@ -590,11 +546,9 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                             ? (() => {
                                 const task = taskMethods.getById(activeId);
                                 if (!task) return null;
-
                                 const taskType = TaskTypes.find((t) => t.value === task.type);
                                 const icon =
                                     taskIcons[task.id] || (taskType ? <taskType.icon className="size-5" /> : <ClipboardCheck className="size-5" />);
-
                                 return (
                                     <TaskBaseCard
                                         key={`overlay-${task.id}`}
@@ -618,7 +572,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                     </DragOverlay>
                 </DndContext>
             </div>
-
             {/* Confirmation Dialog for Unsaved Changes */}
             <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
                 <DialogContent>

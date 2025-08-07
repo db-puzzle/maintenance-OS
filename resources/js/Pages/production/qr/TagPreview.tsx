@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import axios from 'axios';
 import { toast } from 'sonner';
-
 interface Item {
     id: number;
     item_number: string;
@@ -18,7 +17,6 @@ interface Item {
         name: string;
     };
 }
-
 interface ManufacturingOrder {
     id: number;
     order_number: string;
@@ -26,60 +24,50 @@ interface ManufacturingOrder {
     due_date: string;
     item: Item;
 }
-
 interface Template {
     id: number;
     name: string;
     type: string;
     layout: any;
 }
-
 interface Props {
     type: 'item' | 'order';
     resource: Item | ManufacturingOrder;
     template: Template | null;
 }
-
 export default function TagPreview({ type, resource, template }: Props) {
     const [generating, setGenerating] = React.useState(false);
-
     const isItem = type === 'item';
     const item = isItem ? (resource as Item) : (resource as ManufacturingOrder).item;
     const displayNumber = isItem
         ? (resource as Item).item_number
         : (resource as ManufacturingOrder).order_number;
-
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'Etiquetas QR', href: route('production.qr-tags.index') },
         { title: 'Visualizar', href: '' }
     ];
-
     const generateTag = async () => {
         setGenerating(true);
-
         try {
             const response = await axios.post(
                 isItem
                     ? route('production.qr-tags.item', resource.id)
                     : route('production.qr-tags.order', resource.id)
             );
-
             if (response.data.success && response.data.pdf_url) {
                 window.open(response.data.pdf_url, '_blank');
                 toast.success('Etiqueta gerada com sucesso!');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta');
         } finally {
             setGenerating(false);
         }
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Visualizar Etiqueta - ${displayNumber}`} />
-
             <div className="container mx-auto px-4 py-6 max-w-2xl">
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -87,7 +75,6 @@ export default function TagPreview({ type, resource, template }: Props) {
                         Visualizar Etiqueta QR
                     </h1>
                 </div>
-
                 <Card>
                     <CardHeader>
                         <div className="flex items-center justify-between">
@@ -123,7 +110,6 @@ export default function TagPreview({ type, resource, template }: Props) {
                                 )}
                             </div>
                         </div>
-
                         {/* Resource Details */}
                         <div className="space-y-2">
                             <h3 className="font-semibold">Detalhes do {isItem ? 'Item' : 'Pedido'}</h3>
@@ -160,7 +146,6 @@ export default function TagPreview({ type, resource, template }: Props) {
                                 </div>
                             )}
                         </div>
-
                         {/* Template Info */}
                         {template && (
                             <div className="pt-2 border-t">
@@ -169,7 +154,6 @@ export default function TagPreview({ type, resource, template }: Props) {
                                 </p>
                             </div>
                         )}
-
                         {/* Action Button */}
                         <Button
                             onClick={generateTag}

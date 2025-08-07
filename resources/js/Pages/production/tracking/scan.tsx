@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-
 interface ScanResult {
     type: 'order' | 'item' | 'operation';
     data: {
@@ -22,12 +21,10 @@ interface ScanResult {
         }>;
     };
 }
-
 interface RecentScan {
     timestamp: Date;
     result: ScanResult;
 }
-
 // Mock QR Reader component (would be replaced with actual QR scanning library)
 function QrReader({
     onResult,
@@ -43,10 +40,8 @@ function QrReader({
         const timer = setTimeout(() => {
             onResult({ text: 'ORD-2024-001' });
         }, 3000);
-
         return () => clearTimeout(timer);
     }, [onResult]);
-
     return (
         <div className={cn("bg-black flex items-center justify-center", className)}>
             <div className="text-white text-center">
@@ -57,12 +52,10 @@ function QrReader({
         </div>
     );
 }
-
 export default function QrScanner() {
     const [scanResult, setScanResult] = useState<ScanResult | null>(null);
     const [isScanning, setIsScanning] = useState(true);
     const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
-
     const handleScan = (text: string) => {
         // Parse QR code and determine type
         const result: ScanResult = {
@@ -80,17 +73,14 @@ export default function QrScanner() {
                 ]
             }
         };
-
         setScanResult(result);
         setIsScanning(false);
-
         // Add to recent scans
         setRecentScans(prev => [
             { timestamp: new Date(), result },
             ...prev.slice(0, 4)
         ]);
     };
-
     const handleAction = (action: string) => {
         console.log('Action:', action);
         // Handle different actions based on the action type
@@ -105,12 +95,10 @@ export default function QrScanner() {
                 router.post(route('production.executions.complete', scanResult?.data.id));
                 break;
         }
-
         // Reset scanner
         setScanResult(null);
         setIsScanning(true);
     };
-
     return (
         <div className="h-screen bg-black flex flex-col">
             {/* Header */}
@@ -129,7 +117,6 @@ export default function QrScanner() {
                     </Button>
                 </div>
             </div>
-
             {/* Scanner Area */}
             <div className="flex-1 relative">
                 {isScanning ? (
@@ -154,7 +141,6 @@ export default function QrScanner() {
                         </Button>
                     </div>
                 )}
-
                 {/* Scan Overlay */}
                 <div className="absolute inset-0 pointer-events-none">
                     <div className="h-full w-full flex items-center justify-center">
@@ -162,7 +148,6 @@ export default function QrScanner() {
                     </div>
                 </div>
             </div>
-
             {/* Result Panel */}
             {scanResult && (
                 <div className="bg-white p-4 border-t animate-in slide-in-from-bottom">
@@ -173,7 +158,6 @@ export default function QrScanner() {
                     />
                 </div>
             )}
-
             {/* Recent Scans */}
             {recentScans.length > 0 && !scanResult && (
                 <div className="bg-gray-900 text-white p-4 border-t border-gray-800">
@@ -192,7 +176,6 @@ export default function QrScanner() {
         </div>
     );
 }
-
 // QR Scan Result Component
 function QrScanResult({
     result,
@@ -215,29 +198,24 @@ function QrScanResult({
                 return <Package className="h-6 w-6" />;
         }
     };
-
     const getStatusBadge = () => {
         if (!result.data.status) return null;
-
         const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
             'in_progress': 'default',
             'paused': 'secondary',
             'completed': 'default'
         };
-
         const labels: Record<string, string> = {
             'in_progress': 'Em Progresso',
             'paused': 'Pausado',
             'completed': 'Concluído'
         };
-
         return (
             <Badge variant={variants[result.data.status] || 'default'}>
                 {labels[result.data.status] || result.data.status}
             </Badge>
         );
     };
-
     return (
         <div className="space-y-4">
             <div className="flex items-start justify-between">
@@ -266,7 +244,6 @@ function QrScanResult({
                     </Button>
                 </div>
             </div>
-
             {result.data.actions && result.data.actions.length > 0 && (
                 <div className="flex gap-2">
                     {result.data.actions.map((action) => (
@@ -284,7 +261,6 @@ function QrScanResult({
         </div>
     );
 }
-
 // Recent Scan Item Component
 function RecentScanItem({
     scan,
@@ -301,7 +277,6 @@ function RecentScanItem({
         const hours = Math.floor(minutes / 60);
         return `${hours}h atrás`;
     };
-
     return (
         <Card
             className="bg-gray-800 border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors"

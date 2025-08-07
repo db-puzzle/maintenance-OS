@@ -41,7 +41,6 @@ import HierarchicalConfiguration from '@/components/production/HierarchicalConfi
 import ManufacturingOrderRouteTab from '@/components/production/ManufacturingOrderRouteTab';
 import axios from 'axios';
 import { toast } from 'sonner';
-
 interface Props {
     order: ManufacturingOrder;
     canRelease: boolean;
@@ -53,7 +52,6 @@ interface Props {
     stepTypes?: Record<string, string>;
     forms?: any[];
 }
-
 function FieldGroup({ title, children }: { title?: string; children: React.ReactNode }) {
     return (
         <div className="space-y-4">
@@ -64,7 +62,6 @@ function FieldGroup({ title, children }: { title?: string; children: React.React
         </div>
     );
 }
-
 function StatCard({ label, value, icon: Icon, className }: { label: string; value: string | number; icon: React.ElementType; className?: string }) {
     return (
         <div className="flex items-center gap-4 rounded-lg border p-4">
@@ -78,13 +75,11 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
         </div>
     );
 }
-
 export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, canManageRoutes = false, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
     const { props } = usePage();
     const flash = props.flash as any;
     const auth = props.auth as any;
     const [generatingQr, setGeneratingQr] = useState(false);
-
     // Check URL params - passed from backend
     const openRouteBuilderParam = props.openRouteBuilder || null;
     // Create a form instance for view-only display
@@ -103,15 +98,13 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
         status: order.status,
         bom_id: order.bill_of_material_id?.toString() || '',
     });
-
     // Create a wrapper that matches the TextInput interface
     const form = {
         data: inertiaForm.data as Record<string, any>,
-        setData: (name: string, value: any) => inertiaForm.setData(name as any, value),
+        setData: (name: string, value: unknown) => inertiaForm.setData(name as any, value),
         errors: inertiaForm.errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...(fields as any)),
     };
-
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
         switch (status) {
             case 'draft':
@@ -128,7 +121,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 return 'secondary';
         }
     };
-
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'draft':
@@ -147,17 +139,14 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 return <AlertCircle className="h-4 w-4" />;
         }
     };
-
     const progress = order.quantity > 0
         ? Math.round((order.quantity_completed / order.quantity) * 100)
         : 0;
-
     const breadcrumbs = [
         { title: 'Production', href: '/production' },
         { title: 'Manufacturing Orders', href: '/production/orders' },
         { title: order.order_number, href: '' }
     ];
-
     const handleRelease = () => {
         router.post(route('production.orders.release', order.id), {}, {
             onSuccess: () => {
@@ -165,7 +154,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             },
         });
     };
-
     const handleCancel = () => {
         if (confirm('Are you sure you want to cancel this order?')) {
             router.post(route('production.orders.cancel', order.id), {
@@ -173,23 +161,20 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             });
         }
     };
-
     const handleGenerateQrTag = async () => {
         setGeneratingQr(true);
         try {
             const response = await axios.post(route('production.qr-tags.order', order.id));
-
             if (response.data.success && response.data.pdf_url) {
                 window.open(response.data.pdf_url, '_blank');
                 toast.success('Etiqueta QR gerada com sucesso!');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
         } finally {
             setGeneratingQr(false);
         }
     };
-
     // Tab definitions
     const tabs = [
         {
@@ -221,7 +206,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                     className="bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
                                 />
                             </div>
-
                             <div>
                                 <div className="flex justify-between text-sm mb-2">
                                     <span>Overall Completion</span>
@@ -231,9 +215,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                             </div>
                         </div>
                     </div>
-
                     <Separator />
-
                     {/* Order Information */}
                     <FieldGroup>
                         <TextInput
@@ -288,10 +270,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                 </div>
                             </div>
                         )}
-
                     </FieldGroup>
-
-
                     {/* Item Details */}
                     <FieldGroup>
                         <div className="grid gap-2">
@@ -335,8 +314,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                             </div>
                         )}
                     </FieldGroup>
-
-
                     {/* Schedule */}
                     <FieldGroup>
                         <TextInput
@@ -368,13 +345,11 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                             view={true}
                         />
                     </FieldGroup>
-
                     {/* Parent-Child Configuration */}
                     {(order.parent_id || order.child_orders_count > 0 || (order.children && order.children.length > 0)) && (
                         <>
                             <Separator />
                             <div className="space-y-4">
-
                                 {order.parent_id && (
                                     <Alert>
                                         <GitBranch className="h-4 w-4" />
@@ -389,7 +364,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                         </AlertDescription>
                                     </Alert>
                                 )}
-
                                 {(order.child_orders_count > 0 || (order.children && order.children.length > 0)) && (
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
@@ -405,7 +379,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                                 </Link>
                                             </Button>
                                         </div>
-
                                         {order.auto_complete_on_children && (
                                             <Alert>
                                                 <CheckCircle className="h-4 w-4" />
@@ -502,7 +475,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             )
         }
     ];
-
     const subtitle = (
         <>
             <span>{order.item?.name || 'Manufacturing Order'}</span>
@@ -513,15 +485,12 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             </Badge>
         </>
     );
-
     // Determine if we should show the edit button
     const showEditButton = order.status === 'draft';
     const editRoute = route('production.orders.edit', order.id);
-
     // Check if order has a route
     const hasRoute = (order as any).has_route || (order.manufacturing_route && order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0);
     const shouldShowRelease = ['draft', 'planned'].includes(order.status);
-
     // Additional actions for the header
     const headerActions = (
         <TooltipProvider>
@@ -564,7 +533,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             </div>
         </TooltipProvider>
     );
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <ShowLayout

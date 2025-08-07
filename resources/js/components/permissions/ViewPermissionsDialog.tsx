@@ -19,7 +19,6 @@ import {
     AlertCircle,
     CheckCircle2
 } from 'lucide-react';
-
 interface Permission {
     id: number;
     name: string;
@@ -28,7 +27,6 @@ interface Permission {
     display_name?: string;
     description?: string;
 }
-
 interface Role {
     id: number;
     name: string;
@@ -37,14 +35,12 @@ interface Role {
     users_count: number;
     permissions?: Permission[];
 }
-
 interface ViewPermissionsDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     role: Role | null;
     loading?: boolean;
 }
-
 // Map resources to icons and labels
 const resourceConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string; color: string }> = {
     plants: { icon: Layers, label: 'Plantas', color: 'text-green-600' },
@@ -59,7 +55,6 @@ const resourceConfig: Record<string, { icon: React.ComponentType<{ className?: s
     roles: { icon: Shield, label: 'Papéis', color: 'text-emerald-600' },
     permissions: { icon: Key, label: 'Permissões', color: 'text-violet-600' },
 };
-
 // Map actions to human-readable labels
 const actionLabels: Record<string, string> = {
     'view': 'Visualizar',
@@ -71,16 +66,13 @@ const actionLabels: Record<string, string> = {
     'manage': 'Gerenciar',
     'execute': 'Executar',
 };
-
 export function ViewPermissionsDialog({
     open,
     onOpenChange,
     role,
     loading = false
 }: ViewPermissionsDialogProps) {
-
     if (!role) return null;
-
     // Group permissions by resource
     const groupedPermissions = role.permissions?.reduce((acc, perm) => {
         const resource = perm.resource || 'unknown';
@@ -88,17 +80,14 @@ export function ViewPermissionsDialog({
         acc[resource].push(perm);
         return acc;
     }, {} as Record<string, Permission[]>) || {};
-
     // Sort resources by label
     const sortedResources = Object.entries(groupedPermissions).sort(([a], [b]) => {
         const labelA = resourceConfig[a]?.label || a;
         const labelB = resourceConfig[b]?.label || b;
         return labelA.localeCompare(labelB);
     });
-
     const totalPermissions = role.permissions?.length || 0;
     const resourceCount = Object.keys(groupedPermissions).length;
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col overflow-hidden">
@@ -128,7 +117,6 @@ export function ViewPermissionsDialog({
                         </span>
                     </DialogDescription>
                 </div>
-
                 {loading ? (
                     <div className="flex flex-1 items-center justify-center py-8">
                         <div className="text-center">
@@ -146,12 +134,10 @@ export function ViewPermissionsDialog({
                                     color: 'text-gray-600'
                                 };
                                 const IconComponent = config.icon;
-
                                 // Sort permissions by action
                                 const sortedPermissions = permissions.sort((a, b) =>
                                     (actionLabels[a.action] || a.action).localeCompare(actionLabels[b.action] || b.action)
                                 );
-
                                 return (
                                     <div key={resource} className="space-y-3">
                                         <div className="flex items-center justify-between border-b pb-2">
@@ -163,7 +149,6 @@ export function ViewPermissionsDialog({
                                                 {permissions.length} {permissions.length === 1 ? 'permissão' : 'permissões'}
                                             </Badge>
                                         </div>
-
                                         <div className="grid gap-2 sm:grid-cols-2">
                                             {sortedPermissions.map((permission) => (
                                                 <Card
@@ -209,7 +194,6 @@ export function ViewPermissionsDialog({
                         </div>
                     </div>
                 )}
-
                 <DialogFooter className="border-t pt-4">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         Fechar

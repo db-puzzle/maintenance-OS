@@ -1,13 +1,10 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { ChevronRight, MoreHorizontal } from "lucide-react"
-
 import { cn } from "@/lib/utils"
-
 function Breadcrumb({ ...props }: React.ComponentProps<"nav">) {
   return <nav aria-label="breadcrumb" data-slot="breadcrumb" {...props} />
 }
-
 function BreadcrumbList({ className, ...props }: React.ComponentProps<"ol">) {
   return (
     <ol
@@ -20,7 +17,6 @@ function BreadcrumbList({ className, ...props }: React.ComponentProps<"ol">) {
     />
   )
 }
-
 function BreadcrumbItem({ className, ...props }: React.ComponentProps<"li">) {
   return (
     <li
@@ -30,7 +26,6 @@ function BreadcrumbItem({ className, ...props }: React.ComponentProps<"li">) {
     />
   )
 }
-
 function BreadcrumbLink({
   asChild,
   className,
@@ -39,7 +34,6 @@ function BreadcrumbLink({
   asChild?: boolean
 }) {
   const Comp = asChild ? Slot : "a"
-
   return (
     <Comp
       data-slot="breadcrumb-link"
@@ -48,7 +42,6 @@ function BreadcrumbLink({
     />
   )
 }
-
 function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
   return (
     <span
@@ -61,7 +54,6 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
     />
   )
 }
-
 function BreadcrumbSeparator({
   children,
   className,
@@ -79,7 +71,6 @@ function BreadcrumbSeparator({
     </li>
   )
 }
-
 function BreadcrumbEllipsis({
   className,
   ...props
@@ -97,7 +88,6 @@ function BreadcrumbEllipsis({
     </span>
   )
 }
-
 export {
   Breadcrumb,
   BreadcrumbList,

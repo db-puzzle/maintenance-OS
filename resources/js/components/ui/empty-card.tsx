@@ -1,7 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LucideIcon } from 'lucide-react';
-
 interface EmptyCardProps {
     icon: LucideIcon;
     title: string;
@@ -13,7 +12,6 @@ interface EmptyCardProps {
     primaryButtonClassName?: string;
     secondaryButtonClassName?: string;
 }
-
 export default function EmptyCard({
     icon: Icon,
     title,
@@ -33,7 +31,6 @@ export default function EmptyCard({
                         <div className="w-12 h-12 flex items-center justify-center rounded-md bg-card border shadow-sm p-2">
                             <Icon className="h-6 w-6 text-foreground" />
                         </div>
-
                         <div className="flex flex-col items-center gap-2 text-center">
                             <h2 className="text-lg md:text-xl font-semibold text-foreground">
                                 {title}
@@ -42,7 +39,6 @@ export default function EmptyCard({
                                 {description}
                             </p>
                         </div>
-
                         {(primaryButtonText || secondaryButtonText) && (
                             <div className="flex flex-col md:flex-row items-center justify-center gap-3 w-full">
                                 {primaryButtonText && primaryButtonAction && (

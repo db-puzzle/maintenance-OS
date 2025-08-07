@@ -14,10 +14,8 @@ import { Plant } from '@/types/entities/plant';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -32,7 +30,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy/plants',
     },
 ];
-
 interface Props {
     plants: {
         data: Plant[];
@@ -50,7 +47,6 @@ interface Props {
         per_page: number;
     };
 }
-
 export default function Plantas({ plants: initialPlants, filters }: Props) {
     const entityOps = useEntityOperations<Plant>({
         entityName: 'plant',
@@ -62,9 +58,7 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             checkDependencies: 'asset-hierarchy.plants.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search || '');
-
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'asset-hierarchy.plants',
@@ -75,7 +69,6 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             per_page: filters.per_page,
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('plantsColumnsVisibility');
@@ -90,7 +83,6 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             asset_count: true,
         };
     });
-
     // Use data from server
     const data = initialPlants.data;
     const pagination = {
@@ -101,7 +93,6 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
         from: initialPlants.from,
         to: initialPlants.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
@@ -137,7 +128,6 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             render: (value) => (value || 0) as React.ReactNode,
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -146,7 +136,6 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
         setColumnVisibility(newVisibility);
         localStorage.setItem('plantsColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -155,11 +144,9 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('asset-hierarchy.plants'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('asset-hierarchy.plants'),
@@ -167,11 +154,9 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             { preserveState: true, preserveScroll: true },
         );
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Plantas" />
-
             <ListLayout
                 title="Plantas"
                 description="Gerencie as plantas do sistema"
@@ -206,25 +191,21 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
                             <EntityActionDropdown onEdit={() => entityOps.handleEdit(plant as unknown as Plant)} onDelete={() => entityOps.handleDelete(plant as unknown as Plant)} />
                         )}
                     />
-
                     <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
-
             <CreatePlantSheet
                 plant={entityOps.editingItem || undefined}
                 open={entityOps.isEditSheetOpen}
                 onOpenChange={entityOps.setEditSheetOpen}
                 mode="edit"
             />
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

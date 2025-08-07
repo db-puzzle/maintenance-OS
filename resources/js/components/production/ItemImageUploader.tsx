@@ -5,24 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-
 interface ItemImageUploaderProps {
     itemId: string;
     maxImages: number;
     currentImageCount: number;
 }
-
 export function ItemImageUploader({ itemId, maxImages, currentImageCount }: ItemImageUploaderProps) {
     const [dragActive, setDragActive] = useState(false);
     const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
-
     const { data, setData, post, progress, errors, processing } = useForm({
         images: [] as File[],
         set_primary: currentImageCount === 0,
     });
-
     const remainingSlots = maxImages - currentImageCount;
-
     const handleDrag = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -32,41 +27,33 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
             setDragActive(false);
         }
     }, []);
-
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
-
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             handleFiles(e.dataTransfer.files);
         }
     }, []);
-
     const handleFiles = (files: FileList) => {
         const validFiles = Array.from(files).filter(file => {
             const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'];
             return validTypes.includes(file.type) && file.size <= 10 * 1024 * 1024; // 10MB
         }).slice(0, remainingSlots);
-
         const newPreviews = validFiles.map(file => ({
             file,
             url: URL.createObjectURL(file)
         }));
-
         setPreviews(prev => [...prev, ...newPreviews]);
         setData('images', [...data.images, ...validFiles]);
     };
-
     const removeFile = (index: number) => {
         URL.revokeObjectURL(previews[index].url);
         setPreviews(prev => prev.filter((_, i) => i !== index));
         setData('images', data.images.filter((_, i) => i !== index));
     };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         post(route('production.items.images.store', itemId), {
             forceFormData: true,
             onSuccess: () => {
@@ -78,7 +65,6 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
             }
         });
     };
-
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div
@@ -125,14 +111,12 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
                     {currentImageCount} de {maxImages} imagens usadas
                 </p>
             </div>
-
             {errors.images && (
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{errors.images}</AlertDescription>
                 </Alert>
             )}
-
             {previews.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {previews.map((preview, index) => (
@@ -156,7 +140,6 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
                     ))}
                 </div>
             )}
-
             {processing && progress && (
                 <div className="space-y-2">
                     <Progress value={progress.percentage} />
@@ -165,7 +148,6 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
                     </p>
                 </div>
             )}
-
             {previews.length > 0 && (
                 <div className="flex justify-end space-x-2">
                     <Button

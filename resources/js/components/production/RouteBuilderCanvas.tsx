@@ -6,11 +6,9 @@ import { ManufacturingStep } from '@/types/production';
 import { StepCard } from '@/components/production/StepCard';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
 interface ExtendedManufacturingStep extends ManufacturingStep {
     isNew?: boolean;
 }
-
 interface Props {
     steps: ExtendedManufacturingStep[];
     selectedStep: ExtendedManufacturingStep | null;
@@ -29,7 +27,6 @@ interface Props {
     isPanelOpen: boolean;
     viewMode?: boolean;
 }
-
 export default function RouteBuilderCanvas({
     steps,
     selectedStep,
@@ -48,42 +45,33 @@ export default function RouteBuilderCanvas({
 }: Props) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-
     const handleDragStart = (e: React.DragEvent, step: ExtendedManufacturingStep) => {
         onDragStart(true);
         onDraggedStepChange(step);
         e.dataTransfer.effectAllowed = 'move';
     };
-
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         setDragOverIndex(index);
     };
-
     const handleDragLeave = () => {
         setDragOverIndex(null);
     };
-
     const handleDrop = (e: React.DragEvent, targetIndex: number) => {
         e.preventDefault();
-
         if (!draggedStep) return;
-
         const draggedIndex = steps.findIndex(s => s.id === draggedStep.id);
         if (draggedIndex === targetIndex) return;
-
         const newSteps = [...steps];
         newSteps.splice(draggedIndex, 1);
         newSteps.splice(targetIndex, 0, draggedStep);
-
         // Update step numbers and reconstruct dependencies
         const updatedSteps = newSteps.map((step, index) => {
             const updatedStep = {
                 ...step,
                 step_number: index + 1,
             };
-
             // Reconstruct dependencies based on new order
             if (index === 0) {
                 // First step has no dependency
@@ -92,29 +80,23 @@ export default function RouteBuilderCanvas({
                 // Each step depends on the previous one in the new order
                 const previousStep = newSteps[index - 1];
                 updatedStep.depends_on_step_id = previousStep.id;
-
                 // Preserve the can_start_when_dependency setting if it exists
                 if (!updatedStep.can_start_when_dependency) {
                     updatedStep.can_start_when_dependency = 'completed';
                 }
             }
-
             return updatedStep;
         });
-
         onStepReorder(updatedSteps);
         onDragStart(false);
         onDraggedStepChange(null);
         setDragOverIndex(null);
-
     };
-
     const handleCanvasClick = (e: React.MouseEvent) => {
         // Deselect step when clicking on canvas area
         // The stopPropagation() on interactive elements will prevent this from firing
         onStepSelect(null);
     };
-
     return (
         <ScrollArea className="flex-1 h-full">
             <div
@@ -147,7 +129,6 @@ export default function RouteBuilderCanvas({
                             {dragOverIndex === index && draggedStep && draggedStep.id !== step.id && (
                                 <div className="absolute -top-2 left-0 right-0 h-1 bg-primary rounded-full animate-pulse" />
                             )}
-
                             {/* Dependency Line */}
                             {index > 0 && (
                                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -157,7 +138,6 @@ export default function RouteBuilderCanvas({
                                     )} />
                                 </div>
                             )}
-
                             <div
                                 className="flex items-center justify-center gap-2"
                                 onClick={(e) => e.stopPropagation()}
@@ -174,7 +154,6 @@ export default function RouteBuilderCanvas({
                                     showStatus={false}
                                 />
                             </div>
-
                             {/* Add Step Button */}
                             {can.manage_steps && !viewMode && index === steps.length - 1 && (
                                 <div
@@ -193,7 +172,6 @@ export default function RouteBuilderCanvas({
                             )}
                         </div>
                     ))}
-
                     {/* Empty State */}
                     {steps.length === 0 && (
                         <div
@@ -213,7 +191,6 @@ export default function RouteBuilderCanvas({
                     )}
                 </div>
             </div>
-
             <style>{`
                 .bg-grid-pattern {
                     background-image: 

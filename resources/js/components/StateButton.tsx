@@ -1,7 +1,6 @@
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 import React from 'react';
-
 interface StateButtonProps {
     icon: LucideIcon;
     title: string;
@@ -13,7 +12,6 @@ interface StateButtonProps {
     iconSize?: 'sm' | 'md';
     variant?: 'default' | 'green' | 'red';
 }
-
 const StateButton: React.FC<StateButtonProps> = ({
     icon: Icon,
     title,
@@ -26,7 +24,6 @@ const StateButton: React.FC<StateButtonProps> = ({
     variant = 'default'
 }) => {
     const iconClasses = iconSize === 'sm' ? 'h-4 w-4 mt-1.5' : 'h-5 w-5 mt-0.5';
-
     const getVariantClasses = () => {
         switch (variant) {
             case 'green':
@@ -43,10 +40,8 @@ const StateButton: React.FC<StateButtonProps> = ({
                     : 'border-input hover:bg-muted/50';
         }
     };
-
     const getIconClasses = () => {
         if (!selected) return cn(iconClasses, 'flex-shrink-0 self-start');
-
         switch (variant) {
             case 'green':
                 return cn(iconClasses, 'flex-shrink-0 self-start text-green-700');
@@ -56,7 +51,6 @@ const StateButton: React.FC<StateButtonProps> = ({
                 return cn(iconClasses, 'flex-shrink-0 self-start');
         }
     };
-
     return (
         <button
             type="button"
@@ -78,5 +72,4 @@ const StateButton: React.FC<StateButtonProps> = ({
         </button>
     );
 };
-
 export default StateButton; 

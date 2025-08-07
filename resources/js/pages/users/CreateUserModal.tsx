@@ -11,32 +11,27 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertCircle, UserPlus, Building2, MapPin, Hash, Eye, Wrench, Shield } from 'lucide-react';
 import { useForm } from '@inertiajs/react';
-
 interface Role {
     id: number;
     name: string;
     description?: string;
     display_name?: string;
 }
-
 interface Entity {
     id: number;
     name: string;
 }
-
 interface AssignableEntities {
     plants: Entity[];
     areas: Entity[];
     sectors: Entity[];
 }
-
 interface CreateUserModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     roles: Role[];
     assignableEntities: AssignableEntities;
 }
-
 // Define which entity types are relevant for each role
 const roleEntityMapping: Record<string, string[]> = {
     'Administrator': [], // No entity selection needed
@@ -47,7 +42,6 @@ const roleEntityMapping: Record<string, string[]> = {
     'Technician': ['plants', 'areas', 'sectors'], // Can work at any level
     'Viewer': ['plants', 'areas', 'sectors'], // Can be assigned to any level
 };
-
 // Role icons for better visual identification
 const roleIcons: Record<string, React.ReactNode> = {
     'Administrator': <Shield className="h-4 w-4" />,
@@ -58,7 +52,6 @@ const roleIcons: Record<string, React.ReactNode> = {
     'Technician': <Wrench className="h-4 w-4" />,
     'Viewer': <Eye className="h-4 w-4" />,
 };
-
 export function CreateUserModal({ open, onOpenChange, roles, assignableEntities }: CreateUserModalProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [selectedEntities, setSelectedEntities] = useState<{
@@ -70,7 +63,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
         areas: [],
         sectors: [],
     });
-
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
@@ -83,16 +75,12 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
             sectors: [] as number[],
         },
     });
-
     const selectedRole = roles.find(r => r.id.toString() === data.role_id);
     const applicableEntityTypes = selectedRole ? roleEntityMapping[selectedRole.name] || [] : [];
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         // Update form data with selected entities
         setData('entity_assignments', selectedEntities);
-
         // Submit the form
         post('/users', {
             onSuccess: () => {
@@ -103,7 +91,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
             },
         });
     };
-
     const generatePassword = () => {
         const length = 12;
         const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
@@ -118,14 +105,12 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
         });
         setShowPassword(true);
     };
-
     const getRoleDescription = (roleName: string) => {
         // First, try to get the description from the selected role object
         const role = roles.find(r => r.name === roleName);
         if (role?.description) {
             return role.description;
         }
-
         // Fallback to hardcoded descriptions for backward compatibility
         const descriptions: Record<string, string> = {
             'Administrator': 'Full system access with all permissions',
@@ -138,7 +123,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
         };
         return descriptions[roleName] || '';
     };
-
     const handleEntityToggle = (type: 'plants' | 'areas' | 'sectors', entityId: number) => {
         setSelectedEntities(prev => ({
             ...prev,
@@ -147,7 +131,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                 : [...prev[type], entityId]
         }));
     };
-
     const handleSelectAll = (type: 'plants' | 'areas' | 'sectors') => {
         const entities = assignableEntities[type];
         setSelectedEntities(prev => ({
@@ -155,7 +138,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
             [type]: prev[type].length === entities.length ? [] : entities.map(e => e.id)
         }));
     };
-
     const handleOpenChange = (newOpen: boolean) => {
         if (!newOpen) {
             reset();
@@ -164,15 +146,12 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
         }
         onOpenChange(newOpen);
     };
-
     const renderEntitySection = (type: 'plants' | 'areas' | 'sectors', icon: React.ReactNode, label: string) => {
         const entities = assignableEntities[type];
         const selected = selectedEntities[type];
-
         if (!applicableEntityTypes.includes(type) || entities.length === 0) {
             return null;
         }
-
         return (
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -189,7 +168,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                         {selected.length === entities.length ? 'Deselect All' : 'Select All'}
                     </Button>
                 </div>
-
                 <div className="border rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
                     {entities.map((entity) => (
                         <div key={entity.id} className="flex items-center space-x-2">
@@ -210,7 +188,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
             </div>
         );
     };
-
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="max-w-4xl max-h-[90vh] p-0">
@@ -218,7 +195,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                     <DialogTitle>Create User</DialogTitle>
                     <DialogDescription>Add a new user with role-based permissions</DialogDescription>
                 </DialogHeader>
-
                 <ScrollArea className="max-h-[calc(90vh-180px)] px-6">
                     <form onSubmit={handleSubmit} className="space-y-6 pb-6">
                         {/* Basic Information */}
@@ -242,7 +218,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                                             <p className="text-sm text-red-500">{errors.name}</p>
                                         )}
                                     </div>
-
                                     <div className="space-y-2">
                                         <Label htmlFor="email">Email Address</Label>
                                         <Input
@@ -258,9 +233,7 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                                         )}
                                     </div>
                                 </div>
-
                                 <Separator />
-
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <Label>Password</Label>
@@ -273,7 +246,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                                             Generate Password
                                         </Button>
                                     </div>
-
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <div className="space-y-2">
                                             <Input
@@ -288,7 +260,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                                                 <p className="text-sm text-red-500">{errors.password}</p>
                                             )}
                                         </div>
-
                                         <div className="space-y-2">
                                             <Input
                                                 id="password_confirmation"
@@ -299,7 +270,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                                             />
                                         </div>
                                     </div>
-
                                     <div className="flex items-center space-x-2">
                                         <input
                                             type="checkbox"
@@ -315,7 +285,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                                 </div>
                             </CardContent>
                         </Card>
-
                         {/* Role Assignment */}
                         <Card>
                             <CardHeader>
@@ -358,11 +327,9 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                                         </p>
                                     )}
                                 </div>
-
                                 {selectedRole && selectedRole.name !== 'Administrator' && (
                                     <>
                                         <Separator />
-
                                         <div className="space-y-4">
                                             <div className="space-y-2">
                                                 <Label>Assign to Entities</Label>
@@ -371,11 +338,9 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                                                     {applicableEntityTypes.length > 1 && ' You can select from multiple categories.'}
                                                 </p>
                                             </div>
-
                                             {renderEntitySection('plants', <Building2 className="h-4 w-4" />, 'Plants')}
                                             {renderEntitySection('areas', <MapPin className="h-4 w-4" />, 'Areas')}
                                             {renderEntitySection('sectors', <Hash className="h-4 w-4" />, 'Sectors')}
-
                                             {applicableEntityTypes.length > 0 &&
                                                 assignableEntities.plants.length === 0 &&
                                                 assignableEntities.areas.length === 0 &&
@@ -393,7 +358,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                                 )}
                             </CardContent>
                         </Card>
-
                         {/* Info Alert */}
                         <Alert>
                             <AlertCircle className="h-4 w-4" />
@@ -407,7 +371,6 @@ export function CreateUserModal({ open, onOpenChange, roles, assignableEntities 
                         </Alert>
                     </form>
                 </ScrollArea>
-
                 <DialogFooter className="px-6 pb-6">
                     <Button variant="outline" onClick={() => handleOpenChange(false)}>
                         Cancel

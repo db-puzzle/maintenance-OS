@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Instruction, InstructionType, Task, TaskOperations } from '@/types/task';
 import { useCallback, useEffect, useState } from 'react';
 import { InstructionForm } from './InstructionForm';
-
 interface AddInstructionModalProps {
     /** Indica se o modal está aberto */
     open: boolean;
@@ -14,14 +13,11 @@ interface AddInstructionModalProps {
     /** Tarefa atual */
     task: Task;
 }
-
 export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructionModalProps) {
     const [instructionType, setInstructionType] = useState<InstructionType>(InstructionType.Image);
-
     // Função para obter a instrução padrão baseada no tipo
     const getDefaultInstructionByType = useCallback((type: InstructionType): Instruction => {
         const instructionId = TaskOperations.generateInstructionId(task);
-
         switch (type) {
             case InstructionType.Text:
                 return {
@@ -51,9 +47,7 @@ export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructi
                 };
         }
     }, [task]);
-
     const [instruction, setInstruction] = useState<Instruction>(getDefaultInstructionByType(instructionType));
-
     // Reinicia o formulário quando o modal é aberto
     useEffect(() => {
         if (open) {
@@ -64,13 +58,11 @@ export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructi
             setInstruction(getDefaultInstructionByType(defaultType));
         }
     }, [open, task, getDefaultInstructionByType]);
-
     // Atualiza a instrução quando o tipo muda
     const handleTypeChange = (type: InstructionType) => {
         setInstructionType(type);
         setInstruction(getDefaultInstructionByType(type));
     };
-
     const handleSave = () => {
         // Regenera o ID para garantir unicidade
         const newInstruction = {
@@ -79,20 +71,16 @@ export function AddInstructionModal({ open, onClose, onAdd, task }: AddInstructi
         };
         onAdd(newInstruction);
     };
-
     const handleFormChange = (updatedInstruction: Instruction) => {
         setInstruction(updatedInstruction);
     };
-
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-[95vw] lg:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Adicionar Instrução</DialogTitle>
                 </DialogHeader>
-
                 <InstructionForm instruction={instruction} onChange={handleFormChange} onTypeChange={handleTypeChange} />
-
                 <DialogFooter className="mt-4 flex-col gap-2 sm:flex-row">
                     <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
                         Cancelar

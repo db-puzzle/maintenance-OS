@@ -18,10 +18,8 @@ import { ColumnConfig, PaginationMeta } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
 import { useEntityOperations } from '@/hooks/useEntityOperations';
 import { useSorting } from '@/hooks/useSorting';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -36,7 +34,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/production/schedules',
     },
 ];
-
 interface ManufacturingStep extends Record<string, unknown> {
     id: number;
     step_number: number;
@@ -74,12 +71,10 @@ interface ManufacturingStep extends Record<string, unknown> {
         name: string;
     } | null;
 }
-
 interface WorkCell {
     id: number;
     name: string;
 }
-
 interface Props {
     schedules?: {
         data: ManufacturingStep[];
@@ -99,7 +94,6 @@ interface Props {
     workCells?: WorkCell[];
     statuses?: Record<string, string>;
 }
-
 function ProductionScheduleIndex({
     schedules = {
         data: [],
@@ -123,7 +117,6 @@ function ProductionScheduleIndex({
     const safeStatuses = statuses && typeof statuses === 'object' ? statuses : {};
     // Create a clean object to avoid prototype chain issues
     const safeFilters = filters ? { ...filters } : {};
-
     const entityOps = useEntityOperations<ManufacturingStep>({
         entityName: 'schedule',
         entityLabel: 'Schedule',
@@ -134,7 +127,6 @@ function ProductionScheduleIndex({
             checkDependencies: 'production.schedules.check-dependencies',
         },
     });
-
     // Ensure filters object is properly initialized
     const normalizedFilters = {
         search: safeFilters.search || '',
@@ -146,13 +138,11 @@ function ProductionScheduleIndex({
         sort: safeFilters.sort || 'step_number',
         direction: (safeFilters.direction || 'asc') as 'asc' | 'desc',
     };
-
     const [search, setSearch] = useState(normalizedFilters.search);
     const [status, setStatus] = useState(normalizedFilters.status);
     const [workCellId, setWorkCellId] = useState(normalizedFilters.work_cell_id ? normalizedFilters.work_cell_id.toString() : 'all');
     const [dateFrom, setDateFrom] = useState(normalizedFilters.date_from);
     const [dateTo, setDateTo] = useState(normalizedFilters.date_to);
-
     // Use centralized sorting hook
     const { sort: currentSort, direction: currentDirection, handleSort } = useSorting({
         routeName: 'production.schedules.index',
@@ -167,7 +157,6 @@ function ProductionScheduleIndex({
             ...(normalizedFilters.per_page && { per_page: normalizedFilters.per_page }),
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('scheduleColumnsVisibility');
@@ -184,7 +173,6 @@ function ProductionScheduleIndex({
             schedule: true,
         };
     });
-
     const handleFilter = () => {
         router.get(route('production.schedules.index'), {
             search,
@@ -200,7 +188,6 @@ function ProductionScheduleIndex({
             preserveScroll: true,
         });
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -218,7 +205,6 @@ function ProductionScheduleIndex({
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('production.schedules.index'), {
             search: search || undefined,
@@ -235,7 +221,6 @@ function ProductionScheduleIndex({
             preserveScroll: true,
         });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(route('production.schedules.index'), {
             search: search || undefined,
@@ -252,7 +237,6 @@ function ProductionScheduleIndex({
             preserveScroll: true,
         });
     };
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -261,7 +245,6 @@ function ProductionScheduleIndex({
         setColumnVisibility(newVisibility);
         localStorage.setItem('scheduleColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const getStatusBadge = (status: string) => {
         const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
             pending: 'outline',
@@ -271,7 +254,6 @@ function ProductionScheduleIndex({
             completed: 'outline',
             skipped: 'destructive',
         };
-
         const colors: Record<string, string> = {
             pending: 'text-gray-600',
             queued: 'text-blue-600',
@@ -280,14 +262,12 @@ function ProductionScheduleIndex({
             completed: 'text-green-600',
             skipped: 'text-red-600',
         };
-
         return (
             <Badge variant={variants[status] || 'default'} className={colors[status]}>
                 {safeStatuses[status] || status}
             </Badge>
         );
     };
-
     const getStepTypeIcon = (type: string) => {
         switch (type) {
             case 'quality_check':
@@ -298,7 +278,6 @@ function ProductionScheduleIndex({
                 return <Factory className="h-4 w-4 text-gray-500" />;
         }
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'step',
@@ -411,11 +390,9 @@ function ProductionScheduleIndex({
             },
         },
     ];
-
     const getActions = (row: Record<string, unknown>) => {
         const step = row as ManufacturingStep;
         const items = [];
-
         if (step.status === 'pending' || step.status === 'queued') {
             items.push({
                 label: 'Start',
@@ -423,7 +400,6 @@ function ProductionScheduleIndex({
                 onClick: () => router.post(route('production.schedules.start', { schedule: step.id })),
             });
         }
-
         if (step.status === 'in_progress') {
             items.push({
                 label: 'Complete',
@@ -436,7 +412,6 @@ function ProductionScheduleIndex({
                 onClick: () => router.visit(route('production.schedules.show', { schedule: step.id })),
             });
         }
-
         if (step.status === 'on_hold') {
             items.push({
                 label: 'Resume',
@@ -444,22 +419,18 @@ function ProductionScheduleIndex({
                 onClick: () => router.post(route('production.schedules.resume', { schedule: step.id })),
             });
         }
-
         items.push({
             label: 'View Details',
             onClick: () => router.visit(route('production.schedules.show', { schedule: step.id })),
         });
-
         if (['pending', 'queued'].includes(step.status)) {
             items.push({
                 label: 'Edit',
                 onClick: () => router.visit(route('production.schedules.edit', { schedule: step.id })),
             });
         }
-
         return <EntityActionDropdown additionalActions={items} />;
     };
-
     // Use data from server
     const data = Array.isArray(safeSchedules?.data) ? safeSchedules.data : [];
     const pagination: PaginationMeta = {
@@ -470,11 +441,9 @@ function ProductionScheduleIndex({
         from: safeSchedules?.meta?.from ?? 0,
         to: safeSchedules?.meta?.to ?? 0,
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Production Schedule" />
-
             <ListLayout
                 title="Production Schedule"
                 description="Manage production schedules"
@@ -551,7 +520,6 @@ function ProductionScheduleIndex({
                             </Button>
                         </div>
                     </div>
-
                     <EntityDataTable
                         data={data as unknown as Record<string, unknown>[]}
                         columns={columns}
@@ -564,7 +532,6 @@ function ProductionScheduleIndex({
                         onSort={handleSort}
                         actions={getActions}
                     />
-
                     <EntityPagination
                         pagination={pagination}
                         onPageChange={handlePageChange}
@@ -572,14 +539,12 @@ function ProductionScheduleIndex({
                     />
                 </div>
             </ListLayout>
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={`the schedule ${entityOps.deletingItem?.name || ''}`}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}
@@ -589,5 +554,4 @@ function ProductionScheduleIndex({
         </AppLayout>
     );
 }
-
 export default ProductionScheduleIndex; 

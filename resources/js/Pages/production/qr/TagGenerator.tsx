@@ -18,105 +18,86 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import axios from 'axios';
-
 interface QrTagTemplate {
     id: number;
     name: string;
     type: string;
     is_default: boolean;
 }
-
 interface Props {
     templates: QrTagTemplate[];
 }
-
 export default function TagGenerator({ templates }: Props) {
     const [generating, setGenerating] = useState(false);
     const [selectedType, setSelectedType] = useState<'item' | 'order'>('item');
     const [batchIds, setBatchIds] = useState<string>('');
     const [generatedUrls, setGeneratedUrls] = useState<{ pdf_url?: string; preview_url?: string } | null>(null);
-
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'Etiquetas QR', href: route('production.qr-tags.index') },
         { title: 'Gerador', href: '' }
     ];
-
     const form = useForm({
         itemNumber: '',
         orderNumber: '',
     });
-
     const generateSingleTag = async (type: 'item' | 'order', id: string) => {
         setGenerating(true);
         setGeneratedUrls(null);
-
         try {
             const response = await axios.post(
                 type === 'item'
                     ? route('production.qr-tags.item', id)
                     : route('production.qr-tags.order', id)
             );
-
             if (response.data.success) {
                 setGeneratedUrls(response.data);
                 toast.success('Etiqueta QR gerada com sucesso!');
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta');
+        } catch (error: unknown) {
+            toast.error((error as any).response?.data?.message || 'Erro ao gerar etiqueta');
         } finally {
             setGenerating(false);
         }
     };
-
     const generateBatch = async () => {
         if (!batchIds.trim()) {
             toast.error('Por favor, insira os IDs para gerar em lote');
             return;
         }
-
         setGenerating(true);
         setGeneratedUrls(null);
-
         try {
             const ids = batchIds.split(',').map(id => id.trim()).filter(Boolean);
-
             const response = await axios.post(route('production.qr-tags.batch'), {
                 type: selectedType,
                 ids: ids.map(id => parseInt(id))
             });
-
             if (response.data.success) {
                 setGeneratedUrls(response.data);
-
                 if (response.data.queued) {
                     toast.info(response.data.message);
                 } else {
                     toast.success('Etiquetas QR geradas com sucesso!');
                 }
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.response?.data?.message || 'Erro ao gerar etiquetas em lote');
         } finally {
             setGenerating(false);
         }
     };
-
     const handleSingleGeneration = () => {
         const id = selectedType === 'item' ? form.data.itemNumber : form.data.orderNumber;
-
         if (!id) {
             toast.error(`Por favor, insira o ${selectedType === 'item' ? 'número do item' : 'número da ordem'}`);
             return;
         }
-
         generateSingleTag(selectedType, id);
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gerador de Etiquetas QR" />
-
             <div className="container mx-auto px-4 py-6 max-w-4xl">
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -127,13 +108,11 @@ export default function TagGenerator({ templates }: Props) {
                         Gere etiquetas com códigos QR para itens e ordens de manufatura
                     </p>
                 </div>
-
                 <Tabs defaultValue="single" className="space-y-4">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="single">Individual</TabsTrigger>
                         <TabsTrigger value="batch">Em Lote</TabsTrigger>
                     </TabsList>
-
                     {/* Single Generation */}
                     <TabsContent value="single" className="space-y-4">
                         <Card>
@@ -166,7 +145,6 @@ export default function TagGenerator({ templates }: Props) {
                                         </div>
                                     </Button>
                                 </div>
-
                                 {selectedType === 'item' ? (
                                     <div className="space-y-2">
                                         <Label htmlFor="itemNumber">Número do Item</Label>
@@ -190,7 +168,6 @@ export default function TagGenerator({ templates }: Props) {
                                         />
                                     </div>
                                 )}
-
                                 <Button
                                     onClick={handleSingleGeneration}
                                     disabled={generating}
@@ -211,7 +188,6 @@ export default function TagGenerator({ templates }: Props) {
                             </CardContent>
                         </Card>
                     </TabsContent>
-
                     {/* Batch Generation */}
                     <TabsContent value="batch" className="space-y-4">
                         <Card>
@@ -238,7 +214,6 @@ export default function TagGenerator({ templates }: Props) {
                                         Ordens
                                     </Button>
                                 </div>
-
                                 <div className="space-y-2">
                                     <Label htmlFor="batchIds">
                                         IDs (separados por vírgula)
@@ -253,14 +228,12 @@ export default function TagGenerator({ templates }: Props) {
                                         Insira os IDs dos {selectedType === 'item' ? 'itens' : 'ordens'} separados por vírgula
                                     </p>
                                 </div>
-
                                 <Alert>
                                     <AlertDescription>
                                         Para lotes com mais de 10 etiquetas, a geração será processada em segundo plano
                                         e você receberá uma notificação quando estiver pronta.
                                     </AlertDescription>
                                 </Alert>
-
                                 <Button
                                     onClick={generateBatch}
                                     disabled={generating}
@@ -282,7 +255,6 @@ export default function TagGenerator({ templates }: Props) {
                         </Card>
                     </TabsContent>
                 </Tabs>
-
                 {/* Generated Results */}
                 {generatedUrls && generatedUrls.pdf_url && (
                     <Card className="mt-6">
@@ -313,7 +285,6 @@ export default function TagGenerator({ templates }: Props) {
                         </CardContent>
                     </Card>
                 )}
-
                 {/* Templates Info */}
                 {templates.length > 0 && (
                     <Card className="mt-6">

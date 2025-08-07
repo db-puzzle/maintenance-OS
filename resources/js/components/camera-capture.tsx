@@ -1,26 +1,22 @@
 import { Button } from '@/components/ui/button';
 import { Camera, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
 interface CameraCaptureProps {
     onCapture: (file: File) => void;
     onClose: () => void;
 }
-
 export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isMobile] = useState(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
-
     const stopCamera = useCallback(() => {
         if (stream) {
             stream.getTracks().forEach((track) => track.stop());
             setStream(null);
         }
     }, [stream]);
-
     const startCamera = useCallback(async () => {
         try {
             // Verifica se está usando HTTPS
@@ -28,17 +24,14 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
             if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
                 throw new Error('A câmera só pode ser acessada em conexões seguras (HTTPS)');
             }
-
             // Configurações básicas primeiro
             let constraints: MediaStreamConstraints = {
                 video: {
                     facingMode: isMobile ? 'environment' : 'user',
                 },
             };
-
             try {
                 await navigator.mediaDevices.getUserMedia(constraints);
-
                 // Se conseguir acesso, tenta melhorar a qualidade
                 constraints = {
                     video: {
@@ -47,7 +40,6 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                         height: { ideal: isMobile ? window.innerHeight : 1080 },
                     } as MediaTrackConstraints,
                 };
-
                 // Tenta aplicar as configurações de qualidade
                 const betterStream = await navigator.mediaDevices.getUserMedia(constraints);
                 setStream(betterStream);
@@ -66,7 +58,6 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
         } catch (err: unknown) {
             const error = err as { name?: string; message?: string };
             console.error('Erro detalhado da câmera:', error);
-
             // Mensagens de erro mais específicas
             if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
                 setError('Acesso à câmera negado. Por favor, permita o acesso à câmera nas configurações do seu navegador.');
@@ -83,31 +74,24 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
             setIsLoading(false);
         }
     }, [isMobile, videoRef]);
-
     useEffect(() => {
         startCamera();
         return () => stopCamera();
     }, [startCamera, stopCamera]);
-
     const takePhoto = (e: React.MouseEvent) => {
         e.preventDefault(); // Previne a propagação do evento
-
         if (videoRef.current) {
             const canvas = document.createElement('canvas');
-
             // Usa as dimensões reais do vídeo
             const videoWidth = videoRef.current.videoWidth;
             const videoHeight = videoRef.current.videoHeight;
-
             // Mantém a proporção original
             canvas.width = videoWidth;
             canvas.height = videoHeight;
-
             const ctx = canvas.getContext('2d');
             if (ctx) {
                 // Desenha a imagem mantendo a orientação correta
                 ctx.drawImage(videoRef.current, 0, 0);
-
                 canvas.toBlob(
                     (blob) => {
                         if (blob) {
@@ -126,7 +110,6 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
             }
         }
     };
-
     const handleClose = (e?: React.MouseEvent) => {
         if (e) {
             e.preventDefault();
@@ -134,7 +117,6 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
         stopCamera();
         onClose();
     };
-
     if (error) {
         return (
             <div className="bg-background/80 fixed inset-0 z-50 backdrop-blur-sm">
@@ -152,7 +134,6 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
             </div>
         );
     }
-
     return (
         <div className="bg-background/80 fixed inset-0 z-50 backdrop-blur-sm">
             <div
@@ -179,7 +160,6 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
                             </Button>
                         </div>
                     </div>
-
                     <div className={`flex justify-center gap-4 ${isMobile ? 'fixed right-4 bottom-8 left-4' : ''}`}>
                         <Button
                             type="button"

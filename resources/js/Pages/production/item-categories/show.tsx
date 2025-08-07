@@ -2,13 +2,11 @@ import { type BreadcrumbItem } from '@/types';
 import { type ItemCategory } from '@/types/production';
 import { Head, Link, router } from '@inertiajs/react';
 import { Package, User, Calendar, Check, X } from 'lucide-react';
-
 import ItemCategoryFormComponent from '@/components/production/ItemCategoryFormComponent';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/production/show-layout';
-
 interface Item {
     id: number;
     name: string;
@@ -21,7 +19,6 @@ interface Item {
         abbreviation: string;
     };
 }
-
 interface Props {
     category: ItemCategory & {
         createdBy?: {
@@ -44,7 +41,6 @@ interface Props {
         };
     };
 }
-
 export default function Show({ category, items, activeTab, filters }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -64,10 +60,8 @@ export default function Show({ category, items, activeTab, filters }: Props) {
             href: '#',
         },
     ];
-
     const handleSort = (column: string) => {
         const direction = filters.items.sort === column && filters.items.direction === 'asc' ? 'desc' : 'asc';
-
         router.get(
             route('production.categories.show', {
                 category: category.id,
@@ -80,7 +74,6 @@ export default function Show({ category, items, activeTab, filters }: Props) {
             { preserveState: true },
         );
     };
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
@@ -117,7 +110,6 @@ export default function Show({ category, items, activeTab, filters }: Props) {
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -201,7 +193,6 @@ export default function Show({ category, items, activeTab, filters }: Props) {
                         onRowClick={(row) => router.visit(route('production.items.show', { item: (row as Record<string, unknown>).id }))}
                         onSort={handleSort}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: items.current_page,
@@ -223,7 +214,6 @@ export default function Show({ category, items, activeTab, filters }: Props) {
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Categoria ${category.name}`} />

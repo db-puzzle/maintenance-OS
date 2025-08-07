@@ -1,22 +1,18 @@
 'use client';
-
 import { Button } from '@/components/ui/button';
 import { MainSelectionTab, MainSelectionTabList, MainSelectionTabTrigger } from '@/components/ui/main-selection-tab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
 import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
 import { Check, Maximize2, Minimize2, MoreVertical } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-
 interface Tab {
     id: string;
     label: string;
     content: ReactNode;
 }
-
 interface ShowLayoutProps {
     title: string;
     subtitle?: string | ReactNode;
@@ -28,7 +24,6 @@ interface ShowLayoutProps {
     onCompressedChange?: (compressed: boolean) => void;
     defaultCompressed?: boolean;
 }
-
 export default function ShowLayout({
     title,
     subtitle,
@@ -43,13 +38,10 @@ export default function ShowLayout({
     const [activeTab, setActiveTab] = useState(defaultActiveTab || (tabs && tabs.length > 0 ? tabs[0].id : ''));
     const [isCompressed, setIsCompressed] = useState(defaultCompressed);
     const sidebarControls = useSidebar();
-
     // Track previous compression state to detect changes
     const prevIsCompressed = useRef(isCompressed);
-
     // Simple animation class for all tabs
     const tabAnimationClass = 'animate-in fade-in-2 slide-in-from-top-5 duration-200';
-
     useEffect(() => {
         // Only sync sidebar when compression state actually changes
         if (sidebarControls && !sidebarControls.isMobile && prevIsCompressed.current !== isCompressed) {
@@ -64,13 +56,11 @@ export default function ShowLayout({
             prevIsCompressed.current = isCompressed;
         }
     }, [isCompressed, sidebarControls]);
-
     const handleToggleCompressed = () => {
         const newCompressed = !isCompressed;
         setIsCompressed(newCompressed);
         onCompressedChange?.(newCompressed);
     };
-
     return (
         <div className="relative flex h-[calc(100vh-3rem)] flex-col">
             {/* Fixed Header Section */}
@@ -98,7 +88,6 @@ export default function ShowLayout({
                             >
                                 {title}
                             </h1>
-
                             {/* Inline tabs for compressed mode - Desktop only */}
                             {isCompressed && tabs && tabs.length > 0 && (
                                 <div className="hidden flex-1 items-center gap-1 md:flex">
@@ -117,7 +106,6 @@ export default function ShowLayout({
                                     ))}
                                 </div>
                             )}
-
                             {/* Mobile Select for compressed mode - Inline */}
                             {isCompressed && tabs && tabs.length > 0 && (
                                 <div className="min-w-0 flex-1 md:hidden">
@@ -136,7 +124,6 @@ export default function ShowLayout({
                                     </Select>
                                 </div>
                             )}
-
                             {!isCompressed && subtitle && (
                                 <p className={cn('text-muted-foreground text-sm leading-5 transition-all duration-200 ease-in-out')}>
                                     {subtitle}
@@ -178,7 +165,6 @@ export default function ShowLayout({
                         </div>
                     )}
                 </div>
-
                 {/* Tabs Navigation - Only show when not compressed or on mobile */}
                 {tabs && tabs.length > 0 && !isCompressed && (
                     <>
@@ -202,7 +188,6 @@ export default function ShowLayout({
                                 </SelectContent>
                             </Select>
                         </div>
-
                         {/* Desktop Tabs */}
                         <div className="hidden md:block">
                             <MainSelectionTab value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -218,7 +203,6 @@ export default function ShowLayout({
                     </>
                 )}
             </div>
-
             {/* Scrollable Content Area */}
             <div className="bg-sidebar-accent/30 flex-1 overflow-y-auto">
                 <div className="px-6 lg:px-8">

@@ -21,9 +21,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import { ReactNode } from 'react';
-
 export type TaskCardMode = 'edit' | 'preview' | 'respond';
-
 interface TaskBaseCardProps {
     /** ID único da tarefa */
     id: string;
@@ -64,7 +62,6 @@ interface TaskBaseCardProps {
     /** Callback para atualizar a tarefa */
     onTaskUpdate?: (updatedTask: Task) => void;
 }
-
 export default function TaskBaseCard({
     id,
     mode,
@@ -90,18 +87,15 @@ export default function TaskBaseCard({
         id: `task-${id}`,
         animateLayoutChanges: () => false,
     });
-
     const style = {
         transform: CSS.Transform.toString(transform),
         transition: transition && 'transform 150ms ease',
         opacity: isDragging ? 0.5 : undefined,
         zIndex: isDragging ? 1 : undefined,
     };
-
     const isEditing = mode === 'edit';
     const isPreviewing = mode === 'preview';
     const isResponding = mode === 'respond';
-
     // Função para lidar com a mudança do título, garantindo que a
     // função sempre exista, mesmo que onTitleChange não seja fornecido
     const handleTitleChange = (value: string) => {
@@ -109,17 +103,14 @@ export default function TaskBaseCard({
             onTitleChange(value);
         }
     };
-
     // Função para atualizar as instruções da tarefa
     const handleInstructionsUpdate = (updatedTask: Task) => {
         if (onTaskUpdate) {
             onTaskUpdate(updatedTask);
         }
     };
-
     // Encontrar a tarefa atual diretamente
     const currentTask = tasks?.find((task) => task.id === id);
-
     return (
         <Card
             ref={setNodeRef}
@@ -150,7 +141,6 @@ export default function TaskBaseCard({
                         </button>
                     )}
                 </div>
-
                 <div className="flex flex-col items-start justify-between lg:flex-row lg:items-center lg:gap-4">
                     <div className={`flex w-full min-w-0 flex-1 items-start gap-4`}>
                         <div className="text-primary flex-shrink-0" style={{ paddingTop: isEditing ? '0.5rem' : '0.3rem' }}>
@@ -168,7 +158,6 @@ export default function TaskBaseCard({
                             </div>
                         </div>
                     </div>
-
                     <div className="ml-auto flex flex-shrink-0 items-center gap-4">
                         {/* Área de obrigatório em telas grandes - aparece ao lado do título */}
                         {!isResponding && !isPreviewing && isEditing && (
@@ -195,10 +184,8 @@ export default function TaskBaseCard({
             <CardContent className="space-y-2 pt-0 lg:space-y-4">
                 {/* Conteúdo principal da tarefa */}
                 {children}
-
                 {/* Lista de instruções - exibir independentemente do modo */}
                 {currentTask && <TaskInstructionList task={currentTask} mode={mode} onInstructionsUpdate={handleInstructionsUpdate} />}
-
                 <div className="mt-4 flex flex-col items-start justify-between gap-2 lg:flex-row lg:items-center lg:gap-4">
                     {isEditing && onRemove && (
                         <AlertDialog>
@@ -227,7 +214,6 @@ export default function TaskBaseCard({
                             </AlertDialogContent>
                         </AlertDialog>
                     )}
-
                     {isPreviewing && (
                         <div className="mb-2 w-full lg:mb-0 lg:flex-1">
                             <span className="text-muted-foreground block text-sm italic">
@@ -235,9 +221,7 @@ export default function TaskBaseCard({
                             </span>
                         </div>
                     )}
-
                     {isResponding && <div></div> /* Espaço vazio para manter o layout */}
-
                     <div className="flex w-full flex-col justify-end gap-2 lg:ml-auto lg:w-auto lg:flex-row">
                         {!isResponding && onNewTask && (
                             <div className="order-2 w-full lg:order-none lg:w-auto">
@@ -249,7 +233,6 @@ export default function TaskBaseCard({
                                 />
                             </div>
                         )}
-
                         {isPreviewing && (
                             <Button
                                 type="button"
@@ -260,7 +243,6 @@ export default function TaskBaseCard({
                                 Editar
                             </Button>
                         )}
-
                         {isEditing && onPreview && (
                             <Button
                                 type="button"
@@ -270,7 +252,6 @@ export default function TaskBaseCard({
                                 Visualizar
                             </Button>
                         )}
-
                         {isResponding && (
                             <Button
                                 type="button"

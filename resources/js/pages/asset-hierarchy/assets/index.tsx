@@ -13,10 +13,8 @@ import { type Asset } from '@/types/asset-hierarchy';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -27,7 +25,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy/assets',
     },
 ];
-
 interface Props {
     asset: {
         data: Asset[];
@@ -45,7 +42,6 @@ interface Props {
         per_page: number;
     };
 }
-
 export default function Assets({ asset: initialAssets, filters }: Props) {
     const entityOps = useEntityOperations<Asset>({
         entityName: 'asset',
@@ -57,9 +53,7 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             checkDependencies: 'asset-hierarchy.assets.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search || '');
-
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'asset-hierarchy.assets',
@@ -70,7 +64,6 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             per_page: filters.per_page,
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('assetColumnsVisibility');
@@ -92,7 +85,6 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             routines_count: true,
         };
     });
-
     // Use data from server
     const data = initialAssets.data;
     const pagination = {
@@ -103,7 +95,6 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
         from: initialAssets.from,
         to: initialAssets.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'tag',
@@ -230,7 +221,6 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             },
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -239,7 +229,6 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
         setColumnVisibility(newVisibility);
         localStorage.setItem('assetColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -248,11 +237,9 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('asset-hierarchy.assets'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('asset-hierarchy.assets'),
@@ -260,11 +247,9 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
             { preserveState: true, preserveScroll: true },
         );
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Ativos" />
-
             <ListLayout
                 title="Ativos"
                 description="Gerencie os ativos do sistema"
@@ -308,18 +293,15 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
                             );
                         }}
                     />
-
                     <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={`o ativo ${entityOps.deletingItem?.tag || ''}`}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

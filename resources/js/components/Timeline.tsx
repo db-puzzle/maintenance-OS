@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
 export interface TimelineEvent {
     id?: string | number;
     description: string;
     timestamp: string;
     user?: string;
 }
-
 interface TimelineProps {
     events: TimelineEvent[];
     title?: string;
@@ -18,7 +16,6 @@ interface TimelineProps {
     formatDate?: (dateString: string) => string;
     className?: string;
 }
-
 export const Timeline: React.FC<TimelineProps> = ({
     events,
     title = 'Timeline',
@@ -29,9 +26,7 @@ export const Timeline: React.FC<TimelineProps> = ({
     className = '',
 }) => {
     const [timelineOrder, setTimelineOrder] = useState<'chronological' | 'reverse'>(defaultOrder);
-
     const orderedEvents = timelineOrder === 'chronological' ? events : [...events].reverse();
-
     return (
         <div className={`py-8 ${className}`}>
             <div className="mb-6 flex items-center justify-between">
@@ -72,5 +67,4 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
     );
 };
-
 export default Timeline; 

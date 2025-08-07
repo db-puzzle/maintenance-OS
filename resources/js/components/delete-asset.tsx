@@ -1,18 +1,15 @@
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
 import { toast } from 'sonner';
-
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
 interface Props {
     assetId: number;
     assetTag: string;
 }
-
 export default function DeleteAsset({ assetId, assetTag }: Props) {
     const confirmationInput = useRef<HTMLInputElement>(null);
     const {
@@ -24,10 +21,8 @@ export default function DeleteAsset({ assetId, assetTag }: Props) {
         errors,
         clearErrors,
     } = useForm<Required<{ confirmation: string }>>({ confirmation: '' });
-
     const deleteAsset: FormEventHandler = (e) => {
         e.preventDefault();
-
         destroy(route('asset-hierarchy.assets.destroy', assetId), {
             preserveScroll: true,
             onSuccess: () => {
@@ -42,12 +37,10 @@ export default function DeleteAsset({ assetId, assetTag }: Props) {
             onFinish: () => reset(),
         });
     };
-
     const closeModal = () => {
         clearErrors();
         reset();
     };
-
     return (
         <Dialog>
             <DialogTrigger asChild>
@@ -66,7 +59,6 @@ export default function DeleteAsset({ assetId, assetTag }: Props) {
                         <Label htmlFor="confirmation" className="sr-only">
                             Confirmação
                         </Label>
-
                         <Input
                             id="confirmation"
                             variant="destructive"
@@ -76,17 +68,14 @@ export default function DeleteAsset({ assetId, assetTag }: Props) {
                             placeholder="Digite a TAG do ativo"
                             autoComplete="off"
                         />
-
                         <InputError message={errors.confirmation} />
                     </div>
-
                     <DialogFooter className="gap-2">
                         <DialogClose asChild>
                             <Button variant="secondary" onClick={closeModal}>
                                 Cancelar
                             </Button>
                         </DialogClose>
-
                         <Button variant="destructive" disabled={processing || data.confirmation !== assetTag} asChild>
                             <button type="submit">Excluir Ativo</button>
                         </Button>

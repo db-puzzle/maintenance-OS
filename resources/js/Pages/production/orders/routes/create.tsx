@@ -10,34 +10,27 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileText, Plus, Search, Clock, Users, Layers } from 'lucide-react';
 import { ManufacturingOrder, RouteTemplate } from '@/types/production';
 import { cn } from '@/lib/utils';
-
 interface Props {
     order: ManufacturingOrder;
     templates: RouteTemplate[];
 }
-
 interface ExtendedRouteTemplate extends RouteTemplate {
     steps_count?: number;
     total_time?: number;
     usage_count?: number;
 }
-
 export default function CreateRoute({ order, templates }: Props) {
     const [showTemplateSelector, setShowTemplateSelector] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTemplate, setSelectedTemplate] = useState<ExtendedRouteTemplate | null>(null);
-
     const extendedTemplates = templates as ExtendedRouteTemplate[];
-
     const filteredTemplates = extendedTemplates.filter(template =>
         template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         template.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
     const handleTemplateSelect = (template: ExtendedRouteTemplate) => {
         setSelectedTemplate(template);
     };
-
     const handleUseTemplate = () => {
         if (selectedTemplate) {
             router.post(route('production.orders.routes.store', order.id), {
@@ -47,25 +40,21 @@ export default function CreateRoute({ order, templates }: Props) {
             });
         }
     };
-
     const handleCustomRoute = () => {
         router.post(route('production.orders.routes.store', order.id), {
             name: `Roteiro para ${order.item?.name || 'Item'}`,
             description: `Roteiro customizado para ordem ${order.order_number}`,
         });
     };
-
     const breadcrumbs = [
         { title: 'Produção', href: '/production' },
         { title: 'Ordens', href: route('production.orders.index') },
         { title: order.order_number, href: route('production.orders.show', order.id) },
         { title: 'Criar Roteiro', href: '' }
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Criar Roteiro - ${order.order_number}`} />
-
             <div className="max-w-4xl mx-auto space-y-6">
                 {/* Context Bar */}
                 <div className="bg-muted/50 border rounded-lg p-4">
@@ -93,7 +82,6 @@ export default function CreateRoute({ order, templates }: Props) {
                         </div>
                     </div>
                 </div>
-
                 {/* Title */}
                 <div>
                     <h1 className="text-2xl font-semibold">Criar Roteiro de Produção</h1>
@@ -101,7 +89,6 @@ export default function CreateRoute({ order, templates }: Props) {
                         Escolha como deseja criar o roteiro para esta ordem
                     </p>
                 </div>
-
                 {/* Options */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Template Option */}
@@ -125,7 +112,6 @@ export default function CreateRoute({ order, templates }: Props) {
                             </Badge>
                         </CardContent>
                     </Card>
-
                     {/* Custom Option */}
                     <Card
                         className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary"
@@ -146,7 +132,6 @@ export default function CreateRoute({ order, templates }: Props) {
                     </Card>
                 </div>
             </div>
-
             {/* Template Selection Modal */}
             <Dialog open={showTemplateSelector} onOpenChange={setShowTemplateSelector}>
                 <DialogContent className="max-w-3xl max-h-[80vh]">
@@ -156,7 +141,6 @@ export default function CreateRoute({ order, templates }: Props) {
                             Escolha um template compatível com o item {order.item?.name || 'selecionado'}
                         </DialogDescription>
                     </DialogHeader>
-
                     <div className="space-y-4">
                         {/* Search */}
                         <div className="relative">
@@ -168,7 +152,6 @@ export default function CreateRoute({ order, templates }: Props) {
                                 className="pl-9"
                             />
                         </div>
-
                         {/* Template List */}
                         <ScrollArea className="h-[400px] pr-4">
                             <div className="space-y-3">
@@ -220,7 +203,6 @@ export default function CreateRoute({ order, templates }: Props) {
                                 ))}
                             </div>
                         </ScrollArea>
-
                         {/* Actions */}
                         <div className="flex justify-end gap-3 pt-4 border-t">
                             <Button

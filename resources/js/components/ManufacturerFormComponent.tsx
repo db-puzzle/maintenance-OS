@@ -8,7 +8,6 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-
 // Define a local form type with index signature
 interface ManufacturerFormData {
     name: string;
@@ -19,7 +18,6 @@ interface ManufacturerFormData {
     notes: string;
     [key: string]: string | number | boolean | null | undefined;
 }
-
 interface ManufacturerData {
     id: number;
     name: string;
@@ -29,24 +27,20 @@ interface ManufacturerData {
     country?: string | null;
     notes?: string | null;
 }
-
 interface ManufacturerFormComponentProps {
     manufacturer?: ManufacturerData;
     initialMode?: 'view' | 'edit';
     onCancel?: () => void;
     onSuccess?: () => void;
 }
-
 export default function ManufacturerFormComponent({ manufacturer, initialMode = 'view', onCancel, onSuccess }: ManufacturerFormComponentProps) {
     const isEditing = !!manufacturer;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
-
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm<ManufacturerFormData>({
         name: manufacturer?.name || '',
         website: manufacturer?.website || '',
@@ -55,12 +49,10 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
         country: manufacturer?.country || '',
         notes: manufacturer?.notes || '',
     });
-
     // Create a wrapper for setData to match the expected signature
     const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
         setData(name as keyof ManufacturerFormData, value as ManufacturerFormData[keyof ManufacturerFormData]);
     };
-
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.manufacturers.update', manufacturer.id), {
@@ -81,7 +73,6 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
             });
         }
     };
-
     const handleCancel = () => {
         if (isEditing && mode === 'edit') {
             // Reset form to original data
@@ -91,11 +82,9 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
             onCancel();
         }
     };
-
     const handleEdit = () => {
         setMode('edit');
     };
-
     return (
         <div className="space-y-6">
             {/* Form Fields */}
@@ -114,7 +103,6 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                     required={!isViewMode}
                     view={isViewMode}
                 />
-
                 {/* País */}
                 <TextInput
                     form={{
@@ -128,7 +116,6 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                     placeholder={isViewMode ? 'País não informado' : 'Digite o país'}
                     view={isViewMode}
                 />
-
                 {/* Website */}
                 <div className="grid gap-2">
                     <Label htmlFor="website">Website</Label>
@@ -155,7 +142,6 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                         </>
                     )}
                 </div>
-
                 {/* Email */}
                 <div className="grid gap-2">
                     <Label htmlFor="email">E-mail</Label>
@@ -182,7 +168,6 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                         </>
                     )}
                 </div>
-
                 {/* Telefone */}
                 <TextInput
                     form={{
@@ -196,7 +181,6 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                     placeholder={isViewMode ? 'Telefone não informado' : '+55 11 99999-9999'}
                     view={isViewMode}
                 />
-
                 {/* Observações - Ocupa toda a largura */}
                 <div className="md:col-span-2">
                     <div className="grid gap-2">
@@ -218,7 +202,6 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                     </div>
                 </div>
             </div>
-
             {/* Action Buttons */}
             {isEditing && (
                 <div className="flex justify-end gap-2">

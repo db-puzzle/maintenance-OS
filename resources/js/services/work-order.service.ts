@@ -177,7 +177,7 @@ export const workOrderService = {
     // Task responses
     saveTaskResponse: async (executionId: number, taskId: number, response: {
         response_type: string;
-        response_value?: any;
+        response_value?: unknown;
         completed: boolean;
         notes?: string;
     }): Promise<void> => {

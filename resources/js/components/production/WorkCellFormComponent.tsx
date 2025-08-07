@@ -10,7 +10,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { useState, useEffect } from 'react';
 import { Factory, Clock, Gauge, MapPin } from 'lucide-react';
-
 interface WorkCellFormComponentProps {
     workCell: WorkCell & {
         plant?: { id: number; name: string };
@@ -27,7 +26,6 @@ interface WorkCellFormComponentProps {
     initialMode?: 'view' | 'edit';
     onSuccess?: () => void;
 }
-
 export default function WorkCellFormComponent({
     workCell,
     plants = [],
@@ -41,7 +39,6 @@ export default function WorkCellFormComponent({
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const [areas, setAreas] = useState(initialAreas);
     const [sectors, setSectors] = useState(initialSectors);
-
     const { data, setData, put, processing, errors, reset } = useForm({
         name: workCell.name || '',
         description: workCell.description || '',
@@ -55,7 +52,6 @@ export default function WorkCellFormComponent({
         manufacturer_id: workCell.manufacturer_id?.toString() || '',
         is_active: workCell.is_active ?? true,
     });
-
     // Fetch areas when plant changes
     useEffect(() => {
         if (data.plant_id && mode === 'edit') {
@@ -68,7 +64,6 @@ export default function WorkCellFormComponent({
             setSectors([]);
         }
     }, [data.plant_id, mode]);
-
     // Fetch sectors when area changes
     useEffect(() => {
         if (data.area_id && mode === 'edit') {
@@ -80,7 +75,6 @@ export default function WorkCellFormComponent({
             setSectors([]);
         }
     }, [data.area_id, mode]);
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         put(route('production.work-cells.update', workCell.id), {
@@ -93,12 +87,10 @@ export default function WorkCellFormComponent({
             },
         });
     };
-
     const handleCancel = () => {
         reset();
         setMode('view');
     };
-
     if (mode === 'view') {
         return (
             <Card>
@@ -125,14 +117,12 @@ export default function WorkCellFormComponent({
                             </Badge>
                         </div>
                     </div>
-
                     {workCell.description && (
                         <div>
                             <Label className="text-muted-foreground text-sm">Descrição</Label>
                             <p className="mt-1">{workCell.description}</p>
                         </div>
                     )}
-
                     {/* Capacity Info */}
                     <div className="rounded-lg border p-4">
                         <h4 className="mb-3 font-medium flex items-center gap-2">
@@ -156,7 +146,6 @@ export default function WorkCellFormComponent({
                             </div>
                         </div>
                     </div>
-
                     {/* Location/Assignment */}
                     <div className="rounded-lg border p-4">
                         <h4 className="mb-3 font-medium flex items-center gap-2">
@@ -203,7 +192,6 @@ export default function WorkCellFormComponent({
                             )}
                         </div>
                     </div>
-
                     {/* Status */}
                     <div>
                         <Label className="text-muted-foreground text-sm">Status</Label>
@@ -215,7 +203,6 @@ export default function WorkCellFormComponent({
             </Card>
         );
     }
-
     return (
         <Card>
             <form onSubmit={handleSubmit}>
@@ -232,7 +219,6 @@ export default function WorkCellFormComponent({
                             placeholder="Nome da célula"
                             required
                         />
-
                         <div className="grid gap-2">
                             <Label>Tipo de Célula <span className="text-destructive">*</span></Label>
                             <RadioGroup
@@ -263,14 +249,12 @@ export default function WorkCellFormComponent({
                             {errors.cell_type && <span className="text-destructive text-sm">{errors.cell_type}</span>}
                         </div>
                     </div>
-
                     <TextInput
                         form={{ data, setData, errors, clearErrors: () => { } }}
                         name="description"
                         label="Descrição"
                         placeholder="Descrição da célula"
                     />
-
                     {/* Capacity */}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <TextInput
@@ -280,7 +264,6 @@ export default function WorkCellFormComponent({
                             placeholder="8"
                             required
                         />
-
                         <TextInput
                             form={{ data, setData, errors, clearErrors: () => { } }}
                             name="efficiency_percentage"
@@ -289,7 +272,6 @@ export default function WorkCellFormComponent({
                             required
                         />
                     </div>
-
                     {/* Shift */}
                     <ItemSelect
                         label="Turno"
@@ -300,7 +282,6 @@ export default function WorkCellFormComponent({
                         error={errors.shift_id}
                         canClear
                     />
-
                     {/* Location - Only for internal cells */}
                     {data.cell_type === 'internal' && (
                         <>
@@ -318,7 +299,6 @@ export default function WorkCellFormComponent({
                                 error={errors.plant_id}
                                 canClear
                             />
-
                             {data.plant_id && (
                                 <ItemSelect
                                     label="Área"
@@ -334,7 +314,6 @@ export default function WorkCellFormComponent({
                                     canClear
                                 />
                             )}
-
                             {data.area_id && (
                                 <ItemSelect
                                     label="Setor"
@@ -348,7 +327,6 @@ export default function WorkCellFormComponent({
                             )}
                         </>
                     )}
-
                     {/* Manufacturer - Only for external cells */}
                     {data.cell_type === 'external' && (
                         <ItemSelect
@@ -361,7 +339,6 @@ export default function WorkCellFormComponent({
                             required
                         />
                     )}
-
                     {/* Status */}
                     <div className="flex items-center justify-between">
                         <Label htmlFor="is_active">Ativa</Label>
