@@ -302,7 +302,7 @@ export default function ItemImport({ supportedFormats }: Props) {
                                                         <TableRow key={index}>
                                                             {csvData.headers.map((header) => (
                                                                 <TableCell key={header}>
-                                                                    {row[header]}
+                                                                    {row[header] as React.ReactNode}
                                                                 </TableCell>
                                                             ))}
                                                         </TableRow>

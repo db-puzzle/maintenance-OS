@@ -115,7 +115,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             } else if (Array.isArray(response.data)) {
                 workOrdersData = response.data;
             }
-            const transformedData = Array.isArray(error: unknown) => ({
+            const transformedData = Array.isArray(workOrdersData) ? workOrdersData.map((workOrder: any) => ({
                 id: workOrder.execution?.id || workOrder.id,
                 work_order_id: workOrder.id,
                 routine_name: workOrder.title,

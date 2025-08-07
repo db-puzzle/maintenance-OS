@@ -136,7 +136,7 @@ export default function ManufacturingOrders({
                         href={route('production.orders.show', order.id)}
                         className="font-medium text-primary hover:underline"
                     >
-                        {value}
+                        {value as React.ReactNode}
                     </Link>
                     {order.parent_id && (
                         <Badge variant="outline" className="text-xs">
@@ -144,10 +144,10 @@ export default function ManufacturingOrders({
                             Child
                         </Badge>
                     )}
-                    {order.child_orders_count > 0 && (
+                    {(order.child_orders_count as number) > 0 && (
                         <Badge variant="outline" className="text-xs">
                             <GitBranch className="h-3 w-3 mr-1" />
-                            {order.child_orders_count}
+                            {order.child_orders_count as React.ReactNode}
                         </Badge>
                     )}
                     {order.manufacturing_route && (
@@ -164,8 +164,8 @@ export default function ManufacturingOrders({
             width: 'w-[250px]',
             render: (value: unknown, order: Record<string, unknown>) => (
                 <div>
-                    <p className="font-medium">{order.item?.item_number || '-'}</p>
-                    <p className="text-sm text-muted-foreground">{order.item?.name || '-'}</p>
+                    <p className="font-medium">{(order.item as any)?.item_number || '-'}</p>
+                    <p className="text-sm text-muted-foreground">{(order.item as any)?.name || '-'}</p>
                 </div>
             ),
         },
@@ -176,11 +176,11 @@ export default function ManufacturingOrders({
             render: (value: unknown, order: Record<string, unknown>) => (
                 <div>
                     <p className="font-medium">
-                        {order.quantity} {order.unit_of_measure}
+                        {order.quantity as React.ReactNode} {order.unit_of_measure as React.ReactNode}
                     </p>
-                    {order.quantity_completed > 0 && (
+                    {(order.quantity_completed as number) > 0 && (
                         <p className="text-sm text-muted-foreground">
-                            {order.quantity_completed} completed
+                            {order.quantity_completed as React.ReactNode} completed
                         </p>
                     )}
                 </div>
@@ -191,8 +191,8 @@ export default function ManufacturingOrders({
             label: 'Status',
             width: 'w-[120px]',
             render: (value: unknown) => (
-                <Badge variant={getStatusBadgeVariant(value)}>
-                    {statuses[value] || value}
+                <Badge variant={getStatusBadgeVariant(value as string)}>
+                    {statuses[value as string] || value}
                 </Badge>
             ),
         },
@@ -201,8 +201,8 @@ export default function ManufacturingOrders({
             label: 'Priority',
             width: 'w-[80px]',
             render: (value: unknown) => (
-                <span className={`font-medium ${getPriorityColor(value)}`}>
-                    {value}
+                <span className={`font-medium ${getPriorityColor(value as number)}`}>
+                    {value as React.ReactNode}
                 </span>
             ),
         },
@@ -212,7 +212,7 @@ export default function ManufacturingOrders({
             width: 'w-[120px]',
             render: (value: unknown) => (
                 <div className="text-sm">
-                    {value ? new Date(value).toLocaleDateString() : '-'}
+                    {value ? new Date(value as string | number | Date).toLocaleDateString() : '-'}
                 </div>
             ),
         },
@@ -221,8 +221,8 @@ export default function ManufacturingOrders({
             label: 'Progress',
             width: 'w-[120px]',
             render: (value: unknown, order: Record<string, unknown>) => {
-                const progress = order.quantity > 0
-                    ? Math.round((order.quantity_completed / order.quantity) * 100)
+                const progress = (order.quantity as number) > 0
+                    ? Math.round(((order.quantity_completed as number) / (order.quantity as number)) * 100)
                     : 0;
                 return (
                     <div className="w-24">

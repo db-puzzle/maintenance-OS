@@ -172,7 +172,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     <TextInput
                         form={{
                             data,
-                            setData: (error: unknown) => setData(key as any, value),
+                            setData: (key: string, value: any) => setData(key as any, value),
                             errors,
                             clearErrors: handleClearErrors,
                         }}
@@ -186,7 +186,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     <TextInput
                         form={{
                             data,
-                            setData: (error: unknown) => setData(key as any, value),
+                            setData: (key: string, value: any) => setData(key as any, value),
                             errors,
                             clearErrors: handleClearErrors,
                         }}
@@ -332,7 +332,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     <TextInput
                         form={{
                             data,
-                            setData: (error: unknown) => setData(key as any, value),
+                            setData: (key: string, value: any) => setData(key as any, value),
                             errors,
                             clearErrors: handleClearErrors,
                         }}

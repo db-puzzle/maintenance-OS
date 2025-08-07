@@ -57,11 +57,11 @@ export default function SkillShow({ skill, can, activeTab = 'informacoes' }: Pag
         'advanced': 'Avançado',
         'expert': 'Especialista',
     };
-    const proficiencyVariants: Record<string, 'secondary' | 'default' | 'success' | 'warning'> = {
+    const proficiencyVariants: Record<string, 'secondary' | 'default' | 'destructive' | 'outline'> = {
         'beginner': 'secondary',
         'intermediate': 'default',
-        'advanced': 'warning',
-        'expert': 'success',
+        'advanced': 'outline',
+        'expert': 'destructive',
     };
     const userColumns: ColumnConfig[] = [
         {

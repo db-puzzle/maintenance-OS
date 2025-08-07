@@ -37,7 +37,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             { preserveState: true, replace: true }
         );
     };
-    const handleDelete = (error: unknown) => {
+    const handleDelete = (routing: any) => {
         if (confirm(`Tem certeza que deseja excluir o roteiro ${routing.name}?`)) {
             router.delete(route('production.routing.destroy', routing.id), {
                 onSuccess: () => {
@@ -159,8 +159,8 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
                         data={(routings.data || []) as any}
                         columns={columns}
                         loading={false}
-                        onRowClick={(error: unknown) => router.visit(route('production.routing.show', routing.id))}
-                        actions={(error: unknown) => (
+                        onRowClick={(routing: any) => router.visit(route('production.routing.show', routing.id))}
+                        actions={(routing: any) => (
                             <EntityActionDropdown
                                 onEdit={() => router.visit(route('production.routing.edit', routing.id))}
                                 onDelete={() => handleDelete(routing)}

@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, Link } from '@inertiajs/react';
 
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';

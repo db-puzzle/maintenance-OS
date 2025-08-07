@@ -106,12 +106,14 @@ export default function ProductionScheduleShow({ schedule }: Props) {
     });
     // Create a wrapper that matches the TextInput interface
     const form = {
-        data: inertiaForm.data as Record<string, unknown>,
-        setData: (name: string, value: unknown) => {
+        data: inertiaForm.data as Record<string, string | number | boolean | null | undefined>,
+        setData: (name: string, value: string | number | boolean | null) => {
             // Handle the type conversion for Inertia's setData
             const fieldName = name as keyof typeof inertiaForm.data;
             if (typeof value === 'string' || typeof value === 'number') {
                 inertiaForm.setData(fieldName, value as string | number);
+            } else if (value === null || value === undefined) {
+                inertiaForm.setData(fieldName, '');
             } else {
                 // For other types, convert to string
                 inertiaForm.setData(fieldName, String(value));

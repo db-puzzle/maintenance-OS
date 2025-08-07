@@ -77,7 +77,7 @@ export default function ShipmentEdit({ shipment }: Props) {
         e.preventDefault();
         put(route('production.shipments.update', shipment.id));
     };
-    const updateItem = (error: unknown) => {
+    const updateItem = (index: number, field: string, value: any) => {
         const newItems = [...data.items];
         newItems[index] = { ...newItems[index], [field]: value };
         setData('items', newItems);

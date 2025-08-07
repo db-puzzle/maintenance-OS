@@ -132,8 +132,8 @@ function AssetFormFields({
                     {/* TAG */}
                     <TextInput
                         form={{
-                            data,
-                            setData,
+                            data: data as Record<string, string | number | boolean | null | undefined>,
+                            setData: setData as (name: string, value: string | number | boolean | null) => void,
                             errors,
                             clearErrors,
                         }}
@@ -147,8 +147,8 @@ function AssetFormFields({
                     {/* Part Number */}
                     <TextInput
                         form={{
-                            data,
-                            setData,
+                            data: data as Record<string, string | number | boolean | null | undefined>,
+                            setData: setData as (name: string, value: string | number | boolean | null) => void,
                             errors,
                             clearErrors,
                         }}
@@ -201,8 +201,8 @@ function AssetFormFields({
                     {/* Número Serial */}
                     <TextInput
                         form={{
-                            data,
-                            setData,
+                            data: data as Record<string, string | number | boolean | null | undefined>,
+                            setData: setData as (name: string, value: string | number | boolean | null) => void,
                             errors,
                             clearErrors,
                         }}
@@ -214,8 +214,8 @@ function AssetFormFields({
                     {/* Ano de Fabricação */}
                     <TextInput
                         form={{
-                            data,
-                            setData,
+                            data: data as Record<string, string | number | boolean | null | undefined>,
+                            setData: setData as (name: string, value: string | number | boolean | null) => void,
                             errors,
                             clearErrors,
                         }}

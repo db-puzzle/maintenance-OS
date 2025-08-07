@@ -167,9 +167,9 @@ function RoutingOverviewTab({
         const mins = minutes % 60;
         return mins > 0 ? `${hours}h ${Math.round(mins)}min` : `${hours}h`;
     };
-    const totalSetupTime = effectiveSteps?.reduce(error: unknown) =>
+    const totalSetupTime = effectiveSteps?.reduce((sum: number, step: any) =>
         sum + (step.setup_time_minutes || 0), 0) || 0;
-    const totalCycleTime = effectiveSteps?.reduce(error: unknown) =>
+    const totalCycleTime = effectiveSteps?.reduce((sum: number, step: any) =>
         sum + (step.cycle_time_minutes || 0), 0) || 0;
     return (
         <div className="space-y-6 py-6">
@@ -309,7 +309,13 @@ function RoutingOverviewTab({
 }
 // Steps Tab Component
 // Helper Components
-function SummaryCard(error: unknown) {
+function SummaryCard({ icon, label, value, onClick, clickable = false }: { 
+    icon: React.ReactNode; 
+    label: string; 
+    value: string | number; 
+    onClick?: () => void; 
+    clickable?: boolean;
+}) {
     return (
         <div
             className={cn(

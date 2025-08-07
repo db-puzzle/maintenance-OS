@@ -155,11 +155,11 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
         ...(discipline === 'maintenance' ? [{
             key: 'asset',
             label: 'Ativo',
-            render: (_: any, row: Record<string, unknown>) => (row.asset?.tag || '-') as React.ReactNode,
+            render: (_: any, row: Record<string, unknown>) => ((row.asset as any)?.tag || '-') as React.ReactNode,
         }] : [{
             key: 'instrument',
             label: 'Instrumento',
-            render: (_: any, row: Record<string, unknown>) => (row.instrument?.tag || '-') as React.ReactNode,
+            render: (_: any, row: Record<string, unknown>) => ((row.instrument as any)?.tag || '-') as React.ReactNode,
         }]),
         {
             key: 'work_order_category',
@@ -172,9 +172,9 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                         <div className="flex justify-center">
                             <Badge
                                 variant="secondary"
-                                style={{ backgroundColor: row.work_order_category_obj.color + '20', borderColor: row.work_order_category_obj.color }}
+                                style={{ backgroundColor: (row.work_order_category_obj as any).color + '20', borderColor: (row.work_order_category_obj as any).color }}
                             >
-                                {row.work_order_category_obj.name}
+                                {(row.work_order_category_obj as any).name}
                             </Badge>
                         </div>
                     );
@@ -182,7 +182,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                 // Handle category as object or string
                 let categoryCode = row.work_order_category;
                 if (typeof categoryCode === 'object' && categoryCode !== null) {
-                    categoryCode = categoryCode.code || categoryCode.name || '';
+                    categoryCode = (categoryCode as any).code || (categoryCode as any).name || '';
                 }
                 // Fallback to category code
                 const categoryLabels: Record<string, string> = {
@@ -195,14 +195,14 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                     quality_audit: 'Auditoria',
                     non_conformance: 'Não Conformidade',
                 };
-                return <div className="text-center">{categoryLabels[categoryCode] || categoryCode || '-'}</div>;
+                return <div className="text-center">{categoryLabels[categoryCode as string] || categoryCode || '-'}</div>;
             },
         },
         {
             key: 'type',
             label: 'Tipo',
             headerAlign: 'center',
-            render: (_: any, row: Record<string, unknown>) => <div className="text-center">{row.type?.name || '-'}</div>,
+            render: (_: any, row: Record<string, unknown>) => <div className="text-center">{(row.type as any)?.name || '-'}</div>,
         },
         {
             key: 'priority_score',
@@ -210,7 +210,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             headerAlign: 'center',
             render: (value: unknown) => (
                 <div className="text-center">
-                    {value || 50}
+                    {(value || 50) as React.ReactNode}
                 </div>
             ),
             width: 'w-[80px]',
@@ -221,7 +221,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             headerAlign: 'center',
             render: (value: unknown) => (
                 <div className="flex justify-center">
-                    <WorkOrderStatusBadge status={value} />
+                    <WorkOrderStatusBadge status={value as WorkOrderStatus} />
                 </div>
             ),
             width: 'w-[150px]',
