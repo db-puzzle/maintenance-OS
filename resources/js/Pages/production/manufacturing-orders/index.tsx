@@ -143,7 +143,7 @@ export default function ManufacturingOrders({
                             <GitBranch className="h-3 w-3 mr-1" />
                             Child
                         </Badge>
-                    ) as React.ReactNode}
+                    )}
                     {(order.child_orders_count as number) > 0 && (
                         <Badge variant="outline" className="text-xs">
                             <GitBranch className="h-3 w-3 mr-1" />
@@ -154,7 +154,7 @@ export default function ManufacturingOrders({
                         <Badge variant="outline" className="text-xs">
                             <Workflow className="h-3 w-3" />
                         </Badge>
-                    ) as React.ReactNode}
+                    )}
                 </div>
             ),
         },

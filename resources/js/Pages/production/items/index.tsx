@@ -138,7 +138,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                     e?.stopPropagation(); // Prevent row click event
                     // If item has images, use them, otherwise fetch
                     if (item.images && (item.images as any[]).length > 0) {
-                        setCarouselItem(item as SetStateAction<Item | null>);
+                        setCarouselItem(item as Item);
                         setCarouselOpen(true);
                     } else if (item.images_count && (item.images_count as number) > 0) {
                         setLoadingImages(true);
@@ -175,14 +175,14 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         width: showImages ? 'w-[350px]' : 'w-[400px]',
         render: (value: unknown, item: Record<string, unknown>) => (
             <div>
-                <div className="font-medium">{value}</div>
+                <div className="font-medium">{value as React.ReactNode}</div>
                 {item.category && (
                     <div className="text-muted-foreground text-sm">
                         {(item.category as any).name && (item.category as any).name.length > 40
                             ? `${(item.category as any).name.substring(0, 40)}...`
                             : (item.category as any).name || '-'}
                     </div>
-                )}
+                ) as React.ReactNode}
             </div>
         )
     };
@@ -236,7 +236,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                     'prototype': 'Protótipo',
                     'discontinued': 'Descontinuado'
                 };
-                return labels[value as string] || value || '-';
+                return <>{labels[value as string] || value || '-'}</>;
             }
         }
     ];

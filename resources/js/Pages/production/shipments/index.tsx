@@ -119,7 +119,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
                     href={route('production.shipments.show', shipment.id)}
                     className="font-medium text-blue-600 hover:underline"
                 >
-                    {value}
+                    {value as React.ReactNode}
                 </Link>
             ),
         },
@@ -133,7 +133,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
                 return (
                     <Badge variant="secondary" className={cn(config.bgColor, config.color)}>
                         <Icon className="mr-1 h-3 w-3" />
-                        {statuses[value]}
+                        {statuses[value as string]}
                     </Badge>
                 );
             },
@@ -142,7 +142,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             key: 'shipment_type',
             label: 'Type',
             sortable: true,
-            render: (value: unknown) => shipmentTypes[value] || value,
+            render: (value: unknown) => <>{shipmentTypes[value as string] || value}</>,
         },
         {
             key: 'customer_name',
@@ -158,19 +158,19 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             key: 'scheduled_date',
             label: 'Scheduled Date',
             sortable: true,
-            render: (value: unknown) => format(new Date(value), 'MMM dd, yyyy'),
+            render: (value: unknown) => <>{format(new Date(value as string | number | Date), 'MMM dd, yyyy')}</>,
         },
         {
             key: 'items_count',
             label: 'Items',
             render: (value: unknown) => (
-                <span className="text-sm text-muted-foreground">{value} items</span>
+                <span className="text-sm text-muted-foreground">{value as React.ReactNode} items</span>
             ),
         },
         {
             key: 'tracking_number',
             label: 'Tracking',
-            render: (value: unknown) => value || '-',
+            render: (value: unknown) => <>{value || '-'}</>,
         },
     ];
     const breadcrumbs = [

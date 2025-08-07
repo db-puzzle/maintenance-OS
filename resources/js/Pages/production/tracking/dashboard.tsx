@@ -210,7 +210,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             render: (value: unknown, order: Record<string, unknown>) => (
                 order.current_work_cell ? (
                     <Badge variant="secondary">
-                        {order.current_work_cell.code}
+                        {(order.current_work_cell as any).code}
                     </Badge>
                 ) : (
                     <span className="text-muted-foreground">—</span>
@@ -237,8 +237,8 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                 };
                 return (
                     <div className="text-center">
-                        <Badge variant={variants[value] || 'secondary'}>
-                            {labels[value] || value}
+                        <Badge variant={variants[value as string] || 'secondary'}>
+                            {labels[value as string] || value}
                         </Badge>
                     </div>
                 );
@@ -315,7 +315,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                         <EntityDataTable
                             data={activeOrders as any}
                             columns={activeOrderColumns}
-                            onRowClick={(order: Record<string, unknown>) => handleOrderClick(order)}
+                            onRowClick={(order: Record<string, unknown>) => handleOrderClick(order as unknown as ManufacturingOrder)}
                         />
                     </CardContent>
                 </Card>

@@ -97,12 +97,12 @@ export default function BomIndex({ boms, filters }: Props) {
             width: 'w-[300px]',
             render: (value: unknown, row: Record<string, unknown>) => (
                 <div>
-                    <div className="font-medium">{value}</div>
+                    <div className="font-medium">{value as React.ReactNode}</div>
                     {row.description && (
                         <div className="text-muted-foreground text-sm">
-                            {(row.description as string).length > 40 ? `${(row.description as string).substring(0, 40)}...` : row.description}
+                            {(row.description as string).length > 40 ? `${(row.description as string).substring(0, 40)}...` : row.description as React.ReactNode}
                         </div>
-                    )}
+                    ) as React.ReactNode}
                 </div>
             )
         },
@@ -126,20 +126,20 @@ export default function BomIndex({ boms, filters }: Props) {
                     'inactive': 'Inativa',
                     'draft': 'Rascunho'
                 };
-                return labels[value as string] || value || '-';
+                return <>{labels[value as string] || value || '-'}</>;
             }
         },
         {
             key: 'versions_count',
             label: 'Versões',
             width: 'w-[100px]',
-            render: (value: unknown, row: Record<string, unknown>) => row.versions_count || 0
+            render: (value: unknown, row: Record<string, unknown>) => <>{row.versions_count || 0}</>
         },
         {
             key: 'item_masters_count',
             label: 'Componentes',
             width: 'w-[120px]',
-            render: (value: unknown, row: Record<string, unknown>) => (row as any).item_masters_count || 0
+            render: (value: unknown, row: Record<string, unknown>) => <>{(row as any).item_masters_count || 0}</>
         }
     ];
     const breadcrumbs = [
@@ -172,22 +172,22 @@ export default function BomIndex({ boms, filters }: Props) {
                         actions={(row: Record<string, unknown>) => (
                             <EntityActionDropdown
                                 onEdit={() => router.visit(route('production.bom.edit', (row as any).id))}
-                                onDelete={() => setDeleteBom(row as BillOfMaterial)}
+                                onDelete={() => setDeleteBom(row as unknown as BillOfMaterial)}
                                 additionalActions={[
                                     {
                                         label: 'Ver Hierarquia',
                                         icon: <GitBranch className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.bom.hierarchy', bom.id))
+                                        onClick: () => router.visit(route('production.bom.hierarchy', (row as any).id))
                                     },
                                     {
                                         label: 'Duplicar',
                                         icon: <Copy className="h-4 w-4" />,
-                                        onClick: () => handleDuplicate(bom as BillOfMaterial)
+                                        onClick: () => handleDuplicate(row as unknown as BillOfMaterial)
                                     },
                                     {
                                         label: 'Exportar',
                                         icon: <Download className="h-4 w-4" />,
-                                        onClick: () => handleExport(bom as BillOfMaterial)
+                                        onClick: () => handleExport(row as unknown as BillOfMaterial)
                                     }
                                 ]}
                             />
