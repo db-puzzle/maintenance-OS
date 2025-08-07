@@ -155,7 +155,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             sortable: true,
             width: 'w-[150px]',
             render: (value: unknown) => (
-                <Badge variant="outline">{value}</Badge>
+                <Badge variant="outline">{value as React.ReactNode}</Badge>
             )
         },
         {
@@ -163,8 +163,8 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             label: 'Produto',
             render: (value: unknown, order: Record<string, unknown>) => (
                 <div>
-                    <div className="font-medium">{order.item?.name}</div>
-                    <div className="text-sm text-muted-foreground">{order.item?.item_number}</div>
+                    <div className="font-medium">{(order.item as any)?.name}</div>
+                    <div className="text-sm text-muted-foreground">{(order.item as any)?.item_number}</div>
                 </div>
             )
         },
@@ -175,7 +175,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             headerAlign: 'center',
             render: (value: unknown, order: Record<string, unknown>) => (
                 <div className="text-center">
-                    {value} {order.unit_of_measure}
+                    {value as React.ReactNode} {order.unit_of_measure as React.ReactNode}
                 </div>
             )
         },
@@ -185,12 +185,12 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             width: 'w-[200px]',
             render: (value: unknown, order: Record<string, unknown>) => {
                 const progress = order.quantity_completed
-                    ? Math.round((order.quantity_completed / order.quantity) * 100)
+                    ? Math.round(((order.quantity_completed as number) / (order.quantity as number)) * 100)
                     : 0;
                 return (
                     <div className="space-y-1">
                         <div className="flex justify-between text-sm">
-                            <span>{order.quantity_completed || 0}/{order.quantity}</span>
+                            <span>{(order.quantity_completed || 0) as React.ReactNode}/{order.quantity as React.ReactNode}</span>
                             <span>{progress}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">

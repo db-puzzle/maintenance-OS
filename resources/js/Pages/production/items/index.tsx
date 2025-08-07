@@ -122,7 +122,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             label: 'Número',
             sortable: true,
             width: 'w-[150px]',
-            render: (value: unknown) => value || '-'
+            render: (value: unknown) => <>{value || '-'}</>
         }
     ];
     const imageColumn: ColumnConfig = {
@@ -131,16 +131,16 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         width: 'w-[160px]',
         render: (value: unknown, item: Record<string, unknown>) => (
             <ItemImagePreview
-                primaryImageUrl={item.primary_image_url}
-                imageCount={item.images_count || 0}
+                primaryImageUrl={item.primary_image_url as string | undefined}
+                imageCount={(item.images_count as number) || 0}
                 className="w-36 h-36"
                 onClick={async (e) => {
                     e?.stopPropagation(); // Prevent row click event
                     // If item has images, use them, otherwise fetch
-                    if (item.images && item.images.length > 0) {
-                        setCarouselItem(item);
+                    if (item.images && (item.images as any[]).length > 0) {
+                        setCarouselItem(item as SetStateAction<Item | null>);
                         setCarouselOpen(true);
-                    } else if (item.images_count && item.images_count > 0) {
+                    } else if (item.images_count && (item.images_count as number) > 0) {
                         setLoadingImages(true);
                         try {
                             // Fetch the item with images using our API endpoint
@@ -178,9 +178,9 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                 <div className="font-medium">{value}</div>
                 {item.category && (
                     <div className="text-muted-foreground text-sm">
-                        {item.category.name && item.category.name.length > 40
-                            ? `${item.category.name.substring(0, 40)}...`
-                            : item.category.name || '-'}
+                        {(item.category as any).name && (item.category as any).name.length > 40
+                            ? `${(item.category as any).name.substring(0, 40)}...`
+                            : (item.category as any).name || '-'}
                     </div>
                 )}
             </div>
@@ -214,10 +214,10 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             render: (value: unknown, item: Record<string, unknown>) => (
                 item.primary_bom && item.can_be_manufactured ? (
                     <Link
-                        href={route('production.bom.show', item.primary_bom?.id)}
+                        href={route('production.bom.show', (item.primary_bom as any)?.id)}
                         className="text-primary hover:underline"
                     >
-                        {item.primary_bom.bom_number}
+                        {(item.primary_bom as any).bom_number}
                     </Link>
                 ) : (
                     '-'
@@ -236,7 +236,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                     'prototype': 'Protótipo',
                     'discontinued': 'Descontinuado'
                 };
-                return labels[value] || value || '-';
+                return labels[value as string] || value || '-';
             }
         }
     ];

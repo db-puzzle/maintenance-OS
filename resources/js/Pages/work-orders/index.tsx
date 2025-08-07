@@ -172,9 +172,9 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                         <div className="flex justify-center">
                             <Badge
                                 variant="secondary"
-                                style={{ backgroundColor: row.work_order_category_obj.color + '20', borderColor: row.work_order_category_obj.color }}
+                                style={{ backgroundColor: (row.work_order_category_obj as any).color + '20', borderColor: (row.work_order_category_obj as any).color }}
                             >
-                                {row.work_order_category_obj.name}
+                                {(row.work_order_category_obj as any).name}
                             </Badge>
                         </div>
                     );
@@ -202,7 +202,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             key: 'type',
             label: 'Tipo',
             headerAlign: 'center',
-            render: (_: any, row: Record<string, unknown>) => <div className="text-center">{row.type?.name || '-'}</div>,
+            render: (_: any, row: Record<string, unknown>) => <div className="text-center">{(row.type as any)?.name || '-'}</div>,
         },
         {
             key: 'priority_score',

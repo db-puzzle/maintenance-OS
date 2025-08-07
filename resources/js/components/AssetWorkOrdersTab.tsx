@@ -131,8 +131,8 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
                 executor_name: item.executor_name,
                 requestedBy: item.requestedBy,
                 assignedTechnician: item.executor ? {
-                    id: item.executor.id,
-                    name: item.executor.name,
+                    id: (item.executor as any).id,
+                    name: (item.executor as any).name,
                 } : undefined,
             }));
 
@@ -177,7 +177,7 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
             label: 'Prioridade',
             render: (value) => (
                 <WorkOrderPriorityIndicator
-                    priorityScore={value || 50}
+                    priorityScore={(value as number) || 50}
                     showLabel={false}
                 />
             ),
@@ -186,7 +186,7 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
         {
             key: 'status',
             label: 'Status',
-            render: (value) => <WorkOrderStatusBadge status={value as string} />,
+            render: (value) => <WorkOrderStatusBadge status={value as WorkOrderStatus} />,
             width: 'w-[150px]',
         },
         {
@@ -201,7 +201,7 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
             render: (value) => {
                 if (!value) return '-';
                 try {
-                    const date = new Date(value);
+                    const date = new Date(value as string | number | Date);
                     if (isNaN(date.getTime())) return '-';
                     return format(date, 'dd/MM/yyyy', { locale: ptBR });
                 } catch {
@@ -217,7 +217,7 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
             render: (value) => {
                 if (!value) return '-';
                 try {
-                    const date = new Date(value);
+                    const date = new Date(value as string | number | Date);
                     if (isNaN(date.getTime())) return '-';
                     return format(date, 'dd/MM/yyyy', { locale: ptBR });
                 } catch {

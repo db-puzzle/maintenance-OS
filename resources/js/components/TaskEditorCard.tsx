@@ -202,8 +202,8 @@ export default function TaskEditorCard({
                         <div className="grid gap-2">
                             <TextInput
                                 form={{
-                                    data,
-                                    setData,
+                                    data: data as Record<string, string | number | boolean | null | undefined>,
+                                    setData: setData as (name: string, value: string | number | boolean | null) => void,
                                     errors,
                                     clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}
@@ -262,7 +262,7 @@ export default function TaskEditorCard({
                                                                 setData: (field, value) => {
                                                                     if (field === `option-${index}`) {
                                                                         const newOptions = [...options];
-                                                                        newOptions[index] = value;
+                                                                        newOptions[index] = value as string;
                                                                         handleOptionsChange(newOptions);
                                                                     }
                                                                 },
@@ -400,8 +400,8 @@ export default function TaskEditorCard({
                         <div>
                             <TextInput
                                 form={{
-                                    data,
-                                    setData,
+                                    data: data as Record<string, string | number | boolean | null | undefined>,
+                                    setData: setData as (name: string, value: string | number | boolean | null) => void,
                                     errors,
                                     clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}
@@ -415,8 +415,8 @@ export default function TaskEditorCard({
                         <div>
                             <TextInput
                                 form={{
-                                    data,
-                                    setData,
+                                    data: data as Record<string, string | number | boolean | null | undefined>,
+                                    setData: setData as (name: string, value: string | number | boolean | null) => void,
                                     errors,
                                     clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}

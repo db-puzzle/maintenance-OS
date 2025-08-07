@@ -163,7 +163,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                         data,
                                         setData: (name, value) => {
                                             if (name === 'zip_code') {
-                                                setData(name, formatCEP(value));
+                                                setData(name, formatCEP(value as string));
                                             } else {
                                                 setData(name, value);
                                             }
