@@ -7,7 +7,6 @@ import { type Asset } from '@/types/asset-hierarchy';
 import { type WorkOrder } from '@/types/work-order';
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Calendar, Clock, FileText, User } from 'lucide-react';
-
 interface Routine {
     id: number;
     name: string;
@@ -19,7 +18,6 @@ interface Routine {
         name: string;
     };
 }
-
 interface Props {
     asset: Asset;
     routine: Routine;
@@ -30,7 +28,6 @@ interface Props {
         total: number;
     };
 }
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Ativos',
@@ -45,7 +42,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '#',
     },
 ];
-
 export default function RoutineWorkOrders({ asset, routine, workOrders }: Props) {
     const formatDate = (dateString: string | null) => {
         if (!dateString) return 'N/A';
@@ -57,7 +53,6 @@ export default function RoutineWorkOrders({ asset, routine, workOrders }: Props)
             minute: '2-digit',
         });
     };
-
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'completed':
@@ -90,7 +85,6 @@ export default function RoutineWorkOrders({ asset, routine, workOrders }: Props)
                 return <Badge variant="secondary">{status}</Badge>;
         }
     };
-
     const getTriggerInfo = () => {
         if (routine.trigger_type === 'runtime_hours') {
             return `${routine.trigger_runtime_hours} horas de operação`;
@@ -98,11 +92,9 @@ export default function RoutineWorkOrders({ asset, routine, workOrders }: Props)
             return `${routine.trigger_calendar_days} dias`;
         }
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Ordens de Trabalho - ${routine.name}`} />
-
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -121,7 +113,6 @@ export default function RoutineWorkOrders({ asset, routine, workOrders }: Props)
                         </p>
                     </div>
                 </div>
-
                 {/* Estatísticas */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <Card>
@@ -158,7 +149,6 @@ export default function RoutineWorkOrders({ asset, routine, workOrders }: Props)
                         </CardContent>
                     </Card>
                 </div>
-
                 {/* Lista de Ordens de Trabalho */}
                 <Card>
                     <CardHeader>
@@ -192,7 +182,6 @@ export default function RoutineWorkOrders({ asset, routine, workOrders }: Props)
                                             </div>
                                             <div className="flex items-center gap-2">{getStatusBadge(workOrder.status)}</div>
                                         </div>
-
                                         <div className="text-muted-foreground flex items-center gap-4 text-sm">
                                             {workOrder.assigned_technician && (
                                                 <div className="flex items-center gap-1">
@@ -213,7 +202,6 @@ export default function RoutineWorkOrders({ asset, routine, workOrders }: Props)
                         )}
                     </CardContent>
                 </Card>
-
                 {/* Paginação */}
                 {workOrders.last_page > 1 && (
                     <div className="flex justify-center">

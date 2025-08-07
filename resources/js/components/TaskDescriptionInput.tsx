@@ -3,7 +3,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
-
 interface TaskDescriptionInputProps {
     mode: 'view' | 'edit';
     icon: LucideIcon;
@@ -18,7 +17,6 @@ interface TaskDescriptionInputProps {
     placeholder?: string;
     required?: boolean;
 }
-
 export default function TaskDescriptionInput({
     mode,
     icon: Icon,
@@ -30,7 +28,6 @@ export default function TaskDescriptionInput({
 }: TaskDescriptionInputProps) {
     const baseClasses = 'flex items-center gap-2';
     const textClasses = 'text-lg font-semibold flex-1 leading-none';
-
     if (mode === 'view') {
         return (
             <div className={baseClasses}>
@@ -41,12 +38,9 @@ export default function TaskDescriptionInput({
             </div>
         );
     }
-
     if (!form || !name) return null;
-
     const { data, setData, errors, clearErrors } = form;
     const value = String(data[name] ?? '');
-
     return (
         <div className="mr-4 flex-1">
             <div className={baseClasses}>

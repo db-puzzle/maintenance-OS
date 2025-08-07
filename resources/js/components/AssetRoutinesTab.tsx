@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Search, Upload, FileText, Edit2, History, Info, Clock, Hand, Plus, Eye, AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Search, Upload, FileText, Edit2, History, Info, Clock, Plus, Eye, AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -17,7 +17,7 @@ import CreateRoutineButton from '@/components/CreateRoutineButton';
 import EditRoutineSheet from '@/components/EditRoutineSheet';
 import InlineRoutineFormEditor from '@/components/InlineRoutineFormEditor';
 import { CalendarRange } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+
 import { Task } from '@/types/task';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -136,13 +136,11 @@ export default function AssetRoutinesTab({
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [confirmationText, setConfirmationText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [routineToDelete, setRoutineToDelete] = useState<any>(null);
+    const [routineToDelete, setRoutineToDelete] = useState<Routine | null>(null);
 
     // Estado para controlar o EditRoutineSheet
     const [editSheetOpen, setEditSheetOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [routineToEditInSheet, setRoutineToEditInSheet] = useState<any>(null);
+    const [routineToEditInSheet, setRoutineToEditInSheet] = useState<Routine | null>(null);
 
     // Estado para controlar o diálogo de nova rotina
     const [showNewRoutineDialog, setShowNewRoutineDialog] = useState(false);
@@ -165,7 +163,7 @@ export default function AssetRoutinesTab({
 
     // Refs
     const createRoutineButtonRef = useRef<HTMLButtonElement>(null);
-    const addTasksButtonRef = useRef<HTMLButtonElement>(null);
+
 
     // Check for new routine
     useEffect(() => {
@@ -257,30 +255,7 @@ export default function AssetRoutinesTab({
         return totalMinutes / 60; // Return hours
     };
 
-    const formatTriggerHours = (hours: number | undefined) => {
-        if (!hours) return { hoursText: 'N/A', workDaysText: null };
 
-        const shiftHoursPerWeek = calculateShiftHoursPerWeek(selectedShift);
-
-        // Base hours format - always show in hours as stored in database
-        const hoursText = `${hours} hora${hours !== 1 ? 's' : ''}`;
-
-        // Work days estimate
-        let workDaysText = null;
-        if (selectedShift && shiftHoursPerWeek > 0) {
-            const shiftHoursPerDay = shiftHoursPerWeek / 7;
-            const workDays = hours / shiftHoursPerDay;
-
-            if (workDays < 1) {
-                workDaysText = 'menos de 1 dia de trabalho';
-            } else {
-                const days = Math.round(workDays);
-                workDaysText = `${days} dia${days !== 1 ? 's' : ''} de trabalho`;
-            }
-        }
-
-        return { hoursText, workDaysText };
-    };
 
     const getRoutineColumns = (): ColumnConfig[] => [
         {
@@ -506,8 +481,7 @@ export default function AssetRoutinesTab({
             headerAlign: 'center',
             contentAlign: 'center',
             render: (value, row) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const form = (row as any).form;
+                const form = row.form;
 
                 if (!form || !form.tasks || form.tasks.length === 0) {
                     return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
@@ -527,8 +501,7 @@ export default function AssetRoutinesTab({
             sortable: false,
             width: 'w-[100px]',
             render: (value, row) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const form = (row as any).form;
+                const form = row.form;
 
                 if (!form) {
                     return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
@@ -568,9 +541,9 @@ export default function AssetRoutinesTab({
                     <div className="text-center">
                         <FormStatusBadge
                             form={{
-                                id: (form as any).id || 0,
+                                id: form.id || 0,
                                 ...form,
-                                current_version_id: (form as any).current_version_id ?? null,
+                                current_version_id: form.current_version_id ?? null,
                             }}
                             size="sm"
                         />
@@ -581,8 +554,7 @@ export default function AssetRoutinesTab({
     ];
 
     // Handlers
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleCreateSuccess = (routine: any) => {
+    const handleCreateSuccess = (routine: Routine) => {
         // Add the new routine to the state
         if (routine && routine.id) {
             setRoutines((prevRoutines) => [...prevRoutines, routine]);
@@ -641,14 +613,12 @@ export default function AssetRoutinesTab({
         toast.success('Formulário da rotina atualizado com sucesso!');
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleEditRoutine = (routine: any) => {
+    const handleEditRoutine = (routine: Routine) => {
         setRoutineToEditInSheet(routine);
         setEditSheetOpen(true);
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleEditRoutineSuccess = (updatedRoutine: any) => {
+    const handleEditRoutineSuccess = (updatedRoutine: Routine) => {
         setEditSheetOpen(false);
         setRoutineToEditInSheet(null);
         // Update the routine in the state
@@ -691,10 +661,12 @@ export default function AssetRoutinesTab({
         );
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleEditFormClick = (routine: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const formState = routine.form ? getFormState(routine.form as any) : null;
+    const hasFormTasks = (form: Routine['form']): boolean => {
+        return !!(form?.tasks && form.tasks.length > 0);
+    };
+
+    const handleEditFormClick = (routine: Routine) => {
+        const formState = routine.form ? getFormState(routine.form) : null;
 
         // Check if form is published (not unpublished and not already in draft)
         if (formState === 'published') {
@@ -715,8 +687,7 @@ export default function AssetRoutinesTab({
         setRoutineToEdit(null);
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleDeleteClick = (routine: any) => {
+    const handleDeleteClick = (routine: Routine) => {
         setRoutineToDelete(routine);
         setShowDeleteDialog(true);
     };
@@ -780,19 +751,13 @@ export default function AssetRoutinesTab({
                     router.visit(response.data.redirect);
                 }
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Erro ao criar ordem de serviço');
+        } catch (error) {
+            const err = error as { response?: { data?: { error?: string } } };
+            toast.error(err.response?.data?.error || 'Erro ao criar ordem de serviço');
         }
     };
 
-    const isRoutineDue = (routine: Routine): boolean => {
-        // This is a simplified check - ideally this would come from the backend
-        if (!routine.last_execution_runtime_hours) {
-            return true; // Never executed, so it's due
-        }
-        // You might want to add more logic here based on current runtime vs trigger hours
-        return true;
-    };
+
 
     const handleSetLastExecution = (routine: Routine) => {
         setRoutineForLastExecution(routine);
@@ -839,8 +804,9 @@ export default function AssetRoutinesTab({
                 setRoutineForLastExecution(null);
                 setLastExecutionDate('');
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Erro ao atualizar data da última execução');
+        } catch (error) {
+            const err = error as { response?: { data?: { error?: string } } };
+            toast.error(err.response?.data?.error || 'Erro ao atualizar data da última execução');
         } finally {
             setIsUpdatingLastExecution(false);
         }
@@ -920,8 +886,7 @@ export default function AssetRoutinesTab({
                                 onDelete={() => handleDeleteClick(routine)}
                                 additionalActions={[
                                     // Publicar - Primary action for unpublished routines with tasks
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    ...(routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 && getFormState(routine.form as any) === 'unpublished' ? [{
+                                    ...(hasFormTasks(routine.form) && getFormState(routine.form!) === 'unpublished' ? [{
                                         label: 'Publicar',
                                         icon: (
                                             <div className="relative">
@@ -933,15 +898,13 @@ export default function AssetRoutinesTab({
                                         className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                     }] : []),
                                     // Separator after Publicar (if shown)
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    ...(routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 && getFormState(routine.form as any) === 'unpublished' ? [{
+                                    ...(hasFormTasks(routine.form) && getFormState(routine.form!) === 'unpublished' ? [{
                                         label: 'separator',
                                         icon: null,
                                         onClick: () => { },
                                     }] : []),
                                     // Create Work Order - Primary action at the top with emphasis
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    ...(routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 && getFormState(routine.form as any) !== 'unpublished' ? [{
+                                    ...(hasFormTasks(routine.form) && getFormState(routine.form!) !== 'unpublished' ? [{
                                         label: 'Criar Ordem de Serviço',
                                         icon: (
                                             <div className="relative">
@@ -953,37 +916,31 @@ export default function AssetRoutinesTab({
                                         className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                     }] : []),
                                     // Separator after Create Work Order
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    ...(routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 && getFormState(routine.form as any) !== 'unpublished' ? [{
+                                    ...(hasFormTasks(routine.form) && getFormState(routine.form!) !== 'unpublished' ? [{
                                         label: 'separator',
                                         icon: null,
                                         onClick: () => { },
                                     }] : []),
                                     // Add/Edit Tasks - Second primary action with prominence
                                     {
-                                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                        label: routine.form && (routine.form as any).has_draft_changes ? 'Editar Tarefas' :
-                                            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                            routine.form && (routine.form as any).tasks && (routine.form as any).tasks.length > 0 ? 'Editar Tarefas' :
+                                        label: routine.form?.has_draft_changes ? 'Editar Tarefas' :
+                                            hasFormTasks(routine.form) ? 'Editar Tarefas' :
                                                 'Adicionar Tarefas',
                                         icon: (
                                             <div className="relative">
                                                 <FileText className="h-4 w-4 text-primary" />
-                                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                                {(!routine.form || !(routine.form as any).tasks || (routine.form as any).tasks.length === 0) && (
+                                                {!hasFormTasks(routine.form) && (
                                                     <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
                                                 )}
                                             </div>
                                         ),
                                         onClick: () => handleEditFormClick(routine),
-                                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                        className: (!routine.form || !(routine.form as any).tasks || (routine.form as any).tasks.length === 0)
+                                        className: !hasFormTasks(routine.form)
                                             ? 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                             : undefined
                                     },
                                     // Separator after Add Tasks (only when showing "Adicionar Tarefas")
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    ...(!routine.form || !(routine.form as any).tasks || (routine.form as any).tasks.length === 0 ? [{
+                                    ...(!hasFormTasks(routine.form) ? [{
                                         label: 'separator',
                                         icon: null,
                                         onClick: () => { },
@@ -1003,14 +960,12 @@ export default function AssetRoutinesTab({
                                         icon: <Edit2 className="h-4 w-4" />,
                                         onClick: () => handleEditRoutine(routine),
                                     },
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    ...(routine.form && (routine.form as any).has_draft_changes && (routine.form as any).current_version_id ? [{
-                                        label: `Ver Versão Publicada (v${(routine.form as any).current_version?.version_number || '1.0'})`,
+                                    ...(routine.form?.has_draft_changes && routine.form?.current_version_id ? [{
+                                        label: `Ver Versão Publicada (v${routine.form?.current_version?.version_number || '1.0'})`,
                                         icon: <Eye className="h-4 w-4" />,
                                         onClick: () => router.visit(route('maintenance.routines.view-published-version', { routine: routine.id })),
                                     }] : []),
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    ...(routine.form && (routine.form as any).current_version_id ? [{
+                                    ...(routine.form?.current_version_id ? [{
                                         label: 'Ver Histórico de Versões',
                                         icon: <History className="h-4 w-4" />,
                                         onClick: () => handleShowVersionHistory(routine.id),

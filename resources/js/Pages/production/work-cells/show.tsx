@@ -2,14 +2,12 @@ import { type BreadcrumbItem } from '@/types';
 import { type WorkCell, type ManufacturingStep, type ProductionSchedule } from '@/types/production';
 import { Head, Link, router } from '@inertiajs/react';
 import { Factory, Clock, Calendar, Gauge } from 'lucide-react';
-
 import WorkCellFormComponent from '@/components/production/WorkCellFormComponent';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
-
 interface Props {
     workCell: WorkCell & {
         plant?: { id: number; name: string };
@@ -50,7 +48,6 @@ interface Props {
         };
     };
 }
-
 export default function Show({
     workCell,
     plants,
@@ -82,10 +79,8 @@ export default function Show({
             href: '#',
         },
     ];
-
     const handleSort = (section: 'steps' | 'schedules', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
-
         router.get(
             route('production.work-cells.show', {
                 work_cell: workCell.id,
@@ -98,18 +93,16 @@ export default function Show({
             { preserveState: true },
         );
     };
-
     // Verificações de segurança para evitar erros de undefined
     if (!workCell) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
-                <ShowLayout title="Carregando..." tabs={[]}>
+                <ShowLayout title="Carregando..." editRoute="" tabs={[]}>
                     <div>Carregando informações da célula de trabalho...</div>
                 </ShowLayout>
             </AppLayout>
         );
     }
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
@@ -133,7 +126,6 @@ export default function Show({
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -159,7 +151,7 @@ export default function Show({
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={routingSteps.data as Record<string, unknown>[]}
+                        data={routingSteps.data.map(step => ({ ...step } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'step_number',
@@ -199,7 +191,6 @@ export default function Show({
                         ]}
                         onSort={(columnKey) => handleSort('steps', columnKey)}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: routingSteps.current_page,
@@ -226,7 +217,7 @@ export default function Show({
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={productionSchedules.data as Record<string, unknown>[]}
+                        data={productionSchedules.data.map(schedule => ({ ...schedule } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'order',
@@ -234,7 +225,7 @@ export default function Show({
                                 sortable: true,
                                 width: 'w-[200px]',
                                 render: (value, row) => {
-                                    const schedule = row as ProductionSchedule;
+                                    const schedule = row as any;
                                     if (schedule.manufacturing_order) {
                                         return (
                                             <Link
@@ -254,13 +245,13 @@ export default function Show({
                                 sortable: false,
                                 width: 'w-[250px]',
                                 render: (value, row) => {
-                                    const schedule = row as ProductionSchedule;
+                                    const schedule = row as any;
                                     if (schedule.manufacturing_step) {
                                         return (
                                             <div>
                                                 <div>Etapa #{schedule.manufacturing_step.step_number}</div>
                                                 <div className="text-muted-foreground text-sm">
-                                                    {schedule.manufacturing_step.operation_description}
+                                                    {schedule.manufacturing_step?.operation_description || ''}
                                                 </div>
                                             </div>
                                         );
@@ -314,7 +305,6 @@ export default function Show({
                         ]}
                         onSort={(columnKey) => handleSort('schedules', columnKey)}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: productionSchedules.current_page,
@@ -336,13 +326,13 @@ export default function Show({
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Célula de Trabalho ${workCell.name}`} />
             <ShowLayout
                 title={workCell.name}
                 subtitle={subtitle}
+                editRoute={route('production.work-cells.edit', workCell.id)}
                 tabs={tabs}
             />
         </AppLayout>

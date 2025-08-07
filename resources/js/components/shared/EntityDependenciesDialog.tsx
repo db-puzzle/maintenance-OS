@@ -5,17 +5,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { DependencyResult } from '@/types/shared';
 import { Link } from '@inertiajs/react';
 import { AlertCircle, FileText, Layers, MapPin, Package } from 'lucide-react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: string | number | Record<string, string | number>) => string;
-
 interface EntityDependenciesDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     entityName: string;
     dependencies: DependencyResult | null;
 }
-
 // Map dependency keys to icons and routes
 const dependencyConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; route?: string; label: string }> = {
     areas: { icon: MapPin, route: 'asset-hierarchy.areas.show', label: 'Áreas' },
@@ -24,11 +21,9 @@ const dependencyConfig: Record<string, { icon: React.ComponentType<{ className?:
     asset: { icon: Package, route: 'asset-hierarchy.assets.show', label: 'Ativos' },
     routines: { icon: FileText, label: 'Rotinas' },
 };
-
 export function EntityDependenciesDialog({ open, onOpenChange, entityName, dependencies }: EntityDependenciesDialogProps) {
     // Filter out dependencies with zero count
     const activeDependencies = dependencies ? Object.entries(dependencies.dependencies).filter(([, dep]) => (dep.count || dep.total || 0) > 0) : [];
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="flex max-h-[80vh] max-w-2xl flex-col overflow-hidden">
@@ -40,14 +35,12 @@ export function EntityDependenciesDialog({ open, onOpenChange, entityName, depen
                     {entityName === 'planta' ? 'Esta' : 'Este'} {entityName} possui itens vinculados e não pode ser{' '}
                     {entityName === 'planta' ? 'excluída' : 'excluído'} até que todos sejam excluídos ou movidos.
                 </DialogDescription>
-
                 {activeDependencies.length > 0 && (
                     <div className="my-4 space-y-4">
                         {activeDependencies.map(([key, dep]) => {
                             const config = dependencyConfig[key] || { icon: FileText, label: key };
                             const IconComponent = config.icon;
                             const itemCount = dep.count || dep.total || 0;
-
                             return (
                                 <div key={key} className="space-y-3">
                                     <div className="flex items-center justify-between">
@@ -59,7 +52,6 @@ export function EntityDependenciesDialog({ open, onOpenChange, entityName, depen
                                             {itemCount} {itemCount === 1 ? 'item' : 'itens'}
                                         </span>
                                     </div>
-
                                     {dep.items && dep.items.length > 0 && (
                                         <div className="rounded-lg border">
                                             {dep.items.length <= 3 ? (
@@ -76,7 +68,6 @@ export function EntityDependenciesDialog({ open, onOpenChange, entityName, depen
                                                                 </div>
                                                             </div>
                                                         );
-
                                                         return config.route ? (
                                                             <Link key={item.id} href={route(config.route, item.id)} className="block">
                                                                 <Card className="hover:bg-accent hover:text-accent-foreground cursor-pointer p-2 transition-colors">
@@ -110,7 +101,6 @@ export function EntityDependenciesDialog({ open, onOpenChange, entityName, depen
                                                                             </div>
                                                                         </div>
                                                                     );
-
                                                                     return config.route ? (
                                                                         <Link key={item.id} href={route(config.route, item.id)} className="block">
                                                                             <Card className="hover:bg-accent hover:text-accent-foreground cursor-pointer p-2 transition-colors">
@@ -140,7 +130,6 @@ export function EntityDependenciesDialog({ open, onOpenChange, entityName, depen
                         })}
                     </div>
                 )}
-
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)} autoFocus={false}>
                         Entendi

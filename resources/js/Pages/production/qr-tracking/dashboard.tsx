@@ -13,10 +13,8 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -31,7 +29,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/production/qr-tracking/dashboard',
     },
 ];
-
 interface Props {
     statistics: {
         total_scans: number;
@@ -56,7 +53,6 @@ interface Props {
         count: number;
     }>;
 }
-
 const eventTypeColors: Record<string, string> = {
     generated: '#10b981',
     printed: '#3b82f6',
@@ -65,7 +61,6 @@ const eventTypeColors: Record<string, string> = {
     complete_production: '#22c55e',
     ship: '#ef4444',
 };
-
 const eventTypeLabels: Record<string, string> = {
     generated: 'Gerado',
     printed: 'Impresso',
@@ -73,29 +68,24 @@ const eventTypeLabels: Record<string, string> = {
     status_update: 'Atualização de Status',
     location_change: 'Mudança de Local',
 };
-
 export default function QrTrackingDashboard({ statistics, recent_events, event_type_distribution, daily_trends }: Props) {
     const [search, setSearch] = useState('');
-
     // Prepare data for pie chart
     const pieData = Object.entries(event_type_distribution).map(([type, count]) => ({
         name: eventTypeLabels[type] || type,
         value: count,
         color: eventTypeColors[type] || '#94a3b8',
     }));
-
     // Prepare data for bar chart
     const barData = daily_trends.map(item => ({
         date: format(new Date(item.date), 'MMM dd'),
         scans: item.count,
     }));
-
     const handleSearch = (value: string) => {
         setSearch(value);
         // This would filter the data if we had client-side filtering
         // For server-side filtering, you'd need to implement it in the controller
     };
-
     const actions = (
         <div className="flex gap-2">
             <Button asChild variant="outline">
@@ -112,11 +102,9 @@ export default function QrTrackingDashboard({ statistics, recent_events, event_t
             </Button>
         </div>
     );
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Painel de Rastreamento QR" />
-
             <ListLayout
                 title="Rastreamento de QR Code"
                 description="Monitore escaneamentos de QR code e atividades de rastreamento de produção"
@@ -169,13 +157,11 @@ export default function QrTrackingDashboard({ statistics, recent_events, event_t
                             </CardContent>
                         </Card>
                     </div>
-
                     <Tabs defaultValue="overview" className="space-y-4">
                         <TabsList>
                             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                             <TabsTrigger value="recent">Atividade Recente</TabsTrigger>
                         </TabsList>
-
                         <TabsContent value="overview" className="space-y-4">
                             <div className="grid gap-4 md:grid-cols-2">
                                 {/* Daily Trends */}
@@ -202,7 +188,6 @@ export default function QrTrackingDashboard({ statistics, recent_events, event_t
                                         )}
                                     </CardContent>
                                 </Card>
-
                                 {/* Event Type Distribution */}
                                 <Card>
                                     <CardHeader>
@@ -239,7 +224,6 @@ export default function QrTrackingDashboard({ statistics, recent_events, event_t
                                 </Card>
                             </div>
                         </TabsContent>
-
                         <TabsContent value="recent" className="space-y-4">
                             <Card>
                                 <CardHeader>

@@ -36,7 +36,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ColumnConfig } from '@/types/shared';
-
 interface Invitation extends Record<string, unknown> {
     id: number;
     email: string;
@@ -57,7 +56,6 @@ interface Invitation extends Record<string, unknown> {
         resend: boolean;
     };
 }
-
 interface Props {
     invitations: {
         data: Invitation[];
@@ -79,7 +77,6 @@ interface Props {
         expired: number;
     };
 }
-
 function InvitationStatusBadge({ status }: { status: string }) {
     switch (status) {
         case 'accepted':
@@ -110,7 +107,6 @@ function InvitationStatusBadge({ status }: { status: string }) {
             return null;
     }
 }
-
 export default function InvitationsIndex({ invitations, filters, stats }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
@@ -119,20 +115,16 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
         invitation: null,
     });
     const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null);
-
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         router.get(route('invitations.index'), { search, status }, { preserveState: true });
     };
-
     const handleStatusChange = (value: string) => {
         setStatus(value);
         router.get(route('invitations.index'), { search, status: value }, { preserveState: true });
     };
-
     const handleRevoke = () => {
         if (!revokeDialog.invitation) return;
-
         router.post(
             route('invitations.revoke', revokeDialog.invitation.id),
             { reason: '' },
@@ -147,7 +139,6 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
             }
         );
     };
-
     const handleResend = (invitation: Invitation) => {
         router.post(
             route('invitations.resend', invitation.id),
@@ -162,14 +153,12 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
             }
         );
     };
-
     const copyInvitationLink = (invitation: Invitation) => {
         // Use the URL provided by the backend
         const invitationUrl = invitation.url || route('invitations.accept', { token: invitation.token });
         navigator.clipboard.writeText(invitationUrl);
         toast.success('O link do convite foi copiado para a área de transferência.');
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'email',
@@ -206,7 +195,6 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
             },
         },
     ];
-
     const renderActions = (row: Record<string, unknown>) => {
         const invitation = row as Invitation;
         return (
@@ -250,17 +238,14 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
             </DropdownMenu>
         );
     };
-
     const breadcrumbs = [
         { title: 'Home', href: '/home' },
         { title: 'Usuários', href: '#' },
         { title: 'Convites', href: '/invitations' },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Convites de Usuário" />
-
             <div className="bg-background flex-shrink-0 border-b">
                 <div className="px-6 py-4">
                     <div className="flex justify-between items-center">
@@ -281,7 +266,6 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
                     </div>
                 </div>
             </div>
-
             <div className="container mx-auto py-6 px-6">
                 {/* Stats */}
                 <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
@@ -302,7 +286,6 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
                         <div className="text-sm text-gray-500">Expirados</div>
                     </div>
                 </div>
-
                 {/* Filters */}
                 <div className="mb-6">
                     <form onSubmit={handleSearch} className="flex flex-col gap-4 sm:flex-row">
@@ -328,7 +311,6 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
                         <Button type="submit">Buscar</Button>
                     </form>
                 </div>
-
                 {/* Table */}
                 <div className="rounded-lg bg-white shadow">
                     <EntityDataTable
@@ -338,7 +320,6 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
                         emptyMessage="Nenhum convite encontrado."
                     />
                 </div>
-
                 {/* Pagination */}
                 {invitations.links && invitations.links.length > 3 && (
                     <div className="mt-4 flex justify-center">
@@ -359,7 +340,6 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
                     </div>
                 )}
             </div>
-
             {/* Revoke Dialog */}
             <AlertDialog open={revokeDialog.open} onOpenChange={(open) => setRevokeDialog({ open, invitation: null })}>
                 <AlertDialogContent>
@@ -382,7 +362,6 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
             {/* Invitation Details Modal */}
             {selectedInvitation && (
                 <InvitationDetailsModal
@@ -396,7 +375,6 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
         </AppLayout>
     );
 }
-
 // Invitation Details Modal Component
 function InvitationDetailsModal({
     invitation,
@@ -416,7 +394,6 @@ function InvitationDetailsModal({
         navigator.clipboard.writeText(invitationUrl);
         toast.success('O link do convite foi copiado para a área de transferência.');
     };
-
     return (
         <AlertDialog open={open} onOpenChange={onClose}>
             <AlertDialogContent className="max-w-md">

@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import { useInitials } from '@/hooks/use-initials';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-
 interface User {
     id: number;
     name: string;
@@ -18,7 +17,6 @@ interface User {
     created_at: string;
     updated_at: string;
 }
-
 interface UserFormComponentProps {
     user: User;
     initialMode?: 'view' | 'edit';
@@ -26,7 +24,6 @@ interface UserFormComponentProps {
     onCancel?: () => void;
     canUpdate?: boolean;
 }
-
 export default function UserFormComponent({
     user,
     initialMode = 'view',
@@ -38,17 +35,14 @@ export default function UserFormComponent({
     const isViewMode = mode === 'view';
     const getInitials = useInitials();
     const initials = getInitials(user.name);
-
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm({
         name: user.name,
         email: user.email,
     });
-
     const handleSave = () => {
         put(route('users.update', user.id), {
             onSuccess: () => {
@@ -67,7 +61,6 @@ export default function UserFormComponent({
             },
         });
     };
-
     const handleCancel = () => {
         if (mode === 'edit') {
             // Reset form to original data
@@ -78,11 +71,9 @@ export default function UserFormComponent({
             onCancel();
         }
     };
-
     const handleEdit = () => {
         setMode('edit');
     };
-
     const getRoleBadgeColor = (roleName: string) => {
         switch (roleName) {
             case 'Administrator':
@@ -103,7 +94,6 @@ export default function UserFormComponent({
                 return 'bg-gray-200 text-gray-800 hover:bg-gray-300';
         }
     };
-
     return (
         <div className="space-y-6">
             {/* Form Fields */}
@@ -129,7 +119,6 @@ export default function UserFormComponent({
                             <p className="text-sm text-red-500">{errors.name}</p>
                         )}
                     </div>
-
                     <div className="space-y-2">
                         <Label htmlFor="email">E-mail</Label>
                         {isViewMode ? (
@@ -152,7 +141,6 @@ export default function UserFormComponent({
                         )}
                     </div>
                 </div>
-
                 {/* Roles - View Only */}
                 <div className="space-y-2">
                     <Label>Funções</Label>
@@ -171,7 +159,6 @@ export default function UserFormComponent({
                         )}
                     </div>
                 </div>
-
                 {/* Timestamps - View Only */}
                 <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
@@ -188,7 +175,6 @@ export default function UserFormComponent({
                     </div>
                 </div>
             </div>
-
             {/* Action Buttons */}
             {canUpdate && (
                 <div className="flex justify-end gap-2">

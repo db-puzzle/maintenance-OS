@@ -7,7 +7,6 @@ import { Task, TaskState, TaskType, TaskTypes } from '@/types/task';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ArrowLeft, FileText } from 'lucide-react';
-
 interface TaskCardProps {
     /** A tarefa a ser exibida */
     task: Task;
@@ -28,25 +27,21 @@ interface TaskCardProps {
     /** Callback para retornar ao modo de visualização normal */
     onViewNormal: () => void;
 }
-
 const getTaskTypeIcon = (type: TaskType) => {
     const taskType = TaskTypes.find((t) => t.value === type);
     return taskType ? <taskType.icon className="h-6 w-6" /> : <FileText className="h-4 w-4" />;
 };
-
 export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal }: TaskCardProps) {
     const { setNodeRef, transform, transition, isDragging } = useSortable({
         id: `task-${task.id}`,
         animateLayoutChanges: () => false,
     });
-
     const style = {
         transform: CSS.Transform.toString(transform),
         transition: transition && 'transform 150ms ease',
         opacity: isDragging ? 0.5 : undefined,
         zIndex: isDragging ? 1 : undefined,
     };
-
     const renderStateActions = () => {
         switch (state) {
             case TaskState.Viewing:
@@ -69,14 +64,11 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
                 return null;
         }
     };
-
     const renderTaskContent = () => {
         const taskType = TaskTypes.find((t) => t.value === task.type);
         if (!taskType) return null;
-
         return <TaskDescriptionInput mode="view" icon={taskType.icon} value={task.description} />;
     };
-
     const renderPreviewContent = () => {
         // Conteúdo da visualização prévia (mais detalhado)
         return (
@@ -85,7 +77,6 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
                     {getTaskTypeIcon(task.type)}
                     <Label className="text-lg font-semibold">{task.description}</Label>
                 </div>
-
                 {/* Campos específicos por tipo de tarefa */}
                 {task.type === 'multiple_choice' && task.options && (
                     <div className="space-y-2 pl-4">
@@ -98,7 +89,6 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
                         ))}
                     </div>
                 )}
-
                 {task.type === 'multiple_select' && task.options && (
                     <div className="space-y-2 pl-4">
                         <Label className="text-muted-foreground text-sm">Selecione as opções:</Label>
@@ -110,7 +100,6 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
                         ))}
                     </div>
                 )}
-
                 {task.type === 'measurement' && task.measurement && (
                     <div className="text-muted-foreground text-sm">
                         <div className="flex items-center gap-1">
@@ -124,7 +113,6 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
                         </div>
                     </div>
                 )}
-
                 {task.type === 'photo' && task.instructions && task.instructions.length > 0 && (
                     <div className="text-muted-foreground pl-4">
                         {task.instructions.map((instruction) => {
@@ -135,14 +123,12 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
                         })}
                     </div>
                 )}
-
                 {task.type === 'code_reader' && task.codeReaderInstructions && (
                     <div className="text-muted-foreground pl-4">
                         <p>Tipo: {task.codeReaderType === 'qr_code' ? 'QR Code' : 'Código de Barras'}</p>
                         <p>{task.codeReaderInstructions}</p>
                     </div>
                 )}
-
                 {task.type === 'file_upload' && task.fileUploadInstructions && (
                     <div className="text-muted-foreground pl-4">
                         <p>{task.fileUploadInstructions}</p>
@@ -151,7 +137,6 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
             </div>
         );
     };
-
     const renderRespondContent = () => {
         // Conteúdo para resposta (similar ao preview, mas com campos para input)
         return (
@@ -160,7 +145,6 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
                     {getTaskTypeIcon(task.type)}
                     <Label className="text-lg font-semibold">{task.description}</Label>
                 </div>
-
                 {/* Campos de resposta específicos por tipo de tarefa */}
                 {/* Aqui seria implementado o formulário real de resposta */}
                 <div className="text-muted-foreground pl-4 italic">
@@ -169,7 +153,6 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
             </div>
         );
     };
-
     return (
         <Card ref={setNodeRef} style={style} className={`bg-muted/30 ${isDragging ? 'shadow-lg' : ''}`}>
             <CardHeader>
@@ -179,7 +162,6 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
                         {state === TaskState.Previewing && renderPreviewContent()}
                         {state === TaskState.Responding && renderRespondContent()}
                     </div>
-
                     <div className="flex items-center gap-1">
                         <span
                             className={`rounded-full px-2 py-0.5 text-xs ${task.isRequired ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-500'}`}
@@ -195,7 +177,6 @@ export default function TaskCard({ task, state, onEdit, onNewTask, onViewNormal 
                     <div className="flex justify-end gap-2">
                         <AddTaskButton
                             label="Nova Tarefa Abaixo"
-                            taskTypes={TaskTypes}
                             tasks={[task]}
                             currentIndex={0}
                             onTaskAdded={(newTask) => {

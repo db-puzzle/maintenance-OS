@@ -6,7 +6,6 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-
 interface AssetData {
     id: number;
     tag: string;
@@ -22,7 +21,6 @@ interface AssetData {
     area_name?: string;
     sector_name?: string | null;
 }
-
 interface ManufacturerData {
     id: number;
     name: string;
@@ -34,7 +32,6 @@ interface ManufacturerData {
     assets_count?: number;
     assets?: AssetData[]; // For backward compatibility
 }
-
 interface Props {
     manufacturer: ManufacturerData;
     assets?: {
@@ -52,7 +49,6 @@ interface Props {
         };
     };
 }
-
 export default function Show({ manufacturer, assets, activeTab = 'informacoes', filters = { assets: { sort: 'tag', direction: 'asc' } } }: Props) {
     // Handle backward compatibility - if assets is not provided, use the old structure
     const assetsData = assets || {
@@ -62,7 +58,6 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
         per_page: manufacturer.assets?.length || 0,
         total: manufacturer.assets?.length || 0,
     };
-
     // Helper function to extract name from string or object
     const getNameFromValue = (value: string | null | { id: number; name: string }): string => {
         if (!value) return '-';
@@ -70,10 +65,8 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
         if (typeof value === 'object' && 'name' in value) return value.name;
         return '-';
     };
-
     const handleSort = (column: string) => {
         const direction = filters.assets.sort === column && filters.assets.direction === 'asc' ? 'desc' : 'asc';
-
         router.get(
             route('asset-hierarchy.manufacturers.show', {
                 manufacturer: manufacturer.id,
@@ -86,7 +79,6 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
             { preserveState: true },
         );
     };
-
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Home',
@@ -105,7 +97,6 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
             href: '#',
         },
     ];
-
     const tabs = [
         {
             id: 'informacoes',
@@ -188,7 +179,6 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                             handleSort(columnMap[columnKey] || columnKey);
                         }}
                     />
-
                     {assetsData.last_page > 1 && (
                         <EntityPagination
                             pagination={{
@@ -212,11 +202,9 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Fabricante ${manufacturer.name}`} />
-
             <ShowLayout
                 title={manufacturer.name}
                 subtitle={`${assetsData.total || 0} ativo(s) associado(s)`}

@@ -14,10 +14,16 @@ import { Search, Clock, Layers, Settings, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RouteTemplate } from '@/types/production';
 
+interface ExtendedRouteTemplate extends RouteTemplate {
+    steps_count?: number;
+    estimated_time?: number;
+    usage_count?: number;
+}
+
 interface RouteTemplateSelectionDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    templates: RouteTemplate[];
+    templates: ExtendedRouteTemplate[];
     orderNumber: string;
     itemCategoryId?: number;
     onSelectTemplate: (templateId: number) => void;

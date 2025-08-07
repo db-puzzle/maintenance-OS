@@ -1,6 +1,10 @@
 // Production Module Types
 
 import { User } from '@/types';
+import { Shift, Manufacturer } from './asset-hierarchy';
+import { Plant } from './entities/plant';
+import { Area } from './entities/area';
+import { Sector } from './entities/sector';
 
 export interface ItemCategory {
     id: number;
@@ -31,7 +35,7 @@ export interface ItemImage {
     display_order: number;
     alt_text?: string;
     caption?: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
     uploaded_by: string;
     created_at: string;
     updated_at: string;
@@ -118,7 +122,7 @@ export interface BomItem {
     level: number;
     sequence_number?: number;
     reference_designators?: string;
-    bom_notes?: any;
+    bom_notes?: string;
     thumbnail_path?: string;
     model_file_path?: string;
     qr_code?: string;
@@ -136,15 +140,15 @@ export interface WorkCell {
     available_hours_per_day: number;
     efficiency_percentage: number;
     shift_id?: number;
-    shift?: any; // Shift type from asset-hierarchy
+    shift?: Shift;
     plant_id?: number;
-    plant?: any;
+    plant?: Plant;
     area_id?: number;
-    area?: any;
+    area?: Area;
     sector_id?: number;
-    sector?: any;
+    sector?: Sector;
     manufacturer_id?: number;
-    manufacturer?: any;
+    manufacturer?: Manufacturer;
     is_active: boolean;
     routing_steps_count?: number;
     production_schedules_count?: number;

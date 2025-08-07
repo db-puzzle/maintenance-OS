@@ -6,7 +6,6 @@ import { PlusCircle } from 'lucide-react';
 import { useState } from 'react';
 import { AddInstructionModal } from './AddInstructionModal';
 import { TaskInstructionItem } from './TaskInstructionItem';
-
 interface TaskInstructionListProps {
     /** Tarefa atual */
     task: Task;
@@ -15,7 +14,6 @@ interface TaskInstructionListProps {
     /** Callback chamado quando as instruções são atualizadas */
     onInstructionsUpdate: (updatedTask: Task) => void;
 }
-
 export function TaskInstructionList({ task, mode, onInstructionsUpdate }: TaskInstructionListProps) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [showInstructions, setShowInstructions] = useState(true);
@@ -24,23 +22,19 @@ export function TaskInstructionList({ task, mode, onInstructionsUpdate }: TaskIn
     const instructions = task.instructions || [];
     const MAX_INSTRUCTIONS = 20;
     const hasInstructions = instructions.length > 0;
-
     const handleAddInstruction = (instruction: Instruction) => {
         const updatedTask = TaskOperations.addInstruction(task, instruction);
         onInstructionsUpdate(updatedTask);
         setIsAddModalOpen(false);
     };
-
     const handleRemoveInstruction = (instructionId: string) => {
         const updatedTask = TaskOperations.removeInstruction(task, instructionId);
         onInstructionsUpdate(updatedTask);
     };
-
     const handleUpdateInstruction = (updatedInstruction: Instruction) => {
         const updatedTask = TaskOperations.updateInstruction(task, updatedInstruction);
         onInstructionsUpdate(updatedTask);
     };
-
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -52,7 +46,6 @@ export function TaskInstructionList({ task, mode, onInstructionsUpdate }: TaskIn
                         </Label>
                     </div>
                 )}
-
                 {isEditing && instructions.length < MAX_INSTRUCTIONS && (
                     <Button variant="outline" size="sm" onClick={() => setIsAddModalOpen(true)} className="ml-auto flex items-center gap-2">
                         <PlusCircle className="h-4 w-4" />
@@ -60,14 +53,12 @@ export function TaskInstructionList({ task, mode, onInstructionsUpdate }: TaskIn
                     </Button>
                 )}
             </div>
-
             {hasInstructions && showInstructions && (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                     {instructions.map((instruction, index) => {
                         // Calcular o número de itens na linha atual
                         const totalItems = instructions.length;
                         let itemClass = '';
-
                         if (totalItems === 1) {
                             // 1 item: ocupa toda a largura
                             itemClass = 'col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4';
@@ -87,7 +78,6 @@ export function TaskInstructionList({ task, mode, onInstructionsUpdate }: TaskIn
                             const itemsPerRow = 4; // máximo de itens por linha
                             const itemsInLastRow = totalItems % itemsPerRow || itemsPerRow;
                             const isLastRow = Math.floor(index / itemsPerRow) === Math.floor((totalItems - 1) / itemsPerRow);
-
                             if (isLastRow && itemsInLastRow < 4) {
                                 // Última linha com menos de 4 itens
                                 if (itemsInLastRow === 1) {
@@ -105,7 +95,6 @@ export function TaskInstructionList({ task, mode, onInstructionsUpdate }: TaskIn
                                 }
                             }
                         }
-
                         return (
                             <div key={instruction.id} className={itemClass}>
                                 <TaskInstructionItem
@@ -119,7 +108,6 @@ export function TaskInstructionList({ task, mode, onInstructionsUpdate }: TaskIn
                     })}
                 </div>
             )}
-
             <AddInstructionModal open={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddInstruction} task={task} />
         </div>
     );

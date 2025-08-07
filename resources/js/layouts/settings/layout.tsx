@@ -30,13 +30,13 @@ const sidebarNavItems: NavItem[] = [
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
+    const { url } = usePage();
+    const currentPath = url;
+
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
     }
-
-    const { url } = usePage();
-    const currentPath = url;
 
     return (
         <div className="px-4 py-6">

@@ -10,11 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QrCode, Camera, Keyboard, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import axios from 'axios';
-
 interface Props {
     scan_modes: Record<string, string>;
 }
-
 export default function QrTrackingScan({ scan_modes }: Props) {
     const [scanMode, setScanMode] = useState<'camera' | 'manual'>('manual');
     const [qrCode, setQrCode] = useState('');
@@ -26,7 +24,6 @@ export default function QrTrackingScan({ scan_modes }: Props) {
     const [scannedItem, setScannedItem] = useState<any>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
-
     const startCamera = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -42,7 +39,6 @@ export default function QrTrackingScan({ scan_modes }: Props) {
             setError('Unable to access camera. Please check permissions.');
         }
     };
-
     const stopCamera = () => {
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
@@ -50,17 +46,14 @@ export default function QrTrackingScan({ scan_modes }: Props) {
         }
         setScanMode('manual');
     };
-
     const processScan = async () => {
         if (!qrCode.trim()) {
             setError('Please enter or scan a QR code');
             return;
         }
-
         setIsProcessing(true);
         setError(null);
         setSuccess(null);
-
         try {
             const response = await axios.post('/production/tracking/scan', {
                 qr_code: qrCode,
@@ -68,10 +61,8 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                 notes: notes,
                 location: null, // Could get geolocation if needed
             });
-
             setSuccess(response.data.message);
             setScannedItem(response.data.item);
-
             // Clear form after successful scan
             setTimeout(() => {
                 setQrCode('');
@@ -79,22 +70,19 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                 setSuccess(null);
                 setScannedItem(null);
             }, 5000);
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to process scan');
+        } catch (err: unknown) {
+            setError((err as any).response?.data?.message || 'Failed to process scan');
         } finally {
             setIsProcessing(false);
         }
     };
-
     const handleManualSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         processScan();
     };
-
     return (
         <>
             <Head title="Scan QR Code" />
-
             <div className="p-6 max-w-4xl mx-auto space-y-6">
                 <div>
                     <h1 className="text-2xl font-semibold">Scan QR Code</h1>
@@ -102,7 +90,6 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                         Scan or enter a QR code to track production items
                     </p>
                 </div>
-
                 {/* Scan Mode Selector */}
                 <div className="flex gap-2">
                     <Button
@@ -123,7 +110,6 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                         Camera Scan
                     </Button>
                 </div>
-
                 {/* Camera View */}
                 {scanMode === 'camera' && (
                     <Card>
@@ -155,7 +141,6 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                         </CardContent>
                     </Card>
                 )}
-
                 {/* Manual Entry Form */}
                 {scanMode === 'manual' && (
                     <Card>
@@ -182,7 +167,6 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                                         </Button>
                                     </div>
                                 </div>
-
                                 <div className="space-y-2">
                                     <Label htmlFor="scan_mode">Scan Purpose</Label>
                                     <Select value={selectedMode} onValueChange={setSelectedMode}>
@@ -198,7 +182,6 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                                         </SelectContent>
                                     </Select>
                                 </div>
-
                                 <div className="space-y-2">
                                     <Label htmlFor="notes">Notes (Optional)</Label>
                                     <Textarea
@@ -209,7 +192,6 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                                         rows={3}
                                     />
                                 </div>
-
                                 <Button
                                     type="submit"
                                     className="w-full"
@@ -231,7 +213,6 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                         </CardContent>
                     </Card>
                 )}
-
                 {/* Error/Success Messages */}
                 {error && (
                     <Alert variant="destructive">
@@ -239,14 +220,12 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 )}
-
                 {success && (
                     <Alert className="border-green-200 bg-green-50">
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
                         <AlertDescription className="text-green-800">{success}</AlertDescription>
                     </Alert>
                 )}
-
                 {/* Scanned Item Details */}
                 {scannedItem && (
                     <Card>

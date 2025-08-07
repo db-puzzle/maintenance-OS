@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { WorkOrderStatusBadge } from '@/components/work-orders/WorkOrderStatusBadge';
 import { WorkOrderPriorityIndicator } from '@/components/work-orders/WorkOrderPriorityIndicator';
-import { type ColumnConfig, type PaginationMeta } from '@/types/shared';
+import { type ColumnConfig } from '@/types/shared';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, Search } from 'lucide-react';
@@ -54,15 +54,7 @@ interface WorkOrder extends Record<string, unknown> {
     executor_name?: string;
 }
 
-interface PaginatedResponse {
-    data: WorkOrder[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number;
-    to: number;
-}
+
 
 export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance', userPermissions, isCompressed = false }: Props) {
     const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
@@ -126,7 +118,7 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
             }
 
             // Transform the response data to match our interface
-            const transformedData = response.data.data.map((item: any) => ({
+            const transformedData = response.data.data.map((item: WorkOrder) => ({
                 id: item.work_order_id || item.id,
                 work_order_number: item.work_order_number || `#${item.work_order_id || item.id}`,
                 title: item.routine_name || item.title || 'Ordem de Serviço',
@@ -183,7 +175,7 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
         {
             key: 'priority_score',
             label: 'Prioridade',
-            render: (value: any) => (
+            render: (value) => (
                 <WorkOrderPriorityIndicator
                     priorityScore={value || 50}
                     showLabel={false}
@@ -194,19 +186,19 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
         {
             key: 'status',
             label: 'Status',
-            render: (value: any) => <WorkOrderStatusBadge status={value} />,
+            render: (value) => <WorkOrderStatusBadge status={value as string} />,
             width: 'w-[150px]',
         },
         {
             key: 'executor_name',
             label: 'Executor',
-            render: (value: any, row: any) => (row.assignedTechnician?.name || value || '-') as React.ReactNode,
+            render: (value, row) => ((row as WorkOrder).assignedTechnician?.name || value || '-') as React.ReactNode,
             width: 'w-[150px]',
         },
         {
             key: 'scheduled_start_date',
             label: 'Data Programada',
-            render: (value: any) => {
+            render: (value) => {
                 if (!value) return '-';
                 try {
                     const date = new Date(value);
@@ -222,7 +214,7 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
         {
             key: 'created_at',
             label: 'Criada em',
-            render: (value: any) => {
+            render: (value) => {
                 if (!value) return '-';
                 try {
                     const date = new Date(value);

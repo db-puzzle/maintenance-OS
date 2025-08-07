@@ -10,7 +10,6 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
 // Define a local form type with index signature
 interface SectorFormData {
     name: string;
@@ -19,7 +18,6 @@ interface SectorFormData {
     area_id: string;
     [key: string]: string | number | boolean | null | undefined;
 }
-
 interface SectorFormComponentProps {
     sector?: Sector & {
         area: Area & {
@@ -31,39 +29,32 @@ interface SectorFormComponentProps {
     onCancel?: () => void;
     onSuccess?: () => void;
 }
-
 export default function SectorFormComponent({ sector, plants = [], initialMode = 'view', onCancel, onSuccess }: SectorFormComponentProps) {
     const isEditing = !!sector;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
-
     // State for sheets
     const [plantSheetOpen, setPlantSheetOpen] = useState(false);
     const [areaSheetOpen, setAreaSheetOpen] = useState(false);
-
     // Refs
     const plantSelectRef = useRef<HTMLButtonElement | null>(null);
     const areaSelectRef = useRef<HTMLButtonElement | null>(null);
-
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm<SectorFormData>({
         name: sector?.name || '',
         description: '',
         plant_id: sector?.area?.plant?.id?.toString() || '',
         area_id: sector?.area_id?.toString() || '',
     });
-
     // Get available areas based on selected plant
     const availableAreas = useMemo(() => {
         if (!data.plant_id) return [];
         const selectedPlant = plants.find((p) => p.id.toString() === data.plant_id);
         return selectedPlant?.areas || [];
     }, [data.plant_id, plants]);
-
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.sectors.update', { setor: sector.id }), {
@@ -84,7 +75,6 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
             });
         }
     };
-
     const handleCancel = () => {
         if (isEditing && mode === 'edit') {
             // Reset form to original data
@@ -94,15 +84,12 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
             onCancel();
         }
     };
-
     const handleEdit = () => {
         setMode('edit');
     };
-
     const handleCreatePlantClick = () => {
         setPlantSheetOpen(true);
     };
-
     const handlePlantCreated = () => {
         setPlantSheetOpen(false);
         router.reload({
@@ -114,7 +101,6 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
                     const newestPlant = updatedPlants[updatedPlants.length - 1];
                     setData('plant_id', newestPlant.id.toString());
                     setData('area_id', ''); // Clear area when plant changes
-
                     // Focus and highlight the plant select field
                     setTimeout(() => {
                         const selectButton = plantSelectRef.current;
@@ -135,11 +121,9 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
             },
         });
     };
-
     const handleCreateAreaClick = () => {
         setAreaSheetOpen(true);
     };
-
     const handleAreaCreated = () => {
         setAreaSheetOpen(false);
         router.reload({
@@ -151,7 +135,6 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
                     if (currentPlant?.areas && currentPlant.areas.length > 0) {
                         const newestArea = currentPlant.areas[currentPlant.areas.length - 1];
                         setData('area_id', newestArea.id.toString());
-
                         // Focus and highlight the area select field
                         setTimeout(() => {
                             const selectButton = areaSelectRef.current;
@@ -173,7 +156,6 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
             },
         });
     };
-
     return (
         <div className="space-y-6">
             {/* Form Fields */}
@@ -192,7 +174,6 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
                     required={!isViewMode}
                     view={isViewMode}
                 />
-
                 {/* Planta */}
                 <div className="grid gap-2">
                     <ItemSelect
@@ -219,7 +200,6 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
                         required={!isViewMode}
                     />
                 </div>
-
                 {/* Área */}
                 <div className="grid gap-2">
                     <ItemSelect
@@ -245,7 +225,6 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
                         required={!isViewMode}
                     />
                 </div>
-
                 {/* Descrição - Ocupa toda a largura */}
                 <div className="md:col-span-2">
                     <div className="grid gap-2">
@@ -267,7 +246,6 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
                     </div>
                 </div>
             </div>
-
             {/* Action Buttons */}
             {isEditing && (
                 <div className="flex justify-end gap-2">
@@ -288,10 +266,8 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
                     )}
                 </div>
             )}
-
             {/* CreatePlantSheet for creating new plants */}
             <CreatePlantSheet open={plantSheetOpen} onOpenChange={setPlantSheetOpen} onSuccess={handlePlantCreated} />
-
             {/* CreateAreaSheet for creating new areas */}
             <CreateAreaSheet
                 open={areaSheetOpen}

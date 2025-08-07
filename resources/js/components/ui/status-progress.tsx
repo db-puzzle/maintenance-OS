@@ -1,14 +1,12 @@
 import React from 'react';
 import { CheckIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
 // Generic types for status progress
 export interface StatusStep {
     id: string;
     name: string;
     description: string;
 }
-
 export interface StatusProgressProps {
     steps: StatusStep[];
     currentStepId: string;
@@ -22,7 +20,6 @@ export interface StatusProgressProps {
         description: string;
     };
 }
-
 export function StatusProgress({
     steps,
     currentStepId,
@@ -48,21 +45,17 @@ export function StatusProgress({
             </div>
         );
     }
-
     // Find current step index
     const currentStepIndex = steps.findIndex(step => step.id === currentStepId);
-
     // If status not found in main flow, don't render
     if (currentStepIndex === -1) {
         return null;
     }
-
     const handleStepClick = (stepId: string) => {
         if (clickableSteps.includes(stepId) && onStepClick) {
             onStepClick(stepId);
         }
     };
-
     return (
         <div className={cn("", className)}>
             <nav aria-label="Progress">
@@ -72,12 +65,10 @@ export function StatusProgress({
                         const isComplete = stepIdx <= currentStepIndex;
                         const isCurrent = stepIdx === currentStepIndex + 1;
                         const isClickable = clickableSteps.includes(step.id);
-
                         let stepStatus: 'complete' | 'current' | 'upcoming';
                         if (isComplete) stepStatus = 'complete';
                         else if (isCurrent) stepStatus = 'current';
                         else stepStatus = 'upcoming';
-
                         return (
                             <li
                                 key={step.id}
@@ -95,7 +86,6 @@ export function StatusProgress({
                                         )}
                                     />
                                 ) : null}
-
                                 <StatusStepItem
                                     step={step}
                                     status={stepStatus}
@@ -110,14 +100,12 @@ export function StatusProgress({
         </div>
     );
 }
-
 interface StatusStepItemProps {
     step: StatusStep;
     status: 'complete' | 'current' | 'upcoming';
     isClickable: boolean;
     onClick: () => void;
 }
-
 function StatusStepItem({ step, status, isClickable, onClick }: StatusStepItemProps) {
     const content = (
         <>
@@ -136,7 +124,6 @@ function StatusStepItem({ step, status, isClickable, onClick }: StatusStepItemPr
             </span>
         </>
     );
-
     const divProps = {
         className: cn(
             "group relative flex items-start",
@@ -145,15 +132,12 @@ function StatusStepItem({ step, status, isClickable, onClick }: StatusStepItemPr
         ...(status === 'current' ? { 'aria-current': 'step' as const } : {}),
         ...(isClickable ? { onClick } : {})
     };
-
     return <div {...divProps}>{content}</div>;
 }
-
 interface StatusIconProps {
     status: 'complete' | 'current' | 'upcoming';
     isClickable: boolean;
 }
-
 function StatusIcon({ status, isClickable }: StatusIconProps) {
     if (status === 'complete') {
         return (
@@ -175,7 +159,6 @@ function StatusIcon({ status, isClickable }: StatusIconProps) {
             </span>
         );
     }
-
     return (
         <span className={cn(
             "relative z-10 flex size-8 items-center justify-center rounded-full border-2 transition-colors",

@@ -2,20 +2,17 @@ import { type BreadcrumbItem } from '@/types';
 import { type Area, type Asset, type Plant } from '@/types/asset-hierarchy';
 import { Head, Link, router } from '@inertiajs/react';
 import { Building2, Cog, MapPin } from 'lucide-react';
-
 import AreaFormComponent from '@/components/AreaFormComponent';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-
 interface Sector {
     id: number;
     name: string;
     description: string | null;
     asset_count: number;
 }
-
 interface Props {
     area: {
         id: number;
@@ -57,7 +54,6 @@ interface Props {
         };
     };
 }
-
 export default function Show({ area, plants, sectors, asset, totalAssetCount, activeTab, filters }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -77,10 +73,8 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
             href: '#',
         },
     ];
-
     const handleSort = (section: 'sectors' | 'asset', column: string) => {
         const direction = filters[section].sort === column && filters[section].direction === 'asc' ? 'desc' : 'asc';
-
         router.get(
             route('asset-hierarchy.areas.show', {
                 area: area.id,
@@ -93,7 +87,6 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
             { preserveState: true },
         );
     };
-
     // Verificações de segurança para evitar erros de undefined
     if (!area || !area.plant) {
         return (
@@ -104,7 +97,6 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
             </AppLayout>
         );
     }
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
@@ -123,7 +115,6 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -145,7 +136,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={sectors.data as Record<string, unknown>[]}
+                        data={sectors.data.map(sector => ({ ...sector } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'name',
@@ -154,7 +145,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 width: 'w-[30%]',
                                 render: (value, row) => (
                                     <Link
-                                        href={route('asset-hierarchy.sectors.show', (row as Record<string, unknown>).id)}
+                                        href={route('asset-hierarchy.sectors.show', { id: (row as Record<string, unknown>).id })}
                                         className="hover:text-primary font-medium"
                                     >
                                         {(row as Record<string, unknown>).name as string}
@@ -176,10 +167,9 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as string ?? '-'}</span>,
                             },
                         ]}
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.sectors.show', (row as Record<string, unknown>).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.sectors.show', { id: (row as Record<string, unknown>).id }))}
                         onSort={(columnKey) => handleSort('sectors', columnKey)}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: sectors.current_page,
@@ -206,7 +196,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={asset.data as Record<string, unknown>[]}
+                        data={asset.data.map(a => ({ ...a } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'tag',
@@ -215,7 +205,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 width: 'w-[25%]',
                                 render: (value, row) => (
                                     <Link
-                                        href={route('asset-hierarchy.assets.show', (row as Record<string, unknown>).id)}
+                                        href={route('asset-hierarchy.assets.show', { id: (row as Record<string, unknown>).id })}
                                         className="hover:text-primary font-medium"
                                     >
                                         {(row as Record<string, unknown>).tag as string}
@@ -244,7 +234,7 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as Record<string, unknown>).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', { id: (row as Record<string, unknown>).id }))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {
                                 asset_type_name: 'type',
@@ -254,7 +244,6 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
                             handleSort('asset', columnMap[columnKey] || columnKey);
                         }}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: asset.current_page,
@@ -276,7 +265,6 @@ export default function Show({ area, plants, sectors, asset, totalAssetCount, ac
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Área ${area.name}`} />

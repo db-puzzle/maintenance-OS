@@ -1,5 +1,4 @@
 'use client';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
@@ -21,16 +20,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChevronDown, Download, MoreHorizontal, Plus, Search } from 'lucide-react';
 import * as React from 'react';
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
-
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
-
 import { cn } from '@/lib/utils';
-
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -41,7 +36,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
 import { NavMain } from '@/components/pro-blocks/application/nav-main';
 import { NavUser } from '@/components/pro-blocks/application/nav-user';
 import { TeamSwitcher } from '@/components/pro-blocks/application/team-switcher';
@@ -56,12 +50,10 @@ import {
     SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { GalleryVerticalEnd, Home, Mail, Settings2, Store, Users } from 'lucide-react';
-
 const dateRange = {
     from: new Date(2024, 0, 1), // January 1, 2024
     to: new Date(2024, 6, 31), // December 31, 2024
 };
-
 const statsData = {
     revenue: {
         value: 40199.05,
@@ -84,7 +76,6 @@ const statsData = {
         trend: 'down',
     },
 };
-
 const chartData = [
     { month: 'January', current: 186, previous: 80 },
     { month: 'February', current: 305, previous: 200 },
@@ -93,7 +84,6 @@ const chartData = [
     { month: 'May', current: 209, previous: 130 },
     { month: 'June', current: 214, previous: 140 },
 ];
-
 const data = {
     user: {
         name: 'shadcn',
@@ -163,7 +153,6 @@ const data = {
         },
     ],
 };
-
 const chartConfig = {
     current: {
         label: 'Chosen Period',
@@ -174,7 +163,6 @@ const chartConfig = {
         color: 'hsl(var(--chart-2))',
     },
 } satisfies ChartConfig;
-
 const tableData = [
     {
         id: '#2999',
@@ -262,17 +250,14 @@ const tableData = [
         revenue: 129.0,
     },
 ];
-
 export function Dashboard1() {
     const [date, setDate] = React.useState<DateRange | undefined>({
         from: dateRange.from,
         to: dateRange.to,
     });
-
     const [selectedProduct, setSelectedProduct] = React.useState('All');
     const [timeframe, setTimeframe] = React.useState('Daily');
     const [orderStatus, setOrderStatus] = React.useState('All orders');
-
     return (
         <div className="min-h-screen">
             <SidebarProvider>
@@ -288,7 +273,6 @@ export function Dashboard1() {
                     </SidebarFooter>
                     <SidebarRail />
                 </Sidebar>
-
                 <SidebarInset className="flex-1 overflow-hidden">
                     <div className="bg-background h-full overflow-auto">
                         <header>
@@ -307,7 +291,6 @@ export function Dashboard1() {
                                     </BreadcrumbList>
                                 </Breadcrumb>
                             </div>
-
                             {/* Header */}
                             <div className="border-border flex flex-col border-b px-4 py-4 md:px-6 md:py-6">
                                 <div className="flex items-center justify-between gap-4">
@@ -325,7 +308,6 @@ export function Dashboard1() {
                                 </div>
                             </div>
                         </header>
-
                         {/* Main content container */}
                         <div className="flex flex-col gap-6 p-4 md:p-6">
                             <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
@@ -402,7 +384,6 @@ export function Dashboard1() {
                                     </DropdownMenu>
                                 </div>
                             </div>
-
                             <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2 lg:flex lg:flex-row lg:gap-6">
                                 <div className="flex flex-1 flex-col gap-2">
                                     <p className="text-muted-foreground flex justify-between text-sm font-medium">
@@ -454,7 +435,6 @@ export function Dashboard1() {
                                     <p className="text-xl font-semibold md:text-3xl">{statsData.refunds.value.toLocaleString()}</p>
                                 </div>
                             </div>
-
                             <ChartContainer config={chartConfig} className="max-h-[280px] w-full">
                                 <AreaChart
                                     data={chartData}
@@ -500,9 +480,7 @@ export function Dashboard1() {
                                     />
                                 </AreaChart>
                             </ChartContainer>
-
                             <Separator />
-
                             <div className="space-y-4">
                                 <div className="flex flex-col justify-between gap-4 lg:flex-row">
                                     <div className="relative w-full md:w-[300px]">
@@ -534,7 +512,6 @@ export function Dashboard1() {
                                         </Button>
                                     </div>
                                 </div>
-
                                 {/* Updated table container */}
                                 <div className="relative overflow-hidden rounded-lg border">
                                     <div className="overflow-auto">
@@ -619,7 +596,6 @@ export function Dashboard1() {
                                         </div>
                                     </div>
                                 </div>
-
                                 <div className="mt-4 flex items-center justify-end">
                                     <Pagination className="hidden justify-end md:flex">
                                         <PaginationContent>

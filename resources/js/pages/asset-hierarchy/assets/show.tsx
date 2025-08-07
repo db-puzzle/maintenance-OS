@@ -18,7 +18,6 @@ import axios from 'axios';
 import { Calendar, Clock, FileText, MessageSquare, Table } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
 interface Shift {
     id: number;
     name: string;
@@ -39,7 +38,6 @@ interface Shift {
         }>;
     }>;
 }
-
 interface Manufacturer {
     id: number;
     name: string;
@@ -49,7 +47,6 @@ interface Manufacturer {
     country?: string;
     notes?: string;
 }
-
 interface Props {
     asset?: Asset & {
         asset_type: AssetType;
@@ -91,7 +88,6 @@ interface Props {
     isCreating?: boolean;
     newRoutineId?: number;
 }
-
 export default function Show({ asset, plants, assetTypes, manufacturers, isCreating = false, newRoutineId }: Props) {
     const page = usePage<{
         flash?: { success?: string };
@@ -102,11 +98,9 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     }>();
     const { url } = page;
     const userPermissions = page.props.auth?.permissions || [];
-
     // Extrai o parâmetro tab da URL
     const urlParams = new URLSearchParams(url.split('?')[1] || '');
     const tabFromUrl = urlParams.get('tab');
-
     // Define breadcrumbs with dynamic asset tag
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -122,23 +116,17 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             href: '#',
         },
     ];
-
     // Estado para gerenciar as rotinas
     const [routines, setRoutines] = useState<any[]>(asset?.routines || []);
-
     // Update routines when asset prop changes
     useEffect(() => {
         if (asset?.routines) {
             setRoutines(asset.routines);
         }
     }, [asset?.routines]);
-
     // Estado para controlar o modo comprimido
     const [isCompressed, setIsCompressed] = useState(false);
-
     // Estado para controlar refresh do histórico de runtime
-
-
     // Estados para turnos
     const [shifts, setShifts] = useState<Shift[]>([]);
     const [selectedShiftId, setSelectedShiftId] = useState<string>(asset?.shift_id?.toString() || '');
@@ -146,26 +134,21 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
     const [loadingShifts, setLoadingShifts] = useState(false);
     const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
     const [createShiftSheetOpen, setCreateShiftSheetOpen] = useState(false);
-
     // Estado para modo de edição dos turnos
     const [isEditingShift, setIsEditingShift] = useState(false);
     const [tempSelectedShiftId, setTempSelectedShiftId] = useState<string>('');
-
     // Referência para o ShiftSelectionCard
     const shiftSelectionRef = useRef<ShiftSelectionCardRef>(null);
-
     const handleAssetCreated = () => {
         // This will be called after successful asset creation
         // The AssetFormComponent will handle the redirect
     };
-
     // Carregar turnos disponíveis
     useEffect(() => {
         if (!isCreating && asset) {
             loadShifts();
         }
     }, [asset, isCreating]);
-
     // Carregar detalhes do turno selecionado
     useEffect(() => {
         const shiftIdToLoad = isEditingShift ? tempSelectedShiftId : selectedShiftId;
@@ -178,7 +161,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             setSelectedShift(null);
         }
     }, [selectedShiftId, tempSelectedShiftId, isEditingShift, shifts]);
-
     const loadShifts = async () => {
         setLoadingShifts(true);
         try {
@@ -192,11 +174,9 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                     'X-Requested-With': 'XMLHttpRequest',
                 },
             });
-
             // The response is paginated, so we need to extract the data array
             const shiftsData = response.data.shifts?.data || response.data.shifts || [];
             setShifts(shiftsData);
-
             // Removed automatic toast notification - shifts are loaded silently in background
             // The user will see appropriate UI indicators if no shifts are available
         } catch {
@@ -205,7 +185,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             setLoadingShifts(false);
         }
     };
-
     const loadShiftDetails = async (shiftId: number) => {
         try {
             const response = await axios.get(route('asset-hierarchy.shifts.show', { shift: shiftId }), {
@@ -216,7 +195,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             // Error loading shift details
         }
     };
-
     const handleShiftChange = async (shiftId: string) => {
         if (isEditingShift) {
             // Durante edição, apenas atualizar o estado temporário
@@ -226,17 +204,14 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             setSelectedShiftId(shiftId);
         }
     };
-
     const handleEditShift = () => {
         setIsEditingShift(true);
         setTempSelectedShiftId(selectedShiftId);
     };
-
     const handleCancelShiftEdit = () => {
         setIsEditingShift(false);
         setTempSelectedShiftId('');
     };
-
     const handleSaveShift = async () => {
         if (asset && tempSelectedShiftId !== selectedShiftId) {
             try {
@@ -245,7 +220,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 });
                 setSelectedShiftId(tempSelectedShiftId);
                 toast.success('Turno associado ao ativo');
-
                 // Reload the page to refresh all data
                 router.reload();
             } catch {
@@ -256,14 +230,11 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         setIsEditingShift(false);
         setTempSelectedShiftId('');
     };
-
     const handleShiftCreated = async (newShift: Shift) => {
         // Add the new shift to the list
         setShifts([...shifts, newShift]);
-
         // Close the sheet
         setCreateShiftSheetOpen(false);
-
         if (isEditingShift) {
             // Se estamos em modo de edição, apenas selecionar temporariamente
             setTempSelectedShiftId(newShift.id.toString());
@@ -271,7 +242,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             // Se não estamos editando, aplicar diretamente
             const newShiftId = newShift.id.toString();
             setSelectedShiftId(newShiftId);
-
             // Save the shift association to the asset
             if (asset) {
                 try {
@@ -294,33 +264,25 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
             }
         }
     };
-
     const handleShiftUpdated = (updatedShift: Shift) => {
         // Update the shift in the list
         setShifts(shifts.map((shift) => (shift.id === updatedShift.id ? updatedShift : shift)));
-
         // Update the selected shift details if it's the currently selected one
         if (selectedShift && selectedShift.id === updatedShift.id) {
             setSelectedShift(updatedShift);
         }
-
         // If we're in edit mode and this is the temp selected shift, update it
         if (isEditingShift && tempSelectedShiftId === updatedShift.id.toString()) {
             // Exit edit mode
             setIsEditingShift(false);
             setTempSelectedShiftId('');
-
             // Reload the page to refresh runtime data (automatic runtime report)
             router.reload();
         }
     };
-
     const handleCreateShiftClick = () => {
         setCreateShiftSheetOpen(true);
     };
-
-
-
     const tabs = [
         {
             id: 'informacoes',
@@ -358,7 +320,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                         }}
                                     />
                                 </div>
-
                                 {/* Second Column - Shift Configuration */}
                                 <div className="h-full">
                                     <ShiftSelectionCard
@@ -378,7 +339,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                     />
                                 </div>
                             </div>
-
                             {selectedShift ? (
                                 <div className="space-y-4">
                                     <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'calendar' | 'table')}>
@@ -392,7 +352,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                                 Tabela
                                             </TabsTrigger>
                                         </TabsList>
-
                                         <TabsContent value="calendar" className="mt-4">
                                             <ShiftCalendarView schedules={selectedShift.schedules} showAllDays={true} />
                                         </TabsContent>
@@ -408,7 +367,6 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                                     description="Configure um turno de operação para visualizar os horários de trabalho do ativo."
                                 />
                             )}
-
                             {/* CreateShiftSheet oculto para ser acionado programaticamente */}
                             <CreateShiftSheet
                                 isOpen={createShiftSheetOpen}
@@ -481,11 +439,9 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                 },
             ]),
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isCreating ? 'Novo Ativo' : `Ativo ${asset?.tag}`} />
-
             <ShowLayout
                 title={isCreating ? 'Novo Ativo' : asset?.tag || 'Ativo'}
                 subtitle={

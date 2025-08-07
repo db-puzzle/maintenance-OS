@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router, usePage } from '@inertiajs/react';
-import { Head, Link } from '@inertiajs/react';
-import { ShoppingCart, Factory, Package, History, FileText, BarChart3, Boxes, Ghost, QrCode, Lightbulb, Camera, Search } from 'lucide-react';
+import { Head } from '@inertiajs/react';
+import { ShoppingCart, Factory, Package, Ghost, QrCode, Lightbulb, Camera, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { Item, BillOfMaterial, ItemCategory, ManufacturingOrder } from '@/types/production';
 import { formatCurrency, cn } from '@/lib/utils';
-import { ColumnConfig } from '@/types/shared';
+
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
 import { ItemImageUploader } from '@/components/production/ItemImageUploader';
 import { ItemImageGrid } from '@/components/production/ItemImageGrid';
@@ -96,38 +96,7 @@ const defaultItemStatuses = [
     { id: 4, name: 'Descontinuado', value: 'discontinued' }
 ];
 
-// Detail Item Component
-function DetailItem({ label, value, className = "" }: { label: string; value: React.ReactNode; className?: string }) {
-    return (
-        <div className={className}>
-            <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
-            <dd className="mt-1 text-sm">{value || '—'}</dd>
-        </div>
-    );
-}
 
-// Status Badge Component
-function StatusBadge({ status }: { status: string }) {
-    const variants: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-        'active': 'default',
-        'inactive': 'secondary',
-        'prototype': 'outline',
-        'discontinued': 'destructive'
-    };
-
-    const labels: Record<string, string> = {
-        'active': 'Ativo',
-        'inactive': 'Inativo',
-        'prototype': 'Protótipo',
-        'discontinued': 'Descontinuado'
-    };
-
-    return (
-        <Badge variant={variants[status] || 'default'}>
-            {labels[status] || status}
-        </Badge>
-    );
-}
 
 export default function ItemShow({
     item,
@@ -136,7 +105,7 @@ export default function ItemShow({
     manufacturingOrders,
     moFilters = {},
     categories = defaultCategories,
-    itemTypes = [], // DEPRECATED
+
     itemStatuses = defaultItemStatuses,
     can = { update: false, delete: false },
     isCreating = false
@@ -152,7 +121,7 @@ export default function ItemShow({
             permissions: string[];
         };
     }>();
-    const userPermissions = page.props.auth?.permissions || [];
+
 
 
 
@@ -315,11 +284,7 @@ export default function ItemShow({
         submitForm();
     };
 
-    const handleDelete = () => {
-        if (item && confirm('Tem certeza que deseja excluir este item?')) {
-            router.delete(route('production.items.destroy', item.id));
-        }
-    };
+
 
     const handleCategoryWarningAction = (action: 'continue' | 'select' | 'create') => {
         if (skipWarningChecked) {

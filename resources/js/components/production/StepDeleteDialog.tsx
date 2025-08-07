@@ -1,14 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
-
 interface StepDeleteDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     stepName: string;
     onConfirm: () => Promise<void>;
 }
-
 export function StepDeleteDialog({
     open,
     onOpenChange,
@@ -16,7 +14,6 @@ export function StepDeleteDialog({
     onConfirm
 }: StepDeleteDialogProps) {
     const [loading, setLoading] = useState(false);
-
     const handleConfirm = async () => {
         setLoading(true);
         try {
@@ -28,7 +25,6 @@ export function StepDeleteDialog({
             setLoading(false);
         }
     };
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
@@ -36,7 +32,6 @@ export function StepDeleteDialog({
                 <DialogDescription>
                     Tem certeza que deseja excluir a etapa "{stepName}"? Esta ação não pode ser desfeita.
                 </DialogDescription>
-
                 <DialogFooter>
                     <DialogClose asChild>
                         <Button variant="secondary" disabled={loading}>

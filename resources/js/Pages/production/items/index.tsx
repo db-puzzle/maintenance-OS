@@ -16,7 +16,6 @@ import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
 import { Item, ItemCategory } from '@/types/production';
 import { Link } from '@inertiajs/react';
-
 interface Props {
     items: {
         data: Item[];
@@ -40,24 +39,21 @@ interface Props {
         export?: boolean;
     };
 }
-
 // DEPRECATED: item_type is no longer used
 // const itemTypeLabels: Record<string, string> = {
 //     manufactured: 'Manufaturado',
 //     purchased: 'Comprado',
 //     'manufactured-purchased': 'Manufaturado/Comprado'
 // };
-
 export default function ItemsIndex({ items, filters, categories, can }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteItem, setDeleteItem] = useState<Item | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading] = useState(false);
     const [editItem, setEditItem] = useState<Item | null>(null);
     const [showImages, setShowImages] = useState(true);
     const [carouselItem, setCarouselItem] = useState<Item | null>(null);
     const [carouselOpen, setCarouselOpen] = useState(false);
     const [loadingImages, setLoadingImages] = useState(false);
-
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.items.index'), { search: value }, {
@@ -65,21 +61,18 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             preserveScroll: true
         });
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('production.items.index'), { ...filters, search: searchValue, page }, {
             preserveState: true,
             preserveScroll: true
         });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(route('production.items.index'), { ...filters, search: searchValue, per_page: perPage, page: 1 }, {
             preserveState: true,
             preserveScroll: true
         });
     };
-
     // Use data from server
     const data = items.data;
     const pagination = {
@@ -90,10 +83,8 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         from: items.from,
         to: items.to,
     };
-
     const handleDelete = async () => {
         if (!deleteItem) return;
-
         try {
             await router.delete(route('production.items.destroy', deleteItem.id), {
                 preserveScroll: true,
@@ -108,59 +99,53 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             console.error('Delete error:', error);
         }
     };
-
     const handleEditSuccess = () => {
         setEditItem(null);
         router.reload({ only: ['items'] });
     };
-
     const handleExport = (format: 'json' | 'csv') => {
-        const params = new URLSearchParams({
-            format,
-            ...filters
+        const params = new URLSearchParams();
+        params.append('format', format);
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                params.append(key, String(value));
+            }
         });
-
         window.open(`${route('production.items.export')}?${params.toString()}`, '_blank');
     };
-
     const handleImport = () => {
         router.visit(route('production.items.import.wizard'));
     };
-
     const baseColumns: ColumnConfig[] = [
         {
             key: 'item_number',
             label: 'Número',
             sortable: true,
             width: 'w-[150px]',
-            render: (value: any) => value || '-'
+            render: (value: unknown) => value || '-'
         }
     ];
-
     const imageColumn: ColumnConfig = {
         key: 'images',
         label: 'Imagem',
         width: 'w-[160px]',
-        render: (value: any, item: any) => (
+        render: (value: unknown, item: Record<string, unknown>) => (
             <ItemImagePreview
                 primaryImageUrl={item.primary_image_url}
                 imageCount={item.images_count || 0}
                 className="w-36 h-36"
                 onClick={async (e) => {
                     e?.stopPropagation(); // Prevent row click event
-
                     // If item has images, use them, otherwise fetch
                     if (item.images && item.images.length > 0) {
                         setCarouselItem(item);
                         setCarouselOpen(true);
                     } else if (item.images_count && item.images_count > 0) {
                         setLoadingImages(true);
-
                         try {
                             // Fetch the item with images using our API endpoint
                             const response = await axios.get(route('production.items.with-images', item.id));
                             const itemWithImages = response.data.item;
-
                             if (itemWithImages && itemWithImages.images && itemWithImages.images.length > 0) {
                                 setCarouselItem(itemWithImages);
                                 setCarouselOpen(true);
@@ -183,13 +168,12 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             />
         )
     };
-
     const nameColumn: ColumnConfig = {
         key: 'name',
         label: 'Nome',
         sortable: true,
         width: showImages ? 'w-[350px]' : 'w-[400px]',
-        render: (value: any, item: any) => (
+        render: (value: unknown, item: Record<string, unknown>) => (
             <div>
                 <div className="font-medium">{value}</div>
                 {item.category && (
@@ -202,7 +186,6 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             </div>
         )
     };
-
     const otherColumns: ColumnConfig[] = [
         // DEPRECATED: item_type column removed
         // {
@@ -210,13 +193,13 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         //     label: 'Tipo',
         //     sortable: true,
         //     width: 'w-[150px]',
-        //     render: (value: any) => itemTypeLabels[value as string] || value || '-'
+        //     render: (value: unknown) => itemTypeLabels[value as string] || value || '-'
         // },
         {
             key: 'capabilities',
             label: 'Capacidades',
             width: 'w-[200px]',
-            render: (value: any, item: any) => {
+            render: (value: unknown, item: Record<string, unknown>) => {
                 const capabilities = [];
                 if (item.can_be_sold) capabilities.push('Vendável');
                 if (item.can_be_manufactured) capabilities.push('Manufaturável');
@@ -228,7 +211,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             key: 'primary_bom',
             label: 'BOM Atual',
             width: 'w-[150px]',
-            render: (value: any, item: any) => (
+            render: (value: unknown, item: Record<string, unknown>) => (
                 item.primary_bom && item.can_be_manufactured ? (
                     <Link
                         href={route('production.bom.show', item.primary_bom?.id)}
@@ -246,7 +229,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             label: 'Status',
             sortable: true,
             width: 'w-[120px]',
-            render: (value: any) => {
+            render: (value: unknown) => {
                 const labels: Record<string, string> = {
                     'active': 'Ativo',
                     'inactive': 'Inativo',
@@ -257,7 +240,6 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             }
         }
     ];
-
     // Build final columns array conditionally
     const columns: ColumnConfig[] = [
         ...baseColumns,
@@ -265,12 +247,10 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         nameColumn,
         ...otherColumns
     ];
-
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'Itens', href: '' }
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <ListLayout
@@ -372,7 +352,6 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                     />
                 </div>
             </ListLayout>
-
             {editItem && (
                 <CreateItemSheet
                     item={editItem}
@@ -384,7 +363,6 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                     onCategoriesRefresh={() => router.reload({ only: ['categories'] })}
                 />
             )}
-
             <EntityDeleteDialog
                 open={!!deleteItem}
                 onOpenChange={(open) => !open && setDeleteItem(null)}
@@ -393,7 +371,6 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                 confirmationValue={deleteItem?.item_number || ''}
                 confirmationLabel={deleteItem ? `Digite o número do item (${deleteItem.item_number}) para confirmar` : ''}
             />
-
             {carouselItem && carouselItem.images && carouselItem.images.length > 0 && (
                 <ItemImageCarouselDialog
                     images={carouselItem.images}
@@ -418,4 +395,3 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         </AppLayout>
     );
 }
-

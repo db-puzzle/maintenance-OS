@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
-import { router, usePage } from '@inertiajs/react';
-import { Head, Link } from '@inertiajs/react';
-import { Package, History, Factory, FileText, Plus, Download, QrCode, Copy, Settings } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import {
+    Box,
+    ArrowUpDown,
+    Download,
+    Upload,
+    Calculator,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +22,13 @@ import EmptyCard from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import BomConfiguration from '@/components/production/BomConfiguration';
-import { BillOfMaterial, BomItem, BomVersion, Item, ItemCategory } from '@/types/production';
+import {
+    BillOfMaterial,
+    Item,
+    ItemCategory,
+    BomItem,
+    BomVersion,
+} from '@/types/production';
 import { ColumnConfig } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
 import { toast } from 'sonner';
@@ -39,7 +51,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
 
 
 
-    const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm({
         name: bom?.name || '',
         description: bom?.description || '',
         external_reference: bom?.external_reference || '',
@@ -65,16 +77,16 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
     // Column configurations
     const versionColumns: ColumnConfig[] = [
         { key: 'version_number', label: 'Versão', sortable: true },
-        { key: 'published_at', label: 'Publicado em', format: 'date', sortable: true } as any,
+        { key: 'published_at', label: 'Publicado em', sortable: true, render: (value) => new Date(value as string).toLocaleDateString('pt-BR') },
         { key: 'revision_notes', label: 'Notas de Revisão' },
-        { key: 'is_current', label: 'Status', format: (value: boolean) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> } as any,
+        { key: 'is_current', label: 'Status', render: (value) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> },
     ];
 
     const itemMasterColumns: ColumnConfig[] = [
         { key: 'item_number', label: 'Código', sortable: true },
         { key: 'name', label: 'Descrição', sortable: true },
         { key: 'category', label: 'Categoria' },
-        { key: 'status', label: 'Status', format: (value: string) => <Badge variant={value === 'active' ? 'default' : 'secondary'}>{value}</Badge> } as any,
+        { key: 'status', label: 'Status', render: (value) => <Badge variant={(value as string) === 'active' ? 'default' : 'secondary'}>{value as string}</Badge> },
     ];
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -159,7 +171,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 </div>
                             )}
                             <TextInput
-                                form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                                form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
                                 name="external_reference"
                                 label="Referência Externa"
                                 placeholder="Número do desenho no Inventor"
@@ -185,7 +197,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                         />
 
                         <TextInput
-                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                            form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
                             name="name"
                             label="Nome"
                             placeholder="Nome da BOM"
@@ -264,13 +276,15 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                 {
                     id: 'configuration',
                     label: 'Configuração',
-                    icon: <Settings className="h-4 w-4" />,
+                    icon: <Box className="h-4 w-4" />,
                     content: (
                         <div className="h-[calc(100vh-300px)]">
                             <BomConfiguration
                                 bomId={bom?.id || 0}
                                 versionId={bom?.current_version?.id || 0}
-                                bomItems={(bom?.current_version?.items || []).filter(item => item.item) as any[]}
+                                bomItems={(bom?.current_version?.items || [])
+                                    .filter(item => item.item)
+                                    .map(item => ({ ...item, item: item.item! }))}
                                 availableItems={items}
                                 categories={categories}
                                 canEdit={can.manageItems}
@@ -299,7 +313,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                         <h3 className="text-lg font-medium">Histórico de Versões</h3>
                                         {can.update && (
                                             <Button onClick={() => {/* TODO: Create version */ }}>
-                                                <Plus className="h-4 w-4 mr-2" />
+                                                <ArrowUpDown className="h-4 w-4 mr-2" />
                                                 Nova Versão
                                             </Button>
                                         )}
@@ -308,7 +322,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                         data={bom.versions as unknown as Record<string, unknown>[]}
                                         columns={versionColumns}
                                         loading={false}
-                                        actions={(version: any) => (
+                                        actions={(version) => (
                                             can.update && !version.is_current ? (
                                                 <Button
                                                     variant="outline"
@@ -326,7 +340,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 </div>
                             ) : (
                                 <EmptyCard
-                                    icon={History}
+                                    icon={Box}
                                     title="Nenhuma versão criada"
                                     description="Versões serão listadas aqui conforme forem criadas"
                                 />
@@ -360,7 +374,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 </div>
                             ) : (
                                 <EmptyCard
-                                    icon={Factory}
+                                    icon={Box}
                                     title="Produto não definido"
                                     description="Esta BOM não tem um produto final associado"
                                 />
@@ -373,10 +387,10 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={isCreating ? 'Nova BOM' : `BOM ${(bom as any)?.bom_number}`} />
+            <Head title={isCreating ? 'Nova BOM' : `BOM ${bom?.bom_number}`} />
 
             <ShowLayout
-                title={isCreating ? 'Nova BOM' : (bom as any)?.bom_number || 'BOM'}
+                title={isCreating ? 'Nova BOM' : bom?.bom_number || 'BOM'}
                 subtitle={
                     isCreating ? (
                         'Criação de nova lista de materiais'
@@ -405,7 +419,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                     </Button>
                     {can.manageItems && (
                         <Button variant="outline" onClick={handleGenerateQr}>
-                            <QrCode className="h-4 w-4 mr-2" />
+                            <Calculator className="h-4 w-4 mr-2" />
                             Gerar QR Codes
                         </Button>
                     )}
@@ -415,7 +429,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                         additionalActions={[
                             {
                                 label: 'Duplicar',
-                                icon: <Copy className="h-4 w-4" />,
+                                icon: <Upload className="h-4 w-4" />,
                                 onClick: handleDuplicate
                             }
                         ]}

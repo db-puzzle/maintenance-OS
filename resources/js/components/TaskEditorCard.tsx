@@ -25,7 +25,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { useForm } from '@inertiajs/react';
 import { ClipboardList, Clock, GripVertical, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
 interface TaskEditorCardProps {
     /** A tarefa inicial sendo editada */
     initialTask?: Task;
@@ -40,7 +39,6 @@ interface TaskEditorCardProps {
     /** Callback para atualizar a tarefa com uma operação */
     updateTask: (operation: (task: Task) => Task) => void;
 }
-
 interface TaskForm {
     description: string;
     codeReaderType: 'qr_code' | 'barcode' | undefined;
@@ -49,7 +47,6 @@ interface TaskForm {
     options: NonNullable<Task['options']>;
     [key: string]: string | number | boolean | File | null | NonNullable<Task['options']> | undefined;
 }
-
 export default function TaskEditorCard({
     initialTask,
     task: { type: taskType = 'question', measurement, options = [], isRequired },
@@ -58,34 +55,29 @@ export default function TaskEditorCard({
     onNewTask,
     updateTask,
 }: TaskEditorCardProps) {
-    const { data, setData, errors, clearErrors } = useForm<TaskForm>({
+    const { data, setData, errors, clearErrors } = useForm({
         description: initialTask?.description || '',
         codeReaderType: initialTask?.codeReaderType,
         codeReaderInstructions: initialTask?.codeReaderInstructions || '',
         fileUploadInstructions: initialTask?.fileUploadInstructions || '',
         options: options,
     });
-
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: `task-${initialTask?.id}`,
         animateLayoutChanges: () => false,
     });
-
     const style = {
         transform: CSS.Transform.toString(transform),
         transition: transition && 'transform 150ms ease',
         opacity: isDragging ? 0.5 : undefined,
         zIndex: isDragging ? 1 : undefined,
     };
-
     const [isChoiceBasedTask, setIsChoiceBasedTask] = useState(taskType === 'multiple_choice' || taskType === 'multiple_select');
-
     // Função utilitária para criar uma tarefa a partir do formulário
     const createTaskFromForm = (): Task => {
         if (!taskType) {
             throw new Error('Tipo de tarefa não definido');
         }
-
         const newTask: Task = {
             id: initialTask?.id || '0',
             type: taskType,
@@ -95,7 +87,6 @@ export default function TaskEditorCard({
             isRequired,
             state: TaskState.Viewing,
         };
-
         if (isChoiceBasedTask) {
             newTask.options = data.options;
         } else if (taskType === 'measurement') {
@@ -108,10 +99,8 @@ export default function TaskEditorCard({
         } else if (taskType === 'file_upload') {
             newTask.fileUploadInstructions = data.fileUploadInstructions;
         }
-
         return newTask;
     };
-
     useEffect(() => {
         if (initialTask) {
             setData({
@@ -124,42 +113,38 @@ export default function TaskEditorCard({
             setIsChoiceBasedTask(initialTask.type === 'multiple_choice' || initialTask.type === 'multiple_select');
         }
     }, [initialTask, setData]);
-
     const taskLabels = taskType ? TaskTypes.find((t) => t.value === taskType) : null;
-
     const handleRequiredChange = (required: boolean) => {
         updateTask((task) => TaskOperations.updateRequired(task, required));
     };
-
     const handleOptionsChange = (newOptions: string[]) => {
         updateTask((task) => TaskOperations.updateOptions(task, newOptions));
     };
-
     const handleAddOption = () => {
         updateTask(TaskOperations.addOption);
     };
-
     const handleRemoveOption = (index: number) => {
         updateTask((task) => TaskOperations.removeOption(task, index));
     };
-
     const handleMeasurementChange = (newMeasurement: Measurement) => {
         updateTask((task) => TaskOperations.updateMeasurement(task, newMeasurement));
     };
-
     return (
         <Card ref={setNodeRef} style={style} className={`bg-muted/90 ${isDragging ? 'shadow-lg' : ''}`}>
             <CardHeader>
                 <div className="flex items-center justify-between">
                     {taskType && taskLabels && (
-                        <TaskDescriptionInput<TaskForm>
+                        <TaskDescriptionInput
                             mode="edit"
                             icon={taskLabels.icon}
                             form={{
-                                data,
+                                data: {
+                                    ...data,
+                                    options: undefined, // Remove options from the data passed to TaskDescriptionInput
+                                } as Record<string, string | number | boolean | File | null | undefined>,
                                 setData,
                                 errors,
-                                clearErrors,
+                                clearErrors: clearErrors as (...fields: string[]) => void,
                             }}
                             name="description"
                             value={data.description}
@@ -192,7 +177,6 @@ export default function TaskEditorCard({
                             </CardContent>
                         </Card>
                     )}
-
                     {taskType === 'code_reader' && (
                         <div className="w-90">
                             <ItemSelect
@@ -214,15 +198,14 @@ export default function TaskEditorCard({
                             />
                         </div>
                     )}
-
                     {taskType ? (
                         <div className="grid gap-2">
-                            <TextInput<TaskForm>
+                            <TextInput
                                 form={{
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors,
+                                    clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}
                                 name="description"
                                 label={taskLabels?.label || ''}
@@ -240,7 +223,6 @@ export default function TaskEditorCard({
                             </CardContent>
                         </Card>
                     )}
-
                     {isChoiceBasedTask && (
                         <div className="grid gap-2">
                             <div className="space-y-0.5 pl-4">
@@ -271,7 +253,7 @@ export default function TaskEditorCard({
                                             <Card key={index} className="bg-background shadow-none">
                                                 <CardContent className="flex items-center space-x-2">
                                                     <div className="flex-1">
-                                                        <TextInput<TaskForm>
+                                                        <TextInput
                                                             form={{
                                                                 data: {
                                                                     ...data,
@@ -285,7 +267,7 @@ export default function TaskEditorCard({
                                                                     }
                                                                 },
                                                                 errors,
-                                                                clearErrors,
+                                                                clearErrors: clearErrors as (...fields: string[]) => void,
                                                             }}
                                                             name={`option-${index}`}
                                                             label={`Opção ${index + 1}`}
@@ -309,7 +291,6 @@ export default function TaskEditorCard({
                             </div>
                         </div>
                     )}
-
                     {taskType === 'measurement' && (
                         <div>
                             <Label>Medição</Label>
@@ -408,7 +389,6 @@ export default function TaskEditorCard({
                             </div>
                         </div>
                     )}
-
                     {taskType === 'photo' && (
                         <div>
                             <p className="text-muted-foreground text-sm">
@@ -416,15 +396,14 @@ export default function TaskEditorCard({
                             </p>
                         </div>
                     )}
-
                     {taskType === 'code_reader' && (
                         <div>
-                            <TextInput<TaskForm>
+                            <TextInput
                                 form={{
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors,
+                                    clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}
                                 name="codeReaderInstructions"
                                 label="Instruções para Leitura de Código"
@@ -432,15 +411,14 @@ export default function TaskEditorCard({
                             />
                         </div>
                     )}
-
                     {taskType === 'file_upload' && (
                         <div>
-                            <TextInput<TaskForm>
+                            <TextInput
                                 form={{
                                     data,
                                     setData,
                                     errors,
-                                    clearErrors,
+                                    clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}
                                 name="fileUploadInstructions"
                                 label="Instruções para Upload de Arquivo"
@@ -448,7 +426,6 @@ export default function TaskEditorCard({
                             />
                         </div>
                     )}
-
                     <div className="mt-4 flex items-center justify-between">
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -474,7 +451,6 @@ export default function TaskEditorCard({
                         <div className="flex gap-2">
                             <AddTaskButton
                                 label="Nova Tarefa Abaixo"
-                                taskTypes={TaskTypes}
                                 tasks={initialTask ? [initialTask] : undefined}
                                 currentIndex={0}
                                 onTaskAdded={(newTask) => {

@@ -14,10 +14,8 @@ import { AssetType } from '@/types/entities/asset-type';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -32,7 +30,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy/asset-types',
     },
 ];
-
 interface Props {
     assetTypes: {
         data: AssetType[];
@@ -50,7 +47,6 @@ interface Props {
         per_page: number;
     };
 }
-
 export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: Props) {
     const entityOps = useEntityOperations<AssetType>({
         entityName: 'assetType',
@@ -62,9 +58,7 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             checkDependencies: 'asset-hierarchy.asset-types.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search || '');
-
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'asset-hierarchy.asset-types',
@@ -75,7 +69,6 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             per_page: filters.per_page,
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('assetTypesColumnsVisibility');
@@ -89,7 +82,6 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             asset_count: true,
         };
     });
-
     // Use data from server
     const data = initialAssetTypes.data;
     const pagination = {
@@ -100,7 +92,6 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
         from: initialAssetTypes.from,
         to: initialAssetTypes.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
@@ -109,8 +100,8 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             width: 'w-[300px]',
             render: (value, row) => (
                 <div>
-                    <div className="font-medium">{row.name}</div>
-                    {row.description && <div className="text-muted-foreground text-sm">{row.description}</div>}
+                    <div className="font-medium">{row.name as React.ReactNode}</div>
+                    {row.description ? <div className="text-muted-foreground text-sm">{String(row.description)}</div> : null}
                 </div>
             ),
         },
@@ -119,17 +110,16 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             label: 'Descrição',
             sortable: true,
             width: 'w-[300px]',
-            render: (value, row) => row.description || '-',
+            render: (value, row) => (row.description || '-') as React.ReactNode,
         },
         {
             key: 'asset_count',
             label: 'Ativos',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => value || 0,
+            render: (value) => (value || 0) as React.ReactNode,
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -138,7 +128,6 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
         setColumnVisibility(newVisibility);
         localStorage.setItem('assetTypesColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -147,7 +136,6 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(
             route('asset-hierarchy.asset-types'),
@@ -155,7 +143,6 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('asset-hierarchy.asset-types'),
@@ -163,11 +150,9 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             { preserveState: true, preserveScroll: true },
         );
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Tipos de Ativo" />
-
             <ListLayout
                 title="Tipos de Ativo"
                 description="Gerencie os tipos de ativo do sistema"
@@ -192,38 +177,31 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data.map(assetType => ({ ...assetType } as Record<string, unknown>))}
                         columns={columns}
                         loading={false}
-                        onRowClick={(assetType) => router.visit(route('asset-hierarchy.asset-types.show', { id: assetType.id }))}
+                        onRowClick={(assetType) => router.visit(route('asset-hierarchy.asset-types.show', { id: assetType.id as string | number }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
-                        sortColumn={sort}
-                        sortDirection={direction}
                         actions={(assetType) => (
-                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(assetType)} onDelete={() => entityOps.handleDelete(assetType)} />
+                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(assetType as unknown as AssetType)} onDelete={() => entityOps.handleDelete(assetType as unknown as AssetType)} />
                         )}
                     />
-
                     <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
-
             <CreateAssetTypeSheet
                 assetType={entityOps.editingItem || undefined}
                 open={entityOps.isEditSheetOpen}
                 onOpenChange={entityOps.setEditSheetOpen}
                 mode={entityOps.editingItem ? 'edit' : 'create'}
             />
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
-                entityName="tipo de ativo"
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

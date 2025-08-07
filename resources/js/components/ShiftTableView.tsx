@@ -1,27 +1,22 @@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
 interface Break {
     start_time: string;
     end_time: string;
 }
-
 interface Shift {
     start_time: string;
     end_time: string;
     active: boolean;
     breaks: Break[];
 }
-
 interface Schedule {
     weekday: string;
     shifts: Shift[];
 }
-
 interface ShiftTableViewProps {
     schedules: Schedule[];
 }
-
 const weekdays = [
     { key: 'Monday', label: 'Segunda' },
     { key: 'Tuesday', label: 'Terça' },
@@ -31,7 +26,6 @@ const weekdays = [
     { key: 'Saturday', label: 'Sábado' },
     { key: 'Sunday', label: 'Domingo' },
 ];
-
 export default function ShiftTableView({ schedules }: ShiftTableViewProps) {
     return (
         <div className="overflow-x-auto">
@@ -47,7 +41,6 @@ export default function ShiftTableView({ schedules }: ShiftTableViewProps) {
                     {weekdays.map((day) => {
                         const schedule = schedules.find((s) => s.weekday === day.key);
                         const activeShifts = schedule?.shifts.filter((s) => s.active) || [];
-
                         return (
                             <TableRow key={day.key}>
                                 <TableCell className="text-base font-medium">{day.label}</TableCell>

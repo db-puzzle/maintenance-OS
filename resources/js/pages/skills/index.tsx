@@ -14,10 +14,8 @@ import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 interface Skill {
     id: number;
     name: string;
@@ -27,7 +25,6 @@ interface Skill {
     created_at: string;
     updated_at: string;
 }
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -38,7 +35,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/skills',
     },
 ];
-
 interface Props {
     skills: {
         data: Skill[];
@@ -59,9 +55,7 @@ interface Props {
         create: boolean;
     };
 }
-
 export default function SkillsIndex({ skills: initialSkills, filters, can }: Props) {
-
     const entityOps = useEntityOperations<Skill>({
         entityName: 'skill',
         entityLabel: 'Habilidade',
@@ -72,9 +66,7 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
             checkDependencies: 'skills.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search);
-
     // Use centralized sorting hook
     const sortingResult = useSorting({
         routeName: 'skills.index',
@@ -88,7 +80,6 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
     const sortColumn = sortingResult.sort;
     const sortDirection = sortingResult.direction;
     const handleSort = sortingResult.handleSort;
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('skillsColumnsVisibility');
@@ -102,7 +93,6 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
             users_count: true,
         };
     });
-
     // Use data from server - cast to Record<string, unknown>[] for EntityDataTable
     const data = initialSkills.data as unknown as Record<string, unknown>[];
     const pagination = {
@@ -113,7 +103,6 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
         from: initialSkills.from,
         to: initialSkills.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
@@ -152,7 +141,6 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
             ),
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -161,7 +149,6 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
         setColumnVisibility(newVisibility);
         localStorage.setItem('skillsColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -170,7 +157,6 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(
             route('skills.index'),
@@ -178,7 +164,6 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
             { preserveState: true, preserveScroll: true }
         );
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('skills.index'),
@@ -186,11 +171,9 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
             { preserveState: true, preserveScroll: true },
         );
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Habilidades" />
-
             <ListLayout
                 title="Habilidades"
                 description="Gerencie as habilidades disponíveis no sistema"
@@ -229,7 +212,6 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
                         )}
                         emptyMessage="Nenhuma habilidade encontrada"
                     />
-
                     <EntityPagination
                         pagination={pagination}
                         onPageChange={handlePageChange}
@@ -237,7 +219,6 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
                     />
                 </div>
             </ListLayout>
-
             <SkillSheet
                 open={entityOps.isEditSheetOpen}
                 onOpenChange={entityOps.setEditSheetOpen}
@@ -246,14 +227,12 @@ export default function SkillsIndex({ skills: initialSkills, filters, can }: Pro
                     entityOps.setEditSheetOpen(false);
                 }}
             />
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

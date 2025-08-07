@@ -1,6 +1,5 @@
 import { router } from '@inertiajs/react';
 import { ChevronRight, LucideIcon } from 'lucide-react';
-
 export interface ActionItem {
     name: string;
     icon: LucideIcon;
@@ -10,7 +9,6 @@ export interface ActionItem {
     description: string;
     href?: string;
 }
-
 export interface PathItem {
     title: string;
     icon: LucideIcon;
@@ -18,13 +16,11 @@ export interface PathItem {
     href?: string;
     actions: ActionItem[];
 }
-
 interface ActionShortcutsProps {
     title?: string;
     paths: Record<string, PathItem>;
     onActionClick?: (pathKey: string, actionName: string) => void;
 }
-
 export default function ActionShortcuts({ title = 'Atalhos', paths, onActionClick }: ActionShortcutsProps) {
     return (
         <div>
@@ -33,7 +29,6 @@ export default function ActionShortcuts({ title = 'Atalhos', paths, onActionClic
                 {Object.entries(paths).map(([key, path]) => {
                     const IconComponent = path.icon;
                     const hasQuickAction = !!path.href;
-
                     // Conteúdo comum extraído
                     const headerContent = (
                         <div className="flex items-center space-x-3">
@@ -53,7 +48,6 @@ export default function ActionShortcuts({ title = 'Atalhos', paths, onActionClic
                             )}
                         </div>
                     );
-
                     // Wrapper condicional
                     const HeaderWrapper = hasQuickAction ? 'button' : 'div';
                     const headerProps = hasQuickAction
@@ -65,19 +59,16 @@ export default function ActionShortcuts({ title = 'Atalhos', paths, onActionClic
                         : {
                               className: 'bg-muted p-6',
                           };
-
                     return (
                         <div key={key} className="bg-card border-border overflow-hidden rounded-xl border shadow-sm">
                             {/* Path Header - Dinâmico */}
                             <HeaderWrapper {...headerProps}>{headerContent}</HeaderWrapper>
-
                             {/* Actions List */}
                             <div className="p-6">
                                 <div className="space-y-1">
                                     {path.actions.map((action, index) => {
                                         const ActionIcon = action.icon;
                                         const hasActionLink = !!action.href;
-
                                         return (
                                             <button
                                                 key={index}

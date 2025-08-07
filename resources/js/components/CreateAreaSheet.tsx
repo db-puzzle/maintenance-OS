@@ -1,16 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import { ItemSelect } from '@/components/ItemSelect';
 import { TextInput } from '@/components/TextInput';
 import { Area } from '@/types/entities/area';
-
 interface AreaForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
     plant_id: string;
 }
-
 interface CreateAreaSheetProps {
     area?: Area;
     open?: boolean;
@@ -29,7 +26,6 @@ interface CreateAreaSheetProps {
     showTrigger?: boolean;
     triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
-
 const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
     area,
     open,
@@ -45,7 +41,6 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
     triggerRef,
 }) => {
     const nameInputRef = useRef<HTMLInputElement>(null);
-
     // Auto-focus the name input when sheet opens for creation
     useEffect(() => {
         if (open && mode === 'create') {
@@ -58,24 +53,20 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
                     }
                 });
             };
-
             // Try multiple times with increasing delays to handle animation and focus traps
             const timeouts = [100, 300, 500];
             const timers = timeouts.map((delay) => setTimeout(focusInput, delay));
-
             // Cleanup timeouts
             return () => {
                 timers.forEach((timer) => clearTimeout(timer));
             };
         }
     }, [open, mode]);
-
     // Handle onOpenChange to focus when sheet opens
     const handleOpenChange = (open: boolean) => {
         if (onOpenChange) {
             onOpenChange(open);
         }
-
         // Focus the input when opening in create mode
         if (open && mode === 'create') {
             setTimeout(() => {
@@ -83,7 +74,6 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
             }, 100);
         }
     };
-
     return (
         <BaseEntitySheet<AreaForm>
             entity={area}
@@ -121,7 +111,6 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
                         placeholder="Nome da área"
                         required
                     />
-
                     {/* Planta */}
                     <div className="grid gap-2">
                         <ItemSelect
@@ -143,5 +132,4 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
         </BaseEntitySheet>
     );
 };
-
 export default CreateAreaSheet;

@@ -6,7 +6,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
-
 interface AffectedAsset {
     id: number;
     tag: string;
@@ -17,7 +16,6 @@ interface AffectedAsset {
     sector?: string | null;
     current_runtime_hours: number;
 }
-
 interface ShiftUpdateConfirmationDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -31,7 +29,6 @@ interface ShiftUpdateConfirmationDialogProps {
     processing?: boolean;
     currentAssetId?: number;
 }
-
 export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDialogProps> = ({
     open,
     onOpenChange,
@@ -48,13 +45,10 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
     // Sort assets to put current asset first
     const sortedAssets = React.useMemo(() => {
         if (!currentAssetId) return affectedAssets;
-
         const currentAsset = affectedAssets.find(a => a.id === currentAssetId);
         const otherAssets = affectedAssets.filter(a => a.id !== currentAssetId);
-
         return currentAsset ? [currentAsset, ...otherAssets] : affectedAssets;
     }, [affectedAssets, currentAssetId]);
-
     const handleSelectAll = () => {
         if (selectedAssetIds.length === sortedAssets.length) {
             onSelectedAssetsChange([]);
@@ -62,7 +56,6 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
             onSelectedAssetsChange(sortedAssets.map((a) => a.id));
         }
     };
-
     const handleAssetToggle = (assetId: number, checked: boolean) => {
         if (checked) {
             onSelectedAssetsChange([...selectedAssetIds, assetId]);
@@ -70,7 +63,6 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
             onSelectedAssetsChange(selectedAssetIds.filter((id) => id !== assetId));
         }
     };
-
     const handleUpdateModeChange = (mode: 'all' | 'selected') => {
         onUpdateModeChange(mode);
         if (mode === 'selected' && currentAssetId) {
@@ -81,7 +73,6 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
             onSelectedAssetsChange([]);
         }
     };
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col">
@@ -95,7 +86,6 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
                         Escolha como deseja proceder:
                     </DialogDescription>
                 </DialogHeader>
-
                 <div className="flex flex-1 flex-col px-6 py-4">
                     {/* Update Mode Selection - Fixed */}
                     <div className="space-y-3 mb-4">
@@ -117,7 +107,6 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
                                 </div>
                             </label>
                         </div>
-
                         <div className="flex items-start space-x-3">
                             <input
                                 type="radio"
@@ -137,7 +126,6 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
                             </label>
                         </div>
                     </div>
-
                     {/* Asset List Header - Fixed */}
                     {updateMode === 'selected' && (
                         <div className="mb-2 flex items-center justify-between border-b pb-2">
@@ -152,7 +140,6 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
                             </Button>
                         </div>
                     )}
-
                     {/* Scrollable Asset List */}
                     <ScrollArea className="h-[280px]">
                         <div className="space-y-2 pr-4">
@@ -201,7 +188,6 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
                             })}
                         </div>
                     </ScrollArea>
-
                     {/* Fixed footer content */}
                     <div className="mt-4 space-y-4">
                         {updateMode === 'selected' && (
@@ -209,7 +195,6 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
                                 {selectedAssetIds.length} de {sortedAssets.length} ativos selecionados
                             </div>
                         )}
-
                         {/* Runtime Recording Note */}
                         <Alert>
                             <AlertCircle className="h-4 w-4" />
@@ -221,7 +206,6 @@ export const ShiftUpdateConfirmationDialog: React.FC<ShiftUpdateConfirmationDial
                         </Alert>
                     </div>
                 </div>
-
                 <DialogFooter className="flex-shrink-0">
                     <Button variant="outline" onClick={onCancel} disabled={processing}>
                         Cancelar

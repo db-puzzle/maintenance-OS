@@ -1,3 +1,4 @@
+import React from 'react';
 import CreateSectorSheet from '@/components/CreateSectorSheet';
 import { ColumnVisibility } from '@/components/data-table';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
@@ -15,10 +16,8 @@ import { Sector } from '@/types/entities/sector';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -33,7 +32,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy/sectors',
     },
 ];
-
 interface Props {
     sectors: {
         data: Sector[];
@@ -52,7 +50,6 @@ interface Props {
     };
     plants: Plant[];
 }
-
 export default function SectorIndex({ sectors: initialSectors, filters, plants }: Props) {
     const entityOps = useEntityOperations<Sector>({
         entityName: 'sector',
@@ -64,9 +61,7 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             checkDependencies: 'asset-hierarchy.sectors.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search || '');
-
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'asset-hierarchy.sectors',
@@ -77,7 +72,6 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             per_page: filters.per_page,
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('sectorsColumnsVisibility');
@@ -92,7 +86,6 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             asset_count: true,
         };
     });
-
     // Use data from server
     const data = initialSectors.data;
     const pagination = {
@@ -103,7 +96,6 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
         from: initialSectors.from,
         to: initialSectors.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
@@ -112,8 +104,8 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             width: 'w-[300px]',
             render: (value, row) => (
                 <div>
-                    <div className="font-medium">{row.name}</div>
-                    {row.description && <div className="text-muted-foreground text-sm">{row.description}</div>}
+                    <div className="font-medium">{row.name as React.ReactNode}</div>
+                    {row.description ? <div className="text-muted-foreground text-sm">{String(row.description)}</div> : null}
                 </div>
             ),
         },
@@ -122,24 +114,23 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             label: 'Planta',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.area?.plant?.name || '-',
+            render: (value, row) => <>{((row.area as Record<string, unknown>)?.plant as Record<string, unknown>)?.name || '-'}</>,
         },
         {
             key: 'area',
             label: 'Área',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.area?.name || '-',
+            render: (value, row) => ((row.area as Record<string, unknown>)?.name || '-') as React.ReactNode,
         },
         {
             key: 'asset_count',
             label: 'Ativos',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => value || 0,
+            render: (value) => <>{value || 0}</>,
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -148,7 +139,6 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
         setColumnVisibility(newVisibility);
         localStorage.setItem('sectorsColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -157,11 +147,9 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(route('asset-hierarchy.sectors'), { ...filters, search, sort, direction, page }, { preserveState: true, preserveScroll: true });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('asset-hierarchy.sectors'),
@@ -169,11 +157,9 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             { preserveState: true, preserveScroll: true },
         );
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Setores" />
-
             <ListLayout
                 title="Setores"
                 description="Gerencie os setores do sistema"
@@ -198,21 +184,19 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data.map(sector => ({ ...sector } as Record<string, unknown>))}
                         columns={columns}
                         loading={false}
-                        onRowClick={(sector) => router.visit(route('asset-hierarchy.sectors.show', { id: sector.id }))}
+                        onRowClick={(sector) => router.visit(route('asset-hierarchy.sectors.show', { id: sector.id as string | number }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
                         actions={(sector) => (
-                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(sector)} onDelete={() => entityOps.handleDelete(sector)} />
+                            <EntityActionDropdown onEdit={() => entityOps.handleEdit(sector as unknown as Sector)} onDelete={() => entityOps.handleDelete(sector as unknown as Sector)} />
                         )}
                     />
-
                     <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
-
             <CreateSectorSheet
                 sector={entityOps.editingItem || undefined}
                 open={entityOps.isEditSheetOpen}
@@ -220,14 +204,12 @@ export default function SectorIndex({ sectors: initialSectors, filters, plants }
                 mode={entityOps.editingItem ? 'edit' : 'create'}
                 plants={plants}
             />
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

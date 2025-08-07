@@ -5,11 +5,9 @@ import EmptyCard from '@/components/ui/empty-card';
 import { Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
 interface Props {
     workOrder: any;
 }
-
 export default function WorkOrderHistoryTab({ workOrder }: Props) {
     return (
         <div className="space-y-6 py-6">
@@ -19,9 +17,7 @@ export default function WorkOrderHistoryTab({ workOrder }: Props) {
                     Registro de todas as mudanças de status da ordem de serviço
                 </p>
             </div>
-
             <Separator />
-
             {workOrder.status_history && workOrder.status_history.length > 0 ? (
                 <div className="space-y-4">
                     {workOrder.status_history.map((history: any, index: number) => (

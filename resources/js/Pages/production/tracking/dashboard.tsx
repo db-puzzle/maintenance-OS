@@ -10,7 +10,6 @@ import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { ColumnConfig } from '@/types/shared';
 import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { cn } from '@/lib/utils';
-
 interface Props {
     stats: {
         inProduction: number;
@@ -21,7 +20,6 @@ interface Props {
     workCells: WorkCell[];
     activeOrders: ManufacturingOrder[];
 }
-
 interface KpiCardProps {
     title: string;
     value: string | number;
@@ -29,7 +27,6 @@ interface KpiCardProps {
     trend?: string;
     trendUp?: boolean;
 }
-
 function KpiCard({ title, value, icon, trend, trendUp }: KpiCardProps) {
     return (
         <Card>
@@ -57,7 +54,6 @@ function KpiCard({ title, value, icon, trend, trendUp }: KpiCardProps) {
         </Card>
     );
 }
-
 function WorkCellCard({
     workCell,
     onClick
@@ -70,7 +66,7 @@ function WorkCellCard({
     onClick: () => void;
 }) {
     const getStatusColor = () => {
-        switch (workCell.status) {
+        switch ((workCell as any).status) {
             case 'active':
                 return 'bg-green-500';
             case 'maintenance':
@@ -81,9 +77,8 @@ function WorkCellCard({
                 return 'bg-gray-500';
         }
     };
-
     const getStatusLabel = () => {
-        switch (workCell.status) {
+        switch ((workCell as any).status) {
             case 'active':
                 return 'Ativa';
             case 'maintenance':
@@ -91,10 +86,9 @@ function WorkCellCard({
             case 'inactive':
                 return 'Inativa';
             default:
-                return workCell.status;
+                return (workCell as any).status;
         }
     };
-
     return (
         <Card
             className="cursor-pointer hover:shadow-md transition-shadow"
@@ -103,7 +97,7 @@ function WorkCellCard({
             <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                     <div>
-                        <h4 className="font-semibold text-lg">{workCell.code}</h4>
+                        <h4 className="font-semibold text-lg">{(workCell as any).code || workCell.name}</h4>
                         <p className="text-sm text-muted-foreground">{workCell.name}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -111,7 +105,6 @@ function WorkCellCard({
                         <span className="text-sm">{getStatusLabel()}</span>
                     </div>
                 </div>
-
                 {workCell.currentOrder ? (
                     <div className="space-y-2">
                         <div className="text-sm">
@@ -147,31 +140,28 @@ function WorkCellCard({
         </Card>
     );
 }
-
 export default function ProductionDashboard({ stats, workCells, activeOrders }: Props) {
     const handleCellClick = (cell: WorkCell) => {
         console.log('Cell clicked:', cell);
         // Navigate to cell details or open modal
     };
-
     const handleOrderClick = (order: ManufacturingOrder) => {
         router.visit(route('production.planning.orders.show', order.id));
     };
-
     const activeOrderColumns: ColumnConfig[] = [
         {
             key: 'order_number',
             label: 'Número',
             sortable: true,
             width: 'w-[150px]',
-            render: (value: any) => (
+            render: (value: unknown) => (
                 <Badge variant="outline">{value}</Badge>
             )
         },
         {
             key: 'item',
             label: 'Produto',
-            render: (value: any, order: any) => (
+            render: (value: unknown, order: Record<string, unknown>) => (
                 <div>
                     <div className="font-medium">{order.item?.name}</div>
                     <div className="text-sm text-muted-foreground">{order.item?.item_number}</div>
@@ -183,7 +173,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             label: 'Quantidade',
             width: 'w-[120px]',
             headerAlign: 'center',
-            render: (value: any, order: any) => (
+            render: (value: unknown, order: Record<string, unknown>) => (
                 <div className="text-center">
                     {value} {order.unit_of_measure}
                 </div>
@@ -193,11 +183,10 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             key: 'progress',
             label: 'Progresso',
             width: 'w-[200px]',
-            render: (value: any, order: any) => {
+            render: (value: unknown, order: Record<string, unknown>) => {
                 const progress = order.quantity_completed
                     ? Math.round((order.quantity_completed / order.quantity) * 100)
                     : 0;
-
                 return (
                     <div className="space-y-1">
                         <div className="flex justify-between text-sm">
@@ -218,7 +207,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             key: 'work_cell',
             label: 'Célula',
             width: 'w-[120px]',
-            render: (value: any, order: any) => (
+            render: (value: unknown, order: Record<string, unknown>) => (
                 order.current_work_cell ? (
                     <Badge variant="secondary">
                         {order.current_work_cell.code}
@@ -233,21 +222,19 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             label: 'Prioridade',
             width: 'w-[100px]',
             headerAlign: 'center',
-            render: (value: any) => {
+            render: (value: unknown) => {
                 const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
                     'urgent': 'destructive',
                     'high': 'default',
                     'normal': 'secondary',
                     'low': 'outline'
                 };
-
                 const labels: Record<string, string> = {
                     'urgent': 'Urgente',
                     'high': 'Alta',
                     'normal': 'Normal',
                     'low': 'Baixa'
                 };
-
                 return (
                     <div className="text-center">
                         <Badge variant={variants[value] || 'secondary'}>
@@ -258,12 +245,10 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             }
         }
     ];
-
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'Rastreamento', href: '' }
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <div className="p-6 space-y-6">
@@ -298,7 +283,6 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                         trendUp
                     />
                 </div>
-
                 {/* Work Cell Status Grid */}
                 <Card>
                     <CardHeader>
@@ -316,7 +300,6 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                         </div>
                     </CardContent>
                 </Card>
-
                 {/* Active Production Orders */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -332,7 +315,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                         <EntityDataTable
                             data={activeOrders as any}
                             columns={activeOrderColumns}
-                            onRowClick={(order: any) => handleOrderClick(order)}
+                            onRowClick={(order: Record<string, unknown>) => handleOrderClick(order)}
                         />
                     </CardContent>
                 </Card>

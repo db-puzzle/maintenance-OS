@@ -2,16 +2,13 @@ import React from 'react';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
 interface Props {
     workOrder: any;
 }
-
 export default function WorkOrderFailureAnalysisTab({ workOrder }: Props) {
     if (!workOrder.failure_analysis) {
         return null;
     }
-
     return (
         <div className="space-y-6 py-6">
             <div className="space-y-2">
@@ -20,9 +17,7 @@ export default function WorkOrderFailureAnalysisTab({ workOrder }: Props) {
                     Análise detalhada da falha que originou esta ordem de serviço
                 </p>
             </div>
-
             <Separator />
-
             <div className="grid gap-6 md:grid-cols-3">
                 <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">Modo de Falha</p>
@@ -37,9 +32,7 @@ export default function WorkOrderFailureAnalysisTab({ workOrder }: Props) {
                     <p className="font-medium">{workOrder.failure_analysis.immediate_cause?.name || '-'}</p>
                 </div>
             </div>
-
             <Separator />
-
             <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">Data da Falha</p>
@@ -52,7 +45,6 @@ export default function WorkOrderFailureAnalysisTab({ workOrder }: Props) {
                     <p className="font-medium">{workOrder.failure_analysis.detection_method}</p>
                 </div>
             </div>
-
             {workOrder.failure_analysis.immediate_action && (
                 <>
                     <Separator />
@@ -62,7 +54,6 @@ export default function WorkOrderFailureAnalysisTab({ workOrder }: Props) {
                     </div>
                 </>
             )}
-
             {workOrder.failure_analysis.preventive_action && (
                 <>
                     <Separator />

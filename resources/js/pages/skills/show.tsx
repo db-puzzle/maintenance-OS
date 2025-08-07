@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { router, Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
@@ -8,14 +8,12 @@ import SkillFormComponent from '@/components/skills/SkillFormComponent';
 import { ColumnConfig } from '@/types/shared';
 import { User, Tag, Users } from 'lucide-react';
 import { type BreadcrumbItem } from '@/types';
-
 interface SkillUser {
     id: number;
     name: string;
     email: string;
     proficiency_level: string | null;
 }
-
 interface Skill {
     id: number;
     name: string;
@@ -26,7 +24,6 @@ interface Skill {
     updated_at: string;
     users: SkillUser[];
 }
-
 interface PageProps {
     skill: Skill;
     can: {
@@ -35,7 +32,6 @@ interface PageProps {
     };
     activeTab?: string;
 }
-
 export default function SkillShow({ skill, can, activeTab = 'informacoes' }: PageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -51,26 +47,22 @@ export default function SkillShow({ skill, can, activeTab = 'informacoes' }: Pag
             href: '#',
         },
     ];
-
     const handleEditSuccess = () => {
         // Reload the page to refresh the data
         router.reload();
     };
-
     const proficiencyLabels: Record<string, string> = {
         'beginner': 'Iniciante',
         'intermediate': 'Intermediário',
         'advanced': 'Avançado',
         'expert': 'Especialista',
     };
-
     const proficiencyVariants: Record<string, 'secondary' | 'default' | 'success' | 'warning'> = {
         'beginner': 'secondary',
         'intermediate': 'default',
         'advanced': 'warning',
         'expert': 'success',
     };
-
     const userColumns: ColumnConfig[] = [
         {
             key: 'name',
@@ -94,14 +86,13 @@ export default function SkillShow({ skill, can, activeTab = 'informacoes' }: Pag
                 const level = value as string | null;
                 if (!level) return '-';
                 return (
-                    <Badge variant={proficiencyVariants[level] as any || 'default'}>
+                    <Badge variant={proficiencyVariants[level] || 'default'}>
                         {proficiencyLabels[level] || level}
                     </Badge>
                 );
             },
         },
     ];
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
@@ -123,7 +114,6 @@ export default function SkillShow({ skill, can, activeTab = 'informacoes' }: Pag
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -165,11 +155,9 @@ export default function SkillShow({ skill, can, activeTab = 'informacoes' }: Pag
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Habilidade ${skill.name}`} />
-
             <ShowLayout
                 title={skill.name}
                 subtitle={subtitle}

@@ -1,31 +1,25 @@
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
-
 import { cn } from "@/lib/utils"
-
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" modal={false} {...props} />
 }
-
 function SheetTrigger({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Trigger>) {
   return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
 }
-
 function SheetClose({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Close>) {
   return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
 }
-
 function SheetPortal({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
-
 function SheetOverlay({
   className,
   ...props
@@ -41,7 +35,6 @@ function SheetOverlay({
     />
   )
 }
-
 function SheetContent({
   className,
   children,
@@ -55,27 +48,22 @@ function SheetContent({
       <SheetPrimitive.Content
         onInteractOutside={(e) => {
           const target = e.target as HTMLElement
-
           // Check if this is a focus-outside event
           const isFocusOutside = e.type?.includes('focus') || e.detail?.originalEvent?.type === 'focusout'
-
           // Ignore focus-outside events - only close on actual clicks/touches
           if (isFocusOutside) {
             e.preventDefault()
             return
           }
-
           // Check if there are multiple sheets open (nested sheets)
           const allSheets = document.querySelectorAll('[data-slot="sheet-content"]')
           const isNestedSheet = allSheets.length > 1
-
           // Check for select-related elements or nested sheet
           const isSelectContent = target.closest('[data-slot="select-content"]')
           const isRadixViewport = target.closest('[data-radix-select-viewport]')
           const isRadixPopper = target.closest('[data-radix-popper-content]')
           const isRadixPopover = target.closest('[data-radix-popover-content]')
           const isInNestedSheet = target.closest('[data-slot="sheet-content"]')
-
           // If target is HTML but select elements exist in DOM, this might be a timing issue
           if (target.tagName === 'HTML') {
             const selectInDOM = {
@@ -84,19 +72,16 @@ function SheetContent({
               radixPopper: document.querySelector('[data-radix-popper-content]'),
               radixPopover: document.querySelector('[data-radix-popover-content]'),
             }
-
             if (Object.values(selectInDOM).some(el => el)) {
               e.preventDefault()
               return
             }
           }
-
           // If there are nested sheets and the click target is within a sheet, prevent closing
           if (isNestedSheet && isInNestedSheet) {
             e.preventDefault()
             return
           }
-
           if (isSelectContent || isRadixViewport || isRadixPopper || isRadixPopover) {
             e.preventDefault()
           }
@@ -126,7 +111,6 @@ function SheetContent({
     </SheetPortal>
   )
 }
-
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -136,7 +120,6 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
     />
   )
 }
-
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -146,7 +129,6 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
     />
   )
 }
-
 function SheetTitle({
   className,
   ...props
@@ -159,7 +141,6 @@ function SheetTitle({
     />
   )
 }
-
 function SheetDescription({
   className,
   ...props
@@ -172,7 +153,6 @@ function SheetDescription({
     />
   )
 }
-
 export {
   Sheet,
   SheetTrigger,

@@ -7,7 +7,6 @@ import { ArrowDown, ArrowRight, HelpCircle, LayoutGrid, Move, PlusCircle, Save, 
 import React, { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { autoArrangeNodes } from './auto-arrange-nodes';
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Programação',
@@ -18,7 +17,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/scheduler/route-editor',
     },
 ];
-
 // Tipos para workcells e nodes
 interface Workcell {
     id: string;
@@ -26,7 +24,6 @@ interface Workcell {
     color: string;
     custom?: boolean;
 }
-
 interface Node {
     id: string;
     type: string;
@@ -37,24 +34,20 @@ interface Node {
         y: number;
     };
 }
-
 interface Edge {
     id: string;
     source: string;
     target: string;
 }
-
 interface DraggingNode {
     id: string;
     offsetX: number;
     offsetY: number;
 }
-
 interface Position {
     x: number;
     y: number;
 }
-
 // Sample workcells that could be added to the manufacturing sequence
 const AVAILABLE_WORKCELLS: Workcell[] = [
     { id: 'cutting', name: 'Estação de Corte', color: '#e9d8fd' },
@@ -66,7 +59,6 @@ const AVAILABLE_WORKCELLS: Workcell[] = [
     { id: 'cnc', name: 'Máquina CNC', color: '#fbd38d' },
     { id: 'molding', name: 'Moldagem por Injeção', color: '#b2f5ea' },
 ];
-
 // Available colors for custom workcells
 const WORKCELL_COLORS = [
     '#e9d8fd',
@@ -85,13 +77,11 @@ const WORKCELL_COLORS = [
     '#e9d8fd',
     '#fefcbf',
 ];
-
 export default function RouteEditor() {
     // Estados para nodes (workcells) e edges (connections)
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
     const [nextNodeId, setNextNodeId] = useState(1);
-
     // Estados para operações ativas
     const [draggingNode, setDraggingNode] = useState<DraggingNode | null>(null);
     const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
@@ -101,19 +91,15 @@ export default function RouteEditor() {
     // Overlay visual para indicar estado de arrasto
     const [isDraggingOver, setIsDraggingOver] = useState(false);
     const [showAutoArrangeOptions, setShowAutoArrangeOptions] = useState(false);
-
     // Estado para criação de workcells personalizados
     const [customWorkcells, setCustomWorkcells] = useState<Workcell[]>([]);
     const [showCustomForm, setShowCustomForm] = useState(false);
     const [newWorkcellName, setNewWorkcellName] = useState('');
     const [newWorkcellColor, setNewWorkcellColor] = useState(WORKCELL_COLORS[0]);
-
     // Estado para rastrear posição do mouse durante a criação de conexão
     const [tempConnectionPos, setTempConnectionPos] = useState<Position>({ x: 0, y: 0 });
-
     // Referências
     const boardRef = useRef<HTMLDivElement>(null);
-
     // Efeito para escutar eventos de movimento do mouse durante criação de conexão
     React.useEffect(() => {
         const handleTempConnectionMouseMove = (e: CustomEvent<{ x: number; y: number }>) => {
@@ -121,33 +107,26 @@ export default function RouteEditor() {
                 setTempConnectionPos({ x: e.detail.x, y: e.detail.y });
             }
         };
-
         document.addEventListener('mousemove:temp-connection', handleTempConnectionMouseMove as EventListener);
-
         return () => {
             document.removeEventListener('mousemove:temp-connection', handleTempConnectionMouseMove as EventListener);
         };
     }, []);
-
     // Efeito para configurar eventos de drag and drop
     React.useEffect(() => {
         const handleDragOver = (e: DragEvent) => {
             // Isso é necessário para eventos de arrasto funcionarem em vários navegadores
             e.preventDefault();
         };
-
         // Adicionar manipulador de dragover global para garantir que o arrasto funcione em toda aplicação
         document.addEventListener('dragover', handleDragOver);
-
         return () => {
             document.removeEventListener('dragover', handleDragOver);
         };
     }, []);
-
     // Adicionar um workcell personalizado
     const addCustomWorkcell = () => {
         if (!newWorkcellName.trim()) return;
-
         const id = `custom-${Date.now()}`;
         const newCustomWorkcell: Workcell = {
             id,
@@ -155,30 +134,24 @@ export default function RouteEditor() {
             color: newWorkcellColor,
             custom: true,
         };
-
         setCustomWorkcells([...customWorkcells, newCustomWorkcell]);
         setNewWorkcellName('');
         setShowCustomForm(false);
     };
-
     // Calcular linha de conexão temporária ao criar uma conexão
     const getTempConnectionPath = () => {
         if (!connectingFrom) return null;
-
         const sourceNode = nodes.find((n) => n.id === connectingFrom);
         if (!sourceNode) return null;
-
         // Obter centro da origem
         const sourcePos = {
             x: sourceNode.position.x + 100, // centro x
             y: sourceNode.position.y + 40, // centro y
         };
-
         // Calcular ângulo para seta
         const dx = tempConnectionPos.x - sourcePos.x;
         const dy = tempConnectionPos.y - sourcePos.y;
         const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-
         // Desenhar apenas uma linha tracejada reta
         return {
             path: `M${sourcePos.x},${sourcePos.y} L${tempConnectionPos.x},${tempConnectionPos.y}`,
@@ -187,12 +160,10 @@ export default function RouteEditor() {
             target: tempConnectionPos,
         };
     };
-
     // Adicionar um novo node workcell ao board
     const addNode = (workcellType: string, position: Position | null = null) => {
         // Encontrar entre workcells padrão ou personalizados
         let workcell = AVAILABLE_WORKCELLS.find((wc) => wc.id === workcellType);
-
         if (!workcell) {
             // Procurar nos workcells personalizados
             const customWorkcell = customWorkcells.find((wc) => wc.id === workcellType);
@@ -202,13 +173,11 @@ export default function RouteEditor() {
                 return; // Se não encontrar, retornar sem adicionar
             }
         }
-
         // Usar posição fornecida ou padrão
         const nodePosition = position || {
             x: Math.random() * 200 + 50,
             y: Math.random() * 200 + 50,
         };
-
         const newNode: Node = {
             id: `node-${nextNodeId}`,
             type: workcellType,
@@ -216,43 +185,35 @@ export default function RouteEditor() {
             color: workcell.color,
             position: nodePosition,
         };
-
         setNodes([...nodes, newNode]);
         setNextNodeId(nextNodeId + 1);
     };
-
     // Iniciar arrasto de node
     const handleNodeDragStart = (e: React.MouseEvent, nodeId: string) => {
         e.stopPropagation();
         const node = nodes.find((n) => n.id === nodeId);
         if (!node) return;
-
         // Calcular offset relativo ao node, não ao cursor
         const rect = e.currentTarget.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const offsetY = e.clientY - rect.top;
-
         setDraggingNode({
             id: nodeId,
             offsetX,
             offsetY,
         });
     };
-
     // Gerenciar movimento do mouse no board
     const handleMouseMove = useCallback(
         (e: React.MouseEvent) => {
             const boardRect = boardRef.current?.getBoundingClientRect();
             if (!boardRect) return;
-
             if (draggingNode) {
                 // Atualizar posição do node
                 const x = e.clientX - boardRect.left - draggingNode.offsetX;
                 const y = e.clientY - boardRect.top - draggingNode.offsetY;
-
                 setNodes(nodes.map((node) => (node.id === draggingNode.id ? { ...node, position: { x, y } } : node)));
             }
-
             // Atualizar posição da linha de conexão temporária ao criar uma conexão
             if (connectingFrom) {
                 // Atualizar a posição diretamente em vez de usar eventos personalizados
@@ -264,35 +225,28 @@ export default function RouteEditor() {
         },
         [draggingNode, nodes, connectingFrom],
     );
-
     // Gerenciar mouse up - potencialmente finalizando uma conexão
     const handleMouseUp = (e: React.MouseEvent) => {
         if (draggingNode) {
             setDraggingNode(null);
             return;
         }
-
         // Verificar se estamos criando uma conexão
         if (connectingFrom) {
             // Obter coordenadas de posição relativas ao board
             const boardRect = boardRef.current?.getBoundingClientRect();
             if (!boardRect) return;
-
             const mouseX = e.clientX - boardRect.left;
             const mouseY = e.clientY - boardRect.top;
-
             // Verificar cada node para ver se o mouse está sobre ele
             const targetNode = nodes.find((node) => {
                 if (node.id === connectingFrom) return false; // Pular node de origem
-
                 const nodeLeft = node.position.x;
                 const nodeRight = node.position.x + 200; // largura do node
                 const nodeTop = node.position.y;
                 const nodeBottom = node.position.y + 80; // altura do node
-
                 return mouseX >= nodeLeft && mouseX <= nodeRight && mouseY >= nodeTop && mouseY <= nodeBottom;
             });
-
             if (targetNode) {
                 // Completar a conexão com o node alvo
                 handleConnectionEnd(targetNode.id);
@@ -302,37 +256,30 @@ export default function RouteEditor() {
             }
         }
     };
-
     // Iniciar conexão entre nodes
     const handleConnectionStart = (e: React.MouseEvent, nodeId: string) => {
         e.stopPropagation();
         e.preventDefault();
-
         // Inicializar com a posição atual do mouse
         const boardRect = boardRef.current?.getBoundingClientRect();
         if (!boardRect) return;
-
         setTempConnectionPos({
             x: e.clientX - boardRect.left,
             y: e.clientY - boardRect.top,
         });
-
         setConnectingFrom(nodeId);
     };
-
     // Completar uma conexão entre nodes
     const handleConnectionEnd = (targetNodeId: string) => {
         if (!connectingFrom || connectingFrom === targetNodeId) {
             setConnectingFrom(null);
             return;
         }
-
         // Verificar conexões existentes em qualquer direção entre esses nodes
         const existingConnection = edges.some(
             (edge) =>
                 (edge.source === connectingFrom && edge.target === targetNodeId) || (edge.source === targetNodeId && edge.target === connectingFrom),
         );
-
         // Se já existe uma conexão em qualquer direção, não criar outra
         if (existingConnection) {
             // Cancelar a tentativa de conexão e mostrar uma mensagem
@@ -342,59 +289,48 @@ export default function RouteEditor() {
             );
             return;
         }
-
         // Criar a nova conexão
         const newEdge: Edge = {
             id: `edge-${connectingFrom}-${targetNodeId}-${Date.now()}`,
             source: connectingFrom,
             target: targetNodeId,
         };
-
         setEdges([...edges, newEdge]);
         setConnectingFrom(null);
     };
-
     // Excluir um node e suas conexões
     const deleteNode = (nodeId: string) => {
         setNodes(nodes.filter((node) => node.id !== nodeId));
         setEdges(edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
     };
-
     // Excluir uma conexão
     const deleteEdge = (edgeId: string) => {
         setEdges(edges.filter((edge) => edge.id !== edgeId));
     };
-
     // Calcular posição para linhas de conexão
     const getNodeCenter = (nodeId: string): Position => {
         const node = nodes.find((n) => n.id === nodeId);
         if (!node) return { x: 0, y: 0 };
-
         return {
             x: node.position.x + 100, // Metade da largura do node (200)
             y: node.position.y + 40, // Metade da altura do node (80)
         };
     };
-
     // Renderizar setas de conexão ao longo de um caminho
     const renderConnectionArrows = (sourcePos: Position, targetPos: Position) => {
         // Calcular ângulo para seta
         const angle = (Math.atan2(targetPos.y - sourcePos.y, targetPos.x - sourcePos.x) * 180) / Math.PI;
-
         // Calcular distância entre nodes para colocar marcadores
         const dx = targetPos.x - sourcePos.x;
         const dy = targetPos.y - sourcePos.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-
         // Calcular posições para indicadores de direção - garantir pelo menos 2 setas para qualquer conexão
         const numArrows = Math.max(2, Math.min(Math.floor(distance / 40), 5)); // 2-5 setas com base na distância
         const arrowElements: React.ReactNode[] = [];
-
         for (let i = 1; i <= numArrows; i++) {
             const ratio = i / (numArrows + 1);
             const arrowX = sourcePos.x + dx * ratio;
             const arrowY = sourcePos.y + dy * ratio;
-
             // Criar setas mais visíveis com fundo
             arrowElements.push(
                 <g key={`arrow-${i}`}>
@@ -411,29 +347,23 @@ export default function RouteEditor() {
                 </g>,
             );
         }
-
         return {
             arrowElements,
             angle,
         };
     };
-
     // Organizar os nodes no espaço de trabalho de forma limpa
     const handleAutoArrangeNodes = (direction: string = 'horizontal') => {
         if (nodes.length === 0) return;
-
         const updatedNodes = autoArrangeNodes(nodes, edges, direction);
         setNodes(updatedNodes);
     };
-
     // Gerar saída JSON da sequência de fabricação
     const generateOutput = () => {
         // Coletar todos os tipos de workcell usados no diagrama
         const usedWorkcellTypes = new Set(nodes.map((node) => node.type));
-
         // Criar um dicionário de tipos de workcell
         const workcellTypes: Record<string, { name: string; color: string; custom?: boolean }> = {};
-
         // Adicionar workcells padrão que são usados
         AVAILABLE_WORKCELLS.forEach((wc) => {
             if (usedWorkcellTypes.has(wc.id)) {
@@ -443,7 +373,6 @@ export default function RouteEditor() {
                 };
             }
         });
-
         // Adicionar workcells personalizados que são usados
         customWorkcells.forEach((wc) => {
             if (usedWorkcellTypes.has(wc.id)) {
@@ -454,7 +383,6 @@ export default function RouteEditor() {
                 };
             }
         });
-
         const output = {
             workcellTypes,
             workcells: nodes.map((node) => ({
@@ -468,15 +396,12 @@ export default function RouteEditor() {
                 target: edge.target,
             })),
         };
-
         setJsonOutput(JSON.stringify(output, null, 2));
         setShowOutput(true);
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Editor de Rotas" />
-
             <div className="flex h-full flex-col">
                 {/* Toolbar */}
                 <div className="flex border-b border-gray-200 bg-gray-100 p-4">
@@ -494,7 +419,6 @@ export default function RouteEditor() {
                                 <LayoutGrid size={16} />
                                 <span>Auto Organizar</span>
                             </Button>
-
                             {showAutoArrangeOptions && (
                                 <div className="absolute right-0 z-50 mt-1 w-48 rounded border border-gray-200 bg-white shadow-lg">
                                     <Button
@@ -520,19 +444,16 @@ export default function RouteEditor() {
                                 </div>
                             )}
                         </div>
-
                         <Button variant="default" onClick={generateOutput} className="flex items-center gap-1">
                             <Save size={16} />
                             <span>Salvar Sequência</span>
                         </Button>
                     </div>
                 </div>
-
                 <div className="flex flex-1 overflow-hidden">
                     {/* Sidebar com workcells disponíveis */}
                     <div className="w-64 overflow-y-auto border-r border-gray-200 bg-gray-50 p-4">
                         <h3 className="mb-3 font-semibold">Postos de Trabalho Disponíveis</h3>
-
                         {/* Workcells padrão */}
                         {AVAILABLE_WORKCELLS.map((workcell) => (
                             <div
@@ -551,7 +472,6 @@ export default function RouteEditor() {
                                 <Move size={16} className="text-gray-500" />
                             </div>
                         ))}
-
                         {/* Workcells personalizados */}
                         {customWorkcells.length > 0 && (
                             <>
@@ -574,7 +494,6 @@ export default function RouteEditor() {
                                 ))}
                             </>
                         )}
-
                         {/* Botão para adicionar workcell personalizado */}
                         {!showCustomForm ? (
                             <Button
@@ -594,7 +513,6 @@ export default function RouteEditor() {
                                     value={newWorkcellName}
                                     onChange={(e) => setNewWorkcellName(e.target.value)}
                                 />
-
                                 <div className="mb-2">
                                     <label className="mb-1 block text-sm">Cor:</label>
                                     <div className="flex flex-wrap gap-1">
@@ -608,7 +526,6 @@ export default function RouteEditor() {
                                         ))}
                                     </div>
                                 </div>
-
                                 <div className="flex gap-2">
                                     <Button variant="default" className="flex-1 bg-green-600 hover:bg-green-700" onClick={addCustomWorkcell}>
                                         Criar
@@ -626,7 +543,6 @@ export default function RouteEditor() {
                                 </div>
                             </div>
                         )}
-
                         <div className="mt-6">
                             <Dialog>
                                 <DialogTrigger asChild>
@@ -680,7 +596,6 @@ export default function RouteEditor() {
                             </Dialog>
                         </div>
                     </div>
-
                     <div
                         className={`relative flex-1 overflow-auto bg-gray-50 transition-all duration-200 ${isDraggingOver ? 'scale-[0.99] border-2 border-dashed border-blue-300 bg-blue-50' : ''}`}
                         ref={boardRef}
@@ -709,21 +624,16 @@ export default function RouteEditor() {
                         onDrop={(e) => {
                             e.preventDefault();
                             setIsDraggingOver(false);
-
                             // Get the workcell type from the dataTransfer
                             const workcellType = e.dataTransfer.getData('text/plain');
-
                             if (workcellType) {
                                 // Calculate drop position relative to the board
                                 const boardRect = boardRef.current?.getBoundingClientRect();
                                 if (!boardRect) return;
-
                                 const x = e.clientX - boardRect.left;
                                 const y = e.clientY - boardRect.top;
-
                                 // Add the node at the drop position
                                 addNode(workcellType, { x, y });
-
                                 // Mostrar feedback visual
                                 toast.success('Posto de trabalho adicionado');
                             }
@@ -738,24 +648,18 @@ export default function RouteEditor() {
                                 </div>
                             </div>
                         )}
-
                         {/* Camada SVG para conexões */}
                         <svg className="absolute inset-0 h-full w-full" style={{ zIndex: 1 }}>
                             {/* Conexões existentes */}
                             {edges.map((edge) => {
                                 const sourceNode = nodes.find((n) => n.id === edge.source);
                                 const targetNode = nodes.find((n) => n.id === edge.target);
-
                                 if (!sourceNode || !targetNode) return null;
-
                                 // Obter posições de origem e destino
                                 const sourcePos = getNodeCenter(edge.source);
-
                                 const targetPos = getNodeCenter(edge.target);
-
                                 // Obter setas e ângulo
                                 const { arrowElements, angle } = renderConnectionArrows(sourcePos, targetPos);
-
                                 return (
                                     <g key={edge.id}>
                                         {/* Caminho com cor gradiente */}
@@ -772,17 +676,14 @@ export default function RouteEditor() {
                                                 <stop offset="100%" stopColor="#1d4ed8" />
                                             </linearGradient>
                                         </defs>
-
                                         <path
                                             d={`M${sourcePos.x},${sourcePos.y} L${targetPos.x},${targetPos.y}`}
                                             stroke={`url(#gradient-${edge.id})`}
                                             strokeWidth="3"
                                             fill="none"
                                         />
-
                                         {/* Indicadores de direção ao longo do caminho */}
                                         {arrowElements}
-
                                         {/* Seta final no destino - maior e mais visível */}
                                         <g>
                                             {/* Contorno branco para melhor visibilidade */}
@@ -800,10 +701,8 @@ export default function RouteEditor() {
                                                 transform={`translate(${targetPos.x},${targetPos.y}) rotate(${angle})`}
                                             />
                                         </g>
-
                                         {/* Indicador de origem - círculo maior com contorno */}
                                         <circle cx={sourcePos.x} cy={sourcePos.y} r={5} fill="white" stroke="#3b82f6" strokeWidth="2" />
-
                                         {/* Botão para excluir edge */}
                                         <foreignObject
                                             x={(sourcePos.x + targetPos.x) / 2 - 10}
@@ -821,29 +720,22 @@ export default function RouteEditor() {
                                     </g>
                                 );
                             })}
-
                             {/* Conexão ativa sendo criada */}
                             {connectingFrom &&
                                 (() => {
                                     const tempPath = getTempConnectionPath();
-
                                     if (!tempPath) return null;
-
                                     // Calcular distância para criar setas intermediárias
                                     const dx = tempPath.target.x - tempPath.source.x;
                                     const dy = tempPath.target.y - tempPath.source.y;
                                     const distance = Math.sqrt(dx * dx + dy * dy);
-
                                     if (distance < 30) return null; // Não desenhar se estiver muito próximo
-
                                     // Obter setas para a conexão temporária
                                     const { arrowElements } = renderConnectionArrows(tempPath.source, tempPath.target);
-
                                     return (
                                         <g>
                                             {/* Linha tracejada */}
                                             <path d={tempPath.path} stroke="#2563eb" strokeWidth="3" strokeDasharray="6" fill="none" />
-
                                             {/* Indicador de origem - círculo com contorno */}
                                             <circle
                                                 cx={tempPath.source.x}
@@ -853,10 +745,8 @@ export default function RouteEditor() {
                                                 stroke="#3b82f6"
                                                 strokeWidth="2"
                                             />
-
                                             {/* Setas de direção ao longo do caminho */}
                                             {arrowElements}
-
                                             {/* Seta no final - maior e mais visível */}
                                             <g>
                                                 {/* Contorno branco */}
@@ -878,7 +768,6 @@ export default function RouteEditor() {
                                     );
                                 })()}
                         </svg>
-
                         {/* Elementos de node */}
                         {nodes.map((node) => (
                             <div
@@ -918,7 +807,6 @@ export default function RouteEditor() {
                                         {edges.filter((e) => e.source === node.id).length}
                                     </span>
                                 </div>
-
                                 {/* Alça de conexão - área ampla clicável com indicador visual */}
                                 <div
                                     className="absolute h-10 w-full cursor-pointer"
@@ -935,7 +823,6 @@ export default function RouteEditor() {
                                         <div className="h-2 w-2 rounded-full bg-white" draggable="false"></div>
                                     </div>
                                 </div>
-
                                 {/* Área alvo de conexão (mostrar apenas se estiver conectando) */}
                                 {connectingFrom && connectingFrom !== node.id && (
                                     <div className="absolute inset-0 z-30 border-2 border-blue-400 bg-blue-100 opacity-30" />
@@ -944,7 +831,6 @@ export default function RouteEditor() {
                         ))}
                     </div>
                 </div>
-
                 {/* Modal de Saída JSON */}
                 {showOutput && (
                     <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">

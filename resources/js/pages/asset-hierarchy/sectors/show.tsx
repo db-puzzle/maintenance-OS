@@ -3,13 +3,11 @@ import { type BreadcrumbItem } from '@/types';
 import { type Asset } from '@/types/asset-hierarchy';
 import { router } from '@inertiajs/react';
 import { Cog, Factory, Map } from 'lucide-react';
-
 import SectorFormComponent from '@/components/SectorFormComponent';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-
 interface Props {
     sector: {
         id: number;
@@ -40,7 +38,6 @@ interface Props {
         };
     };
 }
-
 export default function Show({ sector, plants, asset, activeTab, filters }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -60,10 +57,8 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             href: '#',
         },
     ];
-
     const handleSort = (column: string) => {
         const direction = filters.asset.sort === column && filters.asset.direction === 'asc' ? 'desc' : 'asc';
-
         router.get(
             route('asset-hierarchy.sectors.show', {
                 setor: sector.id,
@@ -76,7 +71,6 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             { preserveState: true },
         );
     };
-
     const subtitle = (
         <span className="text-muted-foreground flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
@@ -95,7 +89,6 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             </span>
         </span>
     );
-
     const tabs = [
         {
             id: 'informacoes',
@@ -117,7 +110,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             content: (
                 <div className="mt-6 space-y-4">
                     <EntityDataTable
-                        data={asset.data as Record<string, unknown>[]}
+                        data={asset.data.map(a => ({ ...a } as Record<string, unknown>))}
                         columns={[
                             {
                                 key: 'tag',
@@ -125,7 +118,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 sortable: true,
                                 width: 'w-[25%]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <div className="font-medium">{ (row as any).tag}</div>,
+                                render: (value, row) => <div className="font-medium">{(row as any).tag}</div>,
                             },
                             {
                                 key: 'asset_type_name',
@@ -133,7 +126,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 sortable: true,
                                 width: 'w-[25%]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).asset_type?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).asset_type?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturer_name',
@@ -141,7 +134,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 sortable: true,
                                 width: 'w-[25%]',
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).manufacturer?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).manufacturer?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturing_year',
@@ -152,7 +145,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                             },
                         ]}
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show',  (row as any).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as any).id))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {
                                 asset_type_name: 'type',
@@ -162,7 +155,6 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                             handleSort(columnMap[columnKey] || columnKey);
                         }}
                     />
-
                     <EntityPagination
                         pagination={{
                             current_page: asset.current_page,
@@ -184,7 +176,6 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <ShowLayout title={sector.name} subtitle={subtitle} editRoute={route('asset-hierarchy.sectors.edit', sector.id)} tabs={tabs} />

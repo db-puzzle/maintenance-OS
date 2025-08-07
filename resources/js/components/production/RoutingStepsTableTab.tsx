@@ -13,14 +13,12 @@ import { ColumnConfig } from '@/types/shared';
 import { StepStatusBadge } from '@/components/production/StepStatusBadge';
 import { StepTypeBadge } from '@/components/production/StepTypeBadge';
 import { ManufacturingStep } from '@/types/production';
-
 interface Props {
     steps: ManufacturingStep[];
     canManage: boolean;
     canExecute: boolean;
     routingId: number;
 }
-
 export default function RoutingStepsTableTab({
     steps,
     canManage,
@@ -30,13 +28,10 @@ export default function RoutingStepsTableTab({
     const handleStartStep = (stepId: number) => {
         router.get(route('production.steps.execute', stepId));
     };
-
-    const getStepActions = (step: any) => {
+    const getStepActions = (error: unknown) => {
         if (!canExecute) return null;
-
         const canStart = !step.depends_on_step_id ||
             (step.dependency && ['completed', 'in_progress'].includes(step.dependency.status));
-
         switch (step.status) {
             case 'pending':
             case 'queued':
@@ -80,7 +75,6 @@ export default function RoutingStepsTableTab({
                 return null;
         }
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'step_number',
@@ -158,7 +152,6 @@ export default function RoutingStepsTableTab({
             )
         }
     ];
-
     return (
         <div className="space-y-4 py-6">
             <EntityDataTable

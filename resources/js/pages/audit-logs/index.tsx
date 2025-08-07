@@ -35,7 +35,6 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
 interface AuditLog {
     id: number;
     event_type: string;
@@ -57,7 +56,6 @@ interface AuditLog {
     ip_address: string;
     created_at: string;
 }
-
 interface Props {
     logs: {
         data: AuditLog[];
@@ -77,7 +75,6 @@ interface Props {
     eventTypes: string[];
     users: Array<{ id: number; name: string; email: string }>;
 }
-
 export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Props) {
     const { auth } = usePage().props as Record<string, unknown>;
     const [localFilters, setLocalFilters] = useState(filters);
@@ -87,13 +84,11 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
         from: filters.date_from ? new Date(filters.date_from) : undefined,
         to: filters.date_to ? new Date(filters.date_to) : undefined
     });
-
     const breadcrumbs = [
         { title: 'Home', href: '/home' },
         { title: 'Settings', href: '#' },
         { title: 'Audit Logs', href: '/audit-logs' },
     ];
-
     // Only allow administrators
     const authUser = (auth as Record<string, unknown>).user as Record<string, unknown> | undefined;
     const userRoles = authUser?.roles as Array<{ name: string }> | undefined;
@@ -111,7 +106,6 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
             </AppLayout>
         );
     }
-
     const applyFilters = () => {
         const cleanedFilters = {
             ...localFilters,
@@ -120,18 +114,15 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
             date_from: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
             date_to: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
         };
-
         router.get(route('audit-logs.index'), cleanedFilters, {
             preserveState: true,
             preserveScroll: true
         });
     };
-
     const exportLogs = () => {
         // Using window.location.href for file download - Inertia router doesn't handle file downloads
         window.location.href = route('audit-logs.export', localFilters);
     };
-
     const getEventBadgeVariant = (eventType: string) => {
         if (eventType.includes('created')) return 'default';
         if (eventType.includes('updated')) return 'secondary';
@@ -140,17 +131,14 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
         if (eventType.includes('revoked')) return 'destructive';
         return 'outline';
     };
-
     const getEventIcon = (eventType: string) => {
         if (eventType.includes('user')) return <User className="w-4 h-4" />;
         if (eventType.includes('role') || eventType.includes('permission')) return <Shield className="w-4 h-4" />;
         return <Activity className="w-4 h-4" />;
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Permission Audit Logs" />
-
             <div className="bg-background flex-shrink-0 border-b">
                 <div className="px-6 py-4">
                     <div className="flex justify-between items-center">
@@ -165,7 +153,6 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                     </div>
                 </div>
             </div>
-
             <div className="container mx-auto py-6 px-6 space-y-6">
                 {/* Filters */}
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -179,7 +166,6 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                             className="pl-10"
                         />
                     </div>
-
                     <Select
                         value={localFilters.event_type}
                         onValueChange={(value) => setLocalFilters({ ...localFilters, event_type: value })}
@@ -194,7 +180,6 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                             ))}
                         </SelectContent>
                     </Select>
-
                     <Select
                         value={localFilters.user_id}
                         onValueChange={(value) => setLocalFilters({ ...localFilters, user_id: value })}
@@ -211,7 +196,6 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                             ))}
                         </SelectContent>
                     </Select>
-
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button variant="outline" className={cn(
@@ -243,13 +227,11 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                             />
                         </PopoverContent>
                     </Popover>
-
                     <Button onClick={applyFilters}>
                         <Filter className="w-4 h-4 mr-2" />
                         Apply Filters
                     </Button>
                 </div>
-
                 {/* Logs Table */}
                 <Table>
                     <TableHeader>
@@ -317,14 +299,12 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                     </TableBody>
                 </Table>
             </div>
-
             {/* Log Details Dialog */}
             <Dialog open={showDetails} onOpenChange={setShowDetails}>
                 <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Audit Log Details</DialogTitle>
                     </DialogHeader>
-
                     {selectedLog && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-2 gap-4">
@@ -355,7 +335,6 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                                     <p className="mt-1">{selectedLog.auditable_type} #{selectedLog.auditable_id}</p>
                                 </div>
                             </div>
-
                             {selectedLog.impersonator && (
                                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                                     <p className="text-sm text-orange-800">
@@ -363,7 +342,6 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                                     </p>
                                 </div>
                             )}
-
                             {Object.keys(selectedLog.changed_fields).length > 0 && (
                                 <div>
                                     <h4 className="font-medium mb-2">Changes</h4>
@@ -385,7 +363,6 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                                     </div>
                                 </div>
                             )}
-
                             {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
                                 <div>
                                     <h4 className="font-medium mb-2">Additional Information</h4>

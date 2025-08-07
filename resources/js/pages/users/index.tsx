@@ -3,7 +3,6 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { Button } from '@/components/ui/button';
-
 import {
     Select,
     SelectContent,
@@ -21,10 +20,8 @@ import { CreateUserModal } from './CreateUserModal';
 import { toast } from 'sonner';
 import { ColumnConfig } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -35,7 +32,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/users',
     },
 ];
-
 interface User {
     id: number;
     name: string;
@@ -45,17 +41,14 @@ interface User {
     created_at: string;
     updated_at: string;
 }
-
 interface Role {
     id: number;
     name: string;
 }
-
 interface Plant {
     id: number;
     name: string;
 }
-
 interface Props {
     users: {
         data: User[];
@@ -89,7 +82,6 @@ interface Props {
         sectors: Array<{ id: number; name: string }>;
     };
 }
-
 export default function UserIndex({ users, filters, roles, filterRoles, plants, canCreateUsers, assignableEntities }: Props) {
     const { props } = usePage<{
         flash: {
@@ -110,12 +102,10 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get('/users', { ...filters, search: value }, { preserveState: true });
     };
-
     const handleFilter = (key: keyof typeof filters, value: string | null) => {
         const newFilters: Record<string, string | number | undefined> = { ...filters };
         if (value) {
@@ -125,15 +115,12 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
         }
         router.get('/users', newFilters, { preserveState: true });
     };
-
     const handleDelete = (user: User) => {
         setDeletingUser(user);
         setIsDeleteDialogOpen(true);
     };
-
     const confirmDelete = async () => {
         if (!deletingUser) return;
-
         return new Promise<void>((resolve, reject) => {
             router.delete(route('users.destroy', { user: deletingUser.id }), {
                 onSuccess: (page) => {
@@ -162,7 +149,6 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
             });
         });
     };
-
     const handleDeleteDialogChange = (open: boolean) => {
         setIsDeleteDialogOpen(open);
         if (!open) {
@@ -170,17 +156,12 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
             setDeletingUser(null);
         }
     };
-
-
-
     const handlePageChange = (page: number) => {
         router.get('/users', { ...filters, page }, { preserveState: true, preserveScroll: true });
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get('/users', { ...filters, per_page: perPage, page: 1 }, { preserveState: true, preserveScroll: true });
     };
-
     // Define columns for EntityDataTable
     const columns: ColumnConfig[] = [
         {
@@ -257,7 +238,6 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
             },
         },
     ];
-
     // Prepare pagination data
     const pagination = users.meta ? {
         current_page: users.meta.current_page,
@@ -274,11 +254,9 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
         from: 1,
         to: users.data.length,
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="User Management" />
-
             <ListLayout
                 title="User Management"
                 description="Manage users, roles, and permissions"
@@ -319,7 +297,6 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                                 ))}
                             </SelectContent>
                         </Select>
-
                         {plants && plants.length > 0 && (
                             <Select
                                 value={filters.plant_id || 'all'}
@@ -339,18 +316,17 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                             </Select>
                         )}
                     </div>
-
                     {/* Users Table */}
                     <EntityDataTable
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         data={users.data as any}
                         columns={columns}
                         loading={false}
-                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                        onRowClick={(user: any) => router.visit(`/users/${user.id}`)}
+                         
+                        onRowClick={(error: unknown) => router.visit(`/users/${user.id}`)}
                         emptyMessage="No users found"
-                        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                        actions={(user: any) => (
+                         
+                        actions={(error: unknown) => (
                             <EntityActionDropdown
                                 onEdit={() => router.visit(`/users/${user.id}/edit`)}
                                 onDelete={() => handleDelete(user as User)}
@@ -369,7 +345,6 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                             />
                         )}
                     />
-
                     {/* Pagination */}
                     {pagination.last_page > 1 && (
                         <EntityPagination
@@ -381,14 +356,12 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                     )}
                 </div>
             </ListLayout>
-
             <EntityDeleteDialog
                 open={isDeleteDialogOpen}
                 onOpenChange={handleDeleteDialogChange}
                 entityLabel={deletingUser?.name || ''}
                 onConfirm={confirmDelete}
             />
-
             {canCreateUsers && roles && assignableEntities && (
                 <CreateUserModal
                     open={isCreateModalOpen}

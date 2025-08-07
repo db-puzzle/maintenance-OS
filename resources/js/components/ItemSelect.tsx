@@ -5,11 +5,10 @@ import { Link } from '@inertiajs/react';
 import { type SelectProps } from '@radix-ui/react-select';
 import { LucideIcon, PlusCircle, Search } from 'lucide-react';
 import { forwardRef, useEffect, useMemo, useState } from 'react';
-
 export interface ItemSelectProps extends SelectProps {
     label?: string;
     items: ReadonlyArray<{
-        readonly id: number;
+        readonly id: number | string;
         readonly name: string;
         readonly icon?: LucideIcon;
         readonly value?: string;
@@ -29,7 +28,6 @@ export interface ItemSelectProps extends SelectProps {
     searchable?: boolean;
     canClear?: boolean;
 }
-
 const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
     (
         {
@@ -58,29 +56,24 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
             if (!showSearch || !search) return items;
             return items.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()));
         }, [items, search, showSearch]);
-
         // Limpa o search quando o select é fechado
         useEffect(() => {
             if (!isSelectOpen) {
                 setSearch('');
             }
         }, [isSelectOpen]);
-
         const selectedItem = items.find((item) => item.id.toString() === value);
         const hasCreateOption = canCreate && (onCreateClick || createRoute);
-
         // Função wrapper para interceptar o valor de limpar seleção
         const handleValueChange = (newValue: string) => {
             // Prevent changes in view mode
             if (view) return;
-
             if (newValue === '__clear__') {
                 onValueChange('');
             } else {
                 onValueChange(newValue);
             }
         };
-
         const CreateButton = () => {
             if (onCreateClick) {
                 return (
@@ -97,7 +90,6 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                     </button>
                 );
             }
-
             if (createRoute) {
                 return (
                     <Link
@@ -110,10 +102,8 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
                     </Link>
                 );
             }
-
             return null;
         };
-
         return (
             <div className="grid gap-2">
                 {label && (
@@ -226,7 +216,5 @@ const ItemSelect = forwardRef<HTMLButtonElement, ItemSelectProps>(
         );
     },
 );
-
 ItemSelect.displayName = 'ItemSelect';
-
 export { ItemSelect };

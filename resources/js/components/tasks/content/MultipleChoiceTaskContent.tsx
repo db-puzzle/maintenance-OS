@@ -9,17 +9,14 @@ import { PlusCircle, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { TaskCardMode } from './TaskContent';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
-
 interface MultipleChoiceTaskContentProps extends WithSaveFunctionalityProps {
     task: Task;
     mode: TaskCardMode;
     onUpdate?: (updatedTask: Task) => void;
 }
-
 function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse, disabled }: MultipleChoiceTaskContentProps) {
     const [options, setOptions] = useState<string[]>(task.options || []);
     const isMultipleSelect = task.type === 'multiple_select';
-
     useEffect(() => {
         if (isMultipleSelect) {
             if (!response || !Array.isArray(response.value)) {
@@ -31,28 +28,23 @@ function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse
             }
         }
     }, [isMultipleSelect, response, setResponse]);
-
     const handleAddOption = () => {
         const newOptions = [...options, ''];
         setOptions(newOptions);
         onUpdate?.({ ...task, options: newOptions });
     };
-
     const handleRemoveOption = (index: number) => {
         const newOptions = options.filter((_, i) => i !== index);
         setOptions(newOptions);
         onUpdate?.({ ...task, options: newOptions });
     };
-
     const handleOptionChange = (index: number, value: string) => {
         const newOptions = [...options];
         newOptions[index] = value;
         setOptions(newOptions);
         onUpdate?.({ ...task, options: newOptions });
     };
-
     const validOptions = mode === 'edit' ? options : options.filter((option) => option.trim() !== '');
-
     if (mode === 'edit') {
         return (
             <div className="space-y-4">
@@ -75,7 +67,6 @@ function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse
                                 Adicionar Opção
                             </Button>
                         </div>
-
                         <div className="space-y-2">
                             {options.map((option, index) => (
                                 <div key={index} className="flex items-center gap-2">
@@ -96,10 +87,8 @@ function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse
             </div>
         );
     }
-
     if (mode === 'preview' || mode === 'respond') {
         const isResponding = mode === 'respond';
-
         if (validOptions.length === 0) {
             return (
                 <div className="bg-muted/30 rounded-md p-4">
@@ -107,7 +96,6 @@ function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse
                 </div>
             );
         }
-
         if (isMultipleSelect) {
             return (
                 <div className="space-y-4">
@@ -116,10 +104,10 @@ function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse
                             <div key={index} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={`option-${task.id}-${index}`}
-                                    checked={response?.value?.includes(option)}
+                                    checked={(response?.value as string[] | undefined)?.includes(option)}
                                     onCheckedChange={(checked) => {
                                         if (isResponding) {
-                                            const currentValue = response?.value || [];
+                                            const currentValue = (response?.value as string[]) || [];
                                             const newValue = checked
                                                 ? [...currentValue, option]
                                                 : currentValue.filter((item: string) => item !== option);
@@ -137,11 +125,10 @@ function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse
                 </div>
             );
         }
-
         return (
             <div className="space-y-4">
                 <RadioGroup
-                    value={response?.value}
+                    value={(response?.value as string) || undefined}
                     onValueChange={(value) => isResponding && setResponse({ value })}
                     disabled={!isResponding || disabled}
                 >
@@ -157,8 +144,6 @@ function MultipleChoiceTaskContent({ task, mode, onUpdate, response, setResponse
             </div>
         );
     }
-
     return null;
 }
-
 export default withSaveFunctionality(MultipleChoiceTaskContent);

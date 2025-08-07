@@ -1,22 +1,16 @@
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
-
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
 import HeadingSmall from '@/components/heading-small';
-
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-
 export default function DeleteUser() {
     const passwordInput = useRef<HTMLInputElement>(null);
     const { data, setData, delete: destroy, processing, reset, errors, clearErrors } = useForm<Required<{ password: string }>>({ password: '' });
-
     const deleteUser: FormEventHandler = (e) => {
         e.preventDefault();
-
         destroy(route('profile.destroy'), {
             preserveScroll: true,
             onSuccess: () => closeModal(),
@@ -24,12 +18,10 @@ export default function DeleteUser() {
             onFinish: () => reset(),
         });
     };
-
     const closeModal = () => {
         clearErrors();
         reset();
     };
-
     return (
         <div className="space-y-6">
             <HeadingSmall title="Delete account" description="Delete your account and all of its resources" />
@@ -38,7 +30,6 @@ export default function DeleteUser() {
                     <p className="font-medium">Warning</p>
                     <p className="text-sm">Please proceed with caution, this cannot be undone.</p>
                 </div>
-
                 <Dialog>
                     <DialogTrigger asChild>
                         <Button variant="destructive">Delete account</Button>
@@ -54,7 +45,6 @@ export default function DeleteUser() {
                                 <Label htmlFor="password" className="sr-only">
                                     Password
                                 </Label>
-
                                 <Input
                                     id="password"
                                     type="password"
@@ -65,17 +55,14 @@ export default function DeleteUser() {
                                     placeholder="Password"
                                     autoComplete="current-password"
                                 />
-
                                 <InputError message={errors.password} />
                             </div>
-
                             <DialogFooter className="gap-2">
                                 <DialogClose asChild>
                                     <Button variant="secondary" onClick={closeModal}>
                                         Cancel
                                     </Button>
                                 </DialogClose>
-
                                 <Button variant="destructive" disabled={processing} asChild>
                                     <button type="submit">Delete account</button>
                                 </Button>

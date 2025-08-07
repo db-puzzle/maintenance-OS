@@ -43,14 +43,14 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
         issuing_organization: '',
         validity_period_days: '',
         validity_option: '0',
-        active: true,
+        active: true as boolean,
     });
 
     useEffect(() => {
         if (certification) {
             const validityDays = certification.validity_period_days?.toString() || '0';
             const validityOption = validityOptions.find(opt => opt.value === validityDays)?.value || 'custom';
-            
+
             setData({
                 name: certification.name,
                 description: certification.description || '',
@@ -83,7 +83,7 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
         };
 
         if (certification) {
-            put(route('certifications.update', certification.id), submitData, {
+            put(route('certifications.update', certification.id), {
                 preserveScroll: true,
                 onSuccess: () => {
                     onClose();
@@ -91,7 +91,7 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                 },
             });
         } else {
-            post(route('certifications.store'), submitData, {
+            post(route('certifications.store'), {
                 preserveScroll: true,
                 onSuccess: () => {
                     onClose();
@@ -162,7 +162,7 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                                 ))}
                             </SelectContent>
                         </Select>
-                        
+
                         {data.validity_option === 'custom' && (
                             <Input
                                 type="number"
@@ -173,7 +173,7 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                                 className="mt-2"
                             />
                         )}
-                        
+
                         {errors.validity_period_days && (
                             <p className="text-sm text-destructive">{errors.validity_period_days}</p>
                         )}
@@ -203,7 +203,7 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
                         <Switch
                             id="active"
                             checked={data.active}
-                            onCheckedChange={(checked) => setData('active', checked)}
+                            onCheckedChange={(checked) => setData('active', !!checked)}
                         />
                     </div>
 

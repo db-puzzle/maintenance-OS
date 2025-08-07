@@ -4,7 +4,6 @@ import { ColumnConfig } from '@/types/shared';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Award } from 'lucide-react';
-
 interface Certification {
     id: number;
     name: string;
@@ -13,19 +12,16 @@ interface Certification {
     validity_period_days?: number | null;
     active: boolean;
 }
-
 interface CertificationsTableProps {
     selectedCertifications: Certification[];
     isViewMode: boolean;
     onRemoveCertification: (certificationId: number) => void;
 }
-
 export function CertificationsTable({
     selectedCertifications,
     isViewMode,
     onRemoveCertification
 }: CertificationsTableProps) {
-
     // Define columns for the certifications table
     const certificationsColumns: ColumnConfig[] = [
         {
@@ -78,7 +74,6 @@ export function CertificationsTable({
             },
         },
     ];
-
     // Actions for each row (remove button)
     const certificationsActions = !isViewMode ? (row: Record<string, unknown>) => {
         const cert = row as unknown as Certification;
@@ -94,7 +89,6 @@ export function CertificationsTable({
             </Button>
         );
     } : undefined;
-
     if (selectedCertifications.length > 0) {
         return (
             <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
@@ -107,7 +101,6 @@ export function CertificationsTable({
             </div>
         );
     }
-
     return (
         <div className="text-center py-4 text-muted-foreground border rounded-lg min-h-[60px] flex flex-col justify-center">
             <Award className="h-6 w-6 mx-auto mb-1" />

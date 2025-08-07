@@ -1,13 +1,11 @@
 import { AlertCircle, AlertTriangle, ChevronUp, ChevronDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
 interface WorkOrderPriorityIndicatorProps {
     priorityScore: number;
     showLabel?: boolean;
     showScore?: boolean;
     className?: string;
 }
-
 // Map priority score ranges to visual indicators
 const getPriorityConfig = (score: number) => {
     if (score >= 90) {
@@ -52,7 +50,6 @@ const getPriorityConfig = (score: number) => {
         };
     }
 };
-
 export function WorkOrderPriorityIndicator({
     priorityScore,
     showLabel = true,
@@ -61,7 +58,6 @@ export function WorkOrderPriorityIndicator({
 }: WorkOrderPriorityIndicatorProps) {
     const config = getPriorityConfig(priorityScore);
     const Icon = config.icon;
-
     return (
         <div className={cn('flex items-center gap-1', config.color, className)}>
             <Icon className="h-4 w-4" />

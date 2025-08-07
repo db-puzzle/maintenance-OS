@@ -7,29 +7,24 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import InputError from '@/components/input-error';
 import { ItemCategory } from '@/types/production';
-
 interface ItemCategoryFormComponentProps {
     category: ItemCategory;
     initialMode?: 'view' | 'edit';
     onSuccess?: () => void;
 }
-
 const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
     category,
     initialMode = 'view',
     onSuccess,
 }) => {
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
-
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm({
         name: category.name || '',
         description: category.description || '',
         is_active: category.is_active ?? true,
     });
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         put(route('production.categories.update', { category: category.id }), {
             onSuccess: () => {
                 setMode('view');
@@ -39,19 +34,17 @@ const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
             },
         });
     };
-
     const handleCancel = () => {
         reset();
         clearErrors();
         setMode('view');
     };
-
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid gap-6">
                 {/* Nome */}
                 <TextInput
-                    form={{ data, setData, errors, clearErrors }}
+                    form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
                     name="name"
                     label="Nome"
                     placeholder="Nome da categoria"
@@ -59,7 +52,6 @@ const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
                     disabled={processing}
                     view={mode === 'view'}
                 />
-
                 {/* Descrição */}
                 <div className="grid gap-2">
                     <Label htmlFor="description">Descrição</Label>
@@ -81,7 +73,6 @@ const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
                         </>
                     )}
                 </div>
-
                 {/* Status Ativo */}
                 <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
@@ -97,7 +88,6 @@ const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
                         disabled={processing || mode === 'view'}
                     />
                 </div>
-
                 {/* Informações adicionais (somente visualização) */}
                 {mode === 'view' && (
                     <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
@@ -121,7 +111,6 @@ const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
                     </div>
                 )}
             </div>
-
             {/* Botões de ação */}
             <div className="flex items-center justify-end gap-2">
                 {mode === 'view' ? (
@@ -151,5 +140,4 @@ const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
         </form>
     );
 };
-
 export default ItemCategoryFormComponent;

@@ -13,10 +13,8 @@ import { getCurrentTimeInTimezone, getTimezoneDisplayName } from '@/constants/ti
 import axios from 'axios';
 import { Globe } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
 // Set up axios defaults for CSRF protection
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-
 // Get CSRF token from meta tag (only in browser environment)
 if (typeof window !== 'undefined') {
     const token = document.head.querySelector('meta[name="csrf-token"]');
@@ -24,28 +22,23 @@ if (typeof window !== 'undefined') {
         axios.defaults.headers.common['X-CSRF-TOKEN'] = (token as HTMLMetaElement).content;
     }
 }
-
 interface TimezoneDetectorProps {
     currentTimezone: string;
     userId: number;
     forceShow?: boolean;
 }
-
 export default function TimezoneDetector({ currentTimezone, userId, forceShow = false }: TimezoneDetectorProps) {
     const [showModal, setShowModal] = useState(false);
     const [detectedTimezone, setDetectedTimezone] = useState<string>('');
     const [isUpdating, setIsUpdating] = useState(false);
-
     useEffect(() => {
         // Detect browser timezone
         const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
         // Check if it's different from the current timezone and both are valid
         if (browserTimezone && currentTimezone && browserTimezone !== currentTimezone) {
             // Check if we've already asked about this timezone in this session
             const sessionKey = `timezone_prompt_${userId}_${browserTimezone}`;
             const alreadyAsked = sessionStorage.getItem(sessionKey);
-
             if (!alreadyAsked || forceShow) {
                 setDetectedTimezone(browserTimezone);
                 setShowModal(true);
@@ -56,16 +49,13 @@ export default function TimezoneDetector({ currentTimezone, userId, forceShow = 
             }
         }
     }, [currentTimezone, userId, forceShow]);
-
     const handleConfirm = async () => {
         setIsUpdating(true);
-
         try {
             // Update the user's timezone using axios for better control
             const response = await axios.patch('/settings/timezone', {
                 timezone: detectedTimezone,
             });
-
             if (response.data.success) {
                 setShowModal(false);
                 // Reload the page to apply the new timezone
@@ -77,11 +67,9 @@ export default function TimezoneDetector({ currentTimezone, userId, forceShow = 
             setIsUpdating(false);
         }
     };
-
     const handleCancel = () => {
         setShowModal(false);
     };
-
     return (
         <AlertDialog open={showModal} onOpenChange={setShowModal}>
             <AlertDialogContent>

@@ -1,8 +1,6 @@
 'use client';
-
 import { ChevronsUpDown, Plus } from 'lucide-react';
 import * as React from 'react';
-
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,7 +11,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
-
 export function TeamSwitcher({
     teams,
 }: {
@@ -25,7 +22,6 @@ export function TeamSwitcher({
 }) {
     const { isMobile } = useSidebar();
     const [activeTeam, setActiveTeam] = React.useState(teams[0]);
-
     return (
         <SidebarMenu>
             <SidebarMenuItem>

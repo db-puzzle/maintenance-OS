@@ -4,14 +4,12 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ChartGantt, ClipboardList, LayoutGrid, Shield, Package, Wrench, Award, Factory, Boxes, Truck, BarChart3, QrCode, GitBranch } from 'lucide-react';
+import { ChartGantt, ClipboardList, LayoutGrid, Shield, Award, Factory } from 'lucide-react';
 import AppLogo from './app-logo';
-
 interface NavGroup {
     title: string;
     items: NavItem[];
 }
-
 const gerenciamentoNavItems: NavGroup = {
     title: '',
     items: [
@@ -88,7 +86,6 @@ const gerenciamentoNavItems: NavGroup = {
         },
     ],
 };
-
 const sistemaNavItems: NavGroup = {
     title: 'Configurações',
     items: [
@@ -147,9 +144,7 @@ const sistemaNavItems: NavGroup = {
         },
     ],
 };
-
 const footerNavItems: NavItem[] = [];
-
 export function AppSidebar() {
     return (
         <Sidebar collapsible="icon" variant="sidebar">
@@ -164,11 +159,9 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
-
             <SidebarContent>
                 <NavMain items={[gerenciamentoNavItems, sistemaNavItems]} />
             </SidebarContent>
-
             <SidebarFooter>
                 <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />

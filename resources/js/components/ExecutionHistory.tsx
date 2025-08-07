@@ -11,7 +11,6 @@ import { useExportManager } from '@/hooks/use-export-manager';
 import { toast } from 'sonner';
 import EmptyCard from '@/components/ui/empty-card';
 import RuntimeHistory from '@/components/RuntimeHistory';
-
 interface ExecutionData {
     id: number | string;
     work_order_id?: number;
@@ -42,11 +41,9 @@ interface ExecutionData {
         with_issues: number;
     };
 }
-
 interface ExecutionHistoryProps {
     assetId?: number;
 }
-
 export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('executions');
@@ -75,12 +72,10 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
         per_page: 10,
     });
     const { addExport, updateExport } = useExportManager();
-
     // Detect when the parent Histórico tab becomes visible
     useEffect(() => {
         const currentElement = containerRef.current;
         if (!currentElement) return;
-
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
@@ -91,17 +86,13 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                 threshold: 0.1,
             }
         );
-
         observer.observe(currentElement);
-
         return () => {
             observer.unobserve(currentElement);
         };
     }, []);
-
     const fetchExecutions = useCallback(async () => {
         if (!assetId) return;
-
         setLoading(true);
         try {
             const response = await axios.get(route('asset-hierarchy.assets.work-order-history', assetId), {
@@ -113,12 +104,10 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                     category: 'preventive',
                 },
             });
-
             // Transform work order data to match the expected execution format
             // Handle the response structure from the API
             let workOrdersData = [];
             let paginationInfo = null;
-
             if (response.data.success && response.data.data) {
                 // The actual work orders are in response.data.data.data
                 workOrdersData = response.data.data.data || [];
@@ -126,8 +115,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             } else if (Array.isArray(response.data)) {
                 workOrdersData = response.data;
             }
-
-            const transformedData = Array.isArray(workOrdersData) ? workOrdersData.map((workOrder: any) => ({
+            const transformedData = Array.isArray(error: unknown) => ({
                 id: workOrder.execution?.id || workOrder.id,
                 work_order_id: workOrder.id,
                 routine_name: workOrder.title,
@@ -145,7 +133,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                     published_at: workOrder.created_at
                 } : null,
             })) : [];
-
             // Use pagination info if available, otherwise use defaults
             const finalPaginationData = paginationInfo || {
                 current_page: 1,
@@ -155,7 +142,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                 from: transformedData.length > 0 ? 1 : null,
                 to: transformedData.length,
             };
-
             setExecutions({
                 data: transformedData,
                 current_page: finalPaginationData.current_page || 1,
@@ -172,13 +158,11 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             setLoading(false);
         }
     }, [assetId, executions.current_page, filters.per_page, filters.sort, filters.direction]);
-
     useEffect(() => {
         if (assetId) {
             fetchExecutions();
         }
     }, [assetId, fetchExecutions]);
-
     const handleSort = (column: string) => {
         const newDirection = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
         setFilters({
@@ -187,16 +171,13 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             direction: newDirection,
         });
     };
-
     const handlePageChange = (page: number) => {
         setExecutions(prev => ({ ...prev, current_page: page }));
     };
-
     const handlePerPageChange = (perPage: number) => {
         setFilters(prev => ({ ...prev, per_page: perPage }));
         setExecutions(prev => ({ ...prev, current_page: 1 }));
     };
-
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'completed':
@@ -211,17 +192,14 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                 return 'bg-gray-100 text-gray-800';
         }
     };
-
     const formatDate = (dateString: string | null) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleString('pt-BR');
     };
-
     const handleExportSingle = async (_executionId: number) => {
         // For now, disable export functionality until work order export is implemented
         toast.info('Exportação de ordens de serviço será implementada em breve');
         return;
-
         /* TODO: Implement work order export
         try {
             const response = await fetch(`/maintenance/work-orders/${executionId}/export`, {
@@ -243,19 +221,15 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                     },
                 }),
             });
-
             const data = await response.json();
-
             if (!response.ok) {
                 throw new Error(data.error || `Export failed: ${response.statusText}`);
             }
-
             // Find the execution data to get the routine name
             const execution = executions.data.find(e => e.id === executionId);
             const description = execution
                 ? `Execution #${executionId} - ${execution.routine?.name || execution.routine_name || 'Sem nome'}`
                 : `Execution #${executionId}`;
-
             // Add to export manager
             addExport({
                 id: data.export_id,
@@ -264,7 +238,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                 status: 'processing',
                 progress: 0,
             });
-
             // Poll for status
             const pollInterval = setInterval(async () => {
                 try {
@@ -274,17 +247,14 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                         },
                     });
                     const statusData = await statusResponse.json();
-
                     // Update progress in export manager
                     if (statusData.progress_percentage) {
                         updateExport(data.export_id, {
                             progress: statusData.progress_percentage,
                         });
                     }
-
                     if (statusData.status === 'completed' && statusData.download_url) {
                         clearInterval(pollInterval);
-
                         // Update export manager with completion
                         updateExport(data.export_id, {
                             status: 'completed',
@@ -293,7 +263,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                         });
                     } else if (statusData.status === 'failed') {
                         clearInterval(pollInterval);
-
                         // Update export manager with failure
                         updateExport(data.export_id, {
                             status: 'failed',
@@ -304,7 +273,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                     console.error('Status polling error:', error);
                 }
             }, 2000);
-
             // Timeout after 5 minutes
             setTimeout(() => {
                 clearInterval(pollInterval);
@@ -315,7 +283,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
         }
         */
     };
-
     const columns = [
         {
             key: 'id',
@@ -334,7 +301,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                 // Handle both nested and flat data structures
                 const routineName = execution.routine?.name || execution.routine_name;
                 const routineDescription = execution.routine?.description;
-
                 if (!routineName) {
                     return <div className="text-muted-foreground">N/A</div>;
                 }
@@ -357,7 +323,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                 const execution = row as ExecutionData;
                 // Handle both nested and flat data structures
                 const executorName = execution.executor?.name || execution.executor_name;
-
                 if (!executorName) {
                     return 'N/A';
                 }
@@ -402,7 +367,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             },
         },
     ];
-
     if (!assetId) {
         return (
             <EmptyCard
@@ -414,7 +378,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             />
         );
     }
-
     return (
         <div ref={containerRef} className="space-y-4">
             <Tabs defaultValue="executions" value={activeTab} onValueChange={setActiveTab}>
@@ -432,7 +395,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                         Auditoria
                     </TabsTrigger>
                 </TabsList>
-
                 <TabsContent value="executions" className="mt-4">
                     {executions.data.length === 0 && !loading ? (
                         <EmptyCard
@@ -480,7 +442,6 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                                         );
                                     }}
                                 />
-
                                 <EntityPagination
                                     pagination={{
                                         current_page: executions.current_page,
@@ -497,11 +458,9 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                         </>
                     )}
                 </TabsContent>
-
                 <TabsContent value="horimetro" className="mt-4">
                     <RuntimeHistory assetId={assetId} activeTab={activeTab} parentVisible={isParentVisible} />
                 </TabsContent>
-
                 <TabsContent value="audit" className="mt-4">
                     <EmptyCard
                         icon={Shield}

@@ -14,10 +14,8 @@ import { Manufacturer } from '@/types/entities/manufacturer';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -32,7 +30,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy/manufacturers',
     },
 ];
-
 interface Props {
     manufacturers: {
         data: Manufacturer[];
@@ -50,7 +47,6 @@ interface Props {
         per_page: number;
     };
 }
-
 export default function Manufacturers({ manufacturers: initialManufacturers, filters }: Props) {
     const entityOps = useEntityOperations<Manufacturer>({
         entityName: 'manufacturer',
@@ -62,9 +58,7 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             checkDependencies: 'asset-hierarchy.manufacturers.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search || '');
-
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'asset-hierarchy.manufacturers',
@@ -75,7 +69,6 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             per_page: filters.per_page,
         },
     });
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('manufacturersColumnsVisibility');
@@ -90,7 +83,6 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             asset_count: true,
         };
     });
-
     // Use data from server
     const data = initialManufacturers.data;
     const pagination = {
@@ -101,21 +93,20 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
         from: initialManufacturers.from,
         to: initialManufacturers.to,
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
             label: 'Nome',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.name,
+            render: (value, row) => row.name as React.ReactNode,
         },
         {
             key: 'country',
             label: 'País',
             sortable: true,
             width: 'w-[150px]',
-            render: (value, row) => row.country || '-',
+            render: (value, row) => (row.country || '-') as React.ReactNode,
         },
         {
             key: 'contact',
@@ -135,12 +126,11 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             sortable: true,
             width: 'w-[150px]',
             render: (value) => {
-                const count = value || 0;
-                return count > 0 ? `${count} ativo(s)` : 'Nenhum ativo';
+                const count = (value || 0) as number;
+                return (count > 0 ? `${count} ativo(s)` : 'Nenhum ativo') as React.ReactNode;
             },
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -149,7 +139,6 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
         setColumnVisibility(newVisibility);
         localStorage.setItem('manufacturersColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -158,7 +147,6 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(
             route('asset-hierarchy.manufacturers'),
@@ -166,7 +154,6 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('asset-hierarchy.manufacturers'),
@@ -174,11 +161,9 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             { preserveState: true, preserveScroll: true },
         );
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Fabricantes" />
-
             <ListLayout
                 title="Fabricantes"
                 description="Gerencie os fabricantes de ativos"
@@ -203,41 +188,34 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data.map(manufacturer => ({ ...manufacturer } as Record<string, unknown>))}
                         columns={columns}
                         loading={false}
-                        onRowClick={(manufacturer) => router.visit(route('asset-hierarchy.manufacturers.show', { id: manufacturer.id }))}
+                        onRowClick={(manufacturer) => router.visit(route('asset-hierarchy.manufacturers.show', { id: manufacturer.id as string | number }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
-                        sortColumn={sort}
-                        sortDirection={direction}
                         actions={(manufacturer) => (
                             <EntityActionDropdown
-                                onEdit={() => entityOps.handleEdit(manufacturer)}
-                                onDelete={() => entityOps.handleDelete(manufacturer)}
+                                onEdit={() => entityOps.handleEdit(manufacturer as unknown as Manufacturer)}
+                                onDelete={() => entityOps.handleDelete(manufacturer as unknown as Manufacturer)}
                             />
                         )}
                     />
-
                     <EntityPagination pagination={pagination} onPageChange={handlePageChange} onPerPageChange={handlePerPageChange} />
                 </div>
             </ListLayout>
-
             <CreateManufacturerSheet
                 manufacturer={entityOps.editingItem || undefined}
                 open={entityOps.isEditSheetOpen}
                 onOpenChange={entityOps.setEditSheetOpen}
                 mode={entityOps.editingItem ? 'edit' : 'create'}
             />
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
-                entityName="fabricante"
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

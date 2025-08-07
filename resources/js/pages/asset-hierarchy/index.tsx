@@ -2,7 +2,6 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Building2, ChevronRight, Clock, Factory, Layers, MapPin, Package } from 'lucide-react';
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -13,14 +12,12 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/asset-hierarchy',
     },
 ];
-
 interface NavigationCard {
     title: string;
     description: string;
     href: string;
     icon: React.ElementType;
 }
-
 const navigationCards: NavigationCard[] = [
     {
         title: 'Plantas',
@@ -59,22 +56,18 @@ const navigationCards: NavigationCard[] = [
         icon: Clock,
     },
 ];
-
 export default function AssetHierarchyIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Hierarquia de Ativos" />
-
             <div className="flex h-full flex-1 flex-col gap-6 rounded-xl p-6">
                 {/* Header Section */}
                 <div>
                     <h2 className="text-foreground mb-6 text-xl font-semibold">Hierarquia de Ativos</h2>
-
                     {/* Main Navigation Cards */}
                     <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {navigationCards.map((card) => {
                             const IconComponent = card.icon;
-
                             return (
                                 <button
                                     key={card.href}

@@ -83,7 +83,7 @@ export default function ShipmentCreate({ items }: Props) {
     const [shipmentItems, setShipmentItems] = useState<ShipmentItem[]>([]);
     const [photos, setPhotos] = useState<File[]>([]);
 
-    const { data, setData, errors, processing, post, clearErrors } = useForm({
+    const { data, setData, errors, processing, post, clearErrors } = useForm<any>({
         items: [] as ShipmentItem[],
         destination_name: '',
         destination_address: '',

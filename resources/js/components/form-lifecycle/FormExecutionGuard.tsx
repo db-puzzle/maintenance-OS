@@ -4,7 +4,6 @@ import { AlertCircle, Play, Upload } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
 import { getFormState, type FormData } from './FormStatusBadge';
-
 interface FormExecutionGuardProps {
     form: FormData;
     onExecute: (versionId: number) => void;
@@ -12,15 +11,12 @@ interface FormExecutionGuardProps {
     onEditForm?: () => void;
     children: React.ReactElement;
 }
-
 export default function FormExecutionGuard({ form, onExecute, onPublishAndExecute, onEditForm, children }: FormExecutionGuardProps) {
     const [showDialog, setShowDialog] = React.useState(false);
     const state = getFormState(form);
-
     const handleClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-
         if (state === 'unpublished') {
             toast.error('Formulário não publicado', {
                 description: 'Esta rotina precisa ser publicada antes de ser executada.',
@@ -33,19 +29,16 @@ export default function FormExecutionGuard({ form, onExecute, onPublishAndExecut
             });
             return;
         }
-
         if (state === 'draft') {
             setShowDialog(true);
             return;
         }
-
         // Published state - execute directly
         const versionId = form.current_version?.id || form.current_version_id || form.currentVersionId;
         if (versionId) {
             onExecute(versionId);
         }
     };
-
     const handleContinueWithPublished = () => {
         const versionId = form.current_version?.id || form.current_version_id || form.currentVersionId;
         if (versionId) {
@@ -53,25 +46,21 @@ export default function FormExecutionGuard({ form, onExecute, onPublishAndExecut
         }
         setShowDialog(false);
     };
-
     const handlePublishAndExecute = () => {
         if (onPublishAndExecute) {
             onPublishAndExecute();
         }
         setShowDialog(false);
     };
-
     // Clone the child element and add onClick handler
     const childWithHandler = React.cloneElement(children, {
-        ...children.props,
+        ...(children.props as any),
         onClick: handleClick,
         disabled: state === 'unpublished' || (children.props as { disabled?: boolean }).disabled,
     });
-
     return (
         <>
             {childWithHandler}
-
             <Dialog open={showDialog} onOpenChange={setShowDialog}>
                 <DialogContent>
                     <DialogHeader>
@@ -84,7 +73,6 @@ export default function FormExecutionGuard({ form, onExecute, onPublishAndExecut
                             {form.current_version && ` (v${form.current_version.version_number})`}.
                         </DialogDescription>
                     </DialogHeader>
-
                     <DialogFooter className="flex gap-2 sm:gap-0">
                         <Button variant="outline" onClick={() => setShowDialog(false)}>
                             Cancelar

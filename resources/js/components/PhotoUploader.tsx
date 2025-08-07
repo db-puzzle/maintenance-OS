@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Camera, Upload } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-
 interface PhotoUploaderProps {
     label?: string;
     onChange: (file: File | null) => void;
@@ -16,7 +15,6 @@ interface PhotoUploaderProps {
     initialPreview?: string | null;
     disabled?: boolean;
 }
-
 export default function PhotoUploader({
     label = 'Foto',
     onChange,
@@ -31,14 +29,12 @@ export default function PhotoUploader({
     const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreview);
     const [showCamera, setShowCamera] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
     useEffect(() => {
         // Se tivermos um valor (File) inicial, criar a previsão
         if (value instanceof File && !previewUrl) {
             setPreviewUrl(URL.createObjectURL(value));
         }
     }, [value, previewUrl]);
-
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -46,7 +42,6 @@ export default function PhotoUploader({
             setPreviewUrl(URL.createObjectURL(file));
         }
     };
-
     const handlePhotoCapture = (file: File) => {
         onChange(file);
         setPreviewUrl(URL.createObjectURL(file));
@@ -55,7 +50,6 @@ export default function PhotoUploader({
             fileInputRef.current.value = '';
         }
     };
-
     const handleRemovePhoto = (e: React.MouseEvent) => {
         e.preventDefault(); // Prevenir que o evento se propague
         setPreviewUrl(null);
@@ -65,12 +59,10 @@ export default function PhotoUploader({
             fileInputRef.current.value = '';
         }
     };
-
     const handleOpenCamera = (e: React.MouseEvent) => {
         e.preventDefault(); // Prevenir que o evento se propague e submeta o formulário
         setShowCamera(true);
     };
-
     return (
         <div className="flex h-full flex-col">
             {label && (
@@ -126,7 +118,6 @@ export default function PhotoUploader({
                 </div>
                 {error && <InputError message={error} />}
             </div>
-
             {showCamera && <CameraCapture onCapture={handlePhotoCapture} onClose={() => setShowCamera(false)} />}
         </div>
     );

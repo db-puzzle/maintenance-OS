@@ -11,7 +11,6 @@ import { ItemSelect } from '@/components/ItemSelect';
 import { Separator } from '@/components/ui/separator';
 import { useForm } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
-
 // Field group component for consistent layout
 function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
     return (
@@ -21,10 +20,8 @@ function FieldGroup({ title, children }: { title: string; children: React.ReactN
         </div>
     );
 }
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 interface ManufacturingStep {
     id: number;
     step_number: number;
@@ -73,11 +70,9 @@ interface ManufacturingStep {
         created_at: string;
     }>;
 }
-
 interface Props {
     schedule: ManufacturingStep;
 }
-
 export default function ProductionScheduleShow({ schedule }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -97,7 +92,6 @@ export default function ProductionScheduleShow({ schedule }: Props) {
             href: '#',
         },
     ];
-
     // Initialize form with schedule data
     const inertiaForm = useForm({
         step_type: schedule.step_type,
@@ -110,7 +104,6 @@ export default function ProductionScheduleShow({ schedule }: Props) {
         actual_start_time: schedule.actual_start_time || '',
         actual_end_time: schedule.actual_end_time || '',
     });
-
     // Create a wrapper that matches the TextInput interface
     const form = {
         data: inertiaForm.data as Record<string, unknown>,
@@ -127,7 +120,6 @@ export default function ProductionScheduleShow({ schedule }: Props) {
         errors: inertiaForm.errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...(fields as Array<keyof typeof inertiaForm.data>)),
     };
-
     const getStatusBadge = (status: string) => {
         const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
             pending: 'outline',
@@ -137,7 +129,6 @@ export default function ProductionScheduleShow({ schedule }: Props) {
             completed: 'outline',
             skipped: 'destructive',
         };
-
         const colors: Record<string, string> = {
             pending: 'text-gray-600',
             queued: 'text-blue-600',
@@ -146,7 +137,6 @@ export default function ProductionScheduleShow({ schedule }: Props) {
             completed: 'text-green-600',
             skipped: 'text-red-600',
         };
-
         const labels: Record<string, string> = {
             pending: 'Pending',
             queued: 'Queued',
@@ -155,14 +145,12 @@ export default function ProductionScheduleShow({ schedule }: Props) {
             completed: 'Completed',
             skipped: 'Skipped',
         };
-
         return (
             <Badge variant={variants[status] || 'default'} className={colors[status]}>
                 {labels[status] || status}
             </Badge>
         );
     };
-
     const getStepTypeIcon = (type: string) => {
         switch (type) {
             case 'quality_check':
@@ -173,7 +161,6 @@ export default function ProductionScheduleShow({ schedule }: Props) {
                 return <Factory className="h-4 w-4 text-gray-500" />;
         }
     };
-
     const handleAction = (action: string, scheduleId: number) => {
         const routes: Record<string, string> = {
             start: route('production.schedules.start', { schedule: scheduleId }),
@@ -181,7 +168,6 @@ export default function ProductionScheduleShow({ schedule }: Props) {
             hold: route('production.schedules.hold', { schedule: scheduleId }),
             resume: route('production.schedules.resume', { schedule: scheduleId }),
         };
-
         if (routes[action]) {
             if (action === 'complete' || action === 'hold') {
                 router.visit(routes[action]);
@@ -190,7 +176,6 @@ export default function ProductionScheduleShow({ schedule }: Props) {
             }
         }
     };
-
     const tabs = [
         {
             id: 'details',
@@ -233,9 +218,7 @@ export default function ProductionScheduleShow({ schedule }: Props) {
                             ) : null}
                         </div>
                     </div>
-
                     <Separator />
-
                     {/* Step Information */}
                     <FieldGroup title="Step Information">
                         <TextInput
@@ -278,9 +261,7 @@ export default function ProductionScheduleShow({ schedule }: Props) {
                             </div>
                         </div>
                     </FieldGroup>
-
                     <Separator />
-
                     {/* Time Information */}
                     <FieldGroup title="Time Information">
                         <TextInput
@@ -313,9 +294,7 @@ export default function ProductionScheduleShow({ schedule }: Props) {
                             </div>
                         </div>
                     </FieldGroup>
-
                     <Separator />
-
                     {/* Actual Times */}
                     <FieldGroup title="Actual Times">
                         <div className="grid gap-2">
@@ -422,9 +401,7 @@ export default function ProductionScheduleShow({ schedule }: Props) {
                             </div>
                         </div>
                     </FieldGroup>
-
                     <Separator />
-
                     <FieldGroup title="Item Information">
                         <div className="grid gap-2">
                             <label className="text-sm font-medium">Item Number</label>
@@ -495,11 +472,9 @@ export default function ProductionScheduleShow({ schedule }: Props) {
             ),
         },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Production Schedule - Step #${schedule.step_number}`} />
-
             <ShowLayout
                 title={`Step #${schedule.step_number} - ${schedule.name}`}
                 subtitle={

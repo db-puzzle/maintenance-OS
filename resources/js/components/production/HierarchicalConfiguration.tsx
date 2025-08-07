@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import {
     Plus,
     Download,
     Search,
-    Package,
+
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +32,7 @@ import { BomItem, Item, ItemCategory, ManufacturingOrder, RouteTemplate } from '
 import { CreateItemSheet } from '@/components/CreateItemSheet';
 import { BomTreeView } from './BomTreeView';
 import { ManufacturingOrderTreeView } from './ManufacturingOrderTreeView';
-import { ItemImagePreview } from '@/components/production/ItemImagePreview';
+
 import { Image } from 'lucide-react';
 
 type ConfigurationType = 'bom' | 'manufacturing-order';
@@ -48,7 +48,7 @@ interface BomConfigurationProps extends BaseHierarchicalConfigurationProps {
     type: 'bom';
     bomId: number;
     versionId: number;
-    bomItems: (BomItem & { item: Item; children?: any[] })[];
+    bomItems: (BomItem & { item: Item; children?: (BomItem & { item: Item })[] })[];
     availableItems: Item[];
     categories?: ItemCategory[];
     bom?: {
@@ -56,9 +56,9 @@ interface BomConfigurationProps extends BaseHierarchicalConfigurationProps {
         bom_number: string;
         current_version?: {
             version_number: number;
-            items?: any[];
+            items?: BomItem[];
         };
-        versions?: any[];
+        versions?: Array<{ version_number: number; id: number }>;
     };
 }
 
@@ -80,15 +80,21 @@ interface EditingItem {
     quantity: number;
     unit_of_measure: string;
     reference_designators?: string;
-    bom_notes?: any;
-    assembly_instructions?: any;
+    bom_notes?: string;
+    assembly_instructions?: string;
 }
+
+type TreeBomItem = BomItem & {
+    item: Item;
+    id: string;
+    children?: TreeBomItem[];
+};
 
 export default function HierarchicalConfiguration(props: HierarchicalConfigurationProps) {
     const { type, canEdit = false, onUpdate, className } = props;
 
     // BOM-specific state
-    const [bomItems, setBomItems] = useState<any[]>([]);
+    const [bomItems, setBomItems] = useState<TreeBomItem[]>([]);
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [dragging, setDragging] = useState<string | null>(null);
     const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
@@ -103,11 +109,26 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
     const [saving, setSaving] = useState(false);
     const [showImages, setShowImages] = useState(false);
 
+    // Calculate the maximum depth of the BOM tree
+    const calculateMaxDepth = (items: TreeBomItem[], currentDepth: number = 0): number => {
+        if (!items || items.length === 0) return currentDepth;
+
+        let maxChildDepth = currentDepth;
+        items.forEach(item => {
+            if (item.children && item.children.length > 0) {
+                const childDepth = calculateMaxDepth(item.children, currentDepth + 1);
+                maxChildDepth = Math.max(maxChildDepth, childDepth);
+            }
+        });
+
+        return maxChildDepth;
+    };
+
     // Transform flat BOM items to hierarchical structure
     useEffect(() => {
         if (type === 'bom') {
             const bomProps = props as BomConfigurationProps;
-            const buildHierarchy = (items: any[], parentId: string | number | null = null): any[] => {
+            const buildHierarchy = (items: TreeBomItem[], parentId: string | number | null = null): TreeBomItem[] => {
                 return items
                     .filter(item => {
                         const itemParentId = item.parent_item_id;
@@ -139,7 +160,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
     }, [type, props]);
 
     // Helper functions for BOM
-    const findItemById = (items: any[], id: string): any => {
+    const findItemById = (items: TreeBomItem[], id: string): TreeBomItem | null => {
         for (const item of items) {
             if (item.id === id) {
                 return item;
@@ -152,7 +173,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         return null;
     };
 
-    const updateItemsTree = (items: any[], id: string, updateFn: (item: any) => any): any[] => {
+    const updateItemsTree = (items: TreeBomItem[], id: string, updateFn: (item: TreeBomItem) => TreeBomItem): TreeBomItem[] => {
         return items.map(item => {
             if (item.id === id) {
                 return updateFn(item);
@@ -167,7 +188,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         });
     };
 
-    const removeItemFromTree = (items: any[], id: string): any[] => {
+    const removeItemFromTree = (items: TreeBomItem[], id: string): TreeBomItem[] => {
         return items.reduce((acc, item) => {
             if (item.id === id) {
                 return acc;
@@ -182,26 +203,11 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         }, []);
     };
 
-    // Calculate the maximum depth of the BOM tree
-    const calculateMaxDepth = (items: any[], currentDepth: number = 0): number => {
-        if (!items || items.length === 0) return currentDepth;
-
-        let maxChildDepth = currentDepth;
-        items.forEach(item => {
-            if (item.children && item.children.length > 0) {
-                const childDepth = calculateMaxDepth(item.children, currentDepth + 1);
-                maxChildDepth = Math.max(maxChildDepth, childDepth);
-            }
-        });
-
-        return maxChildDepth;
-    };
-
     // Expand/collapse all items to a specific level
     const expandToLevel = (level: number) => {
         const newExpanded: Record<string, boolean> = {};
 
-        const processItems = (items: any[], currentLevel: number = 0) => {
+        const processItems = (items: TreeBomItem[], currentLevel: number = 0) => {
             items.forEach(item => {
                 // Expand if current level is less than target level
                 newExpanded[item.id] = currentLevel < level;
@@ -229,7 +235,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         }));
     };
 
-    const addChildToItem = (items: any[], parentId: string, newChild: any): any[] => {
+    const addChildToItem = (items: TreeBomItem[], parentId: string, newChild: TreeBomItem): TreeBomItem[] => {
         return items.map(item => {
             if (item.id === parentId) {
                 return {
@@ -277,15 +283,15 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         const isChildOfDragged = (draggedId: string, targetId: string): boolean => {
             const draggedItem = findItemById(bomItems, draggedId);
 
-            const checkChildren = (item: any): boolean => {
+            const checkChildren = (item: TreeBomItem): boolean => {
                 if (item.id === targetId) return true;
                 if (item.children && item.children.length > 0) {
-                    return item.children.some((child: any) => checkChildren(child));
+                    return item.children.some((child) => checkChildren(child));
                 }
                 return false;
             };
 
-            return draggedItem ? draggedItem.children.some((child: any) => checkChildren(child)) : false;
+            return draggedItem ? draggedItem.children.some((child) => checkChildren(child)) : false;
         };
 
         if (dragging && isChildOfDragged(dragging, targetId)) {
@@ -344,6 +350,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                 }
             });
         } catch (error) {
+            console.error('Error moving item:', error);
             setBomItems(bomItems);
         }
 
@@ -351,7 +358,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
     };
 
     // CRUD operations (BOM only)
-    const handleEditItem = (item: any) => {
+    const handleEditItem = (item: TreeBomItem) => {
         if (!canEdit || type !== 'bom') return;
 
         setEditingItem({
@@ -486,7 +493,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                 }
             });
         } catch (error) {
-            console.error(error);
+            console.error('Error removing item:', error);
         }
     };
 
@@ -568,7 +575,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         }
 
         if (type === 'manufacturing-order') {
-            const moProps = props as ManufacturingOrderConfigurationProps;
             return (
                 <div className="p-2">
 

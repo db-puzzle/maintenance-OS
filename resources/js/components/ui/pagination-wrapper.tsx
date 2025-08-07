@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
 import { route } from '@/utils/route';
-
 interface PaginationWrapperProps {
     currentPage: number;
     lastPage: number;
@@ -22,7 +21,6 @@ interface PaginationWrapperProps {
     direction?: 'asc' | 'desc';
     perPage?: number;
 }
-
 export function PaginationWrapper({
     currentPage,
     lastPage,
@@ -34,11 +32,9 @@ export function PaginationWrapper({
     perPage = 8
 }: PaginationWrapperProps) {
     const [localPerPage, setLocalPerPage] = useState(perPage);
-
     useEffect(() => {
         setLocalPerPage(perPage);
     }, [perPage]);
-
     const handlePerPageChange = (value: string) => {
         setLocalPerPage(Number(value));
         router.get(
@@ -53,7 +49,6 @@ export function PaginationWrapper({
             { preserveState: true }
         );
     };
-
     const handlePageChange = (newPage: number) => {
         router.get(
             route(routeName),
@@ -67,7 +62,6 @@ export function PaginationWrapper({
             { preserveState: true }
         );
     };
-
     return (
         <div className="flex items-center justify-between px-4">
             <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">

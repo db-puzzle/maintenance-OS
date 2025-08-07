@@ -3,14 +3,12 @@ import { Camera } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ImageWithBlurEffect } from './ImageWithBlurEffect';
-
 interface ItemImagePreviewProps {
     primaryImageUrl?: string;
     imageCount: number;
     className?: string;
     onClick?: (e?: React.MouseEvent) => void;
 }
-
 export function ItemImagePreview({
     primaryImageUrl,
     imageCount,

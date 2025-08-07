@@ -172,44 +172,7 @@ export function WorkOrderPlanningTab({
     discipline,
     onGoToApproval
 }: WorkOrderPlanningTabProps) {
-    // Check if work order is in a state that allows showing planning (view or edit)
-    const canShowPlanning = !['requested', 'rejected', 'cancelled'].includes(workOrder.status);
-
-    if (!canShowPlanning) {
-        return (
-            <div className="py-12">
-                <EmptyCard
-                    icon={CalendarIcon}
-                    title="Ordem de serviço ainda não foi aprovada"
-                    description="O planejamento só pode ser realizado após a aprovação da ordem de serviço"
-                    primaryButtonText={workOrder.status === 'requested' ? "Ir para Aprovação" : undefined}
-                    primaryButtonAction={workOrder.status === 'requested' ? onGoToApproval : undefined}
-                />
-            </div>
-        );
-    }
-
-    // Check if planning is complete (status is scheduled or beyond)
-    const isPlanned = ['planned', 'scheduled', 'in_progress', 'completed', 'verified', 'closed'].includes(workOrder.status);
-
-    // Find the planning completion entry in status history
-    const planningEntry = workOrder.status_history?.find((entry: any) =>
-        entry.from_status === 'planned' && entry.to_status === 'scheduled'
-    );
-
-    // Also check for any entry that shows the work order was planned
-    const planningRelatedEntry = planningEntry || workOrder.status_history?.find((entry: any) =>
-        (entry.from_status === 'approved' && entry.to_status === 'planned') ||
-        (entry.from_status === 'planned' && entry.to_status === 'scheduled')
-    );
-
-    // Get planning data from work order if status history doesn't have it
-    const planningData = planningRelatedEntry || (isPlanned ? {
-        changed_by: workOrder.planned_by || workOrder.updated_by,
-        user: workOrder.planned_by || workOrder.updated_by,
-        created_at: workOrder.planned_at || workOrder.updated_at
-    } : null);
-
+    // All hooks must be declared before any conditional returns
     const [plannedParts, setPlannedParts] = useState<PlanningPart[]>(
         workOrder.parts?.map((part: any) => ({
             id: part.id?.toString(),
@@ -263,6 +226,30 @@ export function WorkOrderPlanningTab({
         estimated_parts_cost: workOrder.estimated_parts_cost || 0,
         estimated_total_cost: workOrder.estimated_total_cost || 0,
     });
+
+    // Check if work order is in a state that allows showing planning (view or edit)
+    const canShowPlanning = !['requested', 'rejected', 'cancelled'].includes(workOrder.status);
+
+    // Check if planning is complete (status is scheduled or beyond)
+    const isPlanned = ['planned', 'scheduled', 'in_progress', 'completed', 'verified', 'closed'].includes(workOrder.status);
+
+    // Find the planning completion entry in status history
+    const planningEntry = workOrder.status_history?.find((entry: any) =>
+        entry.from_status === 'planned' && entry.to_status === 'scheduled'
+    );
+
+    // Also check for any entry that shows the work order was planned
+    const planningRelatedEntry = planningEntry || workOrder.status_history?.find((entry: any) =>
+        (entry.from_status === 'approved' && entry.to_status === 'planned') ||
+        (entry.from_status === 'planned' && entry.to_status === 'scheduled')
+    );
+
+    // Get planning data from work order if status history doesn't have it
+    const planningData = planningRelatedEntry || (isPlanned ? {
+        changed_by: workOrder.planned_by || workOrder.updated_by,
+        user: workOrder.planned_by || workOrder.updated_by,
+        created_at: workOrder.planned_at || workOrder.updated_at
+    } : null);
 
     const isViewMode = !canPlan || !['approved', 'planned'].includes(workOrder.status) || isPlanned;
 
@@ -419,6 +406,21 @@ export function WorkOrderPlanningTab({
     React.useEffect(() => {
         setCurrentPage(1);
     }, [plannedParts.length]);
+
+    // Early return if work order is not in a state that allows planning
+    if (!canShowPlanning) {
+        return (
+            <div className="py-12">
+                <EmptyCard
+                    icon={CalendarIcon}
+                    title="Ordem de serviço ainda não foi aprovada"
+                    description="O planejamento só pode ser realizado após a aprovação da ordem de serviço"
+                    primaryButtonText={workOrder.status === 'requested' ? "Ir para Aprovação" : undefined}
+                    primaryButtonAction={workOrder.status === 'requested' ? onGoToApproval : undefined}
+                />
+            </div>
+        );
+    }
 
     // Parts table columns configuration
     const partsColumns: ColumnConfig[] = [

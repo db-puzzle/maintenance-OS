@@ -9,7 +9,6 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-
 interface Certification {
     id: number;
     name: string;
@@ -21,7 +20,6 @@ interface Certification {
     updated_at: string;
     users?: any[];
 }
-
 // Define a local form type with index signature
 interface CertificationFormData {
     name: string;
@@ -31,7 +29,6 @@ interface CertificationFormData {
     active: boolean;
     [key: string]: string | number | boolean | null | undefined;
 }
-
 interface CertificationFormComponentProps {
     certification?: Certification;
     initialMode?: 'view' | 'edit';
@@ -40,7 +37,6 @@ interface CertificationFormComponentProps {
     canUpdate?: boolean;
     canDelete?: boolean;
 }
-
 export default function CertificationFormComponent({
     certification,
     initialMode = 'view',
@@ -55,12 +51,10 @@ export default function CertificationFormComponent({
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [dependencies, setDependencies] = useState<any>(null);
     const [dependenciesOpen, setDependenciesOpen] = useState(false);
-
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm<CertificationFormData>({
         name: certification?.name || '',
         description: certification?.description || '',
@@ -68,14 +62,11 @@ export default function CertificationFormComponent({
         validity_period_days: certification?.validity_period_days?.toString() || '',
         active: certification?.active ?? true,
     });
-
     const { delete: destroy, processing: deleting } = useForm();
-
     // Create a wrapper for setData to match the expected signature
     const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
         setData(name as keyof CertificationFormData, value as CertificationFormData[keyof CertificationFormData]);
     };
-
     const handleSave = () => {
         if (isEditing) {
             put(route('certifications.update', { certification: certification.id }), {
@@ -96,7 +87,6 @@ export default function CertificationFormComponent({
             });
         }
     };
-
     const handleCancel = () => {
         if (isEditing && mode === 'edit') {
             // Reset form to original data
@@ -106,18 +96,14 @@ export default function CertificationFormComponent({
             onCancel();
         }
     };
-
     const handleEdit = () => {
         setMode('edit');
     };
-
     const handleDelete = async () => {
         if (!certification) return;
-
         // Check dependencies first
         const response = await fetch(route('certifications.check-dependencies', certification.id));
         const data = await response.json();
-
         if (!data.canDelete) {
             setDependencies(data);
             setDependenciesOpen(true);
@@ -125,10 +111,8 @@ export default function CertificationFormComponent({
             setDeleteDialogOpen(true);
         }
     };
-
     const confirmDelete = async () => {
         if (!certification) return;
-
         destroy(route('certifications.destroy', certification.id), {
             onSuccess: () => {
                 toast.success('Certificação excluída com sucesso!');
@@ -139,11 +123,9 @@ export default function CertificationFormComponent({
             },
         });
     };
-
     // Calculate statistics for view mode
-    const validUsers = certification?.users?.filter((u: any) => !u.is_expired).length || 0;
-    const expiredUsers = certification?.users?.filter((u: any) => u.is_expired).length || 0;
-
+    const validUsers = certification?.users?.filter(error: unknown) => !u.is_expired).length || 0;
+    const expiredUsers = certification?.users?.filter(error: unknown) => u.is_expired).length || 0;
     return (
         <>
             <div className="space-y-6">
@@ -163,7 +145,6 @@ export default function CertificationFormComponent({
                         required={!isViewMode}
                         view={isViewMode}
                     />
-
                     {/* Organização Emissora */}
                     <TextInput
                         form={{
@@ -178,7 +159,6 @@ export default function CertificationFormComponent({
                         required={!isViewMode}
                         view={isViewMode}
                     />
-
                     {/* Período de Validade */}
                     <TextInput
                         form={{
@@ -192,7 +172,6 @@ export default function CertificationFormComponent({
                         placeholder={isViewMode ? 'Sem validade definida' : 'Digite o período em dias'}
                         view={isViewMode}
                     />
-
                     {/* Status */}
                     <div className="grid gap-2">
                         <Label htmlFor="active">Status</Label>
@@ -215,7 +194,6 @@ export default function CertificationFormComponent({
                             )}
                         </div>
                     </div>
-
                     {/* Descrição */}
                     <div className="md:col-span-2">
                         <div className="grid gap-2">
@@ -239,7 +217,6 @@ export default function CertificationFormComponent({
                         </div>
                     </div>
                 </div>
-
                 {/* Statistics - Only show in view mode */}
                 {isViewMode && certification && (
                     <div>
@@ -260,7 +237,6 @@ export default function CertificationFormComponent({
                         </div>
                     </div>
                 )}
-
                 {/* Timestamps - Only show in view mode */}
                 {isViewMode && certification && (
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -278,7 +254,6 @@ export default function CertificationFormComponent({
                         </div>
                     </div>
                 )}
-
                 {/* Action Buttons */}
                 {isEditing && (
                     <div className="flex justify-end gap-2 pt-4">
@@ -310,7 +285,6 @@ export default function CertificationFormComponent({
                     </div>
                 )}
             </div>
-
             {dependencies && (
                 <EntityDependenciesDialog
                     open={dependenciesOpen}
@@ -319,7 +293,6 @@ export default function CertificationFormComponent({
                     dependencies={dependencies}
                 />
             )}
-
             <EntityDeleteDialog
                 open={deleteDialogOpen}
                 onOpenChange={setDeleteDialogOpen}

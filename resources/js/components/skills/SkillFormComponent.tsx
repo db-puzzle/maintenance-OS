@@ -9,7 +9,6 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-
 interface Skill {
     id: number;
     name: string;
@@ -18,7 +17,6 @@ interface Skill {
     created_at: string;
     updated_at: string;
 }
-
 // Define a local form type with index signature
 interface SkillFormData {
     name: string;
@@ -26,7 +24,6 @@ interface SkillFormData {
     category: string;
     [key: string]: string | number | boolean | null | undefined;
 }
-
 interface SkillFormComponentProps {
     skill?: Skill;
     initialMode?: 'view' | 'edit';
@@ -35,7 +32,6 @@ interface SkillFormComponentProps {
     canUpdate?: boolean;
     canDelete?: boolean;
 }
-
 export default function SkillFormComponent({
     skill,
     initialMode = 'view',
@@ -50,25 +46,20 @@ export default function SkillFormComponent({
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [dependencies, setDependencies] = useState<any>(null);
     const [dependenciesOpen, setDependenciesOpen] = useState(false);
-
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     const { data, setData, put, processing, errors, clearErrors, reset } = useForm<SkillFormData>({
         name: skill?.name || '',
         description: skill?.description || '',
         category: skill?.category || 'technical',
     });
-
     const { delete: destroy, processing: deleting } = useForm();
-
     // Create a wrapper for setData to match the expected signature
     const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
         setData(name as keyof SkillFormData, value as SkillFormData[keyof SkillFormData]);
     };
-
     const handleSave = () => {
         if (isEditing) {
             put(route('skills.update', { skill: skill.id }), {
@@ -89,7 +80,6 @@ export default function SkillFormComponent({
             });
         }
     };
-
     const handleCancel = () => {
         if (isEditing && mode === 'edit') {
             // Reset form to original data
@@ -99,18 +89,14 @@ export default function SkillFormComponent({
             onCancel();
         }
     };
-
     const handleEdit = () => {
         setMode('edit');
     };
-
     const handleDelete = async () => {
         if (!skill) return;
-
         // Check dependencies first
         const response = await fetch(route('skills.check-dependencies', skill.id));
         const data = await response.json();
-
         if (!data.canDelete) {
             setDependencies(data);
             setDependenciesOpen(true);
@@ -118,10 +104,8 @@ export default function SkillFormComponent({
             setDeleteDialogOpen(true);
         }
     };
-
     const confirmDelete = async () => {
         if (!skill) return;
-
         destroy(route('skills.destroy', skill.id), {
             onSuccess: () => {
                 toast.success('Habilidade excluída com sucesso!');
@@ -132,7 +116,6 @@ export default function SkillFormComponent({
             },
         });
     };
-
     const categoryOptions = [
         { value: 'technical', label: 'Técnica' },
         { value: 'safety', label: 'Segurança' },
@@ -140,7 +123,6 @@ export default function SkillFormComponent({
         { value: 'administrative', label: 'Administrativa' },
         { value: 'other', label: 'Outra' },
     ];
-
     return (
         <>
             <div className="space-y-6">
@@ -160,7 +142,6 @@ export default function SkillFormComponent({
                         required={!isViewMode}
                         view={isViewMode}
                     />
-
                     {/* Categoria */}
                     <div className="grid gap-2">
                         <Label htmlFor="category">
@@ -189,7 +170,6 @@ export default function SkillFormComponent({
                         </div>
                         {errors.category && <span className="text-sm text-destructive">{errors.category}</span>}
                     </div>
-
                     {/* Users Count - Only show in view mode */}
                     {isViewMode && skill && (
                         <div className="grid gap-2">
@@ -199,7 +179,6 @@ export default function SkillFormComponent({
                             </div>
                         </div>
                     )}
-
                     {/* Descrição */}
                     <div className="md:col-span-2">
                         <div className="grid gap-2">
@@ -223,7 +202,6 @@ export default function SkillFormComponent({
                         </div>
                     </div>
                 </div>
-
                 {/* Timestamps - Only show in view mode */}
                 {isViewMode && skill && (
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -241,7 +219,6 @@ export default function SkillFormComponent({
                         </div>
                     </div>
                 )}
-
                 {/* Action Buttons */}
                 {isEditing && (
                     <div className="flex justify-end gap-2 pt-4">
@@ -273,7 +250,6 @@ export default function SkillFormComponent({
                     </div>
                 )}
             </div>
-
             {dependencies && (
                 <EntityDependenciesDialog
                     open={dependenciesOpen}
@@ -282,7 +258,6 @@ export default function SkillFormComponent({
                     dependencies={dependencies}
                 />
             )}
-
             <EntityDeleteDialog
                 open={deleteDialogOpen}
                 onOpenChange={setDeleteDialogOpen}

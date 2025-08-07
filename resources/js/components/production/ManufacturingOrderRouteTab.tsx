@@ -18,8 +18,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-
-
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TextInput } from '@/components/TextInput';
@@ -29,7 +27,6 @@ import { Form } from '@/types/work-order';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import RouteBuilderCore from '@/components/production/RouteBuilderCore';
-
 interface Props {
     order: ManufacturingOrder;
     canCreateRoute: boolean;
@@ -39,7 +36,6 @@ interface Props {
     forms?: Form[];
     openRouteBuilder?: string | null;
 }
-
 interface RouteTemplate {
     id: number;
     name: string;
@@ -50,9 +46,7 @@ interface RouteTemplate {
     usage_count: number;
     last_used_at?: string;
 }
-
 type ViewMode = 'empty' | 'create' | 'builder' | 'routeViewer';
-
 export default function ManufacturingOrderRouteTab({
     order,
     canCreateRoute,
@@ -64,32 +58,25 @@ export default function ManufacturingOrderRouteTab({
 }: Props) {
     const { props } = usePage();
     const flash = props.flash as any;
-
     // Check URL params from props
     const openRouteBuilderParam = openRouteBuilder || null;
-
     // Check if we should start in builder mode (e.g., after creating a new route)
     const shouldStartInBuilder = (order.manufacturing_route &&
         (!order.manufacturing_route.steps || order.manufacturing_route.steps.length === 0)) ||
         flash?.openRouteBuilder ||
         openRouteBuilderParam === '1';
-
     // Determine the correct view mode
     const determineViewMode = (): ViewMode => {
         // Check if we have the necessary data
         if (!order || !order.id) return 'empty';
-
         if (shouldStartInBuilder && order.manufacturing_route) return 'builder';
         if (order.manufacturing_route) return 'routeViewer';
         return 'empty';
     };
-
     const initialViewMode = determineViewMode();
-
     const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
     const [selectedTemplate, setSelectedTemplate] = useState<RouteTemplate | null>(null);
     const [showRouteDialog, setShowRouteDialog] = useState(false);
-
     // Reset view mode when order or conditions change
     useEffect(() => {
         const correctMode = determineViewMode();
@@ -97,7 +84,6 @@ export default function ManufacturingOrderRouteTab({
             setViewMode(correctMode);
         }
     }, [order?.id, order?.manufacturing_route?.id, openRouteBuilderParam, flash?.openRouteBuilder]);
-
     // Clean up URL param after using it
     useEffect(() => {
         if (openRouteBuilderParam === '1') {
@@ -109,21 +95,18 @@ export default function ManufacturingOrderRouteTab({
             });
         }
     }, []);
-
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         name: '',
         description: '',
         template_id: '',
     });
-
     // Create a wrapper for form compatibility
     const form = {
         data,
-        setData: (name: string, value: any) => setData(name as any, value),
+        setData: (error: unknown) => setData(name as any, value),
         errors: errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => clearErrors(...(fields as any)),
     };
-
     const handleCreateRoute = () => {
         post(route('production.orders.routes.store', order.id), {
             onSuccess: () => {
@@ -139,18 +122,15 @@ export default function ManufacturingOrderRouteTab({
             }
         });
     };
-
     const handleTemplateSelect = (template: RouteTemplate) => {
         setSelectedTemplate(template);
         setData('template_id', template.id.toString());
         setData('name', `${template.name} - ${order.order_number}`);
         setData('description', template.description || '');
     };
-
     const handleOpenCustomRouteDialog = () => {
         // Check if we can create a route first
         const canCreate = canCreateRoute && (order.status === 'draft' || order.status === 'planned');
-
         if (!canCreate) {
             if (!canCreateRoute) {
                 toast.error('Você não tem permissão para criar roteiros');
@@ -159,13 +139,11 @@ export default function ManufacturingOrderRouteTab({
             }
             return;
         }
-
         // Check if order already has a route
         if (order.manufacturing_route) {
             toast.error('Esta ordem já possui um roteiro');
             return;
         }
-
         // Use router.post directly with the data
         router.post(route('production.orders.routes.store', order.id), {
             name: `Roteiro Dedicado - ${order.order_number}`,
@@ -195,23 +173,18 @@ export default function ManufacturingOrderRouteTab({
             }
         });
     };
-
     const handleCloseDialog = () => {
         setShowRouteDialog(false);
         reset();
         setSelectedTemplate(null);
         clearErrors();
     };
-
     const formatTime = (minutes: number): string => {
         if (minutes < 60) return `${minutes}min`;
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         return `${hours}h${mins > 0 ? ` ${mins}min` : ''}`;
     };
-
-
-
     // Route Creation Dialog
     // Add a loading state check
     if (!order || !order.id) {
@@ -221,7 +194,6 @@ export default function ManufacturingOrderRouteTab({
             </div>
         );
     }
-
     return (
         <>
             {/* Main content rendering */}
@@ -261,7 +233,6 @@ export default function ManufacturingOrderRouteTab({
                         </div>
                     );
                 }
-
                 // Route viewer mode - show route builder in view-only mode
                 if (viewMode === 'routeViewer' && order.manufacturing_route) {
                     return (
@@ -294,11 +265,9 @@ export default function ManufacturingOrderRouteTab({
                         </div>
                     );
                 }
-
                 // Empty state - no route exists
                 if (viewMode === 'empty') {
                     const canCreate = canCreateRoute && (order.status === 'draft' || order.status === 'planned');
-
                     return (
                         <div className="flex min-h-[400px] items-center justify-center px-6 lg:px-8">
                             <div className="w-full">
@@ -314,7 +283,6 @@ export default function ManufacturingOrderRouteTab({
                                     primaryButtonAction={canCreate ? () => setViewMode('create') : undefined
                                     }
                                 />
-
                                 {!canCreateRoute && (
                                     <div className="mt-4">
                                         <Alert>
@@ -329,7 +297,6 @@ export default function ManufacturingOrderRouteTab({
                         </div>
                     );
                 }
-
                 // Create mode - show creation options
                 if (viewMode === 'create') {
                     return (
@@ -345,7 +312,6 @@ export default function ManufacturingOrderRouteTab({
                                         Cancelar
                                     </Button>
                                 </div>
-
                                 <div className="grid gap-6 md:grid-cols-2">
                                     {/* Template Option */}
                                     <Card className="group cursor-pointer hover:border-ring hover:ring-ring/10 hover:bg-input-focus transition-[color,box-shadow,border-color,background-color]" onClick={() => { }}>
@@ -368,7 +334,6 @@ export default function ManufacturingOrderRouteTab({
                                             </div>
                                         </CardContent>
                                     </Card>
-
                                     {/* Custom Route Option */}
                                     <Card
                                         className="group cursor-pointer hover:border-ring hover:ring-ring/10 hover:bg-input-focus transition-[color,box-shadow,border-color,background-color]"
@@ -390,7 +355,6 @@ export default function ManufacturingOrderRouteTab({
                                         </CardContent>
                                     </Card>
                                 </div>
-
                                 {/* Template List */}
                                 {templates.length > 0 && (
                                     <div className="space-y-4">
@@ -439,7 +403,6 @@ export default function ManufacturingOrderRouteTab({
                     );
                 }
             })()}
-
             {/* Route Creation Dialog */}
             <Dialog open={showRouteDialog} onOpenChange={handleCloseDialog}>
                 <DialogContent className="max-w-2xl">
@@ -449,11 +412,9 @@ export default function ManufacturingOrderRouteTab({
                             Configure as informações básicas do roteiro de produção
                         </DialogDescription>
                     </DialogHeader>
-
                     <ScrollArea className="max-h-[60vh]">
                         <div className="space-y-6 py-4">
                             {/* Route Form */}
-
                             <TextInput
                                 form={form}
                                 name="name"
@@ -461,7 +422,6 @@ export default function ManufacturingOrderRouteTab({
                                 placeholder="Ex: Roteiro de Montagem Principal"
                                 required
                             />
-
                             <div className="space-y-2">
                                 <Label htmlFor="description">Descrição</Label>
                                 <Textarea
@@ -475,9 +435,6 @@ export default function ManufacturingOrderRouteTab({
                                     <p className="text-sm text-red-600">{errors.description}</p>
                                 )}
                             </div>
-
-
-
                             {/* Context Info */}
                             <Card>
                                 <CardHeader>
@@ -508,7 +465,6 @@ export default function ManufacturingOrderRouteTab({
                                     </div>
                                 </CardContent>
                             </Card>
-
                             <Alert>
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>
@@ -517,7 +473,6 @@ export default function ManufacturingOrderRouteTab({
                             </Alert>
                         </div>
                     </ScrollArea>
-
                     <DialogFooter>
                         <Button
                             type="button"

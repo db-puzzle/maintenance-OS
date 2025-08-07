@@ -6,24 +6,20 @@ import { router } from '@inertiajs/react';
 import axios from 'axios';
 import { AlertCircle, Calendar, Clock, Edit2 } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-
 interface Break {
     start_time: string;
     end_time: string;
 }
-
 interface ShiftDetail {
     start_time: string;
     end_time: string;
     active: boolean;
     breaks: Break[];
 }
-
 interface Schedule {
     weekday: string;
     shifts: ShiftDetail[];
 }
-
 interface Shift {
     id: number;
     name: string;
@@ -37,7 +33,6 @@ interface Shift {
     total_break_hours?: number;
     total_break_minutes?: number;
 }
-
 interface ShiftSelectionCardProps {
     shifts: Shift[];
     selectedShiftId: string;
@@ -52,31 +47,25 @@ interface ShiftSelectionCardProps {
     onShiftUpdated?: (shift: Shift) => void;
     currentAssetId?: number;
 }
-
 // Type for the shift data used in CreateShiftSheet
 interface EditableShift {
     id: number;
     name: string;
     schedules: Schedule[];
 }
-
 // Helper functions
 const timeToMinutes = (time: string): number => {
     const [hours, minutes] = time.split(':').map(Number);
     return hours * 60 + minutes;
 };
-
 const calculateDuration = (start: string, end: string): number => {
     const startMinutes = timeToMinutes(start);
     let endMinutes = timeToMinutes(end);
-
     if (endMinutes < startMinutes) {
         endMinutes += 24 * 60;
     }
-
     return endMinutes - startMinutes;
 };
-
 const formatHours = (totalMinutes: number): string => {
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
@@ -85,12 +74,10 @@ const formatHours = (totalMinutes: number): string => {
     }
     return `${hours}h ${minutes}min`;
 };
-
 // Add ref methods interface
 interface ShiftSelectionCardRef {
     triggerEditWithFocus: () => void;
 }
-
 const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardProps>(
     (
         {
@@ -113,10 +100,8 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
         const [selectedShiftData, setSelectedShiftData] = useState<EditableShift | null>(null);
         const [loadingShiftData, setLoadingShiftData] = useState(false);
         const itemSelectRef = useRef<HTMLButtonElement>(null);
-
         // Find the currently selected shift
         const currentShift = shifts.find((s) => s.id.toString() === (isEditingShift ? tempSelectedShiftId : selectedShiftId));
-
         // Handle edit/add shift button click
         const handleEditShiftClick = () => {
             onEditShift();
@@ -125,16 +110,13 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                 itemSelectRef.current?.focus();
             }, 100);
         };
-
         // Expose the edit+focus function to parent components
         useImperativeHandle(ref, () => ({
             triggerEditWithFocus: handleEditShiftClick,
         }));
-
         // Handle edit existing shift button click
         const handleEditExistingShiftClick = async () => {
             if (!tempSelectedShiftId) return;
-
             setLoadingShiftData(true);
             try {
                 const response = await axios.get(route('asset-hierarchy.shifts.show', { shift: tempSelectedShiftId }), {
@@ -148,29 +130,25 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                 setLoadingShiftData(false);
             }
         };
-
         // Handle successful shift update
         const handleShiftUpdateSuccess = (updatedShift: Shift) => {
             setIsEditSheetOpen(false);
             setSelectedShiftData(null);
-
             // Check if this is a new shift (created from copy operation)
             // We can detect this by checking if the shift ID is different from the one we were editing
             const isNewShiftFromCopy = selectedShiftData && updatedShift.id !== selectedShiftData.id;
-
             if (isNewShiftFromCopy) {
                 // For copy operation, exit edit mode first
                 if (isEditingShift) {
                     onCancelShiftEdit();
                 }
-
                 // Then reload the page, preserving the current tab
                 // The asset is already associated with the new shift by the backend
                 // Reloading will refresh the shifts list, runtime data, and select the new shift
                 setTimeout(() => {
                     // Reload the page and ensure we stay on the shifts-runtime tab
                     router.visit(route('asset-hierarchy.assets.show', {
-                        asset: assetId,
+                        asset: currentAssetId,
                         tab: 'shifts-runtime'
                     }), {
                         preserveScroll: true,
@@ -188,18 +166,15 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                 }
             }
         };
-
         // Calculate totals for the selected shift
         let totalWorkMinutes = 0;
         let totalBreakMinutes = 0;
-
         if (currentShift?.schedules) {
             currentShift.schedules.forEach((schedule) => {
                 schedule.shifts.forEach((shift) => {
                     if (shift.active) {
                         const shiftDuration = calculateDuration(shift.start_time, shift.end_time);
                         totalWorkMinutes += shiftDuration;
-
                         shift.breaks.forEach((breakTime) => {
                             const breakDuration = calculateDuration(breakTime.start_time, breakTime.end_time);
                             totalBreakMinutes += breakDuration;
@@ -212,12 +187,9 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
             totalWorkMinutes = (currentShift.total_work_hours || 0) * 60 + (currentShift.total_work_minutes || 0);
             totalBreakMinutes = (currentShift.total_break_hours || 0) * 60 + (currentShift.total_break_minutes || 0);
         }
-
         const netWorkMinutes = totalWorkMinutes - totalBreakMinutes;
-
         // Determine if we have a selected shift (either in edit mode or normal mode)
         const hasSelectedShift = (isEditingShift ? tempSelectedShiftId : selectedShiftId) && currentShift;
-
         return (
             <div className="h-full space-y-4">
                 <div className="flex h-full flex-col rounded-lg border border-gray-200 p-6">
@@ -245,7 +217,6 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                             </div>
                         ) : null}
                     </div>
-
                     {/* Shift Selection */}
                     <div className="mb-4">
                         {/* Header - always visible */}
@@ -253,7 +224,6 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                             <Clock className="h-4 w-4 text-gray-500" />
                             <span className="text-sm font-medium text-gray-700">Turno de Operação</span>
                         </div>
-
                         {!isEditingShift ? (
                             // View mode - Display shift name like runtime hours
                             <div>
@@ -294,7 +264,6 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                             </div>
                         )}
                     </div>
-
                     {/* Shift Summary - More compact design matching AssetRuntimeInput */}
                     {currentShift ? (
                         <div className="space-y-3">
@@ -325,7 +294,6 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                             <p className="text-center text-xs text-gray-500">Selecione um turno para ver o resumo</p>
                         </div>
                     )}
-
                     {/* Alert about automatic runtime recording */}
                     {isEditingShift && tempSelectedShiftId && tempSelectedShiftId !== selectedShiftId && (
                         <Alert className="mt-3">
@@ -337,7 +305,6 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
                         </Alert>
                     )}
                 </div>
-
                 {/* CreateShiftSheet for editing */}
                 {selectedShiftData && (
                     <CreateShiftSheet
@@ -352,8 +319,6 @@ const ShiftSelectionCard = forwardRef<ShiftSelectionCardRef, ShiftSelectionCardP
         );
     },
 );
-
 ShiftSelectionCard.displayName = 'ShiftSelectionCard';
-
 export default ShiftSelectionCard;
 export type { ShiftSelectionCardRef };

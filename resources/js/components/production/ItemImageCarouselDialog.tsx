@@ -19,7 +19,6 @@ import { Badge } from '@/components/ui/badge';
 import { Download, Maximize2, X, Image as ImageIcon, FileImage } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ItemImage } from '@/types/production';
-
 interface ItemImageCarouselDialogProps {
     images: ItemImage[];
     open: boolean;
@@ -27,7 +26,6 @@ interface ItemImageCarouselDialogProps {
     startIndex?: number;
     itemName?: string;
 }
-
 export function ItemImageCarouselDialog({
     images,
     open,
@@ -39,23 +37,18 @@ export function ItemImageCarouselDialog({
     const [isFullscreen, setIsFullscreen] = React.useState(false);
     const [carouselApi, setCarouselApi] = React.useState<any>(null);
     const dialogContentRef = React.useRef<HTMLDivElement>(null);
-
     React.useEffect(() => {
         setCurrentIndex(startIndex);
     }, [startIndex, open]);
-
     React.useEffect(() => {
         if (!carouselApi) return;
-
         carouselApi.on('select', () => {
             setCurrentIndex(carouselApi.selectedScrollSnap());
         });
-
         return () => {
             carouselApi.off('select');
         };
     }, [carouselApi]);
-
     // Handle focus when dialog opens
     React.useEffect(() => {
         if (open && dialogContentRef.current) {
@@ -65,14 +58,12 @@ export function ItemImageCarouselDialog({
             }, 100);
         }
     }, [open]);
-
     const handleDownload = (image: ItemImage) => {
         const link = document.createElement('a');
         link.href = image.url;
         link.download = image.filename;
         link.click();
     };
-
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen();
@@ -82,7 +73,6 @@ export function ItemImageCarouselDialog({
             setIsFullscreen(false);
         }
     };
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
@@ -99,7 +89,6 @@ export function ItemImageCarouselDialog({
                         {images.length} {images.length === 1 ? 'imagem' : 'imagens'} disponível
                     </DialogDescription>
                 </DialogHeader>
-
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Main Image Display */}
                     <div className="flex-1 relative bg-background flex items-center justify-center p-4">
@@ -128,7 +117,6 @@ export function ItemImageCarouselDialog({
                             <CarouselNext className="right-4" />
                         </Carousel>
                     </div>
-
                     {/* Image Information */}
                     <div className="px-6 py-4 border-t -mb-4 bg-muted/10">
                         <div className="flex items-start justify-between">
@@ -155,10 +143,7 @@ export function ItemImageCarouselDialog({
                             </Badge>
                         </div>
                     </div>
-
-
                 </div>
-
                 <DialogFooter className="flex-shrink-0 px-6 py-4 border-t">
                     <div className="flex w-full items-center justify-between">
                         <div className="flex gap-2">

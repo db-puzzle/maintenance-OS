@@ -16,12 +16,10 @@ import { router, useForm } from '@inertiajs/react';
 import { Camera, Pencil } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
 interface Manufacturer {
     id: number;
     name: string;
 }
-
 interface AssetFormComponentProps {
     plants: Plant[];
     assetTypes: AssetType[];
@@ -37,7 +35,6 @@ interface AssetFormComponentProps {
     onCancel?: () => void;
     onSuccess?: () => void;
 }
-
 interface AssetFormFieldsProps {
     data: AssetForm;
     setData: (key: string, value: string | number | boolean | File | null | undefined) => void;
@@ -64,7 +61,6 @@ interface AssetFormFieldsProps {
     handleCreateSectorClick: () => void;
     handleCreateManufacturerClick: () => void;
 }
-
 function AssetFormFields({
     data,
     setData,
@@ -131,7 +127,6 @@ function AssetFormFields({
                         </div>
                     )}
                 </div>
-
                 {/* Coluna 2: Informações Básicas */}
                 <div className="space-y-6">
                     {/* TAG */}
@@ -149,7 +144,6 @@ function AssetFormFields({
                         view={isViewMode}
                         ref={tagInputRef}
                     />
-
                     {/* Part Number */}
                     <TextInput
                         form={{
@@ -163,7 +157,6 @@ function AssetFormFields({
                         placeholder={isViewMode ? 'Part number não informado' : 'Informe o part number do ativo'}
                         view={isViewMode}
                     />
-
                     {/* Fabricante */}
                     <div className="grid gap-2">
                         <ItemSelect
@@ -183,7 +176,6 @@ function AssetFormFields({
                         />
                     </div>
                 </div>
-
                 {/* Coluna 3: Informações Adicionais */}
                 <div className="space-y-6">
                     {/* Tipo de Ativo */}
@@ -206,7 +198,6 @@ function AssetFormFields({
                             view={isViewMode}
                         />
                     </div>
-
                     {/* Número Serial */}
                     <TextInput
                         form={{
@@ -220,7 +211,6 @@ function AssetFormFields({
                         placeholder={isViewMode ? 'Número serial não informado' : 'Informe o número serial do ativo'}
                         view={isViewMode}
                     />
-
                     {/* Ano de Fabricação */}
                     <TextInput
                         form={{
@@ -235,7 +225,6 @@ function AssetFormFields({
                         view={isViewMode}
                     />
                 </div>
-
                 {/* Descrição - Ocupa colunas 2 e 3 */}
                 <div className="lg:col-span-2 lg:col-start-2">
                     <div className="grid gap-2">
@@ -258,7 +247,6 @@ function AssetFormFields({
                     </div>
                 </div>
             </div>
-
             {/* Localização - Grid com 3 colunas em toda largura */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 {/* Planta */}
@@ -289,7 +277,6 @@ function AssetFormFields({
                         required={!isViewMode}
                     />
                 </div>
-
                 {/* Área */}
                 <div className="grid gap-2">
                     <ItemSelect
@@ -322,7 +309,6 @@ function AssetFormFields({
                         canClear={!isViewMode}
                     />
                 </div>
-
                 {/* Setor */}
                 <div className="grid gap-2">
                     <ItemSelect
@@ -352,7 +338,6 @@ function AssetFormFields({
         </>
     );
 }
-
 export default function AssetFormComponent({
     assetTypes,
     plants,
@@ -365,12 +350,10 @@ export default function AssetFormComponent({
     const isEditing = !!asset;
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
-
     // Ensure mode updates when initialMode changes (e.g., after asset creation)
     useEffect(() => {
         setMode(initialMode);
     }, [initialMode]);
-
     const { data, setData, post, put, processing, errors, clearErrors, reset } = useForm<AssetForm>({
         tag: asset?.tag || '',
         serial_number: asset?.serial_number || '',
@@ -385,19 +368,16 @@ export default function AssetFormComponent({
         photo: null as File | null,
         photo_path: asset?.photo_path || undefined,
     });
-
     const availableAreas = useMemo(() => {
         if (!data.plant_id) return [];
         const selectedPlant = plants.find((p) => p.id.toString() === data.plant_id);
         return selectedPlant?.areas || [];
     }, [data.plant_id, plants]);
-
     const availableSectors = useMemo(() => {
         if (!data.area_id) return [];
         const selectedArea = availableAreas.find((a: Area) => a.id.toString() === data.area_id);
         return selectedArea?.sectors || [];
     }, [data.area_id, availableAreas]);
-
     const handleSave = () => {
         if (isEditing) {
             // Lógica para edição
@@ -411,7 +391,6 @@ export default function AssetFormComponent({
                     formData.append(key, data[key] as string);
                 }
             });
-
             put(route('asset-hierarchy.assets.update', { asset: asset.id }), {
                 onSuccess: () => {
                     toast.success(`O ativo ${data.tag} foi atualizado com sucesso!`);
@@ -444,7 +423,6 @@ export default function AssetFormComponent({
             });
         }
     };
-
     const handleCancel = () => {
         if (isEditing && mode === 'edit') {
             // Reset form to original data
@@ -457,11 +435,9 @@ export default function AssetFormComponent({
             router.visit(route('asset-hierarchy.assets'));
         }
     };
-
     const handleEdit = () => {
         setMode('edit');
     };
-
     // Handler functions for creating new entities
     const handlePlantCreated = () => {
         setPlantSheetOpen(false);
@@ -481,7 +457,6 @@ export default function AssetFormComponent({
             },
         });
     };
-
     const handleAreaCreated = () => {
         setAreaSheetOpen(false);
         router.reload({
@@ -502,7 +477,6 @@ export default function AssetFormComponent({
             },
         });
     };
-
     const handleSectorCreated = () => {
         setSectorSheetOpen(false);
         router.reload({
@@ -523,7 +497,6 @@ export default function AssetFormComponent({
             },
         });
     };
-
     const handleAssetTypeCreated = () => {
         setAssetTypeSheetOpen(false);
         router.reload({
@@ -540,7 +513,6 @@ export default function AssetFormComponent({
             },
         });
     };
-
     // Refs
     const plantSelectRef = useRef<HTMLButtonElement>(null);
     const assetTypeSelectRef = useRef<HTMLButtonElement>(null);
@@ -548,21 +520,18 @@ export default function AssetFormComponent({
     const sectorSelectRef = useRef<HTMLButtonElement>(null);
     const manufacturerSelectRef = useRef<HTMLButtonElement>(null);
     const tagInputRef = useRef<HTMLInputElement>(null);
-
     // State for sheet visibility
     const [plantSheetOpen, setPlantSheetOpen] = useState(false);
     const [areaSheetOpen, setAreaSheetOpen] = useState(false);
     const [sectorSheetOpen, setSectorSheetOpen] = useState(false);
     const [assetTypeSheetOpen, setAssetTypeSheetOpen] = useState(false);
     const [manufacturerSheetOpen, setManufacturerSheetOpen] = useState(false);
-
     // Focus TAG input when creating a new asset
     useEffect(() => {
         if (!isEditing && tagInputRef.current) {
             tagInputRef.current.focus();
         }
     }, [isEditing]);
-
     const handleCreatePlantClick = () => {
         // Blur the current active element to release focus
         if (document.activeElement instanceof HTMLElement) {
@@ -570,23 +539,18 @@ export default function AssetFormComponent({
         }
         setPlantSheetOpen(true);
     };
-
     const handleCreateAreaClick = () => {
         setAreaSheetOpen(true);
     };
-
     const handleCreateSectorClick = () => {
         setSectorSheetOpen(true);
     };
-
     const handleCreateAssetTypeClick = () => {
         setAssetTypeSheetOpen(true);
     };
-
     const handleCreateManufacturerClick = () => {
         setManufacturerSheetOpen(true);
     };
-
     const handleManufacturerCreated = () => {
         setManufacturerSheetOpen(false);
         router.reload({
@@ -596,7 +560,6 @@ export default function AssetFormComponent({
                 if (updatedManufacturers && updatedManufacturers.length > 0) {
                     const newestManufacturer = updatedManufacturers[updatedManufacturers.length - 1];
                     setData('manufacturer_id', newestManufacturer.id.toString());
-
                     // Focus and highlight the manufacturer select field
                     setTimeout(() => {
                         const selectButton = manufacturerSelectRef.current;
@@ -617,7 +580,6 @@ export default function AssetFormComponent({
             },
         });
     };
-
     return (
         <>
             <form
@@ -651,7 +613,6 @@ export default function AssetFormComponent({
                     handleCreateSectorClick={handleCreateSectorClick}
                     handleCreateManufacturerClick={handleCreateManufacturerClick}
                 />
-
                 {/* Action buttons */}
                 {isEditing && (
                     <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -661,7 +622,6 @@ export default function AssetFormComponent({
                                 <DeleteAsset assetId={asset.id} assetTag={asset.tag} />
                             </div>
                         )}
-
                         {/* Edit/Save/Cancel buttons on the right */}
                         <div className="flex flex-col gap-2 sm:ml-auto sm:flex-row">
                             {isViewMode ? (
@@ -692,7 +652,6 @@ export default function AssetFormComponent({
                         </div>
                     </div>
                 )}
-
                 {/* Action buttons for create mode */}
                 {!isEditing && (
                     <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-start">
@@ -705,10 +664,8 @@ export default function AssetFormComponent({
                     </div>
                 )}
             </form>
-
             {/* Hidden Sheets for creating new entities */}
             <CreatePlantSheet open={plantSheetOpen} onOpenChange={setPlantSheetOpen} onSuccess={handlePlantCreated} />
-
             <CreateAreaSheet
                 open={areaSheetOpen}
                 onOpenChange={setAreaSheetOpen}
@@ -717,7 +674,6 @@ export default function AssetFormComponent({
                 disableParentFields={true}
                 onSuccess={handleAreaCreated}
             />
-
             <CreateSectorSheet
                 open={sectorSheetOpen}
                 onOpenChange={setSectorSheetOpen}
@@ -728,9 +684,7 @@ export default function AssetFormComponent({
                 disableParentFields={true}
                 onSuccess={handleSectorCreated}
             />
-
             <CreateAssetTypeSheet open={assetTypeSheetOpen} onOpenChange={setAssetTypeSheetOpen} mode="create" onSuccess={handleAssetTypeCreated} />
-
             <CreateManufacturerSheet
                 open={manufacturerSheetOpen}
                 onOpenChange={setManufacturerSheetOpen}

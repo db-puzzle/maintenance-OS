@@ -15,10 +15,8 @@ import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
-
 interface Certification {
     id: number;
     name: string;
@@ -30,7 +28,6 @@ interface Certification {
     created_at: string;
     updated_at: string;
 }
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',
@@ -41,7 +38,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/certifications',
     },
 ];
-
 interface Props {
     certifications: {
         data: Certification[];
@@ -63,7 +59,6 @@ interface Props {
         create: boolean;
     };
 }
-
 export default function CertificationsIndex({ certifications: initialCertifications, filters, can }: Props) {
     const entityOps = useEntityOperations<Certification>({
         entityName: 'certification',
@@ -75,10 +70,8 @@ export default function CertificationsIndex({ certifications: initialCertificati
             checkDependencies: 'certifications.check-dependencies',
         },
     });
-
     const [search, setSearch] = useState(filters.search);
     const [activeFilter, setActiveFilter] = useState(filters.active || 'all');
-
     // Use centralized sorting hook
     const sortingResult = useSorting({
         routeName: 'certifications.index',
@@ -93,7 +86,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
     const sortColumn = sortingResult.sort;
     const sortDirection = sortingResult.direction;
     const handleSort = sortingResult.handleSort;
-
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
         if (typeof window !== 'undefined') {
             const savedVisibility = localStorage.getItem('certificationsColumnsVisibility');
@@ -108,7 +100,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
             users_count: true,
         };
     });
-
     // Use data from server - cast to Record<string, unknown>[] for EntityDataTable
     const data = initialCertifications.data as unknown as Record<string, unknown>[];
     const pagination = {
@@ -119,7 +110,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
         from: initialCertifications.from,
         to: initialCertifications.to,
     };
-
     const formatValidityPeriod = (days: number | null) => {
         if (!days) return 'Sem validade';
         if (days === 365) return '1 ano';
@@ -128,7 +118,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
         if (days % 30 === 0) return `${Math.floor(days / 30)} meses`;
         return `${days} dias`;
     };
-
     const columns: ColumnConfig[] = [
         {
             key: 'name',
@@ -176,7 +165,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
             ),
         },
     ];
-
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
         const newVisibility = {
             ...columnVisibility,
@@ -185,7 +173,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
         setColumnVisibility(newVisibility);
         localStorage.setItem('certificationsColumnsVisibility', JSON.stringify(newVisibility));
     };
-
     const handleSearch = (value: string) => {
         setSearch(value);
         router.get(
@@ -194,7 +181,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handleActiveFilter = (value: string) => {
         setActiveFilter(value);
         const activeParam = value === 'all' ? '' : value;
@@ -204,7 +190,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
             { preserveState: true, preserveScroll: true },
         );
     };
-
     const handlePageChange = (page: number) => {
         router.get(
             route('certifications.index'),
@@ -212,7 +197,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
             { preserveState: true, preserveScroll: true }
         );
     };
-
     const handlePerPageChange = (perPage: number) => {
         router.get(
             route('certifications.index'),
@@ -220,11 +204,9 @@ export default function CertificationsIndex({ certifications: initialCertificati
             { preserveState: true, preserveScroll: true },
         );
     };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Certificações" />
-
             <ListLayout
                 title="Certificações"
                 description="Gerencie as certificações disponíveis no sistema"
@@ -273,7 +255,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
                         )}
                         emptyMessage="Nenhuma certificação encontrada"
                     />
-
                     <EntityPagination
                         pagination={pagination}
                         onPageChange={handlePageChange}
@@ -281,7 +262,6 @@ export default function CertificationsIndex({ certifications: initialCertificati
                     />
                 </div>
             </ListLayout>
-
             <CertificationSheet
                 open={entityOps.isEditSheetOpen}
                 onOpenChange={entityOps.setEditSheetOpen}
@@ -290,14 +270,12 @@ export default function CertificationsIndex({ certifications: initialCertificati
                     entityOps.setEditSheetOpen(false);
                 }}
             />
-
             <EntityDeleteDialog
                 open={entityOps.isDeleteDialogOpen}
                 onOpenChange={entityOps.setDeleteDialogOpen}
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-
             <EntityDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}

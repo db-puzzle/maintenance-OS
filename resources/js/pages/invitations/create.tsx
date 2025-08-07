@@ -14,42 +14,35 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
-
 interface Role {
     id: number;
     name: string;
     is_system: boolean;
 }
-
 interface Props {
     roles: Role[];
 }
-
 export default function InvitationsCreate({ roles }: Props) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         initial_role: '',
         message: '',
     });
-
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('invitations.store'), {
             onSuccess: () => reset(),
         });
     };
-
     const breadcrumbs = [
         { title: 'Home', href: '/home' },
         { title: 'Usuários', href: '#' },
         { title: 'Convites', href: '/invitations' },
         { title: 'Criar', href: '#' },
     ];
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Convidar Novo Usuário" />
-
             <div className="bg-background flex-shrink-0 border-b">
                 <div className="px-6 py-4">
                     <div>
@@ -60,7 +53,6 @@ export default function InvitationsCreate({ roles }: Props) {
                     </div>
                 </div>
             </div>
-
             <div className="container mx-auto py-6">
                 <div className="mx-auto max-w-2xl">
                     <div className="rounded-lg bg-white p-6 shadow">
@@ -70,7 +62,6 @@ export default function InvitationsCreate({ roles }: Props) {
                         >
                             ← Voltar para convites
                         </Link>
-
                         <form onSubmit={submit} className="space-y-6">
                             <div>
                                 <Label htmlFor="email">
@@ -90,7 +81,6 @@ export default function InvitationsCreate({ roles }: Props) {
                                     <p className="mt-1 text-sm text-destructive">{errors.email}</p>
                                 )}
                             </div>
-
                             <div>
                                 <Label htmlFor="initial_role">
                                     Função Inicial (Opcional)
@@ -119,7 +109,6 @@ export default function InvitationsCreate({ roles }: Props) {
                                     <p className="mt-1 text-sm text-destructive">{errors.initial_role}</p>
                                 )}
                             </div>
-
                             <div>
                                 <Label htmlFor="message">
                                     Mensagem Pessoal (Opcional)
@@ -142,7 +131,6 @@ export default function InvitationsCreate({ roles }: Props) {
                                     <p className="mt-1 text-sm text-destructive">{errors.message}</p>
                                 )}
                             </div>
-
                             <Alert>
                                 <InfoIcon className="h-4 w-4" />
                                 <AlertDescription>
@@ -150,7 +138,6 @@ export default function InvitationsCreate({ roles }: Props) {
                                     registro. O link expira em 7 dias.
                                 </AlertDescription>
                             </Alert>
-
                             <div className="flex items-center justify-end gap-4">
                                 <Link href={route('invitations.index')}>
                                     <Button type="button" variant="outline">
