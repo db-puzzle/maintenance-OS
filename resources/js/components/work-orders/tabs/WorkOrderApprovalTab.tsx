@@ -36,7 +36,7 @@ export function WorkOrderApprovalTab({
     const [processing, setProcessing] = useState(false);
     const isApproved = workOrder.status !== 'requested';
     // Find the most recent approval or rejection entry (could be multiple)
-    const approvalEntries = workOrder.status_history?.filter(error: unknown) =>
+    const approvalEntries = workOrder.status_history?.filter((entry: any) =>
         entry.from_status === 'requested' && (entry.to_status === 'approved' || entry.to_status === 'rejected')
     ) || [];
     // Get the most recent one (last in the array since they should be ordered by created_at)

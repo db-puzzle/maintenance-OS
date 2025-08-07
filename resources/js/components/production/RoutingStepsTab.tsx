@@ -107,7 +107,7 @@ export default function RoutingStepsTab({
     // Create a wrapper for form compatibility
     const form = {
         data,
-        setData: (error: unknown) => setData(name as any, value),
+        setData: (name: string, value: any) => setData(name as any, value),
         errors: errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => clearErrors(...(fields as any)),
     };

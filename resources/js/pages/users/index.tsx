@@ -323,10 +323,10 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                         columns={columns}
                         loading={false}
                          
-                        onRowClick={(error: unknown) => router.visit(`/users/${user.id}`)}
+                        onRowClick={(user: any) => router.visit(`/users/${user.id}`)}
                         emptyMessage="No users found"
                          
-                        actions={(error: unknown) => (
+                        actions={(user: any) => (
                             <EntityActionDropdown
                                 onEdit={() => router.visit(`/users/${user.id}/edit`)}
                                 onDelete={() => handleDelete(user as User)}

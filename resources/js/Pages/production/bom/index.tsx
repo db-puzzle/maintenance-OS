@@ -88,19 +88,19 @@ export default function BomIndex({ boms, filters }: Props) {
             label: 'Número',
             sortable: true,
             width: 'w-[150px]',
-            render: (value: unknown) => value || '-'
+            render: (value: unknown) => <>{value || '-'}</>
         },
         {
             key: 'name',
             label: 'Nome',
             sortable: true,
             width: 'w-[300px]',
-            render: (value: unknown, bom: BillOfMaterial) => (
+            render: (value: unknown, row: Record<string, unknown>) => (
                 <div>
                     <div className="font-medium">{value}</div>
-                    {bom.description && (
+                    {row.description && (
                         <div className="text-muted-foreground text-sm">
-                            {bom.description.length > 40 ? `${bom.description.substring(0, 40)}...` : bom.description}
+                            {(row.description as string).length > 40 ? `${(row.description as string).substring(0, 40)}...` : row.description}
                         </div>
                     )}
                 </div>
@@ -110,8 +110,8 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'version',
             label: 'Versão',
             width: 'w-[100px]',
-            render: (value: unknown, bom: BillOfMaterial) => {
-                const currentVersion = bom.current_version?.version_number;
+            render: (value: unknown, row: Record<string, unknown>) => {
+                const currentVersion = (row.current_version as any)?.version_number;
                 return currentVersion ? `v${currentVersion}` : '-';
             }
         },
@@ -126,20 +126,20 @@ export default function BomIndex({ boms, filters }: Props) {
                     'inactive': 'Inativa',
                     'draft': 'Rascunho'
                 };
-                return labels[value] || value || '-';
+                return labels[value as string] || value || '-';
             }
         },
         {
             key: 'versions_count',
             label: 'Versões',
             width: 'w-[100px]',
-            render: (value: unknown, bom: BillOfMaterial) => bom.versions_count || 0
+            render: (value: unknown, row: Record<string, unknown>) => row.versions_count || 0
         },
         {
             key: 'item_masters_count',
             label: 'Componentes',
             width: 'w-[120px]',
-            render: (value: unknown, bom: BillOfMaterial) => bom.item_masters_count || 0
+            render: (value: unknown, row: Record<string, unknown>) => (row as any).item_masters_count || 0
         }
     ];
     const breadcrumbs = [
@@ -167,12 +167,12 @@ export default function BomIndex({ boms, filters }: Props) {
                     <EntityDataTable
                         data={data as unknown as Record<string, unknown>[]}
                         columns={columns}
-                        loading={loading}
-                        onRowClick={(bom: BillOfMaterial) => router.visit(route('production.bom.show', bom.id))}
-                        actions={(bom: BillOfMaterial) => (
+                        loading={false}
+                        onRowClick={(row: Record<string, unknown>) => router.visit(route('production.bom.show', (row as any).id))}
+                        actions={(row: Record<string, unknown>) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(route('production.bom.edit', bom.id))}
-                                onDelete={() => setDeleteBom(bom as BillOfMaterial)}
+                                onEdit={() => router.visit(route('production.bom.edit', (row as any).id))}
+                                onDelete={() => setDeleteBom(row as BillOfMaterial)}
                                 additionalActions={[
                                     {
                                         label: 'Ver Hierarquia',

@@ -28,7 +28,7 @@ export default function RoutingStepsTableTab({
     const handleStartStep = (stepId: number) => {
         router.get(route('production.steps.execute', stepId));
     };
-    const getStepActions = (error: unknown) => {
+    const getStepActions = (step: any) => {
         if (!canExecute) return null;
         const canStart = !step.depends_on_step_id ||
             (step.dependency && ['completed', 'in_progress'].includes(step.dependency.status));

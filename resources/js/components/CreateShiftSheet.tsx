@@ -260,7 +260,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
         // Update the schedules
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updateSchedules = (error: unknown) => {
+        const updateSchedules = (newSchedules: any) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setData('schedules' as any, newSchedules);
         };
@@ -435,20 +435,20 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
         const applyToSelectedDays = () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const sourceDay = (error: unknown) => s.weekday === selectedDay);
+            const sourceDay = (data as any).schedules.find((s: any) => s.weekday === selectedDay);
             if (!sourceDay) return;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const newSchedules = (error: unknown) => {
+            const newSchedules = (data as any).schedules.map((schedule: any) => {
                 if (selectedDays.includes(schedule.weekday)) {
                     // Cria uma cópia profunda do dia de origem
                     return {
                         ...sourceDay,
                         weekday: schedule.weekday,
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        shifts: sourceDay.shifts.map(error: unknown) => ({
+                        shifts: sourceDay.shifts.map((shift: any) => ({
                             ...shift,
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            breaks: shift.breaks.map(error: unknown) => ({ ...breakTime })),
+                            breaks: shift.breaks.map((breakTime: any) => ({ ...breakTime })),
                         })),
                     };
                 }
@@ -467,15 +467,15 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 timezone: (data as any).timezone,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                schedules: (error: unknown) => ({
+                schedules: (data as any).schedules.map((schedule: any) => ({
                     ...schedule,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    shifts: schedule.shifts.map(error: unknown) => ({
+                    shifts: schedule.shifts.map((shift: any) => ({
                         ...shift,
                         start_time: shift.start_time?.substring(0, 5) || shift.start_time,
                         end_time: shift.end_time?.substring(0, 5) || shift.end_time,
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        breaks: shift.breaks.map(error: unknown) => ({
+                        breaks: shift.breaks.map((breakTime: any) => ({
                             start_time: breakTime.start_time?.substring(0, 5) || breakTime.start_time,
                             end_time: breakTime.end_time?.substring(0, 5) || breakTime.end_time,
                         })),
