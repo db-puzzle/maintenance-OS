@@ -42,11 +42,15 @@ export function ItemImageCarouselDialog({
     }, [startIndex, open]);
     React.useEffect(() => {
         if (!carouselApi) return;
-        carouselApi.on('select', () => {
+        
+        const handleSelect = () => {
             setCurrentIndex(carouselApi.selectedScrollSnap());
-        });
+        };
+        
+        carouselApi.on('select', handleSelect);
+        
         return () => {
-            carouselApi.off('select');
+            carouselApi.off('select', handleSelect);
         };
     }, [carouselApi]);
     // Handle focus when dialog opens

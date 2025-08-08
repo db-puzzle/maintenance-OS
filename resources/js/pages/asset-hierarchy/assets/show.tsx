@@ -117,11 +117,11 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         },
     ];
     // Estado para gerenciar as rotinas
-    const [routines, setRoutines] = useState<Routine[]>(asset?.routines || []);
+    const [routines, setRoutines] = useState<Routine[]>((asset?.routines as Routine[]) || []);
     // Update routines when asset prop changes
     useEffect(() => {
         if (asset?.routines) {
-            setRoutines(asset.routines);
+            setRoutines(asset.routines as Routine[]);
         }
     }, [asset?.routines]);
     // Estado para controlar o modo comprimido
@@ -385,7 +385,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                             <div className="min-h-full space-y-4">
                                 <AssetRoutinesTab
                                     assetId={asset!.id}
-                                    routines={routines as unknown}
+                                    routines={routines}
                                     selectedShift={selectedShift}
                                     newRoutineId={newRoutineId}
                                     userPermissions={userPermissions}

@@ -8,8 +8,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { type Routine } from '@/types/routine';
-import { type Shift } from '@/types/asset-hierarchy';
+import { type Routine as BaseRoutine } from '@/types/routine';
+import { type Shift as BaseShift } from '@/types/asset-hierarchy';
 import { type Task } from '@/types/task';
 
 import { Link, router } from '@inertiajs/react';
@@ -31,6 +31,52 @@ import {
 } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+// Extended interfaces for this component
+interface ExtendedForm {
+    id: number;
+    name: string;
+    tasks: Array<{
+        id: string | number;
+        description: string;
+        type: string;
+        [key: string]: any;
+    }>;
+    has_draft_changes?: boolean;
+    is_draft?: boolean;
+    current_version_id?: number | null;
+    current_version?: {
+        id?: number;
+        version_number: string;
+        published_at?: string;
+    };
+}
+
+interface ExtendedRoutine extends Omit<BaseRoutine, 'form'> {
+    form?: ExtendedForm;
+    status?: 'Active' | 'Inactive';
+}
+
+interface ShiftSchedule {
+    weekday: string;
+    shifts: Array<{
+        start_time: string;
+        end_time: string;
+        active: boolean;
+        breaks: Array<{
+            start_time: string;
+            end_time: string;
+        }>;
+    }>;
+}
+
+interface ExtendedShift extends BaseShift {
+    schedules: ShiftSchedule[];
+}
+
+// Use ExtendedRoutine instead of Routine
+type Routine = ExtendedRoutine;
+type Shift = ExtendedShift;
 
 interface RoutineListProps {
     routine?: Routine;
