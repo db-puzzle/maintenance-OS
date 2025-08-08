@@ -406,7 +406,7 @@ export default function AssetRoutinesTab({
             headerAlign: 'center',
             contentAlign: 'center',
             render: (value, row) => {
-                const form = row.form as any;
+                const form = row.form;
 
                 if (!form || !form.tasks || form.tasks.length === 0) {
                     return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
@@ -426,7 +426,7 @@ export default function AssetRoutinesTab({
             sortable: false,
             width: 'w-[100px]',
             render: (value, row) => {
-                const form = row.form as any;
+                const form = row.form;
 
                 if (!form) {
                     return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
@@ -466,9 +466,9 @@ export default function AssetRoutinesTab({
                     <div className="text-center">
                         <FormStatusBadge
                             form={{
-                                id: (form as any).id || 0,
-                                ...(form as any),
-                                current_version_id: (form as any).current_version_id ?? null,
+                                id: form.id || 0,
+                                ...form,
+                                current_version_id: form.current_version_id ?? null,
                             }}
                             size="sm"
                         />

@@ -67,7 +67,7 @@ export default function RuntimeHistory({ assetId, activeTab, parentVisible = fal
                 },
             });
             setMeasurements(response.data);
-        } catch (error: any) {
+        } catch (error) {
             if (error.response?.status === 500) {
                 toast.error('Erro no servidor ao carregar histórico de horímetro');
             } else {

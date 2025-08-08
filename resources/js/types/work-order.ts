@@ -365,6 +365,9 @@ export interface Form {
     id: number;
     name: string;
     description?: string;
+    tasks?: FormTask[];
+    current_version?: FormVersion;
+    current_version_id?: number;
 }
 
 export interface FormVersion {

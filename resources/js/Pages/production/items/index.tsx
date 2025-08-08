@@ -315,7 +315,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as any[]}
+                        data={data}
                         columns={columns}
                         loading={loading}
                         onRowClick={(item) => router.visit(route('production.items.show', item.id))}

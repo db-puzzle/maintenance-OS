@@ -163,7 +163,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 window.open(response.data.pdf_url, '_blank');
                 toast.success('Etiqueta QR gerada com sucesso!');
             }
-        } catch (error: any) {
+        } catch (error) {
             toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
         } finally {
             setGeneratingQr(false);

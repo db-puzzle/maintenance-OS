@@ -242,7 +242,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as any[]}
+                        data={data}
                         columns={columns}
                         loading={loading}
                         onRowClick={(shipment) => router.visit(route('production.shipments.show', (shipment as Shipment).id))}

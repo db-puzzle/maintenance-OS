@@ -149,10 +149,9 @@ interface RoutingOverviewTabProps {
     effectiveSteps: ManufacturingStep[];
     form: {
         data: FormDataType;
-        setData: (key: keyof FormDataType | FormDataType, value?: any) => void;
+        setData: <K extends keyof FormDataType>(key: K, value: FormDataType[K]) => void;
         errors: Partial<Record<keyof FormDataType, string>>;
         clearErrors: (...fields: (keyof FormDataType)[]) => void;
-        [key: string]: any;
     };
     progressPercentage?: number;
     completedSteps?: number;

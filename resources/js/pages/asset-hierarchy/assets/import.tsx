@@ -142,7 +142,7 @@ export default function ImportAsset() {
             setShowFormat(false);
             setShowInstructions(true);
             setProgressValue(response.data.progress);
-        } catch (error: any) {
+        } catch (error) {
             console.error('Erro ao processar arquivo:', error);
             setProgressValue(0);
             setShowProgress(false);
@@ -200,7 +200,7 @@ export default function ImportAsset() {
                 setCsvData(null);
                 setFieldMapping({});
             }
-        } catch (error: any) {
+        } catch (error) {
             const errorObj = error as { response?: { data?: { validationErrors?: string[] } } };
             if (errorObj.response?.data?.validationErrors) {
                 setImportErrors(errorObj.response.data.validationErrors);

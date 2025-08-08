@@ -182,7 +182,8 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                 // Handle category as object or string
                 let categoryCode = row.work_order_category;
                 if (typeof categoryCode === 'object' && categoryCode !== null) {
-                    categoryCode = (categoryCode as any).code || (categoryCode as any).name || '';
+                    const categoryObj = categoryCode as { code?: string; name?: string };
+                    categoryCode = categoryObj.code || categoryObj.name || '';
                 }
                 // Fallback to category code
                 const categoryLabels: Record<string, string> = {
@@ -202,7 +203,10 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             key: 'type',
             label: 'Tipo',
             headerAlign: 'center',
-            render: (_: unknown, row: Record<string, unknown>) => <div className="text-center">{(row.type as any)?.name || '-'}</div>,
+            render: (_: unknown, row: Record<string, unknown>) => {
+                const type = row.type as { name?: string } | undefined;
+                return <div className="text-center">{type?.name || '-'}</div>;
+            },
         },
         {
             key: 'priority_score',
@@ -339,7 +343,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as any[]}
+                        data={data}
                         columns={columns}
                         loading={false}
                         onRowClick={(workOrder) => router.visit(route(`${discipline}.work-orders.show`, { id: (workOrder as WorkOrder).id }))}
