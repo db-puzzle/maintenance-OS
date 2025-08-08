@@ -2,7 +2,6 @@ import React from 'react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { ColumnConfig } from '@/types/shared';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Trash2, Award } from 'lucide-react';
 interface Certification {
     id: number;

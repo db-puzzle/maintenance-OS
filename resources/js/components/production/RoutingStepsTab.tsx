@@ -18,7 +18,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { TextInput } from '@/components/TextInput';
 import { ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/production';
 import { Form } from '@/types/work-order';
 import { toast } from 'sonner';
@@ -100,7 +99,7 @@ export default function RoutingStepsTab({
         template_id: '',
     });
     // Create a wrapper for form compatibility
-    const form = {
+    const _form = {
         data,
         setData: (name: string, value: any) => setData(name as any, value),
         errors: errors as Partial<Record<string, string>>,

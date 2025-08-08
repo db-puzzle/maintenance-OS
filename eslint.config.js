@@ -21,6 +21,13 @@ export default [
             'react/react-in-jsx-scope': 'off',
             'react/prop-types': 'off',
             'react/no-unescaped-entities': 'off',
+            '@typescript-eslint/no-unused-vars': ['error', {
+                'args': 'after-used',
+                'ignoreRestSiblings': true,
+                'varsIgnorePattern': '^_',
+                'argsIgnorePattern': '^_'
+            }],
+            'no-unused-vars': 'off', // Turn off base rule as we're using TypeScript version
         },
         settings: {
             react: {

@@ -8,8 +8,6 @@ import {
 import { Button } from '@/components/ui/button';
 import {
     Edit,
-    Play,
-    Calendar,
     CheckCircle,
     AlertCircle
 } from 'lucide-react';
@@ -30,9 +28,9 @@ export default function WorkOrderDetailsTab({
     discipline,
     canEdit,
     canApprove,
-    canPlan,
-    canExecute,
-    canValidate
+    canPlan: _canPlan,
+    canExecute: _canExecute,
+    canValidate: _canValidate
 }: Props) {
     const getStatusActions = () => {
         const actions = [];

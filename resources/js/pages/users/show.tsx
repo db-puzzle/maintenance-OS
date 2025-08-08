@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import UserFormComponent from '@/components/users/UserFormComponent';
@@ -87,7 +87,7 @@ export default function UserShow({
     canEditUser,
     canManagePermissions
 }: Props) {
-    const getInitials = useInitials();
+    const _getInitials = useInitials();
 
     const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
     const [skillSheetOpen, setSkillSheetOpen] = useState(false);

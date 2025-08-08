@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Search, Package, DollarSign, AlertCircle } from 'lucide-react';
+import { Search, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 interface Part {
     id: number;

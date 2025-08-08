@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { BarChart3, Boxes, ChevronRight, ClipboardList, Route, Package } from 'lucide-react';
+import { Boxes, ChevronRight, ClipboardList, Route, Package } from 'lucide-react';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',

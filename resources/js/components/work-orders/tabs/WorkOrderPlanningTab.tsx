@@ -7,9 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import EmptyCard from '@/components/ui/empty-card';
-import { ItemSelect } from '@/components/ItemSelect';
 import { TextInput } from '@/components/TextInput';
 import { PartSearchDialog } from '@/components/work-orders/PartSearchDialog';
 import { SkillsTable } from '@/components/work-orders/SkillsTable';
@@ -28,7 +26,6 @@ import {
     Search,
     AlertCircle,
     Shield,
-    Wrench,
     CheckCircle,
     Edit3,
 } from 'lucide-react';
@@ -163,8 +160,8 @@ function EditableCell({
 
 export function WorkOrderPlanningTab({
     workOrder,
-    technicians = [],
-    teams = [],
+    technicians: _technicians = [],
+    teams: _teams = [],
     parts = [],
     skills = [],
     certifications = [],

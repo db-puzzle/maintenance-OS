@@ -28,7 +28,7 @@ interface WorkOrderApprovalTabProps {
 export function WorkOrderApprovalTab({
     workOrder,
     canApprove,
-    approvalThreshold,
+    approvalThreshold: _approvalThreshold,
     discipline
 }: WorkOrderApprovalTabProps) {
     const [decision, setDecision] = useState('');

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
     ChevronRight,
-    ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -145,8 +144,8 @@ export default function TreeView<T extends TreeNode>({
     const [internalExpanded, setInternalExpanded] = useState<Record<string, boolean>>({});
     // Use controlled expanded state if provided, otherwise use internal state
     const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
-    const setExpanded = controlledExpanded !== undefined
-        ? (error: unknown) => {
+    const _setExpanded = controlledExpanded !== undefined
+        ? (_error: unknown) => {
             // For controlled mode, we don't update state directly
             console.warn('TreeView is in controlled mode. Use onToggleExpand to update expanded state.');
         }

@@ -69,7 +69,7 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
     }, [part]);
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const submitData = {
+        const _submitData = {
             ...data,
             maximum_quantity: data.maximum_quantity || null,
         };
@@ -103,10 +103,10 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
             });
         }
     };
-    const formatCurrency = (value: number) => {
+    const _formatCurrency = (value: number) => {
         return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
-    const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const _handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
         const numericValue = parseFloat(value) || 0;
         setData('unit_cost', numericValue);

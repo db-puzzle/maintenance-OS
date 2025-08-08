@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { Head, router, Link } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import {
@@ -27,7 +27,6 @@ import {
     Activity,
     Wrench
 } from 'lucide-react';
-import { toast } from 'sonner';
 interface Props {
     workOrder?: any; // Using any for now to avoid complex type definitions
     discipline: 'maintenance' | 'quality';
