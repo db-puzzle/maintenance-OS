@@ -127,7 +127,7 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 sortable: true,
                                 width: 'w-[300px]',
                                  
-                                render: (value, row) => <div className="font-medium">{ (row as unknown).tag}</div>,
+                                render: (value, row) => <div className="font-medium">{(row as AssetData).tag}</div>,
                             },
                             {
                                 key: 'asset_type_name',
@@ -135,7 +135,7 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 sortable: true,
                                 width: 'w-[200px]',
                                  
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as unknown).asset_type?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as AssetData).description || '-'}</span>,
                             },
                             {
                                 key: 'location',
@@ -144,7 +144,7 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 width: 'w-[250px]',
                                 render: (value, row) => {
                                      
-                                    const item = row as unknown;
+                                    const item = row as AssetData;
                                     return (
                                         <span className="text-muted-foreground text-sm">
                                             {item.area_name}

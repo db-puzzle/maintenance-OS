@@ -424,7 +424,7 @@ export function ManufacturingOrderTreeView({
             <div className="w-full">
                 {headerColumns || defaultHeaderColumns}
                 <TreeView<ManufacturingOrderTreeNode>
-                    data={orders}
+                    data={orders as TreeNode[] as ManufacturingOrderTreeNode[]}
                     renderNode={renderOrderNode}
                     emptyState={emptyState || defaultEmptyState}
                     defaultExpanded={true}

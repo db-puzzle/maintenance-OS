@@ -30,8 +30,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { BomItem, Item, ItemCategory, ManufacturingOrder, RouteTemplate } from '@/types/production';
 import { CreateItemSheet } from '@/components/CreateItemSheet';
-import { BomTreeView } from './BomTreeView';
-import { ManufacturingOrderTreeView } from './ManufacturingOrderTreeView';
+import BomTreeView, { type BomTreeNode } from './BomTreeView';
+import ManufacturingOrderTreeView from './ManufacturingOrderTreeView';
 
 import { Image } from 'lucide-react';
 

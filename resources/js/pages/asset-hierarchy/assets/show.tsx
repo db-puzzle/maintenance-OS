@@ -11,7 +11,7 @@ import EmptyCard from '@/components/ui/empty-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type User } from '@/types';
 import { type Area, type Asset, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
 import { type Routine } from '@/types/routine';
 import { Head, Link, router, usePage } from '@inertiajs/react';

@@ -61,8 +61,22 @@ interface CreateShiftSheetProps {
     currentAssetId?: number;
 }
 // Create a proper type for the form data
-interface ShiftFormWithTimezone extends ShiftForm {
+interface ShiftFormWithTimezone {
+    name: string;
     timezone: string;
+    schedules: {
+        weekday: string;
+        shifts: {
+            start_time: string;
+            end_time: string;
+            active: boolean;
+            breaks: {
+                start_time: string;
+                end_time: string;
+            }[];
+        }[];
+    }[];
+    [key: string]: string | number | boolean | File | null | undefined | any[];
 }
 const weekdays = [
     { key: 'Monday', label: 'Segunda' },

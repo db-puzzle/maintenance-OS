@@ -147,7 +147,7 @@ export default function RoutingStepsTableTab({
             headerAlign: 'center',
             render: (value: unknown, row: Record<string, unknown>) => (
                 <div className="flex justify-center">
-                    {getStepActions(row as ManufacturingStep)}
+                    {getStepActions(row as unknown as ManufacturingStep)}
                 </div>
             )
         }
@@ -155,7 +155,7 @@ export default function RoutingStepsTableTab({
     return (
         <div className="space-y-4 py-6">
             <EntityDataTable
-                data={(steps || []) as Record<string, unknown>[]}
+                data={(steps || []) as unknown as Record<string, unknown>[]}
                 columns={columns}
                 loading={false}
             />

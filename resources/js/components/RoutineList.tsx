@@ -8,7 +8,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { Task } from '@/types/task';
+import { type Routine } from '@/types/routine';
+import { type Shift } from '@/types/asset-hierarchy';
+import { type Task } from '@/types/task';
 
 import { Link, router } from '@inertiajs/react';
 import axios from 'axios';
@@ -29,55 +31,7 @@ import {
 } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { toast } from 'sonner';
-export interface Routine {
-    id?: number;
-    name: string;
-    trigger_hours?: number;
-    trigger_type?: 'runtime_hours' | 'calendar_days';
-    trigger_runtime_hours?: number;
-    trigger_calendar_days?: number;
-    execution_mode: 'automatic' | 'manual';
-    description?: string;
-    form_id?: number;
-    asset_id?: number;
-    advance_generation_days?: number;
-    auto_approve_work_orders?: boolean;
-    priority_score?: number;
-    last_execution_runtime_hours?: number;
-    last_execution_completed_at?: string;
-    last_execution_form_version_id?: number;
-    status?: 'Active' | 'Inactive';
-    form?: {
-        id: number;
-        name: string;
-        tasks: Task[];
-        has_draft_changes?: boolean;
-        is_draft?: boolean;
-        current_version_id?: number | null;
-        current_version?: {
-            id?: number;
-            version_number: string;
-            published_at?: string;
-        };
-    };
-}
-interface ShiftSchedule {
-    weekday: string;
-    shifts: Array<{
-        start_time: string;
-        end_time: string;
-        active: boolean;
-        breaks: Array<{
-            start_time: string;
-            end_time: string;
-        }>;
-    }>;
-}
-interface Shift {
-    id: number;
-    name: string;
-    schedules: ShiftSchedule[];
-}
+
 interface RoutineListProps {
     routine?: Routine;
     onSave?: (routine: Routine) => void;
