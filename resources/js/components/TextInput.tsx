@@ -5,7 +5,7 @@ import { forwardRef } from 'react';
 interface TextInputProps {
     form: {
         data: Record<string, string | number | boolean | null | undefined>;
-        setData: (name: string, value: string | number | boolean | null) => void;
+        setData: (name: string, value: string | number | boolean | null | undefined) => void;
         errors: Partial<Record<string, string>>;
         clearErrors: (...fields: string[]) => void;
         validateInput?: (value: string) => boolean;
@@ -38,7 +38,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
                     ) : (
                         <SmartInput
                             ref={ref}
-                            form={form}
+                            form={form as any}
                             name={name}
                             placeholder={placeholder}
                             disabled={disabled}

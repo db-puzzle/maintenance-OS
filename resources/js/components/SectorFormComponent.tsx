@@ -164,7 +164,7 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
                 <TextInput
                     form={{
                         data,
-                        setData,
+                        setData: setData as any,
                         errors,
                         clearErrors,
                     }}

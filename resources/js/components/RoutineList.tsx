@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Task } from '@/types/task';
+import { Routine as ImportedRoutine } from '@/types/routine';
 import { Link, router } from '@inertiajs/react';
 import axios from 'axios';
 import {
@@ -329,7 +330,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                             routine={routineData.id && routineData.trigger_type ? routineData as any : undefined}
                             isNew={true}
                             assetId={assetId}
-                            onSuccess={handleSheetSuccess}
+                            onSuccess={(routine) => handleSheetSuccess(routine as unknown as Routine)}
                             isOpen={isSheetOpen}
                             onOpenChange={handleSheetOpenChange}
                             userPermissions={userPermissions}
@@ -675,7 +676,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         routine={routineData.trigger_type ? routineData as any : undefined}
                         isNew={false}
                         assetId={assetId}
-                        onSuccess={handleSheetSuccess}
+                        onSuccess={(routine) => handleSheetSuccess(routine as unknown as Routine)}
                         isOpen={isSheetOpen}
                         onOpenChange={handleSheetOpenChange}
                         userPermissions={userPermissions}

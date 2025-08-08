@@ -238,7 +238,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                 return (
                     <div className="text-center">
                         <Badge variant={variants[value as string] || 'secondary'}>
-                            {labels[value as string] || value}
+                            {labels[value as string] || String(value)}
                         </Badge>
                     </div>
                 );

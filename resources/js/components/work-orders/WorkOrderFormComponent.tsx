@@ -373,7 +373,12 @@ export function WorkOrderFormComponent({
                     {/* Title - spans 3 columns */}
                     <div className="md:col-span-3">
                         <TextInput
-                            form={{ data, setData, errors, clearErrors }}
+                            form={{ 
+                                data: data as Record<string, string | number | boolean | File | null | undefined>, 
+                                setData: setData as any, 
+                                errors, 
+                                clearErrors 
+                            }}
                             name="title"
                             label="Título"
                             placeholder="Digite um título descritivo"

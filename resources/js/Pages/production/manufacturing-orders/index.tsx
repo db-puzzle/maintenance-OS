@@ -138,23 +138,23 @@ export default function ManufacturingOrders({
                     >
                         {value as React.ReactNode}
                     </Link>
-                    {order.parent_id && (
+                    {order.parent_id ? (
                         <Badge variant="outline" className="text-xs">
                             <GitBranch className="h-3 w-3 mr-1" />
                             Child
                         </Badge>
-                    )}
+                    ) : null}
                     {(order.child_orders_count as number) > 0 && (
                         <Badge variant="outline" className="text-xs">
                             <GitBranch className="h-3 w-3 mr-1" />
                             {order.child_orders_count as React.ReactNode}
                         </Badge>
                     )}
-                    {order.manufacturing_route && (
+                    {order.manufacturing_route ? (
                         <Badge variant="outline" className="text-xs">
                             <Workflow className="h-3 w-3" />
                         </Badge>
-                    )}
+                    ) : null}
                 </div>
             ),
         },
@@ -192,7 +192,7 @@ export default function ManufacturingOrders({
             width: 'w-[120px]',
             render: (value: unknown) => (
                 <Badge variant={getStatusBadgeVariant(value as string)}>
-                    {statuses[value as string] || value}
+                    {statuses[value as string] || String(value)}
                 </Badge>
             ),
         },

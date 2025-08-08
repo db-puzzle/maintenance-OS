@@ -11,25 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Textarea } from '@/components/ui/textarea';
 import { FileText, Save, X, Clock, Hand, Calendar, AlertTriangle, Lock, Info } from 'lucide-react';
 import StateButton from '@/components/StateButton';
-// Updated Routine interface to match the specifications
-interface Routine {
-    id?: number;
-    name: string;
-    trigger_type: 'runtime_hours' | 'calendar_days';
-    trigger_runtime_hours?: number;
-    trigger_calendar_days?: number;
-    execution_mode: 'automatic' | 'manual';
-    description?: string;
-    form_id?: number;
-    asset_id?: number;
-    advance_generation_days: number;
-    auto_approve_work_orders: boolean;
-    priority_score: number;
-    last_execution_runtime_hours?: number;
-    last_execution_completed_at?: string;
-    last_execution_form_version_id?: number;
-    [key: string]: unknown;
-}
+import { Routine } from '@/types/routine';
 interface RoutineForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;

@@ -23,7 +23,7 @@ import AppLayout from '@/layouts/app-layout';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
-import { WorkOrder } from '@/types/work-order';
+import { WorkOrder, WorkOrderStatus } from '@/types/work-order';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import React, { useState } from 'react';
@@ -195,7 +195,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                     quality_audit: 'Auditoria',
                     non_conformance: 'Não Conformidade',
                 };
-                return <div className="text-center">{categoryLabels[categoryCode as string] || categoryCode || '-'}</div>;
+                return <div className="text-center">{categoryLabels[categoryCode as string] || String(categoryCode) || '-'}</div>;
             },
         },
         {
@@ -230,7 +230,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             key: 'scheduled_start_date',
             label: 'Data Programada',
             headerAlign: 'center',
-            render: (value: unknown) => <div className="text-center">{value ? format(new Date(value), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</div>,
+            render: (value: unknown) => <div className="text-center">{value ? format(new Date(value as string), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</div>,
             sortable: true,
             width: 'w-[130px]',
         },

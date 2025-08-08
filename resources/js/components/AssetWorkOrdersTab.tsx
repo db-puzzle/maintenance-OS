@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { WorkOrderStatusBadge } from '@/components/work-orders/WorkOrderStatusBadge';
 import { WorkOrderPriorityIndicator } from '@/components/work-orders/WorkOrderPriorityIndicator';
 import { type ColumnConfig } from '@/types/shared';
+import { WorkOrderStatus } from '@/types/work-order';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, Search } from 'lucide-react';
