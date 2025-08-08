@@ -8,13 +8,10 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from '@/component
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { QrCode, Package, Users, Activity, Eye, BarChart3, TrendingUp } from 'lucide-react';
+import { QrCode, Package, Users, Activity, Eye, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
-import { router } from '@inertiajs/react';
-// Declare the global route function from Ziggy
-declare const route: (name: string, params?: Record<string, string | number>) => string;
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Home',

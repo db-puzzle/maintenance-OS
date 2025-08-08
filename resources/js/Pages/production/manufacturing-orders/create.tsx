@@ -1,7 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { useForm } from '@inertiajs/react';
-import { router } from '@inertiajs/react';
-import { Link } from '@inertiajs/react';
 import {
     Factory,
     Package,
@@ -10,13 +8,10 @@ import {
     Check,
     ChevronLeft,
     ChevronRight,
-    Info,
-    GitBranch,
-    Layers,
-    AlertCircle
+    Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +22,7 @@ import { Separator } from '@/components/ui/separator';
 import { ItemSelect } from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
 import AppLayout from '@/layouts/app-layout';
-import { Item, BillOfMaterial, RouteTemplate, ManufacturingOrder } from '@/types/production';
+import { Item, BillOfMaterial, RouteTemplate } from '@/types/production';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -38,7 +33,7 @@ interface Props {
     selectedBomId?: number;
 }
 
-interface FormData {
+interface OrderFormData {
     // Order type
     order_type: 'item' | 'bom';
 

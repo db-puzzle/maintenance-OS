@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { type ShiftForm } from '@/types/asset-hierarchy';
 import { useForm } from '@inertiajs/react';
-import { AlertCircle, AlertTriangle, Clock, Copy, Plus, Table, Trash2, ChevronsUpDown, Check } from 'lucide-react';
+import { AlertCircle, Clock, Copy, Plus, Table, Trash2, ChevronsUpDown, Check } from 'lucide-react';
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import ShiftCalendarView from '@/components/ShiftCalendarView';

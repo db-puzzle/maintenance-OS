@@ -26,8 +26,6 @@ import {
     BillOfMaterial,
     Item,
     ItemCategory,
-    BomItem,
-    BomVersion,
 } from '@/types/production';
 import { ColumnConfig } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
@@ -80,13 +78,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
         { key: 'published_at', label: 'Publicado em', sortable: true, render: (value) => new Date(value as string).toLocaleDateString('pt-BR') },
         { key: 'revision_notes', label: 'Notas de Revisão' },
         { key: 'is_current', label: 'Status', render: (value) => value ? <Badge>Atual</Badge> : <Badge variant="secondary">Histórica</Badge> },
-    ];
-
-    const itemMasterColumns: ColumnConfig[] = [
-        { key: 'item_number', label: 'Código', sortable: true },
-        { key: 'name', label: 'Descrição', sortable: true },
-        { key: 'category', label: 'Categoria' },
-        { key: 'status', label: 'Status', render: (value) => <Badge variant={(value as string) === 'active' ? 'default' : 'secondary'}>{value as string}</Badge> },
     ];
 
     const handleSubmit = (e: React.FormEvent) => {

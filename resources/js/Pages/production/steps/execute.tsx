@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
@@ -9,17 +9,16 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
-    Play, Pause, Check, X, Clock, MapPin, Package,
-    AlertCircle, Camera, ChevronLeft, ChevronRight,
-    FileText, Timer, CheckCircle
+    Play, Pause, Check, X, ChevronLeft, ChevronRight,
+    CheckCircle
 } from 'lucide-react';
 import { ManufacturingStep, ManufacturingStepExecution } from '@/types/production';
 import { User } from '@/types';
 import { Form, FormTask } from '@/types/work-order';
-import { cn } from '@/lib/utils';
+
 import { StepExecutionTimer } from '@/components/production/StepExecutionTimer';
 import { StepTypeBadge } from '@/components/production/StepTypeBadge';
 import { toast } from 'sonner';
@@ -108,17 +107,6 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
                 setShowHoldDialog(false);
                 toast.success('Etapa pausada');
                 router.get(route('production.routing.show', step.manufacturing_route_id));
-            },
-        });
-    };
-    const handleResume = () => {
-        if (!execution) return;
-        router.post(route('production.steps.resume', [step.id, execution.id]), {
-            notes: form.data.notes,
-        }, {
-            onSuccess: () => {
-                setState('in_progress');
-                toast.success('Etapa retomada');
             },
         });
     };

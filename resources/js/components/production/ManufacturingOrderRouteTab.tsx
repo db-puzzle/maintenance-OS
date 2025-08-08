@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import {
     Workflow,
     AlertCircle,
     Plus,
     FileText,
-    Sparkles,
+
     Clock,
     Users,
     ChevronRight
@@ -21,11 +21,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TextInput } from '@/components/TextInput';
-import { ItemSelect } from '@/components/ItemSelect';
-import { ManufacturingOrder, ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/production';
+import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { Form } from '@/types/work-order';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+
 import RouteBuilderCore from '@/components/production/RouteBuilderCore';
 interface Props {
     order: ManufacturingOrder;
@@ -75,7 +74,7 @@ export default function ManufacturingOrderRouteTab({
     };
     const initialViewMode = determineViewMode();
     const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
-    const [selectedTemplate, setSelectedTemplate] = useState<RouteTemplate | null>(null);
+
     const [showRouteDialog, setShowRouteDialog] = useState(false);
     // Reset view mode when order or conditions change
     useEffect(() => {

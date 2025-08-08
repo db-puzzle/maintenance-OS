@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Star, Trash2, Edit, GripVertical, Download } from 'lucide-react';
+import { Star, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {

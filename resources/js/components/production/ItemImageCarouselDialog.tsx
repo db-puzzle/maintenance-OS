@@ -16,8 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Maximize2, X, Image as ImageIcon, FileImage } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Download, Maximize2, Image as ImageIcon, FileImage } from 'lucide-react';
 import { ItemImage } from '@/types/production';
 interface ItemImageCarouselDialogProps {
     images: ItemImage[];
@@ -34,7 +33,6 @@ export function ItemImageCarouselDialog({
     itemName
 }: ItemImageCarouselDialogProps) {
     const [currentIndex, setCurrentIndex] = React.useState(startIndex);
-    const [isFullscreen, setIsFullscreen] = React.useState(false);
     const [carouselApi, setCarouselApi] = React.useState<any>(null);
     const dialogContentRef = React.useRef<HTMLDivElement>(null);
     React.useEffect(() => {

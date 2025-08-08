@@ -173,20 +173,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         return null;
     };
 
-    const updateItemsTree = (items: TreeBomItem[], id: string, updateFn: (item: TreeBomItem) => TreeBomItem): TreeBomItem[] => {
-        return items.map(item => {
-            if (item.id === id) {
-                return updateFn(item);
-            }
-            if (item.children && item.children.length > 0) {
-                return {
-                    ...item,
-                    children: updateItemsTree(item.children, id, updateFn)
-                };
-            }
-            return item;
-        });
-    };
+
 
     const removeItemFromTree = (items: TreeBomItem[], id: string): TreeBomItem[] => {
         return items.reduce<TreeBomItem[]>((acc, item) => {
@@ -588,7 +575,6 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
     // Render tree view based on type
     const renderTreeView = () => {
         if (type === 'bom') {
-            const bomProps = props as BomConfigurationProps;
             return (
                 <BomTreeView
                     items={bomItems}

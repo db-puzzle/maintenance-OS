@@ -48,7 +48,7 @@ interface Props {
     onClose?: () => void;
     onSuccess?: (formData: { published: boolean }) => void;
 }
-export default function InlineRoutineFormEditor({ routine, assetId, onClose, onSuccess }: Props) {
+export default function InlineRoutineFormEditor({ routine, onClose, onSuccess }: Props) {
     const [tasks, setTasks] = useState<Task[]>(
         (routine.form?.tasks || []).map((task) => ({
             ...task,
@@ -218,30 +218,6 @@ export default function InlineRoutineFormEditor({ routine, assetId, onClose, onS
                         description: 'Verifique os campos e tente novamente.',
                     });
                     setSaving(false);
-                },
-            },
-        );
-    };
-    const handlePublish = async () => {
-        setPublishing(true);
-        router.post(
-            route('maintenance.routines.forms.publish', {
-                routine: routine.id,
-            }),
-            {},
-            {
-                onSuccess: () => {
-                    toast.success('Formulário publicado com sucesso!');
-                    setHasDraftChanges(false);
-                    if (onSuccess) {
-                        onSuccess({ published: true });
-                    }
-                    // Reload the page to refresh the data
-                    router.reload();
-                },
-                onError: () => {
-                    toast.error('Erro ao publicar formulário');
-                    setPublishing(false);
                 },
             },
         );

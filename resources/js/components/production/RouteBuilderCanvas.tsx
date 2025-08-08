@@ -5,7 +5,7 @@ import { Plus, Grip } from 'lucide-react';
 import { ManufacturingStep } from '@/types/production';
 import { StepCard } from '@/components/production/StepCard';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+
 interface ExtendedManufacturingStep extends ManufacturingStep {
     isNew?: boolean;
 }
@@ -40,7 +40,6 @@ export default function RouteBuilderCanvas({
     onDragStart,
     draggedStep,
     onDraggedStepChange,
-    isPanelOpen,
     viewMode = false
 }: Props) {
     const canvasRef = useRef<HTMLDivElement>(null);
@@ -92,7 +91,7 @@ export default function RouteBuilderCanvas({
         onDraggedStepChange(null);
         setDragOverIndex(null);
     };
-    const handleCanvasClick = (e: React.MouseEvent) => {
+    const handleCanvasClick = () => {
         // Deselect step when clicking on canvas area
         // The stopPropagation() on interactive elements will prevent this from firing
         onStepSelect(null);

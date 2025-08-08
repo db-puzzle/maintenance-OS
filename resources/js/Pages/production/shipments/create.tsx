@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
-import { Link } from '@inertiajs/react';
 import { Package, MapPin, Truck, Camera, Check, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TextInput } from '@/components/TextInput';
@@ -83,7 +81,7 @@ export default function ShipmentCreate({ items }: Props) {
     const [shipmentItems, setShipmentItems] = useState<ShipmentItem[]>([]);
     const [photos, setPhotos] = useState<File[]>([]);
 
-    const { data, setData, errors, processing, post, clearErrors } = useForm<any>({
+    const { data, setData, errors, processing, clearErrors } = useForm<any>({
         items: [] as ShipmentItem[],
         destination_name: '',
         destination_address: '',

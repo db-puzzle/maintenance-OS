@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import TreeView, { TreeNode } from '@/components/shared/TreeView';
-import { BomItem, Item } from '@/types/production';
+import { Item } from '@/types/production';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 interface BomTreeNode extends TreeNode {
     id: string;

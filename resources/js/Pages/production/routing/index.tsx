@@ -5,7 +5,7 @@ import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
-import { Button } from '@/components/ui/button';
+
 import { ColumnConfig } from '@/types/shared';
 import { toast } from 'sonner';
 interface Props {

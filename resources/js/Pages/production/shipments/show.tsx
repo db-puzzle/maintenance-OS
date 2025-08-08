@@ -2,10 +2,9 @@ import React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Package, Truck, CheckCircle, XCircle, Clock, FileText, Camera } from 'lucide-react';
+import { Edit, Trash2, Package, Truck, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 interface ShipmentItem {

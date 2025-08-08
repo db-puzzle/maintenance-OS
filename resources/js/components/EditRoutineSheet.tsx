@@ -5,11 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Save, X, Clock, Hand, Calendar, AlertTriangle, Lock, Info } from 'lucide-react';
+import { FileText, Save, X, Clock, Hand, Calendar, Lock } from 'lucide-react';
 import StateButton from '@/components/StateButton';
 import { Routine } from '@/types/routine';
 interface RoutineForm {
@@ -40,13 +39,7 @@ interface EditRoutineSheetProps {
     // User permissions
     userPermissions?: string[];
 }
-const PRIORITY_OPTIONS = [
-    { value: 'emergency', label: 'Emergência', score: 90 },
-    { value: 'urgent', label: 'Urgente', score: 75 },
-    { value: 'high', label: 'Alta', score: 60 },
-    { value: 'normal', label: 'Normal', score: 50 },
-    { value: 'low', label: 'Baixa', score: 25 },
-];
+
 const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
     isOpen,
     onOpenChange,
