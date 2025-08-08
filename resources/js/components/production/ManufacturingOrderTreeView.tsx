@@ -41,8 +41,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import RouteTemplateSelectionDialog from '@/components/production/RouteTemplateSelectionDialog';
 import { toast } from 'sonner';
-interface ManufacturingOrderTreeNode extends ManufacturingOrder {
+export interface ManufacturingOrderTreeNode extends ManufacturingOrder {
+    id: number;
     children?: ManufacturingOrderTreeNode[];
+    [key: string]: unknown;
 }
 interface ManufacturingOrderTreeViewProps {
     orders: ManufacturingOrderTreeNode[];
@@ -424,7 +426,7 @@ export function ManufacturingOrderTreeView({
             <div className="w-full">
                 {headerColumns || defaultHeaderColumns}
                 <TreeView<ManufacturingOrderTreeNode>
-                    data={orders as TreeNode[] as ManufacturingOrderTreeNode[]}
+                    data={orders}
                     renderNode={renderOrderNode}
                     emptyState={emptyState || defaultEmptyState}
                     defaultExpanded={true}
@@ -437,9 +439,10 @@ export function ManufacturingOrderTreeView({
                     open={templateDialogOpen}
                     onOpenChange={setTemplateDialogOpen}
                     templates={routeTemplates}
-                    orderNumber={selectedOrderForRoute.order_number}
-                    itemCategoryId={selectedOrderForRoute.item?.item_category_id}
-                    onSelectTemplate={handleTemplateSelect}
+                    selectedTemplate={null}
+                    onSelectTemplate={(template: RouteTemplate) => handleTemplateSelect(template.id)}
+                    onUseTemplate={() => {}}
+                    itemName={selectedOrderForRoute.item?.name}
                 />
             )}
             {/* Release Confirmation Dialog */}

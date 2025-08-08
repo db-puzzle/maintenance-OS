@@ -117,11 +117,11 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         },
     ];
     // Estado para gerenciar as rotinas
-    const [routines, setRoutines] = useState<Routine[]>((asset?.routines as Routine[]) || []);
+    const [routines, setRoutines] = useState<Routine[]>((asset?.routines as unknown as Routine[]) || []);
     // Update routines when asset prop changes
     useEffect(() => {
         if (asset?.routines) {
-            setRoutines(asset.routines as Routine[]);
+            setRoutines(asset.routines as unknown as Routine[]);
         }
     }, [asset?.routines]);
     // Estado para controlar o modo comprimido

@@ -147,17 +147,23 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
         // Dados da rotina ou dados vazios para nova rotina
         const routineData: Routine = routineWithForm ||
             routine || {
-            name: '',
-            trigger_type: 'runtime_hours' as const,
-            trigger_runtime_hours: 0,
-            execution_mode: 'manual' as const,
-            status: 'Active' as const,
-            description: '',
-            form: undefined,
-            advance_generation_days: 0,
-            auto_approve_work_orders: false,
-            priority_score: 50,
-        };
+                id: 0,
+                asset_id: 0,
+                name: '',
+                trigger_type: 'runtime_hours' as const,
+                trigger_runtime_hours: 0,
+                execution_mode: 'manual' as const,
+                status: 'Active' as const,
+                description: '',
+                form_id: 0,
+                form: undefined,
+                advance_generation_days: 0,
+                auto_approve_work_orders: false,
+                priority_score: 50,
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            } as Routine;
         // Get form state for conditional rendering
         const formState: 'unpublished' | 'draft' | 'published' | null = routineData.form
             ? getFormState({
@@ -165,7 +171,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                 current_version_id: routineData.form.current_version_id ?? null,
                 tasks: routineData.form.tasks.map(task => ({
                     ...task,
-                    id: parseInt(task.id),
+                    id: parseInt(task.id.toString()),
                     name: task.description,
                     type: task.type as string
                 }))
@@ -364,7 +370,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                         current_version_id: routineData.form.current_version_id ?? null,
                                         tasks: routineData.form.tasks.map(task => ({
                                             ...task,
-                                            id: parseInt(task.id) || 0,
+                                            id: parseInt(task.id.toString()) || 0,
                                             name: task.description,
                                             type: task.type
                                         }))
@@ -385,16 +391,16 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         <div className="mt-1 flex items-center gap-x-2 text-xs text-gray-500">
                             <p className="flex items-center gap-1 whitespace-nowrap">
                                 <Clock className="h-3 w-3" />
-                                {formatTriggerHours(routineData.trigger_runtime_hours || routineData.trigger_hours || 0).hoursText}
+                                {formatTriggerHours(routineData.trigger_runtime_hours || 0).hoursText}
                             </p>
-                            {formatTriggerHours(routineData.trigger_runtime_hours || routineData.trigger_hours || 0).workDaysText && (
+                            {formatTriggerHours(routineData.trigger_runtime_hours || 0).workDaysText && (
                                 <>
                                     <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
                                         <circle r={1} cx={1} cy={1} />
                                     </svg>
                                     <p className="flex items-center gap-1 whitespace-nowrap">
                                         <CalendarRange className="h-3 w-3" />
-                                        {formatTriggerHours(routineData.trigger_runtime_hours || routineData.trigger_hours || 0).workDaysText}
+                                        {formatTriggerHours(routineData.trigger_runtime_hours || 0).workDaysText}
                                     </p>
                                 </>
                             )}
@@ -449,7 +455,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                         current_version_id: routineData.form.current_version_id ?? null,
                                         tasks: routineData.form.tasks.map(task => ({
                                             ...task,
-                                            id: parseInt(task.id) || 0,
+                                            id: parseInt(task.id.toString()) || 0,
                                             name: task.description,
                                             type: task.type
                                         }))

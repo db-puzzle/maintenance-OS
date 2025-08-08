@@ -108,15 +108,15 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             setResponse({ ...response, [name]: value });
         },
         errors: formErrors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => {
+        clearErrors: ((...fields: string[]) => {
             const newErrors = { ...formErrors };
             fields.forEach(field => {
                 delete newErrors[field as keyof MeasurementFormData];
             });
             setFormErrors(newErrors);
-        },
-        validateInput,
-        processBlur,
+        }) as (...fields: string[]) => void,
+        validateInput: validateInput as ((value: string) => boolean) | undefined,
+        processBlur: processBlur as ((name: string, value: string) => void) | undefined,
     };
     const handleUpdate = (target: number | undefined, min: number | undefined, max: number | undefined) => {
         onUpdate?.({

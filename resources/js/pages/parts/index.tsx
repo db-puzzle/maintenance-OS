@@ -219,7 +219,7 @@ export default function PartsIndex({ parts: initialParts, filters }: Props) {
             sortable: true,
             width: 'w-[200px]',
             render: (value, row) => {
-                const part = row as unknown;
+                const part = row as { manufacturer?: { name?: string } };
                 return part.manufacturer?.name || '-';
             },
         },

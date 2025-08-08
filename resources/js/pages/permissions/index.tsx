@@ -19,7 +19,7 @@ interface Permission {
     created_at: string;
     updated_at: string;
 }
-interface Role {
+interface RoleWithPermissions {
     id: number;
     name: string;
     is_system: boolean;
@@ -37,7 +37,7 @@ interface Props {
         from: number | null;
         to: number | null;
     };
-    roles: Role[];
+    roles: RoleWithPermissions[];
     resources: string[];
     actions: string[];
     scopes: string[];
@@ -74,7 +74,7 @@ export default function PermissionsIndex({ permissions, roles }: Props) {
                         <TabsTrigger value="matrix">Permission Matrix</TabsTrigger>
                     </TabsList>
                     <TabsContent value="roles">
-                        <RoleManagement roles={roles as unknown} />
+                        <RoleManagement roles={roles as any} />
                     </TabsContent>
                     <TabsContent value="matrix">
                         <PermissionMatrix permissions={permissions.data} roles={roles} />

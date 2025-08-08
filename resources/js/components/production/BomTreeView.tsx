@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import TreeView, { TreeNode } from '@/components/shared/TreeView';
 import { Item } from '@/types/production';
 import { ItemImagePreview } from '@/components/production/ItemImagePreview';
-interface BomTreeNode extends TreeNode {
+export interface BomTreeNode extends TreeNode {
     id: string;
     item_id: number;
     item: Item;

@@ -295,8 +295,8 @@ export function WorkOrderScheduleTab({
                                 id: team.id,
                                 name: team.name,
                             }))}
-                            value={data.assigned_team_id?.toString() || ''}
-                            onValueChange={(value) => setData('assigned_team_id', value ? parseInt(value) : null)}
+                            value={data.assigned_team_id || ''}
+                            onValueChange={(value) => setData('assigned_team_id', value || '')}
                             placeholder="Selecione uma equipe"
                             view={isViewMode}
                             canClear
@@ -310,8 +310,8 @@ export function WorkOrderScheduleTab({
                                 id: tech.id,
                                 name: tech.name,
                             }))}
-                            value={data.assigned_technician_id?.toString() || ''}
-                            onValueChange={(value) => setData('assigned_technician_id', value ? parseInt(value) : null)}
+                            value={data.assigned_technician_id || ''}
+                            onValueChange={(value) => setData('assigned_technician_id', value || '')}
                             placeholder="Selecione um técnico"
                             view={isViewMode}
                             canClear

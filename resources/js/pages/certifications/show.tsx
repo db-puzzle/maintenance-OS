@@ -17,7 +17,7 @@ interface CertificationUser {
     certificate_number: string | null;
     is_expired: boolean;
 }
-interface Certification {
+interface CertificationWithUsers {
     id: number;
     name: string;
     description: string | null;
@@ -29,7 +29,7 @@ interface Certification {
     users: CertificationUser[];
 }
 interface PageProps {
-    certification: Certification;
+    certification: CertificationWithUsers;
     can: {
         update: boolean;
         delete: boolean;
@@ -158,7 +158,7 @@ export default function CertificationShow({ certification, can, activeTab = 'inf
             content: (
                 <div className="py-8">
                     <CertificationFormComponent
-                        certification={certification}
+                        certification={certification as any}
                         initialMode="view"
                         onSuccess={handleEditSuccess}
                         canUpdate={can.update}

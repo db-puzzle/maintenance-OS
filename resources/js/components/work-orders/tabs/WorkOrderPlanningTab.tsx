@@ -212,7 +212,7 @@ export function WorkOrderPlanningTab({
             .filter(Boolean) as Certification[];
     });
 
-    const { data, setData, post, put, processing, errors, clearErrors } = useForm({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm<any>({
         estimated_hours: workOrder.estimated_hours?.toString() || '',
         labor_cost_per_hour: '150.00',
         estimated_labor_cost: workOrder.estimated_labor_cost || 0,
@@ -271,13 +271,10 @@ export function WorkOrderPlanningTab({
         const partsCost = calculatePartsCost();
         const totalCost = laborCost + partsCost;
 
-        setData(prev => ({
-            ...prev,
-            estimated_labor_cost: laborCost,
-            estimated_parts_cost: partsCost,
-            estimated_total_cost: totalCost,
-            parts: plannedParts,
-        }));
+        setData('estimated_labor_cost', laborCost);
+        setData('estimated_parts_cost', partsCost);
+        setData('estimated_total_cost', totalCost);
+        setData('parts', plannedParts as any);
     }, [data.estimated_hours, data.labor_cost_per_hour, data.number_of_people, plannedParts, calculateLaborCost, calculatePartsCost, setData]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -323,7 +320,7 @@ export function WorkOrderPlanningTab({
 
     const handleRemoveOtherReq = (index: number) => {
         const currentReqs = Array.isArray(data.other_requirements) ? data.other_requirements : [];
-        setData('other_requirements', currentReqs.filter((_: string, i: number) => i !== index));
+        setData('other_requirements', currentReqs.filter((_: any, i: number) => i !== index));
     };
 
     // Skills handlers
@@ -633,7 +630,7 @@ export function WorkOrderPlanningTab({
                         <div className="space-y-2">
                             <Label>Custo de Mão de Obra</Label>
                             <div className="rounded-md border bg-muted/20 p-2 text-sm font-medium">
-                                {formatCurrency(data.estimated_labor_cost)}
+                                {formatCurrency(Number(data.estimated_labor_cost) || 0)}
                             </div>
                         </div>
 
@@ -647,7 +644,7 @@ export function WorkOrderPlanningTab({
                                 <div className="flex items-center space-x-2 pt-2">
                                     <Switch
                                         id="downtime_required"
-                                        checked={data.downtime_required}
+                                        checked={Boolean(data.downtime_required)}
                                         onCheckedChange={(checked) => setData('downtime_required', checked as boolean)}
                                     />
                                     <Label htmlFor="downtime_required" className="text-sm cursor-pointer">
@@ -726,7 +723,7 @@ export function WorkOrderPlanningTab({
                         <div className="space-y-4">
                             <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
                                 <EntityDataTable
-                                    data={paginatedParts as unknown[]}
+                                    data={paginatedParts as unknown as Record<string, unknown>[]}
                                     columns={partsColumns}
                                     actions={partsActions}
                                     emptyMessage="Nenhuma peça adicionada"
@@ -752,7 +749,7 @@ export function WorkOrderPlanningTab({
 
                             <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                                 <span className="font-medium">Custo Total de Peças:</span>
-                                <span className="text-lg font-bold">{formatCurrency(data.estimated_parts_cost)}</span>
+                                <span className="text-lg font-bold">{formatCurrency(Number(data.estimated_parts_cost) || 0)}</span>
                             </div>
                         </div>
                     ) : (
@@ -794,10 +791,10 @@ export function WorkOrderPlanningTab({
                     {Array.isArray(data.other_requirements) && data.other_requirements.length > 0 ? (
                         <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
                             <EntityDataTable
-                                data={data.other_requirements.map((req: string, index: number) => ({
+                                data={(data.other_requirements as string[]).map((req: string, index: number) => ({
                                     id: index,
                                     requirement: req,
-                                })) as unknown[]}
+                                })) as Record<string, unknown>[]}
                                 columns={[
                                     {
                                         key: 'requirement',
@@ -844,15 +841,15 @@ export function WorkOrderPlanningTab({
                     <div className="border rounded-lg p-4 space-y-2">
                         <div className="flex justify-between">
                             <span>Mão de Obra:</span>
-                            <span>{formatCurrency(data.estimated_labor_cost)}</span>
+                            <span>{formatCurrency(Number(data.estimated_labor_cost) || 0)}</span>
                         </div>
                         <div className="flex justify-between">
                             <span>Peças:</span>
-                            <span>{formatCurrency(data.estimated_parts_cost)}</span>
+                            <span>{formatCurrency(Number(data.estimated_parts_cost) || 0)}</span>
                         </div>
                         <div className="border-t pt-2 flex justify-between text-lg font-bold">
                             <span>Total Estimado:</span>
-                            <span>{formatCurrency(data.estimated_total_cost)}</span>
+                            <span>{formatCurrency(Number(data.estimated_total_cost) || 0)}</span>
                         </div>
                     </div>
                 </div>

@@ -250,7 +250,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 width: 'w-[200px]',
                                 render: (value, row) => {
                                      
-                                    const sector = row as unknown;
+                                    const sector = row as { area?: { name?: string } };
                                     return sector.area?.name || '-';
                                 },
                             },
@@ -299,7 +299,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 sortable: true,
                                 width: 'w-[300px]',
                                  
-                                render: (value, row) => <div className="font-medium">{(row as unknown).tag}</div>,
+                                render: (value, row) => <div className="font-medium">{(row as { tag?: string }).tag}</div>,
                             },
                             {
                                 key: 'asset_type_name',
@@ -307,7 +307,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 sortable: true,
                                 width: 'w-[200px]',
                                  
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown).asset_type?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as { asset_type?: { name?: string } }).asset_type?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'location',
@@ -316,7 +316,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 width: 'w-[250px]',
                                 render: (value, row) => {
                                      
-                                    const item = row as unknown;
+                                    const item = row as { area_name?: string; sector_name?: string };
                                     return (
                                         <span className="text-muted-foreground text-sm">
                                             {item.area_name}
