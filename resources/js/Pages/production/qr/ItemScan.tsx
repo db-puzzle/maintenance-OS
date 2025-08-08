@@ -1,13 +1,10 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
-import { usePage } from '@inertiajs/react';
 import {
     Package,
     Factory,
     ChevronRight,
     Calendar,
-    Hash,
-    Layers,
     Eye,
     Plus
 } from 'lucide-react';

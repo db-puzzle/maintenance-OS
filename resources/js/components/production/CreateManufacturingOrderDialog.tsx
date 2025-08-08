@@ -9,24 +9,22 @@ import {
     ChevronLeft,
     ChevronRight,
     Info,
-    GitBranch,
-    Layers,
-    AlertCircle,
+
     CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { ItemSelect } from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
 import StateButton from '@/components/StateButton';
-import { Item, BillOfMaterial, RouteTemplate, ManufacturingOrder, BomItem } from '@/types/production';
+import { Item, BillOfMaterial, RouteTemplate, BomItem } from '@/types/production';
 import { cn } from '@/lib/utils';
 import {
     Dialog,
@@ -37,32 +35,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-interface FormData {
-    // Order type
-    order_type: 'item' | 'bom';
-
-    // Item/BOM selection
-    item_id: string;
-    bill_of_material_id: string;
-
-    // Order details
-    quantity: number;
-    unit_of_measure: string;
-    priority: number;
-    requested_date: string;
-
-    // Source
-    source_type: string;
-    source_reference: string;
-
-    // Parent-child options
-    auto_complete_on_children: boolean;
-
-    // Route configuration
-    route_creation_mode: 'manual' | 'template' | 'auto';
-    route_template_id: string;
-}
 
 interface Props {
     open: boolean;

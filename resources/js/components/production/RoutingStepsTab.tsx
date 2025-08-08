@@ -1,38 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import {
     Workflow,
     AlertCircle,
     Plus,
     FileText,
-    Sparkles,
     Clock,
     Users,
-    ChevronRight,
-    GitBranch
+    ChevronRight
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import EmptyCard from '@/components/ui/empty-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TextInput } from '@/components/TextInput';
-import { ItemSelect } from '@/components/ItemSelect';
 import { ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/production';
 import { Form } from '@/types/work-order';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+
 import RouteBuilderCore from '@/components/production/RouteBuilderCore';
 interface Props {
     routing: ManufacturingRoute;
     steps: ManufacturingStep[];
     canManage: boolean;
-    canExecute: boolean;
+
     routingId: number;
     templates?: RouteTemplate[];
     workCells?: WorkCell[];
@@ -55,7 +51,6 @@ export default function RoutingStepsTab({
     routing,
     steps,
     canManage,
-    canExecute,
     routingId,
     templates = [],
     workCells = [],

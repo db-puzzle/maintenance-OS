@@ -11,7 +11,7 @@ import { ColumnVisibility } from '@/components/data-table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Factory, Play, Pause, CheckCircle, XCircle, Plus } from 'lucide-react';
+import { Calendar, Clock, Factory, Play, Pause, CheckCircle, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ColumnConfig, PaginationMeta } from '@/types/shared';

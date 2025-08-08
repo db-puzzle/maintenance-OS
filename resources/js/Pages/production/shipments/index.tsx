@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
-import { Button } from '@/components/ui/button';
-import { Plus, Package, Truck, CheckCircle, XCircle, Clock, Eye, Edit, Trash2 } from 'lucide-react';
+import { Package, Truck, CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
@@ -69,7 +68,6 @@ const statusConfig = {
 export default function ShipmentsIndex({ shipments, filters, statuses, shipmentTypes, can }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteShipment, setDeleteShipment] = useState<Shipment | null>(null);
-    const [loading, setLoading] = useState(false);
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.shipments.index'), { ...filters, search: value }, {

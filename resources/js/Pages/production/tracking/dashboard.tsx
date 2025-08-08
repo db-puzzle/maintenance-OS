@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { router } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
-import { PlayCircle, CheckCircle, AlertCircle, TrendingUp, QrCode, Activity, Settings, Users } from 'lucide-react';
+import { PlayCircle, CheckCircle, AlertCircle, TrendingUp, QrCode, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

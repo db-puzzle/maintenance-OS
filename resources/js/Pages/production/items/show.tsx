@@ -111,7 +111,7 @@ export default function ItemShow({
     isCreating = false
 }: Props) {
     // Get shared data from page props
-    const page = usePage<{
+    usePage<{
         flash?: {
             success?: string;
             created_category_id?: number;

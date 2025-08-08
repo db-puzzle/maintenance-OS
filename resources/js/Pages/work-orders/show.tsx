@@ -3,8 +3,6 @@ import { Head, router, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import {
-    WorkOrderStatusBadge,
-    WorkOrderPriorityIndicator,
     WorkOrderStatusProgress
 } from '@/components/work-orders';
 import {
@@ -17,26 +15,18 @@ import {
     WorkOrderFailureAnalysisTab,
     WorkOrderGeneralTab
 } from '@/components/work-orders/tabs';
-import EmptyCard from '@/components/ui/empty-card';
+
 import { type BreadcrumbItem } from '@/types';
 import {
-    Edit,
     Play,
     Calendar,
     Clock,
-    User,
     Package,
     FileText,
-    AlertCircle,
     CheckCircle,
-    XCircle,
-    Pause,
-    Settings,
     Activity,
     Wrench
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 interface Props {
     workOrder?: any; // Using any for now to avoid complex type definitions
@@ -72,8 +62,7 @@ export default function ShowWorkOrder({
     canEdit,
     canApprove,
     canPlan,
-    canExecute,
-    canValidate,
+
     approvalThreshold,
     technicians = [],
     teams = [],
@@ -94,7 +83,7 @@ export default function ShowWorkOrder({
     const [activeTab, setActiveTab] = useState('details');
     useEffect(() => {
         // Add error event listener to catch React errors
-        const handleError = (event: ErrorEvent) => {
+        const handleError = () => {
             // Error handling without logging
         };
         window.addEventListener('error', handleError);
@@ -102,16 +91,7 @@ export default function ShowWorkOrder({
             window.removeEventListener('error', handleError);
         };
     }, [workOrder?.id, workOrder?.status, isCreating]);
-    const handleStatusAction = (action: string) => {
-        router.post(route(`${discipline}.work-orders.${action}`, workOrder.id), {}, {
-            onSuccess: () => {
-                toast.success(`Ordem de serviço ${action === 'approve' ? 'aprovada' : 'atualizada'} com sucesso!`);
-            },
-            onError: () => {
-                toast.error(`Erro ao ${action === 'approve' ? 'aprovar' : 'atualizar'} ordem de serviço.`);
-            },
-        });
-    };
+
     const handleWorkOrderCreated = () => {
         // This will be called after successful work order creation
         // The WorkOrderFormComponent will handle the redirect
@@ -131,21 +111,7 @@ export default function ShowWorkOrder({
             href: '#',
         },
     ], [discipline, workOrder?.work_order_number, isCreating]);
-    // Helper function to get tab label by ID
-    const getTabLabelById = (tabId: string): string => {
-        const tabMapping: Record<string, string> = {
-            'details': 'Informações Gerais',
-            'status': 'Status',
-            'approval': 'Aprovação',
-            'planning': 'Planejamento',
-            'schedule': 'Agendamento',
-            'execution': 'Execução',
-            'analysis': 'Análise de Falha',
-            'history': 'Histórico',
-            'parts': 'Peças'
-        };
-        return tabMapping[tabId] || tabId;
-    };
+
     // Define tabs
     const tabs: any[] = [];
     if (isCreating) {

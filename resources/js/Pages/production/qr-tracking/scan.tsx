@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { Card } from '@/components/ui/card';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,7 +35,7 @@ export default function QrTrackingScan({ scan_modes }: Props) {
             }
             setScanMode('camera');
             setError(null);
-        } catch (err) {
+        } catch {
             setError('Unable to access camera. Please check permissions.');
         }
     };

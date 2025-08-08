@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import TreeView, { TreeNode } from '@/components/shared/TreeView';
+import TreeView from '@/components/shared/TreeView';
 import { ManufacturingOrder, RouteTemplate } from '@/types/production';
 import {
     Tooltip,
@@ -188,7 +188,7 @@ export function ManufacturingOrderTreeView({
             <div className="col-span-1 text-center">Actions</div>
         </div>
     );
-    const renderOrderNode = (node: ManufacturingOrderTreeNode, isExpanded: boolean, toggleExpand: () => void) => {
+    const renderOrderNode = (node: ManufacturingOrderTreeNode) => {
         // Check if this specific node can have routes managed
         const canManageNodeRoute = canManageRoutes && ['draft', 'planned'].includes(node.status);
         return (

@@ -1,14 +1,11 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
-import { usePage } from '@inertiajs/react';
 import {
     Factory,
     Play,
     CheckCircle,
-    Calendar,
     Package,
     Hash,
-    AlertCircle,
     Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,7 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 interface Item {
     id: number;
     item_number: string;

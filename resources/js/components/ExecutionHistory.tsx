@@ -71,7 +71,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
         direction: 'desc' as 'asc' | 'desc',
         per_page: 10,
     });
-    const { addExport, updateExport } = useExportManager();
+    const { } = useExportManager();
     // Detect when the parent Histórico tab becomes visible
     useEffect(() => {
         const currentElement = containerRef.current;
@@ -196,7 +196,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleString('pt-BR');
     };
-    const handleExportSingle = async (_executionId: number) => {
+    const handleExportSingle = async () => {
         // For now, disable export functionality until work order export is implemented
         toast.info('Exportação de ordens de serviço será implementada em breve');
         return;

@@ -74,14 +74,6 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const submitData = {
-            name: data.name,
-            description: data.description,
-            issuing_organization: data.issuing_organization,
-            validity_period_days: data.validity_period_days === '0' ? null : parseInt(data.validity_period_days),
-            active: data.active,
-        };
-
         if (certification) {
             put(route('certifications.update', certification.id), {
                 preserveScroll: true,

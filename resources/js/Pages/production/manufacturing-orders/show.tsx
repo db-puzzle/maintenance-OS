@@ -4,19 +4,13 @@ import { router, usePage } from '@inertiajs/react';
 import {
     Package,
     Calendar,
-    Factory,
     GitBranch,
     AlertCircle,
     CheckCircle,
     Clock,
-    Edit,
     Play,
     XCircle,
     FileText,
-    Info,
-    TrendingUp,
-    Box,
-    Timer,
     QrCode
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -78,7 +72,6 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
 export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, canManageRoutes = false, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
     const { props } = usePage();
     const flash = props.flash as any;
-    const auth = props.auth as any;
     const [generatingQr, setGeneratingQr] = useState(false);
     // Check URL params - passed from backend
     const openRouteBuilderParam = props.openRouteBuilder || null;
@@ -481,9 +474,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             </Badge>
         </>
     );
-    // Determine if we should show the edit button
-    const showEditButton = order.status === 'draft';
-    const editRoute = route('production.orders.edit', order.id);
     // Check if order has a route
     const hasRoute = (order as any).has_route || (order.manufacturing_route && order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0);
     const shouldShowRelease = ['draft', 'planned'].includes(order.status);

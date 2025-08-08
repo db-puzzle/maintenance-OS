@@ -39,14 +39,7 @@ interface TaskEditorCardProps {
     /** Callback para atualizar a tarefa com uma operação */
     updateTask: (operation: (task: Task) => Task) => void;
 }
-interface TaskForm {
-    description: string;
-    codeReaderType: 'qr_code' | 'barcode' | undefined;
-    codeReaderInstructions: string;
-    fileUploadInstructions: string;
-    options: NonNullable<Task['options']>;
-    [key: string]: string | number | boolean | File | null | NonNullable<Task['options']> | undefined;
-}
+
 export default function TaskEditorCard({
     initialTask,
     task: { type: taskType = 'question', measurement, options = [], isRequired },

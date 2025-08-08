@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Task } from '@/types/task';
-import { Routine as ImportedRoutine } from '@/types/routine';
+
 import { Link, router } from '@inertiajs/react';
 import axios from 'axios';
 import {

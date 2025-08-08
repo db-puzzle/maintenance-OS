@@ -91,7 +91,6 @@ interface AssetRoutinesTabProps {
 export default function AssetRoutinesTab({
     assetId,
     routines: initialRoutines,
-    selectedShift,
     newRoutineId,
     userPermissions = [],
     isCompressed = false
@@ -210,50 +209,6 @@ export default function AssetRoutinesTab({
         // Caso contrário, manter a ordem original
         return 0;
     });
-
-    // Helper function to calculate shift work hours per week
-    const calculateShiftHoursPerWeek = (shift: Shift | null | undefined): number => {
-        if (!shift?.schedules) return 0;
-
-        let totalMinutes = 0;
-
-        shift.schedules.forEach((schedule) => {
-            schedule.shifts.forEach((shiftTime) => {
-                if (shiftTime.active) {
-                    const [startHours, startMinutes] = shiftTime.start_time.split(':').map(Number);
-                    const [endHours, endMinutes] = shiftTime.end_time.split(':').map(Number);
-
-                    const startTotalMinutes = startHours * 60 + startMinutes;
-                    let endTotalMinutes = endHours * 60 + endMinutes;
-
-                    // Handle shifts that cross midnight
-                    if (endTotalMinutes < startTotalMinutes) {
-                        endTotalMinutes += 24 * 60;
-                    }
-
-                    const shiftDuration = endTotalMinutes - startTotalMinutes;
-                    totalMinutes += shiftDuration;
-
-                    // Subtract break time
-                    shiftTime.breaks.forEach((breakTime) => {
-                        const [breakStartHours, breakStartMinutes] = breakTime.start_time.split(':').map(Number);
-                        const [breakEndHours, breakEndMinutes] = breakTime.end_time.split(':').map(Number);
-
-                        const breakStartTotalMinutes = breakStartHours * 60 + breakStartMinutes;
-                        let breakEndTotalMinutes = breakEndHours * 60 + breakEndMinutes;
-
-                        if (breakEndTotalMinutes < breakStartTotalMinutes) {
-                            breakEndTotalMinutes += 24 * 60;
-                        }
-
-                        totalMinutes -= breakEndTotalMinutes - breakStartTotalMinutes;
-                    });
-                }
-            });
-        });
-
-        return totalMinutes / 60; // Return hours
-    };
 
 
 
