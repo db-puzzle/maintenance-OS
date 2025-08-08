@@ -19,7 +19,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
     ({ form, name, label, placeholder, required = false, disabled = false, view = false, onBlur, validateInput }, ref) => {
         const value = form.data?.[name];
         const hasValue = value !== null && value !== undefined && value !== '';
-        
+
         return (
             <div className="grid gap-2">
                 <Label htmlFor={name}>
@@ -52,8 +52,4 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
 
 TextInput.displayName = 'TextInput';
 
-<<<<<<< Current (Your changes)
->>>>>>> Incoming (Background Agent changes)
-=======
->>>>>>> Incoming (Background Agent changes)
 export { TextInput };
