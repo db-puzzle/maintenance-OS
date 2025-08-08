@@ -343,10 +343,11 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data as unknown as Array<Record<string, unknown>>}
                         columns={columns}
                         loading={false}
-                        onRowClick={(workOrder) => router.visit(route(`${discipline}.work-orders.show`, { id: (workOrder as WorkOrder).id }))}
+                        emptyMessage="Nenhuma ordem de serviço encontrada."
+                        onRowClick={(workOrder) => router.visit(route(`${discipline}.work-orders.show`, { id: (workOrder as unknown as WorkOrder).id }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
                     />

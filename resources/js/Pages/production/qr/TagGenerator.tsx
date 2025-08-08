@@ -55,7 +55,11 @@ export default function TagGenerator({ templates }: Props) {
                 toast.success('Etiqueta QR gerada com sucesso!');
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta');
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta');
+            } else {
+                toast.error('Erro ao gerar etiqueta');
+            }
         } finally {
             setGenerating(false);
         }
@@ -82,7 +86,11 @@ export default function TagGenerator({ templates }: Props) {
                 }
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Erro ao gerar etiquetas em lote');
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data?.message || 'Erro ao gerar etiquetas em lote');
+            } else {
+                toast.error('Erro ao gerar etiquetas em lote');
+            }
         } finally {
             setGenerating(false);
         }

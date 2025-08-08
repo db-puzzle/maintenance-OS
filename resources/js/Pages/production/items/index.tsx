@@ -16,6 +16,8 @@ import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
 import { Item, ItemCategory, ItemImage, BillOfMaterial } from '@/types/production';
 import { Link } from '@inertiajs/react';
+import { toast } from 'sonner';
+
 interface Props {
     items: {
         data: Item[];
@@ -54,6 +56,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
     const [carouselItem, setCarouselItem] = useState<Item | null>(null);
     const [carouselOpen, setCarouselOpen] = useState(false);
     const [loadingImages, setLoadingImages] = useState(false);
+    const [deletingItem, setDeletingItem] = useState<number | null>(null);
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.items.index'), { search: value }, {
@@ -85,20 +88,49 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
     };
     const handleDelete = async () => {
         if (!deleteItem) return;
+
+        setDeletingItem(deleteItem.id);
+        
         try {
             await router.delete(route('production.items.destroy', deleteItem.id), {
                 preserveScroll: true,
                 onSuccess: () => {
                     setDeleteItem(null);
+                    setDeletingItem(null);
                 },
                 onError: () => {
                     console.error('Failed to delete item');
+                    setDeletingItem(null);
                 }
             });
         } catch (error) {
             console.error('Delete error:', error);
+            setDeletingItem(null);
         }
     };
+
+    const handleDuplicate = (item: Item) => {
+        router.post(route('production.items.duplicate', item.id), {}, {
+            preserveScroll: true
+        });
+    };
+
+    const handleGenerateQr = async (item: Item) => {
+        try {
+            const response = await axios.post(route('production.qr-tags.item', item.id));
+            if (response.data.success && response.data.pdf_url) {
+                window.open(response.data.pdf_url, '_blank');
+                toast.success('Etiqueta QR gerada com sucesso!');
+            }
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
+            } else {
+                toast.error('Erro ao gerar etiqueta QR');
+            }
+        }
+    };
+
     const handleEditSuccess = () => {
         setEditItem(null);
         router.reload({ only: ['items'] });
@@ -315,34 +347,25 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as Array<Record<string, unknown>>}
+                        data={data as unknown as Array<Record<string, unknown>>}
                         columns={columns}
                         loading={loading}
                         emptyMessage="Nenhum item encontrado."
-                        onRowClick={(item) => router.visit(route('production.items.show', item.id))}
+                        onRowClick={(item) => router.visit(route('production.items.show', (item as unknown as Item).id))}
                         actions={(item) => (
                             <EntityActionDropdown
-                                align="end"
-                                onEdit={() => setEditItem(item as Item)}
-                                onDelete={() => setDeleteItem(item as Item)}
-                                deleteOptions={{
-                                    isDeleting: (item as Item).id === deleteItem?.id,
-                                    hasPermission: true,
-                                    onDelete: () => handleDelete(),
-                                    confirmTitle: 'Confirmar Exclusão',
-                                    confirmMessage: `Tem certeza que deseja excluir o item "${(item as Item).item_number}"?`,
-                                    disabled: false
-                                }}
-                                additionalItems={[
+                                onEdit={() => setEditItem(item as unknown as Item)}
+                                onDelete={() => setDeleteItem(item as unknown as Item)}
+                                additionalActions={[
                                     {
                                         label: 'Duplicar',
-                                        icon: <Copy className="mr-2 h-4 w-4" />,
-                                        onClick: () => handleDuplicate(item as Item)
+                                        icon: <Copy className="h-4 w-4" />,
+                                        onClick: () => handleDuplicate(item as unknown as Item)
                                     },
                                     {
                                         label: 'Gerar QR Code',
-                                        icon: <QrCode className="mr-2 h-4 w-4" />,
-                                        onClick: () => handleGenerateQr(item as Item)
+                                        icon: <QrCode className="h-4 w-4" />,
+                                        onClick: () => handleGenerateQr(item as unknown as Item)
                                     }
                                 ]}
                             />
