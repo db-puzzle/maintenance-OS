@@ -466,9 +466,9 @@ export default function AssetRoutinesTab({
                     <div className="text-center">
                         <FormStatusBadge
                             form={{
-                                id: form.id || 0,
-                                ...form,
-                                current_version_id: form.current_version_id ?? null,
+                                id: (form as any).id || 0,
+                                ...(form as any),
+                                current_version_id: (form as any).current_version_id ?? null,
                             }}
                             size="sm"
                         />
@@ -756,7 +756,7 @@ export default function AssetRoutinesTab({
 
         return (
             <InlineRoutineFormEditor
-                routine={routine}
+                routine={routine as any}
                 assetId={assetId}
                 onClose={handleCloseFormEditor}
                 onSuccess={handleFormSaved}
@@ -799,7 +799,7 @@ export default function AssetRoutinesTab({
 
                 {/* Routines table */}
                 <EntityDataTable
-                    data={sortedRoutines}
+                    data={sortedRoutines as Record<string, unknown>[]}
                     columns={getRoutineColumns()}
                     loading={false}
                     emptyMessage={searchTerm ? `Nenhuma rotina encontrada para "${searchTerm}"` : "Nenhuma rotina cadastrada. Clique em 'Nova Rotina' para começar."}
@@ -848,7 +848,7 @@ export default function AssetRoutinesTab({
                                     }] : []),
                                     // Add/Edit Tasks - Second primary action with prominence
                                     {
-                                        label: routine.form?.has_draft_changes ? 'Editar Tarefas' :
+                                        label: (routine.form as any)?.has_draft_changes ? 'Editar Tarefas' :
                                             hasFormTasks(routine.form) ? 'Editar Tarefas' :
                                                 'Adicionar Tarefas',
                                         icon: (
@@ -885,12 +885,12 @@ export default function AssetRoutinesTab({
                                         icon: <Edit2 className="h-4 w-4" />,
                                         onClick: () => handleEditRoutine(routine),
                                     },
-                                    ...(routine.form?.has_draft_changes && routine.form?.current_version_id ? [{
-                                        label: `Ver Versão Publicada (v${routine.form?.current_version?.version_number || '1.0'})`,
+                                    ...((routine.form as any)?.has_draft_changes && (routine.form as any)?.current_version_id ? [{
+                                        label: `Ver Versão Publicada (v${(routine.form as any)?.current_version?.version_number || '1.0'})`,
                                         icon: <Eye className="h-4 w-4" />,
                                         onClick: () => router.visit(route('maintenance.routines.view-published-version', { routine: routine.id })),
                                     }] : []),
-                                    ...(routine.form?.current_version_id ? [{
+                                    ...((routine.form as any)?.current_version_id ? [{
                                         label: 'Ver Histórico de Versões',
                                         icon: <History className="h-4 w-4" />,
                                         onClick: () => handleShowVersionHistory(routine.id),

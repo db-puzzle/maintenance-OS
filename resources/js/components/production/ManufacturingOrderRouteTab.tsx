@@ -47,7 +47,7 @@ export default function ManufacturingOrderRouteTab({
     openRouteBuilder
 }: Props) {
     const { props } = usePage();
-    const flash = props.flash as unknown;
+    const flash = props.flash as any;
     // Check URL params from props
     const openRouteBuilderParam = openRouteBuilder || null;
     // Check if we should start in builder mode (e.g., after creating a new route)

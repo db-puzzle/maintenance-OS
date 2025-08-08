@@ -93,7 +93,6 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
                 routing={routing}
                 steps={effectiveSteps}
                 canManage={can.manage_steps}
-                canExecute={can.execute_steps}
                 routingId={routing.id}
                 templates={templates}
                 workCells={workCells}

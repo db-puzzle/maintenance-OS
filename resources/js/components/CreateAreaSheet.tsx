@@ -102,7 +102,7 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
                         ref={nameInputRef}
                         form={{
                             data,
-                            setData: setData as unknown,
+                            setData,
                             errors,
                             clearErrors: () => { },
                         }}

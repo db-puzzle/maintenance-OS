@@ -81,7 +81,7 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
                         ref={nameInputRef}
                         form={{
                             data,
-                            setData: setData as unknown,
+                            setData,
                             errors,
                             clearErrors: () => { },
                         }}
@@ -94,7 +94,7 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
                     <TextInput
                         form={{
                             data,
-                            setData: setData as unknown,
+                            setData,
                             errors,
                             clearErrors: () => { },
                         }}
