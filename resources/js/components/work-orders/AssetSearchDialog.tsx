@@ -168,7 +168,7 @@ export function AssetSearchDialog({
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    {filteredAssets.map((asset, index) => (
+                                    {filteredAssets.map((asset, _index) => (
                                         <button
                                             key={asset.id}
                                             onClick={() => setSelectedId(asset.id.toString())}

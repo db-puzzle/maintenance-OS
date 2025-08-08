@@ -20,7 +20,7 @@ export function ItemRequirementsSelector<T extends RequirementItem>({
     items,
     selectedItems,
     onAdd,
-    onRemove,
+    onRemove: _onRemove,
     onCreateClick,
     isViewMode,
     placeholder,

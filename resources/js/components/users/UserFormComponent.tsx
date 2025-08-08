@@ -3,12 +3,10 @@ import { useForm, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Edit, Save, X, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { useInitials } from '@/hooks/use-initials';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 interface User {
     id: number;
     name: string;
@@ -34,7 +32,7 @@ export default function UserFormComponent({
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view';
     const getInitials = useInitials();
-    const initials = getInitials(user.name);
+    const _initials = getInitials(user.name);
     // Ensure mode updates when initialMode changes
     useEffect(() => {
         setMode(initialMode);

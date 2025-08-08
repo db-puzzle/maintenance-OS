@@ -3,7 +3,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Save, X, Plus, ZoomIn, ZoomOut, Maximize, Edit } from 'lucide-react';
+import { Save, X, ZoomIn, ZoomOut, Maximize, Edit } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/production';

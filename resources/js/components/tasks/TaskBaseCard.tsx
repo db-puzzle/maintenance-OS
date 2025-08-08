@@ -76,7 +76,7 @@ export default function TaskBaseCard({
     onEdit,
     onNext,
     onFinish,
-    taskTypes,
+    taskTypes: _taskTypes,
     tasks,
     currentIndex,
     isRequired,

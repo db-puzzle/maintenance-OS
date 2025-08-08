@@ -9,7 +9,7 @@ import { ItemSelect } from '@/components/ItemSelect';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { useState, useEffect } from 'react';
-import { Factory, Clock, Gauge, MapPin } from 'lucide-react';
+import { Factory, Clock, MapPin } from 'lucide-react';
 interface WorkCellFormComponentProps {
     workCell: WorkCell & {
         plant?: { id: number; name: string };

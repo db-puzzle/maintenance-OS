@@ -33,7 +33,7 @@ interface Props {
     selectedBomId?: number;
 }
 
-interface OrderFormData {
+interface _OrderFormData {
     // Order type
     order_type: 'item' | 'bom';
 

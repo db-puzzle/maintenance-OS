@@ -15,7 +15,7 @@ import { type BreadcrumbItem } from '@/types';
 import { type Area, type Asset, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Calendar, Clock, FileText, MessageSquare, Table } from 'lucide-react';
+import { Calendar, Clock, FileText, Table } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 interface Shift {

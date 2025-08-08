@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { router, Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';

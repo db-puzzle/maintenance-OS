@@ -6,7 +6,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
-import { Check, Maximize2, Minimize2, MoreVertical } from 'lucide-react';
+import { Check, Maximize2, Minimize2 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 interface Tab {
     id: string;

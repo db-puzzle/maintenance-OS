@@ -153,7 +153,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                     formData.append(`files[${index}]`, file);
                 });
                 // Remove files from response data to avoid sending as JSON
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                 
                 const { files: _files, ...restData } = dataToSend;
                 // Send response as array fields instead of JSON string
                 Object.keys(restData).forEach((key) => {

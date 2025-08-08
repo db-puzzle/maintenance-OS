@@ -284,7 +284,7 @@ export function WorkOrderFormComponent({
                     toast.success('Ordem de serviço criada com sucesso!');
                     // The backend will handle the redirect to the work order show page
                 },
-                onError: (errors) => {
+                onError: (_errors) => {
                     toast.error('Erro ao criar ordem de serviço', {
                         description: 'Verifique os campos e tente novamente.'
                     });

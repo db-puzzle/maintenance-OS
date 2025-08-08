@@ -21,9 +21,9 @@ interface Props {
 }
 export default function RoutingStepsTableTab({
     steps,
-    canManage,
+    canManage: _canManage,
     canExecute,
-    routingId
+    routingId: _routingId
 }: Props) {
     const handleStartStep = (stepId: number) => {
         router.get(route('production.steps.execute', stepId));
