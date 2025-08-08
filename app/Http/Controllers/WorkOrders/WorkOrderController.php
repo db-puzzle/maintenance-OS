@@ -182,7 +182,10 @@ class WorkOrderController extends Controller
         $certifications = Certification::where('active', true)->orderBy('name')->get();
 
         // Method temporarily disabled - page not implemented yet
-        return response()->json(["message" => "This feature is not yet implemented"], 501);
+        return Inertia::render('error/not-implemented', [
+            'status' => 501,
+            'message' => 'This feature is not yet implemented'
+        ]);
     }
 
     /**
@@ -434,7 +437,10 @@ class WorkOrderController extends Controller
         $users = User::orderBy('name')->get(['id', 'name']);
 
         // Method temporarily disabled - page not implemented yet
-        return response()->json(["message" => "This feature is not yet implemented"], 501);
+        return Inertia::render('error/not-implemented', [
+            'status' => 501,
+            'message' => 'This feature is not yet implemented'
+        ]);
     }
 
     /**
@@ -551,7 +557,10 @@ class WorkOrderController extends Controller
         ];
 
         // Method temporarily disabled - page not implemented yet
-        return response()->json(["message" => "This feature is not yet implemented"], 501);
+        return Inertia::render('error/not-implemented', [
+            'status' => 501,
+            'message' => 'This feature is not yet implemented'
+        ]);
     }
 
     /**
@@ -594,7 +603,10 @@ class WorkOrderController extends Controller
         $certifications = Certification::pluck('name')->toArray();
 
         // Method temporarily disabled - page not implemented yet
-        return response()->json(["message" => "This feature is not yet implemented"], 501);
+        return Inertia::render('error/not-implemented', [
+            'status' => 501,
+            'message' => 'This feature is not yet implemented'
+        ]);
     }
 
     /**

@@ -23,7 +23,10 @@ class TaskResponseController extends Controller
             ->get();
 
         // Method temporarily disabled - page not implemented yet
-        return response()->json(['message' => 'This feature is not yet implemented'], 501);
+        return Inertia::render('error/not-implemented', [
+            'status' => 501,
+            'message' => 'This feature is not yet implemented'
+        ]);
     }
 
     /**
@@ -112,7 +115,10 @@ class TaskResponseController extends Controller
         $taskResponse->load(['attachments', 'formTask.instructions']);
 
         // Method temporarily disabled - page not implemented yet
-        return response()->json(['message' => 'This feature is not yet implemented'], 501);
+        return Inertia::render('error/not-implemented', [
+            'status' => 501,
+            'message' => 'This feature is not yet implemented'
+        ]);
     }
 
     /**
