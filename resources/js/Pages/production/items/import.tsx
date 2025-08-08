@@ -13,8 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { toast } from 'sonner';
 import { type BreadcrumbItem } from '@/types';
+import { ItemCategory } from '@/types/production';
 interface Props {
-    categories: any[];
+    categories: ItemCategory[];
     supportedFormats: string[];
     csvHeaders: Record<string, string>;
 }

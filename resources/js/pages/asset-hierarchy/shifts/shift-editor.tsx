@@ -289,7 +289,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
 
     const { data, setData, post, put, processing, errors, clearErrors } = useForm({
         name: shift?.name || '',
-        schedules: initialSchedules as any,
+        schedules: initialSchedules as unknown,
     });
 
     const typedData = data as unknown as ShiftFormData;
@@ -355,7 +355,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             });
         }
 
-        setData('schedules', newSchedules as any);
+        setData('schedules', newSchedules as unknown);
     };
 
     // Função para remover um turno de um dia específico
@@ -370,7 +370,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             return day;
         });
 
-        setData('schedules', newSchedules as any);
+        setData('schedules', newSchedules as unknown);
     };
 
     // Função para adicionar um intervalo em um turno específico
@@ -404,7 +404,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             }
         }
 
-        setData('schedules', newSchedules as any);
+        setData('schedules', newSchedules as unknown);
     };
 
     const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
@@ -426,13 +426,13 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             return day;
         });
 
-        setData('schedules', newSchedules as any);
+        setData('schedules', newSchedules as unknown);
     };
 
     const updateBreak = (dayIndex: number, shiftIndex: number, breakIndex: number, field: keyof Break, value: string) => {
         const newSchedules = [...typedData.schedules];
         newSchedules[dayIndex].shifts[shiftIndex].breaks[breakIndex][field] = value;
-        setData('schedules', newSchedules as any);
+        setData('schedules', newSchedules as unknown);
     };
 
     const applyToSelectedDays = () => {
@@ -454,7 +454,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             return schedule;
         });
 
-        setData('schedules', newSchedules as any);
+        setData('schedules', newSchedules as unknown);
         setSelectedDays([]);
     };
 
@@ -657,7 +657,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                                         onChange={(value: string) => {
                                                                             const newSchedules = [...typedData.schedules];
                                                                             newSchedules[dayIndex].shifts[shiftIndex].start_time = value;
-                                                                            setData('schedules', newSchedules as any);
+                                                                            setData('schedules', newSchedules as unknown);
                                                                         }}
                                                                     />
                                                                     <span className="text-muted-foreground">até</span>
@@ -667,7 +667,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                                         onChange={(value: string) => {
                                                                             const newSchedules = [...typedData.schedules];
                                                                             newSchedules[dayIndex].shifts[shiftIndex].end_time = value;
-                                                                            setData('schedules', newSchedules as any);
+                                                                            setData('schedules', newSchedules as unknown);
                                                                         }}
                                                                     />
                                                                     {/* Botão para remover turno */}

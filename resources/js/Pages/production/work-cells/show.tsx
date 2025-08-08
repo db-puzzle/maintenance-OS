@@ -225,7 +225,7 @@ export default function Show({
                                 sortable: true,
                                 width: 'w-[200px]',
                                 render: (value, row) => {
-                                    const schedule = row as any;
+                                    const schedule = row as unknown;
                                     if (schedule.manufacturing_order) {
                                         return (
                                             <Link
@@ -245,7 +245,7 @@ export default function Show({
                                 sortable: false,
                                 width: 'w-[250px]',
                                 render: (value, row) => {
-                                    const schedule = row as any;
+                                    const schedule = row as unknown;
                                     if (schedule.manufacturing_step) {
                                         return (
                                             <div>

@@ -92,7 +92,7 @@ export function CertificationsTable({
         return (
             <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
                 <EntityDataTable
-                    data={selectedCertifications as any[]}
+                    data={selectedCertifications as unknown[]}
                     columns={certificationsColumns}
                     actions={certificationsActions}
                     emptyMessage="Nenhuma certificação selecionada"

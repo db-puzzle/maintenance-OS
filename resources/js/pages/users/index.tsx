@@ -318,15 +318,15 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                     </div>
                     {/* Users Table */}
                     <EntityDataTable
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        data={users.data as any}
+                         
+                        data={users.data as unknown}
                         columns={columns}
                         loading={false}
                          
-                        onRowClick={(user: any) => router.visit(`/users/${user.id}`)}
+                        onRowClick={(user: unknown) => router.visit(`/users/${user.id}`)}
                         emptyMessage="No users found"
                          
-                        actions={(user: any) => (
+                        actions={(user: unknown) => (
                             <EntityActionDropdown
                                 onEdit={() => router.visit(`/users/${user.id}/edit`)}
                                 onDelete={() => handleDelete(user as User)}

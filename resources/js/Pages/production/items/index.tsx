@@ -14,7 +14,7 @@ import { ItemImageCarouselDialog } from '@/components/production/ItemImageCarous
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
-import { Item, ItemCategory } from '@/types/production';
+import { Item, ItemCategory, ItemImage, BillOfMaterial } from '@/types/production';
 import { Link } from '@inertiajs/react';
 interface Props {
     items: {
@@ -137,7 +137,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                 onClick={async (e) => {
                     e?.stopPropagation(); // Prevent row click event
                     // If item has images, use them, otherwise fetch
-                    if (item.images && (item.images as any[]).length > 0) {
+                    if (item.images && (item.images as ItemImage[]).length > 0) {
                         setCarouselItem(item as unknown as Item);
                         setCarouselOpen(true);
                     } else if (item.images_count && (item.images_count as number) > 0) {
@@ -178,9 +178,9 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                 <div className="font-medium">{value as React.ReactNode}</div>
                 {item.category ? (
                     <div className="text-muted-foreground text-sm">
-                        {(item.category as any).name && (item.category as any).name.length > 40
-                            ? `${(item.category as any).name.substring(0, 40)}...`
-                            : (item.category as any).name || '-'}
+                        {(item.category as ItemCategory).name && (item.category as ItemCategory).name.length > 40
+                            ? `${(item.category as ItemCategory).name.substring(0, 40)}...`
+                            : (item.category as ItemCategory).name || '-'}
                     </div>
                 ) : null}
             </div>
@@ -214,10 +214,10 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             render: (value: unknown, item: Record<string, unknown>) => (
                 item.primary_bom && item.can_be_manufactured ? (
                     <Link
-                        href={route('production.bom.show', (item.primary_bom as any)?.id)}
+                        href={route('production.bom.show', (item.primary_bom as BillOfMaterial)?.id)}
                         className="text-primary hover:underline"
                     >
-                        {(item.primary_bom as any).bom_number}
+                        {(item.primary_bom as BillOfMaterial).bom_number}
                     </Link>
                 ) : (
                     '-'
@@ -318,28 +318,28 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                         data={data as unknown as Record<string, unknown>[]}
                         columns={columns}
                         loading={loading}
-                        onRowClick={(item) => router.visit(route('production.items.show', (item as any).id))}
+                        onRowClick={(item) => router.visit(route('production.items.show', (item as Item).id))}
                         actions={(item) => (
                             <EntityActionDropdown
-                                onEdit={() => setEditItem(item as any)}
-                                onDelete={() => setDeleteItem(item as any)}
+                                onEdit={() => setEditItem(item as Item)}
+                                onDelete={() => setDeleteItem(item as Item)}
                                 additionalActions={[
-                                    ...((item as any).can_be_manufactured ? [
+                                    ...((item as Item).can_be_manufactured ? [
                                         {
                                             label: 'Gerenciar BOM',
                                             icon: <Package className="h-4 w-4" />,
-                                            onClick: () => router.visit(route('production.items.bom', (item as any).id))
+                                            onClick: () => router.visit(route('production.items.bom', (item as Item).id))
                                         },
                                         {
                                             label: 'Histórico de BOM',
                                             icon: <History className="h-4 w-4" />,
-                                            onClick: () => router.visit(route('production.items.bom-history', (item as any).id))
+                                            onClick: () => router.visit(route('production.items.bom-history', (item as Item).id))
                                         }
                                     ] : []),
                                     {
                                         label: 'Onde é Usado',
                                         icon: <GitBranch className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.items.where-used', (item as any).id))
+                                        onClick: () => router.visit(route('production.items.where-used', (item as Item).id))
                                     }
                                 ]}
                             />

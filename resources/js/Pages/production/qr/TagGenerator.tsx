@@ -55,7 +55,7 @@ export default function TagGenerator({ templates }: Props) {
                 toast.success('Etiqueta QR gerada com sucesso!');
             }
         } catch (error: unknown) {
-            toast.error((error as any).response?.data?.message || 'Erro ao gerar etiqueta');
+            toast.error((error as unknown).response?.data?.message || 'Erro ao gerar etiqueta');
         } finally {
             setGenerating(false);
         }
@@ -81,7 +81,7 @@ export default function TagGenerator({ templates }: Props) {
                     toast.success('Etiquetas QR geradas com sucesso!');
                 }
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.response?.data?.message || 'Erro ao gerar etiquetas em lote');
         } finally {
             setGenerating(false);

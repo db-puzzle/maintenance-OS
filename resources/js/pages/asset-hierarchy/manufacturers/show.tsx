@@ -126,16 +126,16 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 label: 'TAG',
                                 sortable: true,
                                 width: 'w-[300px]',
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <div className="font-medium">{ (row as any).tag}</div>,
+                                 
+                                render: (value, row) => <div className="font-medium">{ (row as unknown).tag}</div>,
                             },
                             {
                                 key: 'asset_type_name',
                                 label: 'Tipo',
                                 sortable: true,
                                 width: 'w-[200px]',
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as any).asset_type?.name ?? '-'}</span>,
+                                 
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{ (row as unknown).asset_type?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'location',
@@ -143,8 +143,8 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 sortable: true,
                                 width: 'w-[250px]',
                                 render: (value, row) => {
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    const item = row as any;
+                                     
+                                    const item = row as unknown;
                                     return (
                                         <span className="text-muted-foreground text-sm">
                                             {item.area_name}
@@ -168,8 +168,8 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        onRowClick={(row) => router.get(route('asset-hierarchy.assets.show',  (row as any).id))}
+                         
+                        onRowClick={(row) => router.get(route('asset-hierarchy.assets.show',  (row as unknown).id))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {
                                 asset_type_name: 'type',

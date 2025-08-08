@@ -28,7 +28,7 @@ export default function RoutingStepsTableTab({
     const handleStartStep = (stepId: number) => {
         router.get(route('production.steps.execute', stepId));
     };
-    const getStepActions = (step: any) => {
+    const getStepActions = (step: unknown) => {
         if (!canExecute) return null;
         const canStart = !step.depends_on_step_id ||
             (step.dependency && ['completed', 'in_progress'].includes(step.dependency.status));
@@ -89,7 +89,7 @@ export default function RoutingStepsTableTab({
             key: 'name',
             label: 'Nome da Etapa',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const step = row as any;
+                const step = row as unknown;
                 return (
                     <div className="space-y-1">
                         <div className="font-medium">{step.name}</div>
@@ -105,13 +105,13 @@ export default function RoutingStepsTableTab({
         {
             key: 'step_type',
             label: 'Tipo',
-            render: (value: unknown) => <StepTypeBadge type={value as any} />
+            render: (value: unknown) => <StepTypeBadge type={value as unknown} />
         },
         {
             key: 'work_cell',
             label: 'Célula de Trabalho',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const step = row as any;
+                const step = row as unknown;
                 return step.work_cell ? (
                     <div>
                         <div className="font-medium">{step.work_cell.code}</div>
@@ -127,7 +127,7 @@ export default function RoutingStepsTableTab({
         {
             key: 'status',
             label: 'Status',
-            render: (value: unknown) => <StepStatusBadge status={value as any} />
+            render: (value: unknown) => <StepStatusBadge status={value as unknown} />
         },
         {
             key: 'cycle_time_minutes',
@@ -155,7 +155,7 @@ export default function RoutingStepsTableTab({
     return (
         <div className="space-y-4 py-6">
             <EntityDataTable
-                data={(steps || []) as any}
+                data={(steps || []) as unknown}
                 columns={columns}
                 loading={false}
             />

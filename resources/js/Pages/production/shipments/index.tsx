@@ -76,7 +76,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
         });
     };
     const handleFilter = (key: string, value: string | null) => {
-        const newFilters: Record<string, any> = { ...filters };
+        const newFilters: Record<string, unknown> = { ...filters };
         if (value) {
             newFilters[key] = value;
         } else {
@@ -244,16 +244,16 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
                         data={data as unknown as Record<string, unknown>[]}
                         columns={columns}
                         loading={loading}
-                        onRowClick={(shipment) => router.visit(route('production.shipments.show', (shipment as any).id))}
+                        onRowClick={(shipment) => router.visit(route('production.shipments.show', (shipment as unknown).id))}
                         actions={(shipment) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(route('production.shipments.edit', (shipment as any).id))}
-                                onDelete={() => setDeleteShipment(shipment as any)}
+                                onEdit={() => router.visit(route('production.shipments.edit', (shipment as unknown).id))}
+                                onDelete={() => setDeleteShipment(shipment as unknown)}
                                 additionalActions={[
                                     {
                                         label: 'View Details',
                                         icon: <Eye className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.shipments.show', (shipment as any).id))
+                                        onClick: () => router.visit(route('production.shipments.show', (shipment as unknown).id))
                                     }
                                 ]}
                             />

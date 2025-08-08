@@ -67,7 +67,7 @@ export default function RuntimeHistory({ assetId, activeTab, parentVisible = fal
                 },
             });
             setMeasurements(response.data);
-        } catch (error: any) {
+        } catch (error: unknown) {
             if (error.response?.status === 500) {
                 toast.error('Erro no servidor ao carregar histórico de horímetro');
             } else {
@@ -159,7 +159,7 @@ export default function RuntimeHistory({ assetId, activeTab, parentVisible = fal
                 const measurement = row as RuntimeMeasurement;
                 const hours = typeof measurement.reported_hours === 'number'
                     ? measurement.reported_hours
-                    : parseFloat(measurement.reported_hours as any) || 0;
+                    : parseFloat(measurement.reported_hours as unknown) || 0;
                 return (
                     <div className="flex items-center gap-2">
                         <Gauge className="h-4 w-4 text-muted-foreground" />
@@ -177,7 +177,7 @@ export default function RuntimeHistory({ assetId, activeTab, parentVisible = fal
                 const measurement = row as RuntimeMeasurement;
                 const diff = typeof measurement.hours_difference === 'number'
                     ? measurement.hours_difference
-                    : parseFloat(measurement.hours_difference as any) || 0;
+                    : parseFloat(measurement.hours_difference as unknown) || 0;
                 const isPositive = diff > 0;
                 const isNegative = diff < 0;
                 return (

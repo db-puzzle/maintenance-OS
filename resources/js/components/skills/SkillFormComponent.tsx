@@ -44,7 +44,7 @@ export default function SkillFormComponent({
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [dependencies, setDependencies] = useState<any>(null);
+    const [dependencies, setDependencies] = useState<Record<string, unknown>>(null);
     const [dependenciesOpen, setDependenciesOpen] = useState(false);
     // Ensure mode updates when initialMode changes
     useEffect(() => {
@@ -175,7 +175,7 @@ export default function SkillFormComponent({
                         <div className="grid gap-2">
                             <Label>Usuários com esta habilidade</Label>
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                                {(skill as any).users?.length || 0}
+                                {(skill as unknown).users?.length || 0}
                             </div>
                         </div>
                     )}

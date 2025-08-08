@@ -375,7 +375,7 @@ export function WorkOrderFormComponent({
                         <TextInput
                             form={{ 
                                 data: data as Record<string, string | number | boolean | File | null | undefined>, 
-                                setData: setData as any, 
+                                setData: setData as unknown, 
                                 errors, 
                                 clearErrors 
                             }}

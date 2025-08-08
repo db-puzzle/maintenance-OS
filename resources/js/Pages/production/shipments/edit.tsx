@@ -76,7 +76,7 @@ export default function ShipmentEdit({ shipment }: Props) {
         e.preventDefault();
         put(route('production.shipments.update', shipment.id));
     };
-    const updateItem = (index: number, field: string, value: any) => {
+    const updateItem = (index: number, field: string, value: unknown) => {
         const newItems = [...data.items];
         newItems[index] = { ...newItems[index], [field]: value };
         setData('items', newItems);
@@ -118,7 +118,7 @@ export default function ShipmentEdit({ shipment }: Props) {
                             <Label htmlFor="shipment_type">Type</Label>
                             <Select
                                 value={data.shipment_type}
-                                onValueChange={(value) => setData('shipment_type', value as any)}
+                                onValueChange={(value) => setData('shipment_type', value as unknown)}
                             >
                                 <SelectTrigger>
                                     <SelectValue />

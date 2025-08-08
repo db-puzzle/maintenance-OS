@@ -1,9 +1,10 @@
 import React from 'react';
+import { WorkOrder } from '@/types/work-order';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 interface Props {
-    workOrder: any;
+    workOrder: WorkOrder;
 }
 export default function WorkOrderFailureAnalysisTab({ workOrder }: Props) {
     if (!workOrder.failure_analysis) {

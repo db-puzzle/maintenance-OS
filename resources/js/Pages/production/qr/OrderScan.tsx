@@ -97,7 +97,7 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-lg">Ordem de Manufatura</CardTitle>
-                                <Badge variant={getStatusColor(order.status) as any}>
+                                <Badge variant={getStatusColor(order.status) as unknown}>
                                     {order.status}
                                 </Badge>
                             </div>
@@ -202,7 +202,7 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                                             className="flex items-center justify-between text-sm"
                                         >
                                             <span className="font-mono">{child.order_number}</span>
-                                            <Badge variant={getStatusColor(child.status) as any}>
+                                            <Badge variant={getStatusColor(child.status) as unknown}>
                                                 {child.status}
                                             </Badge>
                                         </div>

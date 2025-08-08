@@ -37,7 +37,7 @@ interface Props {
         id: number;
         qr_code: string;
         event_type: string;
-        event_data: any;
+        event_data: Record<string, unknown>;
         created_at: string;
         scanned_by: {
             id: number;

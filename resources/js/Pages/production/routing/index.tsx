@@ -7,11 +7,23 @@ import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 
 import { ColumnConfig } from '@/types/shared';
+import { Routing } from '@/types/production';
 import { toast } from 'sonner';
 interface Props {
-    routings: any;
-    filters: any;
-    can: any;
+    routings: {
+        data: Routing[];
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+    filters: {
+        search?: string;
+        per_page?: number;
+    };
+    can: {
+        create?: boolean;
+    };
 }
 export default function RoutingIndex({ routings, filters, can }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
@@ -37,7 +49,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             { preserveState: true, replace: true }
         );
     };
-    const handleDelete = (routing: any) => {
+    const handleDelete = (routing: unknown) => {
         if (confirm(`Tem certeza que deseja excluir o roteiro ${routing.name}?`)) {
             router.delete(route('production.routing.destroy', routing.id), {
                 onSuccess: () => {
@@ -56,7 +68,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[300px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as any;
+                const routing = row as unknown;
                 return (
                     <div>
                         <div className="font-medium">{routing.name}</div>
@@ -75,7 +87,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[200px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as any;
+                const routing = row as unknown;
                 return routing.manufacturing_order ? (
                     <Link
                         href={route('production.orders.show', routing.manufacturing_order.id)}
@@ -92,7 +104,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[250px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as any;
+                const routing = row as unknown;
                 return routing.item ? (
                     <div>
                         <div className="font-medium">{routing.item.item_number}</div>
@@ -120,7 +132,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[300px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as any;
+                const routing = row as unknown;
                 return routing.description ? (
                     routing.description.length > 50
                         ? `${routing.description.substring(0, 50)}...`
@@ -156,11 +168,11 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={(routings.data || []) as any}
+                        data={(routings.data || []) as unknown}
                         columns={columns}
                         loading={false}
-                        onRowClick={(routing: any) => router.visit(route('production.routing.show', routing.id))}
-                        actions={(routing: any) => (
+                        onRowClick={(routing: unknown) => router.visit(route('production.routing.show', routing.id))}
+                        actions={(routing: unknown) => (
                             <EntityActionDropdown
                                 onEdit={() => router.visit(route('production.routing.edit', routing.id))}
                                 onDelete={() => handleDelete(routing)}

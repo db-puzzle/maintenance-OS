@@ -78,7 +78,7 @@ interface WorkCell {
 interface Props {
     schedules?: {
         data: ManufacturingStep[];
-        links: any;
+        links: Record<string, string | null>;
         meta: PaginationMeta;
     };
     filters?: {

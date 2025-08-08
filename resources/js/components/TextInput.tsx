@@ -38,7 +38,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
                     ) : (
                         <SmartInput
                             ref={ref}
-                            form={form as any}
+                            form={form}
                             name={name}
                             placeholder={placeholder}
                             disabled={disabled}

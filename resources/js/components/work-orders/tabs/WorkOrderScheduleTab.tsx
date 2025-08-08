@@ -21,11 +21,13 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { WorkOrder, Team } from '@/types/work-order';
+import { User } from '@/types';
 
 interface WorkOrderScheduleTabProps {
-    workOrder: any;
-    technicians?: any[];
-    teams?: any[];
+    workOrder: WorkOrder;
+    technicians?: User[];
+    teams?: Team[];
     canSchedule: boolean;
     discipline: 'maintenance' | 'quality';
 }

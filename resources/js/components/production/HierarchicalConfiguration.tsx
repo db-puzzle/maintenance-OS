@@ -356,7 +356,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             unit_of_measure: item.unit_of_measure,
             reference_designators: item.reference_designators,
             bom_notes: item.bom_notes,
-            assembly_instructions: (item as any).assembly_instructions || ''
+            assembly_instructions: (item as unknown).assembly_instructions || ''
         });
         setIsEditDialogOpen(true);
     };

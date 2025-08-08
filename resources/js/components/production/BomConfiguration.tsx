@@ -1,10 +1,10 @@
 import React from 'react';
 import HierarchicalConfiguration from './HierarchicalConfiguration';
-import { BomItem, Item, ItemCategory } from '@/types/production';
+import { BomItem, Item, ItemCategory, BomVersion } from '@/types/production';
 interface BomConfigurationProps {
   bomId: number;
   versionId: number;
-  bomItems: (BomItem & { item: Item; children?: any[] })[];
+  bomItems: (BomItem & { item: Item; children?: BomItem[] })[];
   availableItems: Item[];
   categories?: ItemCategory[];
   canEdit: boolean;
@@ -14,9 +14,9 @@ interface BomConfigurationProps {
     bom_number: string;
     current_version?: {
       version_number: number;
-      items?: any[];
+      items?: BomItem[];
     };
-    versions?: any[];
+    versions?: BomVersion[];
   };
 }
 /**

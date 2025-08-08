@@ -251,18 +251,18 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 })),
             };
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, setData, processing, errors, clearErrors, setError } = useForm(getInitialFormData() as any);
+         
+        const { data, setData, processing, errors, clearErrors, setError } = useForm(getInitialFormData() as unknown);
         // Create a wrapper for setData to match the TextInput expected signature
         const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setData(name as any, value);
+             
+            setData(name as unknown, value);
         };
         // Update the schedules
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updateSchedules = (newSchedules: any) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setData('schedules' as any, newSchedules);
+         
+        const updateSchedules = (newSchedules: unknown) => {
+             
+            setData('schedules' as unknown, newSchedules);
         };
         // Get the label for the selected timezone
         const getTimezoneLabel = (value: string) => {
@@ -311,8 +311,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             }
         }, [effectiveOpen]);
         const addShift = (dayIndex: number) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const newSchedules = [...(data as any).schedules];
+             
+            const newSchedules = [...(data as unknown).schedules];
             const existingShifts = newSchedules[dayIndex].shifts;
             // Se não houver turnos, usa o padrão
             if (existingShifts.length === 0) {
@@ -363,13 +363,13 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             updateSchedules(newSchedules);
         };
         const removeShift = (dayIndex: number, shiftIndex: number) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const newSchedules = (data as any).schedules.map((day: any, idx: number) => {
+             
+            const newSchedules = (data as unknown).schedules.map((day: unknown, idx: number) => {
                 if (idx === dayIndex) {
                     return {
                         ...day,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        shifts: day.shifts.filter((_: any, index: number) => index !== shiftIndex),
+                         
+                        shifts: day.shifts.filter((_: unknown, index: number) => index !== shiftIndex),
                     };
                 }
                 return day;
@@ -377,8 +377,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             updateSchedules(newSchedules);
         };
         const addBreak = (dayIndex: number, shiftIndex: number) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const newSchedules = [...(data as any).schedules];
+             
+            const newSchedules = [...(data as unknown).schedules];
             const shift = newSchedules[dayIndex].shifts[shiftIndex];
             if (shift.breaks.length === 0) {
                 // Se não houver intervalos, adiciona um intervalo de 30 minutos no meio do turno
@@ -405,18 +405,18 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             updateSchedules(newSchedules);
         };
         const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const newSchedules = (data as any).schedules.map((day: any, idx: number) => {
+             
+            const newSchedules = (data as unknown).schedules.map((day: unknown, idx: number) => {
                 if (idx === dayIndex) {
                     return {
                         ...day,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        shifts: day.shifts.map((shift: any, sIdx: number) => {
+                         
+                        shifts: day.shifts.map((shift: unknown, sIdx: number) => {
                             if (sIdx === shiftIndex) {
                                 return {
                                     ...shift,
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    breaks: shift.breaks.filter((_: any, bIdx: number) => bIdx !== breakIndex),
+                                     
+                                    breaks: shift.breaks.filter((_: unknown, bIdx: number) => bIdx !== breakIndex),
                                 };
                             }
                             return shift;
@@ -428,27 +428,27 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             updateSchedules(newSchedules);
         };
         const updateBreak = (dayIndex: number, shiftIndex: number, breakIndex: number, field: keyof Break, value: string) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const newSchedules = [...(data as any).schedules];
+             
+            const newSchedules = [...(data as unknown).schedules];
             newSchedules[dayIndex].shifts[shiftIndex].breaks[breakIndex][field] = value;
             updateSchedules(newSchedules);
         };
         const applyToSelectedDays = () => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const sourceDay = (data as any).schedules.find((s: any) => s.weekday === selectedDay);
+             
+            const sourceDay = (data as unknown).schedules.find((s: unknown) => s.weekday === selectedDay);
             if (!sourceDay) return;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const newSchedules = (data as any).schedules.map((schedule: any) => {
+             
+            const newSchedules = (data as unknown).schedules.map((schedule: unknown) => {
                 if (selectedDays.includes(schedule.weekday)) {
                     // Cria uma cópia profunda do dia de origem
                     return {
                         ...sourceDay,
                         weekday: schedule.weekday,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        shifts: sourceDay.shifts.map((shift: any) => ({
+                         
+                        shifts: sourceDay.shifts.map((shift: unknown) => ({
                             ...shift,
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            breaks: shift.breaks.map((breakTime: any) => ({ ...breakTime })),
+                             
+                            breaks: shift.breaks.map((breakTime: unknown) => ({ ...breakTime })),
                         })),
                     };
                 }
@@ -462,20 +462,20 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             e.preventDefault();
             // Remove os segundos de todos os horários antes de enviar
             const formattedData = {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                name: (data as any).name,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                timezone: (data as any).timezone,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                schedules: (data as any).schedules.map((schedule: any) => ({
+                 
+                name: (data as unknown).name,
+                 
+                timezone: (data as unknown).timezone,
+                 
+                schedules: (data as unknown).schedules.map((schedule: unknown) => ({
                     ...schedule,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    shifts: schedule.shifts.map((shift: any) => ({
+                     
+                    shifts: schedule.shifts.map((shift: unknown) => ({
                         ...shift,
                         start_time: shift.start_time?.substring(0, 5) || shift.start_time,
                         end_time: shift.end_time?.substring(0, 5) || shift.end_time,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        breaks: shift.breaks.map((breakTime: any) => ({
+                         
+                        breaks: shift.breaks.map((breakTime: unknown) => ({
                             start_time: breakTime.start_time?.substring(0, 5) || breakTime.start_time,
                             end_time: breakTime.end_time?.substring(0, 5) || breakTime.end_time,
                         })),
@@ -528,8 +528,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         const validationErrors = error.response.data.errors;
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            setError(key as any, validationErrors[key][0]);
+                             
+                            setError(key as unknown, validationErrors[key][0]);
                         });
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
@@ -566,8 +566,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         const validationErrors = error.response.data.errors;
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            setError(key as any, validationErrors[key][0]);
+                             
+                            setError(key as unknown, validationErrors[key][0]);
                         });
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
@@ -610,8 +610,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         const validationErrors = error.response.data.errors;
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            setError(key as any, validationErrors[key][0]);
+                             
+                            setError(key as unknown, validationErrors[key][0]);
                         });
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
@@ -708,8 +708,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                         <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" role="combobox" aria-expanded={timezoneOpen} className="w-full justify-between">
-                                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                                    {(data as any).timezone ? getTimezoneLabel((data as any).timezone) : 'Select timezone...'}
+                                                    { }
+                                                    {(data as unknown).timezone ? getTimezoneLabel((data as unknown).timezone) : 'Select timezone...'}
                                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                 </Button>
                                             </PopoverTrigger>
@@ -727,16 +727,16 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                             key={zone.value}
                                                                             value={`${zone.value} ${zone.label}`}
                                                                             onSelect={() => {
-                                                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                                                setData('timezone' as any, zone.value);
+                                                                                 
+                                                                                setData('timezone' as unknown, zone.value);
                                                                                 setTimezoneOpen(false);
                                                                             }}
                                                                         >
                                                                             <Check
                                                                                 className={cn(
                                                                                     'mr-2 h-4 w-4',
-                                                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                                                    (data as any).timezone === zone.value ? 'opacity-100' : 'opacity-0',
+                                                                                     
+                                                                                    (data as unknown).timezone === zone.value ? 'opacity-100' : 'opacity-0',
                                                                                 )}
                                                                             />
                                                                             {zone.label}
@@ -774,8 +774,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                     type="button"
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                                    disabled={(data as any).schedules[dayIndex].shifts.length === 0}
+                                                                     
+                                                                    disabled={(data as unknown).schedules[dayIndex].shifts.length === 0}
                                                                 >
                                                                     <Copy className="mr-2 h-4 w-4" />
                                                                     Copiar para Múltiplos Dias
@@ -831,8 +831,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                     </div>
                                                 </div>
                                                 {/* Lista de turnos do dia */}
-                                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                                {((data as any).schedules[dayIndex].shifts.length === 0) ? (
+                                                { }
+                                                {((data as unknown).schedules[dayIndex].shifts.length === 0) ? (
                                                     <div className="bg-muted/50 rounded-lg border p-6 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
                                                         <div className="flex flex-col items-center justify-center py-8 text-center">
                                                             <div className="bg-muted mb-3 flex size-12 items-center justify-center rounded-full">
@@ -845,10 +845,10 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                    (data as any).schedules[dayIndex].shifts.map((shift: any, shiftIndex: number) => {
-                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                        const overlappingShifts = findOverlappingShifts((data as any).schedules[dayIndex].shifts, shiftIndex);
+                                                     
+                                                    (data as unknown).schedules[dayIndex].shifts.map((shift: unknown, shiftIndex: number) => {
+                                                         
+                                                        const overlappingShifts = findOverlappingShifts((data as unknown).schedules[dayIndex].shifts, shiftIndex);
                                                         return (
                                                             <Card
                                                                 key={`shift-${dayIndex}-${shiftIndex}-${shift.start_time}-${shift.end_time}`}
@@ -864,8 +864,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                             <TimeSelect
                                                                                 value={shift.start_time}
                                                                                 onChange={(value: string) => {
-                                                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                                                    const newSchedules = [...(data as any).schedules];
+                                                                                     
+                                                                                    const newSchedules = [...(data as unknown).schedules];
                                                                                     newSchedules[dayIndex].shifts[shiftIndex].start_time = value;
                                                                                     updateSchedules(newSchedules);
                                                                                 }}
@@ -875,8 +875,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                             <TimeSelect
                                                                                 value={shift.end_time}
                                                                                 onChange={(value: string) => {
-                                                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                                                    const newSchedules = [...(data as any).schedules];
+                                                                                     
+                                                                                    const newSchedules = [...(data as unknown).schedules];
                                                                                     newSchedules[dayIndex].shifts[shiftIndex].end_time = value;
                                                                                     updateSchedules(newSchedules);
                                                                                 }}
@@ -943,8 +943,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                             ) : (
                                                                                 <div className="space-y-2">
                                                                                     {/* Lista de intervalos */}
-                                                                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                                                                    {shift.breaks.map((breakTime: any, breakIndex: number) => {
+                                                                                    { }
+                                                                                    {shift.breaks.map((breakTime: unknown, breakIndex: number) => {
                                                                                         const isValidInShift = isBreakValid(shift, breakTime);
                                                                                         const isOverlapping =
                                                                                             isValidInShift &&
@@ -1068,8 +1068,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                         <CardTitle>Visualização dos Turnos</CardTitle>
                                                     </CardHeader>
                                                     <CardContent>
-                                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                                        <ShiftCalendarView schedules={(data as any).schedules} />
+                                                        { }
+                                                        <ShiftCalendarView schedules={(data as unknown).schedules} />
                                                     </CardContent>
                                                 </Card>
                                             </div>
@@ -1082,8 +1082,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                         <CardTitle>Visão Geral Semanal</CardTitle>
                                                     </CardHeader>
                                                     <CardContent>
-                                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                                        <ShiftTableView schedules={(data as any).schedules} />
+                                                        { }
+                                                        <ShiftTableView schedules={(data as unknown).schedules} />
                                                     </CardContent>
                                                 </Card>
                                             </div>

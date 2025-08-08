@@ -2,9 +2,21 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
+import { WorkOrder, WorkOrderCategory, WorkOrderType, Asset, Team, Form } from '@/types/work-order';
+import { User } from '@/types';
+import { Plant, Area, Sector } from '@/types/asset-hierarchy';
+import { Part } from '@/types/maintenance';
+import { Skill, Certification } from '@/types/entities/skill';
 import {
     WorkOrderStatusProgress
 } from '@/components/work-orders';
+
+interface TabItem {
+    id: string;
+    label: string;
+    icon: React.ElementType;
+    content: React.ReactNode;
+}
 import {
     WorkOrderApprovalTab,
     WorkOrderPlanningTab,
@@ -28,7 +40,7 @@ import {
     Wrench
 } from 'lucide-react';
 interface Props {
-    workOrder?: any; // Using any for now to avoid complex type definitions
+    workOrder?: WorkOrder;
     discipline: 'maintenance' | 'quality';
     canEdit: boolean;
     canApprove: boolean;
@@ -39,21 +51,21 @@ interface Props {
         maxCost: number;
         maxPriority: string;
     };
-    technicians?: any[];
-    teams?: any[];
-    parts?: any[];
-    skills?: any[];
-    certifications?: any[];
+    technicians?: User[];
+    teams?: Team[];
+    parts?: Part[];
+    skills?: Skill[];
+    certifications?: Certification[];
     isCreating?: boolean;
-    categories?: any[];
-    workOrderTypes?: any[];
-    plants?: any[];
-    areas?: any[];
-    sectors?: any[];
-    assets?: any[];
-    forms?: any[];
+    categories?: WorkOrderCategory[];
+    workOrderTypes?: WorkOrderType[];
+    plants?: Plant[];
+    areas?: Area[];
+    sectors?: Sector[];
+    assets?: Asset[];
+    forms?: Form[];
     preselectedAssetId?: string | number;
-    preselectedAsset?: any;
+    preselectedAsset?: Asset;
 }
 export default function ShowWorkOrder({
     workOrder,
@@ -112,7 +124,7 @@ export default function ShowWorkOrder({
     ], [discipline, workOrder?.work_order_number, isCreating]);
 
     // Define tabs
-    const tabs: any[] = [];
+    const tabs: TabItem[] = [];
     if (isCreating) {
         // Only show the details tab when creating
         tabs.push({

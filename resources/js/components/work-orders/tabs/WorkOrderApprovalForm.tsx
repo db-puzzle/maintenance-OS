@@ -39,7 +39,7 @@ export function WorkOrderApprovalForm({
         }
     };
     const handleDecisionChange = (value: string) => {
-        setDecision(value as any);
+        setDecision(value as unknown);
         setData('decision', value);
         onDecisionChange(value);
     };

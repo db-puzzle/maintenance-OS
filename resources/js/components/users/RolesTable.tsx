@@ -49,7 +49,7 @@ export default function RolesTable({
         return (
             <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
                 <EntityDataTable
-                    data={selectedRoles as any[]}
+                    data={selectedRoles as unknown[]}
                     columns={rolesColumns}
                     actions={rolesActions}
                     emptyMessage="Nenhuma função selecionada"

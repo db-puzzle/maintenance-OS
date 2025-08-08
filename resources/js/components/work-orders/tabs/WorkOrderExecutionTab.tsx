@@ -1,4 +1,5 @@
 import React from 'react';
+import { WorkOrder } from '@/types/work-order';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import EmptyCard from '@/components/ui/empty-card';
@@ -6,7 +7,7 @@ import { Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 interface Props {
-    workOrder: any;
+    workOrder: WorkOrder;
 }
 export default function WorkOrderExecutionTab({ workOrder }: Props) {
     return (

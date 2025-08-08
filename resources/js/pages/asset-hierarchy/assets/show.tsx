@@ -13,6 +13,7 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type Area, type Asset, type AssetType, type Plant, type Sector } from '@/types/asset-hierarchy';
+import { type Routine } from '@/types/routine';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { Calendar, Clock, FileText, Table } from 'lucide-react';
@@ -91,8 +92,7 @@ interface Props {
 export default function Show({ asset, plants, assetTypes, manufacturers, isCreating = false, newRoutineId }: Props) {
     const page = usePage<{
         flash?: { success?: string };
-        auth: {
-            user: any;
+        auth: { user: User;
             permissions: string[];
         };
     }>();
@@ -117,7 +117,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
         },
     ];
     // Estado para gerenciar as rotinas
-    const [routines, setRoutines] = useState<any[]>(asset?.routines || []);
+    const [routines, setRoutines] = useState<Routine[]>(asset?.routines || []);
     // Update routines when asset prop changes
     useEffect(() => {
         if (asset?.routines) {
@@ -385,7 +385,7 @@ export default function Show({ asset, plants, assetTypes, manufacturers, isCreat
                             <div className="min-h-full space-y-4">
                                 <AssetRoutinesTab
                                     assetId={asset!.id}
-                                    routines={routines as any}
+                                    routines={routines as unknown}
                                     selectedShift={selectedShift}
                                     newRoutineId={newRoutineId}
                                     userPermissions={userPermissions}
