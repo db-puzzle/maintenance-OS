@@ -26,6 +26,7 @@ import {
     BillOfMaterial,
     Item,
     ItemCategory,
+    BomItem,
 } from '@/types/production';
 import { ColumnConfig } from '@/types/shared';
 import { type BreadcrumbItem } from '@/types';
@@ -275,7 +276,17 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 versionId={bom?.current_version?.id || 0}
                                 bomItems={(bom?.current_version?.items || [])
                                     .filter(item => item.item)
-                                    .map(item => ({ ...item, item: item.item! }))}
+                                    .map(item => {
+                                        const mappedItem: BomItem & { item: Item; children?: (BomItem & { item: Item })[] } = {
+                                            ...item,
+                                            item: item.item!,
+                                            children: item.children?.filter(child => child.item).map(child => ({
+                                                ...child,
+                                                item: child.item!
+                                            }))
+                                        };
+                                        return mappedItem;
+                                    })}
                                 availableItems={items}
                                 categories={categories}
                                 canEdit={can.manageItems}

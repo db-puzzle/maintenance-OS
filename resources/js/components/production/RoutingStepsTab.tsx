@@ -58,7 +58,7 @@ export default function RoutingStepsTab({
     openRouteBuilder
 }: Props) {
     const { props } = usePage();
-    const flash = props.flash as unknown;
+    const flash = props.flash as { openRouteBuilder?: boolean } | undefined;
     // Check URL params from props
     const openRouteBuilderParam = openRouteBuilder || null;
     // Check if we should start in builder mode
@@ -101,9 +101,11 @@ export default function RoutingStepsTab({
     // Create a wrapper for form compatibility
     const _form = {
         data,
-        setData: (name: string, value: unknown) => setData(name as unknown, value),
+        setData: (name: string, value: string | number | boolean | File | null | undefined) => {
+            setData(name as keyof typeof data, value as any);
+        },
         errors: errors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => clearErrors(...(fields as unknown)),
+        clearErrors: (...fields: string[]) => clearErrors(...(fields as Array<keyof typeof data>)),
     };
     const handleCreateRoute = () => {
         post(route('production.routing.steps.from-template', routingId), {

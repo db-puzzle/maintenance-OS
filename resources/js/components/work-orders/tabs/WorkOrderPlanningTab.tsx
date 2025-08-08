@@ -246,7 +246,7 @@ export function WorkOrderPlanningTab({
     // Get planning data from work order if status history doesn't have it
     const planningData = planningRelatedEntry || (isPlanned ? {
         changed_by: workOrder.planned_by,
-        user: workOrder.planned_by,
+        changedBy: workOrder.planner,
         created_at: workOrder.planned_at || workOrder.updated_at
     } : null);
 
@@ -407,6 +407,18 @@ export function WorkOrderPlanningTab({
         setCurrentPage(1);
     }, [plannedParts.length]);
 
+    // Create form wrapper for TextInput components
+    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+        setData(name as keyof typeof data, value as any);
+    };
+    
+    const formWrapper = {
+        data: data as Record<string, string | number | boolean | File | null | undefined>,
+        setData: handleSetData,
+        errors,
+        clearErrors: (...fields: string[]) => clearErrors(...(fields as Array<keyof typeof data>))
+    };
+
     // Early return if work order is not in a state that allows planning
     if (!canShowPlanning) {
         return (
@@ -542,7 +554,7 @@ export function WorkOrderPlanningTab({
                             <Label>Planejado por</Label>
                             <div className="rounded-md border bg-muted/20 p-2 text-sm flex items-center gap-2">
                                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{planningData.user?.name || planningData.changed_by?.name || 'Sistema'}</span>
+                                <span className="font-medium">{planningData.changedBy?.name || 'Sistema'}</span>
                             </div>
                         </div>
 
@@ -593,12 +605,7 @@ export function WorkOrderPlanningTab({
 
                     <div className="grid gap-4 md:grid-cols-4">
                         <TextInput
-                            form={{
-                                data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
-                                setData: setData as unknown,
-                                errors,
-                                clearErrors: clearErrors as (...fields: string[]) => void,
-                            }}
+                            form={formWrapper}
                             name="estimated_hours"
                             label="Horas Estimadas"
                             placeholder="4.0"
@@ -607,12 +614,7 @@ export function WorkOrderPlanningTab({
                         />
 
                         <TextInput
-                            form={{
-                                data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
-                                setData: setData as unknown,
-                                errors,
-                                clearErrors: clearErrors as (...fields: string[]) => void,
-                            }}
+                            form={formWrapper}
                             name="number_of_people"
                             label="Número de Pessoas"
                             placeholder="1"
@@ -621,12 +623,7 @@ export function WorkOrderPlanningTab({
                         />
 
                         <TextInput
-                            form={{
-                                data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
-                                setData: setData as unknown,
-                                errors,
-                                clearErrors: clearErrors as (...fields: string[]) => void,
-                            }}
+                            form={formWrapper}
                             name="labor_cost_per_hour"
                             label="Custo por Hora (R$)"
                             placeholder="150.00"

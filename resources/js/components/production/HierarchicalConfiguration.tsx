@@ -356,7 +356,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             unit_of_measure: item.unit_of_measure,
             reference_designators: item.reference_designators,
             bom_notes: item.bom_notes,
-            assembly_instructions: (item as unknown).assembly_instructions || ''
+            assembly_instructions: (item as any).assembly_instructions || ''
         });
         setIsEditDialogOpen(true);
     };
@@ -577,7 +577,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         if (type === 'bom') {
             return (
                 <BomTreeView
-                    items={bomItems}
+                    items={bomItems as any as BomTreeNode[]}
                     canEdit={canEdit}
                     onEditItem={(item) => handleEditItem(item as unknown as TreeBomItem)}
                     onAddItem={handleAddItem}

@@ -65,7 +65,7 @@ export function SkillsTable({
         return (
             <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
                 <EntityDataTable
-                    data={selectedSkills as unknown[]}
+                    data={selectedSkills as Record<string, unknown>[]}
                     columns={skillsColumns}
                     actions={skillsActions}
                     emptyMessage="Nenhuma habilidade selecionada"
