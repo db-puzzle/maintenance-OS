@@ -95,7 +95,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 return newData;
             });
         }
-    }, [routine?.id, routine?.name, routine?.trigger_type, routine?.trigger_runtime_hours, routine?.trigger_calendar_days, routine?.execution_mode, routine?.description, routine?.advance_generation_days, routine?.auto_approve_work_orders, routine?.priority_score]);
+    }, [routine]);
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         // Validação básica

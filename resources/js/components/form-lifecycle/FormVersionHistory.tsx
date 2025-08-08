@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { FileText, History, Calendar, User, CheckCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -27,12 +27,7 @@ interface FormVersionHistoryProps {
 export default function FormVersionHistory({ routineId, isOpen, onClose }: FormVersionHistoryProps) {
     const [versions, setVersions] = useState<Version[]>([]);
     const [loading, setLoading] = useState(false);
-    useEffect(() => {
-        if (isOpen) {
-            fetchVersions();
-        }
-    }, [isOpen, routineId]);
-    const fetchVersions = async () => {
+    const fetchVersions = useCallback(async () => {
         setLoading(true);
         try {
             const response = await axios.get(route('maintenance.routines.version-history', routineId));
@@ -43,7 +38,13 @@ export default function FormVersionHistory({ routineId, isOpen, onClose }: FormV
         } finally {
             setLoading(false);
         }
-    };
+    }, [routineId]);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchVersions();
+        }
+    }, [isOpen, routineId, fetchVersions]);
     const handleViewVersion = (versionId: number) => {
         router.visit(route('maintenance.routines.view-version', { routine: routineId, versionId }));
     };

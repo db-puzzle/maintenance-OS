@@ -62,7 +62,7 @@ export default function CertificationSheet({ open, onOpenChange, certification, 
         } else {
             reset();
         }
-    }, [certification]);
+    }, [certification, reset, setData]);
 
     const handleValidityOptionChange = (value: string) => {
         setData('validity_option', value);

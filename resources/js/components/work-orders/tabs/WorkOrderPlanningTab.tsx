@@ -253,19 +253,19 @@ export function WorkOrderPlanningTab({
 
     const isViewMode = !canPlan || !['approved', 'planned'].includes(workOrder.status) || isPlanned;
 
-    const calculateLaborCost = () => {
+    const calculateLaborCost = React.useCallback(() => {
         const hours = parseFloat(data.estimated_hours) || 0;
         const rate = parseFloat(data.labor_cost_per_hour) || 0;
         const people = parseInt(data.number_of_people) || 1;
         return hours * rate * people;
-    };
+    }, [data.estimated_hours, data.labor_cost_per_hour, data.number_of_people]);
 
-    const calculatePartsCost = () => {
+    const calculatePartsCost = React.useCallback(() => {
         return plannedParts.reduce((sum, part) => {
             const partCost = Number(part.total_cost) || 0;
             return sum + partCost;
         }, 0);
-    };
+    }, [plannedParts]);
 
     React.useEffect(() => {
         const laborCost = calculateLaborCost();
@@ -279,7 +279,7 @@ export function WorkOrderPlanningTab({
             estimated_total_cost: totalCost,
             parts: plannedParts,
         }));
-    }, [data.estimated_hours, data.labor_cost_per_hour, data.number_of_people, plannedParts]);
+    }, [data.estimated_hours, data.labor_cost_per_hour, data.number_of_people, plannedParts, calculateLaborCost, calculatePartsCost, setData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

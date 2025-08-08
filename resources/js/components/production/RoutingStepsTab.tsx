@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import {
@@ -66,11 +66,11 @@ export default function RoutingStepsTab({
         flash?.openRouteBuilder ||
         openRouteBuilderParam === '1';
     // Determine the correct view mode
-    const determineViewMode = (): ViewMode => {
+    const determineViewMode = useCallback((): ViewMode => {
         if (shouldStartInBuilder && canManage) return 'builder';
         if (steps && steps.length > 0) return 'viewer';
         return 'empty';
-    };
+    }, [shouldStartInBuilder, canManage, steps]);
     const initialViewMode = determineViewMode();
     const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
     const [selectedTemplate, setSelectedTemplate] = useState<RouteTemplate | null>(null);
@@ -81,7 +81,7 @@ export default function RoutingStepsTab({
         if (viewMode !== correctMode) {
             setViewMode(correctMode);
         }
-    }, [steps?.length, openRouteBuilderParam, flash?.openRouteBuilder]);
+    }, [steps?.length, openRouteBuilderParam, flash?.openRouteBuilder, determineViewMode, viewMode]);
     // Clean up URL param after using it
     useEffect(() => {
         if (openRouteBuilderParam === '1' && routingId) {
@@ -92,7 +92,7 @@ export default function RoutingStepsTab({
                 replace: true
             });
         }
-    }, []);
+    }, [openRouteBuilderParam, routingId]);
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         name: '',
         description: '',

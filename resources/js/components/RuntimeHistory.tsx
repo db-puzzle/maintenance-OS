@@ -97,7 +97,7 @@ export default function RuntimeHistory({ assetId, activeTab, parentVisible = fal
         if (activeTab === 'horimetro' && parentVisible && assetId) {
             fetchMeasurements();
         }
-    }, [activeTab, parentVisible, assetId]);
+    }, [activeTab, parentVisible, assetId, fetchMeasurements]);
     const handleSort = (column: string) => {
         const newDirection = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
         setFilters({

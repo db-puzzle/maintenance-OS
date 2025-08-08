@@ -66,7 +66,7 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
         } else {
             reset();
         }
-    }, [part]);
+    }, [part, reset, setData]);
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const _submitData = {

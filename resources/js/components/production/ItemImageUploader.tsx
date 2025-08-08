@@ -27,15 +27,7 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
             setDragActive(false);
         }
     }, []);
-    const handleDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragActive(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFiles(e.dataTransfer.files);
-        }
-    }, []);
-    const handleFiles = (files: FileList) => {
+    const handleFiles = useCallback((files: FileList) => {
         const validFiles = Array.from(files).filter(file => {
             const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'];
             return validTypes.includes(file.type) && file.size <= 10 * 1024 * 1024; // 10MB
@@ -46,7 +38,16 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
         }));
         setPreviews(prev => [...prev, ...newPreviews]);
         setData('images', [...data.images, ...validFiles]);
-    };
+    }, [remainingSlots, data.images, setData]);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFiles(e.dataTransfer.files);
+        }
+    }, [handleFiles]);
     const removeFile = (index: number) => {
         URL.revokeObjectURL(previews[index].url);
         setPreviews(prev => prev.filter((_, i) => i !== index));

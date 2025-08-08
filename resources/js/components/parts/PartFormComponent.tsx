@@ -60,7 +60,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
         if (!initialManufacturers || initialManufacturers.length === 0) {
             fetchManufacturers();
         }
-    }, []);
+    }, [initialManufacturers]);
     const fetchManufacturers = async () => {
         try {
             const response = await fetch(route('asset-hierarchy.manufacturers.all'));

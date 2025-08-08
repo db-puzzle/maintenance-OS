@@ -48,7 +48,7 @@ export default function SkillSheet({ open, onOpenChange, skill, onClose }: Skill
         } else {
             reset();
         }
-    }, [skill]);
+    }, [skill, reset, setData]);
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (skill) {

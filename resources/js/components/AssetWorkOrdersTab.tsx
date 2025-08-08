@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ColumnVisibility } from '@/components/data-table';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityPagination } from '@/components/shared/EntityPagination';
@@ -93,7 +93,7 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
     });
 
     // Fetch work orders for this asset
-    const fetchWorkOrders = async (page = 1, searchQuery = search) => {
+    const fetchWorkOrders = useCallback(async (page = 1, searchQuery = search) => {
         setLoading(true);
         try {
             const response = await axios.get(route('asset-hierarchy.assets.work-orders', assetId), {
@@ -152,11 +152,11 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
         } finally {
             setLoading(false);
         }
-    };
+    }, [assetId, search]);
 
     useEffect(() => {
         fetchWorkOrders();
-    }, [assetId]);
+    }, [assetId, fetchWorkOrders]);
 
     // Column configuration
     const columns: ColumnConfig[] = [
