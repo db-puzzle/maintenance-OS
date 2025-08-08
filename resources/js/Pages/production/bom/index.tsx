@@ -166,7 +166,7 @@ export default function BomIndex({ boms, filters }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data as any[]}
                         columns={columns}
                         loading={false}
                         onRowClick={(row) => router.visit(route('production.bom.show', row.id))}

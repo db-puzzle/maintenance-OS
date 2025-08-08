@@ -68,6 +68,7 @@ const statusConfig = {
 export default function ShipmentsIndex({ shipments, filters, statuses, shipmentTypes, can }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteShipment, setDeleteShipment] = useState<Shipment | null>(null);
+    const [loading, setLoading] = useState(false);
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.shipments.index'), { ...filters, search: value }, {
@@ -241,19 +242,19 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as unknown as Record<string, unknown>[]}
+                        data={data as any[]}
                         columns={columns}
                         loading={loading}
-                        onRowClick={(shipment) => router.visit(route('production.shipments.show', (shipment as unknown).id))}
+                        onRowClick={(shipment) => router.visit(route('production.shipments.show', (shipment as Shipment).id))}
                         actions={(shipment) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(route('production.shipments.edit', (shipment as unknown).id))}
-                                onDelete={() => setDeleteShipment(shipment as unknown)}
+                                onEdit={() => router.visit(route('production.shipments.edit', (shipment as Shipment).id))}
+                                onDelete={() => setDeleteShipment(shipment as Shipment)}
                                 additionalActions={[
                                     {
                                         label: 'View Details',
                                         icon: <Eye className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.shipments.show', (shipment as unknown).id))
+                                        onClick: () => router.visit(route('production.shipments.show', (shipment as Shipment).id))
                                     }
                                 ]}
                             />

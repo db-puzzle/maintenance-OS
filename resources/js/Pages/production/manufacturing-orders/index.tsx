@@ -342,7 +342,7 @@ export default function ManufacturingOrders({
                 {/* Data Table */}
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={orders.data}
+                        data={orders.data as any[]}
                         columns={columns}
                         loading={loading}
                         onRowClick={(order) => router.visit(route('production.orders.show', order.id))}

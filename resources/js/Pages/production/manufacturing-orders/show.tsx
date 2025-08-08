@@ -93,7 +93,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
     });
     // Create a wrapper that matches the TextInput interface
     const form = {
-        data: inertiaForm.data as Record<string, unknown>,
+        data: inertiaForm.data as any,
         setData: (name: string, value: unknown) => inertiaForm.setData(name as any, value),
         errors: inertiaForm.errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...fields),

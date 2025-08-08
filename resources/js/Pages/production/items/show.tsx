@@ -874,7 +874,7 @@ export default function ItemShow({
                                     </div>
 
                                     <EntityDataTable
-                                        data={whereUsedBoms.data}
+                                        data={whereUsedBoms.data as any[]}
                                         columns={[
                                             {
                                                 key: 'bom_number',
@@ -980,7 +980,7 @@ export default function ItemShow({
                                     </div>
 
                                     <EntityDataTable
-                                        data={manufacturingOrders.data}
+                                        data={manufacturingOrders.data as any[]}
                                         columns={[
                                             {
                                                 key: 'order_number',

@@ -170,7 +170,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={routings.data || []}
+                        data={(routings.data || []) as any[]}
                         columns={columns}
                         loading={false}
                         onRowClick={(routing) => router.visit(route('production.routing.show', (routing as Routing).id))}

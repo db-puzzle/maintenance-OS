@@ -339,7 +339,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data as any[]}
                         columns={columns}
                         loading={false}
                         onRowClick={(workOrder) => router.visit(route(`${discipline}.work-orders.show`, { id: (workOrder as WorkOrder).id }))}
