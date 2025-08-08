@@ -125,8 +125,8 @@ export default function CertificationFormComponent({
         });
     };
     // Calculate statistics for view mode
-    const validUsers = certification?.users?.filter((u: unknown) => !u.is_expired).length || 0;
-    const expiredUsers = certification?.users?.filter((u: unknown) => u.is_expired).length || 0;
+    const validUsers = certification?.users?.filter((u) => !(u as any).is_expired).length || 0;
+    const expiredUsers = certification?.users?.filter((u) => (u as any).is_expired).length || 0;
     return (
         <>
             <div className="space-y-6">

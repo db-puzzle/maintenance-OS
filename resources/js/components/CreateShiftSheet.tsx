@@ -252,7 +252,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             };
         };
          
-        const { data, setData, processing, errors, clearErrors, setError } = useForm<ShiftFormWithTimezone>(getInitialFormData() as ShiftFormWithTimezone);
+        const { data, setData, processing, errors, clearErrors, setError } = useForm(getInitialFormData() as ShiftFormWithTimezone);
         // Create a wrapper for setData to match the TextInput expected signature
         const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
              
@@ -364,7 +364,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
         const removeShift = (dayIndex: number, shiftIndex: number) => {
              
-            const newSchedules = data.schedules.map((day, idx) => {
+            const newSchedules = (data.schedules as Schedule[]).map((day, idx) => {
                 if (idx === dayIndex) {
                     return {
                         ...day,
@@ -406,7 +406,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
         const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
              
-            const newSchedules = data.schedules.map((day, idx) => {
+            const newSchedules = (data.schedules as Schedule[]).map((day, idx) => {
                 if (idx === dayIndex) {
                     return {
                         ...day,
@@ -435,10 +435,10 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
         const applyToSelectedDays = () => {
              
-            const sourceDay = data.schedules.find((s: unknown) => s.weekday === selectedDay);
+            const sourceDay = (data.schedules as Schedule[]).find((s) => s.weekday === selectedDay);
             if (!sourceDay) return;
              
-            const newSchedules = data.schedules.map((schedule) => {
+            const newSchedules = (data.schedules as Schedule[]).map((schedule) => {
                 if (selectedDays.includes(schedule.weekday)) {
                     // Cria uma cópia profunda do dia de origem
                     return {
@@ -467,7 +467,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                  
                 timezone: data.timezone,
                  
-                schedules: data.schedules.map((schedule) => ({
+                schedules: (data.schedules as Schedule[]).map((schedule) => ({
                     ...schedule,
                      
                     shifts: schedule.shifts.map((shift) => ({
@@ -529,7 +529,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
                              
-                            setError(key as unknown, validationErrors[key][0]);
+                            setError(key as keyof ShiftFormWithTimezone, validationErrors[key][0]);
                         });
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
@@ -567,7 +567,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
                              
-                            setError(key as unknown, validationErrors[key][0]);
+                            setError(key as keyof ShiftFormWithTimezone, validationErrors[key][0]);
                         });
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
@@ -611,7 +611,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
                              
-                            setError(key as unknown, validationErrors[key][0]);
+                            setError(key as keyof ShiftFormWithTimezone, validationErrors[key][0]);
                         });
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
@@ -728,7 +728,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                             value={`${zone.value} ${zone.label}`}
                                                                             onSelect={() => {
                                                                                  
-                                                                                setData('timezone' as unknown, zone.value);
+                                                                                setData('timezone' as keyof ShiftFormWithTimezone, zone.value);
                                                                                 setTimezoneOpen(false);
                                                                             }}
                                                                         >
@@ -846,7 +846,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                     </div>
                                                 ) : (
                                                      
-                                                    data.schedules[dayIndex].shifts.map((shift: unknown, shiftIndex: number) => {
+                                                    data.schedules[dayIndex].shifts.map((shift, shiftIndex) => {
                                                          
                                                         const overlappingShifts = findOverlappingShifts(data.schedules[dayIndex].shifts, shiftIndex);
                                                         return (
@@ -944,7 +944,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                                 <div className="space-y-2">
                                                                                     {/* Lista de intervalos */}
                                                                                     { }
-                                                                                    {shift.breaks.map((breakTime: unknown, breakIndex: number) => {
+                                                                                    {shift.breaks.map((breakTime, breakIndex) => {
                                                                                         const isValidInShift = isBreakValid(shift, breakTime);
                                                                                         const isOverlapping =
                                                                                             isValidInShift &&

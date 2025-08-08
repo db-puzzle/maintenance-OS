@@ -187,7 +187,7 @@ export default function CreateRoute({ order, templates }: Props) {
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <Clock className="h-4 w-4" />
-                                                    <span>{template.total_time || 0} min</span>
+                                                    <span>{template.estimated_time || 0} min</span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <Users className="h-4 w-4" />

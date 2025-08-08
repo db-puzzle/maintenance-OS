@@ -58,7 +58,7 @@ export default function CreateRouting({ items, orders }: Props) {
                                     data,
                                     setData: handleSetData,
                                     errors,
-                                    clearErrors,
+                                    clearErrors: (...fields: string[]) => clearErrors(...fields as any),
                                 }}
                                 name="name"
                                 label="Nome do Roteiro"

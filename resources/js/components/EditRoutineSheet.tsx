@@ -166,14 +166,14 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 }
                 // Call onSuccess callback if provided
                 if (onSuccess) {
-                    const routineData = (page.props as unknown).routine || routine;
+                    const routineData = (page.props as any).routine || routine;
                     onSuccess(routineData);
                 }
             },
             onError: (errors) => {
                 const firstError = Object.values(errors)[0];
                 toast.error(firstError || 'Erro ao salvar rotina');
-                setErrors(errors as unknown);
+                setErrors(errors as Partial<Record<keyof RoutineForm, string>>);
             },
             onFinish: () => {
                 setProcessing(false);

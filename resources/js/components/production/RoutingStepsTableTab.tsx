@@ -28,10 +28,10 @@ export default function RoutingStepsTableTab({
     const handleStartStep = (stepId: number) => {
         router.get(route('production.steps.execute', stepId));
     };
-    const getStepActions = (step: unknown) => {
+    const getStepActions = (step: ManufacturingStep) => {
         if (!canExecute) return null;
         const canStart = !step.depends_on_step_id ||
-            (step.dependency && ['completed', 'in_progress'].includes(step.dependency.status));
+            ((step as any).dependency && ['completed', 'in_progress'].includes((step as any).dependency.status));
         switch (step.status) {
             case 'pending':
             case 'queued':
@@ -89,13 +89,13 @@ export default function RoutingStepsTableTab({
             key: 'name',
             label: 'Nome da Etapa',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const step = row as unknown;
+                const step = row as unknown as ManufacturingStep;
                 return (
                     <div className="space-y-1">
                         <div className="font-medium">{step.name}</div>
-                        {step.depends_on_step_id && step.dependency && (
+                        {step.depends_on_step_id && (step as any).dependency && (
                             <div className="text-xs text-muted-foreground">
-                                Depende de: {step.dependency.name}
+                                Depende de: {(step as any).dependency.name}
                             </div>
                         )}
                     </div>
@@ -111,7 +111,7 @@ export default function RoutingStepsTableTab({
             key: 'work_cell',
             label: 'Célula de Trabalho',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const step = row as unknown;
+                const step = row as unknown as ManufacturingStep;
                 return step.work_cell ? (
                     <div>
                         <div className="font-medium">{step.work_cell.code}</div>

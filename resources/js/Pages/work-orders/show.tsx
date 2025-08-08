@@ -122,6 +122,9 @@ export default function ShowWorkOrder({
         );
     }
 
+    // After this point, workOrder is guaranteed to be defined when not creating
+    const definedWorkOrder = workOrder as WorkOrder;
+
     // Define breadcrumbs
     const breadcrumbs: BreadcrumbItem[] = useMemo(() => [
         {
@@ -196,7 +199,7 @@ export default function ShowWorkOrder({
                 icon: <FileText className="h-4 w-4" />,
                 content: (
                     <WorkOrderGeneralTab
-                        workOrder={workOrder}
+                        workOrder={definedWorkOrder}
                         categories={categories}
                         workOrderTypes={workOrderTypes}
                         plants={plants}
@@ -216,7 +219,7 @@ export default function ShowWorkOrder({
                 icon: <CheckCircle className="h-4 w-4" />,
                 content: (
                     <WorkOrderApprovalTab
-                        workOrder={workOrder}
+                        workOrder={definedWorkOrder}
                         canApprove={canApprove}
                         approvalThreshold={approvalThreshold}
                         discipline={discipline}
@@ -230,7 +233,7 @@ export default function ShowWorkOrder({
                 icon: <Calendar className="h-4 w-4" />,
                 content: (
                     <WorkOrderPlanningTab
-                        workOrder={workOrder}
+                        workOrder={definedWorkOrder}
                         technicians={technicians}
                         teams={teams}
                         parts={parts}
@@ -251,7 +254,7 @@ export default function ShowWorkOrder({
                 icon: <Clock className="h-4 w-4" />,
                 content: (
                     <WorkOrderScheduleTab
-                        workOrder={workOrder}
+                        workOrder={definedWorkOrder}
                         technicians={technicians}
                         teams={teams}
                         canSchedule={canPlan} // Using same permission as planning for now
@@ -264,7 +267,7 @@ export default function ShowWorkOrder({
                 id: 'execution',
                 label: 'Execução',
                 icon: <Play className="h-4 w-4" />,
-                content: <WorkOrderExecutionTab workOrder={workOrder} />,
+                content: <WorkOrderExecutionTab workOrder={definedWorkOrder} />,
             });
             // Add failure analysis tab if it exists
             if (workOrder?.failure_analysis) {
@@ -272,7 +275,7 @@ export default function ShowWorkOrder({
                     id: 'analysis',
                     label: 'Análise de Falha',
                     icon: <Wrench className="h-4 w-4" />,
-                    content: <WorkOrderFailureAnalysisTab workOrder={workOrder} />,
+                    content: <WorkOrderFailureAnalysisTab workOrder={definedWorkOrder} />,
                 });
             }
             // Additional tabs (Histórico and Peças)
@@ -280,13 +283,13 @@ export default function ShowWorkOrder({
                 id: 'history',
                 label: 'Histórico',
                 icon: <Activity className="h-4 w-4" />,
-                content: <WorkOrderHistoryTab workOrder={workOrder} />,
+                content: <WorkOrderHistoryTab workOrder={definedWorkOrder} />,
             });
             tabs.push({
                 id: 'parts',
                 label: 'Peças',
                 icon: <Package className="h-4 w-4" />,
-                content: <WorkOrderPartsTab workOrder={workOrder} />,
+                content: <WorkOrderPartsTab workOrder={definedWorkOrder} />,
             });
         }
         return tabs;
@@ -319,7 +322,7 @@ export default function ShowWorkOrder({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isCreating ? 'Nova Ordem de Serviço' : `Ordem de Serviço ${workOrder?.work_order_number || ''}`} />
             <ShowLayout
-                title={isCreating ? 'Nova Ordem de Serviço' : workOrder?.work_order_number}
+                title={isCreating ? 'Nova Ordem de Serviço' : definedWorkOrder?.work_order_number || ''}
                 subtitle={
                     isCreating ? (
                         'Criação de nova ordem de serviço'

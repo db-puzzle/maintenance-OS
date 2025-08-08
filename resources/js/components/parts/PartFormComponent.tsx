@@ -106,7 +106,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                 onSuccess: (page) => {
                     toast.success('Peça criada com sucesso');
                     // Get the newly created part ID from flash data or redirect
-                    const newPartId = (page.props as unknown).flash?.partId;
+                    const newPartId = (page.props as any).flash?.partId;
                     if (newPartId) {
                         router.get(route('parts.show', newPartId));
                     } else if (onSuccess) {
@@ -172,7 +172,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     <TextInput
                         form={{
                             data,
-                            setData: (key: string, value: unknown) => setData(key as unknown, value),
+                            setData: (key: string, value: string | number | boolean | File | null | undefined) => setData(key as any, value),
                             errors,
                             clearErrors: handleClearErrors,
                         }}
@@ -186,7 +186,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     <TextInput
                         form={{
                             data,
-                            setData: (key: string, value: unknown) => setData(key as unknown, value),
+                            setData: (key: string, value: string | number | boolean | File | null | undefined) => setData(key as any, value),
                             errors,
                             clearErrors: handleClearErrors,
                         }}
@@ -332,7 +332,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     <TextInput
                         form={{
                             data,
-                            setData: (key: string, value: unknown) => setData(key as unknown, value),
+                            setData: (key: string, value: string | number | boolean | File | null | undefined) => setData(key as any, value),
                             errors,
                             clearErrors: handleClearErrors,
                         }}

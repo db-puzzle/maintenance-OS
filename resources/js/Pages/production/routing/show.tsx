@@ -35,7 +35,7 @@ interface Props {
 }
 export default function RoutingShow({ routing, effectiveSteps, templates, workCells, stepTypes, forms, openRouteBuilder, can }: Props) {
     const [activeTab, setActiveTab] = useState('overview');
-    const form = useForm({
+    const form = useForm<FormDataType>({
         name: routing.name || '',
         description: routing.description || '',
         manufacturing_order_id: routing.manufacturing_order?.id?.toString() || '',
@@ -93,7 +93,6 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
                 routing={routing}
                 steps={effectiveSteps}
                 canManage={can.manage_steps}
-                canExecute={can.execute_steps}
                 routingId={routing.id}
                 templates={templates}
                 workCells={workCells}
@@ -136,10 +135,24 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
     );
 }
 // Overview Tab Component
+type FormDataType = {
+    name: string;
+    description: string;
+    manufacturing_order_id: string;
+    item_id: string;
+    route_template_id: string;
+    is_active: boolean;
+};
+
 interface RoutingOverviewTabProps {
     routing: ManufacturingRoute;
     effectiveSteps: ManufacturingStep[];
-    form: ReturnType<typeof useForm>;
+    form: ReturnType<typeof useForm<FormDataType>>;
+    progressPercentage?: number;
+    completedSteps?: number;
+    totalSteps?: number;
+    totalEstimatedTime?: number;
+    totalActualTime?: number;
     onTabChange: (tab: string) => void;
 }
 

@@ -234,12 +234,12 @@ export function WorkOrderPlanningTab({
     const isPlanned = ['planned', 'scheduled', 'in_progress', 'completed', 'verified', 'closed'].includes(workOrder.status);
 
     // Find the planning completion entry in status history
-    const planningEntry = workOrder.status_history?.find((entry: unknown) =>
+    const planningEntry = workOrder.status_history?.find((entry) =>
         entry.from_status === 'planned' && entry.to_status === 'scheduled'
     );
 
     // Also check for any entry that shows the work order was planned
-    const planningRelatedEntry = planningEntry || workOrder.status_history?.find((entry: unknown) =>
+    const planningRelatedEntry = planningEntry || workOrder.status_history?.find((entry) =>
         (entry.from_status === 'approved' && entry.to_status === 'planned') ||
         (entry.from_status === 'planned' && entry.to_status === 'scheduled')
     );
