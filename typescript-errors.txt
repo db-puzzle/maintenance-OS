@@ -1,0 +1,39 @@
+
+> types
+> tsc --noEmit
+
+resources/js/types/maintenance.ts(257,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(258,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(259,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(260,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(261,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(262,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(263,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(264,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(265,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(266,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(267,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(268,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(269,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(270,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(271,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(272,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(273,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(274,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/maintenance.ts(275,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(362,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(363,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(364,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(365,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(366,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(367,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(368,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(369,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(370,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(371,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(372,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(373,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(374,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(375,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(376,1): error TS1185: Merge conflict marker encountered.
+resources/js/types/production.ts(377,1): error TS1185: Merge conflict marker encountered.
