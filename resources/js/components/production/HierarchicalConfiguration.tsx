@@ -30,8 +30,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { BomItem, Item, ItemCategory, ManufacturingOrder, RouteTemplate } from '@/types/production';
 import { CreateItemSheet } from '@/components/CreateItemSheet';
-import BomTreeView, { type BomTreeNode } from './BomTreeView';
-import ManufacturingOrderTreeView from './ManufacturingOrderTreeView';
+import { BomTreeView, type BomTreeNode } from './BomTreeView';
+import { ManufacturingOrderTreeView } from './ManufacturingOrderTreeView';
 
 import { Image } from 'lucide-react';
 
@@ -579,7 +579,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                 <BomTreeView
                     items={bomItems as any as BomTreeNode[]}
                     canEdit={canEdit}
-                    onEditItem={(item) => handleEditItem(item as unknown as TreeBomItem)}
+                    onEditItem={(item) => handleEditItem(item as TreeBomItem)}
                     onAddItem={handleAddItem}
                     onDeleteItem={handleDeleteItem}
                     draggable={canEdit}

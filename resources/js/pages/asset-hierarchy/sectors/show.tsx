@@ -118,7 +118,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 sortable: true,
                                 width: 'w-[25%]',
                                  
-                                render: (value, row) => <div className="font-medium">{(row as unknown).tag}</div>,
+                                render: (value, row) => <div className="font-medium">{(row as { tag?: string }).tag}</div>,
                             },
                             {
                                 key: 'asset_type_name',
@@ -126,7 +126,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 sortable: true,
                                 width: 'w-[25%]',
                                  
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown).asset_type?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as { asset_type?: { name?: string } }).asset_type?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturer_name',
@@ -134,7 +134,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                                 sortable: true,
                                 width: 'w-[25%]',
                                  
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown).manufacturer?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as { manufacturer?: { name?: string } }).manufacturer?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturing_year',
@@ -145,7 +145,7 @@ export default function Show({ sector, plants, asset, activeTab, filters }: Prop
                             },
                         ]}
                          
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as unknown).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as { id?: number }).id))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {
                                 asset_type_name: 'type',

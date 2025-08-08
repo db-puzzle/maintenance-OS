@@ -296,7 +296,7 @@ export function WorkOrderScheduleTab({
                                 name: team.name,
                             }))}
                             value={data.assigned_team_id?.toString() || ''}
-                            onValueChange={(value) => setData('assigned_team_id', value ? parseInt(value) : null)}
+                            onValueChange={(value) => setData('assigned_team_id', value ? Number(value) || null : null)}
                             placeholder="Selecione uma equipe"
                             view={isViewMode}
                             canClear
@@ -311,7 +311,7 @@ export function WorkOrderScheduleTab({
                                 name: tech.name,
                             }))}
                             value={data.assigned_technician_id?.toString() || ''}
-                            onValueChange={(value) => setData('assigned_technician_id', value ? parseInt(value) : null)}
+                            onValueChange={(value) => setData('assigned_technician_id', value ? Number(value) || null : null)}
                             placeholder="Selecione um técnico"
                             view={isViewMode}
                             canClear

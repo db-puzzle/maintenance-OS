@@ -353,7 +353,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             });
         }
 
-        setData('schedules', newSchedules as unknown);
+        setData('schedules', newSchedules);
     };
 
     // Função para remover um turno de um dia específico
@@ -368,7 +368,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             return day;
         });
 
-        setData('schedules', newSchedules as unknown);
+        setData('schedules', newSchedules);
     };
 
     // Função para adicionar um intervalo em um turno específico
@@ -402,7 +402,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             }
         }
 
-        setData('schedules', newSchedules as unknown);
+        setData('schedules', newSchedules);
     };
 
     const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
@@ -424,13 +424,13 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             return day;
         });
 
-        setData('schedules', newSchedules as unknown);
+        setData('schedules', newSchedules);
     };
 
     const updateBreak = (dayIndex: number, shiftIndex: number, breakIndex: number, field: keyof Break, value: string) => {
         const newSchedules = [...data.schedules];
         newSchedules[dayIndex].shifts[shiftIndex].breaks[breakIndex][field] = value;
-        setData('schedules', newSchedules as unknown);
+        setData('schedules', newSchedules);
     };
 
     const applyToSelectedDays = () => {
@@ -452,7 +452,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
             return schedule;
         });
 
-        setData('schedules', newSchedules as unknown);
+        setData('schedules', newSchedules);
         setSelectedDays([]);
     };
 
@@ -655,7 +655,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                                         onChange={(value: string) => {
                                                                             const newSchedules = [...data.schedules];
                                                                             newSchedules[dayIndex].shifts[shiftIndex].start_time = value;
-                                                                            setData('schedules', newSchedules as unknown);
+                                                                            setData('schedules', newSchedules);
                                                                         }}
                                                                     />
                                                                     <span className="text-muted-foreground">até</span>
@@ -665,7 +665,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                                         onChange={(value: string) => {
                                                                             const newSchedules = [...data.schedules];
                                                                             newSchedules[dayIndex].shifts[shiftIndex].end_time = value;
-                                                                            setData('schedules', newSchedules as unknown);
+                                                                            setData('schedules', newSchedules);
                                                                         }}
                                                                     />
                                                                     {/* Botão para remover turno */}
