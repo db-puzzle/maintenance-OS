@@ -135,8 +135,10 @@ export interface BomItem {
 export interface WorkCell {
     id: number;
     name: string;
+    code?: string;
     description?: string;
     cell_type: 'internal' | 'external';
+    status?: 'active' | 'maintenance' | 'inactive';
     available_hours_per_day: number;
     efficiency_percentage: number;
     shift_id?: number;
@@ -352,9 +354,8 @@ export interface ShipmentPhoto {
 }
 
 // Alias for backward compatibility - Routing is now RouteTemplate
+export type Routing = RouteTemplate;
 <<<<<<< Current (Your changes)
-export type Routing = RouteTemplate; 
 >>>>>>> Incoming (Background Agent changes)
 =======
-export type Routing = RouteTemplate;
 >>>>>>> Incoming (Background Agent changes)

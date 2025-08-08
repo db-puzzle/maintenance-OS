@@ -124,7 +124,6 @@ export default function QrScanner() {
                                 handleScan(result.text);
                             }
                         }}
-                        constraints={{ facingMode: 'environment' }}
                         className="w-full h-full"
                     />
                 ) : (

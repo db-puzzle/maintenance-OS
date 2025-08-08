@@ -4,7 +4,10 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { WorkOrder, WorkOrderCategory, WorkOrderType, Asset as WorkOrderAsset, Team, Form } from '@/types/work-order';
 import { User } from '@/types';
-import { Plant, Area, Sector, Asset } from '@/types/asset-hierarchy';
+import { Asset } from '@/types/asset-hierarchy';
+import { Plant } from '@/types/entities/plant';
+import { Area } from '@/types/entities/area';
+import { Sector } from '@/types/entities/sector';
 import { Part } from '@/types/maintenance';
 import { Skill, Certification } from '@/types/entities/skill';
 import {
@@ -107,6 +110,18 @@ export default function ShowWorkOrder({
         // This will be called after successful work order creation
         // The WorkOrderFormComponent will handle the redirect
     };
+
+    // If not creating and no workOrder provided, show error
+    if (!isCreating && !workOrder) {
+        return (
+            <AppLayout breadcrumbs={[]}>
+                <div className="text-center py-8">
+                    <p className="text-muted-foreground">Ordem de serviço não encontrada</p>
+                </div>
+            </AppLayout>
+        );
+    }
+
     // Define breadcrumbs
     const breadcrumbs: BreadcrumbItem[] = useMemo(() => [
         {
@@ -245,7 +260,7 @@ export default function ShowWorkOrder({
             content: <WorkOrderExecutionTab workOrder={workOrder} />,
         });
         // Add failure analysis tab if it exists
-        if (workOrder.failure_analysis) {
+        if (workOrder?.failure_analysis) {
             tabs.push({
                 id: 'analysis',
                 label: 'Análise de Falha',

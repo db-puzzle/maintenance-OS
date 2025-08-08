@@ -133,7 +133,7 @@ function AssetFormFields({
                     <TextInput
                         form={{
                             data: data as Record<string, string | number | boolean | null | undefined>,
-                            setData: setData as (name: string, value: string | number | boolean | null) => void,
+                            setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
                             errors,
                             clearErrors,
                         }}
@@ -148,7 +148,7 @@ function AssetFormFields({
                     <TextInput
                         form={{
                             data: data as Record<string, string | number | boolean | null | undefined>,
-                            setData: setData as (name: string, value: string | number | boolean | null) => void,
+                            setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
                             errors,
                             clearErrors,
                         }}
@@ -202,7 +202,7 @@ function AssetFormFields({
                     <TextInput
                         form={{
                             data: data as Record<string, string | number | boolean | null | undefined>,
-                            setData: setData as (name: string, value: string | number | boolean | null) => void,
+                            setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
                             errors,
                             clearErrors,
                         }}
@@ -215,7 +215,7 @@ function AssetFormFields({
                     <TextInput
                         form={{
                             data: data as Record<string, string | number | boolean | null | undefined>,
-                            setData: setData as (name: string, value: string | number | boolean | null) => void,
+                            setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
                             errors,
                             clearErrors,
                         }}
