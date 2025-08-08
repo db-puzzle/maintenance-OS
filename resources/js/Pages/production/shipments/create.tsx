@@ -32,6 +32,7 @@ interface ShipmentFormData {
     destination_country: string;
     tracking_number: string;
     carrier: string;
+    carrier_contact?: string;
     estimated_delivery_date: string;
     notes: string;
     require_signature: boolean;

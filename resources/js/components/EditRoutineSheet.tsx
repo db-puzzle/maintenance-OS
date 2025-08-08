@@ -134,7 +134,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             ? route('maintenance.routines.store')
             : route('maintenance.routines.update', { routine: routine?.id });
         const method = isNew ? 'post' : 'put';
-        const payload: unknown = {
+        const payload: any = {
             ...data,
             asset_id: assetId || routine?.asset_id,
         };

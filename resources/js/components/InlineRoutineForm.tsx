@@ -97,7 +97,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                 state: idx === initialIndex ? TaskState.Responding : TaskState.Viewing,
             }));
             setTasks(initialTasks);
-        } catch (error: unknown) {
+        } catch (error: any) {
             const err = error as {
                 response?: {
                     status?: number;
@@ -210,7 +210,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
                 // All tasks completed, automatically complete the routine
                 handleCompleteExecution();
             }
-        } catch (error: unknown) {
+        } catch (error: any) {
             const err = error as {
                 response?: {
                     status?: number;
@@ -254,7 +254,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             if (onClose) onClose();
             // Reload the page to refresh the routine list
             router.reload();
-        } catch (error: unknown) {
+        } catch (error: any) {
             const err = error as {
                 response?: {
                     data?: {
@@ -289,7 +289,7 @@ export default function InlineRoutineForm({ routine, assetId, onClose, onComplet
             );
             toast.info('Execução cancelada');
             if (onClose) onClose();
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error('Error canceling execution:', error);
             toast.error('Erro ao cancelar execução');
         }

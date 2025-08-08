@@ -16,6 +16,8 @@ interface Props {
         last_page: number;
         per_page: number;
         total: number;
+        from?: number | null;
+        to?: number | null;
     };
     filters: {
         search?: string;
@@ -49,7 +51,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             { preserveState: true, replace: true }
         );
     };
-    const handleDelete = (routing: unknown) => {
+    const handleDelete = (routing: Routing) => {
         if (confirm(`Tem certeza que deseja excluir o roteiro ${routing.name}?`)) {
             router.delete(route('production.routing.destroy', routing.id), {
                 onSuccess: () => {
@@ -68,7 +70,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[300px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as unknown;
+                const routing = row as Routing;
                 return (
                     <div>
                         <div className="font-medium">{routing.name}</div>
@@ -87,7 +89,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[200px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as unknown;
+                const routing = row as Routing;
                 return routing.manufacturing_order ? (
                     <Link
                         href={route('production.orders.show', routing.manufacturing_order.id)}
@@ -104,7 +106,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[250px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as unknown;
+                const routing = row as Routing;
                 return routing.item ? (
                     <div>
                         <div className="font-medium">{routing.item.item_number}</div>
@@ -132,7 +134,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[300px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as unknown;
+                const routing = row as Routing;
                 return routing.description ? (
                     routing.description.length > 50
                         ? `${routing.description.substring(0, 50)}...`
@@ -168,14 +170,14 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={(routings.data || []) as unknown}
+                        data={(routings.data || []) as any[]}
                         columns={columns}
                         loading={false}
-                        onRowClick={(routing: unknown) => router.visit(route('production.routing.show', routing.id))}
-                        actions={(routing: unknown) => (
+                        onRowClick={(routing) => router.visit(route('production.routing.show', (routing as Routing).id))}
+                        actions={(routing) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(route('production.routing.edit', routing.id))}
-                                onDelete={() => handleDelete(routing)}
+                                onEdit={() => router.visit(route('production.routing.edit', (routing as Routing).id))}
+                                onDelete={() => handleDelete(routing as Routing)}
                             />
                         )}
                     />

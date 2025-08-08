@@ -315,31 +315,31 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as unknown as Record<string, unknown>[]}
+                        data={data as any[]}
                         columns={columns}
                         loading={loading}
-                        onRowClick={(item) => router.visit(route('production.items.show', (item as Item).id))}
+                        onRowClick={(item) => router.visit(route('production.items.show', item.id))}
                         actions={(item) => (
                             <EntityActionDropdown
-                                onEdit={() => setEditItem(item as Item)}
-                                onDelete={() => setDeleteItem(item as Item)}
+                                onEdit={() => setEditItem(item)}
+                                onDelete={() => setDeleteItem(item)}
                                 additionalActions={[
-                                    ...((item as Item).can_be_manufactured ? [
+                                    ...(item.can_be_manufactured ? [
                                         {
                                             label: 'Gerenciar BOM',
                                             icon: <Package className="h-4 w-4" />,
-                                            onClick: () => router.visit(route('production.items.bom', (item as Item).id))
+                                            onClick: () => router.visit(route('production.items.bom', item.id))
                                         },
                                         {
                                             label: 'Histórico de BOM',
                                             icon: <History className="h-4 w-4" />,
-                                            onClick: () => router.visit(route('production.items.bom-history', (item as Item).id))
+                                            onClick: () => router.visit(route('production.items.bom-history', item.id))
                                         }
                                     ] : []),
                                     {
                                         label: 'Onde é Usado',
                                         icon: <GitBranch className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.items.where-used', (item as Item).id))
+                                        onClick: () => router.visit(route('production.items.where-used', item.id))
                                     }
                                 ]}
                             />

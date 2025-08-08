@@ -223,3 +223,37 @@ export interface ExecutionIndexPageProps {
         direction: 'asc' | 'desc';
     };
 }
+<<<<<<< Current (Your changes)
+=======
+
+export interface Part {
+    id: number;
+    part_number: string;
+    name: string;
+    description: string | null;
+    unit_cost: number;
+    available_quantity: number;
+    minimum_quantity: number;
+    maximum_quantity: number | null;
+    location: string | null;
+    manufacturer_id: number | null;
+    manufacturer?: {
+        id: number;
+        name: string;
+    } | null;
+    active: boolean;
+    created_at: string;
+    updated_at: string;
+    work_order_parts?: WorkOrderPart[];
+}
+
+export interface WorkOrderPart {
+    id: number;
+    work_order_id: number;
+    part_id: number;
+    part?: Part;
+    quantity_planned: number;
+    quantity_used: number | null;
+    notes?: string;
+}
+>>>>>>> Incoming (Background Agent changes)

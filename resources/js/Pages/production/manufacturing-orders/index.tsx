@@ -162,12 +162,15 @@ export default function ManufacturingOrders({
             key: 'item',
             label: 'Item',
             width: 'w-[250px]',
-            render: (value: unknown, order: Record<string, unknown>) => (
-                <div>
-                    <p className="font-medium">{(order.item as unknown)?.item_number || '-'}</p>
-                    <p className="text-sm text-muted-foreground">{(order.item as unknown)?.name || '-'}</p>
-                </div>
-            ),
+            render: (value: unknown, order: Record<string, unknown>) => {
+                const mo = order as ManufacturingOrder;
+                return (
+                    <div>
+                        <p className="font-medium">{mo.item?.item_number || '-'}</p>
+                        <p className="text-sm text-muted-foreground">{mo.item?.name || '-'}</p>
+                    </div>
+                );
+            },
         },
         {
             key: 'quantity',
@@ -339,30 +342,30 @@ export default function ManufacturingOrders({
                 {/* Data Table */}
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={orders.data as unknown as Record<string, unknown>[]}
+                        data={orders.data as any[]}
                         columns={columns}
                         loading={loading}
-                        onRowClick={(order) => router.visit(route('production.orders.show', (order as Item).id))}
+                        onRowClick={(order) => router.visit(route('production.orders.show', order.id))}
                         actions={(order) => (
                             <EntityActionDropdown
                                 onEdit={
-                                    ['draft', 'planned'].includes((order as ManufacturingOrder).status)
-                                        ? () => router.visit(route('production.orders.edit', (order as Item).id))
+                                    ['draft', 'planned'].includes(order.status)
+                                        ? () => router.visit(route('production.orders.edit', order.id))
                                         : undefined
                                 }
                                 onDelete={
-                                    (order as ManufacturingOrder).status === 'draft'
-                                        ? () => setDeleteOrder(order as unknown as ManufacturingOrder)
+                                    order.status === 'draft'
+                                        ? () => setDeleteOrder(order)
                                         : undefined
                                 }
                                 additionalActions={[
                                     {
                                         label: 'View',
-                                        onClick: () => router.visit(route('production.orders.show', (order as Item).id))
+                                        onClick: () => router.visit(route('production.orders.show', order.id))
                                     },
-                                    ...(((order as ManufacturingOrder).status === 'draft' || (order as ManufacturingOrder).status === 'planned') && (order as ManufacturingOrder).manufacturing_route ? [{
+                                    ...((order.status === 'draft' || order.status === 'planned') && order.manufacturing_route ? [{
                                         label: 'Release',
-                                        onClick: () => router.post(route('production.orders.release', (order as Item).id))
+                                        onClick: () => router.post(route('production.orders.release', order.id))
                                     }] : [])
                                     // View Children action temporarily disabled - route not implemented yet
                                 ]}
