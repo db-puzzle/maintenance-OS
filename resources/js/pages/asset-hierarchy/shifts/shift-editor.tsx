@@ -287,7 +287,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                     ],
         }));
 
-    const { data, setData, post, put, processing, errors, clearErrors } = useForm<ShiftFormData>({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm<any>({
         name: shift?.name || '',
         schedules: initialSchedules,
     });
@@ -358,11 +358,11 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
 
     // Função para remover um turno de um dia específico
     const removeShift = (dayIndex: number, shiftIndex: number) => {
-        const newSchedules = data.schedules.map((day, idx) => {
+        const newSchedules = data.schedules.map((day: Schedule, idx: number) => {
             if (idx === dayIndex) {
                 return {
                     ...day,
-                    shifts: day.shifts.filter((_, index) => index !== shiftIndex),
+                    shifts: day.shifts.filter((_: Shift, index: number) => index !== shiftIndex),
                 };
             }
             return day;
@@ -406,15 +406,15 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
     };
 
     const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
-        const newSchedules = data.schedules.map((day, idx) => {
+        const newSchedules = data.schedules.map((day: Schedule, idx: number) => {
             if (idx === dayIndex) {
                 return {
                     ...day,
-                    shifts: day.shifts.map((shift, sIdx) => {
+                    shifts: day.shifts.map((shift: Shift, sIdx: number) => {
                         if (sIdx === shiftIndex) {
                             return {
                                 ...shift,
-                                breaks: shift.breaks.filter((_, bIdx) => bIdx !== breakIndex),
+                                breaks: shift.breaks.filter((_: Break, bIdx: number) => bIdx !== breakIndex),
                             };
                         }
                         return shift;
@@ -434,18 +434,18 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
     };
 
     const applyToSelectedDays = () => {
-        const sourceDay = data.schedules.find((s) => s.weekday === selectedDay);
+        const sourceDay = data.schedules.find((s: Schedule) => s.weekday === selectedDay);
         if (!sourceDay) return;
 
-        const newSchedules = data.schedules.map((schedule) => {
+        const newSchedules = data.schedules.map((schedule: Schedule) => {
             if (selectedDays.includes(schedule.weekday)) {
                 // Cria uma cópia profunda do dia de origem
                 return {
                     ...sourceDay,
                     weekday: schedule.weekday,
-                    shifts: sourceDay.shifts.map((shift) => ({
+                    shifts: sourceDay.shifts.map((shift: Shift) => ({
                         ...shift,
-                        breaks: shift.breaks.map((breakTime) => ({ ...breakTime })),
+                        breaks: shift.breaks.map((breakTime: Break) => ({ ...breakTime })),
                     })),
                 };
             }
@@ -460,13 +460,13 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
         // Remove os segundos de todos os horários antes de enviar
         const formattedData = {
             ...data,
-            schedules: data.schedules.map((schedule) => ({
+            schedules: data.schedules.map((schedule: Schedule) => ({
                 ...schedule,
-                shifts: schedule.shifts.map((shift) => ({
+                shifts: schedule.shifts.map((shift: Shift) => ({
                     ...shift,
                     start_time: shift.start_time?.substring(0, 5) || shift.start_time,
                     end_time: shift.end_time?.substring(0, 5) || shift.end_time,
-                    breaks: shift.breaks.map((breakTime) => ({
+                    breaks: shift.breaks.map((breakTime: Break) => ({
                         start_time: breakTime.start_time?.substring(0, 5) || breakTime.start_time,
                         end_time: breakTime.end_time?.substring(0, 5) || breakTime.end_time,
                     })),
@@ -635,7 +635,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                 </div>
                                             </div>
                                         ) : (
-                                            data.schedules[dayIndex].shifts.map((shift, shiftIndex) => {
+                                            data.schedules[dayIndex].shifts.map((shift: Shift, shiftIndex: number) => {
                                                 const overlappingShifts = findOverlappingShifts(data.schedules[dayIndex].shifts, shiftIndex);
 
                                                 return (
@@ -730,7 +730,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                                                                     ) : (
                                                                         <div className="space-y-2">
                                                                             {/* Lista de intervalos */}
-                                                                            {shift.breaks.map((breakTime, breakIndex) => {
+                                                                            {shift.breaks.map((breakTime: Break, breakIndex: number) => {
                                                                                 const isValidInShift = isBreakValid(shift, breakTime);
                                                                                 const isOverlapping =
                                                                                     isValidInShift &&

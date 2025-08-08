@@ -212,7 +212,7 @@ export function WorkOrderPlanningTab({
             .filter(Boolean) as Certification[];
     });
 
-    const { data, setData, post, put, processing, errors, clearErrors } = useForm({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm<any>({
         estimated_hours: workOrder.estimated_hours?.toString() || '',
         labor_cost_per_hour: '150.00',
         estimated_labor_cost: workOrder.estimated_labor_cost || 0,
@@ -274,7 +274,7 @@ export function WorkOrderPlanningTab({
         setData('estimated_labor_cost', laborCost);
         setData('estimated_parts_cost', partsCost);
         setData('estimated_total_cost', totalCost);
-        setData('parts', plannedParts);
+        setData('parts', plannedParts as any);
     }, [data.estimated_hours, data.labor_cost_per_hour, data.number_of_people, plannedParts, calculateLaborCost, calculatePartsCost, setData]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -320,7 +320,7 @@ export function WorkOrderPlanningTab({
 
     const handleRemoveOtherReq = (index: number) => {
         const currentReqs = Array.isArray(data.other_requirements) ? data.other_requirements : [];
-        setData('other_requirements', currentReqs.filter((_: string, i: number) => i !== index));
+        setData('other_requirements', currentReqs.filter((_: any, i: number) => i !== index));
     };
 
     // Skills handlers
@@ -723,7 +723,7 @@ export function WorkOrderPlanningTab({
                         <div className="space-y-4">
                             <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
                                 <EntityDataTable
-                                    data={paginatedParts as Record<string, unknown>[]}
+                                    data={paginatedParts as unknown as Record<string, unknown>[]}
                                     columns={partsColumns}
                                     actions={partsActions}
                                     emptyMessage="Nenhuma peça adicionada"

@@ -32,6 +32,7 @@ import { BomItem, Item, ItemCategory, ManufacturingOrder, RouteTemplate } from '
 import { CreateItemSheet } from '@/components/CreateItemSheet';
 import { BomTreeView, type BomTreeNode } from './BomTreeView';
 import { ManufacturingOrderTreeView } from './ManufacturingOrderTreeView';
+import type { ManufacturingOrderTreeNode } from './ManufacturingOrderTreeView';
 
 import { Image } from 'lucide-react';
 
@@ -579,7 +580,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                 <BomTreeView
                     items={bomItems as any as BomTreeNode[]}
                     canEdit={canEdit}
-                    onEditItem={(item) => handleEditItem(item as TreeBomItem)}
+                    onEditItem={(item) => handleEditItem(item as unknown as TreeBomItem)}
                     onAddItem={handleAddItem}
                     onDeleteItem={handleDeleteItem}
                     draggable={canEdit}
@@ -599,7 +600,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
 
             return (
                 <ManufacturingOrderTreeView
-                    orders={moProps.orders}
+                    orders={moProps.orders as ManufacturingOrderTreeNode[]}
                     showActions={moProps.showActions ?? true}
                     onOrderClick={moProps.onOrderClick}
                     routeTemplates={moProps.routeTemplates}

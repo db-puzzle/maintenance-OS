@@ -41,8 +41,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import RouteTemplateSelectionDialog from '@/components/production/RouteTemplateSelectionDialog';
 import { toast } from 'sonner';
-interface ManufacturingOrderTreeNode extends ManufacturingOrder {
+export interface ManufacturingOrderTreeNode extends ManufacturingOrder {
+    id: number;
     children?: ManufacturingOrderTreeNode[];
+    [key: string]: unknown;
 }
 interface ManufacturingOrderTreeViewProps {
     orders: ManufacturingOrderTreeNode[];

@@ -319,27 +319,27 @@ export default function UserIndex({ users, filters, roles, filterRoles, plants, 
                     {/* Users Table */}
                     <EntityDataTable
                          
-                        data={users.data as unknown}
+                        data={users.data as unknown as Record<string, unknown>[]}
                         columns={columns}
                         loading={false}
                          
-                        onRowClick={(user: unknown) => router.visit(`/users/${user.id}`)}
+                        onRowClick={(user) => router.visit(`/users/${(user as unknown as User).id}`)}
                         emptyMessage="No users found"
                          
-                        actions={(user: unknown) => (
+                        actions={(user) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(`/users/${user.id}/edit`)}
-                                onDelete={() => handleDelete(user as User)}
+                                onEdit={() => router.visit(`/users/${(user as unknown as User).id}/edit`)}
+                                onDelete={() => handleDelete(user as unknown as User)}
                                 additionalActions={[
                                     {
                                         label: 'View Details',
                                         icon: <Eye className="h-4 w-4" />,
-                                        onClick: () => router.visit(`/users/${user.id}`),
+                                        onClick: () => router.visit(`/users/${(user as unknown as User).id}`),
                                     },
                                     {
                                         label: 'Manage Permissions',
                                         icon: <Key className="h-4 w-4" />,
-                                        onClick: () => router.visit(`/users/${user.id}/permissions`),
+                                        onClick: () => router.visit(`/users/${(user as unknown as User).id}/permissions`),
                                     },
                                 ]}
                             />

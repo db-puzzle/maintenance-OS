@@ -370,7 +370,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                         current_version_id: routineData.form.current_version_id ?? null,
                                         tasks: routineData.form.tasks.map(task => ({
                                             ...task,
-                                            id: parseInt(task.id) || 0,
+                                            id: parseInt(task.id.toString()) || 0,
                                             name: task.description,
                                             type: task.type
                                         }))
@@ -455,7 +455,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                                         current_version_id: routineData.form.current_version_id ?? null,
                                         tasks: routineData.form.tasks.map(task => ({
                                             ...task,
-                                            id: parseInt(task.id) || 0,
+                                            id: parseInt(task.id.toString()) || 0,
                                             name: task.description,
                                             type: task.type
                                         }))
