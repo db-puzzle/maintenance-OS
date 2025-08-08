@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { useForm } from '@inertiajs/react';
 import {
@@ -65,13 +65,13 @@ export default function ManufacturingOrderRouteTab({
         flash?.openRouteBuilder ||
         openRouteBuilderParam === '1';
     // Determine the correct view mode
-    const determineViewMode = (): ViewMode => {
+    const determineViewMode = useCallback((): ViewMode => {
         // Check if we have the necessary data
         if (!order || !order.id) return 'empty';
         if (shouldStartInBuilder && order.manufacturing_route) return 'builder';
         if (order.manufacturing_route) return 'routeViewer';
         return 'empty';
-    };
+    }, [order, shouldStartInBuilder]);
     const initialViewMode = determineViewMode();
     const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
 
@@ -82,7 +82,7 @@ export default function ManufacturingOrderRouteTab({
         if (viewMode !== correctMode) {
             setViewMode(correctMode);
         }
-    }, [order?.id, order?.manufacturing_route?.id, openRouteBuilderParam, flash?.openRouteBuilder]);
+    }, [order?.id, order?.manufacturing_route?.id, openRouteBuilderParam, flash?.openRouteBuilder, determineViewMode, viewMode]);
     // Clean up URL param after using it
     useEffect(() => {
         if (openRouteBuilderParam === '1') {
@@ -93,7 +93,7 @@ export default function ManufacturingOrderRouteTab({
                 replace: true
             });
         }
-    }, []);
+    }, [openRouteBuilderParam, order.id]);
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         name: '',
         description: '',

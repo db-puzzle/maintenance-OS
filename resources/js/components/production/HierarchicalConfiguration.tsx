@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { router } from '@inertiajs/react';
 import {
     Plus,
@@ -110,7 +110,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
     const [showImages, setShowImages] = useState(false);
 
     // Calculate the maximum depth of the BOM tree
-    const calculateMaxDepth = (items: TreeBomItem[], currentDepth: number = 0): number => {
+    const calculateMaxDepth = useCallback((items: TreeBomItem[], currentDepth: number = 0): number => {
         if (!items || items.length === 0) return currentDepth;
 
         let maxChildDepth = currentDepth;
@@ -122,7 +122,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         });
 
         return maxChildDepth;
-    };
+    }, []);
 
     // Transform flat BOM items to hierarchical structure
     useEffect(() => {
@@ -157,7 +157,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             });
             setExpanded(initialExpanded);
         }
-    }, [type, props]);
+    }, [type, props, calculateMaxDepth]);
 
     // Helper functions for BOM
     const findItemById = (items: TreeBomItem[], id: string): TreeBomItem | null => {

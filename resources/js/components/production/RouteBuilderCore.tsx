@@ -105,7 +105,7 @@ export default function RouteBuilderCore({
                 form_id: selectedStep.form_id?.toString() || '',
             });
         }
-    }, [selectedStep]);
+    }, [selectedStep, stepForm]);
     const handleSave = () => {
         // Validate that all non-first steps have dependencies
         const invalidSteps = steps.filter(step => step.step_number > 1 && !step.depends_on_step_id);
