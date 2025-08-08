@@ -365,7 +365,7 @@ export default function CreateManufacturingOrder({
                                                         )}
                                                         <div className="flex gap-4 mt-2">
                                                             <Badge variant="outline">
-                                                                {(selectedBOM as unknown).item_masters_count} items
+                                                                {(selectedBOM as any).item_masters_count} items
                                                             </Badge>
                                                         </div>
                                                     </div>
@@ -492,7 +492,7 @@ export default function CreateManufacturingOrder({
                                                                 </tr>
                                                             </thead>
                                                             <tbody className="divide-y">
-                                                                {bomItems.map((bomItem: unknown, index: number) => (
+                                                                {bomItems.map((bomItem, index) => (
                                                                     <tr key={index} className="text-sm">
                                                                         <td className="p-3">
                                                                             <div>

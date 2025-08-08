@@ -111,7 +111,8 @@ export default function BomIndex({ boms, filters }: Props) {
             label: 'Versão',
             width: 'w-[100px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const currentVersion = (row.current_version as unknown)?.version_number;
+                const bomRow = row as BillOfMaterial;
+                const currentVersion = bomRow.current_version?.version_number;
                 return currentVersion ? `v${currentVersion}` : '-';
             }
         },
@@ -133,13 +134,13 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'versions_count',
             label: 'Versões',
             width: 'w-[100px]',
-            render: (value: unknown, row: Record<string, unknown>) => <>{row.versions_count || 0}</>
+            render: (value: unknown, row: Record<string, unknown>) => <>{(row as BillOfMaterial).versions_count || 0}</>
         },
         {
             key: 'item_masters_count',
             label: 'Componentes',
             width: 'w-[120px]',
-            render: (value: unknown, row: Record<string, unknown>) => <>{(row as unknown).item_masters_count || 0}</>
+            render: (value: unknown, row: Record<string, unknown>) => <>{(row as any).item_masters_count || 0}</>
         }
     ];
     const breadcrumbs = [
@@ -165,24 +166,24 @@ export default function BomIndex({ boms, filters }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as unknown as Record<string, unknown>[]}
+                        data={data}
                         columns={columns}
                         loading={false}
-                        onRowClick={(row: Record<string, unknown>) => router.visit(route('production.bom.show', (row as Item).id))}
-                        actions={(row: Record<string, unknown>) => (
+                        onRowClick={(row) => router.visit(route('production.bom.show', row.id))}
+                        actions={(row) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(route('production.bom.edit', (row as Item).id))}
-                                onDelete={() => setDeleteBom(row as unknown as BillOfMaterial)}
+                                onEdit={() => router.visit(route('production.bom.edit', row.id))}
+                                onDelete={() => setDeleteBom(row)}
                                 additionalActions={[
                                     {
                                         label: 'Ver Hierarquia',
                                         icon: <GitBranch className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.bom.hierarchy', (row as Item).id))
+                                        onClick: () => router.visit(route('production.bom.hierarchy', row.id))
                                     },
                                     {
                                         label: 'Duplicar',
                                         icon: <Copy className="h-4 w-4" />,
-                                        onClick: () => handleDuplicate(row as unknown as BillOfMaterial)
+                                        onClick: () => handleDuplicate(row)
                                     },
                                     {
                                         label: 'Exportar',

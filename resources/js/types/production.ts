@@ -349,4 +349,7 @@ export interface ShipmentPhoto {
     path: string;
     caption?: string;
     uploaded_at: string;
-} 
+}
+
+// Alias for backward compatibility - Routing is now RouteTemplate
+export type Routing = RouteTemplate; 
