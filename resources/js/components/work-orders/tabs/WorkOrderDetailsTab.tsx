@@ -93,14 +93,8 @@ export default function WorkOrderDetailsTab({
                     </div>
                     <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Categoria</p>
-                        <Badge variant="outline">{workOrder.work_order_category}</Badge>
+                        <Badge variant="outline">{workOrder.work_order_category_obj?.name || 'N/A'}</Badge>
                     </div>
-                    {workOrder.execution && (
-                        <div className="space-y-1">
-                            <p className="text-sm font-medium text-muted-foreground">Progresso</p>
-                            <p className="font-medium">{workOrder.execution.progress || 0}%</p>
-                        </div>
-                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     {getStatusActions()}

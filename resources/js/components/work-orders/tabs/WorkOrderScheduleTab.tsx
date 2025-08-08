@@ -16,7 +16,7 @@ import {
     Calendar as CalendarIcon,
     AlertCircle,
     Users,
-    User,
+    User as UserIcon,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -316,7 +316,7 @@ export function WorkOrderScheduleTab({
                             view={isViewMode}
                             canClear
                             // @ts-expect-error - FullCalendar event type mismatch
-                            icon={User}
+                            icon={UserIcon}
                         />
                     </div>
                 </div>

@@ -132,8 +132,8 @@ function AssetFormFields({
                     {/* TAG */}
                     <TextInput
                         form={{
-                            data: data as Record<string, string | number | boolean | null | undefined>,
-                            setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
+                            data: data,
+                            setData: setData,
                             errors,
                             clearErrors,
                         }}
@@ -147,8 +147,8 @@ function AssetFormFields({
                     {/* Part Number */}
                     <TextInput
                         form={{
-                            data: data as Record<string, string | number | boolean | null | undefined>,
-                            setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
+                            data: data,
+                            setData: setData,
                             errors,
                             clearErrors,
                         }}
@@ -201,8 +201,8 @@ function AssetFormFields({
                     {/* Número Serial */}
                     <TextInput
                         form={{
-                            data: data as Record<string, string | number | boolean | null | undefined>,
-                            setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
+                            data: data,
+                            setData: setData,
                             errors,
                             clearErrors,
                         }}
@@ -214,8 +214,8 @@ function AssetFormFields({
                     {/* Ano de Fabricação */}
                     <TextInput
                         form={{
-                            data: data as Record<string, string | number | boolean | null | undefined>,
-                            setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
+                            data: data,
+                            setData: setData,
                             errors,
                             clearErrors,
                         }}

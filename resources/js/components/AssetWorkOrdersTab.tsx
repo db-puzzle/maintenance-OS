@@ -132,8 +132,8 @@ export default function AssetWorkOrdersTab({ assetId, discipline = 'maintenance'
                 executor_name: item.executor_name,
                 requestedBy: item.requestedBy,
                 assignedTechnician: item.executor ? {
-                    id: (item.executor as unknown).id,
-                    name: (item.executor as unknown).name,
+                    id: (item.executor as { id: number; name: string }).id,
+                    name: (item.executor as { id: number; name: string }).name,
                 } : undefined,
             }));
 

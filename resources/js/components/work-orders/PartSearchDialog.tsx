@@ -12,17 +12,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Search, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
-interface Part {
-    id: number;
-    part_number: string;
-    name: string;
-    description?: string;
-    unit_cost: number;
-    available_quantity: number;
-    manufacturer?: { name: string };
-    category?: string;
-    status?: 'active' | 'inactive' | 'discontinued';
-}
+import { Part } from '@/types/maintenance';
+
 interface PartSearchDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;

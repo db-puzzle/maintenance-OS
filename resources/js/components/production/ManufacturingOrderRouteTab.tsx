@@ -21,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TextInput } from '@/components/TextInput';
-import { ManufacturingOrder, WorkCell } from '@/types/production';
+import { ManufacturingOrder, WorkCell, RouteTemplate } from '@/types/production';
 import { Form } from '@/types/work-order';
 import { toast } from 'sonner';
 
@@ -35,16 +35,7 @@ interface Props {
     forms?: Form[];
     openRouteBuilder?: string | null;
 }
-interface RouteTemplate {
-    id: number;
-    name: string;
-    description?: string;
-    category?: string;
-    steps_count: number;
-    estimated_time: number;
-    usage_count: number;
-    last_used_at?: string;
-}
+
 type ViewMode = 'empty' | 'create' | 'builder' | 'routeViewer';
 export default function ManufacturingOrderRouteTab({
     order,

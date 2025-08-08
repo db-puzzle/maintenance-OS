@@ -18,7 +18,7 @@ import { EntityPagination } from '@/components/shared/EntityPagination';
 import SkillSheet from '@/components/skills/SkillSheet';
 import CertificationSheet from '@/components/certifications/CertificationSheet';
 import { ColumnConfig } from '@/types/shared';
-import { WorkOrder, Team } from '@/types/work-order';
+import { WorkOrder, Team, WorkOrderPart } from '@/types/work-order';
 import { User } from '@/types';
 import { Part } from '@/types/maintenance';
 import {
@@ -174,7 +174,7 @@ export function WorkOrderPlanningTab({
 }: WorkOrderPlanningTabProps) {
     // All hooks must be declared before any conditional returns
     const [plannedParts, setPlannedParts] = useState<PlanningPart[]>(
-        workOrder.parts?.map((part: unknown) => ({
+        workOrder.parts?.map((part: WorkOrderPart) => ({
             id: part.id?.toString(),
             part_id: part.part_id,
             part_number: part.part_number,
@@ -215,14 +215,14 @@ export function WorkOrderPlanningTab({
 
     const { data, setData, post, put, processing, errors, clearErrors } = useForm({
         estimated_hours: workOrder.estimated_hours?.toString() || '',
-        labor_cost_per_hour: workOrder.labor_cost_per_hour?.toString() || '150.00',
+        labor_cost_per_hour: '150.00',
         estimated_labor_cost: workOrder.estimated_labor_cost || 0,
         downtime_required: workOrder.downtime_required || false,
         other_requirements: workOrder.other_requirements || [],
         number_of_people: workOrder.number_of_people?.toString() || '1',
         required_skills: selectedSkills.map(s => s.name),
         required_certifications: selectedCertifications.map(c => c.name),
-        parts: [] as unknown[],
+        parts: [] as PlanningPart[],
         estimated_parts_cost: workOrder.estimated_parts_cost || 0,
         estimated_total_cost: workOrder.estimated_total_cost || 0,
     });
@@ -246,8 +246,8 @@ export function WorkOrderPlanningTab({
 
     // Get planning data from work order if status history doesn't have it
     const planningData = planningRelatedEntry || (isPlanned ? {
-        changed_by: workOrder.planned_by || workOrder.updated_by,
-        user: workOrder.planned_by || workOrder.updated_by,
+        changed_by: workOrder.planned_by,
+        user: workOrder.planned_by,
         created_at: workOrder.planned_at || workOrder.updated_at
     } : null);
 
