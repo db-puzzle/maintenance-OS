@@ -1,41 +1,27 @@
 import React, { useState } from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { ColumnConfig } from '@/types/shared';
 import { TextInput } from '@/components/TextInput';
 import { ItemSelect } from '@/components/ItemSelect';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import InputError from '@/components/input-error';
 import { cn } from '@/lib/utils';
 import {
     Workflow,
     Clock,
-    Users,
     Settings,
-    CheckCircle,
-    Play,
-    Pause,
-    GitBranch,
-    AlertCircle,
-    Timer,
-    FileText
+    Timer
 } from 'lucide-react';
-import { StepStatusBadge } from '@/components/production/StepStatusBadge';
-import { StepTypeBadge } from '@/components/production/StepTypeBadge';
 import RoutingStepsTab from '@/components/production/RoutingStepsTab';
 import RoutingStepsTableTab from '@/components/production/RoutingStepsTableTab';
-import { ManufacturingStep, WorkCell } from '@/types/production';
+import { WorkCell, ManufacturingRoute, ManufacturingStep, RouteTemplate } from '@/types/production';
 import { Form } from '@/types/work-order';
 interface Props {
-    routing: any;
-    effectiveSteps: any[];
-    templates?: any[];
+    routing: ManufacturingRoute;
+    effectiveSteps: ManufacturingStep[];
+    templates?: RouteTemplate[];
     workCells?: WorkCell[];
     stepTypes?: Record<string, string>;
     forms?: Form[];
@@ -150,26 +136,28 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
     );
 }
 // Overview Tab Component
+interface RoutingOverviewTabProps {
+    routing: ManufacturingRoute;
+    effectiveSteps: ManufacturingStep[];
+    form: ReturnType<typeof useForm>;
+    onTabChange: (tab: string) => void;
+}
+
 function RoutingOverviewTab({
     routing,
     effectiveSteps,
     form,
-    progressPercentage,
-    completedSteps,
-    totalSteps,
-    totalEstimatedTime,
-    totalActualTime,
     onTabChange
-}: any) {
+}: RoutingOverviewTabProps) {
     const formatDuration = (minutes: number) => {
         if (minutes < 60) return `${Math.round(minutes)} min`;
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         return mins > 0 ? `${hours}h ${Math.round(mins)}min` : `${hours}h`;
     };
-    const totalSetupTime = effectiveSteps?.reduce((sum: number, step: any) =>
+    const totalSetupTime = effectiveSteps?.reduce((sum: number, step: ManufacturingStep) =>
         sum + (step.setup_time_minutes || 0), 0) || 0;
-    const totalCycleTime = effectiveSteps?.reduce((sum: number, step: any) =>
+    const totalCycleTime = effectiveSteps?.reduce((sum: number, step: ManufacturingStep) =>
         sum + (step.cycle_time_minutes || 0), 0) || 0;
     return (
         <div className="space-y-6 py-6">

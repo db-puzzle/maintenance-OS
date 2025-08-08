@@ -2,25 +2,7 @@ import EditRoutineSheet from '@/components/EditRoutineSheet';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { forwardRef, useRef } from 'react';
-// Import Routine type to match EditRoutineSheet
-interface Routine {
-    id?: number;
-    name: string;
-    trigger_type: 'runtime_hours' | 'calendar_days';
-    trigger_runtime_hours?: number;
-    trigger_calendar_days?: number;
-    execution_mode: 'automatic' | 'manual';
-    description?: string;
-    form_id?: number;
-    asset_id?: number;
-    advance_generation_days: number;
-    auto_approve_work_orders: boolean;
-    priority_score: number;
-    last_execution_runtime_hours?: number;
-    last_execution_completed_at?: string;
-    last_execution_form_version_id?: number;
-    [key: string]: unknown;
-}
+import { Routine } from '@/types/routine';
 interface CreateRoutineButtonProps {
     onSuccess?: (routine: Routine) => void;
     variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';

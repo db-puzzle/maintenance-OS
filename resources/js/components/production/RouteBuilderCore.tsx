@@ -396,7 +396,6 @@ export default function RouteBuilderCore({
                         workCells={workCells}
                         forms={forms}
                         routing={routing}
-                        can={can}
                         isSaving={isSaving}
                         onLocalStepUpdate={updateStepInLocalState}
                         isOpen={!!selectedStep}

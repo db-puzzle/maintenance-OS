@@ -138,7 +138,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                     e?.stopPropagation(); // Prevent row click event
                     // If item has images, use them, otherwise fetch
                     if (item.images && (item.images as any[]).length > 0) {
-                        setCarouselItem(item as Item);
+                        setCarouselItem(item as unknown as Item);
                         setCarouselOpen(true);
                     } else if (item.images_count && (item.images_count as number) > 0) {
                         setLoadingImages(true);
@@ -176,13 +176,13 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         render: (value: unknown, item: Record<string, unknown>) => (
             <div>
                 <div className="font-medium">{value as React.ReactNode}</div>
-                {item.category && (
+                {item.category ? (
                     <div className="text-muted-foreground text-sm">
                         {(item.category as any).name && (item.category as any).name.length > 40
                             ? `${(item.category as any).name.substring(0, 40)}...`
                             : (item.category as any).name || '-'}
                     </div>
-                ) as React.ReactNode}
+                ) : null}
             </div>
         )
     };

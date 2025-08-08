@@ -128,7 +128,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
     useEffect(() => {
         if (type === 'bom') {
             const bomProps = props as BomConfigurationProps;
-            const buildHierarchy = (items: TreeBomItem[], parentId: string | number | null = null): TreeBomItem[] => {
+            const buildHierarchy = (items: (BomItem & { item: Item })[], parentId: string | number | null = null): TreeBomItem[] => {
                 return items
                     .filter(item => {
                         const itemParentId = item.parent_item_id;
@@ -138,9 +138,9 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                     })
                     .map(item => ({
                         ...item,
-                        id: item.id.toString(),
+                        id: String(item.id),
                         children: buildHierarchy(items, item.id)
-                    }));
+                    } as TreeBomItem));
             };
 
             const hierarchicalItems = buildHierarchy(bomProps.bomItems);
@@ -189,7 +189,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
     };
 
     const removeItemFromTree = (items: TreeBomItem[], id: string): TreeBomItem[] => {
-        return items.reduce((acc, item) => {
+        return items.reduce<TreeBomItem[]>((acc, item) => {
             if (item.id === id) {
                 return acc;
             }
@@ -240,7 +240,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             if (item.id === parentId) {
                 return {
                     ...item,
-                    children: [...item.children, newChild]
+                    children: [...(item.children || []), newChild]
                 };
             }
             if (item.children && item.children.length > 0) {
@@ -286,12 +286,12 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             const checkChildren = (item: TreeBomItem): boolean => {
                 if (item.id === targetId) return true;
                 if (item.children && item.children.length > 0) {
-                    return item.children.some((child) => checkChildren(child));
+                    return item.children.some((child) => checkChildren(child as TreeBomItem));
                 }
                 return false;
             };
 
-            return draggedItem ? draggedItem.children.some((child) => checkChildren(child)) : false;
+            return draggedItem && draggedItem.children ? draggedItem.children.some((child) => checkChildren(child as TreeBomItem)) : false;
         };
 
         if (dragging && isChildOfDragged(dragging, targetId)) {
@@ -317,7 +317,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         // Update locally first for immediate feedback
         const draggedItem = findItemById(bomItems, draggedId);
         const newItems = removeItemFromTree(bomItems, draggedId);
-        const updatedItems = addChildToItem(newItems, targetId, draggedItem);
+        const updatedItems = draggedItem ? addChildToItem(newItems, targetId, draggedItem) : newItems;
         setBomItems(updatedItems);
 
         // Expand target to show newly added item
@@ -369,7 +369,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             unit_of_measure: item.unit_of_measure,
             reference_designators: item.reference_designators,
             bom_notes: item.bom_notes,
-            assembly_instructions: item.assembly_instructions
+            assembly_instructions: (item as any).assembly_instructions || ''
         });
         setIsEditDialogOpen(true);
     };
@@ -421,8 +421,8 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             quantity: 1,
             unit_of_measure: 'EA',
             reference_designators: '',
-            bom_notes: {},
-            assembly_instructions: {}
+            bom_notes: '',
+            assembly_instructions: ''
         });
         setIsAddItemDialogOpen(true);
     };
@@ -593,7 +593,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                 <BomTreeView
                     items={bomItems}
                     canEdit={canEdit}
-                    onEditItem={handleEditItem}
+                    onEditItem={(item) => handleEditItem(item as unknown as TreeBomItem)}
                     onAddItem={handleAddItem}
                     onDeleteItem={handleDeleteItem}
                     draggable={canEdit}
@@ -755,10 +755,10 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                         <Textarea
                                             id="notes"
                                             placeholder="Notas específicas para este item na BOM"
-                                            value={editingItem.bom_notes?.text || ''}
+                                            value={editingItem.bom_notes || ''}
                                             onChange={(e) => setEditingItem({
                                                 ...editingItem,
-                                                bom_notes: { text: e.target.value }
+                                                bom_notes: e.target.value
                                             })}
                                         />
                                     </div>
@@ -858,10 +858,10 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                                     <Textarea
                                         id="edit-notes"
                                         placeholder="Notas específicas para este item na BOM"
-                                        value={editingItem.bom_notes?.text || ''}
+                                        value={editingItem.bom_notes || ''}
                                         onChange={(e) => setEditingItem({
                                             ...editingItem,
-                                            bom_notes: { text: e.target.value }
+                                            bom_notes: e.target.value
                                         })}
                                     />
                                 </div>

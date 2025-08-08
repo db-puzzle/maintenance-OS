@@ -594,8 +594,8 @@ export function WorkOrderPlanningTab({
                     <div className="grid gap-4 md:grid-cols-4">
                         <TextInput
                             form={{
-                                data,
-                                setData,
+                                data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
+                                setData: setData as any,
                                 errors,
                                 clearErrors: clearErrors as (...fields: string[]) => void,
                             }}
@@ -608,8 +608,8 @@ export function WorkOrderPlanningTab({
 
                         <TextInput
                             form={{
-                                data,
-                                setData,
+                                data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
+                                setData: setData as any,
                                 errors,
                                 clearErrors: clearErrors as (...fields: string[]) => void,
                             }}
@@ -622,8 +622,8 @@ export function WorkOrderPlanningTab({
 
                         <TextInput
                             form={{
-                                data,
-                                setData,
+                                data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
+                                setData: setData as any,
                                 errors,
                                 clearErrors: clearErrors as (...fields: string[]) => void,
                             }}

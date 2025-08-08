@@ -98,11 +98,11 @@ export default function BomIndex({ boms, filters }: Props) {
             render: (value: unknown, row: Record<string, unknown>) => (
                 <div>
                     <div className="font-medium">{value as React.ReactNode}</div>
-                    {row.description && (
+                    {row.description ? (
                         <div className="text-muted-foreground text-sm">
                             {(row.description as string).length > 40 ? `${(row.description as string).substring(0, 40)}...` : row.description as React.ReactNode}
                         </div>
-                    ) as React.ReactNode}
+                    ) : null}
                 </div>
             )
         },
