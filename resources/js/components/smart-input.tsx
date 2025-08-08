@@ -66,8 +66,5 @@ const SmartInput = forwardRef<HTMLInputElement, SmartInputProps>(
 );
 
 SmartInput.displayName = 'SmartInput';
-<<<<<<< Current (Your changes)
-=======
 
->>>>>>> Incoming (Background Agent changes)
 export default SmartInput;
