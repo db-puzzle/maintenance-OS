@@ -9,8 +9,7 @@
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
         "types": "tsc --noEmit",
-        "prod": "vite build && vite build --ssr",
-        "": "vite build && vite build --ssr"
+        "prod": "vite build && vite build --ssr"
     },
     "devDependencies": {
         "@eslint/js": "^9.32.0",
