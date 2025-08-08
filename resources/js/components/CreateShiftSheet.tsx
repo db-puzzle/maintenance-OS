@@ -252,7 +252,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
             };
         };
          
-        const { data, setData, processing, errors, clearErrors, setError } = useForm<ShiftFormWithTimezone>(getInitialFormData() as ShiftFormWithTimezone);
+        const { data, setData, processing, errors, clearErrors, setError } = useForm(getInitialFormData() as ShiftFormWithTimezone);
         // Create a wrapper for setData to match the TextInput expected signature
         const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
              
@@ -529,7 +529,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
                              
-                            setError(key as unknown, validationErrors[key][0]);
+                            setError(key as keyof ShiftFormWithTimezone, validationErrors[key][0]);
                         });
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
@@ -567,7 +567,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
                              
-                            setError(key as unknown, validationErrors[key][0]);
+                            setError(key as keyof ShiftFormWithTimezone, validationErrors[key][0]);
                         });
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
@@ -611,7 +611,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                         // Set form errors so they display below the input fields
                         Object.keys(validationErrors).forEach((key) => {
                              
-                            setError(key as unknown, validationErrors[key][0]);
+                            setError(key as keyof ShiftFormWithTimezone, validationErrors[key][0]);
                         });
                         // Also show the first error as a toast
                         const firstErrorKey = Object.keys(validationErrors)[0];
@@ -728,7 +728,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                             value={`${zone.value} ${zone.label}`}
                                                                             onSelect={() => {
                                                                                  
-                                                                                setData('timezone' as unknown, zone.value);
+                                                                                setData('timezone' as keyof ShiftFormWithTimezone, zone.value);
                                                                                 setTimezoneOpen(false);
                                                                             }}
                                                                         >

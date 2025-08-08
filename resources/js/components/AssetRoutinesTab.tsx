@@ -198,7 +198,7 @@ export default function AssetRoutinesTab({
             sortable: true,
             width: 'w-[100px]',
             render: (value, row) => {
-                const routine = row as Routine;
+                const routine = row as unknown as Routine;
                 const priority = routine.priority_score;
 
                 return (
@@ -238,7 +238,7 @@ export default function AssetRoutinesTab({
             sortable: true,
             width: 'w-[180px]',
             render: (value, row) => {
-                const routine = row as Routine;
+                const routine = row as unknown as Routine;
                 const triggerValue = routine.trigger_type === 'runtime_hours'
                     ? routine.trigger_runtime_hours
                     : routine.trigger_calendar_days;
@@ -266,7 +266,7 @@ export default function AssetRoutinesTab({
             headerAlign: 'center',
             contentAlign: 'center',
             render: (value, row) => {
-                const routine = row as Routine;
+                const routine = row as unknown as Routine;
                 if (!routine.last_execution_completed_at) {
                     return <div className="text-center"><span className="text-muted-foreground text-sm">Nunca executada</span></div>;
                 }
@@ -282,9 +282,9 @@ export default function AssetRoutinesTab({
                         <div className="text-sm">
                             {displayDate}
                         </div>
-                        {routine.last_execution_form_version_id && routine.lastExecutionFormVersion && (
+                        {routine.last_execution_form_version_id && routine.last_execution_form_version && (
                             <div className="text-xs text-muted-foreground">
-                                Versão: v{routine.lastExecutionFormVersion.version_number}
+                                Versão: v{routine.last_execution_form_version.version_number}
                             </div>
                         )}
                     </div>
@@ -299,7 +299,7 @@ export default function AssetRoutinesTab({
             headerAlign: 'center',
             contentAlign: 'center',
             render: (value, row) => {
-                const routine = row as Routine;
+                const routine = row as unknown as Routine;
                 if (!routine.next_execution_date) {
                     // If no last execution, show a message prompting to set it
                     if (!routine.last_execution_completed_at) {
@@ -799,19 +799,21 @@ export default function AssetRoutinesTab({
 
                 {/* Routines table */}
                 <EntityDataTable
-                    data={sortedRoutines as Record<string, unknown>[]}
+                    data={sortedRoutines as unknown as Record<string, unknown>[]}
                     columns={getRoutineColumns()}
                     loading={false}
                     emptyMessage={searchTerm ? `Nenhuma rotina encontrada para "${searchTerm}"` : "Nenhuma rotina cadastrada. Clique em 'Nova Rotina' para começar."}
-                    actions={(routine) => (
+                    actions={(routine) => {
+                        const typedRoutine = routine as unknown as Routine;
+                        return (
                         <div className="flex items-center justify-center gap-2">
                             {/* Actions dropdown */}
                             <EntityActionDropdown
                                 onEdit={undefined}
-                                onDelete={() => handleDeleteClick(routine)}
+                                onDelete={() => handleDeleteClick(typedRoutine)}
                                 additionalActions={[
                                     // Publicar - Primary action for unpublished routines with tasks
-                                    ...(hasFormTasks(routine.form) && getFormState(routine.form as any) === 'unpublished' ? [{
+                                    ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as any) === 'unpublished' ? [{
                                         label: 'Publicar',
                                         icon: (
                                             <div className="relative">
@@ -819,17 +821,17 @@ export default function AssetRoutinesTab({
                                                 <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
                                             </div>
                                         ),
-                                        onClick: () => handlePublishForm(routine.id),
+                                        onClick: () => handlePublishForm(typedRoutine.id),
                                         className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                     }] : []),
                                     // Separator after Publicar (if shown)
-                                    ...(hasFormTasks(routine.form) && getFormState(routine.form as any) === 'unpublished' ? [{
+                                    ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as any) === 'unpublished' ? [{
                                         label: 'separator',
                                         icon: null,
                                         onClick: () => { },
                                     }] : []),
                                     // Create Work Order - Primary action at the top with emphasis
-                                    ...(hasFormTasks(routine.form) && getFormState(routine.form as any) !== 'unpublished' ? [{
+                                    ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as any) !== 'unpublished' ? [{
                                         label: 'Criar Ordem de Serviço',
                                         icon: (
                                             <div className="relative">
@@ -837,35 +839,35 @@ export default function AssetRoutinesTab({
                                                 <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
                                             </div>
                                         ),
-                                        onClick: () => handleCreateWorkOrder(routine.id),
+                                        onClick: () => handleCreateWorkOrder(typedRoutine.id),
                                         className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                     }] : []),
                                     // Separator after Create Work Order
-                                    ...(hasFormTasks(routine.form) && getFormState(routine.form as any) !== 'unpublished' ? [{
+                                    ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as any) !== 'unpublished' ? [{
                                         label: 'separator',
                                         icon: null,
                                         onClick: () => { },
                                     }] : []),
                                     // Add/Edit Tasks - Second primary action with prominence
                                     {
-                                        label: (routine.form as any)?.has_draft_changes ? 'Editar Tarefas' :
-                                            hasFormTasks(routine.form) ? 'Editar Tarefas' :
+                                        label: (typedRoutine.form as any)?.has_draft_changes ? 'Editar Tarefas' :
+                                            hasFormTasks(typedRoutine.form) ? 'Editar Tarefas' :
                                                 'Adicionar Tarefas',
                                         icon: (
                                             <div className="relative">
                                                 <FileText className="h-4 w-4 text-primary" />
-                                                {!hasFormTasks(routine.form) && (
+                                                {!hasFormTasks(typedRoutine.form) && (
                                                     <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
                                                 )}
                                             </div>
                                         ),
-                                        onClick: () => handleEditFormClick(routine),
-                                        className: !hasFormTasks(routine.form)
+                                        onClick: () => handleEditFormClick(typedRoutine),
+                                        className: !hasFormTasks(typedRoutine.form)
                                             ? 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                             : undefined
                                     },
                                     // Separator after Add Tasks (only when showing "Adicionar Tarefas")
-                                    ...(!hasFormTasks(routine.form) ? [{
+                                    ...(!hasFormTasks(typedRoutine.form) ? [{
                                         label: 'separator',
                                         icon: null,
                                         onClick: () => { },
@@ -874,8 +876,8 @@ export default function AssetRoutinesTab({
                                     {
                                         label: 'Definir Última Execução',
                                         icon: <CalendarRange className="h-4 w-4" />,
-                                        onClick: () => handleSetLastExecution(routine),
-                                        className: !routine.last_execution_completed_at
+                                        onClick: () => handleSetLastExecution(typedRoutine),
+                                        className: !typedRoutine.last_execution_completed_at
                                             ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
                                             : undefined
                                     },
@@ -883,22 +885,23 @@ export default function AssetRoutinesTab({
                                     {
                                         label: 'Editar Rotina',
                                         icon: <Edit2 className="h-4 w-4" />,
-                                        onClick: () => handleEditRoutine(routine),
+                                        onClick: () => handleEditRoutine(typedRoutine),
                                     },
-                                    ...((routine.form as any)?.has_draft_changes && (routine.form as any)?.current_version_id ? [{
-                                        label: `Ver Versão Publicada (v${(routine.form as any)?.current_version?.version_number || '1.0'})`,
+                                    ...((typedRoutine.form as any)?.has_draft_changes && (typedRoutine.form as any)?.current_version_id ? [{
+                                        label: `Ver Versão Publicada (v${(typedRoutine.form as any)?.current_version?.version_number || '1.0'})`,
                                         icon: <Eye className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('maintenance.routines.view-published-version', { routine: routine.id })),
+                                        onClick: () => router.visit(route('maintenance.routines.view-published-version', { routine: typedRoutine.id })),
                                     }] : []),
-                                    ...((routine.form as any)?.current_version_id ? [{
+                                    ...((typedRoutine.form as any)?.current_version_id ? [{
                                         label: 'Ver Histórico de Versões',
                                         icon: <History className="h-4 w-4" />,
-                                        onClick: () => handleShowVersionHistory(routine.id),
+                                        onClick: () => handleShowVersionHistory(typedRoutine.id),
                                     }] : []),
                                 ]}
                             />
                         </div>
-                    )}
+                        );
+                    }}
                 />
 
                 {/* Pagination if needed */}
