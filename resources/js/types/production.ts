@@ -201,6 +201,10 @@ export interface RouteTemplate {
     item_category?: string;
     is_active: boolean;
     steps?: RouteTemplateStep[];
+    steps_count: number;
+    estimated_time: number;
+    usage_count: number;
+    last_used_at?: string;
     created_by?: number;
     created_by_user?: User;
     created_at: string;
@@ -355,7 +359,3 @@ export interface ShipmentPhoto {
 
 // Alias for backward compatibility - Routing is now RouteTemplate
 export type Routing = RouteTemplate;
-<<<<<<< Current (Your changes)
->>>>>>> Incoming (Background Agent changes)
-=======
->>>>>>> Incoming (Background Agent changes)

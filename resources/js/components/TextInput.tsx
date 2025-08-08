@@ -4,8 +4,8 @@ import { Label } from '@/components/ui/label';
 import { forwardRef } from 'react';
 interface TextInputProps {
     form: {
-        data: Record<string, string | number | boolean | null | undefined>;
-        setData: (name: string, value: string | number | boolean | null | undefined) => void;
+        data: Record<string, string | number | boolean | File | null | undefined>;
+        setData: (name: string, value: string | number | boolean | File | null | undefined) => void;
         errors: Partial<Record<string, string>>;
         clearErrors: (...fields: string[]) => void;
         validateInput?: (value: string) => boolean;

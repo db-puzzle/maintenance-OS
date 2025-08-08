@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WorkOrder } from '@/types/work-order';
+import { WorkOrder, WorkOrderStatusHistory } from '@/types/work-order';
 import { router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -37,7 +37,7 @@ export function WorkOrderApprovalTab({
     const [processing, setProcessing] = useState(false);
     const isApproved = workOrder.status !== 'requested';
     // Find the most recent approval or rejection entry (could be multiple)
-    const approvalEntries = workOrder.status_history?.filter((entry: unknown) =>
+    const approvalEntries = workOrder.status_history?.filter((entry: WorkOrderStatusHistory) =>
         entry.from_status === 'requested' && (entry.to_status === 'approved' || entry.to_status === 'rejected')
     ) || [];
     // Get the most recent one (last in the array since they should be ordered by created_at)
@@ -94,7 +94,7 @@ export function WorkOrderApprovalTab({
                                 <Label>{approvalEntry.to_status === 'approved' ? 'Aprovado por' : 'Rejeitado por'}</Label>
                                 <div className="rounded-md border bg-muted/20 p-2 text-sm flex items-center gap-2">
                                     <User className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">{approvalEntry.changed_by?.name || approvalEntry.user?.name || 'Sistema'}</span>
+                                    <span className="font-medium">{approvalEntry.changed_by?.name || approvalEntry.changedBy?.name || 'Sistema'}</span>
                                 </div>
                             </div>
                             <div className="space-y-2">

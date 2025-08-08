@@ -1,5 +1,5 @@
 import React from 'react';
-import { WorkOrder } from '@/types/work-order';
+import { WorkOrder, WorkOrderStatusHistory } from '@/types/work-order';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import EmptyCard from '@/components/ui/empty-card';
@@ -21,7 +21,7 @@ export default function WorkOrderHistoryTab({ workOrder }: Props) {
             <Separator />
             {workOrder.status_history && workOrder.status_history.length > 0 ? (
                 <div className="space-y-4">
-                    {workOrder.status_history.map((history: unknown, index: number) => (
+                    {workOrder.status_history.map((history: WorkOrderStatusHistory, index: number) => (
                         <div key={index} className="flex items-start gap-4 pb-4 border-b last:border-0">
                             <div className="flex-1">
                                 <div className="flex items-center gap-2">

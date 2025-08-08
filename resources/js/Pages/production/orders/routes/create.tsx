@@ -14,21 +14,17 @@ interface Props {
     order: ManufacturingOrder;
     templates: RouteTemplate[];
 }
-interface ExtendedRouteTemplate extends RouteTemplate {
-    steps_count?: number;
-    total_time?: number;
-    usage_count?: number;
-}
+
 export default function CreateRoute({ order, templates }: Props) {
     const [showTemplateSelector, setShowTemplateSelector] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedTemplate, setSelectedTemplate] = useState<ExtendedRouteTemplate | null>(null);
-    const extendedTemplates = templates as ExtendedRouteTemplate[];
+    const [selectedTemplate, setSelectedTemplate] = useState<RouteTemplate | null>(null);
+    const extendedTemplates = templates as RouteTemplate[];
     const filteredTemplates = extendedTemplates.filter(template =>
         template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         template.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    const handleTemplateSelect = (template: ExtendedRouteTemplate) => {
+    const handleTemplateSelect = (template: RouteTemplate) => {
         setSelectedTemplate(template);
     };
     const handleUseTemplate = () => {
