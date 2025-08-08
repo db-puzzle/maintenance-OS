@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { GitBranch, Copy, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
@@ -10,6 +10,7 @@ import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
 import { BillOfMaterial } from '@/types/production';
+
 interface Props {
     boms: {
         data: BillOfMaterial[];
@@ -23,11 +24,18 @@ interface Props {
     filters: {
         search?: string;
         status?: string;
+        sort?: string;
+        direction?: 'asc' | 'desc';
     };
 }
+
 export default function BomIndex({ boms, filters }: Props) {
+    const { props: { auth } } = usePage<{ auth: { permissions: string[] } }>();
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteBom, setDeleteBom] = useState<BillOfMaterial | null>(null);
+    const [deletingBom, setDeletingBom] = useState<number | null>(null);
+    const [cloneBom, setCloneBom] = useState<BillOfMaterial | null>(null);
+    
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.bom.index'), { search: value }, {
@@ -36,18 +44,32 @@ export default function BomIndex({ boms, filters }: Props) {
             only: ['boms']
         });
     };
+    
     const handlePageChange = (page: number) => {
         router.get(route('production.bom.index'), { ...filters, page }, {
             preserveState: true,
             preserveScroll: true
         });
     };
+    
     const handlePerPageChange = (perPage: number) => {
         router.get(route('production.bom.index'), { ...filters, per_page: perPage }, {
             preserveState: true,
             preserveScroll: true
         });
     };
+    
+    const handleSort = (column: string) => {
+        router.get(route('production.bom.index'), { 
+            ...filters, 
+            sort: column,
+            direction: filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc'
+        }, {
+            preserveState: true,
+            preserveScroll: true
+        });
+    };
+    
     // Use data from server
     const data = boms.data;
     const pagination = {
@@ -58,30 +80,37 @@ export default function BomIndex({ boms, filters }: Props) {
         from: boms.from,
         to: boms.to,
     };
-    const handleDelete = async () => {
-        if (!deleteBom) return;
+    
+    const handleDelete = async (bom: BillOfMaterial) => {
+        setDeletingBom(bom.id);
         try {
-            await router.delete(route('production.bom.destroy', deleteBom.id), {
+            await router.delete(route('production.bom.destroy', bom.id), {
                 preserveScroll: true,
                 onSuccess: () => {
                     setDeleteBom(null);
+                    setDeletingBom(null);
                 },
                 onError: () => {
                     console.error('Failed to delete BOM');
+                    setDeletingBom(null);
                 }
             });
         } catch (error) {
             console.error('Delete error:', error);
+            setDeletingBom(null);
         }
     };
+    
     const handleDuplicate = (bom: BillOfMaterial) => {
         router.post(route('production.bom.duplicate', bom.id), {}, {
             preserveScroll: true
         });
     };
+    
     const handleExport = (bom: BillOfMaterial) => {
         window.open(route('production.bom.export', bom.id), '_blank');
     };
+    
     const columns: ColumnConfig[] = [
         {
             key: 'bom_number',
@@ -143,10 +172,12 @@ export default function BomIndex({ boms, filters }: Props) {
             render: (value: unknown, row: Record<string, unknown>) => <>{(row as any).item_masters_count || 0}</>
         }
     ];
+    
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'BOMs', href: '' }
     ];
+    
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <ListLayout
@@ -166,29 +197,26 @@ export default function BomIndex({ boms, filters }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data as unknown as Array<Record<string, unknown>>}
                         columns={columns}
                         loading={false}
-                        onRowClick={(row) => router.visit(route('production.bom.show', row.id))}
-                        actions={(row) => (
+                        emptyMessage="Nenhuma Lista de Materiais encontrada."
+                        onRowClick={(bom) => router.visit(route('production.bom.show', (bom as unknown as BillOfMaterial).id))}
+                        onSort={handleSort}
+                        actions={(bom) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(route('production.bom.edit', row.id))}
-                                onDelete={() => setDeleteBom(row)}
+                                onEdit={() => router.visit(route('production.bom.show', (bom as unknown as BillOfMaterial).id))}
+                                onDelete={() => setDeleteBom(bom as unknown as BillOfMaterial)}
                                 additionalActions={[
                                     {
-                                        label: 'Ver Hierarquia',
-                                        icon: <GitBranch className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.bom.hierarchy', row.id))
-                                    },
-                                    {
-                                        label: 'Duplicar',
+                                        label: 'Clonar',
                                         icon: <Copy className="h-4 w-4" />,
-                                        onClick: () => handleDuplicate(row)
+                                        onClick: () => handleDuplicate(bom as unknown as BillOfMaterial)
                                     },
                                     {
                                         label: 'Exportar',
                                         icon: <Download className="h-4 w-4" />,
-                                        onClick: () => handleExport(row as unknown as BillOfMaterial)
+                                        onClick: () => handleExport(bom as unknown as BillOfMaterial)
                                     }
                                 ]}
                             />
@@ -201,12 +229,16 @@ export default function BomIndex({ boms, filters }: Props) {
                     />
                 </div>
             </ListLayout>
-            <EntityDeleteDialog
-                open={!!deleteBom}
-                onOpenChange={(open) => !open && setDeleteBom(null)}
-                entityLabel={deleteBom ? `a BOM ${deleteBom.name}` : ''}
-                onConfirm={handleDelete}
-            />
+            
+            {deleteBom && (
+                <EntityDeleteDialog
+                    open={!!deleteBom}
+                    onOpenChange={(open) => !open && setDeleteBom(null)}
+                    onConfirm={() => handleDelete(deleteBom)}
+                    title="Excluir Lista de Materiais"
+                    description={`Tem certeza que deseja excluir a Lista de Materiais "${deleteBom.bom_number}"?`}
+                />
+            )}
         </AppLayout>
     );
 }

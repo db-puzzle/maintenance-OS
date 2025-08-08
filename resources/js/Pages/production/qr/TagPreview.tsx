@@ -60,7 +60,11 @@ export default function TagPreview({ type, resource, template }: Props) {
                 toast.success('Etiqueta gerada com sucesso!');
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta');
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta');
+            } else {
+                toast.error('Erro ao gerar etiqueta');
+            }
         } finally {
             setGenerating(false);
         }

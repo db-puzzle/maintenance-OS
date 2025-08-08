@@ -188,7 +188,9 @@ function RoutingOverviewTab({
     const formAdapter = {
         data: form.data as Record<string, string | number | boolean | File | null | undefined>,
         setData: (name: string, value: string | number | boolean | File | null | undefined) => {
-            form.setData(name as keyof FormDataType, value);
+            if (typeof value === 'string' || typeof value === 'boolean') {
+                form.setData(name as keyof FormDataType, value);
+            }
         },
         errors: form.errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => {

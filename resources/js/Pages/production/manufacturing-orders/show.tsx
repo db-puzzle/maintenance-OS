@@ -164,7 +164,11 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 toast.success('Etiqueta QR gerada com sucesso!');
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
+            } else {
+                toast.error('Erro ao gerar etiqueta QR');
+            }
         } finally {
             setGeneratingQr(false);
         }

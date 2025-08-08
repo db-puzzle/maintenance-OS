@@ -242,19 +242,20 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data as unknown as Array<Record<string, unknown>>}
                         columns={columns}
                         loading={loading}
-                        onRowClick={(shipment) => router.visit(route('production.shipments.show', (shipment as Shipment).id))}
+                        emptyMessage="Nenhuma remessa encontrada."
+                        onRowClick={(shipment) => router.visit(route('production.shipments.show', (shipment as unknown as Shipment).id))}
                         actions={(shipment) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(route('production.shipments.edit', (shipment as Shipment).id))}
-                                onDelete={() => setDeleteShipment(shipment as Shipment)}
+                                onEdit={() => router.visit(route('production.shipments.edit', (shipment as unknown as Shipment).id))}
+                                onDelete={() => setDeleteShipment(shipment as unknown as Shipment)}
                                 additionalActions={[
                                     {
-                                        label: 'View Details',
+                                        label: 'Visualizar',
                                         icon: <Eye className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.shipments.show', (shipment as Shipment).id))
+                                        onClick: () => router.visit(route('production.shipments.show', (shipment as unknown as Shipment).id))
                                     }
                                 ]}
                             />

@@ -116,7 +116,7 @@ export default function ShipmentCreate({ items }: Props) {
     const [shipmentItems, setShipmentItems] = useState<ShipmentItem[]>([]);
     const [photos, setPhotos] = useState<File[]>([]);
 
-    const { data, setData, errors, processing, clearErrors } = useForm<ShipmentFormDataForInertia>({
+    const form = useForm<ShipmentFormDataForInertia>({
         items: '[]',
         destination_name: '',
         destination_address: '',
@@ -131,6 +131,8 @@ export default function ShipmentCreate({ items }: Props) {
         notes: '',
         require_signature: false
     });
+
+    const { data, setData, errors, processing, clearErrors } = form;
 
     const steps = [
         { number: 1, title: 'Itens', icon: <Package className="h-4 w-4" /> },
@@ -187,18 +189,12 @@ export default function ShipmentCreate({ items }: Props) {
                         )}
                         {step === 2 && (
                             <DestinationStep
-                                data={data}
-                                setData={setData}
-                                errors={errors}
-                                clearErrors={clearErrors}
+                                form={form}
                             />
                         )}
                         {step === 3 && (
                             <CarrierStep
-                                data={data}
-                                setData={setData}
-                                errors={errors}
-                                clearErrors={clearErrors}
+                                form={form}
                             />
                         )}
                         {step === 4 && (
@@ -369,14 +365,16 @@ function ShipmentItemsStep({
 }
 
 interface StepProps {
-    data: ShipmentFormData;
-    setData: <K extends keyof ShipmentFormData>(key: K, value: ShipmentFormData[K]) => void;
-    errors: Partial<Record<keyof ShipmentFormData, string>>;
-    clearErrors: (...fields: (keyof ShipmentFormData)[]) => void;
+    form: {
+        data: ShipmentFormDataForInertia;
+        setData: <K extends keyof ShipmentFormDataForInertia>(key: K, value: ShipmentFormDataForInertia[K]) => void;
+        errors: Partial<Record<keyof ShipmentFormDataForInertia, string>>;
+        clearErrors: (...fields: (keyof ShipmentFormDataForInertia)[]) => void;
+    };
 }
 
 // Step 2: Destination
-function DestinationStep({ data, setData, errors, clearErrors }: StepProps) {
+function DestinationStep({ form }: StepProps) {
     return (
         <div className="space-y-6">
             <div>
@@ -388,7 +386,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: StepProps) {
 
             <div className="space-y-4">
                 <TextInput
-                    form={{ data, setData, errors, clearErrors }}
+                    form={form}
                     name="destination_name"
                     label="Nome do Destinatário"
                     placeholder="Nome da empresa ou pessoa"
@@ -396,7 +394,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: StepProps) {
                 />
 
                 <TextInput
-                    form={{ data, setData, errors, clearErrors }}
+                    form={form}
                     name="destination_address"
                     label="Endereço"
                     placeholder="Rua, número, complemento"
@@ -406,7 +404,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: StepProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-2">
                         <TextInput
-                            form={{ data, setData, errors, clearErrors }}
+                            form={form}
                             name="destination_city"
                             label="Cidade"
                             placeholder="Cidade"
@@ -414,7 +412,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: StepProps) {
                         />
                     </div>
                     <TextInput
-                        form={{ data, setData, errors, clearErrors }}
+                        form={form}
                         name="destination_state"
                         label="Estado"
                         placeholder="UF"
@@ -423,10 +421,18 @@ function DestinationStep({ data, setData, errors, clearErrors }: StepProps) {
                 </div>
 
                 <TextInput
-                    form={{ data, setData, errors, clearErrors }}
-                    name="destination_zip"
+                    form={form}
+                    name="destination_postal_code"
                     label="CEP"
                     placeholder="00000-000"
+                />
+
+                <TextInput
+                    form={form}
+                    name="destination_country"
+                    label="País"
+                    placeholder="Brasil"
+                    required
                 />
             </div>
         </div>
@@ -434,7 +440,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: StepProps) {
 }
 
 // Step 3: Carrier
-function CarrierStep({ data, setData, errors, clearErrors }: StepProps) {
+function CarrierStep({ form }: StepProps) {
     return (
         <div className="space-y-6">
             <div>
@@ -446,28 +452,56 @@ function CarrierStep({ data, setData, errors, clearErrors }: StepProps) {
 
             <div className="space-y-4">
                 <TextInput
-                    form={{ data, setData, errors, clearErrors }}
+                    form={form}
                     name="carrier"
                     label="Transportadora"
                     placeholder="Nome da transportadora"
+                    required
                 />
 
                 <TextInput
-                    form={{ data, setData, errors, clearErrors }}
-                    name="carrier_contact"
-                    label="Contato"
-                    placeholder="Telefone ou email de contato"
+                    form={form}
+                    name="tracking_number"
+                    label="Código de Rastreamento"
+                    placeholder="Código de rastreamento"
                 />
 
-                <div>
-                    <Label>Observações</Label>
+                <TextInput
+                    form={form}
+                    name="carrier_contact"
+                    label="Contato da Transportadora"
+                    placeholder="Telefone ou email"
+                />
+
+                <TextInput
+                    form={form}
+                    name="estimated_delivery_date"
+                    label="Data Estimada de Entrega"
+                    placeholder="DD/MM/AAAA"
+                />
+
+                <div className="space-y-2">
+                    <Label htmlFor="notes">Observações</Label>
                     <textarea
-                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                        rows={4}
-                        value={data.notes}
-                        onChange={(e) => setData('notes', e.target.value)}
-                        placeholder="Observações adicionais sobre a remessa..."
+                        id="notes"
+                        className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        placeholder="Observações adicionais"
+                        value={form.data.notes}
+                        onChange={(e) => form.setData('notes', e.target.value)}
                     />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                    <input
+                        type="checkbox"
+                        id="require_signature"
+                        checked={form.data.require_signature}
+                        onChange={(e) => form.setData('require_signature', e.target.checked)}
+                        className="rounded border-gray-300"
+                    />
+                    <Label htmlFor="require_signature">
+                        Requer assinatura na entrega
+                    </Label>
                 </div>
             </div>
         </div>
