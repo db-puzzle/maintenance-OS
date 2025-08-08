@@ -9,6 +9,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { DependencyResult } from '@/types/shared';
 interface Skill {
     id: number;
     name: string;
@@ -16,6 +17,7 @@ interface Skill {
     category: string;
     created_at: string;
     updated_at: string;
+    users?: Array<{ id: number; name: string }>;
 }
 // Define a local form type with index signature
 interface SkillFormData {
@@ -44,7 +46,7 @@ export default function SkillFormComponent({
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [dependencies, setDependencies] = useState<Record<string, unknown>>(null);
+    const [dependencies, setDependencies] = useState<DependencyResult | null>(null);
     const [dependenciesOpen, setDependenciesOpen] = useState(false);
     // Ensure mode updates when initialMode changes
     useEffect(() => {
@@ -175,7 +177,7 @@ export default function SkillFormComponent({
                         <div className="grid gap-2">
                             <Label>Usuários com esta habilidade</Label>
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                                {(skill as unknown).users?.length || 0}
+                                {skill.users?.length || 0}
                             </div>
                         </div>
                     )}

@@ -94,7 +94,7 @@ export function WorkOrderApprovalTab({
                                 <Label>{approvalEntry.to_status === 'approved' ? 'Aprovado por' : 'Rejeitado por'}</Label>
                                 <div className="rounded-md border bg-muted/20 p-2 text-sm flex items-center gap-2">
                                     <User className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">{approvalEntry.changed_by?.name || approvalEntry.changedBy?.name || 'Sistema'}</span>
+                                    <span className="font-medium">{approvalEntry.changedBy?.name || 'Sistema'}</span>
                                 </div>
                             </div>
                             <div className="space-y-2">

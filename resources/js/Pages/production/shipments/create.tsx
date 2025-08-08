@@ -54,6 +54,7 @@ interface ShipmentFormDataForInertia {
     estimated_delivery_date: string;
     notes: string;
     require_signature: boolean;
+    [key: string]: string | number | boolean | File | null | undefined;
 }
 
 interface StepIndicatorProps {

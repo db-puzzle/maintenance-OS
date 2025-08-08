@@ -10,6 +10,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { User } from '@/types';
+import { DependencyResult } from '@/types/shared';
 interface Certification {
     id: number;
     name: string;
@@ -50,7 +51,7 @@ export default function CertificationFormComponent({
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [dependencies, setDependencies] = useState<Record<string, unknown> | null>(null);
+    const [dependencies, setDependencies] = useState<DependencyResult | null>(null);
     const [dependenciesOpen, setDependenciesOpen] = useState(false);
     // Ensure mode updates when initialMode changes
     useEffect(() => {

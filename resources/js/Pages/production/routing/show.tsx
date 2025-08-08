@@ -147,7 +147,13 @@ type FormDataType = {
 interface RoutingOverviewTabProps {
     routing: ManufacturingRoute;
     effectiveSteps: ManufacturingStep[];
-    form: ReturnType<typeof useForm<FormDataType>>;
+    form: {
+        data: FormDataType;
+        setData: (key: keyof FormDataType | FormDataType, value?: any) => void;
+        errors: Partial<Record<keyof FormDataType, string>>;
+        clearErrors: (...fields: (keyof FormDataType)[]) => void;
+        [key: string]: any;
+    };
     progressPercentage?: number;
     completedSteps?: number;
     totalSteps?: number;
@@ -156,22 +162,41 @@ interface RoutingOverviewTabProps {
     onTabChange: (tab: string) => void;
 }
 
-function RoutingOverviewTab({
-    routing,
-    effectiveSteps,
-    form,
-    onTabChange
+function RoutingOverviewTab({ 
+    routing, 
+    effectiveSteps, 
+    form, 
+    progressPercentage = 0, 
+    completedSteps = 0, 
+    totalSteps = 0, 
+    totalEstimatedTime = 0, 
+    totalActualTime = 0,
+    onTabChange 
 }: RoutingOverviewTabProps) {
     const formatDuration = (minutes: number) => {
-        if (minutes < 60) return `${Math.round(minutes)} min`;
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
-        return mins > 0 ? `${hours}h ${Math.round(mins)}min` : `${hours}h`;
+        return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
     };
+    
+    // Calculate setup and cycle times from steps
     const totalSetupTime = effectiveSteps?.reduce((sum: number, step: ManufacturingStep) =>
         sum + (step.setup_time_minutes || 0), 0) || 0;
     const totalCycleTime = effectiveSteps?.reduce((sum: number, step: ManufacturingStep) =>
         sum + (step.cycle_time_minutes || 0), 0) || 0;
+    
+    // Create form adapter for TextInput compatibility
+    const formAdapter = {
+        data: form.data as Record<string, string | number | boolean | File | null | undefined>,
+        setData: (name: string, value: string | number | boolean | File | null | undefined) => {
+            form.setData(name as keyof FormDataType, value);
+        },
+        errors: form.errors as Partial<Record<string, string>>,
+        clearErrors: (...fields: string[]) => {
+            form.clearErrors(...(fields as (keyof FormDataType)[]));
+        }
+    };
+    
     return (
         <div className="space-y-6 py-6">
             {/* Process Summary Section */}
@@ -205,7 +230,7 @@ function RoutingOverviewTab({
             <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <TextInput
-                        form={form}
+                        form={formAdapter}
                         name="name"
                         label="Nome do Roteiro"
                         placeholder="Nome do roteiro"

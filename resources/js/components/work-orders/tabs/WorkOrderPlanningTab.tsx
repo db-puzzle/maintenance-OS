@@ -182,7 +182,6 @@ export function WorkOrderPlanningTab({
             estimated_quantity: Number(part.estimated_quantity) || 1,
             unit_cost: Number(part.unit_cost) || 0,
             total_cost: Number(part.total_cost) || 0,
-            available: part.available_quantity,
         })) || []
     );
 
@@ -254,9 +253,9 @@ export function WorkOrderPlanningTab({
     const isViewMode = !canPlan || !['approved', 'planned'].includes(workOrder.status) || isPlanned;
 
     const calculateLaborCost = React.useCallback(() => {
-        const hours = parseFloat(data.estimated_hours) || 0;
-        const rate = parseFloat(data.labor_cost_per_hour) || 0;
-        const people = parseInt(data.number_of_people) || 1;
+        const hours = parseFloat(String(data.estimated_hours)) || 0;
+        const rate = parseFloat(String(data.labor_cost_per_hour)) || 0;
+        const people = parseInt(String(data.number_of_people)) || 1;
         return hours * rate * people;
     }, [data.estimated_hours, data.labor_cost_per_hour, data.number_of_people]);
 
@@ -316,13 +315,15 @@ export function WorkOrderPlanningTab({
     // Other requirements handlers
     const handleAddOtherReq = () => {
         if (newOtherReq.trim()) {
-            setData('other_requirements', [...data.other_requirements, newOtherReq.trim()]);
+            const currentReqs = Array.isArray(data.other_requirements) ? data.other_requirements : [];
+            setData('other_requirements', [...currentReqs, newOtherReq.trim()]);
             setNewOtherReq('');
         }
     };
 
     const handleRemoveOtherReq = (index: number) => {
-        setData('other_requirements', data.other_requirements.filter((_: string, i: number) => i !== index));
+        const currentReqs = Array.isArray(data.other_requirements) ? data.other_requirements : [];
+        setData('other_requirements', currentReqs.filter((_: string, i: number) => i !== index));
     };
 
     // Skills handlers
@@ -355,7 +356,7 @@ export function WorkOrderPlanningTab({
         setData('required_certifications', newSelectedCertifications.map(c => c.name));
     };
 
-    const handleAddPart = (part: unknown) => {
+    const handleAddPart = (part: Part) => {
         const unitCost = Number(part.unit_cost) || 0;
         const newPart: PlanningPart = {
             id: `new-${Date.now()}`,
@@ -365,7 +366,6 @@ export function WorkOrderPlanningTab({
             estimated_quantity: 1,
             unit_cost: unitCost,
             total_cost: unitCost * 1,
-            available: part.available_quantity,
         };
 
         setPlannedParts([...plannedParts, newPart]);
@@ -794,7 +794,7 @@ export function WorkOrderPlanningTab({
                     )}
 
                     {/* Other Requirements List */}
-                    {data.other_requirements.length > 0 ? (
+                    {Array.isArray(data.other_requirements) && data.other_requirements.length > 0 ? (
                         <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
                             <EntityDataTable
                                 data={data.other_requirements.map((req: string, index: number) => ({

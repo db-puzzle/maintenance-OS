@@ -157,9 +157,6 @@ export function PartSearchDialog({
                                                         {part.manufacturer && (
                                                             <span>Fabricante: {part.manufacturer.name}</span>
                                                         )}
-                                                        {part.category && (
-                                                            <span>Categoria: {part.category}</span>
-                                                        )}
                                                     </div>
                                                     {part.description && (
                                                         <p className="text-xs text-muted-foreground line-clamp-2">

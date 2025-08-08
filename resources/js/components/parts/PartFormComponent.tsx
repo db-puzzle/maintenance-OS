@@ -84,7 +84,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
     });
     // Create a wrapper to handle the typing issue
     const handleClearErrors = (...fields: string[]) => {
-        clearErrors(...(fields as unknown));
+        clearErrors(...(fields as Array<keyof typeof data>));
     };
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

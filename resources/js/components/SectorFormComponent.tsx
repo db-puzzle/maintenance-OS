@@ -49,6 +49,11 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
         plant_id: sector?.area?.plant?.id?.toString() || '',
         area_id: sector?.area_id?.toString() || '',
     });
+    
+    // Create a wrapper for setData to match the TextInput expected signature
+    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+        setData(name as keyof SectorFormData, value as SectorFormData[keyof SectorFormData]);
+    };
     // Get available areas based on selected plant
     const availableAreas = useMemo(() => {
         if (!data.plant_id) return [];
@@ -164,7 +169,7 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
                 <TextInput
                     form={{
                         data,
-                        setData: setData as unknown,
+                        setData: handleSetData,
                         errors,
                         clearErrors,
                     }}
