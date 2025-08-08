@@ -8,7 +8,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { Task } from '@/types/task';
+import { type Routine as BaseRoutine } from '@/types/routine';
+import { type Shift as BaseShift } from '@/types/asset-hierarchy';
+import { type Task } from '@/types/task';
 
 import { Link, router } from '@inertiajs/react';
 import axios from 'axios';
@@ -29,38 +31,32 @@ import {
 } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { toast } from 'sonner';
-export interface Routine {
-    id?: number;
+
+// Extended interfaces for this component
+interface ExtendedForm {
+    id: number;
     name: string;
-    trigger_hours?: number;
-    trigger_type?: 'runtime_hours' | 'calendar_days';
-    trigger_runtime_hours?: number;
-    trigger_calendar_days?: number;
-    execution_mode: 'automatic' | 'manual';
-    description?: string;
-    form_id?: number;
-    asset_id?: number;
-    advance_generation_days?: number;
-    auto_approve_work_orders?: boolean;
-    priority_score?: number;
-    last_execution_runtime_hours?: number;
-    last_execution_completed_at?: string;
-    last_execution_form_version_id?: number;
-    status?: 'Active' | 'Inactive';
-    form?: {
-        id: number;
-        name: string;
-        tasks: Task[];
-        has_draft_changes?: boolean;
-        is_draft?: boolean;
-        current_version_id?: number | null;
-        current_version?: {
-            id?: number;
-            version_number: string;
-            published_at?: string;
-        };
+    tasks: Array<{
+        id: string | number;
+        description: string;
+        type: string;
+        [key: string]: any;
+    }>;
+    has_draft_changes?: boolean;
+    is_draft?: boolean;
+    current_version_id?: number | null;
+    current_version?: {
+        id?: number;
+        version_number: string;
+        published_at?: string;
     };
 }
+
+interface ExtendedRoutine extends Omit<BaseRoutine, 'form'> {
+    form?: ExtendedForm;
+    status?: 'Active' | 'Inactive';
+}
+
 interface ShiftSchedule {
     weekday: string;
     shifts: Array<{
@@ -73,11 +69,15 @@ interface ShiftSchedule {
         }>;
     }>;
 }
-interface Shift {
-    id: number;
-    name: string;
+
+interface ExtendedShift extends BaseShift {
     schedules: ShiftSchedule[];
 }
+
+// Use ExtendedRoutine instead of Routine
+type Routine = ExtendedRoutine;
+type Shift = ExtendedShift;
+
 interface RoutineListProps {
     routine?: Routine;
     onSave?: (routine: Routine) => void;
@@ -673,7 +673,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         triggerText="Trigger Oculto"
                         triggerVariant="outline"
                         triggerRef={editSheetTriggerRef}
-                        routine={routineData.trigger_type ? routineData as unknown : undefined}
+                        routine={routineData.id ? routineData : undefined}
                         isNew={false}
                         assetId={assetId}
                         onSuccess={(routine) => handleSheetSuccess(routine as unknown as Routine)}

@@ -234,8 +234,7 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 sortable: true,
                                 width: 'w-[300px]',
                                 render: (value, row) => {
-                                     
-                                    const sector = row as unknown;
+                                    const sector = row as { name: string; description?: string };
                                     return (
                                         <div>
                                             <div className="font-medium">{sector.name}</div>

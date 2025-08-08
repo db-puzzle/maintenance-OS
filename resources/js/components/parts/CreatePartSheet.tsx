@@ -49,7 +49,7 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
     });
     // Create a wrapper to handle the typing issue
     const handleClearErrors = (...fields: string[]) => {
-        clearErrors(...(fields as unknown));
+        clearErrors(...(fields as Array<keyof typeof data>));
     };
     useEffect(() => {
         if (part) {

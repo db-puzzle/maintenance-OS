@@ -84,7 +84,7 @@ export default function Show({ assetType, asset }: Props) {
                                 sortable: false,
                                 width: 'w-[25%]',
                                  
-                                render: (value, row) => <div className="font-medium">{(row as unknown).tag}</div>,
+                                render: (value, row) => <div className="font-medium">{(row as unknown as Asset).tag}</div>,
                             },
                             {
                                 key: 'area',
@@ -92,7 +92,7 @@ export default function Show({ assetType, asset }: Props) {
                                 sortable: false,
                                 width: 'w-[25%]',
                                  
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown).area?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown as Asset).area?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturer',
@@ -100,7 +100,7 @@ export default function Show({ assetType, asset }: Props) {
                                 sortable: false,
                                 width: 'w-[25%]',
                                  
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown).manufacturer?.name ?? '-'}</span>,
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown as Asset).manufacturer?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturing_year',
@@ -111,7 +111,7 @@ export default function Show({ assetType, asset }: Props) {
                             },
                         ]}
                          
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as unknown).id))}
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as unknown as Asset).id))}
                     />
                     <EntityPagination
                         pagination={{

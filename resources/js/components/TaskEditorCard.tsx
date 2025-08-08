@@ -195,8 +195,8 @@ export default function TaskEditorCard({
                         <div className="grid gap-2">
                             <TextInput
                                 form={{
-                                    data: { ...data, options: undefined } as Record<string, string | number | boolean | null | undefined>,
-                                    setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
+                                    data: { ...data, options: undefined } as Record<string, string | number | boolean | File | null | undefined>,
+                                    setData: setData as (name: string, value: string | number | boolean | File | null | undefined) => void,
                                     errors,
                                     clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}
@@ -394,8 +394,8 @@ export default function TaskEditorCard({
                         <div>
                             <TextInput
                                 form={{
-                                    data: { ...data, options: undefined } as Record<string, string | number | boolean | null | undefined>,
-                                    setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
+                                    data: { ...data, options: undefined } as Record<string, string | number | boolean | File | null | undefined>,
+                                    setData: setData as (name: string, value: string | number | boolean | File | null | undefined) => void,
                                     errors,
                                     clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}
@@ -409,8 +409,8 @@ export default function TaskEditorCard({
                         <div>
                             <TextInput
                                 form={{
-                                    data: { ...data, options: undefined } as Record<string, string | number | boolean | null | undefined>,
-                                    setData: setData as (name: string, value: string | number | boolean | null | undefined) => void,
+                                    data: { ...data, options: undefined } as Record<string, string | number | boolean | File | null | undefined>,
+                                    setData: setData as (name: string, value: string | number | boolean | File | null | undefined) => void,
                                     errors,
                                     clearErrors: clearErrors as (...fields: string[]) => void,
                                 }}

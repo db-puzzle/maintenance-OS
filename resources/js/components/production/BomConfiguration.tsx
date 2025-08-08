@@ -4,7 +4,7 @@ import { BomItem, Item, ItemCategory, BomVersion } from '@/types/production';
 interface BomConfigurationProps {
   bomId: number;
   versionId: number;
-  bomItems: (BomItem & { item: Item; children?: BomItem[] })[];
+  bomItems: (BomItem & { item: Item; children?: (BomItem & { item: Item })[] })[];
   availableItems: Item[];
   categories?: ItemCategory[];
   canEdit: boolean;

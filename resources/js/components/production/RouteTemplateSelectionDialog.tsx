@@ -14,55 +14,37 @@ import { Search, Clock, Layers, Settings, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RouteTemplate } from '@/types/production';
 
-interface ExtendedRouteTemplate extends RouteTemplate {
-    steps_count?: number;
-    estimated_time?: number;
-    usage_count?: number;
-}
-
 interface RouteTemplateSelectionDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    templates: ExtendedRouteTemplate[];
-    orderNumber: string;
-    itemCategoryId?: number;
-    onSelectTemplate: (templateId: number) => void;
+    templates: RouteTemplate[];
+    selectedTemplate: RouteTemplate | null;
+    onSelectTemplate: (template: RouteTemplate) => void;
+    onUseTemplate: () => void;
+    itemName?: string;
 }
 
 export default function RouteTemplateSelectionDialog({
     open,
     onOpenChange,
     templates,
-    orderNumber,
-    itemCategoryId,
+    selectedTemplate,
     onSelectTemplate,
+    onUseTemplate,
+    itemName,
 }: RouteTemplateSelectionDialogProps) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedId, setSelectedId] = useState<number | null>(null);
 
-    // Filter templates based on search query and category
+    // Filter templates based on search query
     const filteredTemplates = useMemo(() => {
-        let filtered = templates;
-
-        // Filter by search query
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(template =>
-                template.name.toLowerCase().includes(query) ||
-                (template.description || '').toLowerCase().includes(query)
-            );
-        }
-
-        // Sort templates: category-specific first, then general templates
-        return filtered.sort((a, b) => {
-            // If both have same relevance, sort by name
-            if ((a.item_category === itemCategoryId) === (b.item_category === itemCategoryId)) {
-                return a.name.localeCompare(b.name);
-            }
-            // Category-specific templates come first
-            return a.item_category === itemCategoryId ? -1 : 1;
-        });
-    }, [templates, searchQuery, itemCategoryId]);
+        if (!searchQuery.trim()) return templates;
+        
+        const query = searchQuery.toLowerCase();
+        return templates.filter(template =>
+            template.name.toLowerCase().includes(query) ||
+            template.description?.toLowerCase().includes(query)
+        );
+    }, [templates, searchQuery]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Escape') {
@@ -72,18 +54,14 @@ export default function RouteTemplateSelectionDialog({
     };
 
     const handleSelect = () => {
-        if (selectedId) {
-            onSelectTemplate(selectedId);
-            onOpenChange(false);
-            setSearchQuery('');
-            setSelectedId(null);
+        if (selectedTemplate) {
+            onUseTemplate();
         }
     };
 
     const handleCancel = () => {
         onOpenChange(false);
         setSearchQuery('');
-        setSelectedId(null);
     };
 
     const getCategoryIcon = (template: RouteTemplate) => {
@@ -107,9 +85,9 @@ export default function RouteTemplateSelectionDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl" onKeyDown={handleKeyDown}>
                 <DialogHeader>
-                    <DialogTitle>Selecionar Template de Rota</DialogTitle>
+                    <DialogTitle>Selecionar Roteiro Template</DialogTitle>
                     <DialogDescription>
-                        Escolha um template de rota para a OM #{orderNumber}
+                        Escolha um template para criar o roteiro de produção{itemName ? ` para ${itemName}` : ''}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -140,11 +118,11 @@ export default function RouteTemplateSelectionDialog({
                                     {filteredTemplates.map((template) => (
                                         <button
                                             key={template.id}
-                                            onClick={() => setSelectedId(template.id)}
+                                            onClick={() => onSelectTemplate(template)}
                                             onDoubleClick={handleSelect}
                                             className={cn(
-                                                "w-full rounded-lg border p-4 text-left transition-colors hover:bg-accent",
-                                                selectedId === template.id && "border-primary bg-accent"
+                                                "p-4 cursor-pointer transition-all hover:bg-accent/50",
+                                                selectedTemplate?.id === template.id && "border-primary bg-accent"
                                             )}
                                         >
                                             <div className="space-y-2">
@@ -162,11 +140,7 @@ export default function RouteTemplateSelectionDialog({
                                                             )}
                                                         </div>
                                                     </div>
-                                                    {template.item_category === itemCategoryId && (
-                                                        <Badge variant="secondary" className="text-xs">
-                                                            Recomendado
-                                                        </Badge>
-                                                    )}
+                                                    {/* Removed itemCategoryId check */}
                                                 </div>
 
                                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -206,14 +180,14 @@ export default function RouteTemplateSelectionDialog({
                             {filteredTemplates.length} {filteredTemplates.length === 1 ? 'template disponível' : 'templates disponíveis'}
                         </p>
                         <div className="flex gap-2">
-                            <Button variant="outline" onClick={handleCancel}>
+                            <Button variant="outline" onClick={() => onOpenChange(false)}>
                                 Cancelar
                             </Button>
                             <Button
                                 onClick={handleSelect}
-                                disabled={!selectedId}
+                                disabled={!selectedTemplate}
                             >
-                                Aplicar Template
+                                Usar Template
                             </Button>
                         </div>
                     </div>

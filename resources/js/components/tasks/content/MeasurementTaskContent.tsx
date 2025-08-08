@@ -103,18 +103,20 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             targetValue: stringifyValue(targetValue),
             minValue: stringifyValue(minValue),
             maxValue: stringifyValue(maxValue),
-        } as Record<string, unknown>,
-        setData: (name: string, value: unknown) => {
+        } as Record<string, string | number | boolean | File | null | undefined>,
+        setData: (name: string, value: string | number | boolean | File | null | undefined) => {
             setResponse({ ...response, [name]: value });
         },
         errors: formErrors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => {
             const newErrors = { ...formErrors };
-            fields.forEach((field) => delete newErrors[field as keyof MeasurementFormData]);
+            fields.forEach(field => {
+                delete newErrors[field as keyof MeasurementFormData];
+            });
             setFormErrors(newErrors);
         },
         validateInput,
-        processBlur: (name: string, value: string) => processBlur(name as keyof MeasurementFormData, value),
+        processBlur,
     };
     const handleUpdate = (target: number | undefined, min: number | undefined, max: number | undefined) => {
         onUpdate?.({

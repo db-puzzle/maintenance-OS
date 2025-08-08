@@ -105,7 +105,7 @@ export default function RoutingStepsTableTab({
         {
             key: 'step_type',
             label: 'Tipo',
-            render: (value: unknown) => <StepTypeBadge type={value as unknown} />
+            render: (value: unknown) => <StepTypeBadge type={value as 'standard' | 'quality_check' | 'rework'} />
         },
         {
             key: 'work_cell',
@@ -127,7 +127,7 @@ export default function RoutingStepsTableTab({
         {
             key: 'status',
             label: 'Status',
-            render: (value: unknown) => <StepStatusBadge status={value as unknown} />
+            render: (value: unknown) => <StepStatusBadge status={value as 'pending' | 'queued' | 'in_progress' | 'on_hold' | 'completed' | 'skipped'} />
         },
         {
             key: 'cycle_time_minutes',
@@ -147,7 +147,7 @@ export default function RoutingStepsTableTab({
             headerAlign: 'center',
             render: (value: unknown, row: Record<string, unknown>) => (
                 <div className="flex justify-center">
-                    {getStepActions(row)}
+                    {getStepActions(row as unknown as ManufacturingStep)}
                 </div>
             )
         }
@@ -155,7 +155,7 @@ export default function RoutingStepsTableTab({
     return (
         <div className="space-y-4 py-6">
             <EntityDataTable
-                data={(steps || []) as unknown}
+                data={(steps || []) as unknown as Record<string, unknown>[]}
                 columns={columns}
                 loading={false}
             />

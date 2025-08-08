@@ -315,6 +315,19 @@ export function WorkOrderFormComponent({
         setMode('edit');
     };
 
+    // Create a wrapper for setData to match TextInput signature
+    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+        setData(name as keyof WorkOrderFormData, value as WorkOrderFormData[keyof WorkOrderFormData]);
+    };
+    
+    // Form wrapper for TextInput components
+    const formWrapper = {
+        data: data as Record<string, string | number | boolean | File | null | undefined>,
+        setData: handleSetData,
+        errors,
+        clearErrors
+    };
+
     return (
         <form
             onSubmit={(e) => {
@@ -373,12 +386,7 @@ export function WorkOrderFormComponent({
                     {/* Title - spans 3 columns */}
                     <div className="md:col-span-3">
                         <TextInput
-                            form={{ 
-                                data: data as Record<string, string | number | boolean | File | null | undefined>, 
-                                setData: setData as unknown, 
-                                errors, 
-                                clearErrors 
-                            }}
+                            form={formWrapper}
                             name="title"
                             label="Título"
                             placeholder="Digite um título descritivo"

@@ -182,7 +182,6 @@ export function WorkOrderPlanningTab({
             estimated_quantity: Number(part.estimated_quantity) || 1,
             unit_cost: Number(part.unit_cost) || 0,
             total_cost: Number(part.total_cost) || 0,
-            available: part.available_quantity,
         })) || []
     );
 
@@ -247,16 +246,16 @@ export function WorkOrderPlanningTab({
     // Get planning data from work order if status history doesn't have it
     const planningData = planningRelatedEntry || (isPlanned ? {
         changed_by: workOrder.planned_by,
-        user: workOrder.planned_by,
+        changedBy: workOrder.planner,
         created_at: workOrder.planned_at || workOrder.updated_at
     } : null);
 
     const isViewMode = !canPlan || !['approved', 'planned'].includes(workOrder.status) || isPlanned;
 
     const calculateLaborCost = React.useCallback(() => {
-        const hours = parseFloat(data.estimated_hours) || 0;
-        const rate = parseFloat(data.labor_cost_per_hour) || 0;
-        const people = parseInt(data.number_of_people) || 1;
+        const hours = parseFloat(String(data.estimated_hours)) || 0;
+        const rate = parseFloat(String(data.labor_cost_per_hour)) || 0;
+        const people = parseInt(String(data.number_of_people)) || 1;
         return hours * rate * people;
     }, [data.estimated_hours, data.labor_cost_per_hour, data.number_of_people]);
 
@@ -316,13 +315,15 @@ export function WorkOrderPlanningTab({
     // Other requirements handlers
     const handleAddOtherReq = () => {
         if (newOtherReq.trim()) {
-            setData('other_requirements', [...data.other_requirements, newOtherReq.trim()]);
+            const currentReqs = Array.isArray(data.other_requirements) ? data.other_requirements : [];
+            setData('other_requirements', [...currentReqs, newOtherReq.trim()]);
             setNewOtherReq('');
         }
     };
 
     const handleRemoveOtherReq = (index: number) => {
-        setData('other_requirements', data.other_requirements.filter((_: string, i: number) => i !== index));
+        const currentReqs = Array.isArray(data.other_requirements) ? data.other_requirements : [];
+        setData('other_requirements', currentReqs.filter((_: string, i: number) => i !== index));
     };
 
     // Skills handlers
@@ -355,7 +356,7 @@ export function WorkOrderPlanningTab({
         setData('required_certifications', newSelectedCertifications.map(c => c.name));
     };
 
-    const handleAddPart = (part: unknown) => {
+    const handleAddPart = (part: Part) => {
         const unitCost = Number(part.unit_cost) || 0;
         const newPart: PlanningPart = {
             id: `new-${Date.now()}`,
@@ -365,7 +366,6 @@ export function WorkOrderPlanningTab({
             estimated_quantity: 1,
             unit_cost: unitCost,
             total_cost: unitCost * 1,
-            available: part.available_quantity,
         };
 
         setPlannedParts([...plannedParts, newPart]);
@@ -406,6 +406,18 @@ export function WorkOrderPlanningTab({
     React.useEffect(() => {
         setCurrentPage(1);
     }, [plannedParts.length]);
+
+    // Create form wrapper for TextInput components
+    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+        setData(name as keyof typeof data, value as any);
+    };
+    
+    const formWrapper = {
+        data: data as Record<string, string | number | boolean | File | null | undefined>,
+        setData: handleSetData,
+        errors,
+        clearErrors: (...fields: string[]) => clearErrors(...(fields as Array<keyof typeof data>))
+    };
 
     // Early return if work order is not in a state that allows planning
     if (!canShowPlanning) {
@@ -542,7 +554,7 @@ export function WorkOrderPlanningTab({
                             <Label>Planejado por</Label>
                             <div className="rounded-md border bg-muted/20 p-2 text-sm flex items-center gap-2">
                                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{planningData.user?.name || planningData.changed_by?.name || 'Sistema'}</span>
+                                <span className="font-medium">{planningData.changedBy?.name || 'Sistema'}</span>
                             </div>
                         </div>
 
@@ -593,12 +605,7 @@ export function WorkOrderPlanningTab({
 
                     <div className="grid gap-4 md:grid-cols-4">
                         <TextInput
-                            form={{
-                                data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
-                                setData: setData as unknown,
-                                errors,
-                                clearErrors: clearErrors as (...fields: string[]) => void,
-                            }}
+                            form={formWrapper}
                             name="estimated_hours"
                             label="Horas Estimadas"
                             placeholder="4.0"
@@ -607,12 +614,7 @@ export function WorkOrderPlanningTab({
                         />
 
                         <TextInput
-                            form={{
-                                data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
-                                setData: setData as unknown,
-                                errors,
-                                clearErrors: clearErrors as (...fields: string[]) => void,
-                            }}
+                            form={formWrapper}
                             name="number_of_people"
                             label="Número de Pessoas"
                             placeholder="1"
@@ -621,12 +623,7 @@ export function WorkOrderPlanningTab({
                         />
 
                         <TextInput
-                            form={{
-                                data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
-                                setData: setData as unknown,
-                                errors,
-                                clearErrors: clearErrors as (...fields: string[]) => void,
-                            }}
+                            form={formWrapper}
                             name="labor_cost_per_hour"
                             label="Custo por Hora (R$)"
                             placeholder="150.00"
@@ -794,7 +791,7 @@ export function WorkOrderPlanningTab({
                     )}
 
                     {/* Other Requirements List */}
-                    {data.other_requirements.length > 0 ? (
+                    {Array.isArray(data.other_requirements) && data.other_requirements.length > 0 ? (
                         <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
                             <EntityDataTable
                                 data={data.other_requirements.map((req: string, index: number) => ({
