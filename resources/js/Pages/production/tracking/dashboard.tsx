@@ -66,7 +66,7 @@ function WorkCellCard({
     onClick: () => void;
 }) {
     const getStatusColor = () => {
-        switch ((workCell as unknown).status) {
+        switch (workCell.status) {
             case 'active':
                 return 'bg-green-500';
             case 'maintenance':
@@ -78,7 +78,7 @@ function WorkCellCard({
         }
     };
     const getStatusLabel = () => {
-        switch ((workCell as unknown).status) {
+        switch (workCell.status) {
             case 'active':
                 return 'Ativa';
             case 'maintenance':
@@ -86,7 +86,7 @@ function WorkCellCard({
             case 'inactive':
                 return 'Inativa';
             default:
-                return (workCell as unknown).status;
+                return workCell.status;
         }
     };
     return (
@@ -97,7 +97,7 @@ function WorkCellCard({
             <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                     <div>
-                        <h4 className="font-semibold text-lg">{(workCell as unknown).code || workCell.name}</h4>
+                        <h4 className="font-semibold text-lg">{workCell.code || workCell.name}</h4>
                         <p className="text-sm text-muted-foreground">{workCell.name}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -163,8 +163,8 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             label: 'Produto',
             render: (value: unknown, order: Record<string, unknown>) => (
                 <div>
-                    <div className="font-medium">{(order.item as unknown)?.name}</div>
-                    <div className="text-sm text-muted-foreground">{(order.item as unknown)?.item_number}</div>
+                    <div className="font-medium">{(order.item as any)?.name}</div>
+                    <div className="text-sm text-muted-foreground">{(order.item as any)?.item_number}</div>
                 </div>
             )
         },
@@ -210,7 +210,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             render: (value: unknown, order: Record<string, unknown>) => (
                 order.current_work_cell ? (
                     <Badge variant="secondary">
-                        {(order.current_work_cell as unknown).code}
+                        {(order.current_work_cell as any).code}
                     </Badge>
                 ) : (
                     <span className="text-muted-foreground">—</span>
@@ -293,7 +293,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                             {workCells.map((cell) => (
                                 <WorkCellCard
                                     key={cell.id}
-                                    workCell={cell as unknown}
+                                    workCell={cell}
                                     onClick={() => handleCellClick(cell)}
                                 />
                             ))}
@@ -313,7 +313,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                     </CardHeader>
                     <CardContent>
                         <EntityDataTable
-                            data={activeOrders as unknown}
+                            data={activeOrders as any[]}
                             columns={activeOrderColumns}
                             onRowClick={(order: Record<string, unknown>) => handleOrderClick(order as unknown as ManufacturingOrder)}
                         />

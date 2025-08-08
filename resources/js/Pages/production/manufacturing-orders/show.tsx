@@ -28,7 +28,8 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { TextInput } from '@/components/TextInput';
 import { ItemSelect } from '@/components/ItemSelect';
-import { ManufacturingOrder, RouteTemplate, WorkCell, Form } from '@/types/production';
+import { ManufacturingOrder, RouteTemplate, WorkCell } from '@/types/production';
+import { Form } from '@/types/work-order';
 import { cn } from '@/lib/utils';
 import { useForm } from '@inertiajs/react';
 import HierarchicalConfiguration from '@/components/production/HierarchicalConfiguration';
@@ -524,7 +525,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             <ShowLayout
                 title={order.order_number}
                 subtitle={subtitle}
-
+                editRoute={route('production.orders.edit', order.id)}
                 tabs={tabs}
                 defaultActiveTab={(flash?.openRouteBuilder || openRouteBuilderParam === '1') ? "routes" : "overview"}
                 actions={headerActions}
