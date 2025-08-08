@@ -14,8 +14,9 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { router } from '@inertiajs/react';
+import { WorkOrder } from '@/types/work-order';
 interface Props {
-    workOrder: any;
+    workOrder: WorkOrder;
     discipline: 'maintenance' | 'quality';
     canEdit: boolean;
     canApprove: boolean;

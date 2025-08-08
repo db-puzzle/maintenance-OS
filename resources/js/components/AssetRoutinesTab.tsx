@@ -436,7 +436,7 @@ export default function AssetRoutinesTab({
             headerAlign: 'center',
             contentAlign: 'center',
             render: (value, row) => {
-                const form = row.form as any;
+                const form = row.form as unknown;
 
                 if (!form || !form.tasks || form.tasks.length === 0) {
                     return <div className="text-center"><span className="text-sm text-muted-foreground">-</span></div>;
@@ -616,7 +616,7 @@ export default function AssetRoutinesTab({
         );
     };
 
-    const hasFormTasks = (form: any): boolean => {
+    const hasFormTasks = (form: unknown): boolean => {
         return !!(form?.tasks && form.tasks.length > 0);
     };
 

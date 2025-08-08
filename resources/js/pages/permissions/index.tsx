@@ -74,7 +74,7 @@ export default function PermissionsIndex({ permissions, roles }: Props) {
                         <TabsTrigger value="matrix">Permission Matrix</TabsTrigger>
                     </TabsList>
                     <TabsContent value="roles">
-                        <RoleManagement roles={roles as any} />
+                        <RoleManagement roles={roles as unknown} />
                     </TabsContent>
                     <TabsContent value="matrix">
                         <PermissionMatrix permissions={permissions.data} roles={roles} />

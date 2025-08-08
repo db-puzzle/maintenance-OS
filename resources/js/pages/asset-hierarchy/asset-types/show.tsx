@@ -83,24 +83,24 @@ export default function Show({ assetType, asset }: Props) {
                                 label: 'TAG',
                                 sortable: false,
                                 width: 'w-[25%]',
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <div className="font-medium">{(row as any).tag}</div>,
+                                 
+                                render: (value, row) => <div className="font-medium">{(row as unknown).tag}</div>,
                             },
                             {
                                 key: 'area',
                                 label: 'Área',
                                 sortable: false,
                                 width: 'w-[25%]',
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).area?.name ?? '-'}</span>,
+                                 
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown).area?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturer',
                                 label: 'Fabricante',
                                 sortable: false,
                                 width: 'w-[25%]',
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).manufacturer?.name ?? '-'}</span>,
+                                 
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown).manufacturer?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'manufacturing_year',
@@ -110,8 +110,8 @@ export default function Show({ assetType, asset }: Props) {
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as any).id))}
+                         
+                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as unknown).id))}
                     />
                     <EntityPagination
                         pagination={{

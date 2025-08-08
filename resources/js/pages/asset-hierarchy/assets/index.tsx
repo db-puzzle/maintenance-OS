@@ -204,8 +204,8 @@ export default function Assets({ asset: initialAssets, filters }: Props) {
                 const asset = row as unknown as Asset;
                 const manufacturer = asset.manufacturer;
                 if (typeof manufacturer === 'object' && manufacturer !== null) {
-                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                    return (manufacturer as any).name;
+                     
+                    return (manufacturer as unknown).name;
                 }
                 return manufacturer ?? '-';
             },

@@ -56,7 +56,7 @@ export default function ManufacturingOrderRouteTab({
     openRouteBuilder
 }: Props) {
     const { props } = usePage();
-    const flash = props.flash as any;
+    const flash = props.flash as unknown;
     // Check URL params from props
     const openRouteBuilderParam = openRouteBuilder || null;
     // Check if we should start in builder mode (e.g., after creating a new route)
@@ -102,9 +102,9 @@ export default function ManufacturingOrderRouteTab({
     // Create a wrapper for form compatibility
     const form = {
         data,
-        setData: (name: string, value: any) => setData(name as any, value),
+        setData: (name: string, value: unknown) => setData(name as unknown, value),
         errors: errors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => clearErrors(...(fields as any)),
+        clearErrors: (...fields: string[]) => clearErrors(...(fields as unknown)),
     };
     const handleCreateRoute = () => {
         post(route('production.orders.routes.store', order.id), {

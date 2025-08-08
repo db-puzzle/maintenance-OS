@@ -71,7 +71,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
         direction: 'desc' as 'asc' | 'desc',
         per_page: 10,
     });
-    const { } = useExportManager();
+    const _ = useExportManager();
     // Detect when the parent Histórico tab becomes visible
     useEffect(() => {
         const currentElement = containerRef.current;
@@ -115,7 +115,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             } else if (Array.isArray(response.data)) {
                 workOrdersData = response.data;
             }
-            const transformedData = Array.isArray(workOrdersData) ? workOrdersData.map((workOrder: any) => ({
+            const transformedData = Array.isArray(workOrdersData) ? workOrdersData.map((workOrder: unknown) => ({
                 id: workOrder.execution?.id || workOrder.id,
                 work_order_id: workOrder.id,
                 routine_name: workOrder.title,

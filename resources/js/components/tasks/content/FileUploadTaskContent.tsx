@@ -52,7 +52,7 @@ function FileUploadTaskContent({ task, mode, response, setResponse, disabled }: 
         );
     }
 
-    const uploadedFile = (response as any)?.files?.[0];
+    const uploadedFile = (response as unknown)?.files?.[0];
 
     return (
         <div className="space-y-4">

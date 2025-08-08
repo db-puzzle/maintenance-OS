@@ -9,6 +9,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { User } from '@/types';
 interface Certification {
     id: number;
     name: string;
@@ -18,7 +19,7 @@ interface Certification {
     active: boolean;
     created_at: string;
     updated_at: string;
-    users?: any[];
+    users?: User[];
 }
 // Define a local form type with index signature
 interface CertificationFormData {
@@ -49,7 +50,7 @@ export default function CertificationFormComponent({
     const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
     const isViewMode = mode === 'view' && isEditing;
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [dependencies, setDependencies] = useState<any>(null);
+    const [dependencies, setDependencies] = useState<Record<string, unknown> | null>(null);
     const [dependenciesOpen, setDependenciesOpen] = useState(false);
     // Ensure mode updates when initialMode changes
     useEffect(() => {
@@ -124,8 +125,8 @@ export default function CertificationFormComponent({
         });
     };
     // Calculate statistics for view mode
-    const validUsers = certification?.users?.filter((u: any) => !u.is_expired).length || 0;
-    const expiredUsers = certification?.users?.filter((u: any) => u.is_expired).length || 0;
+    const validUsers = certification?.users?.filter((u: unknown) => !u.is_expired).length || 0;
+    const expiredUsers = certification?.users?.filter((u: unknown) => u.is_expired).length || 0;
     return (
         <>
             <div className="space-y-6">

@@ -21,7 +21,7 @@ export default function QrTrackingScan({ scan_modes }: Props) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const [scannedItem, setScannedItem] = useState<any>(null);
+    const [scannedItem, setScannedItem] = useState<Record<string, unknown> | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const startCamera = async () => {
@@ -71,7 +71,7 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                 setScannedItem(null);
             }, 5000);
         } catch (err: unknown) {
-            setError((err as any).response?.data?.message || 'Failed to process scan');
+            setError((err as unknown).response?.data?.message || 'Failed to process scan');
         } finally {
             setIsProcessing(false);
         }

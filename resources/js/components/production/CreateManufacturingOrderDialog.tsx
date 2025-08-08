@@ -353,7 +353,7 @@ export default function CreateManufacturingOrderDialog({
                                                         )}
                                                         <div className="flex gap-4 mt-2">
                                                             <Badge variant="outline">
-                                                                {(selectedBOM as any).item_masters_count || 0} items
+                                                                {(selectedBOM as unknown).item_masters_count || 0} items
                                                             </Badge>
                                                         </div>
                                                     </div>

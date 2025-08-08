@@ -103,8 +103,8 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             targetValue: stringifyValue(targetValue),
             minValue: stringifyValue(minValue),
             maxValue: stringifyValue(maxValue),
-        } as Record<string, any>,
-        setData: (name: string, value: any) => {
+        } as Record<string, unknown>,
+        setData: (name: string, value: unknown) => {
             setResponse({ ...response, [name]: value });
         },
         errors: formErrors as Partial<Record<string, string>>,

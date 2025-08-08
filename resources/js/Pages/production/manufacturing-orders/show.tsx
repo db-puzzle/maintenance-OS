@@ -41,10 +41,10 @@ interface Props {
     canCancel: boolean;
     canCreateRoute: boolean;
     canManageRoutes?: boolean;
-    templates?: any[]; // Route templates for creating new routes
-    workCells?: any[];
+    templates?: unknown[]; // Route templates for creating new routes
+    workCells?: unknown[];
     stepTypes?: Record<string, string>;
-    forms?: any[];
+    forms?: unknown[];
 }
 function FieldGroup({ title, children }: { title?: string; children: React.ReactNode }) {
     return (
@@ -71,7 +71,7 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
 }
 export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, canManageRoutes = false, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
     const { props } = usePage();
-    const flash = props.flash as any;
+    const flash = props.flash as unknown;
     const [generatingQr, setGeneratingQr] = useState(false);
     // Check URL params - passed from backend
     const openRouteBuilderParam = props.openRouteBuilder || null;
@@ -93,10 +93,10 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
     });
     // Create a wrapper that matches the TextInput interface
     const form = {
-        data: inertiaForm.data as Record<string, any>,
-        setData: (name: string, value: unknown) => inertiaForm.setData(name as any, value),
+        data: inertiaForm.data as Record<string, unknown>,
+        setData: (name: string, value: unknown) => inertiaForm.setData(name as unknown, value),
         errors: inertiaForm.errors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...(fields as any)),
+        clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...(fields as unknown)),
     };
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
         switch (status) {
@@ -162,7 +162,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                 window.open(response.data.pdf_url, '_blank');
                 toast.success('Etiqueta QR gerada com sucesso!');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
         } finally {
             setGeneratingQr(false);
@@ -475,7 +475,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
         </>
     );
     // Check if order has a route
-    const hasRoute = (order as any).has_route || (order.manufacturing_route && order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0);
+    const hasRoute = (order as ManufacturingOrder).has_route || (order.manufacturing_route && order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0);
     const shouldShowRelease = ['draft', 'planned'].includes(order.status);
     // Additional actions for the header
     const headerActions = (

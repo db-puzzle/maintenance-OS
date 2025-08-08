@@ -1,9 +1,10 @@
 import React from 'react';
+import { WorkOrder } from '@/types/work-order';
 import { Separator } from '@/components/ui/separator';
 import EmptyCard from '@/components/ui/empty-card';
 import { Package } from 'lucide-react';
 interface Props {
-    workOrder: any;
+    workOrder: WorkOrder;
 }
 export default function WorkOrderPartsTab({ workOrder }: Props) {
     return (
@@ -17,7 +18,7 @@ export default function WorkOrderPartsTab({ workOrder }: Props) {
             <Separator />
             {workOrder.parts && workOrder.parts.length > 0 ? (
                 <div className="space-y-4">
-                    {workOrder.parts.map((part: any, index: number) => (
+                    {workOrder.parts.map((part: unknown, index: number) => (
                         <div key={index} className="flex items-center justify-between py-3 border-b last:border-0">
                             <div className="flex-1">
                                 <p className="font-medium">{part.part_name}</p>

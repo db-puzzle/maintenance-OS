@@ -134,7 +134,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             ? route('maintenance.routines.store')
             : route('maintenance.routines.update', { routine: routine?.id });
         const method = isNew ? 'post' : 'put';
-        const payload: any = {
+        const payload: unknown = {
             ...data,
             asset_id: assetId || routine?.asset_id,
         };
@@ -166,14 +166,14 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 }
                 // Call onSuccess callback if provided
                 if (onSuccess) {
-                    const routineData = (page.props as any).routine || routine;
+                    const routineData = (page.props as unknown).routine || routine;
                     onSuccess(routineData);
                 }
             },
             onError: (errors) => {
                 const firstError = Object.values(errors)[0];
                 toast.error(firstError || 'Erro ao salvar rotina');
-                setErrors(errors as any);
+                setErrors(errors as unknown);
             },
             onFinish: () => {
                 setProcessing(false);

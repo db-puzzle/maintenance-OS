@@ -18,6 +18,9 @@ import { EntityPagination } from '@/components/shared/EntityPagination';
 import SkillSheet from '@/components/skills/SkillSheet';
 import CertificationSheet from '@/components/certifications/CertificationSheet';
 import { ColumnConfig } from '@/types/shared';
+import { WorkOrder, Team } from '@/types/work-order';
+import { User } from '@/types';
+import { Part } from '@/types/maintenance';
 import {
     Plus,
     Trash2,
@@ -50,10 +53,10 @@ interface Certification {
 }
 
 interface WorkOrderPlanningTabProps {
-    workOrder: any;
-    technicians?: any[];
-    teams?: any[];
-    parts?: any[];
+    workOrder: WorkOrder;
+    technicians?: User[];
+    teams?: Team[];
+    parts?: Part[];
     skills: Skill[];
     certifications: Certification[];
     canPlan: boolean;
@@ -171,7 +174,7 @@ export function WorkOrderPlanningTab({
 }: WorkOrderPlanningTabProps) {
     // All hooks must be declared before any conditional returns
     const [plannedParts, setPlannedParts] = useState<PlanningPart[]>(
-        workOrder.parts?.map((part: any) => ({
+        workOrder.parts?.map((part: unknown) => ({
             id: part.id?.toString(),
             part_id: part.part_id,
             part_number: part.part_number,
@@ -219,7 +222,7 @@ export function WorkOrderPlanningTab({
         number_of_people: workOrder.number_of_people?.toString() || '1',
         required_skills: selectedSkills.map(s => s.name),
         required_certifications: selectedCertifications.map(c => c.name),
-        parts: [] as any[],
+        parts: [] as unknown[],
         estimated_parts_cost: workOrder.estimated_parts_cost || 0,
         estimated_total_cost: workOrder.estimated_total_cost || 0,
     });
@@ -231,12 +234,12 @@ export function WorkOrderPlanningTab({
     const isPlanned = ['planned', 'scheduled', 'in_progress', 'completed', 'verified', 'closed'].includes(workOrder.status);
 
     // Find the planning completion entry in status history
-    const planningEntry = workOrder.status_history?.find((entry: any) =>
+    const planningEntry = workOrder.status_history?.find((entry: unknown) =>
         entry.from_status === 'planned' && entry.to_status === 'scheduled'
     );
 
     // Also check for any entry that shows the work order was planned
-    const planningRelatedEntry = planningEntry || workOrder.status_history?.find((entry: any) =>
+    const planningRelatedEntry = planningEntry || workOrder.status_history?.find((entry: unknown) =>
         (entry.from_status === 'approved' && entry.to_status === 'planned') ||
         (entry.from_status === 'planned' && entry.to_status === 'scheduled')
     );
@@ -352,7 +355,7 @@ export function WorkOrderPlanningTab({
         setData('required_certifications', newSelectedCertifications.map(c => c.name));
     };
 
-    const handleAddPart = (part: any) => {
+    const handleAddPart = (part: unknown) => {
         const unitCost = Number(part.unit_cost) || 0;
         const newPart: PlanningPart = {
             id: `new-${Date.now()}`,
@@ -592,7 +595,7 @@ export function WorkOrderPlanningTab({
                         <TextInput
                             form={{
                                 data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
-                                setData: setData as any,
+                                setData: setData as unknown,
                                 errors,
                                 clearErrors: clearErrors as (...fields: string[]) => void,
                             }}
@@ -606,7 +609,7 @@ export function WorkOrderPlanningTab({
                         <TextInput
                             form={{
                                 data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
-                                setData: setData as any,
+                                setData: setData as unknown,
                                 errors,
                                 clearErrors: clearErrors as (...fields: string[]) => void,
                             }}
@@ -620,7 +623,7 @@ export function WorkOrderPlanningTab({
                         <TextInput
                             form={{
                                 data: data as unknown as Record<string, string | number | boolean | File | null | undefined>,
-                                setData: setData as any,
+                                setData: setData as unknown,
                                 errors,
                                 clearErrors: clearErrors as (...fields: string[]) => void,
                             }}
@@ -726,7 +729,7 @@ export function WorkOrderPlanningTab({
                         <div className="space-y-4">
                             <div className="[&_td]:py-1 [&_td]:text-sm [&_th]:py-1.5 [&_th]:text-sm">
                                 <EntityDataTable
-                                    data={paginatedParts as any[]}
+                                    data={paginatedParts as unknown[]}
                                     columns={partsColumns}
                                     actions={partsActions}
                                     emptyMessage="Nenhuma peça adicionada"
@@ -797,7 +800,7 @@ export function WorkOrderPlanningTab({
                                 data={data.other_requirements.map((req: string, index: number) => ({
                                     id: index,
                                     requirement: req,
-                                })) as any[]}
+                                })) as unknown[]}
                                 columns={[
                                     {
                                         key: 'requirement',

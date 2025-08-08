@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { WorkOrder } from '@/types/work-order';
 import { router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -17,7 +18,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 interface WorkOrderApprovalTabProps {
-    workOrder: any;
+    workOrder: WorkOrder;
     canApprove: boolean;
     approvalThreshold?: {
         maxCost: number;
@@ -36,7 +37,7 @@ export function WorkOrderApprovalTab({
     const [processing, setProcessing] = useState(false);
     const isApproved = workOrder.status !== 'requested';
     // Find the most recent approval or rejection entry (could be multiple)
-    const approvalEntries = workOrder.status_history?.filter((entry: any) =>
+    const approvalEntries = workOrder.status_history?.filter((entry: unknown) =>
         entry.from_status === 'requested' && (entry.to_status === 'approved' || entry.to_status === 'rejected')
     ) || [];
     // Get the most recent one (last in the array since they should be ordered by created_at)

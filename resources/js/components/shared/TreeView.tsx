@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 export interface TreeNode {
     id: string | number;
     children?: TreeNode[];
-    [key: string]: any;
+    [key: string]: unknown;
 }
 export interface TreeViewProps<T extends TreeNode> {
     data: T[];

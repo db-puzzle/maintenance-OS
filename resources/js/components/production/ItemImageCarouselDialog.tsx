@@ -5,6 +5,7 @@ import {
     CarouselItem,
     CarouselNext,
     CarouselPrevious,
+    type CarouselApi,
 } from '@/components/ui/carousel';
 import {
     Dialog,
@@ -33,7 +34,7 @@ export function ItemImageCarouselDialog({
     itemName
 }: ItemImageCarouselDialogProps) {
     const [currentIndex, setCurrentIndex] = React.useState(startIndex);
-    const [carouselApi, setCarouselApi] = React.useState<any>(null);
+    const [carouselApi, setCarouselApi] = React.useState<CarouselApi | null>(null);
     const dialogContentRef = React.useRef<HTMLDivElement>(null);
     React.useEffect(() => {
         setCurrentIndex(startIndex);

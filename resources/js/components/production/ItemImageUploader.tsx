@@ -60,7 +60,7 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
                 setPreviews([]);
                 setData('images', []);
             },
-            onError: (errors: any) => {
+            onError: (errors: unknown) => {
                 console.error('Upload errors:', errors);
             }
         });

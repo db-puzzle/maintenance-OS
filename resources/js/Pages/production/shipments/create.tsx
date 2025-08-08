@@ -22,6 +22,22 @@ interface ShipmentItem {
     unit_of_measure: string;
 }
 
+interface ShipmentFormData {
+    items: ShipmentItem[];
+    destination_name: string;
+    destination_address: string;
+    destination_city: string;
+    destination_state: string;
+    destination_postal_code: string;
+    destination_country: string;
+    tracking_number: string;
+    carrier: string;
+    estimated_delivery_date: string;
+    notes: string;
+    require_signature: boolean;
+    photo_paths?: string[];
+}
+
 interface StepIndicatorProps {
     steps: Array<{
         number: number;
@@ -81,7 +97,7 @@ export default function ShipmentCreate({ items }: Props) {
     const [shipmentItems, setShipmentItems] = useState<ShipmentItem[]>([]);
     const [photos, setPhotos] = useState<File[]>([]);
 
-    const { data, setData, errors, processing, clearErrors } = useForm<any>({
+    const { data, setData, errors, processing, clearErrors } = useForm({
         items: [] as ShipmentItem[],
         destination_name: '',
         destination_address: '',
@@ -331,7 +347,7 @@ function ShipmentItemsStep({
 }
 
 // Step 2: Destination
-function DestinationStep({ data, setData, errors, clearErrors }: any) {
+function DestinationStep({ data, setData, errors, clearErrors }: unknown) {
     return (
         <div className="space-y-6">
             <div>
@@ -343,7 +359,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
 
             <div className="space-y-4">
                 <TextInput
-                    form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                    form={{ data, setData, errors, clearErrors: clearErrors as unknown }}
                     name="destination_name"
                     label="Nome do Destinatário"
                     placeholder="Nome da empresa ou pessoa"
@@ -351,7 +367,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
                 />
 
                 <TextInput
-                    form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                    form={{ data, setData, errors, clearErrors: clearErrors as unknown }}
                     name="destination_address"
                     label="Endereço"
                     placeholder="Rua, número, complemento"
@@ -361,7 +377,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-2">
                         <TextInput
-                            form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                            form={{ data, setData, errors, clearErrors: clearErrors as unknown }}
                             name="destination_city"
                             label="Cidade"
                             placeholder="Cidade"
@@ -369,7 +385,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
                         />
                     </div>
                     <TextInput
-                        form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                        form={{ data, setData, errors, clearErrors: clearErrors as unknown }}
                         name="destination_state"
                         label="Estado"
                         placeholder="UF"
@@ -378,7 +394,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
                 </div>
 
                 <TextInput
-                    form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                    form={{ data, setData, errors, clearErrors: clearErrors as unknown }}
                     name="destination_zip"
                     label="CEP"
                     placeholder="00000-000"
@@ -389,7 +405,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: any) {
 }
 
 // Step 3: Carrier
-function CarrierStep({ data, setData, errors, clearErrors }: any) {
+function CarrierStep({ data, setData, errors, clearErrors }: unknown) {
     return (
         <div className="space-y-6">
             <div>
@@ -401,14 +417,14 @@ function CarrierStep({ data, setData, errors, clearErrors }: any) {
 
             <div className="space-y-4">
                 <TextInput
-                    form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                    form={{ data, setData, errors, clearErrors: clearErrors as unknown }}
                     name="carrier"
                     label="Transportadora"
                     placeholder="Nome da transportadora"
                 />
 
                 <TextInput
-                    form={{ data, setData, errors, clearErrors: clearErrors as any }}
+                    form={{ data, setData, errors, clearErrors: clearErrors as unknown }}
                     name="carrier_contact"
                     label="Contato"
                     placeholder="Telefone ou email de contato"
@@ -512,7 +528,7 @@ function ConfirmationStep({
     items,
     photos
 }: {
-    data: any;
+    data: ShipmentFormData;
     shipmentItems: ShipmentItem[];
     items: Item[];
     photos: File[];

@@ -219,10 +219,10 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                         <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                                 mode="range"
-                                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                selected={dateRange as any}
-                                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                onSelect={setDateRange as any}
+                                 
+                                selected={dateRange as unknown}
+                                 
+                                onSelect={setDateRange as unknown}
                                 numberOfMonths={2}
                             />
                         </PopoverContent>

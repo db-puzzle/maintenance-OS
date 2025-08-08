@@ -327,7 +327,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                             triggerText="Trigger Oculto"
                             triggerVariant="outline"
                             triggerRef={editSheetTriggerRef}
-                            routine={routineData.id && routineData.trigger_type ? routineData as any : undefined}
+                            routine={routineData.id && routineData.trigger_type ? routineData as unknown : undefined}
                             isNew={true}
                             assetId={assetId}
                             onSuccess={(routine) => handleSheetSuccess(routine as unknown as Routine)}
@@ -673,7 +673,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         triggerText="Trigger Oculto"
                         triggerVariant="outline"
                         triggerRef={editSheetTriggerRef}
-                        routine={routineData.trigger_type ? routineData as any : undefined}
+                        routine={routineData.trigger_type ? routineData as unknown : undefined}
                         isNew={false}
                         assetId={assetId}
                         onSuccess={(routine) => handleSheetSuccess(routine as unknown as Routine)}

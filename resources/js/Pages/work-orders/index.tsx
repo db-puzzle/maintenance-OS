@@ -23,7 +23,7 @@ import AppLayout from '@/layouts/app-layout';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
-import { WorkOrder, WorkOrderStatus } from '@/types/work-order';
+import { WorkOrder, WorkOrderStatus, Asset, Instrument, WorkOrderCategory } from '@/types/work-order';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import React, { useState } from 'react';
@@ -143,7 +143,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             sortable: true,
             width: 'w-[300px]',
             render: (value, row) => {
-                const title = (row as any).title || '';
+                const title = (row as WorkOrder).title || '';
                 const truncatedTitle = title.length > 50 ? title.substring(0, 50) + '...' : title;
                 return (
                     <div className="font-medium" title={title}>
@@ -155,26 +155,26 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
         ...(discipline === 'maintenance' ? [{
             key: 'asset',
             label: 'Ativo',
-            render: (_: any, row: Record<string, unknown>) => ((row.asset as any)?.tag || '-') as React.ReactNode,
+            render: (_: unknown, row: Record<string, unknown>) => ((row.asset as Asset)?.tag || '-') as React.ReactNode,
         }] : [{
             key: 'instrument',
             label: 'Instrumento',
-            render: (_: any, row: Record<string, unknown>) => ((row.instrument as any)?.tag || '-') as React.ReactNode,
+            render: (_: unknown, row: Record<string, unknown>) => ((row.instrument as Instrument)?.tag || '-') as React.ReactNode,
         }]),
         {
             key: 'work_order_category',
             label: 'Categoria',
             headerAlign: 'center',
-            render: (_: any, row: Record<string, unknown>) => {
+            render: (_: unknown, row: Record<string, unknown>) => {
                 // Use the category relationship if available
                 if (row.work_order_category_obj) {
                     return (
                         <div className="flex justify-center">
                             <Badge
                                 variant="secondary"
-                                style={{ backgroundColor: (row.work_order_category_obj as any).color + '20', borderColor: (row.work_order_category_obj as any).color }}
+                                style={{ backgroundColor: (row.work_order_category_obj as WorkOrderCategory).color + '20', borderColor: (row.work_order_category_obj as WorkOrderCategory).color }}
                             >
-                                {(row.work_order_category_obj as any).name}
+                                {(row.work_order_category_obj as WorkOrderCategory).name}
                             </Badge>
                         </div>
                     );
@@ -182,7 +182,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                 // Handle category as object or string
                 let categoryCode = row.work_order_category;
                 if (typeof categoryCode === 'object' && categoryCode !== null) {
-                    categoryCode = (categoryCode as any).code || (categoryCode as any).name || '';
+                    categoryCode = (categoryCode as unknown).code || (categoryCode as unknown).name || '';
                 }
                 // Fallback to category code
                 const categoryLabels: Record<string, string> = {
@@ -202,7 +202,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             key: 'type',
             label: 'Tipo',
             headerAlign: 'center',
-            render: (_: any, row: Record<string, unknown>) => <div className="text-center">{(row.type as any)?.name || '-'}</div>,
+            render: (_: unknown, row: Record<string, unknown>) => <div className="text-center">{(row.type as unknown)?.name || '-'}</div>,
         },
         {
             key: 'priority_score',
@@ -339,10 +339,10 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as any[]}
+                        data={data as unknown[]}
                         columns={columns}
                         loading={false}
-                        onRowClick={(workOrder) => router.visit(route(`${discipline}.work-orders.show`, { id: (workOrder as any).id }))}
+                        onRowClick={(workOrder) => router.visit(route(`${discipline}.work-orders.show`, { id: (workOrder as unknown).id }))}
                         columnVisibility={columnVisibility}
                         onSort={handleSort}
                     />

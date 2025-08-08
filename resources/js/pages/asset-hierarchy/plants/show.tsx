@@ -234,8 +234,8 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 sortable: true,
                                 width: 'w-[300px]',
                                 render: (value, row) => {
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    const sector = row as any;
+                                     
+                                    const sector = row as unknown;
                                     return (
                                         <div>
                                             <div className="font-medium">{sector.name}</div>
@@ -250,8 +250,8 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 sortable: true,
                                 width: 'w-[200px]',
                                 render: (value, row) => {
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    const sector = row as any;
+                                     
+                                    const sector = row as unknown;
                                     return sector.area?.name || '-';
                                 },
                             },
@@ -299,16 +299,16 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 label: 'TAG',
                                 sortable: true,
                                 width: 'w-[300px]',
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <div className="font-medium">{(row as any).tag}</div>,
+                                 
+                                render: (value, row) => <div className="font-medium">{(row as unknown).tag}</div>,
                             },
                             {
                                 key: 'asset_type_name',
                                 label: 'Tipo',
                                 sortable: true,
                                 width: 'w-[200px]',
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as any).asset_type?.name ?? '-'}</span>,
+                                 
+                                render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown).asset_type?.name ?? '-'}</span>,
                             },
                             {
                                 key: 'location',
@@ -316,8 +316,8 @@ export default function ShowPlant({ plant, areas, sectors, asset, totalSectors, 
                                 sortable: true,
                                 width: 'w-[250px]',
                                 render: (value, row) => {
-                                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                                    const item = row as any;
+                                     
+                                    const item = row as unknown;
                                     return (
                                         <span className="text-muted-foreground text-sm">
                                             {item.area_name}
