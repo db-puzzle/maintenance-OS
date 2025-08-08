@@ -45,7 +45,10 @@ class WorkOrderSchedulingController extends Controller
         })->get();
         
         // Method temporarily disabled - page not implemented yet
-        return response()->json(["message" => "This feature is not yet implemented"], 501);
+        return Inertia::render('error/not-implemented', [
+            'status' => 501,
+            'message' => 'This feature is not yet implemented'
+        ]);
     }
     
     public function schedule(Request $request, WorkOrder $workOrder)
@@ -141,6 +144,9 @@ class WorkOrderSchedulingController extends Controller
         );
         
         // Method temporarily disabled - page not implemented yet
-        return response()->json(["message" => "This feature is not yet implemented"], 501);
+        return Inertia::render('error/not-implemented', [
+            'status' => 501,
+            'message' => 'This feature is not yet implemented'
+        ]);
     }
 }
