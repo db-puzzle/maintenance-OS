@@ -19,6 +19,7 @@ import InlineRoutineFormEditor from '@/components/InlineRoutineFormEditor';
 import { CalendarRange } from 'lucide-react';
 
 import { Task } from '@/types/task';
+import { Routine } from '@/types/routine';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -41,42 +42,6 @@ interface Shift {
             }>;
         }>;
     }>;
-}
-
-interface Routine {
-    id: number;
-    name: string;
-    description?: string;
-    form_id?: number;
-    trigger_type: 'runtime_hours' | 'calendar_days';
-    trigger_runtime_hours?: number;
-    trigger_calendar_days?: number;
-    execution_mode: 'automatic' | 'manual';
-    advance_generation_days?: number;
-    auto_approve_work_orders?: boolean;
-    priority_score?: number;
-    last_execution_runtime_hours?: number;
-    last_execution_completed_at?: string;
-    last_execution_form_version_id?: number;
-    next_execution_date?: string;
-    form?: {
-        id: number;
-        tasks: Task[];
-        isDraft?: boolean;
-        currentVersionId?: number | null;
-        current_version_id?: number | null;
-        has_draft_changes?: boolean;
-        current_version?: {
-            id?: number;
-            version_number: string;
-            published_at?: string;
-        };
-    };
-    lastExecutionFormVersion?: {
-        id: number;
-        version_number: number;
-    };
-    [key: string]: unknown;
 }
 
 interface AssetRoutinesTabProps {
@@ -153,11 +118,16 @@ export default function AssetRoutinesTab({
     const [isUpdatingLastExecution, setIsUpdatingLastExecution] = useState(false);
 
     // Create a stable default routine object
-    const defaultRoutine = {
+    const defaultRoutine: Partial<Routine> = {
         name: '',
-        trigger_hours: 0,
-        status: 'Active' as const,
+        trigger_runtime_hours: 0,
+        is_active: true,
         description: '',
+        trigger_type: 'runtime_hours',
+        execution_mode: 'manual',
+        advance_generation_days: 0,
+        auto_approve_work_orders: false,
+        priority_score: 0,
     };
 
     // Refs
@@ -616,12 +586,12 @@ export default function AssetRoutinesTab({
         );
     };
 
-    const hasFormTasks = (form: unknown): boolean => {
+    const hasFormTasks = (form: any): boolean => {
         return !!(form?.tasks && form.tasks.length > 0);
     };
 
     const handleEditFormClick = (routine: Routine) => {
-        const formState = routine.form ? getFormState(routine.form) : null;
+        const formState = routine.form ? getFormState(routine.form as any) : null;
 
         // Check if form is published (not unpublished and not already in draft)
         if (formState === 'published') {
@@ -841,7 +811,7 @@ export default function AssetRoutinesTab({
                                 onDelete={() => handleDeleteClick(routine)}
                                 additionalActions={[
                                     // Publicar - Primary action for unpublished routines with tasks
-                                    ...(hasFormTasks(routine.form) && getFormState(routine.form!) === 'unpublished' ? [{
+                                    ...(hasFormTasks(routine.form) && getFormState(routine.form as any) === 'unpublished' ? [{
                                         label: 'Publicar',
                                         icon: (
                                             <div className="relative">
@@ -853,13 +823,13 @@ export default function AssetRoutinesTab({
                                         className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                     }] : []),
                                     // Separator after Publicar (if shown)
-                                    ...(hasFormTasks(routine.form) && getFormState(routine.form!) === 'unpublished' ? [{
+                                    ...(hasFormTasks(routine.form) && getFormState(routine.form as any) === 'unpublished' ? [{
                                         label: 'separator',
                                         icon: null,
                                         onClick: () => { },
                                     }] : []),
                                     // Create Work Order - Primary action at the top with emphasis
-                                    ...(hasFormTasks(routine.form) && getFormState(routine.form!) !== 'unpublished' ? [{
+                                    ...(hasFormTasks(routine.form) && getFormState(routine.form as any) !== 'unpublished' ? [{
                                         label: 'Criar Ordem de Serviço',
                                         icon: (
                                             <div className="relative">
@@ -871,7 +841,7 @@ export default function AssetRoutinesTab({
                                         className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                     }] : []),
                                     // Separator after Create Work Order
-                                    ...(hasFormTasks(routine.form) && getFormState(routine.form!) !== 'unpublished' ? [{
+                                    ...(hasFormTasks(routine.form) && getFormState(routine.form as any) !== 'unpublished' ? [{
                                         label: 'separator',
                                         icon: null,
                                         onClick: () => { },
@@ -951,7 +921,7 @@ export default function AssetRoutinesTab({
             {/* EditRoutineSheet - Always rendered but controlled via isOpen */}
             <EditRoutineSheet
                 showTrigger={false}
-                routine={routineToEditInSheet || defaultRoutine}
+                routine={routineToEditInSheet || (defaultRoutine as Routine)}
                 isNew={false}
                 assetId={assetId}
                 onSuccess={handleEditRoutineSuccess}

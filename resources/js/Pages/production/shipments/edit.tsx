@@ -118,7 +118,7 @@ export default function ShipmentEdit({ shipment }: Props) {
                             <Label htmlFor="shipment_type">Type</Label>
                             <Select
                                 value={data.shipment_type}
-                                onValueChange={(value) => setData('shipment_type', value)}
+                                onValueChange={(value) => setData('shipment_type', value as 'customer' | 'internal' | 'vendor' | 'other')}
                             >
                                 <SelectTrigger>
                                     <SelectValue />

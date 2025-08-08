@@ -435,7 +435,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
         const applyToSelectedDays = () => {
              
-            const sourceDay = data.schedules.find((s: unknown) => s.weekday === selectedDay);
+            const sourceDay = data.schedules.find((s) => s.weekday === selectedDay);
             if (!sourceDay) return;
              
             const newSchedules = data.schedules.map((schedule) => {
@@ -846,7 +846,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                     </div>
                                                 ) : (
                                                      
-                                                    data.schedules[dayIndex].shifts.map((shift: unknown, shiftIndex: number) => {
+                                                    data.schedules[dayIndex].shifts.map((shift, shiftIndex) => {
                                                          
                                                         const overlappingShifts = findOverlappingShifts(data.schedules[dayIndex].shifts, shiftIndex);
                                                         return (
@@ -944,7 +944,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                                                                 <div className="space-y-2">
                                                                                     {/* Lista de intervalos */}
                                                                                     { }
-                                                                                    {shift.breaks.map((breakTime: unknown, breakIndex: number) => {
+                                                                                    {shift.breaks.map((breakTime, breakIndex) => {
                                                                                         const isValidInShift = isBreakValid(shift, breakTime);
                                                                                         const isOverlapping =
                                                                                             isValidInShift &&

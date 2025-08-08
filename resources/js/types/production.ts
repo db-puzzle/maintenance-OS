@@ -359,10 +359,3 @@ export interface ShipmentPhoto {
 
 // Alias for backward compatibility - Routing is now RouteTemplate
 export type Routing = RouteTemplate;
-<<<<<<< Current (Your changes)
-<<<<<<< Current (Your changes)
->>>>>>> Incoming (Background Agent changes)
-=======
->>>>>>> Incoming (Background Agent changes)
-=======
->>>>>>> Incoming (Background Agent changes)

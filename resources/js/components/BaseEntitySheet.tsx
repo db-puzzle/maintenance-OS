@@ -40,8 +40,8 @@ export interface BaseEntitySheetProps<TFormData extends FormDataType> {
     // Children render prop for form fields
     children: (props: {
         data: TFormData;
-        setData: (key: keyof TFormData, value: TFormData[keyof TFormData]) => void;
-        errors: Partial<Record<keyof TFormData, string>>;
+        setData: (key: string, value: string | number | boolean | File | null | undefined) => void;
+        errors: Partial<Record<string, string>>;
         processing: boolean;
     }) => React.ReactNode;
 }
@@ -179,7 +179,13 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
                     <SheetDescription>{sheetDescription}</SheetDescription>
                 </SheetHeader>
                 <form onSubmit={handleSubmit} className="m-4 space-y-6">
-                    <div className="grid gap-6">{children({ data, setData, errors, processing })}</div>
+                    <div className="grid gap-6">{children({ 
+                        data, 
+                        setData: (key: string, value: string | number | boolean | File | null | undefined) => 
+                            setData(key as keyof TFormData, value as TFormData[keyof TFormData]), 
+                        errors: errors as Partial<Record<string, string>>, 
+                        processing 
+                    })}</div>
                     <SheetFooter className="flex justify-end gap-2">
                         <Button type="submit" disabled={processing}>
                             {processing ? 'Salvando...' : 'Salvar'}
