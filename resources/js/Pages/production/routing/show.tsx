@@ -149,10 +149,9 @@ interface RoutingOverviewTabProps {
     effectiveSteps: ManufacturingStep[];
     form: {
         data: FormDataType;
-        setData: (key: keyof FormDataType | FormDataType, value?: any) => void;
+        setData: <K extends keyof FormDataType>(key: K, value: FormDataType[K]) => void;
         errors: Partial<Record<keyof FormDataType, string>>;
         clearErrors: (...fields: (keyof FormDataType)[]) => void;
-        [key: string]: any;
     };
     progressPercentage?: number;
     completedSteps?: number;
@@ -166,11 +165,11 @@ function RoutingOverviewTab({
     routing, 
     effectiveSteps, 
     form, 
-    progressPercentage = 0, 
-    completedSteps = 0, 
-    totalSteps = 0, 
-    totalEstimatedTime = 0, 
-    totalActualTime = 0,
+        progressPercentage: _progressPercentage = 0, 
+    completedSteps: _completedSteps = 0, 
+    totalSteps: _totalSteps = 0, 
+    totalEstimatedTime: _totalEstimatedTime = 0,
+    totalActualTime: _totalActualTime = 0,
     onTabChange 
 }: RoutingOverviewTabProps) {
     const formatDuration = (minutes: number) => {

@@ -68,7 +68,7 @@ const statusConfig = {
 export default function ShipmentsIndex({ shipments, filters, statuses, shipmentTypes, can }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteShipment, setDeleteShipment] = useState<Shipment | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, _setLoading] = useState(false);
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.shipments.index'), { ...filters, search: value }, {
@@ -242,7 +242,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as any[]}
+                        data={data}
                         columns={columns}
                         loading={loading}
                         onRowClick={(shipment) => router.visit(route('production.shipments.show', (shipment as Shipment).id))}

@@ -365,7 +365,7 @@ export default function CreateManufacturingOrder({
                                                         )}
                                                         <div className="flex gap-4 mt-2">
                                                             <Badge variant="outline">
-                                                                {(selectedBOM as any).item_masters_count} items
+                                                                {(selectedBOM as BillOfMaterial & { item_masters_count?: number }).item_masters_count || 0} items
                                                             </Badge>
                                                         </div>
                                                     </div>

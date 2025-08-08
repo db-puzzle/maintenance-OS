@@ -1,0 +1,21 @@
+includes:
+    - ./vendor/nunomaduro/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - database/factories
+        - database/seeders
+        
+    level: 6
+    
+    excludePaths:
+        - app/Http/Controllers/Controller.php
+        
+    ignoreErrors:
+        # Ignore dynamic property access on models
+        - '#Access to an undefined property App\\Models\\[a-zA-Z0-9\\_]+::\$[a-zA-Z0-9_]+#'
+        
+    checkMissingIterableValueType: false
+    
+    reportUnmatchedIgnoredErrors: false

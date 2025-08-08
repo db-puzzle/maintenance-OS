@@ -1,0 +1,61 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run TypeScript type checking
+echo "📘 Checking TypeScript types..."
+npm run types
+if [ $? -ne 0 ]; then
+    echo "❌ TypeScript type check failed. Please fix errors before committing."
+    exit 1
+fi
+
+# Run ESLint
+echo "🔍 Running ESLint..."
+npm run lint
+if [ $? -ne 0 ]; then
+    echo "❌ ESLint check failed. Please fix errors before committing."
+    exit 1
+fi
+
+# Run Prettier check
+echo "💅 Checking code formatting..."
+npm run format:check
+if [ $? -ne 0 ]; then
+    echo "❌ Code formatting check failed. Run 'npm run format' to fix."
+    exit 1
+fi
+
+# Check for security vulnerabilities
+echo "🔒 Checking for security vulnerabilities..."
+npm audit --production --audit-level=high
+if [ $? -ne 0 ]; then
+    echo "⚠️  Security vulnerabilities found. Consider running 'npm audit fix' before committing."
+    # Don't block commit for vulnerabilities, just warn
+fi
+
+# If PHP is available, run PHP checks
+if command -v php &> /dev/null; then
+    # Run Laravel Pint (if vendor directory exists)
+    if [ -f "vendor/bin/pint" ]; then
+        echo "🎨 Running Laravel Pint..."
+        ./vendor/bin/pint --test
+        if [ $? -ne 0 ]; then
+            echo "❌ Laravel Pint found code style issues. Run './vendor/bin/pint' to fix."
+            exit 1
+        fi
+    fi
+    
+    # Run PHPStan (if vendor directory exists)
+    if [ -f "vendor/bin/phpstan" ]; then
+        echo "🔍 Running PHPStan..."
+        ./vendor/bin/phpstan analyse --no-progress
+        if [ $? -ne 0 ]; then
+            echo "❌ PHPStan found issues. Please fix them before committing."
+            exit 1
+        fi
+    fi
+fi
+
+echo "✅ All pre-commit checks passed!"

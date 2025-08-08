@@ -9,7 +9,7 @@ import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
-import { BillOfMaterial, Item } from '@/types/production';
+import { BillOfMaterial } from '@/types/production';
 interface Props {
     boms: {
         data: BillOfMaterial[];
@@ -166,7 +166,7 @@ export default function BomIndex({ boms, filters }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as any[]}
+                        data={data}
                         columns={columns}
                         loading={false}
                         onRowClick={(row) => router.visit(route('production.bom.show', row.id))}

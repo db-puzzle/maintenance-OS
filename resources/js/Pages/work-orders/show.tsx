@@ -95,6 +95,163 @@ export default function ShowWorkOrder({
     preselectedAsset
 }: Props) {
     const [activeTab, setActiveTab] = useState('details');
+
+    // Define breadcrumbs - moved before conditional return to avoid hooks violation
+    const breadcrumbs: BreadcrumbItem[] = useMemo(() => [
+        {
+            title: 'Home',
+            href: '/home',
+        },
+        {
+            title: 'Ordens de Serviço',
+            href: `/${discipline}/work-orders`,
+        },
+        {
+            title: isCreating ? 'Nova Ordem' : workOrder?.work_order_number || 'Ordem de Serviço',
+            href: '#',
+        },
+    ], [discipline, workOrder?.work_order_number, isCreating]);
+
+    // Build tabs dynamically - moved before conditional return to avoid hooks violation
+    const tabs: TabItem[] = useMemo(() => {
+        const tabs: TabItem[] = [];
+
+        // If workOrder is undefined and we're not creating, return empty tabs
+        if (!isCreating && !workOrder) {
+            return [];
+        }
+
+        if (isCreating) {
+            // Only show the details tab when creating
+            tabs.push({
+                id: 'details',
+                label: 'Informações Gerais',
+                icon: <FileText className="h-4 w-4" />,
+                content: (
+                    <WorkOrderGeneralTab
+                        workOrder={undefined}
+                        isCreating={true}
+                        categories={categories}
+                        workOrderTypes={workOrderTypes}
+                        plants={plants}
+                        areas={areas}
+                        sectors={sectors}
+                        assets={assets}
+                        forms={forms}
+                        discipline={discipline}
+                        onWorkOrderCreated={handleWorkOrderCreated}
+                        preselectedAssetId={preselectedAssetId}
+                        preselectedAsset={preselectedAsset}
+                    />
+                ),
+            });
+        } else if (workOrder) {
+            const definedWorkOrder = workOrder as WorkOrder;
+
+            // Always show the general details tab
+            tabs.push({
+                id: 'details',
+                label: 'Informações Gerais',
+                icon: <FileText className="h-4 w-4" />,
+                content: (
+                    <WorkOrderGeneralTab
+                        workOrder={definedWorkOrder}
+                        isCreating={false}
+                        categories={categories}
+                        workOrderTypes={workOrderTypes}
+                        plants={plants}
+                        areas={areas}
+                        sectors={sectors}
+                        assets={assets}
+                        forms={forms}
+                        discipline={discipline}
+                    />
+                ),
+            });
+
+            // Approval tab (shows for pending status)
+            if (definedWorkOrder.status === 'pending' && (canApprove || definedWorkOrder.approval_notes)) {
+                tabs.push({
+                    id: 'approval',
+                    label: 'Aprovação',
+                    icon: <CheckCircle className="h-4 w-4" />,
+                    content: <WorkOrderApprovalTab workOrder={definedWorkOrder} />,
+                });
+            }
+
+            // Planning tab (shows when approved or later stages)
+            if (['approved', 'planned', 'scheduled', 'in_progress', 'completed', 'validated'].includes(definedWorkOrder.status)) {
+                tabs.push({
+                    id: 'planning',
+                    label: 'Planejamento',
+                    icon: <Wrench className="h-4 w-4" />,
+                    content: (
+                        <WorkOrderPlanningTab
+                            workOrder={definedWorkOrder}
+                            canEdit={canEdit && definedWorkOrder.status === 'approved'}
+                            technicians={technicians}
+                            teams={teams}
+                            parts={parts}
+                            skills={skills}
+                            certifications={certifications}
+                        />
+                    ),
+                });
+            }
+
+            // Schedule tab (shows when planned or later stages)
+            if (['planned', 'scheduled', 'in_progress', 'completed', 'validated'].includes(definedWorkOrder.status)) {
+                tabs.push({
+                    id: 'schedule',
+                    label: 'Agendamento',
+                    icon: <Calendar className="h-4 w-4" />,
+                    content: <WorkOrderScheduleTab workOrder={definedWorkOrder} />,
+                });
+            }
+
+            // Execution tab (shows when scheduled or later stages)
+            if (['scheduled', 'in_progress', 'completed', 'validated'].includes(definedWorkOrder.status)) {
+                tabs.push({
+                    id: 'execution',
+                    label: 'Execução',
+                    icon: <Play className="h-4 w-4" />,
+                    content: <WorkOrderExecutionTab workOrder={definedWorkOrder} />,
+                });
+            }
+
+            // Parts tab (shows if there are parts associated)
+            if (definedWorkOrder.planned_parts && definedWorkOrder.planned_parts.length > 0) {
+                tabs.push({
+                    id: 'parts',
+                    label: 'Peças',
+                    icon: <Package className="h-4 w-4" />,
+                    content: <WorkOrderPartsTab workOrder={definedWorkOrder} />,
+                });
+            }
+        }
+        return tabs;
+    }, [
+        isCreating,
+        workOrder,
+        categories,
+        workOrderTypes,
+        plants,
+        areas,
+        sectors,
+        assets,
+        forms,
+        discipline,
+        technicians,
+        teams,
+        parts,
+        skills,
+        certifications,
+        canApprove,
+        canEdit,
+        preselectedAssetId,
+        preselectedAsset,
+    ]);
+
     useEffect(() => {
         // Add error event listener to catch React errors
         const handleError = () => {
@@ -125,204 +282,29 @@ export default function ShowWorkOrder({
     // After this point, workOrder is guaranteed to be defined when not creating
     const definedWorkOrder = workOrder as WorkOrder;
 
-    // Define breadcrumbs
-    const breadcrumbs: BreadcrumbItem[] = useMemo(() => [
-        {
-            title: 'Home',
-            href: '/home',
-        },
-        {
-            title: 'Ordens de Serviço',
-            href: `/${discipline}/work-orders`,
-        },
-        {
-            title: isCreating ? 'Nova Ordem' : workOrder?.work_order_number || 'Ordem de Serviço',
-            href: '#',
-        },
-    ], [discipline, workOrder?.work_order_number, isCreating]);
-
-    // Build tabs dynamically
-    const tabs: TabItem[] = useMemo(() => {
-        const tabs: TabItem[] = [];
-
-        // If workOrder is undefined and we're not creating, return empty tabs
-        if (!isCreating && !workOrder) {
-            return [];
-        }
-
-        if (isCreating) {
-            // Only show the details tab when creating
-            tabs.push({
-                id: 'details',
-                label: 'Informações Gerais',
-                icon: <FileText className="h-4 w-4" />,
-                content: (
-                    <WorkOrderGeneralTab
-                        categories={categories}
-                        workOrderTypes={workOrderTypes}
-                        plants={plants}
-                        areas={areas}
-                        sectors={sectors}
-                        assets={assets}
-                        forms={forms}
-                        discipline={discipline}
-                        isCreating={true}
-                        preselectedAssetId={preselectedAssetId}
-                        preselectedAsset={preselectedAsset}
-                        onWorkOrderCreated={handleWorkOrderCreated}
-                    />
-                ),
-            });
-        } else {
-            // Show all tabs for existing work orders
-            // 1. Status (progress tracking) - now first
-            tabs.push({
-                id: 'status',
-                label: 'Status',
-                icon: <Activity className="h-4 w-4" />,
-                content: (
-                    <div className="py-8">
-                        <WorkOrderStatusProgress
-                            currentStatus={workOrder!.status}
-                            workOrder={workOrder!}
-                            onTabChange={(tabId) => {
-                                setActiveTab(tabId);
-                            }}
-                        />
-                    </div>
-                ),
-            });
-            // 2. Informações Gerais - using WorkOrderGeneralTab component
-            tabs.push({
-                id: 'details',
-                label: 'Informações Gerais',
-                icon: <FileText className="h-4 w-4" />,
-                content: (
-                    <WorkOrderGeneralTab
-                        workOrder={definedWorkOrder}
-                        categories={categories}
-                        workOrderTypes={workOrderTypes}
-                        plants={plants}
-                        areas={areas}
-                        sectors={sectors}
-                        assets={assets}
-                        forms={forms}
-                        discipline={discipline}
-                        isCreating={false}
-                    />
-                ),
-            });
-            // 3. Aprovação (always shown)
-            tabs.push({
-                id: 'approval',
-                label: 'Aprovação',
-                icon: <CheckCircle className="h-4 w-4" />,
-                content: (
-                    <WorkOrderApprovalTab
-                        workOrder={definedWorkOrder}
-                        canApprove={canApprove}
-                        approvalThreshold={approvalThreshold}
-                        discipline={discipline}
-                    />
-                ),
-            });
-            // 4. Planejamento (always shown)
-            tabs.push({
-                id: 'planning',
-                label: 'Planejamento',
-                icon: <Calendar className="h-4 w-4" />,
-                content: (
-                    <WorkOrderPlanningTab
-                        workOrder={definedWorkOrder}
-                        technicians={technicians}
-                        teams={teams}
-                        parts={parts}
-                        skills={skills}
-                        certifications={certifications}
-                        canPlan={canPlan}
-                        discipline={discipline}
-                        onGoToApproval={() => {
-                            setActiveTab('approval');
-                        }}
-                    />
-                ),
-            });
-            // 5. Agendamento (always shown)
-            tabs.push({
-                id: 'schedule',
-                label: 'Agendamento',
-                icon: <Clock className="h-4 w-4" />,
-                content: (
-                    <WorkOrderScheduleTab
-                        workOrder={definedWorkOrder}
-                        technicians={technicians}
-                        teams={teams}
-                        canSchedule={canPlan} // Using same permission as planning for now
-                        discipline={discipline}
-                    />
-                ),
-            });
-            // 6. Execução (always shown)
-            tabs.push({
-                id: 'execution',
-                label: 'Execução',
-                icon: <Play className="h-4 w-4" />,
-                content: <WorkOrderExecutionTab workOrder={definedWorkOrder} />,
-            });
-            // Add failure analysis tab if it exists
-            if (workOrder?.failure_analysis) {
-                tabs.push({
-                    id: 'analysis',
-                    label: 'Análise de Falha',
-                    icon: <Wrench className="h-4 w-4" />,
-                    content: <WorkOrderFailureAnalysisTab workOrder={definedWorkOrder} />,
-                });
-            }
-            // Additional tabs (Histórico and Peças)
-            tabs.push({
-                id: 'history',
-                label: 'Histórico',
-                icon: <Activity className="h-4 w-4" />,
-                content: <WorkOrderHistoryTab workOrder={definedWorkOrder} />,
-            });
-            tabs.push({
-                id: 'parts',
-                label: 'Peças',
-                icon: <Package className="h-4 w-4" />,
-                content: <WorkOrderPartsTab workOrder={definedWorkOrder} />,
-            });
-        }
-        return tabs;
-    }, [
-        isCreating,
-        workOrder,
-        categories,
-        workOrderTypes,
-        plants,
-        areas,
-        sectors,
-        assets,
-        forms,
-        discipline,
-        technicians,
-        teams,
-        parts,
-        skills,
-        certifications,
-        canPlan,
-        canApprove,
-        approvalThreshold,
-        activeTab,
-        setActiveTab,
-        handleWorkOrderCreated,
-        workOrder?.failure_analysis,
-    ]);
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={isCreating ? 'Nova Ordem de Serviço' : `Ordem de Serviço ${workOrder?.work_order_number || ''}`} />
+            <Head title={isCreating ? 'Nova Ordem de Serviço' : `Ordem de Serviço ${workOrder?.work_order_number}`} />
+
+            {/* Status Progress (only for existing orders) */}
+            {!isCreating && workOrder && (
+                <div className="mb-6">
+                    <WorkOrderStatusProgress
+                        currentStatus={workOrder.status}
+                        workOrder={workOrder}
+                        onTabChange={(tabId) => {
+                            setActiveTab(tabId);
+                        }}
+                    />
+                </div>
+            )}
+
             <ShowLayout
-                title={isCreating ? 'Nova Ordem de Serviço' : definedWorkOrder?.work_order_number || ''}
+                title={
+                    isCreating
+                        ? 'Nova Ordem de Serviço'
+                        : workOrder?.work_order_number || 'Ordem de Serviço'
+                }
                 subtitle={
                     isCreating ? (
                         'Criação de nova ordem de serviço'
@@ -346,4 +328,4 @@ export default function ShowWorkOrder({
             />
         </AppLayout>
     );
-} 
+}

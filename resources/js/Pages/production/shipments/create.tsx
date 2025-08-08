@@ -368,13 +368,15 @@ function ShipmentItemsStep({
     );
 }
 
+interface StepProps {
+    data: ShipmentFormData;
+    setData: <K extends keyof ShipmentFormData>(key: K, value: ShipmentFormData[K]) => void;
+    errors: Partial<Record<keyof ShipmentFormData, string>>;
+    clearErrors: (...fields: (keyof ShipmentFormData)[]) => void;
+}
+
 // Step 2: Destination
-function DestinationStep({ data, setData, errors, clearErrors }: {
-    data: any;
-    setData: any;
-    errors: any;
-    clearErrors: any;
-}) {
+function DestinationStep({ data, setData, errors, clearErrors }: StepProps) {
     return (
         <div className="space-y-6">
             <div>
@@ -432,12 +434,7 @@ function DestinationStep({ data, setData, errors, clearErrors }: {
 }
 
 // Step 3: Carrier
-function CarrierStep({ data, setData, errors, clearErrors }: {
-    data: any;
-    setData: any;
-    errors: any;
-    clearErrors: any;
-}) {
+function CarrierStep({ data, setData, errors, clearErrors }: StepProps) {
     return (
         <div className="space-y-6">
             <div>

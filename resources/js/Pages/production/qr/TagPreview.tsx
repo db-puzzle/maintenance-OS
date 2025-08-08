@@ -59,7 +59,7 @@ export default function TagPreview({ type, resource, template }: Props) {
                 window.open(response.data.pdf_url, '_blank');
                 toast.success('Etiqueta gerada com sucesso!');
             }
-        } catch (error: any) {
+        } catch (error) {
             toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta');
         } finally {
             setGenerating(false);

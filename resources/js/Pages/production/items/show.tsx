@@ -204,7 +204,7 @@ export default function ItemShow({
             only: ['categories'],
             onSuccess: (page) => {
                 const updatedCategories = page.props.categories as ItemCategory[];
-                const createdCategoryId = (page.props as any).flash?.created_category_id;
+                const createdCategoryId = (page.props as { flash?: { created_category_id?: number } }).flash?.created_category_id;
 
                 if (createdCategoryId) {
                     // If we have the created category ID from flash data, use it directly
@@ -245,8 +245,12 @@ export default function ItemShow({
                 window.open(response.data.pdf_url, '_blank');
                 toast.success('Etiqueta QR gerada com sucesso!');
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data?.message || 'Erro ao gerar etiqueta QR');
+            } else {
+                toast.error('Erro ao gerar etiqueta QR');
+            }
         } finally {
             setGeneratingQr(false);
         }
@@ -474,7 +478,7 @@ export default function ItemShow({
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <TextInput
-                                    form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                    form={{ data, setData, errors, clearErrors }}
                                     name="item_number"
                                     label="Número do Item"
                                     placeholder="ITEM-001"
@@ -484,7 +488,7 @@ export default function ItemShow({
                                     ref={itemNumberInputRef}
                                 />
                                 <TextInput
-                                    form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                    form={{ data, setData, errors, clearErrors }}
                                     name="name"
                                     label="Nome"
                                     placeholder="Nome do item"
@@ -562,7 +566,7 @@ export default function ItemShow({
                                     onValueChange={(value) => {
                                         const selected = itemStatuses.find(s => s.id.toString() === value);
                                         if (selected) {
-                                            setData('status', selected.value as any);
+                                            setData('status', selected.value);
                                         }
                                     }}
                                     error={errors.status}
@@ -577,7 +581,7 @@ export default function ItemShow({
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <TextInput
-                                    form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                    form={{ data, setData, errors, clearErrors }}
                                     name="unit_of_measure"
                                     label="Unidade de Medida"
                                     placeholder="EA"
@@ -585,7 +589,7 @@ export default function ItemShow({
                                     view={!isEditMode}
                                 />
                                 <TextInput
-                                    form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                    form={{ data, setData, errors, clearErrors }}
                                     name="weight"
                                     label="Peso (kg)"
                                     placeholder="0.00"
@@ -634,7 +638,7 @@ export default function ItemShow({
                                 {data.can_be_manufactured && (
                                     <div className="space-y-3">
                                         <TextInput
-                                            form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                            form={{ data, setData, errors, clearErrors }}
                                             name="manufacturing_cost"
                                             label="Custo de Manufatura"
                                             placeholder="0.00"
@@ -642,7 +646,7 @@ export default function ItemShow({
                                             view={!isEditMode}
                                         />
                                         <TextInput
-                                            form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                            form={{ data, setData, errors, clearErrors }}
                                             name="manufacturing_lead_time_days"
                                             label="Lead Time de Manufatura (dias)"
                                             placeholder="0"
@@ -690,7 +694,7 @@ export default function ItemShow({
                                 {data.can_be_purchased && (
                                     <div className="space-y-3">
                                         <TextInput
-                                            form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                            form={{ data, setData, errors, clearErrors }}
                                             name="preferred_vendor"
                                             label="Fornecedores Preferenciais"
                                             placeholder="Nome dos fornecedores"
@@ -698,7 +702,7 @@ export default function ItemShow({
                                             view={!isEditMode}
                                         />
                                         <TextInput
-                                            form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                            form={{ data, setData, errors, clearErrors }}
                                             name="vendor_item_number"
                                             label="Código do Fornecedor"
                                             placeholder="Código do item no fornecedor"
@@ -706,7 +710,7 @@ export default function ItemShow({
                                             view={!isEditMode}
                                         />
                                         <TextInput
-                                            form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                            form={{ data, setData, errors, clearErrors }}
                                             name="purchase_price"
                                             label="Preço de Compra"
                                             placeholder="0.00"
@@ -714,7 +718,7 @@ export default function ItemShow({
                                             view={!isEditMode}
                                         />
                                         <TextInput
-                                            form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                            form={{ data, setData, errors, clearErrors }}
                                             name="purchase_lead_time_days"
                                             label="Lead Time de Compra (dias)"
                                             placeholder="0"
@@ -762,7 +766,7 @@ export default function ItemShow({
                                 {data.can_be_sold && (
                                     <div className="space-y-3">
                                         <TextInput
-                                            form={{ data: data as any, setData: setData as any, errors, clearErrors: clearErrors as any }}
+                                            form={{ data, setData, errors, clearErrors }}
                                             name="list_price"
                                             label="Preço de Lista"
                                             placeholder="0.00"
@@ -874,7 +878,7 @@ export default function ItemShow({
                                     </div>
 
                                     <EntityDataTable
-                                        data={whereUsedBoms.data as any[]}
+                                        data={whereUsedBoms.data}
                                         columns={[
                                             {
                                                 key: 'bom_number',
@@ -980,7 +984,7 @@ export default function ItemShow({
                                     </div>
 
                                     <EntityDataTable
-                                        data={manufacturingOrders.data as any[]}
+                                        data={manufacturingOrders.data}
                                         columns={[
                                             {
                                                 key: 'order_number',

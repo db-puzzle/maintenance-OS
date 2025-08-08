@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { type ShiftForm } from '@/types/asset-hierarchy';
+
 import { useForm } from '@inertiajs/react';
 import { AlertCircle, Clock, Copy, Plus, Table, Trash2, ChevronsUpDown, Check } from 'lucide-react';
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
@@ -76,7 +76,6 @@ interface ShiftFormWithTimezone {
             }[];
         }[];
     }[];
-    [key: string]: string | number | boolean | File | null | undefined | any[];
 }
 const weekdays = [
     { key: 'Monday', label: 'Segunda' },
@@ -229,7 +228,7 @@ const isBreakOverlapping = (shift: Shift, currentBreak: Break, currentBreakIndex
 };
 const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
     ({ isOpen, onOpenChange, onSuccess, triggerText = 'Novo Turno', triggerVariant = 'outline', showTrigger = false, initialShift, currentAssetId }, ref) => {
-        // eslint-disable @typescript-eslint/no-explicit-any -- Complex form state management with deeply nested structures
+
         const [open, setOpen] = useState(false);
         const buttonRef = useRef<HTMLButtonElement>(null);
         const nameInputRef = useRef<HTMLInputElement>(null);
@@ -271,7 +270,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         // Create a wrapper for setData to match the TextInput expected signature
         const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
             if (name === 'name' || name === 'timezone') {
-                setData(name as keyof ShiftFormWithTimezone, value as any);
+                setData(name as keyof ShiftFormWithTimezone, value as string);
             }
         };
         
@@ -302,7 +301,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                     }))
                 }))
             }));
-            setData('schedules' as keyof ShiftFormWithTimezone, formattedSchedules as any);
+            setData('schedules', formattedSchedules);
         };
         // Get the label for the selected timezone
         const getTimezoneLabel = (value: string) => {
@@ -1149,7 +1148,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                 />
             </>
         );
-        // eslint-enable @typescript-eslint/no-explicit-any
+
     },
 );
 CreateShiftSheet.displayName = 'CreateShiftSheet';
