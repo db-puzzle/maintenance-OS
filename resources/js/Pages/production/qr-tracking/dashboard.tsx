@@ -250,9 +250,9 @@ export default function QrTrackingDashboard({ statistics, recent_events, event_t
                                                             {' • '}
                                                             {format(new Date(event.created_at), 'dd MMM yyyy HH:mm')}
                                                         </div>
-                                                        {event.event_data?.item_number && (
+                                                        {(event.event_data as any)?.item_number && (
                                                             <div className="text-sm">
-                                                                Item: {event.event_data.item_number}
+                                                                Item: {event.event_data.item_number as string}
                                                             </div>
                                                         )}
                                                     </div>

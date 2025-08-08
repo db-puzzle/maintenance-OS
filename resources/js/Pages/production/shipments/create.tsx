@@ -98,8 +98,19 @@ export default function ShipmentCreate({ items }: Props) {
     const [shipmentItems, setShipmentItems] = useState<ShipmentItem[]>([]);
     const [photos, setPhotos] = useState<File[]>([]);
 
-    const { data, setData, errors, processing, clearErrors } = useForm({
-        items: [] as ShipmentItem[],
+    const { data, setData, errors, processing, clearErrors } = useForm<{
+        items: string;
+        destination_name: string;
+        destination_address: string;
+        destination_city: string;
+        destination_state: string;
+        destination_zip: string;
+        carrier: string;
+        carrier_contact: string;
+        notes: string;
+        photos: File[];
+    }>({
+        items: JSON.stringify([]),
         destination_name: '',
         destination_address: '',
         destination_city: '',
@@ -108,7 +119,7 @@ export default function ShipmentCreate({ items }: Props) {
         carrier: '',
         carrier_contact: '',
         notes: '',
-        photos: [] as File[]
+        photos: []
     });
 
     const steps = [
@@ -348,7 +359,12 @@ function ShipmentItemsStep({
 }
 
 // Step 2: Destination
-function DestinationStep({ data, setData, errors, clearErrors }: unknown) {
+function DestinationStep({ data, setData, errors, clearErrors }: {
+    data: any;
+    setData: any;
+    errors: any;
+    clearErrors: any;
+}) {
     return (
         <div className="space-y-6">
             <div>
@@ -406,7 +422,12 @@ function DestinationStep({ data, setData, errors, clearErrors }: unknown) {
 }
 
 // Step 3: Carrier
-function CarrierStep({ data, setData, errors, clearErrors }: unknown) {
+function CarrierStep({ data, setData, errors, clearErrors }: {
+    data: any;
+    setData: any;
+    errors: any;
+    clearErrors: any;
+}) {
     return (
         <div className="space-y-6">
             <div>

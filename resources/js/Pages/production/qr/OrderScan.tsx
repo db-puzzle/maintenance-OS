@@ -63,13 +63,13 @@ interface Props {
     };
     actions: Action[];
 }
-const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
+const getStatusColor = (status: string): "default" | "destructive" | "outline" | "secondary" => {
+    const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
         draft: 'secondary',
         planned: 'outline',
         released: 'default',
         in_progress: 'default',
-        completed: 'success',
+        completed: 'secondary',
         cancelled: 'destructive',
     };
     return colors[status] || 'secondary';
@@ -97,7 +97,7 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-lg">Ordem de Manufatura</CardTitle>
-                                <Badge variant={getStatusColor(order.status) as unknown}>
+                                <Badge variant={getStatusColor(order.status)}>
                                     {order.status}
                                 </Badge>
                             </div>
@@ -202,7 +202,7 @@ export default function OrderScan({ order, currentStep, can, actions }: Props) {
                                             className="flex items-center justify-between text-sm"
                                         >
                                             <span className="font-mono">{child.order_number}</span>
-                                            <Badge variant={getStatusColor(child.status) as unknown}>
+                                            <Badge variant={getStatusColor(child.status)}>
                                                 {child.status}
                                             </Badge>
                                         </div>

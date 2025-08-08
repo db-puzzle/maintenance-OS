@@ -7,7 +7,7 @@ import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 
 import { ColumnConfig } from '@/types/shared';
-import { Routing } from '@/types/production';
+import { ManufacturingRoute as Routing } from '@/types/production';
 import { toast } from 'sonner';
 interface Props {
     routings: {
@@ -70,7 +70,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[300px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as Routing;
+                const routing = row as unknown as Routing;
                 return (
                     <div>
                         <div className="font-medium">{routing.name}</div>
@@ -89,7 +89,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[200px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as Routing;
+                const routing = row as unknown as Routing;
                 return routing.manufacturing_order ? (
                     <Link
                         href={route('production.orders.show', routing.manufacturing_order.id)}
@@ -106,7 +106,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[250px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as Routing;
+                const routing = row as unknown as Routing;
                 return routing.item ? (
                     <div>
                         <div className="font-medium">{routing.item.item_number}</div>
@@ -134,7 +134,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             sortable: true,
             width: 'w-[300px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as Routing;
+                const routing = row as unknown as Routing;
                 return routing.description ? (
                     routing.description.length > 50
                         ? `${routing.description.substring(0, 50)}...`

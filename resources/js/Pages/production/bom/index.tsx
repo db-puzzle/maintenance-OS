@@ -111,7 +111,7 @@ export default function BomIndex({ boms, filters }: Props) {
             label: 'Versão',
             width: 'w-[100px]',
             render: (value: unknown, row: Record<string, unknown>) => {
-                const bomRow = row as BillOfMaterial;
+                const bomRow = row as unknown as BillOfMaterial;
                 const currentVersion = bomRow.current_version?.version_number;
                 return currentVersion ? `v${currentVersion}` : '-';
             }
@@ -134,7 +134,7 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'versions_count',
             label: 'Versões',
             width: 'w-[100px]',
-            render: (value: unknown, row: Record<string, unknown>) => <>{(row as BillOfMaterial).versions_count || 0}</>
+            render: (value: unknown, row: Record<string, unknown>) => <>{(row as unknown as BillOfMaterial).versions_count || 0}</>
         },
         {
             key: 'item_masters_count',

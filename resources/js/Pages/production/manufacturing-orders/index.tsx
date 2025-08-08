@@ -163,7 +163,7 @@ export default function ManufacturingOrders({
             label: 'Item',
             width: 'w-[250px]',
             render: (value: unknown, order: Record<string, unknown>) => {
-                const mo = order as ManufacturingOrder;
+                const mo = order as unknown as ManufacturingOrder;
                 return (
                     <div>
                         <p className="font-medium">{mo.item?.item_number || '-'}</p>

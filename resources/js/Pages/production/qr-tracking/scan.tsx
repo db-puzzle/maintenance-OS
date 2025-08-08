@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, ReactNode } from 'react';
 import { Head } from '@inertiajs/react';
 import { Card } from '@/components/ui/card';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,7 +71,7 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                 setScannedItem(null);
             }, 5000);
         } catch (err: unknown) {
-            setError((err as unknown).response?.data?.message || 'Failed to process scan');
+            setError((err as any).response?.data?.message || 'Failed to process scan');
         } finally {
             setIsProcessing(false);
         }
@@ -236,21 +236,21 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <dt className="text-sm font-medium text-muted-foreground">Item Number</dt>
-                                    <dd className="text-sm mt-1">{scannedItem.item_number}</dd>
+                                    <dd className="text-sm mt-1">{scannedItem.item_number as ReactNode}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-sm font-medium text-muted-foreground">Name</dt>
-                                    <dd className="text-sm mt-1">{scannedItem.name}</dd>
+                                    <dd className="text-sm mt-1">{scannedItem.name as ReactNode}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-sm font-medium text-muted-foreground">BOM</dt>
                                     <dd className="text-sm mt-1">
-                                        {scannedItem.bom_version?.bill_of_material?.name || 'N/A'}
+                                        {(scannedItem as any).bom_version?.bill_of_material?.name || 'N/A'}
                                     </dd>
                                 </div>
                                 <div>
                                     <dt className="text-sm font-medium text-muted-foreground">Quantity</dt>
-                                    <dd className="text-sm mt-1">{scannedItem.quantity} {scannedItem.unit_of_measure}</dd>
+                                    <dd className="text-sm mt-1">{scannedItem.quantity as ReactNode} {scannedItem.unit_of_measure as ReactNode}</dd>
                                 </div>
                             </dl>
                         </CardContent>
