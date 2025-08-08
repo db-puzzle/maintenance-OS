@@ -364,7 +364,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
         const removeShift = (dayIndex: number, shiftIndex: number) => {
              
-            const newSchedules = data.schedules.map((day, idx) => {
+            const newSchedules = (data.schedules as Schedule[]).map((day, idx) => {
                 if (idx === dayIndex) {
                     return {
                         ...day,
@@ -406,7 +406,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
         const removeBreak = (dayIndex: number, shiftIndex: number, breakIndex: number) => {
              
-            const newSchedules = data.schedules.map((day, idx) => {
+            const newSchedules = (data.schedules as Schedule[]).map((day, idx) => {
                 if (idx === dayIndex) {
                     return {
                         ...day,
@@ -435,10 +435,10 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
         };
         const applyToSelectedDays = () => {
              
-            const sourceDay = data.schedules.find((s) => s.weekday === selectedDay);
+            const sourceDay = (data.schedules as Schedule[]).find((s) => s.weekday === selectedDay);
             if (!sourceDay) return;
              
-            const newSchedules = data.schedules.map((schedule) => {
+            const newSchedules = (data.schedules as Schedule[]).map((schedule) => {
                 if (selectedDays.includes(schedule.weekday)) {
                     // Cria uma cópia profunda do dia de origem
                     return {
@@ -467,7 +467,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                  
                 timezone: data.timezone,
                  
-                schedules: data.schedules.map((schedule) => ({
+                schedules: (data.schedules as Schedule[]).map((schedule) => ({
                     ...schedule,
                      
                     shifts: schedule.shifts.map((shift) => ({

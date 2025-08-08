@@ -284,7 +284,7 @@ export default function AssetRoutinesTab({
                         </div>
                         {routine.last_execution_form_version_id && routine.last_execution_form_version && (
                             <div className="text-xs text-muted-foreground">
-                                Versão: v{routine.last_execution_form_version.version_number}
+                                Versão: v{routine.last_execution_form_version.version}
                             </div>
                         )}
                     </div>
