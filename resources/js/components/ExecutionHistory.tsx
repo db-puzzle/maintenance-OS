@@ -196,7 +196,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleString('pt-BR');
     };
-    const handleExportSingle = async (executionId: number) => {
+    const handleExportSingle = async (_executionId: number) => {
         // For now, disable export functionality until work order export is implemented
         toast.info('Exportação de ordens de serviço será implementada em breve');
         return;

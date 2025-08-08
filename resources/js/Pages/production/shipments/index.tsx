@@ -68,7 +68,7 @@ const statusConfig = {
 export default function ShipmentsIndex({ shipments, filters, statuses, shipmentTypes, can }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteShipment, setDeleteShipment] = useState<Shipment | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, _setLoading] = useState(false);
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.shipments.index'), { ...filters, search: value }, {

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { type ShiftForm } from '@/types/asset-hierarchy';
+
 import { useForm } from '@inertiajs/react';
 import { AlertCircle, Clock, Copy, Plus, Table, Trash2, ChevronsUpDown, Check } from 'lucide-react';
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';

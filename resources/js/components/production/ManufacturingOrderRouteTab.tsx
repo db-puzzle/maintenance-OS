@@ -67,7 +67,7 @@ export default function ManufacturingOrderRouteTab({
     const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
 
     const [showRouteDialog, setShowRouteDialog] = useState(false);
-    const [selectedTemplate, setSelectedTemplate] = useState<RouteTemplate | null>(null);
+    const [selectedTemplate, _setSelectedTemplate] = useState<RouteTemplate | null>(null);
     
     // Reset view mode when order or conditions change
     useEffect(() => {

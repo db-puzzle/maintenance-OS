@@ -9,7 +9,7 @@ import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
-import { BillOfMaterial, Item } from '@/types/production';
+import { BillOfMaterial } from '@/types/production';
 interface Props {
     boms: {
         data: BillOfMaterial[];

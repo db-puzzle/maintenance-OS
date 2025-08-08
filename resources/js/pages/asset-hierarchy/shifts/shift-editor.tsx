@@ -265,7 +265,7 @@ interface ShiftFormProps extends CreateProps {
     shift?: ShiftData;
 }
 
-interface ShiftFormData {
+interface _ShiftFormData {
     name: string;
     schedules: Schedule[];
 }

@@ -18,7 +18,7 @@ import EditRoutineSheet from '@/components/EditRoutineSheet';
 import InlineRoutineFormEditor from '@/components/InlineRoutineFormEditor';
 import { CalendarRange } from 'lucide-react';
 
-import { Task } from '@/types/task';
+
 import { Routine } from '@/types/routine';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
