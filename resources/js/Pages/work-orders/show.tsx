@@ -2,9 +2,9 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
-import { WorkOrder, WorkOrderCategory, WorkOrderType, Asset, Team, Form } from '@/types/work-order';
+import { WorkOrder, WorkOrderCategory, WorkOrderType, Asset as WorkOrderAsset, Team, Form } from '@/types/work-order';
 import { User } from '@/types';
-import { Plant, Area, Sector } from '@/types/asset-hierarchy';
+import { Plant, Area, Sector, Asset } from '@/types/asset-hierarchy';
 import { Part } from '@/types/maintenance';
 import { Skill, Certification } from '@/types/entities/skill';
 import {
@@ -14,7 +14,7 @@ import {
 interface TabItem {
     id: string;
     label: string;
-    icon: React.ElementType;
+    icon: React.ReactNode;
     content: React.ReactNode;
 }
 import {
@@ -158,8 +158,8 @@ export default function ShowWorkOrder({
             content: (
                 <div className="py-8">
                     <WorkOrderStatusProgress
-                        currentStatus={workOrder.status}
-                        workOrder={workOrder}
+                        currentStatus={workOrder!.status}
+                        workOrder={workOrder!}
                         onTabChange={(tabId) => {
                             setActiveTab(tabId);
                         }}

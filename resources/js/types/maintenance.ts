@@ -223,8 +223,6 @@ export interface ExecutionIndexPageProps {
         direction: 'asc' | 'desc';
     };
 }
-<<<<<<< Current (Your changes)
-=======
 
 export interface Part {
     id: number;
@@ -256,4 +254,7 @@ export interface WorkOrderPart {
     quantity_used: number | null;
     notes?: string;
 }
+<<<<<<< Current (Your changes)
+>>>>>>> Incoming (Background Agent changes)
+=======
 >>>>>>> Incoming (Background Agent changes)

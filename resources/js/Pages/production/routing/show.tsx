@@ -17,14 +17,14 @@ import {
 import RoutingStepsTab from '@/components/production/RoutingStepsTab';
 import RoutingStepsTableTab from '@/components/production/RoutingStepsTableTab';
 import { WorkCell, ManufacturingRoute, ManufacturingStep, RouteTemplate } from '@/types/production';
-import { Form } from '@/types/work-order';
+import { Form as WorkOrderForm } from '@/types/work-order';
 interface Props {
     routing: ManufacturingRoute;
     effectiveSteps: ManufacturingStep[];
     templates?: RouteTemplate[];
     workCells?: WorkCell[];
     stepTypes?: Record<string, string>;
-    forms?: Form[];
+    forms?: WorkOrderForm[];
     openRouteBuilder?: string | null;
     can: {
         update: boolean;

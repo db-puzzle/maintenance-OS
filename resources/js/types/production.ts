@@ -349,11 +349,12 @@ export interface ShipmentPhoto {
     path: string;
     caption?: string;
     uploaded_at: string;
-<<<<<<< Current (Your changes)
-} 
-=======
 }
 
 // Alias for backward compatibility - Routing is now RouteTemplate
+<<<<<<< Current (Your changes)
 export type Routing = RouteTemplate; 
+>>>>>>> Incoming (Background Agent changes)
+=======
+export type Routing = RouteTemplate;
 >>>>>>> Incoming (Background Agent changes)

@@ -28,7 +28,7 @@ import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { TextInput } from '@/components/TextInput';
 import { ItemSelect } from '@/components/ItemSelect';
-import { ManufacturingOrder } from '@/types/production';
+import { ManufacturingOrder, RouteTemplate, WorkCell, Form } from '@/types/production';
 import { cn } from '@/lib/utils';
 import { useForm } from '@inertiajs/react';
 import HierarchicalConfiguration from '@/components/production/HierarchicalConfiguration';
@@ -41,10 +41,10 @@ interface Props {
     canCancel: boolean;
     canCreateRoute: boolean;
     canManageRoutes?: boolean;
-    templates?: unknown[]; // Route templates for creating new routes
-    workCells?: unknown[];
+    templates?: RouteTemplate[]; // Route templates for creating new routes
+    workCells?: WorkCell[];
     stepTypes?: Record<string, string>;
-    forms?: unknown[];
+    forms?: Form[];
 }
 function FieldGroup({ title, children }: { title?: string; children: React.ReactNode }) {
     return (
@@ -71,7 +71,7 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
 }
 export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, canManageRoutes = false, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
     const { props } = usePage();
-    const flash = props.flash as unknown;
+    const flash = props.flash as { openRouteBuilder?: string | boolean } | undefined;
     const [generatingQr, setGeneratingQr] = useState(false);
     // Check URL params - passed from backend
     const openRouteBuilderParam = props.openRouteBuilder || null;
@@ -96,7 +96,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
         data: inertiaForm.data as any,
         setData: (name: string, value: unknown) => inertiaForm.setData(name as any, value),
         errors: inertiaForm.errors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...fields),
+        clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...fields as any),
     };
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
         switch (status) {
@@ -524,7 +524,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             <ShowLayout
                 title={order.order_number}
                 subtitle={subtitle}
-                editRoute={editRoute}
+
                 tabs={tabs}
                 defaultActiveTab={(flash?.openRouteBuilder || openRouteBuilderParam === '1') ? "routes" : "overview"}
                 actions={headerActions}

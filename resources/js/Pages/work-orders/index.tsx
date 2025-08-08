@@ -143,7 +143,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             sortable: true,
             width: 'w-[300px]',
             render: (value, row) => {
-                const title = (row as WorkOrder).title || '';
+                const title = (row as unknown as WorkOrder).title || '';
                 const truncatedTitle = title.length > 50 ? title.substring(0, 50) + '...' : title;
                 return (
                     <div className="font-medium" title={title}>

@@ -225,7 +225,7 @@ export default function Show({
                                 sortable: true,
                                 width: 'w-[200px]',
                                 render: (value, row) => {
-                                    const schedule = row as ProductionSchedule;
+                                    const schedule = row as unknown as ProductionSchedule;
                                     if (schedule.manufacturing_order) {
                                         return (
                                             <Link
@@ -245,13 +245,13 @@ export default function Show({
                                 sortable: false,
                                 width: 'w-[250px]',
                                 render: (value, row) => {
-                                    const schedule = row as ProductionSchedule;
+                                    const schedule = row as unknown as ProductionSchedule;
                                     if (schedule.manufacturing_step) {
                                         return (
                                             <div>
                                                 <div>Etapa #{schedule.manufacturing_step.step_number}</div>
                                                 <div className="text-muted-foreground text-sm">
-                                                    {schedule.manufacturing_step?.operation_description || ''}
+                                                    {schedule.manufacturing_step?.description || ''}
                                                 </div>
                                             </div>
                                         );
