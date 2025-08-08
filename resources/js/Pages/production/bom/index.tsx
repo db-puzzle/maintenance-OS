@@ -166,29 +166,29 @@ export default function BomIndex({ boms, filters }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data as Array<Record<string, unknown>>}
                         columns={columns}
                         loading={false}
-                        onRowClick={(row) => router.visit(route('production.bom.show', row.id))}
-                        actions={(row) => (
+                        emptyMessage="Nenhuma Lista de Materiais encontrada."
+                        onRowClick={(bom) => router.visit(route('production.bom.show', (bom as BillOfMaterial).id))}
+                        onSort={handleSort}
+                        actions={(bom) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(route('production.bom.edit', row.id))}
-                                onDelete={() => setDeleteBom(row)}
-                                additionalActions={[
+                                align="end"
+                                onEdit={() => router.visit(route('production.bom.show', (bom as BillOfMaterial).id))}
+                                deleteOptions={{
+                                    isDeleting: (bom as BillOfMaterial).id === deletingBom,
+                                    hasPermission: auth.permissions.includes('production.bom.delete'),
+                                    onDelete: () => handleDelete(bom as BillOfMaterial),
+                                    confirmTitle: 'Confirmar Exclusão',
+                                    confirmMessage: `Tem certeza que deseja excluir a Lista de Materiais "${(bom as BillOfMaterial).bom_number}"?`,
+                                    disabled: false
+                                }}
+                                additionalItems={[
                                     {
-                                        label: 'Ver Hierarquia',
-                                        icon: <GitBranch className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.bom.hierarchy', row.id))
-                                    },
-                                    {
-                                        label: 'Duplicar',
-                                        icon: <Copy className="h-4 w-4" />,
-                                        onClick: () => handleDuplicate(row)
-                                    },
-                                    {
-                                        label: 'Exportar',
-                                        icon: <Download className="h-4 w-4" />,
-                                        onClick: () => handleExport(row as unknown as BillOfMaterial)
+                                        label: 'Clonar',
+                                        icon: <Copy className="mr-2 h-4 w-4" />,
+                                        onClick: () => setCloneBom(bom as BillOfMaterial)
                                     }
                                 ]}
                             />

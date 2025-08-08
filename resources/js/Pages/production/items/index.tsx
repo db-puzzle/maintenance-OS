@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
-import { Package, History, GitBranch, Download, Upload, FileText, Image, ImageOff, Loader2 } from 'lucide-react';
+import { Package, History, GitBranch, Download, Upload, FileText, Image, ImageOff, Loader2, Copy, QrCode } from 'lucide-react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
@@ -315,31 +315,34 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data}
+                        data={data as Array<Record<string, unknown>>}
                         columns={columns}
                         loading={loading}
+                        emptyMessage="Nenhum item encontrado."
                         onRowClick={(item) => router.visit(route('production.items.show', item.id))}
                         actions={(item) => (
                             <EntityActionDropdown
-                                onEdit={() => setEditItem(item)}
-                                onDelete={() => setDeleteItem(item)}
-                                additionalActions={[
-                                    ...(item.can_be_manufactured ? [
-                                        {
-                                            label: 'Gerenciar BOM',
-                                            icon: <Package className="h-4 w-4" />,
-                                            onClick: () => router.visit(route('production.items.bom', item.id))
-                                        },
-                                        {
-                                            label: 'Histórico de BOM',
-                                            icon: <History className="h-4 w-4" />,
-                                            onClick: () => router.visit(route('production.items.bom-history', item.id))
-                                        }
-                                    ] : []),
+                                align="end"
+                                onEdit={() => setEditItem(item as Item)}
+                                onDelete={() => setDeleteItem(item as Item)}
+                                deleteOptions={{
+                                    isDeleting: (item as Item).id === deleteItem?.id,
+                                    hasPermission: true,
+                                    onDelete: () => handleDelete(),
+                                    confirmTitle: 'Confirmar Exclusão',
+                                    confirmMessage: `Tem certeza que deseja excluir o item "${(item as Item).item_number}"?`,
+                                    disabled: false
+                                }}
+                                additionalItems={[
                                     {
-                                        label: 'Onde é Usado',
-                                        icon: <GitBranch className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.items.where-used', item.id))
+                                        label: 'Duplicar',
+                                        icon: <Copy className="mr-2 h-4 w-4" />,
+                                        onClick: () => handleDuplicate(item as Item)
+                                    },
+                                    {
+                                        label: 'Gerar QR Code',
+                                        icon: <QrCode className="mr-2 h-4 w-4" />,
+                                        onClick: () => handleGenerateQr(item as Item)
                                     }
                                 ]}
                             />

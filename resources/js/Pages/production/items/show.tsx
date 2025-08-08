@@ -133,7 +133,7 @@ export default function ItemShow({
     ];
 
     // Form state for creation/editing
-    const { data, setData, errors, processing, post, patch, clearErrors } = useForm({
+    const form = useForm({
         item_number: item?.item_number || '',
         name: item?.name || '',
         description: item?.description || '',
@@ -154,6 +154,8 @@ export default function ItemShow({
         preferred_vendor: item?.preferred_vendor || '',
         vendor_item_number: item?.vendor_item_number || '',
     });
+
+    const { data, setData, errors, processing, post, patch, clearErrors } = form;
 
     const [isEditMode, setIsEditMode] = useState(isCreating);
     const [isCompressed, setIsCompressed] = useState(false);
@@ -478,23 +480,21 @@ export default function ItemShow({
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <TextInput
-                                    form={{ data, setData, errors, clearErrors }}
+                                    form={form}
                                     name="item_number"
                                     label="Número do Item"
                                     placeholder="ITEM-001"
                                     required
                                     disabled={!isEditMode || processing}
-                                    view={!isEditMode}
                                     ref={itemNumberInputRef}
                                 />
                                 <TextInput
-                                    form={{ data, setData, errors, clearErrors }}
+                                    form={form}
                                     name="name"
                                     label="Nome"
                                     placeholder="Nome do item"
                                     required
                                     disabled={!isEditMode || processing}
-                                    view={!isEditMode}
                                 />
                             </div>
 
@@ -563,10 +563,10 @@ export default function ItemShow({
                                     label="Status"
                                     items={itemStatuses}
                                     value={itemStatuses.find(s => s.value === data.status)?.id.toString() || ''}
-                                    onValueChange={(value) => {
+                                    onValueChange={(value: string) => {
                                         const selected = itemStatuses.find(s => s.id.toString() === value);
                                         if (selected) {
-                                            setData('status', selected.value);
+                                            setData('status', selected.value as 'active' | 'inactive' | 'prototype' | 'discontinued');
                                         }
                                     }}
                                     error={errors.status}
@@ -581,20 +581,18 @@ export default function ItemShow({
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <TextInput
-                                    form={{ data, setData, errors, clearErrors }}
+                                    form={form}
                                     name="unit_of_measure"
                                     label="Unidade de Medida"
                                     placeholder="EA"
                                     disabled={!isEditMode || processing}
-                                    view={!isEditMode}
                                 />
                                 <TextInput
-                                    form={{ data, setData, errors, clearErrors }}
+                                    form={form}
                                     name="weight"
                                     label="Peso (kg)"
                                     placeholder="0.00"
                                     disabled={!isEditMode || processing}
-                                    view={!isEditMode}
                                 />
                             </div>
                         </div>
@@ -638,20 +636,18 @@ export default function ItemShow({
                                 {data.can_be_manufactured && (
                                     <div className="space-y-3">
                                         <TextInput
-                                            form={{ data, setData, errors, clearErrors }}
+                                            form={form}
                                             name="manufacturing_cost"
                                             label="Custo de Manufatura"
                                             placeholder="0.00"
                                             disabled={!isEditMode || processing}
-                                            view={!isEditMode}
                                         />
                                         <TextInput
-                                            form={{ data, setData, errors, clearErrors }}
+                                            form={form}
                                             name="manufacturing_lead_time_days"
                                             label="Lead Time de Manufatura (dias)"
                                             placeholder="0"
                                             disabled={!isEditMode || processing}
-                                            view={!isEditMode}
                                         />
                                     </div>
                                 )}
@@ -694,36 +690,32 @@ export default function ItemShow({
                                 {data.can_be_purchased && (
                                     <div className="space-y-3">
                                         <TextInput
-                                            form={{ data, setData, errors, clearErrors }}
+                                            form={form}
                                             name="preferred_vendor"
                                             label="Fornecedores Preferenciais"
                                             placeholder="Nome dos fornecedores"
                                             disabled={!isEditMode || processing}
-                                            view={!isEditMode}
                                         />
                                         <TextInput
-                                            form={{ data, setData, errors, clearErrors }}
+                                            form={form}
                                             name="vendor_item_number"
                                             label="Código do Fornecedor"
                                             placeholder="Código do item no fornecedor"
                                             disabled={!isEditMode || processing}
-                                            view={!isEditMode}
                                         />
                                         <TextInput
-                                            form={{ data, setData, errors, clearErrors }}
+                                            form={form}
                                             name="purchase_price"
                                             label="Preço de Compra"
                                             placeholder="0.00"
                                             disabled={!isEditMode || processing}
-                                            view={!isEditMode}
                                         />
                                         <TextInput
-                                            form={{ data, setData, errors, clearErrors }}
+                                            form={form}
                                             name="purchase_lead_time_days"
                                             label="Lead Time de Compra (dias)"
                                             placeholder="0"
                                             disabled={!isEditMode || processing}
-                                            view={!isEditMode}
                                         />
                                     </div>
                                 )}
@@ -766,12 +758,11 @@ export default function ItemShow({
                                 {data.can_be_sold && (
                                     <div className="space-y-3">
                                         <TextInput
-                                            form={{ data, setData, errors, clearErrors }}
+                                            form={form}
                                             name="list_price"
                                             label="Preço de Lista"
                                             placeholder="0.00"
                                             disabled={!isEditMode || processing}
-                                            view={!isEditMode}
                                         />
                                     </div>
                                 )}
@@ -878,21 +869,20 @@ export default function ItemShow({
                                     </div>
 
                                     <EntityDataTable
-                                        data={whereUsedBoms.data}
+                                        data={whereUsedBoms.data as Array<Record<string, unknown>>}
                                         columns={[
                                             {
                                                 key: 'bom_number',
                                                 label: 'BOM',
-                                                sortable: true,
-                                                render: (value: unknown, row: unknown) => {
-                                                    const bom = row as BillOfMaterial;
-                                                    return (
-                                                        <div>
-                                                            <div className="font-medium">{bom.bom_number}</div>
-                                                            <div className="text-sm text-muted-foreground">{bom.name}</div>
-                                                        </div>
-                                                    );
-                                                },
+                                                sortable: false,
+                                                render: (bom) => (
+                                                    <span 
+                                                        className="text-primary hover:underline cursor-pointer"
+                                                        onClick={() => router.visit(route('production.bom.show', (bom as BillOfMaterial).id))}
+                                                    >
+                                                        {(bom as BillOfMaterial).bom_number}
+                                                    </span>
+                                                )
                                             },
                                             {
                                                 key: 'output_item',
@@ -984,12 +974,20 @@ export default function ItemShow({
                                     </div>
 
                                     <EntityDataTable
-                                        data={manufacturingOrders.data}
+                                        data={manufacturingOrders.data as Array<Record<string, unknown>>}
                                         columns={[
                                             {
                                                 key: 'order_number',
                                                 label: 'Número da Ordem',
-                                                sortable: true,
+                                                sortable: false,
+                                                render: (order) => (
+                                                    <span 
+                                                        className="text-primary hover:underline cursor-pointer"
+                                                        onClick={() => router.visit(route('production.manufacturing-orders.show', (order as ManufacturingOrder).id))}
+                                                    >
+                                                        {(order as ManufacturingOrder).order_number}
+                                                    </span>
+                                                )
                                             },
                                             {
                                                 key: 'status',
