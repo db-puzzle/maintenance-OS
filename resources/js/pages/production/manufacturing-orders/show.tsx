@@ -529,7 +529,6 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             <ShowLayout
                 title={order.order_number}
                 subtitle={subtitle}
-                editRoute={route('production.orders.edit', order.id)}
                 tabs={tabs}
                 defaultActiveTab={(flash?.openRouteBuilder || openRouteBuilderParam === '1') ? "routes" : "overview"}
                 actions={headerActions}

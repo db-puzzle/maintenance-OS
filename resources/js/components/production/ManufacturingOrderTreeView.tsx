@@ -269,15 +269,7 @@ export function ManufacturingOrderTreeView({
                                             Ver Detalhes
                                         </Link>
                                     </DropdownMenuItem>
-                                    {/* Edit (only for draft/planned) */}
-                                    {canUpdateOrders && ['draft', 'planned'].includes(node.status) && (
-                                        <DropdownMenuItem asChild>
-                                            <Link href={route('production.orders.edit', node.id)}>
-                                                <Edit className="h-4 w-4 mr-2" />
-                                                Editar Ordem
-                                            </Link>
-                                        </DropdownMenuItem>
-                                    )}
+
                                     {/* Route Management Section */}
                                     {canManageNodeRoute && (
                                         <>
@@ -441,7 +433,7 @@ export function ManufacturingOrderTreeView({
                     templates={routeTemplates}
                     selectedTemplate={null}
                     onSelectTemplate={(template: RouteTemplate) => handleTemplateSelect(template.id)}
-                    onUseTemplate={() => {}}
+                    onUseTemplate={() => { }}
                     itemName={selectedOrderForRoute.item?.name}
                 />
             )}

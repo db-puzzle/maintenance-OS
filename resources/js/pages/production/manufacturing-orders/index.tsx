@@ -348,11 +348,6 @@ export default function ManufacturingOrders({
                         onRowClick={(order) => router.visit(route('production.orders.show', order.id))}
                         actions={(order) => (
                             <EntityActionDropdown
-                                onEdit={
-                                    ['draft', 'planned'].includes(order.status)
-                                        ? () => router.visit(route('production.orders.edit', order.id))
-                                        : undefined
-                                }
                                 onDelete={
                                     order.status === 'draft'
                                         ? () => setDeleteOrder(order)

@@ -8,6 +8,8 @@ use App\Models\Production\ManufacturingOrder;
 use App\Models\QrTagTemplate;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf as DomPdf;
 
 class QrTagPdfService
 {
@@ -184,10 +186,6 @@ class QrTagPdfService
         $width = ($template === 'order-tag') ? 150 : 100;
         $height = ($template === 'order-tag') ? 100 : 150;
         
-        $pdf = Pdf::view("pdf.qr-tags.{$template}", $data)
-            ->paperSize($width, $height, 'mm') // 150mm x 100mm for orders (landscape), 100mm x 150mm for items (portrait)
-            ->margins(3, 3, 3, 3); // 3mm margins on all sides
-            
         // Generate descriptive filename with item/order number and UTC timestamp
         $timestamp = now()->utc()->format('Ymd_His');
         
@@ -199,9 +197,50 @@ class QrTagPdfService
         
         $path = "qr-tags/{$filename}";
         
-        // For now, save locally. In production, you'd save to S3
-        $pdfContent = $pdf->base64();
-        Storage::disk('public')->put($path, base64_decode($pdfContent));
+        try {
+            // Try using Spatie PDF (Browsershot) first
+            $pdf = Pdf::view("pdf.qr-tags.{$template}", $data)
+                ->paperSize($width, $height, 'mm')
+                ->margins(3, 3, 3, 3);
+            
+            // Apply Browsershot configuration if available
+            if (config('pdf.browsershot.chrome_path')) {
+                $pdf->setChromePath(config('pdf.browsershot.chrome_path'));
+            }
+            
+            // Add Chrome options from config
+            $options = config('pdf.browsershot.options.args', []);
+            foreach ($options as $option) {
+                $pdf->addChromiumArguments([$option]);
+            }
+            
+            $pdfContent = $pdf->base64();
+            Storage::disk('public')->put($path, base64_decode($pdfContent));
+            
+        } catch (\Exception $e) {
+            // Log the Browsershot error
+            Log::warning('Browsershot PDF generation failed, falling back to DomPDF', [
+                'error' => $e->getMessage(),
+                'template' => $template,
+                'type' => $data['type'] ?? 'unknown'
+            ]);
+            
+            // Fallback to DomPDF
+            try {
+                $pdf = DomPdf::loadView("pdf.qr-tags.{$template}", $data);
+                $pdf->setPaper([0, 0, $width * 2.83465, $height * 2.83465]); // Convert mm to points
+                $pdf->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+                
+                Storage::disk('public')->put($path, $pdf->output());
+                
+            } catch (\Exception $domPdfError) {
+                Log::error('Both PDF generators failed', [
+                    'browsershot_error' => $e->getMessage(),
+                    'dompdf_error' => $domPdfError->getMessage()
+                ]);
+                throw $domPdfError;
+            }
+        }
         
         return Storage::disk('public')->url($path);
     }
