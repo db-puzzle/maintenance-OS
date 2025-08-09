@@ -69,8 +69,8 @@
             padding: 2mm;
             border: 1px solid #ddd;
             background: white;
-            min-height: 60mm;
-            max-height: 75mm;
+            min-height: 50mm;
+            max-height: 60mm;
             overflow: hidden;
             position: relative;
         }

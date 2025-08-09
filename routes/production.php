@@ -14,6 +14,7 @@ use App\Http\Controllers\Production\WorkCellController;
 use App\Http\Controllers\Production\ProductionExecutionController;
 use App\Http\Controllers\Production\ManufacturingStepController;
 use App\Http\Controllers\Production\QrTagController;
+use App\Http\Controllers\Production\QrTagServeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('production')->name('production.')->group(function () {
@@ -88,6 +89,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
         Route::post('/orders/{order}/generate', [QrTagController::class, 'generateOrderTag'])->name('order');
         Route::post('/batch', [QrTagController::class, 'generateBatch'])->name('batch');
         Route::get('/preview/{type}/{id}', [QrTagController::class, 'preview'])->name('preview');
+        Route::get('/serve/{path}', [QrTagServeController::class, 'serve'])->name('serve')->where('path', '.*');
     });
 
     // Routing Management

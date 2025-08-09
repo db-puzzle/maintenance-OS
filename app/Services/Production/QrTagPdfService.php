@@ -208,9 +208,10 @@ class QrTagPdfService
             $pdf->setOptions($options);
             
             // Generate and save PDF
-            Storage::disk('public')->put($path, $pdf->output());
+            Storage::disk('local')->put($path, $pdf->output());
             
-            return Storage::disk('public')->url($path);
+            // Return a route URL that requires authentication
+            return route('production.qr-tags.serve', ['path' => $path]);
             
         } catch (\Exception $e) {
             Log::error('PDF generation failed', [
@@ -249,9 +250,10 @@ class QrTagPdfService
             $path = "qr-tags/{$filename}";
             
             // Generate and save PDF
-            Storage::disk('public')->put($path, $pdf->output());
+            Storage::disk('local')->put($path, $pdf->output());
             
-            return Storage::disk('public')->url($path);
+            // Return a route URL that requires authentication
+            return route('production.qr-tags.serve', ['path' => $path]);
             
         } catch (\Exception $e) {
             Log::error('Batch PDF generation failed', [
