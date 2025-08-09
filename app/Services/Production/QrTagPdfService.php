@@ -6,10 +6,9 @@ use App\Models\Production\Item;
 use App\Models\Production\ItemImage;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\QrTagTemplate;
-use Spatie\LaravelPdf\Facades\Pdf;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Barryvdh\DomPDF\Facade\Pdf as DomPdf;
 
 class QrTagPdfService
 {
@@ -198,52 +197,33 @@ class QrTagPdfService
         $path = "qr-tags/{$filename}";
         
         try {
-            // Try using Spatie PDF (Browsershot) first
-            $pdf = Pdf::view("pdf.qr-tags.{$template}", $data)
-                ->paperSize($width, $height, 'mm')
-                ->margins(3, 3, 3, 3);
+            // Create PDF with DomPDF
+            $pdf = Pdf::loadView("pdf.qr-tags.{$template}", $data);
             
-            // Apply Browsershot configuration if available
-            if (config('pdf.browsershot.chrome_path')) {
-                $pdf->setChromePath(config('pdf.browsershot.chrome_path'));
-            }
+            // Set custom paper size (convert mm to points: 1mm = 2.83465 points)
+            $pdf->setPaper([0, 0, $width * 2.83465, $height * 2.83465]);
             
-            // Add Chrome options from config
-            $options = config('pdf.browsershot.options.args', []);
-            foreach ($options as $option) {
-                $pdf->addChromiumArguments([$option]);
-            }
+            // Apply DomPDF options from config
+            $options = config('pdf.dompdf.options', []);
+            $pdf->setOptions($options);
             
-            $pdfContent = $pdf->base64();
-            Storage::disk('public')->put($path, base64_decode($pdfContent));
+            // Generate and save PDF
+            Storage::disk('public')->put($path, $pdf->output());
+            
+            return Storage::disk('public')->url($path);
             
         } catch (\Exception $e) {
-            // Log the Browsershot error
-            Log::warning('Browsershot PDF generation failed, falling back to DomPDF', [
+            Log::error('PDF generation failed', [
                 'error' => $e->getMessage(),
                 'template' => $template,
-                'type' => $data['type'] ?? 'unknown'
+                'type' => $data['type'] ?? 'unknown',
+                'trace' => $e->getTraceAsString()
             ]);
-            
-            // Fallback to DomPDF
-            try {
-                $pdf = DomPdf::loadView("pdf.qr-tags.{$template}", $data);
-                $pdf->setPaper([0, 0, $width * 2.83465, $height * 2.83465]); // Convert mm to points
-                $pdf->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
-                
-                Storage::disk('public')->put($path, $pdf->output());
-                
-            } catch (\Exception $domPdfError) {
-                Log::error('Both PDF generators failed', [
-                    'browsershot_error' => $e->getMessage(),
-                    'dompdf_error' => $domPdfError->getMessage()
-                ]);
-                throw $domPdfError;
-            }
+            throw $e;
         }
-        
-        return Storage::disk('public')->url($path);
     }
+
+
 
     private function generateBatchPdf(array $tags, string $type, int $count = 0): string
     {
@@ -251,20 +231,37 @@ class QrTagPdfService
         $paperWidth = $type === 'order' ? 150 : 100;
         $paperHeight = $type === 'order' ? 100 : 150;
         
-        $pdf = Pdf::view("pdf.qr-tags.batch", ['tags' => $tags, 'type' => $type])
-            ->paperSize($paperWidth, $paperHeight, 'mm') // 150mm x 100mm for orders (landscape), 100mm x 150mm for items (portrait)
-            ->margins(3, 3, 3, 3);
+        try {
+            // Create PDF with DomPDF
+            $pdf = Pdf::loadView("pdf.qr-tags.batch", ['tags' => $tags, 'type' => $type]);
             
-        // Generate descriptive filename for batch with UTC timestamp and count
-        $timestamp = now()->utc()->format('Ymd_His');
-        $countInfo = $count > 0 ? "-count{$count}" : "";
-        $filename = "qr-tags-batch-{$type}{$countInfo}-{$timestamp}-UTC.pdf";
-        $path = "qr-tags/{$filename}";
-        
-        $pdfContent = $pdf->base64();
-        Storage::disk('public')->put($path, base64_decode($pdfContent));
-        
-        return Storage::disk('public')->url($path);
+            // Set custom paper size (convert mm to points: 1mm = 2.83465 points)
+            $pdf->setPaper([0, 0, $paperWidth * 2.83465, $paperHeight * 2.83465]);
+            
+            // Apply DomPDF options from config
+            $options = config('pdf.dompdf.options', []);
+            $pdf->setOptions($options);
+            
+            // Generate descriptive filename for batch with UTC timestamp and count
+            $timestamp = now()->utc()->format('Ymd_His');
+            $countInfo = $count > 0 ? "-count{$count}" : "";
+            $filename = "qr-tags-batch-{$type}{$countInfo}-{$timestamp}-UTC.pdf";
+            $path = "qr-tags/{$filename}";
+            
+            // Generate and save PDF
+            Storage::disk('public')->put($path, $pdf->output());
+            
+            return Storage::disk('public')->url($path);
+            
+        } catch (\Exception $e) {
+            Log::error('Batch PDF generation failed', [
+                'error' => $e->getMessage(),
+                'type' => $type,
+                'count' => $count,
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
     
     /**

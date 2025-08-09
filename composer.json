@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.2",
         "ext-pdo_pgsql": "*",
+        "barryvdh/laravel-dompdf": "^3.1",
         "doctrine/dbal": "^4.2",
         "inertiajs/inertia-laravel": "^2.0",
         "intervention/image": "^3.11",
@@ -18,7 +19,6 @@
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "simplesoftwareio/simple-qrcode": "^4.2",
-        "spatie/laravel-pdf": "^1.6",
         "spatie/laravel-permission": "^6.20",
         "tightenco/ziggy": "^2.4"
     },

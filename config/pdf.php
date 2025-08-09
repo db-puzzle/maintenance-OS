@@ -3,56 +3,53 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Default PDF Engine
+    | DomPDF Configuration
     |--------------------------------------------------------------------------
     |
-    | This option defines the default PDF engine that will be used to generate
-    | PDFs. By default we'll use Browsershot, but you can also use DomPDF.
+    | Configuration options for DomPDF - the PDF generation engine used
+    | throughout the application for generating QR tags, reports, and exports.
     |
     */
-    'default' => env('PDF_ENGINE', 'browsershot'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Browsershot Configuration
-    |--------------------------------------------------------------------------
-    |
-    | These options are passed directly to Browsershot when generating PDFs.
-    | You can specify the Chrome/Chromium executable path and other options.
-    |
-    */
-    'browsershot' => [
-        'chrome_path' => env('BROWSERSHOT_CHROME_PATH'),
-        'node_path' => env('BROWSERSHOT_NODE_PATH'),
-        'npm_path' => env('BROWSERSHOT_NPM_PATH'),
-        'node_modules_path' => env('BROWSERSHOT_NODE_MODULES_PATH'),
-        'timeout' => 60,
+    'dompdf' => [
         'options' => [
-            'args' => [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process', // Required for Docker environments
-                '--disable-gpu',
-            ],
+            // Enable remote content (for loading images via URLs)
+            'isRemoteEnabled' => true,
+            
+            // Enable HTML5 parser for better modern HTML/CSS support
+            'isHtml5ParserEnabled' => true,
+            
+            // Enable inline PHP execution (use with caution)
+            'isPhpEnabled' => false,
+            
+            // Default paper size
+            'defaultPaperSize' => 'a4',
+            
+            // Default font
+            'defaultFont' => 'sans-serif',
+            
+            // DPI setting
+            'dpi' => 96,
+            
+            // Enable inline JavaScript (use with caution)
+            'isJavascriptEnabled' => false,
         ],
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | DomPDF Configuration
+    | Font Configuration
     |--------------------------------------------------------------------------
     |
-    | Configuration options for DomPDF as a fallback PDF engine.
+    | Configure custom fonts for PDF generation if needed.
     |
     */
-    'dompdf' => [
-        'options' => [
-            'isRemoteEnabled' => true,
-            'isHtml5ParserEnabled' => true,
-        ],
+    'fonts' => [
+        // Add custom fonts here if needed
+        // 'font-name' => [
+        //     'normal' => 'path/to/font-normal.ttf',
+        //     'bold' => 'path/to/font-bold.ttf',
+        //     'italic' => 'path/to/font-italic.ttf',
+        //     'bold_italic' => 'path/to/font-bold-italic.ttf',
+        // ],
     ],
 ];

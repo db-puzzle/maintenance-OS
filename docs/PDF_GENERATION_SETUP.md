@@ -2,125 +2,142 @@
 
 ## Overview
 
-The system uses two PDF generation methods:
-1. **Spatie Laravel PDF (Browsershot)** - Primary method for QR tag generation
-2. **DomPDF** - Fallback method and used for work order reports
+The system uses **DomPDF** for all PDF generation needs:
+- QR tag generation (item and manufacturing order labels)
+- Work order reports and exports
+- Execution reports
 
-## Browsershot/Puppeteer Setup
+## Why DomPDF?
 
-### Common Issues
+- **No external dependencies**: Works out of the box on Laravel Cloud
+- **Pure PHP solution**: No need for Chrome/Chromium installation
+- **Reliable**: No complex browser automation
+- **Lightweight**: Lower resource usage compared to headless browsers
 
-The error "Syntax error: Unterminated quoted string" typically indicates an architecture mismatch or corrupted Chrome installation.
+## Configuration
 
-### Solution 1: Install Chrome/Chromium
+The PDF configuration is located at `/config/pdf.php`. Key settings include:
 
-```bash
-# For Ubuntu/Debian
-sudo apt-get update
-sudo apt-get install -y chromium-browser
-
-# For macOS
-brew install --cask google-chrome
-# or
-brew install chromium
+```php
+'dompdf' => [
+    'options' => [
+        'isRemoteEnabled' => true,        // Allow loading remote images
+        'isHtml5ParserEnabled' => true,   // Better HTML5/CSS support
+        'defaultPaperSize' => 'a4',       // Default paper size
+        'dpi' => 96,                      // Resolution setting
+    ],
+],
 ```
 
-### Solution 2: Configure Chrome Path
+## Custom Paper Sizes
 
-Add these environment variables to your `.env` file:
+The system uses custom paper sizes for QR tags:
+- **Item Tags**: 100mm x 150mm (portrait)
+- **Order Tags**: 150mm x 100mm (landscape)
 
-```env
-# For Linux
-BROWSERSHOT_CHROME_PATH=/usr/bin/chromium-browser
-# or
-BROWSERSHOT_CHROME_PATH=/usr/bin/google-chrome
+## Usage Examples
 
-# For macOS
-BROWSERSHOT_CHROME_PATH=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome
-# or
-BROWSERSHOT_CHROME_PATH=/opt/homebrew/bin/chromium
+### Generating QR Tags
+
+```php
+use App\Services\Production\QrTagPdfService;
+
+// Generate item tag
+$pdfUrl = $qrTagService->generateItemTag($item);
+
+// Generate order tag
+$pdfUrl = $qrTagService->generateOrderTag($order);
+
+// Generate batch tags
+$pdfUrl = $qrTagService->generateBatchTags($items, 'item');
 ```
 
-### Solution 3: Use Docker-specific Configuration
+### Generating Work Order Reports
 
-If running in Docker, ensure your Dockerfile includes:
+```php
+use App\Services\PDFGeneratorService;
 
-```dockerfile
-# Install dependencies for Puppeteer
-RUN apt-get update && apt-get install -y \
-    chromium \
-    chromium-sandbox \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libatspi2.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libdrm2 \
-    libgbm1 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    xdg-utils
+// Generate execution report
+$path = $pdfService->generateExecutionReport($execution, $options);
 
-# Set Chrome path for Docker
-ENV BROWSERSHOT_CHROME_PATH=/usr/bin/chromium
+// Generate batch report
+$path = $pdfService->generateBatchReport($workOrderIds, $metadata);
 ```
 
-### Solution 4: Switch to DomPDF Only
+## Styling Considerations
 
-If Browsershot continues to fail, you can force the system to use DomPDF by setting:
+When creating PDF templates, keep in mind DomPDF's CSS support:
 
-```env
-PDF_ENGINE=dompdf
-```
+### Supported CSS Features
+- Basic selectors and properties
+- Tables with borders and spacing
+- Background colors
+- Font styling (size, weight, color)
+- Basic positioning
+- Page breaks
 
-## Fallback Mechanism
+### Limited/Unsupported Features
+- Complex CSS Grid layouts (use tables instead)
+- Advanced flexbox properties
+- CSS animations/transitions
+- Some pseudo-selectors
+- Complex transforms
 
-The `QrTagPdfService` automatically falls back to DomPDF if Browsershot fails. This ensures PDF generation continues working even if Chrome/Puppeteer has issues.
+### Best Practices for PDF Templates
+
+1. **Use inline styles** for critical styling
+2. **Use tables** for layout instead of CSS Grid/Flexbox
+3. **Embed images as base64** for reliability
+4. **Test thoroughly** with actual data
+5. **Keep styles simple** for best compatibility
 
 ## Troubleshooting
 
-1. **Check Chrome Installation**:
-   ```bash
-   # Find Chrome/Chromium executable
-   which chromium-browser
-   which google-chrome
-   which chromium
-   ```
+### Common Issues
 
-2. **Test Browsershot Directly**:
-   ```php
-   use Spatie\Browsershot\Browsershot;
-   
-   Browsershot::url('https://example.com')
-       ->setChromePath('/path/to/chrome')
-       ->save('test.pdf');
-   ```
+1. **Images not showing**
+   - Ensure `isRemoteEnabled` is true in config
+   - Use absolute URLs or base64 encoded images
+   - Check file permissions
 
-3. **Check Logs**:
-   - Laravel logs: `storage/logs/laravel.log`
-   - Look for "Browsershot PDF generation failed" warnings
+2. **Layout issues**
+   - Use tables for complex layouts
+   - Avoid modern CSS features
+   - Test with different content lengths
 
-4. **Clear Puppeteer Cache**:
-   ```bash
-   rm -rf ~/.cache/puppeteer
-   rm -rf /var/www/.cache/puppeteer
-   ```
+3. **Memory issues**
+   - Optimize images before embedding
+   - Process large batches in chunks
+   - Increase PHP memory limit if needed
 
-## Performance Considerations
+### Debug Mode
 
-- Browsershot produces higher quality PDFs but requires more resources
-- DomPDF is faster but may not support all CSS features
-- For high-volume PDF generation, consider using a queue worker
+Enable debug output by adding to your `.env`:
+
+```env
+APP_DEBUG=true
+```
+
+Check Laravel logs at `storage/logs/laravel.log` for detailed error messages.
+
+## Performance Optimization
+
+1. **Image Optimization**
+   - Resize images before embedding
+   - Use appropriate formats (JPEG for photos, PNG for graphics)
+   - Consider image compression
+
+2. **Batch Processing**
+   - Process large batches asynchronously using queues
+   - Implement progress tracking for user feedback
+
+3. **Caching**
+   - Cache generated PDFs when appropriate
+   - Implement cleanup routines for old files
 
 ## Related Files
 
 - `/config/pdf.php` - PDF configuration
 - `/app/Services/Production/QrTagPdfService.php` - QR tag PDF generation
 - `/app/Services/PDFGeneratorService.php` - Work order PDF generation
+- `/resources/views/pdf/` - PDF templates
