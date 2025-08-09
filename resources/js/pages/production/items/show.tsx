@@ -876,7 +876,7 @@ export default function ItemShow({
                                                 label: 'BOM',
                                                 sortable: false,
                                                 render: (bom) => (
-                                                    <span 
+                                                    <span
                                                         className="text-primary hover:underline cursor-pointer"
                                                         onClick={() => router.visit(route('production.bom.show', (bom as BillOfMaterial).id))}
                                                     >
@@ -981,7 +981,7 @@ export default function ItemShow({
                                                 label: 'Número da Ordem',
                                                 sortable: false,
                                                 render: (order) => (
-                                                    <span 
+                                                    <span
                                                         className="text-primary hover:underline cursor-pointer"
                                                         onClick={() => router.visit(route('production.manufacturing-orders.show', (order as ManufacturingOrder).id))}
                                                     >
@@ -1126,6 +1126,7 @@ export default function ItemShow({
                                         itemId={item?.id.toString() || ''}
                                         maxImages={5}
                                         currentImageCount={item?.images?.length || 0}
+                                        enableDirectorySelection
                                     />
                                 </div>
                             )}

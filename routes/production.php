@@ -3,6 +3,7 @@
 use App\Http\Controllers\Production\ItemController;
 use App\Http\Controllers\Production\ItemCategoryController;
 use App\Http\Controllers\Production\ItemImageController;
+use App\Http\Controllers\Production\ItemImageImportController;
 use App\Http\Controllers\Production\ItemImageServeController;
 use App\Http\Controllers\Production\BillOfMaterialController;
 use App\Http\Controllers\Production\ProductionRoutingController;
@@ -53,6 +54,12 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
         // Protected image serving routes
         Route::get('/{image}/serve', [ItemImageServeController::class, 'serve'])->name('serve');
         Route::get('/{image}/variant/{variant}', [ItemImageServeController::class, 'serveVariant'])->name('serve-variant');
+    });
+
+    // Item Images - Bulk Import Wizard
+    Route::prefix('items/images')->name('items.images.')->group(function () {
+        Route::get('/import/wizard', [ItemImageImportController::class, 'wizard'])->name('import.wizard');
+        Route::post('/import', [ItemImageImportController::class, 'import'])->name('import');
     });
 
     // BOMs Management

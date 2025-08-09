@@ -357,22 +357,31 @@ export default function ItemImport({ supportedFormats }: Props) {
                                 </Alert>
                             )}
                             {/* Action Buttons */}
-                            <div className="flex justify-end gap-4">
+                            <div className="flex items-center justify-between gap-4">
                                 <Button
-                                    variant="outline"
-                                    onClick={() => router.visit(route('production.items.index'))}
-                                    disabled={processing}
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => router.visit(route('production.items.images.import.wizard'))}
                                 >
-                                    Cancel
+                                    Also attach pictures
                                 </Button>
-                                <Button
-                                    onClick={handleImport}
-                                    disabled={!isMappingValid() || processing}
-                                    title={!isMappingValid() ? 'Please fill all required fields' : ''}
-                                >
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    {processing ? 'Importing...' : 'Import Items'}
-                                </Button>
+                                <div className="flex gap-4">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => router.visit(route('production.items.index'))}
+                                        disabled={processing}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        onClick={handleImport}
+                                        disabled={!isMappingValid() || processing}
+                                        title={!isMappingValid() ? 'Please fill all required fields' : ''}
+                                    >
+                                        <Upload className="h-4 w-4 mr-2" />
+                                        {processing ? 'Importing...' : 'Import Items'}
+                                    </Button>
+                                </div>
                             </div>
                         </TabsContent>
                         <TabsContent value="instructions" className="space-y-6">

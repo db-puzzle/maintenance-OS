@@ -9,8 +9,9 @@ interface ItemImageUploaderProps {
     itemId: string;
     maxImages: number;
     currentImageCount: number;
+    enableDirectorySelection?: boolean;
 }
-export function ItemImageUploader({ itemId, maxImages, currentImageCount }: ItemImageUploaderProps) {
+export function ItemImageUploader({ itemId, maxImages, currentImageCount, enableDirectorySelection = false }: ItemImageUploaderProps) {
     const [dragActive, setDragActive] = useState(false);
     const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
     const { data, setData, post, progress, errors, processing } = useForm({
@@ -27,18 +28,40 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
             setDragActive(false);
         }
     }, []);
+    const normalizeBase = (name: string): string => {
+        return name
+            .normalize('NFD')
+            .replace(/\p{Diacritic}/gu, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-_]/g, '')
+            .replace(/[\s-_]+/g, '');
+    };
+    const parseFile = (fileName: string): { base: string; index: number } => {
+        const ext = fileName.split('.').pop()?.toLowerCase() || '';
+        const name = fileName.slice(0, -(ext.length + 1));
+        const m = name.match(/^(.*?)-(\d{1})$/);
+        return m ? { base: normalizeBase(m[1]), index: parseInt(m[2], 10) } : { base: normalizeBase(name), index: 1 };
+    };
     const handleFiles = useCallback((files: FileList) => {
         const validFiles = Array.from(files).filter(file => {
             const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'];
             return validTypes.includes(file.type) && file.size <= 10 * 1024 * 1024; // 10MB
         }).slice(0, remainingSlots);
-        const newPreviews = validFiles.map(file => ({
+        // Optional: if directory selection is enabled, auto-order by -1..-5 suffix
+        const ordered = enableDirectorySelection
+            ? [...validFiles].sort((a, b) => {
+                const pa = parseFile(a.name); const pb = parseFile(b.name);
+                if (pa.base !== pb.base) return 0; // only order within same base; otherwise keep input order
+                return pa.index - pb.index;
+            })
+            : validFiles;
+        const newPreviews = ordered.map(file => ({
             file,
             url: URL.createObjectURL(file)
         }));
         setPreviews(prev => [...prev, ...newPreviews]);
-        setData('images', [...data.images, ...validFiles]);
-    }, [remainingSlots, data.images, setData]);
+        setData('images', [...data.images, ...ordered]);
+    }, [remainingSlots, data.images, setData, enableDirectorySelection]);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -94,6 +117,8 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount }: Item
                     type="file"
                     multiple
                     accept="image/*"
+                    // @ts-ignore optional directory selection for single-item flow
+                    {...(enableDirectorySelection ? { webkitdirectory: 'true', directory: 'true' } : {})}
                     onChange={(e) => e.target.files && handleFiles(e.target.files)}
                     className="hidden"
                     id="file-input"

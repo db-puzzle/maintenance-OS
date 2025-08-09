@@ -8,6 +8,7 @@ use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
 use App\Models\Production\ManufacturingOrder;
 use App\Services\Production\ItemImportService;
+use App\Services\Production\ItemImageBulkImportService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -17,10 +18,12 @@ use Inertia\Response;
 class ItemController extends Controller
 {
     protected ItemImportService $importService;
+    protected ItemImageBulkImportService $imageBulkImportService;
 
-    public function __construct(ItemImportService $importService)
+    public function __construct(ItemImportService $importService, ItemImageBulkImportService $imageBulkImportService)
     {
         $this->importService = $importService;
+        $this->imageBulkImportService = $imageBulkImportService;
     }
 
     public function index(Request $request): Response
@@ -460,6 +463,10 @@ class ItemController extends Controller
         $request->validate([
             'file' => 'required|file|mimes:csv,txt,json',
             'mapping' => 'nullable|array',
+            // Optional pictures manifest for combined flow (phase 1: ignored here)
+            'pictures_manifest' => 'nullable',
+            'picture_files' => 'nullable|array',
+            'picture_files.*' => 'file|image|mimes:jpg,jpeg,png,webp,heic|max:10240',
         ]);
 
         try {
@@ -480,7 +487,24 @@ class ItemController extends Controller
                 return back()->with('warning', "Imported {$result['count']} items with " . count($result['errors']) . " errors.")
                     ->withErrors($result['errors']);
             }
-            
+
+            // Combined flow: attach pictures if provided
+            $picturesManifestJson = $request->input('pictures_manifest');
+            if ($picturesManifestJson) {
+                $manifest = json_decode($picturesManifestJson, true);
+                if (is_array($manifest)) {
+                    $summary = $this->imageBulkImportService->importFromManifest('item_number', $manifest, $request->file('picture_files', []));
+                    if (count($summary['errors']) > 0) {
+                        return redirect()->route('production.items.index')
+                            ->with('success', "Successfully imported {$result['count']} items and {$summary['imagesImported']} image(s).")
+                            ->with('warning', 'Some images could not be imported.')
+                            ->with('imageImportSummary', $summary);
+                    }
+                    return redirect()->route('production.items.index')
+                        ->with('success', "Successfully imported {$result['count']} items and {$summary['imagesImported']} image(s).");
+                }
+            }
+
             return redirect()->route('production.items.index')
                 ->with('success', "Successfully imported {$result['count']} items.");
                 

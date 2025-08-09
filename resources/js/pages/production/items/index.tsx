@@ -90,7 +90,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         if (!deleteItem) return;
 
         setDeletingItem(deleteItem.id);
-        
+
         try {
             await router.delete(route('production.items.destroy', deleteItem.id), {
                 preserveScroll: true,
@@ -314,13 +314,22 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
                             )}
                         </Button>
                         {can?.import && (
-                            <Button
-                                variant="outline"
-                                onClick={handleImport}
-                            >
-                                <Upload className="h-4 w-4 mr-2" />
-                                Import
-                            </Button>
+                            <>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleImport}
+                                >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Import Items
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => router.visit(route('production.items.images.import.wizard'))}
+                                >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Import Pictures
+                                </Button>
+                            </>
                         )}
                         {can?.export && (
                             <DropdownMenu>

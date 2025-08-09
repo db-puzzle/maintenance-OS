@@ -71,6 +71,18 @@ class ItemImportService
     }
 
     /**
+     * Optional: handle picture manifest after item import in combined flow.
+     * Accepts same manifest shape used by bulk import (identifier and images), but this service
+     * focuses on items. The controller orchestrating combined flow should call the same logic
+     * as ItemImageImportController if needed.
+     */
+    public function attachPicturesAfterImport(array $manifest): array
+    {
+        // Intentionally left prepared for controller orchestration. No-op for now.
+        return ['attached' => 0, 'errors' => []];
+    }
+
+    /**
      * Process and create/update a single item.
      */
     protected function processItem(array $data): Item
