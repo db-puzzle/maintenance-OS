@@ -261,7 +261,7 @@ class ManufacturingStepController extends Controller
         ]);
         
         try {
-            $execution->hold($validated['reason'], $validated['notes']);
+            $execution->putOnHold($validated['reason'], $validated['notes']);
             return back()->with('success', 'Step paused successfully.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());

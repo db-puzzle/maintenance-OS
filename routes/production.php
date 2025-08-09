@@ -16,9 +16,13 @@ use App\Http\Controllers\Production\ProductionExecutionController;
 use App\Http\Controllers\Production\ManufacturingStepController;
 use App\Http\Controllers\Production\QrTagController;
 use App\Http\Controllers\Production\QrTagServeController;
+use App\Http\Controllers\Production\QrCodeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('production')->name('production.')->group(function () {
+    // QR scan deep-links (mobile/browser)
+    Route::get('items/{item_number}/qr', [QrCodeController::class, 'handleItemScan'])->name('items.qr');
+    Route::get('orders/{mo_number}/qr', [QrCodeController::class, 'handleOrderScan'])->name('orders.qr');
     // Item Categories Management
     Route::get('categories', [ItemCategoryController::class, 'index'])->name('categories.index');
     Route::post('categories', [ItemCategoryController::class, 'store'])->name('categories.store');

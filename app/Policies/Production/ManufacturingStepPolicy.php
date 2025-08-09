@@ -52,8 +52,8 @@ class ManufacturingStepPolicy
             return false;
         }
 
-        // Machine operators can only execute steps in their assigned work cells
-        if ($user->hasRole('machine-operator')) {
+        // Technicians can only execute steps in their assigned work cells
+        if ($user->hasRole('Technician')) {
             $assignedWorkCells = $user->assignedWorkCells()->pluck('id');
             
             if (!$assignedWorkCells->contains($step->work_cell_id)) {
@@ -79,7 +79,7 @@ class ManufacturingStepPolicy
      */
     public function executeQualityCheck(User $user, ManufacturingStep $step): bool
     {
-        if (!$user->hasPermissionTo('production.steps.executeQualityCheck')) {
+        if (!$user->hasPermissionTo('production.quality.executeCheck')) {
             return false;
         }
 
@@ -101,7 +101,7 @@ class ManufacturingStepPolicy
      */
     public function handleRework(User $user, ManufacturingStep $step): bool
     {
-        if (!$user->hasPermissionTo('production.steps.handleRework')) {
+        if (!$user->hasPermissionTo('production.quality.initiateRework')) {
             return false;
         }
 

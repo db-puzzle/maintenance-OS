@@ -90,7 +90,7 @@ class ManufacturingStepExecution extends Model
     /**
      * Put execution on hold.
      */
-    public function putOnHold(): void
+    public function putOnHold(string $reason, ?string $notes = null): void
     {
         if ($this->status !== 'in_progress') {
             throw new \Exception('Only in-progress executions can be put on hold');
@@ -99,13 +99,15 @@ class ManufacturingStepExecution extends Model
         $this->update([
             'status' => 'on_hold',
             'on_hold_at' => now(),
+            'hold_reason' => $reason,
+            'hold_notes' => $notes,
         ]);
     }
 
     /**
      * Resume execution from hold.
      */
-    public function resume(): void
+    public function resume(?string $notes = null): void
     {
         if ($this->status !== 'on_hold') {
             throw new \Exception('Only on-hold executions can be resumed');
@@ -117,6 +119,7 @@ class ManufacturingStepExecution extends Model
             'status' => 'in_progress',
             'resumed_at' => now(),
             'total_hold_duration' => $this->total_hold_duration + $holdDuration,
+            'hold_notes' => $notes ?? $this->hold_notes,
         ]);
     }
 

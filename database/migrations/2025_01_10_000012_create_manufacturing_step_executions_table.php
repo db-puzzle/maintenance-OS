@@ -27,6 +27,9 @@ return new class extends Migration
             $table->timestamp('on_hold_at')->nullable();
             $table->timestamp('resumed_at')->nullable();
             $table->integer('total_hold_duration')->default(0); // minutes
+            // Hold details
+            $table->string('hold_reason', 100)->nullable();
+            $table->text('hold_notes')->nullable();
             
             // Execution details
             $table->foreignId('executed_by')->nullable()->constrained('users');

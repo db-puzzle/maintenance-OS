@@ -11,7 +11,8 @@ class QrCodeService
 {
     public function generateItemUrl(Item $item): string
     {
-        return route('qr.item', ['item_number' => $item->item_number]);
+        // Absolute URL pointing to /production/items/{item_number}/qr
+        return url(route('production.items.qr', ['item_number' => $item->item_number], false));
     }
 
     public function generateOrderUrl(ManufacturingOrder $order): string
@@ -20,11 +21,11 @@ class QrCodeService
         if (!$order->has_route) {
             $parentWithRoute = $this->findClosestParentWithRoute($order);
             if ($parentWithRoute) {
-                return route('qr.order', ['mo_number' => $parentWithRoute->order_number]);
+                return url(route('production.orders.qr', ['mo_number' => $parentWithRoute->order_number], false));
             }
         }
-        
-        return route('qr.order', ['mo_number' => $order->order_number]);
+        // Absolute URL
+        return url(route('production.orders.qr', ['mo_number' => $order->order_number], false));
     }
 
     public function generateQrCode(string $url, array $options = []): string

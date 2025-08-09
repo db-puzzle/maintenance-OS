@@ -171,6 +171,12 @@ class ManufacturingOrderService
             $data['total_parts'] ?? null
         );
         
+        // If this is the first started step, mark order as in_progress
+        $order = $step->manufacturingRoute->manufacturingOrder;
+        if (in_array($order->status, ['released', 'planned'])) {
+            $order->update(['status' => 'in_progress', 'actual_start_date' => $order->actual_start_date ?? now()]);
+        }
+
         // Execute associated form if exists
         if ($step->form_id) {
             $this->executeStepForm($execution, $step);
@@ -287,6 +293,20 @@ class ManufacturingOrderService
 
         // Check if any dependent steps can now be queued
         $step = $execution->manufacturingStep;
+
+        // Update MO quantities for standard steps
+        $order = $step->manufacturingRoute->manufacturingOrder;
+        if ($step->step_type === 'standard') {
+            $completed = isset($data['quantity_completed']) ? (int) $data['quantity_completed'] : 0;
+            $scrapped = isset($data['quantity_scrapped']) ? (int) $data['quantity_scrapped'] : 0;
+            if ($completed > 0) {
+                $order->increment('quantity_completed', $completed);
+            }
+            if ($scrapped > 0) {
+                $order->increment('quantity_scrapped', $scrapped);
+            }
+        }
+
         $dependentSteps = $step->dependentSteps()
             ->where('status', 'pending')
             ->get();
@@ -294,6 +314,23 @@ class ManufacturingOrderService
         foreach ($dependentSteps as $dependentStep) {
             if ($dependentStep->canStart()) {
                 $dependentStep->update(['status' => 'queued']);
+            }
+        }
+
+        // If first execution of the first step started, mark order in progress
+        if ($order->status === 'released' && $step->step_number === 1) {
+            $order->update(['status' => 'in_progress']);
+        }
+
+        // If all steps completed, mark order complete
+        $route = $step->manufacturingRoute;
+        if ($route->allStepsCompleted()) {
+            $order->update([
+                'status' => 'completed',
+                'actual_end_date' => now(),
+            ]);
+            if ($order->parent) {
+                $order->parent->incrementCompletedChildren();
             }
         }
     }

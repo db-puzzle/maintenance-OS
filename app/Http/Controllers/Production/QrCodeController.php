@@ -145,10 +145,10 @@ class QrCodeController extends Controller
             ];
         }
         
-        if ($order->hasQualityChecks() && $user?->can('production.quality.executeCheck')) {
+        if ($currentStep && $currentStep->step_type === 'quality_check' && $user?->can('production.quality.executeCheck')) {
             $actions[] = [
                 'label' => 'Executar Verificação de Qualidade',
-                'route' => route('production.quality.check', $order),
+                'route' => route('production.steps.execute', $currentStep),
                 'icon' => 'CheckCircle'
             ];
         }

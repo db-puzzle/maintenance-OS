@@ -12,7 +12,8 @@ class ManufacturingRoutePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('production.routing.viewAny');
+        // Use routes namespace per seeded permissions
+        return $user->hasPermissionTo('production.routes.create');
     }
 
     /**
@@ -20,7 +21,7 @@ class ManufacturingRoutePolicy
      */
     public function view(User $user, ManufacturingRoute $routing): bool
     {
-        return $user->hasPermissionTo('production.routing.view');
+        return $user->hasPermissionTo('production.routes.create');
     }
 
     /**
@@ -28,7 +29,7 @@ class ManufacturingRoutePolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('production.routing.create');
+        return $user->hasPermissionTo('production.routes.create');
     }
 
     /**
@@ -36,7 +37,7 @@ class ManufacturingRoutePolicy
      */
     public function update(User $user, ManufacturingRoute $routing): bool
     {
-        return $user->hasPermissionTo('production.routing.update');
+        return $user->hasPermissionTo('production.routes.create');
     }
 
     /**
@@ -49,7 +50,7 @@ class ManufacturingRoutePolicy
             return false;
         }
 
-        return $user->hasPermissionTo('production.routing.delete');
+        return $user->hasPermissionTo('production.routes.create');
     }
 
     /**
@@ -57,6 +58,6 @@ class ManufacturingRoutePolicy
      */
     public function manageSteps(User $user, ManufacturingRoute $routing): bool
     {
-        return $user->hasPermissionTo('production.routing.manageSteps');
+        return $user->hasPermissionTo('production.routes.create');
     }
 } 
