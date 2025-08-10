@@ -151,11 +151,22 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             const depth = calculateMaxDepth(hierarchicalItems);
             setMaxDepth(depth);
 
-            // Auto-expand first level
+            // Set currentLevel to max depth to show everything by default
+            if (depth > 0) {
+                setCurrentLevel(depth + 1); // +1 to show all levels including the deepest
+            }
+
+            // Auto-expand all levels to show the complete hierarchy
             const initialExpanded: Record<string, boolean> = {};
-            hierarchicalItems.forEach(item => {
-                initialExpanded[item.id] = true;
-            });
+            const expandAllLevels = (items: TreeBomItem[]) => {
+                items.forEach(item => {
+                    initialExpanded[item.id] = true;
+                    if (item.children && item.children.length > 0) {
+                        expandAllLevels(item.children);
+                    }
+                });
+            };
+            expandAllLevels(hierarchicalItems);
             setExpanded(initialExpanded);
         }
     }, [type, props, calculateMaxDepth]);

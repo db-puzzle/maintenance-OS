@@ -35,7 +35,7 @@ export default function BomIndex({ boms, filters }: Props) {
     const [deleteBom, setDeleteBom] = useState<BillOfMaterial | null>(null);
     const [deletingBom, setDeletingBom] = useState<number | null>(null);
     const [cloneBom, setCloneBom] = useState<BillOfMaterial | null>(null);
-    
+
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.bom.index'), { search: value }, {
@@ -44,24 +44,24 @@ export default function BomIndex({ boms, filters }: Props) {
             only: ['boms']
         });
     };
-    
+
     const handlePageChange = (page: number) => {
         router.get(route('production.bom.index'), { ...filters, page }, {
             preserveState: true,
             preserveScroll: true
         });
     };
-    
+
     const handlePerPageChange = (perPage: number) => {
         router.get(route('production.bom.index'), { ...filters, per_page: perPage }, {
             preserveState: true,
             preserveScroll: true
         });
     };
-    
+
     const handleSort = (column: string) => {
-        router.get(route('production.bom.index'), { 
-            ...filters, 
+        router.get(route('production.bom.index'), {
+            ...filters,
             sort: column,
             direction: filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc'
         }, {
@@ -69,7 +69,7 @@ export default function BomIndex({ boms, filters }: Props) {
             preserveScroll: true
         });
     };
-    
+
     // Use data from server
     const data = boms.data;
     const pagination = {
@@ -80,7 +80,7 @@ export default function BomIndex({ boms, filters }: Props) {
         from: boms.from,
         to: boms.to,
     };
-    
+
     const handleDelete = async (bom: BillOfMaterial) => {
         setDeletingBom(bom.id);
         try {
@@ -100,17 +100,17 @@ export default function BomIndex({ boms, filters }: Props) {
             setDeletingBom(null);
         }
     };
-    
+
     const handleDuplicate = (bom: BillOfMaterial) => {
         router.post(route('production.bom.duplicate', bom.id), {}, {
             preserveScroll: true
         });
     };
-    
+
     const handleExport = (bom: BillOfMaterial) => {
         window.open(route('production.bom.export', bom.id), '_blank');
     };
-    
+
     const columns: ColumnConfig[] = [
         {
             key: 'bom_number',
@@ -172,12 +172,12 @@ export default function BomIndex({ boms, filters }: Props) {
             render: (value: unknown, row: Record<string, unknown>) => <>{(row as any).item_masters_count || 0}</>
         }
     ];
-    
+
     const breadcrumbs = [
         { title: 'Produção', href: '/' },
         { title: 'BOMs', href: '' }
     ];
-    
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <ListLayout
@@ -229,7 +229,7 @@ export default function BomIndex({ boms, filters }: Props) {
                     />
                 </div>
             </ListLayout>
-            
+
             {deleteBom && (
                 <EntityDeleteDialog
                     open={!!deleteBom}

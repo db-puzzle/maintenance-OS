@@ -152,7 +152,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                     <div className="flex items-center h-10 px-3 py-2 rounded-md border border-input bg-muted">
                                         <span className="text-sm">{bom?.bom_number}</span>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">Gerado automaticamente pelo sistema</p>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
@@ -164,6 +163,34 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                             )}
                             <TextInput
                                 form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
+                                name="name"
+                                label="Nome"
+                                placeholder="Nome da BOM"
+                                required
+                                disabled={!isEditMode || processing}
+                                view={!isEditMode}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <ItemSelect
+                                label="Produto Final"
+                                items={items.filter(item => item.can_be_manufactured).map(item => ({
+                                    id: item.id,
+                                    name: `${item.item_number} - ${item.name}`
+                                }))}
+                                value={data.output_item_id}
+                                onValueChange={(value) => setData('output_item_id', value)}
+                                placeholder="Selecione o produto que esta BOM produz"
+                                error={errors.output_item_id}
+                                disabled={!isEditMode || processing || !isCreating}
+                                view={!isEditMode || !isCreating}
+                                required
+                                searchable
+                                helperText={!isCreating ? "O produto final não pode ser alterado após a criação da BOM" : undefined}
+                            />
+                            <TextInput
+                                form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
                                 name="external_reference"
                                 label="Referência Externa"
                                 placeholder="Número do desenho no Inventor"
@@ -171,32 +198,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 view={!isEditMode}
                             />
                         </div>
-
-                        <ItemSelect
-                            label="Produto Final"
-                            items={items.filter(item => item.can_be_manufactured).map(item => ({
-                                id: item.id,
-                                name: `${item.item_number} - ${item.name}`
-                            }))}
-                            value={data.output_item_id}
-                            onValueChange={(value) => setData('output_item_id', value)}
-                            placeholder="Selecione o produto que esta BOM produz"
-                            error={errors.output_item_id}
-                            disabled={!isEditMode || processing}
-                            view={!isEditMode}
-                            required
-                            searchable
-                        />
-
-                        <TextInput
-                            form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
-                            name="name"
-                            label="Nome"
-                            placeholder="Nome da BOM"
-                            required
-                            disabled={!isEditMode || processing}
-                            view={!isEditMode}
-                        />
 
                         <div className="space-y-2">
                             <Label htmlFor="description">Descrição</Label>
@@ -345,40 +346,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                     icon={Box}
                                     title="Nenhuma versão criada"
                                     description="Versões serão listadas aqui conforme forem criadas"
-                                />
-                            )}
-                        </div>
-                    ),
-                },
-                {
-                    id: 'usage',
-                    label: 'Produto',
-                    content: (
-                        <div className="py-6">
-                            {bom?.output_item ? (
-                                <div className="space-y-4">
-                                    <h3 className="text-lg font-medium mb-4">Produto que esta BOM produz</h3>
-                                    <div className="border rounded-lg p-4">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h4 className="font-medium">{bom.output_item.item_number}</h4>
-                                                <p className="text-sm text-muted-foreground">{bom.output_item.name}</p>
-                                            </div>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => router.visit(route('production.items.show', bom.output_item!.id))}
-                                            >
-                                                Ver Item
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <EmptyCard
-                                    icon={Box}
-                                    title="Produto não definido"
-                                    description="Esta BOM não tem um produto final associado"
                                 />
                             )}
                         </div>

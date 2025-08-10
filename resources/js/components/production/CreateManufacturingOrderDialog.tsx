@@ -462,12 +462,12 @@ export default function CreateManufacturingOrderDialog({
 
                                     {/* Child Orders Preview for BOM */}
                                     {data.order_type === 'bom' && bomItems.length > 0 && (
-                                        <div className="space-y-4">
+                                        <div className="space-y-4 pb-4">
                                             <Separator />
                                             <div>
                                                 <h3 className="font-medium mb-3">Child Orders Preview</h3>
                                                 <div className="border rounded-lg overflow-hidden">
-                                                    <div className="max-h-48 overflow-auto">
+                                                    <div className="max-h-40 overflow-auto">
                                                         <table className="w-full">
                                                             <thead className="bg-muted/50 sticky top-0">
                                                                 <tr className="text-sm">

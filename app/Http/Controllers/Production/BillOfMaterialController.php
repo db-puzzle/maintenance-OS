@@ -247,6 +247,7 @@ class BillOfMaterialController extends Controller
             'name' => $bom->name . ' (Copy)',
             'description' => $bom->description,
             'external_reference' => $bom->external_reference,
+            'output_item_id' => $bom->output_item_id, // Copy the same output item
             'is_active' => false, // Start as inactive
             'created_by' => auth()->id(),
         ]);

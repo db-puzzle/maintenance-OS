@@ -47,7 +47,7 @@ export default function ManufacturingOrderRouteTab({
     openRouteBuilder
 }: Props) {
     const { props } = usePage();
-    const flash = props.flash as any;
+    const flash = props.flash as { openRouteBuilder?: string | boolean } | undefined;
     // Check URL params from props
     const openRouteBuilderParam = openRouteBuilder || null;
     // Check if we should start in builder mode (e.g., after creating a new route)
@@ -59,23 +59,38 @@ export default function ManufacturingOrderRouteTab({
     const determineViewMode = useCallback((): ViewMode => {
         // Check if we have the necessary data
         if (!order || !order.id) return 'empty';
-        if (shouldStartInBuilder && order.manufacturing_route) return 'builder';
-        if (order.manufacturing_route) return 'routeViewer';
+
+        // If order has a route
+        if (order.manufacturing_route) {
+            // If we should start in builder mode (new route without steps or explicit flag)
+            if (shouldStartInBuilder) {
+                return 'builder';
+            }
+            // Otherwise show viewer mode
+            return 'routeViewer';
+        }
+
+        // No route exists
         return 'empty';
     }, [order, shouldStartInBuilder]);
     const initialViewMode = determineViewMode();
     const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
 
     const [showRouteDialog, setShowRouteDialog] = useState(false);
-    const [selectedTemplate, _setSelectedTemplate] = useState<RouteTemplate | null>(null);
-    
+    const [_selectedTemplate, setSelectedTemplate] = useState<RouteTemplate | null>(null);
+
     // Reset view mode when order or conditions change
     useEffect(() => {
         const correctMode = determineViewMode();
-        if (viewMode !== correctMode) {
+        // Update viewMode if it's different from what it should be
+        // Don't interrupt 'create' mode unless we now have a route
+        if (viewMode === 'create' && order.manufacturing_route) {
+            // If we were in create mode and now have a route, switch to builder
+            setViewMode('builder');
+        } else if (viewMode !== correctMode && viewMode !== 'create') {
             setViewMode(correctMode);
         }
-    }, [order?.id, order?.manufacturing_route?.id, openRouteBuilderParam, flash?.openRouteBuilder, determineViewMode, viewMode]);
+    }, [order?.id, order?.manufacturing_route?.id, order.manufacturing_route, openRouteBuilderParam, flash?.openRouteBuilder, determineViewMode, viewMode]);
     // Clean up URL param after using it
     useEffect(() => {
         if (openRouteBuilderParam === '1') {
@@ -96,13 +111,14 @@ export default function ManufacturingOrderRouteTab({
     const formData = {
         data,
         setData: (name: string, value: string | number | boolean | File | null | undefined) => {
-            setData(name as keyof typeof data, value as any);
+            setData(name as keyof typeof data, value as never);
         },
         errors: errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => clearErrors(...(fields as Array<keyof typeof data>)),
     };
     const handleCreateRoute = () => {
         post(route('production.orders.routes.store', order.id), {
+            preserveState: false, // Force full page refresh to get updated data
             onSuccess: () => {
                 toast.success('Roteiro criado com sucesso');
                 setShowRouteDialog(false);
@@ -145,10 +161,11 @@ export default function ManufacturingOrderRouteTab({
             template_id: ''
         }, {
             preserveScroll: true,
-            onSuccess: () => {
+            preserveState: false, // Force full page refresh to get updated data
+            onSuccess: (_page) => {
                 toast.success('Roteiro criado com sucesso');
-                // The page will reload from the controller redirect
-                // and shouldStartInBuilder will detect the new route without steps
+                // The redirect will handle opening the route builder
+                // No need to manually update state here
             },
             onError: (errors) => {
                 if (typeof errors === 'object' && errors !== null) {

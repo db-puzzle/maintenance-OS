@@ -25,6 +25,22 @@ class BillOfMaterial extends Model
         'created_by',
     ];
 
+    /**
+     * The attributes that should not be mass assignable on update.
+     * This prevents output_item_id from being changed after creation.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::updating(function ($bom) {
+            // Prevent output_item_id from being changed after creation
+            if ($bom->isDirty('output_item_id')) {
+                $bom->output_item_id = $bom->getOriginal('output_item_id');
+            }
+        });
+    }
+
     protected $casts = [
         'is_active' => 'boolean',
     ];
