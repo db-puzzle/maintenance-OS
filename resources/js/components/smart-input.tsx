@@ -1,8 +1,16 @@
-import { forwardRef, HTMLProps } from 'react';
+import { forwardRef } from 'react';
 import { Input } from './ui/input';
 
+interface FormObject {
+    data: Record<string, string | number | boolean | null | undefined>;
+    setData: (name: string, value: string | number | boolean | null | undefined) => void;
+    errors?: Record<string, string>;
+    clearErrors: (name: string) => void;
+    processBlur?: (name: string, value: string) => void;
+}
+
 interface SmartInputProps {
-    form: any; // Accept any form object to avoid type conflicts
+    form: FormObject;
     name: string;
     placeholder?: string;
     type?: string;

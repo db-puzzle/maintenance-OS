@@ -9,7 +9,7 @@ import {
     Settings,
     Play,
     XCircle,
-    Edit,
+
     Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -65,7 +65,7 @@ export function ManufacturingOrderTreeView({
     canManageRoutes = false
 }: ManufacturingOrderTreeViewProps) {
     const { props } = usePage();
-    const auth = props.auth as any;
+    const auth = props.auth as { permissions?: string[] };
     const userPermissions = auth?.permissions || [];
     const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
     const [selectedOrderForRoute, setSelectedOrderForRoute] = useState<ManufacturingOrderTreeNode | null>(null);

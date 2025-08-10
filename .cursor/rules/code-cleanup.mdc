@@ -1,0 +1,5 @@
+---
+description:After a set of changes are made to a file, always run a lint on that file and correct any linting errors found on that file
+globs:
+alwaysApply: true
+---

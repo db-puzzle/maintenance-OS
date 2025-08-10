@@ -36,12 +36,12 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount, enable
             .replace(/[^a-z0-9\s-_]/g, '')
             .replace(/[\s-_]+/g, '');
     };
-    const parseFile = (fileName: string): { base: string; index: number } => {
+    const parseFile = useCallback((fileName: string): { base: string; index: number } => {
         const ext = fileName.split('.').pop()?.toLowerCase() || '';
         const name = fileName.slice(0, -(ext.length + 1));
         const m = name.match(/^(.*?)-(\d{1})$/);
         return m ? { base: normalizeBase(m[1]), index: parseInt(m[2], 10) } : { base: normalizeBase(name), index: 1 };
-    };
+    }, []);
     const handleFiles = useCallback((files: FileList) => {
         const validFiles = Array.from(files).filter(file => {
             const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'];
@@ -61,7 +61,7 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount, enable
         }));
         setPreviews(prev => [...prev, ...newPreviews]);
         setData('images', [...data.images, ...ordered]);
-    }, [remainingSlots, data.images, setData, enableDirectorySelection]);
+    }, [remainingSlots, data.images, setData, enableDirectorySelection, parseFile]);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -117,7 +117,7 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount, enable
                     type="file"
                     multiple
                     accept="image/*"
-                    // @ts-ignore optional directory selection for single-item flow
+                    // @ts-expect-error optional directory selection for single-item flow
                     {...(enableDirectorySelection ? { webkitdirectory: 'true', directory: 'true' } : {})}
                     onChange={(e) => e.target.files && handleFiles(e.target.files)}
                     className="hidden"

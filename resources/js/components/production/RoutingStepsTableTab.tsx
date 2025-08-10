@@ -13,6 +13,14 @@ import { ColumnConfig } from '@/types/shared';
 import { StepStatusBadge } from '@/components/production/StepStatusBadge';
 import { StepTypeBadge } from '@/components/production/StepTypeBadge';
 import { ManufacturingStep } from '@/types/production';
+
+interface ExtendedManufacturingStep extends ManufacturingStep {
+    dependency?: {
+        name: string;
+        status: string;
+    };
+}
+
 interface Props {
     steps: ManufacturingStep[];
     canManage: boolean;
@@ -31,7 +39,7 @@ export default function RoutingStepsTableTab({
     const getStepActions = (step: ManufacturingStep) => {
         if (!canExecute) return null;
         const canStart = !step.depends_on_step_id ||
-            ((step as any).dependency && ['completed', 'in_progress'].includes((step as any).dependency.status));
+            ((step as ExtendedManufacturingStep).dependency && ['completed', 'in_progress'].includes((step as ExtendedManufacturingStep).dependency!.status));
         switch (step.status) {
             case 'pending':
             case 'queued':
@@ -93,9 +101,9 @@ export default function RoutingStepsTableTab({
                 return (
                     <div className="space-y-1">
                         <div className="font-medium">{step.name}</div>
-                        {step.depends_on_step_id && (step as any).dependency && (
+                        {step.depends_on_step_id && (step as ExtendedManufacturingStep).dependency && (
                             <div className="text-xs text-muted-foreground">
-                                Depende de: {(step as any).dependency.name}
+                                Depende de: {(step as ExtendedManufacturingStep).dependency!.name}
                             </div>
                         )}
                     </div>

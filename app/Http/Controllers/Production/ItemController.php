@@ -479,7 +479,11 @@ class ItemController extends Controller
                 $result = $this->importService->importFromNativeJson($data);
             } else {
                 // Handle CSV import
-                $mapping = $request->input('mapping') ? json_decode($request->input('mapping'), true) : [];
+                $mapping = $request->input('mapping', []);
+                // Handle both array (from Inertia) and JSON string formats
+                if (is_string($mapping)) {
+                    $mapping = json_decode($mapping, true) ?? [];
+                }
                 $result = $this->importService->importFromCsv($file, $mapping);
             }
             

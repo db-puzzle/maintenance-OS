@@ -24,7 +24,7 @@ export default function CreateRouting({ items, orders }: Props) {
     });
     // Create a wrapper for setData to match the expected signature
     const handleSetData = (name: string, value: unknown) => {
-        setData(name as any, value);
+        setData(name as keyof typeof data, value);
     };
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -58,7 +58,7 @@ export default function CreateRouting({ items, orders }: Props) {
                                     data,
                                     setData: handleSetData,
                                     errors,
-                                    clearErrors: (...fields: string[]) => clearErrors(...fields as any),
+                                    clearErrors: (...fields: string[]) => clearErrors(...fields as Array<keyof typeof data>),
                                 }}
                                 name="name"
                                 label="Nome do Roteiro"

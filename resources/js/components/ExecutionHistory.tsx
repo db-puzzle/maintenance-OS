@@ -11,6 +11,16 @@ import { useExportManager } from '@/hooks/use-export-manager';
 import { toast } from 'sonner';
 import EmptyCard from '@/components/ui/empty-card';
 import RuntimeHistory from '@/components/RuntimeHistory';
+import { WorkOrder, WorkOrderExecution, User } from '@/types/work-order';
+
+interface WorkOrderWithExecution extends WorkOrder {
+    execution?: WorkOrderExecution & {
+        executedBy?: User;
+    };
+    actual_start_date?: string;
+    actual_end_date?: string;
+}
+
 interface ExecutionData {
     id: number | string;
     work_order_id?: number;
@@ -115,7 +125,7 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
             } else if (Array.isArray(response.data)) {
                 workOrdersData = response.data;
             }
-            const transformedData = Array.isArray(workOrdersData) ? workOrdersData.map((workOrder: any) => ({
+            const transformedData = Array.isArray(workOrdersData) ? workOrdersData.map((workOrder: WorkOrderWithExecution) => ({
                 id: workOrder.execution?.id || workOrder.id,
                 work_order_id: workOrder.id,
                 routine_name: workOrder.title,

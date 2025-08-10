@@ -3,8 +3,17 @@ import SmartInput from '@/components/smart-input';
 import { Label } from '@/components/ui/label';
 import { forwardRef } from 'react';
 
+interface InertiaForm {
+    data: Record<string, string | number | boolean | null | undefined>;
+    errors: Record<string, string>;
+    validateInput?: (value: string) => boolean;
+    setData?: (key: string, value: string | number | boolean | null | undefined) => void;
+    clearErrors?: (...fields: string[]) => void;
+    processBlur?: (name: string, value: string) => void;
+}
+
 interface TextInputProps {
-    form: any; // Accept any form object to avoid type conflicts
+    form: InertiaForm;
     name: string;
     label: string;
     placeholder: string;

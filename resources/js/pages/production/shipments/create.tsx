@@ -132,7 +132,7 @@ export default function ShipmentCreate({ items }: Props) {
         require_signature: false
     });
 
-    const { data, setData, errors, processing, clearErrors } = form;
+    const { data: _data, setData: _setData, errors: _errors, processing: _processing, clearErrors: _clearErrors } = form;
 
     const steps = [
         { number: 1, title: 'Itens', icon: <Package className="h-4 w-4" /> },

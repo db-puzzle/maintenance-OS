@@ -2,7 +2,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
-import { WorkOrder, WorkOrderCategory, WorkOrderType, Asset as WorkOrderAsset, Team, Form } from '@/types/work-order';
+import { WorkOrder, WorkOrderCategory, WorkOrderType, Team, Form } from '@/types/work-order';
 import { User } from '@/types';
 import { Asset } from '@/types/asset-hierarchy';
 import { Plant } from '@/types/entities/plant';
@@ -25,9 +25,7 @@ import {
     WorkOrderPlanningTab,
     WorkOrderScheduleTab,
     WorkOrderExecutionTab,
-    WorkOrderHistoryTab,
     WorkOrderPartsTab,
-    WorkOrderFailureAnalysisTab,
     WorkOrderGeneralTab
 } from '@/components/work-orders/tabs';
 
@@ -35,11 +33,9 @@ import { type BreadcrumbItem } from '@/types';
 import {
     Play,
     Calendar,
-    Clock,
     Package,
     FileText,
     CheckCircle,
-    Activity,
     Wrench
 } from 'lucide-react';
 interface Props {
@@ -75,9 +71,9 @@ export default function ShowWorkOrder({
     discipline,
     canEdit,
     canApprove,
-    canPlan,
+    canPlan: _canPlan,
 
-    approvalThreshold,
+    approvalThreshold: _approvalThreshold,
     technicians = [],
     teams = [],
     parts = [],
@@ -280,7 +276,6 @@ export default function ShowWorkOrder({
     }
 
     // After this point, workOrder is guaranteed to be defined when not creating
-    const definedWorkOrder = workOrder as WorkOrder;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

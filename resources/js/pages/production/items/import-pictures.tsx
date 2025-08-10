@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, FolderOpen, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface ImportResult {
     itemsAffected: number;
@@ -40,18 +41,19 @@ interface ManifestItem {
 
 export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, result }: Props) {
     const page = usePage<{ flash?: { imageImportSummary?: ImportResult } }>();
-    const flashSummary = (page.props as any)?.flash?.imageImportSummary as ImportResult | undefined;
+    const flashSummary = page.props.flash?.imageImportSummary;
     const summary: ImportResult | undefined = flashSummary || result || undefined;
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [matchingKey, setMatchingKey] = useState<MatchingKey>('item_number');
-    const [files, setFiles] = useState<File[]>([]);
+    const [_files, setFiles] = useState<File[]>([]);
     const [scanProgress, setScanProgress] = useState<number>(0);
     const [isScanning, setIsScanning] = useState<boolean>(false);
     const [unmatched, setUnmatched] = useState<File[]>([]);
     const [groups, setGroups] = useState<Record<string, GroupedFile[]>>({});
     const [selectedTop, setSelectedTop] = useState<Record<string, number>>({});
+    const [uploading, setUploading] = useState(false);
 
-    const { data, setData, post, processing, progress, errors, reset } = useForm({
+    const { data: _data, setData: _setData, post: _post, processing: _processing, progress, errors: _errors, reset: _reset } = useForm({
         matching_key: matchingKey as string,
         manifest: '' as string,
         files: [] as File[],
@@ -68,7 +70,7 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
             .replace(/[\s-_]+/g, '');
     };
 
-    const parseFile = (fileName: string): { base: string; index: number } => {
+    const parseFile = useCallback((fileName: string): { base: string; index: number } => {
         const ext = fileName.split('.').pop()?.toLowerCase() || '';
         const name = fileName.slice(0, -(ext.length + 1));
         const m = name.match(/^(.*?)-(\d{1})$/);
@@ -77,7 +79,7 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
         const base = matchingKey === 'item_number' ? baseName.trim() : normalizeBase(baseName);
         const index = m ? parseInt(m[2], 10) : 1;
         return { base, index };
-    };
+    }, [matchingKey]);
 
     const onPickDirectory = useCallback(() => {
         inputRef.current?.click();
@@ -114,7 +116,7 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
         setGroups(bucket);
         setUnmatched(unmatchedList);
         setIsScanning(false);
-    }, [allowedExt]);
+    }, [allowedExt, parseFile]);
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) handleFiles(e.target.files);
@@ -138,14 +140,41 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
 
     const handleUpload = () => {
         const manifest = buildManifest();
+
         const formFiles: File[] = [];
         groupedPreview.forEach(({ selected }) => selected.forEach((g) => formFiles.push(g.file)));
-        setData('matching_key', manifest.matching_key);
-        setData('manifest', JSON.stringify({ items: manifest.items }));
-        // Important: Inertia will pick up files when set as array
-        setData('files', formFiles as unknown as File[]);
-        post(route('production.items.images.import'), {
-            forceFormData: true,
+
+        // Create FormData manually to handle file array properly
+        const formData = new FormData();
+        formData.append('matching_key', manifest.matching_key);
+        formData.append('manifest', JSON.stringify({ items: manifest.items }));
+
+        // Append each file individually
+        formFiles.forEach((file, index) => {
+            formData.append(`files[${index}]`, file);
+        });
+
+        // Use router.post instead of form.post for better file handling
+        setUploading(true);
+        router.post(route('production.items.images.import'), formData, {
+            onSuccess: () => {
+                setUploading(false);
+                // The redirect will happen automatically and show success on items index
+            },
+            onError: (errors) => {
+                setUploading(false);
+
+                // Show error messages
+                const errorMessages = Object.values(errors).flat();
+                if (errorMessages.length > 0) {
+                    errorMessages.forEach(msg => toast.error(String(msg)));
+                } else {
+                    toast.error('Failed to import images. Please try again.');
+                }
+            },
+            onFinish: () => {
+                setUploading(false);
+            }
         });
     };
 
@@ -208,7 +237,7 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
                                 ref={inputRef}
                                 type="file"
                                 multiple
-                                // @ts-ignore - webkitdirectory is non-standard but supported
+                                // @ts-expect-error - webkitdirectory is non-standard but supported
                                 webkitdirectory="true"
                                 directory="true"
                                 onChange={handleInputChange}
@@ -278,9 +307,9 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
                                     </Table>
                                 </div>
                                 <div className="flex justify-end">
-                                    <Button onClick={handleUpload} disabled={processing}>
+                                    <Button onClick={handleUpload} disabled={uploading || groupedPreview.length === 0}>
                                         <Upload className="h-4 w-4 mr-2" />
-                                        {processing ? 'Enviando...' : 'Importar Imagens'}
+                                        {uploading ? 'Enviando...' : 'Importar Imagens'}
                                     </Button>
                                 </div>
                                 {progress && (

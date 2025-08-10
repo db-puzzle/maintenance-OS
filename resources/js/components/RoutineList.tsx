@@ -40,7 +40,7 @@ interface ExtendedForm {
         id: string | number;
         description: string;
         type: string;
-        [key: string]: any;
+        [key: string]: string | number | boolean | null | undefined;
     }>;
     has_draft_changes?: boolean;
     is_draft?: boolean;
@@ -333,7 +333,7 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                             triggerText="Trigger Oculto"
                             triggerVariant="outline"
                             triggerRef={editSheetTriggerRef}
-                            routine={routineData.id && routineData.trigger_type ? routineData as any : undefined}
+                            routine={routineData.id && routineData.trigger_type ? routineData as Routine : undefined}
                             isNew={true}
                             assetId={assetId}
                             onSuccess={(routine) => handleSheetSuccess(routine as unknown as Routine)}

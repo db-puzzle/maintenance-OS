@@ -58,10 +58,20 @@ class ItemImageImportController extends Controller
         $uploadedFiles = $request->file('files', []);
         $summary = $this->bulkService->importFromManifest($matchingKey, $manifest, $uploadedFiles);
 
+        // Prepare the success message following project standard
+        $message = "Importadas {$summary['imagesImported']} imagens em {$summary['itemsAffected']} itens com sucesso.";
+        
+        if ($summary['imagesSkipped'] > 0) {
+            $message .= " {$summary['imagesSkipped']} imagens foram ignoradas.";
+        }
+        
+        if (count($summary['errors']) > 0) {
+            $message .= " Alguns erros ocorreram durante a importação.";
+        }
+
         return redirect()
-            ->route('production.items.images.import.wizard')
-            ->with('result', $summary)
-            ->with('success', "Imported {$summary['imagesImported']} image(s) into {$summary['itemsAffected']} item(s)." . (count($summary['errors']) > 0 ? ' Some errors occurred.' : ''));
+            ->route('production.items.index')
+            ->with('success', $message);
     }
 }
 

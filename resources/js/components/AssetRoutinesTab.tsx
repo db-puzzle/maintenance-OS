@@ -20,8 +20,17 @@ import { CalendarRange } from 'lucide-react';
 
 
 import { Routine } from '@/types/routine';
+import { Form } from '@/types/work-order';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+
+interface ExtendedForm extends Form {
+    has_draft_changes?: boolean;
+    current_version_id?: number;
+    current_version?: {
+        version_number?: string;
+    };
+}
 
 interface Shift {
     id: number;
@@ -586,12 +595,12 @@ export default function AssetRoutinesTab({
         );
     };
 
-    const hasFormTasks = (form: any): boolean => {
+    const hasFormTasks = (form: Form | ExtendedForm | undefined): boolean => {
         return !!(form?.tasks && form.tasks.length > 0);
     };
 
     const handleEditFormClick = (routine: Routine) => {
-        const formState = routine.form ? getFormState(routine.form as any) : null;
+        const formState = routine.form ? getFormState(routine.form as Form) : null;
 
         // Check if form is published (not unpublished and not already in draft)
         if (formState === 'published') {
@@ -756,7 +765,7 @@ export default function AssetRoutinesTab({
 
         return (
             <InlineRoutineFormEditor
-                routine={routine as any}
+                routine={routine}
                 assetId={assetId}
                 onClose={handleCloseFormEditor}
                 onSuccess={handleFormSaved}
@@ -806,100 +815,100 @@ export default function AssetRoutinesTab({
                     actions={(routine) => {
                         const typedRoutine = routine as unknown as Routine;
                         return (
-                        <div className="flex items-center justify-center gap-2">
-                            {/* Actions dropdown */}
-                            <EntityActionDropdown
-                                onEdit={undefined}
-                                onDelete={() => handleDeleteClick(typedRoutine)}
-                                additionalActions={[
-                                    // Publicar - Primary action for unpublished routines with tasks
-                                    ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as any) === 'unpublished' ? [{
-                                        label: 'Publicar',
-                                        icon: (
-                                            <div className="relative">
-                                                <Upload className="h-4 w-4 text-primary" />
-                                                <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
-                                            </div>
-                                        ),
-                                        onClick: () => handlePublishForm(typedRoutine.id),
-                                        className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
-                                    }] : []),
-                                    // Separator after Publicar (if shown)
-                                    ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as any) === 'unpublished' ? [{
-                                        label: 'separator',
-                                        icon: null,
-                                        onClick: () => { },
-                                    }] : []),
-                                    // Create Work Order - Primary action at the top with emphasis
-                                    ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as any) !== 'unpublished' ? [{
-                                        label: 'Criar Ordem de Serviço',
-                                        icon: (
-                                            <div className="relative">
-                                                <Plus className="h-4 w-4 text-primary" />
-                                                <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
-                                            </div>
-                                        ),
-                                        onClick: () => handleCreateWorkOrder(typedRoutine.id),
-                                        className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
-                                    }] : []),
-                                    // Separator after Create Work Order
-                                    ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as any) !== 'unpublished' ? [{
-                                        label: 'separator',
-                                        icon: null,
-                                        onClick: () => { },
-                                    }] : []),
-                                    // Add/Edit Tasks - Second primary action with prominence
-                                    {
-                                        label: (typedRoutine.form as any)?.has_draft_changes ? 'Editar Tarefas' :
-                                            hasFormTasks(typedRoutine.form) ? 'Editar Tarefas' :
-                                                'Adicionar Tarefas',
-                                        icon: (
-                                            <div className="relative">
-                                                <FileText className="h-4 w-4 text-primary" />
-                                                {!hasFormTasks(typedRoutine.form) && (
+                            <div className="flex items-center justify-center gap-2">
+                                {/* Actions dropdown */}
+                                <EntityActionDropdown
+                                    onEdit={undefined}
+                                    onDelete={() => handleDeleteClick(typedRoutine)}
+                                    additionalActions={[
+                                        // Publicar - Primary action for unpublished routines with tasks
+                                        ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as Form) === 'unpublished' ? [{
+                                            label: 'Publicar',
+                                            icon: (
+                                                <div className="relative">
+                                                    <Upload className="h-4 w-4 text-primary" />
                                                     <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
-                                                )}
-                                            </div>
-                                        ),
-                                        onClick: () => handleEditFormClick(typedRoutine),
-                                        className: !hasFormTasks(typedRoutine.form)
-                                            ? 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
-                                            : undefined
-                                    },
-                                    // Separator after Add Tasks (only when showing "Adicionar Tarefas")
-                                    ...(!hasFormTasks(typedRoutine.form) ? [{
-                                        label: 'separator',
-                                        icon: null,
-                                        onClick: () => { },
-                                    }] : []),
-                                    // Set Last Execution - Important for tracking routine history
-                                    {
-                                        label: 'Definir Última Execução',
-                                        icon: <CalendarRange className="h-4 w-4" />,
-                                        onClick: () => handleSetLastExecution(typedRoutine),
-                                        className: !typedRoutine.last_execution_completed_at
-                                            ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
-                                            : undefined
-                                    },
-                                    // Edit Routine - Now positioned after primary actions
-                                    {
-                                        label: 'Editar Rotina',
-                                        icon: <Edit2 className="h-4 w-4" />,
-                                        onClick: () => handleEditRoutine(typedRoutine),
-                                    },
-                                    ...((typedRoutine.form as any)?.has_draft_changes && (typedRoutine.form as any)?.current_version_id ? [{
-                                        label: `Ver Versão Publicada (v${(typedRoutine.form as any)?.current_version?.version_number || '1.0'})`,
-                                        icon: <Eye className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('maintenance.routines.view-published-version', { routine: typedRoutine.id })),
-                                    }] : []),
-                                    ...((typedRoutine.form as any)?.current_version_id ? [{
-                                        label: 'Ver Histórico de Versões',
-                                        icon: <History className="h-4 w-4" />,
-                                        onClick: () => handleShowVersionHistory(typedRoutine.id),
-                                    }] : []),
-                                ]}
-                            />
-                        </div>
+                                                </div>
+                                            ),
+                                            onClick: () => handlePublishForm(typedRoutine.id),
+                                            className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
+                                        }] : []),
+                                        // Separator after Publicar (if shown)
+                                        ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as Form) === 'unpublished' ? [{
+                                            label: 'separator',
+                                            icon: null,
+                                            onClick: () => { },
+                                        }] : []),
+                                        // Create Work Order - Primary action at the top with emphasis
+                                        ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as Form) !== 'unpublished' ? [{
+                                            label: 'Criar Ordem de Serviço',
+                                            icon: (
+                                                <div className="relative">
+                                                    <Plus className="h-4 w-4 text-primary" />
+                                                    <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                                </div>
+                                            ),
+                                            onClick: () => handleCreateWorkOrder(typedRoutine.id),
+                                            className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
+                                        }] : []),
+                                        // Separator after Create Work Order
+                                        ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as Form) !== 'unpublished' ? [{
+                                            label: 'separator',
+                                            icon: null,
+                                            onClick: () => { },
+                                        }] : []),
+                                        // Add/Edit Tasks - Second primary action with prominence
+                                        {
+                                            label: (typedRoutine.form as ExtendedForm)?.has_draft_changes ? 'Editar Tarefas' :
+                                                hasFormTasks(typedRoutine.form) ? 'Editar Tarefas' :
+                                                    'Adicionar Tarefas',
+                                            icon: (
+                                                <div className="relative">
+                                                    <FileText className="h-4 w-4 text-primary" />
+                                                    {!hasFormTasks(typedRoutine.form) && (
+                                                        <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                                    )}
+                                                </div>
+                                            ),
+                                            onClick: () => handleEditFormClick(typedRoutine),
+                                            className: !hasFormTasks(typedRoutine.form)
+                                                ? 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
+                                                : undefined
+                                        },
+                                        // Separator after Add Tasks (only when showing "Adicionar Tarefas")
+                                        ...(!hasFormTasks(typedRoutine.form) ? [{
+                                            label: 'separator',
+                                            icon: null,
+                                            onClick: () => { },
+                                        }] : []),
+                                        // Set Last Execution - Important for tracking routine history
+                                        {
+                                            label: 'Definir Última Execução',
+                                            icon: <CalendarRange className="h-4 w-4" />,
+                                            onClick: () => handleSetLastExecution(typedRoutine),
+                                            className: !typedRoutine.last_execution_completed_at
+                                                ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
+                                                : undefined
+                                        },
+                                        // Edit Routine - Now positioned after primary actions
+                                        {
+                                            label: 'Editar Rotina',
+                                            icon: <Edit2 className="h-4 w-4" />,
+                                            onClick: () => handleEditRoutine(typedRoutine),
+                                        },
+                                        ...((typedRoutine.form as ExtendedForm)?.has_draft_changes && (typedRoutine.form as ExtendedForm)?.current_version_id ? [{
+                                            label: `Ver Versão Publicada (v${(typedRoutine.form as ExtendedForm)?.current_version?.version_number || '1.0'})`,
+                                            icon: <Eye className="h-4 w-4" />,
+                                            onClick: () => router.visit(route('maintenance.routines.view-published-version', { routine: typedRoutine.id })),
+                                        }] : []),
+                                        ...((typedRoutine.form as ExtendedForm)?.current_version_id ? [{
+                                            label: 'Ver Histórico de Versões',
+                                            icon: <History className="h-4 w-4" />,
+                                            onClick: () => handleShowVersionHistory(typedRoutine.id),
+                                        }] : []),
+                                    ]}
+                                />
+                            </div>
                         );
                     }}
                 />

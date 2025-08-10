@@ -80,7 +80,7 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
     const [localFilters, setLocalFilters] = useState(filters);
     const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
     const [showDetails, setShowDetails] = useState(false);
-    const [dateRange, setDateRange] = useState<any>({
+    const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
         from: filters.date_from ? new Date(filters.date_from) : undefined,
         to: filters.date_to ? new Date(filters.date_to) : undefined
     });
@@ -219,9 +219,9 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                         <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                                 mode="range"
-                                 
+
                                 selected={dateRange}
-                                 
+
                                 onSelect={setDateRange}
                                 numberOfMonths={2}
                             />

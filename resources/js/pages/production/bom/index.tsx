@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { GitBranch, Copy, Download, Upload } from 'lucide-react';
+import { Copy, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
@@ -30,11 +30,11 @@ interface Props {
 }
 
 export default function BomIndex({ boms, filters }: Props) {
-    const { props: { auth } } = usePage<{ auth: { permissions: string[] } }>();
+    const { props: { auth: _auth } } = usePage<{ auth: { permissions: string[] } }>();
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteBom, setDeleteBom] = useState<BillOfMaterial | null>(null);
-    const [deletingBom, setDeletingBom] = useState<number | null>(null);
-    const [cloneBom, setCloneBom] = useState<BillOfMaterial | null>(null);
+    const [_deletingBom, _setDeletingBom] = useState<number | null>(null);
+    const [_cloneBom, _setCloneBom] = useState<BillOfMaterial | null>(null);
 
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
@@ -169,7 +169,7 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'item_masters_count',
             label: 'Componentes',
             width: 'w-[120px]',
-            render: (value: unknown, row: Record<string, unknown>) => <>{(row as any).item_masters_count || 0}</>
+            render: (value: unknown, row: Record<string, unknown>) => <>{(row as BillOfMaterial & { item_masters_count?: number }).item_masters_count || 0}</>
         }
     ];
 

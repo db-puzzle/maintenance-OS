@@ -11,6 +11,11 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { User } from '@/types';
 import { DependencyResult } from '@/types/shared';
+
+interface UserWithCertification extends User {
+    is_expired?: boolean;
+}
+
 interface Certification {
     id: number;
     name: string;
@@ -20,7 +25,7 @@ interface Certification {
     active: boolean;
     created_at: string;
     updated_at: string;
-    users?: User[];
+    users?: UserWithCertification[];
 }
 // Define a local form type with index signature
 interface CertificationFormData {
@@ -126,8 +131,8 @@ export default function CertificationFormComponent({
         });
     };
     // Calculate statistics for view mode
-    const validUsers = certification?.users?.filter((u) => !(u as any).is_expired).length || 0;
-    const expiredUsers = certification?.users?.filter((u) => (u as any).is_expired).length || 0;
+    const validUsers = certification?.users?.filter((u) => !u.is_expired).length || 0;
+    const expiredUsers = certification?.users?.filter((u) => u.is_expired).length || 0;
     return (
         <>
             <div className="space-y-6">

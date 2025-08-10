@@ -1,0 +1,4 @@
+---
+description: When making changes to the database, always edit existing migrations for tables that already exist; only create new migrations when new tables are needed. Avoid making changes to base components unless explicitly directed to do so.
+alwaysApply: false
+---

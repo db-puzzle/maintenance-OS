@@ -163,8 +163,8 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             label: 'Produto',
             render: (value: unknown, order: Record<string, unknown>) => (
                 <div>
-                    <div className="font-medium">{(order.item as any)?.name}</div>
-                    <div className="text-sm text-muted-foreground">{(order.item as any)?.item_number}</div>
+                    <div className="font-medium">{(order.item as { name?: string })?.name}</div>
+                    <div className="text-sm text-muted-foreground">{(order.item as { item_number?: string })?.item_number}</div>
                 </div>
             )
         },
@@ -210,7 +210,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             render: (value: unknown, order: Record<string, unknown>) => (
                 order.current_work_cell ? (
                     <Badge variant="secondary">
-                        {(order.current_work_cell as any).code}
+                        {(order.current_work_cell as { code?: string }).code}
                     </Badge>
                 ) : (
                     <span className="text-muted-foreground">—</span>
@@ -313,7 +313,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                     </CardHeader>
                     <CardContent>
                         <EntityDataTable
-                            data={activeOrders as any[]}
+                            data={activeOrders}
                             columns={activeOrderColumns}
                             onRowClick={(order: Record<string, unknown>) => handleOrderClick(order as unknown as ManufacturingOrder)}
                         />

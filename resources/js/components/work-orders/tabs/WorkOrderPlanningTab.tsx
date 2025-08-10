@@ -52,6 +52,20 @@ interface Certification {
     active: boolean;
 }
 
+interface PlanningFormData {
+    estimated_hours: string;
+    labor_cost_per_hour: string;
+    estimated_labor_cost: number;
+    downtime_required: boolean;
+    other_requirements: string[];
+    number_of_people: string;
+    required_skills: string[];
+    required_certifications: string[];
+    parts: PlanningPart[];
+    estimated_parts_cost: number;
+    estimated_total_cost: number;
+}
+
 interface WorkOrderPlanningTabProps {
     workOrder: WorkOrder;
     technicians?: User[];
@@ -212,7 +226,7 @@ export function WorkOrderPlanningTab({
             .filter(Boolean) as Certification[];
     });
 
-    const { data, setData, post, put, processing, errors, clearErrors } = useForm<any>({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm<PlanningFormData>({
         estimated_hours: workOrder.estimated_hours?.toString() || '',
         labor_cost_per_hour: '150.00',
         estimated_labor_cost: workOrder.estimated_labor_cost || 0,
@@ -274,7 +288,7 @@ export function WorkOrderPlanningTab({
         setData('estimated_labor_cost', laborCost);
         setData('estimated_parts_cost', partsCost);
         setData('estimated_total_cost', totalCost);
-        setData('parts', plannedParts as any);
+        setData('parts', plannedParts);
     }, [data.estimated_hours, data.labor_cost_per_hour, data.number_of_people, plannedParts, calculateLaborCost, calculatePartsCost, setData]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -320,7 +334,7 @@ export function WorkOrderPlanningTab({
 
     const handleRemoveOtherReq = (index: number) => {
         const currentReqs = Array.isArray(data.other_requirements) ? data.other_requirements : [];
-        setData('other_requirements', currentReqs.filter((_: any, i: number) => i !== index));
+        setData('other_requirements', currentReqs.filter((_, i) => i !== index));
     };
 
     // Skills handlers
@@ -406,9 +420,9 @@ export function WorkOrderPlanningTab({
 
     // Create form wrapper for TextInput components
     const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
-        setData(name as keyof typeof data, value as any);
+        setData(name as keyof PlanningFormData, value as PlanningFormData[keyof PlanningFormData]);
     };
-    
+
     const formWrapper = {
         data: data as Record<string, string | number | boolean | File | null | undefined>,
         setData: handleSetData,

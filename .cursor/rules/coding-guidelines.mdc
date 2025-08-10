@@ -1,6 +1,5 @@
 ---
-description: 
+description: Always include comments on your code.
 globs: 
 alwaysApply: false
 ---
-Always include comments on your code. Always use Inertia best practices.

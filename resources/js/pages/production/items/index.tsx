@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Package, History, GitBranch, Download, Upload, FileText, Image, ImageOff, Loader2, Copy, QrCode } from 'lucide-react';
+import { Download, Upload, FileText, Image, ImageOff, Loader2, Copy, QrCode } from 'lucide-react';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityPagination } from '@/components/shared/EntityPagination';
@@ -48,6 +48,7 @@ interface Props {
 //     'manufactured-purchased': 'Manufaturado/Comprado'
 // };
 export default function ItemsIndex({ items, filters, categories, can }: Props) {
+    const _page = usePage();
     const [searchValue, setSearchValue] = useState(filters.search || '');
     const [deleteItem, setDeleteItem] = useState<Item | null>(null);
     const [loading] = useState(false);
@@ -56,7 +57,9 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
     const [carouselItem, setCarouselItem] = useState<Item | null>(null);
     const [carouselOpen, setCarouselOpen] = useState(false);
     const [loadingImages, setLoadingImages] = useState(false);
-    const [deletingItem, setDeletingItem] = useState<number | null>(null);
+    const [_deletingItem, _setDeletingItem] = useState<number | null>(null);
+
+
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.items.index'), { search: value }, {

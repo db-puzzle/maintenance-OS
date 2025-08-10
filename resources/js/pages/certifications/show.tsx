@@ -158,7 +158,7 @@ export default function CertificationShow({ certification, can, activeTab = 'inf
             content: (
                 <div className="py-8">
                     <CertificationFormComponent
-                        certification={certification as any}
+                        certification={certification}
                         initialMode="view"
                         onSuccess={handleEditSuccess}
                         canUpdate={can.update}

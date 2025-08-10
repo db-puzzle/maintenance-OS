@@ -287,7 +287,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                     ],
         }));
 
-    const { data, setData, post, put, processing, errors, clearErrors } = useForm<any>({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm<ShiftForm>({
         name: shift?.name || '',
         schedules: initialSchedules,
     });

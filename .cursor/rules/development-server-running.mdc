@@ -1,0 +1,5 @@
+---
+description:Do not start the Laravel server or compile the code as I always have it running as we develop the system.
+globs:
+alwaysApply: false
+---

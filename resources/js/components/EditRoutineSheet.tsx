@@ -134,7 +134,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
             ? route('maintenance.routines.store')
             : route('maintenance.routines.update', { routine: routine?.id });
         const method = isNew ? 'post' : 'put';
-        const payload: any = {
+        const payload: RoutineForm & { asset_id?: number } = {
             ...data,
             asset_id: assetId || routine?.asset_id,
         };
@@ -166,7 +166,7 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 }
                 // Call onSuccess callback if provided
                 if (onSuccess) {
-                    const routineData = (page.props as any).routine || routine;
+                    const routineData = (page.props as { routine?: Routine }).routine || routine;
                     onSuccess(routineData);
                 }
             },

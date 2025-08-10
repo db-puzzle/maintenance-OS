@@ -1,6 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-Do not start the Laravel server as I always have it running as we develop the system.

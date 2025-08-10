@@ -71,7 +71,7 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                 setScannedItem(null);
             }, 5000);
         } catch (err: unknown) {
-            setError((err as any).response?.data?.message || 'Failed to process scan');
+            setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to process scan');
         } finally {
             setIsProcessing(false);
         }
@@ -245,7 +245,7 @@ export default function QrTrackingScan({ scan_modes }: Props) {
                                 <div>
                                     <dt className="text-sm font-medium text-muted-foreground">BOM</dt>
                                     <dd className="text-sm mt-1">
-                                        {(scannedItem as any).bom_version?.bill_of_material?.name || 'N/A'}
+                                        {(scannedItem as { bom_version?: { bill_of_material?: { name?: string } } }).bom_version?.bill_of_material?.name || 'N/A'}
                                     </dd>
                                 </div>
                                 <div>

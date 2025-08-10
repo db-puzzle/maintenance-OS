@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('alt_text')->nullable();
             $table->text('caption')->nullable();
             $table->json('metadata')->nullable();
+            $table->boolean('was_optimized')->default(false);
             $table->foreignId('uploaded_by')->constrained('users');
             $table->timestamps();
             

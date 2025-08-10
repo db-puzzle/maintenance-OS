@@ -25,6 +25,10 @@ import { ItemSelect } from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
 import StateButton from '@/components/StateButton';
 import { Item, BillOfMaterial, RouteTemplate, BomItem } from '@/types/production';
+
+interface ExtendedBillOfMaterial extends BillOfMaterial {
+    item_masters_count?: number;
+}
 import { cn } from '@/lib/utils';
 import {
     Dialog,
@@ -353,7 +357,7 @@ export default function CreateManufacturingOrderDialog({
                                                         )}
                                                         <div className="flex gap-4 mt-2">
                                                             <Badge variant="outline">
-                                                                {(selectedBOM as any).item_masters_count || 0} items
+                                                                {(selectedBOM as ExtendedBillOfMaterial).item_masters_count || 0} items
                                                             </Badge>
                                                         </div>
                                                     </div>

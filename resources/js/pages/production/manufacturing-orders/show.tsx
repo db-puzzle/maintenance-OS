@@ -94,10 +94,10 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
     });
     // Create a wrapper that matches the TextInput interface
     const form = {
-        data: inertiaForm.data as any,
-        setData: (name: string, value: unknown) => inertiaForm.setData(name as any, value),
+        data: inertiaForm.data as Record<string, string | number | boolean | null | undefined>,
+        setData: (name: string, value: unknown) => inertiaForm.setData(name as keyof typeof inertiaForm.data, value),
         errors: inertiaForm.errors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...fields as any),
+        clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...fields as Array<keyof typeof inertiaForm.data>),
     };
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
         switch (status) {

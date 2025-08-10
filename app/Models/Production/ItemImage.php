@@ -27,10 +27,12 @@ class ItemImage extends Model
         'caption',
         'metadata',
         'uploaded_by',
+        'was_optimized',
     ];
     
     protected $casts = [
         'is_primary' => 'boolean',
+        'was_optimized' => 'boolean',
         'metadata' => 'array',
         'file_size' => 'integer',
         'width' => 'integer',

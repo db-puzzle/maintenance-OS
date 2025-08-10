@@ -30,9 +30,13 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { BomItem, Item, ItemCategory, ManufacturingOrder, RouteTemplate } from '@/types/production';
 import { CreateItemSheet } from '@/components/CreateItemSheet';
-import { BomTreeView, type BomTreeNode } from './BomTreeView';
+import { BomTreeView } from './BomTreeView';
 import { ManufacturingOrderTreeView } from './ManufacturingOrderTreeView';
 import type { ManufacturingOrderTreeNode } from './ManufacturingOrderTreeView';
+
+interface ExtendedBomItem extends BomItem {
+    assembly_instructions?: string;
+}
 
 import { Image } from 'lucide-react';
 
@@ -368,7 +372,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             unit_of_measure: item.unit_of_measure,
             reference_designators: item.reference_designators,
             bom_notes: item.bom_notes,
-            assembly_instructions: (item as any).assembly_instructions || ''
+            assembly_instructions: (item as ExtendedBomItem).assembly_instructions || ''
         });
         setIsEditDialogOpen(true);
     };
@@ -589,7 +593,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         if (type === 'bom') {
             return (
                 <BomTreeView
-                    items={bomItems as any as BomTreeNode[]}
+                    items={bomItems}
                     canEdit={canEdit}
                     onEditItem={(item) => handleEditItem(item as unknown as TreeBomItem)}
                     onAddItem={handleAddItem}
