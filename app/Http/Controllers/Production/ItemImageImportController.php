@@ -43,7 +43,7 @@ class ItemImageImportController extends Controller
         $this->authorize('import', Item::class);
 
         $request->validate([
-            'matching_key' => 'required|string|in:item_number,item_name',
+            'matching_key' => 'required|string|in:item_number',
             'manifest' => 'required|string',
             'files' => 'required|array',
             'files.*' => 'file|image|mimes:jpg,jpeg,png,webp,heic|max:10240',

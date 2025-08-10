@@ -19,7 +19,7 @@ class ItemImageBulkImportService
     /**
      * Import item images from a manifest and uploaded files.
      *
-     * @param string $matchingKey 'item_number' or 'item_name'
+     * @param string $matchingKey 'item_number' (kept for compatibility, but only item_number is supported)
      * @param array $manifest Expecting ['items' => [ { identifier, item_id?, images: [{client_name, order, is_primary?}] } ]]
      * @param UploadedFile[] $uploadedFiles Array of files, matched by client original name
      * @return array Summary: itemsAffected, imagesImported, imagesSkipped, errors[]
@@ -56,21 +56,8 @@ class ItemImageBulkImportService
             if ($itemId) {
                 $item = Item::find($itemId);
             } else {
-                if ($matchingKey === 'item_number') {
-                    $item = Item::whereRaw('LOWER(item_number) = ?', [strtolower($identifier)])->first();
-                } else {
-                    $normalized = $this->normalizeString($identifier);
-                    $candidates = Item::query()->get()->filter(function (Item $i) use ($normalized) {
-                        return $this->normalizeString($i->name) === $normalized;
-                    });
-                    if ($candidates->count() === 1) {
-                        $item = $candidates->first();
-                    } else {
-                        $summary['errors'][] = "Ambiguous or missing item for name '{$identifier}'.";
-                        $summary['imagesSkipped'] += count($images);
-                        continue;
-                    }
-                }
+                // Only match by item_number
+                $item = Item::whereRaw('LOWER(item_number) = ?', [strtolower($identifier)])->first();
             }
 
             if (!$item) {
@@ -167,16 +154,6 @@ class ItemImageBulkImportService
         }
 
         return $summary;
-    }
-
-    private function normalizeString(string $value): string
-    {
-        $value = trim($value);
-        $normalized = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
-        $normalized = strtolower($normalized ?: $value);
-        $normalized = preg_replace('/[^a-z0-9\s-_]/', '', $normalized);
-        $normalized = preg_replace('/[\s-_]+/', '', $normalized);
-        return $normalized ?? '';
     }
 }
 

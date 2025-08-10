@@ -463,6 +463,7 @@ class ItemController extends Controller
         $request->validate([
             'file' => 'required|file|mimes:csv,txt,json',
             'mapping' => 'nullable|array',
+            'update_existing' => 'boolean',
             // Optional pictures manifest for combined flow (phase 1: ignored here)
             'pictures_manifest' => 'nullable',
             'picture_files' => 'nullable|array',
@@ -473,10 +474,12 @@ class ItemController extends Controller
             $file = $request->file('file');
             $extension = $file->getClientOriginalExtension();
             
+            $updateExisting = $request->input('update_existing', true);
+            
             if ($extension === 'json') {
                 // Handle JSON import
                 $data = json_decode(file_get_contents($file->getRealPath()), true);
-                $result = $this->importService->importFromNativeJson($data);
+                $result = $this->importService->importFromNativeJson($data, $updateExisting);
             } else {
                 // Handle CSV import
                 $mapping = $request->input('mapping', []);
@@ -484,11 +487,15 @@ class ItemController extends Controller
                 if (is_string($mapping)) {
                     $mapping = json_decode($mapping, true) ?? [];
                 }
-                $result = $this->importService->importFromCsv($file, $mapping);
+                $result = $this->importService->importFromCsv($file, $mapping, $updateExisting);
             }
             
             if (count($result['errors']) > 0) {
-                return back()->with('warning', "Imported {$result['count']} items with " . count($result['errors']) . " errors.")
+                $message = "Imported {$result['count']} items with " . count($result['errors']) . " errors.";
+                if (isset($result['skipped']) && $result['skipped'] > 0) {
+                    $message .= " {$result['skipped']} items were skipped (already exist).";
+                }
+                return back()->with('warning', $message)
                     ->withErrors($result['errors']);
             }
 
@@ -504,13 +511,22 @@ class ItemController extends Controller
                             ->with('warning', 'Some images could not be imported.')
                             ->with('imageImportSummary', $summary);
                     }
+                    $message = "Successfully imported {$result['count']} items and {$summary['imagesImported']} image(s).";
+                    if (isset($result['skipped']) && $result['skipped'] > 0) {
+                        $message .= " {$result['skipped']} items were skipped (already exist).";
+                    }
                     return redirect()->route('production.items.index')
-                        ->with('success', "Successfully imported {$result['count']} items and {$summary['imagesImported']} image(s).");
+                        ->with('success', $message);
                 }
             }
 
+            $message = "Successfully imported {$result['count']} items.";
+            if (isset($result['skipped']) && $result['skipped'] > 0) {
+                $message .= " {$result['skipped']} items were skipped (already exist).";
+            }
+            
             return redirect()->route('production.items.index')
-                ->with('success', "Successfully imported {$result['count']} items.");
+                ->with('success', $message);
                 
         } catch (\Exception $e) {
             return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);

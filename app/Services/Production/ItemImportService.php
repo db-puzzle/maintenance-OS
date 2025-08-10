@@ -14,9 +14,9 @@ class ItemImportService
     /**
      * Import items from native JSON format (our own export).
      */
-    public function importFromNativeJson(array $data): array
+    public function importFromNativeJson(array $data, bool $updateExisting = true): array
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $updateExisting) {
             $imported = [];
             $errors = [];
 
@@ -24,8 +24,10 @@ class ItemImportService
             $items = isset($data['items']) ? $data['items'] : [];
             foreach ($items as $itemData) {
                 try {
-                    $item = $this->processItem($itemData);
-                    $imported[] = $item;
+                    $item = $this->processItem($itemData, $updateExisting);
+                    if ($item) {
+                        $imported[] = $item;
+                    }
                 } catch (\Exception $e) {
                     $itemNumber = isset($itemData['item_number']) ? $itemData['item_number'] : 'unknown';
                     $errors[] = "Failed to import item {$itemNumber}: " . $e->getMessage();
@@ -35,7 +37,8 @@ class ItemImportService
             return [
                 'imported' => $imported,
                 'errors' => $errors,
-                'count' => count($imported)
+                'count' => count($imported),
+                'skipped' => 0 // Will be tracked in processItem
             ];
         });
     }
@@ -43,19 +46,24 @@ class ItemImportService
     /**
      * Import items from CSV file.
      */
-    public function importFromCsv(UploadedFile $file, array $mapping): array
+    public function importFromCsv(UploadedFile $file, array $mapping, bool $updateExisting = true): array
     {
         $rows = $this->parseCsvFile($file);
         $imported = [];
         $errors = [];
+        $skipped = 0;
 
-        DB::transaction(function () use ($rows, $mapping, &$imported, &$errors) {
+        DB::transaction(function () use ($rows, $mapping, $updateExisting, &$imported, &$errors, &$skipped) {
             foreach ($rows as $index => $row) {
                 try {
                     $mappedData = $this->mapCsvRow($row, $mapping);
                     if ($mappedData) {
-                        $item = $this->processItem($mappedData);
-                        $imported[] = $item;
+                        $item = $this->processItem($mappedData, $updateExisting);
+                        if ($item === null) {
+                            $skipped++;
+                        } else {
+                            $imported[] = $item;
+                        }
                     }
                 } catch (\Exception $e) {
                     $errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
@@ -66,7 +74,8 @@ class ItemImportService
         return [
             'imported' => $imported,
             'errors' => $errors,
-            'count' => count($imported)
+            'count' => count($imported),
+            'skipped' => $skipped
         ];
     }
 
@@ -85,7 +94,7 @@ class ItemImportService
     /**
      * Process and create/update a single item.
      */
-    protected function processItem(array $data): Item
+    protected function processItem(array $data, bool $updateExisting = true): ?Item
     {
         // Find or create category if provided
         $categoryId = null;
@@ -129,6 +138,14 @@ class ItemImportService
             'created_by' => auth()->id(),
         ];
 
+        // Check if item exists
+        $existingItem = Item::where('item_number', $data['item_number'])->first();
+        
+        if ($existingItem && !$updateExisting) {
+            // Skip existing items when update_existing is false
+            return null;
+        }
+        
         // Create or update item
         $item = Item::updateOrCreate(
             ['item_number' => $data['item_number']],

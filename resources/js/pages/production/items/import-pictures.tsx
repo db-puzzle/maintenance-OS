@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, FolderOpen, Upload } from 'lucide-react';
+import { AlertCircle, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -24,7 +24,7 @@ interface Props {
     result?: ImportResult | null;
 }
 
-type MatchingKey = 'item_number' | 'item_name';
+// Only item_number is supported now
 
 interface GroupedFile {
     file: File;
@@ -44,7 +44,7 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
     const flashSummary = page.props.flash?.imageImportSummary;
     const summary: ImportResult | undefined = flashSummary || result || undefined;
     const inputRef = useRef<HTMLInputElement | null>(null);
-    const [matchingKey, setMatchingKey] = useState<MatchingKey>('item_number');
+    // Always use item_number as the matching key
     const [_files, setFiles] = useState<File[]>([]);
     const [scanProgress, setScanProgress] = useState<number>(0);
     const [isScanning, setIsScanning] = useState<boolean>(false);
@@ -54,32 +54,25 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
     const [uploading, setUploading] = useState(false);
 
     const { data: _data, setData: _setData, post: _post, processing: _processing, progress, errors: _errors, reset: _reset } = useForm({
-        matching_key: matchingKey as string,
+        matching_key: 'item_number' as string,
         manifest: '' as string,
         files: [] as File[],
     });
 
     const allowedExt = useMemo(() => new Set(acceptedExtensions.map((e) => e.toLowerCase())), [acceptedExtensions]);
 
-    const normalizeBase = (name: string): string => {
-        return name
-            .normalize('NFD')
-            .replace(/\p{Diacritic}/gu, '')
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-_]/g, '')
-            .replace(/[\s-_]+/g, '');
-    };
+
 
     const parseFile = useCallback((fileName: string): { base: string; index: number } => {
         const ext = fileName.split('.').pop()?.toLowerCase() || '';
         const name = fileName.slice(0, -(ext.length + 1));
         const m = name.match(/^(.*?)-(\d{1})$/);
         const baseName = m ? m[1] : name;
-        // Important: when matching by item_number, do not heavily normalize; keep dashes
-        const base = matchingKey === 'item_number' ? baseName.trim() : normalizeBase(baseName);
+        // Always match by item_number, keep dashes
+        const base = baseName.trim();
         const index = m ? parseInt(m[2], 10) : 1;
         return { base, index };
-    }, [matchingKey]);
+    }, []);
 
     const onPickDirectory = useCallback(() => {
         inputRef.current?.click();
@@ -130,12 +123,12 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
         });
     }, [groups, selectedTop]);
 
-    const buildManifest = (): { matching_key: MatchingKey; items: ManifestItem[] } => {
+    const buildManifest = (): { matching_key: string; items: ManifestItem[] } => {
         const items: ManifestItem[] = groupedPreview.map(({ base, selected }) => ({
             identifier: base,
             images: selected.map((g, idx) => ({ client_name: g.client_name, order: idx + 1, is_primary: idx === 0 })),
         }));
-        return { matching_key: matchingKey, items };
+        return { matching_key: 'item_number', items };
     };
 
     const handleUpload = () => {
@@ -191,7 +184,7 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
                 <div className="container max-w-6xl mx-auto py-8 space-y-6">
                     <div>
                         <h1 className="text-3xl font-bold">Importar Imagens de Itens</h1>
-                        <p className="text-muted-foreground mt-2">Selecione uma pasta e o sistema fará a correspondência por convenção de nome.</p>
+                        <p className="text-muted-foreground mt-2">Selecione múltiplos arquivos de imagem e o sistema fará a correspondência pelos números dos itens no nome dos arquivos.</p>
                     </div>
 
                     {summary && (
@@ -213,39 +206,22 @@ export default function ImportPictures({ acceptedExtensions, maxFilesPerItem, re
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Seleção de Pasta</CardTitle>
+                            <CardTitle>Seleção de Arquivos</CardTitle>
                             <CardDescription>
                                 Extensões aceitas: {acceptedExtensions.join(', ')}. Até {maxFilesPerItem} imagens por item.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-sm font-medium">Chave de correspondência</label>
-                                    <Select value={matchingKey} onValueChange={(v) => setMatchingKey(v as MatchingKey)}>
-                                        <SelectTrigger className="mt-2">
-                                            <SelectValue placeholder="Escolha" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="item_number">Item Number</SelectItem>
-                                            <SelectItem value="item_name">Item Name</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
                             <input
                                 ref={inputRef}
                                 type="file"
                                 multiple
-                                // @ts-expect-error - webkitdirectory is non-standard but supported
-                                webkitdirectory="true"
-                                directory="true"
                                 onChange={handleInputChange}
                                 className="hidden"
                                 accept={acceptedExtensions.map((e) => `.${e}`).join(',')}
                             />
                             <Button variant="outline" onClick={onPickDirectory} className="flex items-center gap-2">
-                                <FolderOpen className="h-4 w-4" /> Escolher Pasta
+                                <Upload className="h-4 w-4" /> Escolher Arquivos
                             </Button>
                             {isScanning && (
                                 <div className="space-y-2">

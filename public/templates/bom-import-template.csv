@@ -1,13 +1,8 @@
-Código do Item,Nome/Descrição,Quantidade,Unidade de Medida,Nível,Item Pai,Descrição Detalhada,Designadores de Referência
-PROD-001,Produto Final Montado,1,UN,0,,,
-CONJ-001,Conjunto Principal,1,UN,1,PROD-001,Conjunto principal do produto,
-ITEM-001,Placa de Circuito,1,UN,2,CONJ-001,Placa de circuito impresso principal,
-ITEM-002,Resistor 10K,4,UN,3,ITEM-001,Resistor 10K Ohm 1/4W,R1;R2;R3;R4
-ITEM-003,Capacitor 100uF,2,UN,3,ITEM-001,Capacitor eletrolítico 100uF 25V,C1;C2
-ITEM-004,Microcontrolador,1,UN,3,ITEM-001,Microcontrolador ATMEGA328P,U1
-CONJ-002,Carcaça,1,UN,1,PROD-001,Conjunto da carcaça plástica,
-ITEM-005,Tampa Superior,1,UN,2,CONJ-002,Tampa superior em ABS,
-ITEM-006,Base Inferior,1,UN,2,CONJ-002,Base inferior em ABS,
-ITEM-007,Parafuso M3x10,8,UN,2,CONJ-002,Parafuso Phillips M3x10mm,
-ITEM-008,Etiqueta Produto,1,UN,1,PROD-001,Etiqueta de identificação do produto,
-ITEM-009,Manual de Instruções,1,UN,1,PROD-001,Manual de instruções em português,
+item_number,name,quantity,unit_of_measure,level,parent,description,reference_designators
+PROD-001,Produto Final,1,UN,0,,Produto montado completo,
+COMP-001,Componente A,2,UN,1,PROD-001,Componente principal,"U1, U2"
+COMP-002,Componente B,5,UN,1,PROD-001,Componente secundário,R1-R5
+SUB-001,Subcomponente B1,3,UN,2,COMP-002,Parte do componente B,
+COMP-003,Componente C,10,UN,1,PROD-001,Parafusos de fixação,
+SUB-002,Subcomponente C1,4,UN,2,COMP-003,Arruelas,
+SUB-003,Subcomponente C2,4,UN,2,COMP-003,Porcas,

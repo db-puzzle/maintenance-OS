@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import AppLayout from '@/layouts/app-layout';
 import { toast } from 'sonner';
 import { type BreadcrumbItem } from '@/types';
@@ -81,9 +82,11 @@ export default function ItemImport({ supportedFormats }: Props) {
     } | null>(null);
     const [fieldMapping, setFieldMapping] = useState<Record<string, string>>({});
     const [showPreview, setShowPreview] = useState(false);
+    const [updateExisting, setUpdateExisting] = useState(true); // Default to update existing
     const { setData, post, processing, errors } = useForm({
         file: null as File | null,
-        mapping: {},
+        mapping: {} as Record<string, string>,
+        update_existing: true as boolean,
     });
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Home', href: '/home' },
@@ -165,11 +168,11 @@ export default function ItemImport({ supportedFormats }: Props) {
             return;
         }
         // Update the form data before submitting
-        setData(prevData => ({
-            ...prevData,
+        setData({
             file: selectedFile,
             mapping: fieldMapping,
-        }));
+            update_existing: updateExisting,
+        });
         post(route('production.items.import'), {
             forceFormData: true,
             onSuccess: () => {
@@ -224,6 +227,60 @@ export default function ItemImport({ supportedFormats }: Props) {
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            {/* Duplicate Handling Options */}
+                            {selectedFile && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Duplicate Handling</CardTitle>
+                                        <CardDescription>
+                                            Choose how to handle items with existing item numbers
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="flex items-start space-x-3">
+                                            <Checkbox
+                                                id="update-existing"
+                                                checked={updateExisting}
+                                                onCheckedChange={(checked) => {
+                                                    setUpdateExisting(checked as boolean);
+                                                    setData('update_existing', checked as boolean);
+                                                }}
+                                            />
+                                            <div className="space-y-1">
+                                                <Label htmlFor="update-existing" className="font-medium cursor-pointer">
+                                                    Update existing items
+                                                </Label>
+                                                <p className="text-sm text-muted-foreground">
+                                                    If an item with the same item number already exists, it will be updated with the new data.
+                                                    All fields will be overwritten.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {!updateExisting && (
+                                            <Alert>
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertDescription>
+                                                    <strong>Skip mode:</strong> Items with existing item numbers will be skipped and not imported.
+                                                    You'll see a summary of skipped items after import.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
+
+                                        {updateExisting && (
+                                            <Alert variant="destructive">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertDescription>
+                                                    <strong>Warning:</strong> Existing items will be completely overwritten with the imported data.
+                                                    This action cannot be undone. Make sure you have a backup if needed.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+
                             {/* CSV Field Mapping */}
                             {csvData && showPreview && fileType === 'csv' && (
                                 <Card>
@@ -357,31 +414,22 @@ export default function ItemImport({ supportedFormats }: Props) {
                                 </Alert>
                             )}
                             {/* Action Buttons */}
-                            <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center justify-end gap-4">
                                 <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => router.visit(route('production.items.images.import.wizard'))}
+                                    variant="outline"
+                                    onClick={() => router.visit(route('production.items.index'))}
+                                    disabled={processing}
                                 >
-                                    Also attach pictures
+                                    Cancel
                                 </Button>
-                                <div className="flex gap-4">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => router.visit(route('production.items.index'))}
-                                        disabled={processing}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        onClick={handleImport}
-                                        disabled={!isMappingValid() || processing}
-                                        title={!isMappingValid() ? 'Please fill all required fields' : ''}
-                                    >
-                                        <Upload className="h-4 w-4 mr-2" />
-                                        {processing ? 'Importing...' : 'Import Items'}
-                                    </Button>
-                                </div>
+                                <Button
+                                    onClick={handleImport}
+                                    disabled={!isMappingValid() || processing}
+                                    title={!isMappingValid() ? 'Please fill all required fields' : ''}
+                                >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    {processing ? 'Importing...' : 'Import Items'}
+                                </Button>
                             </div>
                         </TabsContent>
                         <TabsContent value="instructions" className="space-y-6">

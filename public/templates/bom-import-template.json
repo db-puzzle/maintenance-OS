@@ -1,0 +1,48 @@
+{
+    "bom_number": "BOM-001",
+    "name": "Nome da BOM",
+    "description": "Descrição da lista de materiais",
+    "external_reference": "DWG-001",
+    "items": [
+        {
+            "level": 0,
+            "item_number": "PROD-001",
+            "item_name": "Produto Final",
+            "quantity": 1,
+            "unit_of_measure": "UN",
+            "description": "Produto montado completo",
+            "reference_designators": "",
+            "children": [
+                {
+                    "level": 1,
+                    "item_number": "COMP-001",
+                    "item_name": "Componente A",
+                    "quantity": 2,
+                    "unit_of_measure": "UN",
+                    "description": "Componente principal",
+                    "reference_designators": "U1, U2"
+                },
+                {
+                    "level": 1,
+                    "item_number": "COMP-002",
+                    "item_name": "Componente B",
+                    "quantity": 5,
+                    "unit_of_measure": "UN",
+                    "description": "Componente secundário",
+                    "reference_designators": "R1-R5",
+                    "children": [
+                        {
+                            "level": 2,
+                            "item_number": "SUB-001",
+                            "item_name": "Subcomponente B1",
+                            "quantity": 3,
+                            "unit_of_measure": "UN",
+                            "description": "Parte do componente B",
+                            "reference_designators": ""
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
