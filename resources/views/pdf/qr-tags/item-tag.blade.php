@@ -76,8 +76,8 @@
         }
         
         .item-image img {
-            max-width: calc(100% - 4mm);
-            max-height: calc(100% - 4mm);
+            max-width: calc(100% - 20mm);
+            max-height: calc(100% - 20mm);
             object-fit: contain;
             display: block;
         }

@@ -3,6 +3,10 @@
 <head>
     <meta charset="utf-8">
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
         @page {
             size: 150mm 100mm;
             margin: 1mm;
@@ -16,29 +20,55 @@
             height: 98mm;
         }
         
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            grid-template-rows: 60mm auto;
-            gap: 1mm;
-            height: 100%;
+        /* Wrapper to keep entire tag together */
+        .tag-wrapper {
             width: 100%;
+            height: 100%;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        
+        /* Main table layout */
+        .main-table {
+            width: 100%;
+            height: 100%;
+            border-collapse: separate;
+            table-layout: fixed;
+            /* Prevent page breaks inside the table */
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        
+        /* Top row with 3 cells */
+        .top-row {
+            height: 66%;
+            /* Keep row content together */
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        
+        .top-cell {
+            width: 33.33%;
+            border: 1px solid #ddd;
+            padding: 1mm;
+            vertical-align: middle;
+            text-align: center;
+            position: relative;
+            /* Prevent breaks within cells */
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
         
         /* QR Code Cell */
         .qr-cell {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #ddd;
-            padding: 1mm;
             background: #fafafa;
         }
         
         .qr-code img {
             width: 40mm;
             height: 40mm;
+            display: block;
+            margin: 0 auto;
         }
         
         .order-number {
@@ -49,19 +79,10 @@
             color: white;
             padding: 0.5mm 2mm;
             border-radius: 1mm;
+            display: inline-block;
         }
         
         /* Image Cells */
-        .image-cell {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #ddd;
-            padding: 1mm;
-            position: relative;
-        }
-        
         .cell-label {
             position: absolute;
             top: 1mm;
@@ -71,10 +92,16 @@
             font-weight: bold;
         }
         
-        .image-cell img {
-            max-width: 45mm;
-            max-height: 50mm;
+        .image-content {
+            padding-top: 5mm;
+        }
+        
+        .image-content img {
+            max-width: 43mm;
+            max-height: 48mm;
             object-fit: contain;
+            display: block;
+            margin: 0 auto;
         }
         
         .item-name {
@@ -82,19 +109,29 @@
             margin-top: 1mm;
             text-align: center;
             color: #333;
-            max-width: 28mm;
+            max-width: 43mm;
             word-wrap: break-word;
             line-height: 1.1;
+            margin-left: auto;
+            margin-right: auto;
         }
         
-        /* Details Section - spans all 3 columns */
-        .details-section {
-            grid-column: 1 / -1;
-            display: flex;
-            flex-direction: column;
+        /* Bottom row - Details Section */
+        .bottom-row {
+            height: auto;
+            /* Keep row content together */
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        
+        .details-cell {
             border: 1px solid #ddd;
             padding: 1.5mm;
             background: #f8f8f8;
+            vertical-align: top;
+            /* Prevent breaks within cell */
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
         
         .title {
@@ -107,10 +144,7 @@
         }
         
         .detail-rows {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            margin-top: 2mm;
         }
         
         .detail-row {
@@ -136,7 +170,7 @@
         .generated-date {
             font-size: 6pt;
             color: #666;
-            margin-top: 1mm;
+            margin-top: 2mm;
             text-align: center;
             border-top: 1px dashed #ccc;
             padding-top: 1mm;
@@ -144,58 +178,69 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- First cell: QR Code -->
-        <div class="qr-cell">
-            <div class="qr-code">
-                <img src="data:image/png;base64,{{ $qrCode }}" alt="QR Code">
-            </div>
-            <div class="order-number">{{ $order->order_number }}</div>
-        </div>
-        
-        <!-- Second cell: Item Image -->
-        <div class="image-cell">
-            <span class="cell-label">Item</span>
-            @if(isset($itemImageBase64) && $itemImageBase64)
-                <img src="{{ $itemImageBase64 }}" alt="{{ $item->name }}">
-                <div class="item-name">{{ \Illuminate\Support\Str::limit($item->name, 25) }}</div>
-            @else
-                <div style="color: #999; font-size: 6pt;">Sem imagem</div>
-            @endif
-        </div>
-        
-        <!-- Third cell: Routing Image -->
-        <div class="image-cell">
-            <span class="cell-label">Roteamento via</span>
-            @if(isset($parentImageBase64) && $parentImageBase64)
-                <img src="{{ $parentImageBase64 }}" alt="{{ $parentItem->name }}">
-                <div class="item-name">{{ \Illuminate\Support\Str::limit($parentItem->name, 25) }}</div>
-            @else
-                <div style="color: #999; font-size: 8pt;">Sem roteamento</div>
-            @endif
-        </div>
-        
-        <!-- Bottom section spanning all columns: Details -->
-        <div class="details-section">
-            <div class="title">Ordem de Manufatura</div>
-            <div class="detail-rows">
-                <div class="detail-row">
-                    <span class="detail-label">Item:</span>
-                    <span class="detail-value">{{ $item->name }}</span>
+    <div class="tag-wrapper">
+        <table class="main-table">
+        <!-- Top row with 3 cells side by side -->
+        <tr class="top-row">
+            <!-- First cell: QR Code -->
+            <td class="top-cell qr-cell">
+                <div class="qr-code">
+                    <img src="data:image/png;base64,{{ $qrCode }}" alt="QR Code">
                 </div>
-                <div class="detail-row">
-                    <span class="detail-label">Quantidade:</span>
-                    <span class="detail-value">{{ $order->quantity }}</span>
+                <div class="order-number">{{ $order->order_number }}</div>
+            </td>
+            
+            <!-- Second cell: Item Image -->
+            <td class="top-cell">
+                <span class="cell-label">Item</span>
+                <div class="image-content">
+                    @if(isset($itemImageBase64) && $itemImageBase64)
+                        <img src="{{ $itemImageBase64 }}" alt="{{ $item->name }}">
+                        <div class="item-name">{{ \Illuminate\Support\Str::limit($item->name, 25) }}</div>
+                    @else
+                        <div style="color: #999; font-size: 6pt;">Sem imagem</div>
+                    @endif
                 </div>
-                <div class="detail-row">
-                    <span class="detail-label">Entrega:</span>
-                    <span class="detail-value">{{ $order->planned_end_date ? $order->planned_end_date->format('d/m/Y') : 'N/A' }}</span>
+            </td>
+            
+            <!-- Third cell: Routing Image -->
+            <td class="top-cell">
+                <span class="cell-label">Roteamento via</span>
+                <div class="image-content">
+                    @if(isset($parentImageBase64) && $parentImageBase64)
+                        <img src="{{ $parentImageBase64 }}" alt="{{ $parentItem->name }}">
+                        <div class="item-name">{{ \Illuminate\Support\Str::limit($parentItem->name, 25) }}</div>
+                    @else
+                        <div style="color: #999; font-size: 8pt;">Sem roteamento</div>
+                    @endif
                 </div>
-            </div>
-            <div class="generated-date">
-                Gerado em {{ $generatedAt->format('d/m/Y H:i') }}
-            </div>
-        </div>
+            </td>
+        </tr>
+        
+        <!-- Bottom row spanning all columns: Details -->
+        <tr class="bottom-row">
+            <td colspan="3" class="details-cell">
+                <div class="title">Ordem de Manufatura</div>
+                <div class="detail-rows">
+                    <div class="detail-row">
+                        <span class="detail-label">Item:</span>
+                        <span class="detail-value">{{ $item->name }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Quantidade:</span>
+                        <span class="detail-value">{{ $order->quantity }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Entrega:</span>
+                        <span class="detail-value">{{ $order->planned_end_date ? $order->planned_end_date->format('d/m/Y') : 'N/A' }}</span>
+                    </div>
+                </div>
+                <div class="generated-date">
+                    Gerado em {{ $generatedAt->format('d/m/Y H:i') }}
+                </div>
+            </td>
+        </tr>
+    </table>
     </div>
 </body>
 </html>

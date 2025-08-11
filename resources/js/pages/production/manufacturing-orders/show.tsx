@@ -274,7 +274,14 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                         <div className="grid gap-2">
                             <label className="text-sm font-medium">Item Number</label>
                             <div className="rounded-md border bg-muted/20 p-2 text-sm">
-                                {order.item?.item_number || '—'}
+                                {order.item ? (
+                                    <Link
+                                        href={route('production.items.show', order.item.id)}
+                                        className="font-medium text-primary hover:underline"
+                                    >
+                                        {order.item.item_number}
+                                    </Link>
+                                ) : '—'}
                             </div>
                         </div>
                         <div className="grid gap-2">

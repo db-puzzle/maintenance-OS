@@ -78,7 +78,7 @@ export default function FormVersionHistory({ routineId, isOpen, onClose }: FormV
                             {versions.map((version) => (
                                 <button
                                     key={version.id}
-                                    className="w-full p-3 text-left border rounded-md bg-white hover:bg-gray-50 focus-visible:border-ring focus-visible:ring-ring/10 focus-visible:ring-[3px] focus-visible:bg-input-focus transition-[color,box-shadow] outline-none"
+                                    className="w-full p-3 text-left border rounded-md bg-white hover:bg-gray-50 focus-visible:border-ring focus-visible:ring-ring/10 focus-visible:ring-[2px] focus-visible:bg-input-focus transition-[color,box-shadow] outline-none"
                                     onClick={() => handleViewVersion(version.id)}
                                 >
                                     <div className="w-full flex items-start justify-between mb-2">

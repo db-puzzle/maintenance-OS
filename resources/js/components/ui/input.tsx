@@ -9,7 +9,7 @@ const inputVariants = cva(
         default: [
           "border-input bg-background",
           "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground",
-          "focus-visible:border-ring focus-visible:ring-ring/10 focus-visible:ring-[3px] focus-visible:bg-input-focus",
+          "focus-visible:border-ring focus-visible:ring-ring/10 focus-visible:ring-[2px] focus-visible:bg-input-focus",
           "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
         ],
         destructive: [
@@ -17,7 +17,7 @@ const inputVariants = cva(
           "placeholder:text-destructive/60",
           "file:text-destructive",
           "selection:bg-destructive selection:text-destructive-foreground",
-          "focus-visible:border-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 focus-visible:ring-[3px] focus-visible:bg-destructive/5",
+          "focus-visible:border-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 focus-visible:ring-[2px] focus-visible:bg-destructive/5",
         ],
       },
     },

@@ -35,7 +35,7 @@ export function StepCard({
             className={cn(
                 'relative p-4 transition-all duration-200 group w-2/3',
                 onClick && !disabled && 'cursor-pointer hover:shadow-md',
-                selected && 'ring-2 ring-primary',
+                selected && 'border-ring ring-ring/10 ring-[2px] bg-input-focus',
                 disabled && 'opacity-50 cursor-not-allowed',
                 className
             )}

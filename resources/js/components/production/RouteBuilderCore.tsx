@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,8 +89,14 @@ export default function RouteBuilderCore({
         sampling_size: 0,
         form_id: '',
     });
+    // Store the previous selected step ID to avoid unnecessary updates
+    const prevSelectedStepIdRef = useRef<number | undefined>();
+
     useEffect(() => {
-        if (selectedStep) {
+        // Only update form if we've actually selected a different step
+        if (selectedStep && selectedStep.id !== prevSelectedStepIdRef.current) {
+            prevSelectedStepIdRef.current = selectedStep.id;
+
             stepForm.setData({
                 name: selectedStep.name || '',
                 description: selectedStep.description || '',
@@ -104,8 +110,10 @@ export default function RouteBuilderCore({
                 sampling_size: selectedStep.sampling_size || 0,
                 form_id: selectedStep.form_id?.toString() || '',
             });
+        } else if (!selectedStep) {
+            prevSelectedStepIdRef.current = undefined;
         }
-    }, [selectedStep, stepForm]);
+    }, [selectedStep, stepForm]); // Now we can safely include all dependencies
     const handleSave = () => {
         // Validate that all non-first steps have dependencies
         const invalidSteps = steps.filter(step => step.step_number > 1 && !step.depends_on_step_id);

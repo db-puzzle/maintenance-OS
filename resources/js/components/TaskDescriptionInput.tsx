@@ -48,7 +48,7 @@ export default function TaskDescriptionInput({
                 <div
                     className={cn(
                         'border-input flex-1 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs',
-                        'focus-within:ring-ring/50 focus-within:border-ring focus-within:ring-[3px]',
+                        'focus-within:ring-ring/50 focus-within:border-ring focus-within:ring-[2px]',
                         errors[name] && 'border-destructive',
                     )}
                 >
