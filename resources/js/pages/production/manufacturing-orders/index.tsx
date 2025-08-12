@@ -6,11 +6,14 @@ import {
     Package,
     GitBranch,
     Calendar,
-    AlertCircle,
-    Workflow
+    DraftingCompass,
+    Workflow,
+    Image,
+    ClipboardList
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Toggle } from '@/components/ui/toggle';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
@@ -19,6 +22,7 @@ import { EntityPagination } from '@/components/shared/EntityPagination';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
 import CreateManufacturingOrderDialog from '@/components/production/CreateManufacturingOrderDialog';
+import { ItemImagePreview } from '@/components/production/ItemImagePreview';
 import { ColumnConfig } from '@/types/shared';
 import { ManufacturingOrder, Item, BillOfMaterial, RouteTemplate } from '@/types/production';
 interface Props {
@@ -41,6 +45,8 @@ interface Props {
     billsOfMaterial?: BillOfMaterial[];
     routeTemplates?: RouteTemplate[];
     sourceTypes?: Record<string, string>;
+    statusCounts?: Record<string, number>;
+    summaryTotal?: number;
 }
 export default function ManufacturingOrders({
     orders,
@@ -49,41 +55,59 @@ export default function ManufacturingOrders({
     items = [],
     billsOfMaterial = [],
     routeTemplates = [],
-    sourceTypes = {}
+    sourceTypes = {},
+    statusCounts = {},
+    summaryTotal = 0
 }: Props) {
     const [searchValue, setSearchValue] = useState(filters.search || '');
-    const [statusFilter] = useState(filters.status || '');
-    const [parentFilter] = useState(filters.parent_id || '');
+    const [statusFilter, setStatusFilter] = useState(filters.status || '');
+    const [parentFilter, setParentFilter] = useState(filters.parent_id || '');
     const [loading] = useState(false);
     const [deleteOrder, setDeleteOrder] = useState<ManufacturingOrder | null>(null);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [showImages, setShowImages] = useState(false);
+    const [clickedCard, setClickedCard] = useState<string | null>(null);
+
+    // Update filter states when props change
+    React.useEffect(() => {
+        setStatusFilter(filters.status || '');
+        setParentFilter(filters.parent_id || '');
+        setSearchValue(filters.search || '');
+    }, [filters]);
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(route('production.orders.index'), {
-            ...filters,
-            search: value
+            search: value,
+            status: statusFilter === 'all' ? undefined : statusFilter,
+            parent_id: parentFilter === 'all' ? undefined : parentFilter
         }, {
             preserveState: true,
             preserveScroll: true,
-            only: ['orders']
+            only: ['orders', 'statusCounts', 'summaryTotal']
         });
     };
     const handleStatusFilter = (value: string) => {
+        setStatusFilter(value);
         router.get(route('production.orders.index'), {
-            ...filters,
+            search: searchValue,
             status: value === 'all' ? undefined : value,
+            parent_id: parentFilter === 'all' ? undefined : parentFilter
         }, {
             preserveState: true,
             preserveScroll: true,
+            only: ['orders', 'statusCounts', 'summaryTotal']
         });
     };
     const handleParentFilter = (value: string) => {
+        setParentFilter(value);
         router.get(route('production.orders.index'), {
-            ...filters,
-            parent_id: value === 'all' ? undefined : value,
+            search: searchValue,
+            status: statusFilter === 'all' ? undefined : statusFilter,
+            parent_id: value === 'all' ? undefined : value
         }, {
             preserveState: true,
             preserveScroll: true,
+            only: ['orders', 'statusCounts', 'summaryTotal']
         });
     };
     const handleDelete = async () => {
@@ -101,6 +125,19 @@ export default function ManufacturingOrders({
         } catch (error) {
             console.error('Delete error:', error);
         }
+    };
+
+    const handleCardClick = (filterValue: string) => {
+        // Set the clicked card to trigger animation
+        setClickedCard(filterValue);
+
+        // Remove the animation class after animation completes
+        setTimeout(() => {
+            setClickedCard(null);
+        }, 400);
+
+        // Update the status filter
+        handleStatusFilter(filterValue);
     };
     const getStatusBadgeVariant = (status: string) => {
         switch (status) {
@@ -125,6 +162,27 @@ export default function ManufacturingOrders({
         return 'text-gray-600';
     };
     const columns: ColumnConfig[] = [
+        ...(showImages ? [{
+            key: 'image',
+            label: 'Image',
+            width: 'w-[70px]',
+            render: (value: unknown, order: Record<string, unknown>) => {
+                const mo = order as unknown as ManufacturingOrder;
+                return (
+                    <ItemImagePreview
+                        primaryImageUrl={mo.item?.primary_image_thumbnail_url || mo.item?.primary_image_url}
+                        imageCount={mo.item?.images_count || 0}
+                        className="w-12 h-12 cursor-pointer"
+                        onClick={(e) => {
+                            e?.stopPropagation();
+                            if (mo.item?.id) {
+                                router.visit(route('production.items.show', mo.item.id));
+                            }
+                        }}
+                    />
+                );
+            },
+        }] : []),
         {
             key: 'order_number',
             label: 'Order Number',
@@ -244,37 +302,45 @@ export default function ManufacturingOrders({
         },
     ];
     const stats = React.useMemo(() => {
-        const statusCounts = orders.data.reduce((acc, order) => {
-            acc[order.status] = (acc[order.status] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>);
+        // Use statusCounts from backend which are based only on search filter
         return [
             {
-                title: 'Total Orders',
-                value: orders.total,
+                title: 'Total Searched',
+                value: summaryTotal,
                 icon: Factory,
                 color: 'text-blue-600',
+                statusFilter: 'all',
             },
             {
-                title: 'In Progress',
-                value: statusCounts['in_progress'] || 0,
-                icon: Package,
-                color: 'text-green-600',
+                title: 'Draft',
+                value: statusCounts['draft'] || 0,
+                icon: DraftingCompass,
+                color: 'text-gray-600',
+                statusFilter: 'draft',
+            },
+            {
+                title: 'Planned',
+                value: statusCounts['planned'] || 0,
+                icon: ClipboardList,
+                color: 'text-purple-600',
+                statusFilter: 'planned',
             },
             {
                 title: 'Released',
                 value: statusCounts['released'] || 0,
                 icon: Calendar,
                 color: 'text-yellow-600',
+                statusFilter: 'released',
             },
             {
-                title: 'Draft',
-                value: statusCounts['draft'] || 0,
-                icon: AlertCircle,
-                color: 'text-gray-600',
+                title: 'In Progress',
+                value: statusCounts['in_progress'] || 0,
+                icon: Package,
+                color: 'text-green-600',
+                statusFilter: 'in_progress',
             },
         ];
-    }, [orders]);
+    }, [statusCounts, summaryTotal]);
     const breadcrumbs = [
         { title: 'Production', href: '/production' },
         { title: 'Manufacturing Orders', href: '' }
@@ -291,17 +357,30 @@ export default function ManufacturingOrders({
                 createButtonText="Create Order"
                 actions={
                     <div className="flex gap-2">
-                        <Select value={parentFilter || 'all'} onValueChange={handleParentFilter}>
-                            <SelectTrigger className="w-48">
-                                <SelectValue placeholder="Filter by type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Orders</SelectItem>
-                                <SelectItem value="root">Parent Orders Only</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <Toggle
+                            variant="outline"
+                            size="sm"
+                            pressed={showImages}
+                            onPressedChange={setShowImages}
+                            className="w-[135px] flex items-center justify-between data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
+                            aria-label="Toggle images"
+                        >
+                            <Image className="ml-1 h-4 w-4" />
+                            <span className="flex-1 ml-1 text-left">{showImages ? 'Hide Images' : 'Show Images'}</span>
+                        </Toggle>
+                        <Toggle
+                            variant="outline"
+                            size="sm"
+                            pressed={parentFilter === 'root'}
+                            onPressedChange={(pressed) => handleParentFilter(pressed ? 'root' : 'all')}
+                            className="w-[135px] flex items-center justify-between data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90"
+                            aria-label="Toggle parent filter"
+                        >
+                            <GitBranch className="ml-1 h-4 w-4" />
+                            <span className="flex-1 ml-1 text-left">{parentFilter === 'root' ? 'Parent Only' : 'All Orders'}</span>
+                        </Toggle>
                         <Select value={statusFilter || 'all'} onValueChange={handleStatusFilter}>
-                            <SelectTrigger className="w-48">
+                            <SelectTrigger className="w-[135px] h-8">
                                 <SelectValue placeholder="Filter by status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -317,12 +396,20 @@ export default function ManufacturingOrders({
                 }
             >
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
                     {stats.map((stat, index) => {
                         const Icon = stat.icon;
+                        const isClicked = clickedCard === stat.statusFilter;
                         return (
-                            <Card key={index}>
-                                <CardContent className="p-6">
+                            <Card
+                                key={index}
+                                variant="compact"
+                                className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:border-gray-300 
+                                    ${isClicked ? 'ring-2 ring-ring/10 border-ring bg-input-focus animate-flash' : ''}
+                                    ${statusFilter === stat.statusFilter && stat.statusFilter !== 'all' ? 'border-ring' : ''}`}
+                                onClick={() => handleCardClick(stat.statusFilter)}
+                            >
+                                <CardContent variant="compact" className="p-4">
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-sm text-muted-foreground">
@@ -376,8 +463,26 @@ export default function ManufacturingOrders({
                             from: orders.from,
                             to: orders.to
                         }}
-                        onPageChange={(page) => router.get(route('production.orders.index'), { ...filters, page })}
-                        onPerPageChange={(perPage) => router.get(route('production.orders.index'), { ...filters, per_page: perPage })}
+                        onPageChange={(page) => router.get(route('production.orders.index'), {
+                            ...filters,
+                            page,
+                            status: statusFilter === 'all' ? undefined : statusFilter,
+                            parent_id: parentFilter === 'all' ? undefined : parentFilter,
+                            search: searchValue
+                        }, {
+                            preserveScroll: true,
+                            only: ['orders', 'statusCounts', 'summaryTotal']
+                        })}
+                        onPerPageChange={(perPage) => router.get(route('production.orders.index'), {
+                            ...filters,
+                            per_page: perPage,
+                            status: statusFilter === 'all' ? undefined : statusFilter,
+                            parent_id: parentFilter === 'all' ? undefined : parentFilter,
+                            search: searchValue
+                        }, {
+                            preserveScroll: true,
+                            only: ['orders', 'statusCounts', 'summaryTotal']
+                        })}
                     />
                 </div>
             </ListLayout>

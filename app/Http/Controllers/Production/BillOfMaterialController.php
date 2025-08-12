@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Production;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Models\Production\BillOfMaterial;
 use App\Models\Production\BomVersion;
 use App\Models\Production\BomItem;
@@ -16,7 +16,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Str;
 
-class BillOfMaterialController extends Controller
+class BillOfMaterialController extends BaseSearchController
 {
     protected BomImportService $importService;
 
@@ -31,8 +31,7 @@ class BillOfMaterialController extends Controller
 
         $boms = BillOfMaterial::query()
             ->when($request->input('search'), function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('bom_number', 'like', "%{$search}%");
+                return $this->applySearchFilter($query, $search, ['name', 'bom_number']);
             })
             ->when($request->input('status'), function ($query, $status) {
                 if ($status === 'active') {

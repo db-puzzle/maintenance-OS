@@ -23,11 +23,15 @@ import { Routine } from '@/types/routine';
 import { Form } from '@/types/work-order';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import type { FormData as FormStatusData } from '@/components/form-lifecycle/FormStatusBadge';
 
-interface ExtendedForm extends Form {
+interface ExtendedForm extends Omit<Form, 'current_version'> {
     has_draft_changes?: boolean;
     current_version_id?: number;
     current_version?: {
+        id?: number;
+        form_id?: number;
+        version?: number;
         version_number?: string;
     };
 }
@@ -460,7 +464,7 @@ export default function AssetRoutinesTab({
             sortable: false,
             width: 'w-[150px]',
             render: (value, row) => {
-                const form = (row as Record<string, unknown>).form;
+                const form = (row as Record<string, unknown>).form as ExtendedForm | undefined;
                 if (!form) {
                     return (
                         <div className="text-center">
@@ -476,8 +480,13 @@ export default function AssetRoutinesTab({
                         <FormStatusBadge
                             form={{
                                 id: form.id || 0,
-                                ...form,
                                 current_version_id: form.current_version_id ?? null,
+                                has_draft_changes: form.has_draft_changes,
+                                current_version: form.current_version ? {
+                                    version_number: form.current_version.version_number || '',
+                                    id: form.current_version.id,
+                                    published_at: (form.current_version as any).published_at
+                                } : undefined
                             }}
                             size="sm"
                         />
@@ -600,7 +609,10 @@ export default function AssetRoutinesTab({
     };
 
     const handleEditFormClick = (routine: Routine) => {
-        const formState = routine.form ? getFormState(routine.form as Form) : null;
+        const formState = routine.form ? getFormState({
+            ...routine.form,
+            current_version_id: routine.form.current_version_id ?? null
+        } as FormStatusData) : null;
 
         // Check if form is published (not unpublished and not already in draft)
         if (formState === 'published') {
@@ -765,7 +777,27 @@ export default function AssetRoutinesTab({
 
         return (
             <InlineRoutineFormEditor
-                routine={routine}
+                routine={{
+                    id: routine.id,
+                    name: routine.name,
+                    form: routine.form ? {
+                        id: routine.form.id,
+                        tasks: (routine.form.tasks || []).map(task => ({
+                            ...task,
+                            isRequired: task.required || false,
+                            instructionImages: [],
+                            instructions: task.description || ''
+                        })) as any,
+                        isDraft: false,
+                        currentVersionId: routine.form.current_version_id ?? null,
+                        has_draft_changes: false,
+                        current_version: routine.form.current_version ? {
+                            id: routine.form.current_version.id,
+                            version_number: String(routine.form.current_version.version || '1.0'),
+                            published_at: undefined
+                        } : undefined
+                    } : undefined
+                }}
                 assetId={assetId}
                 onClose={handleCloseFormEditor}
                 onSuccess={handleFormSaved}
@@ -822,7 +854,7 @@ export default function AssetRoutinesTab({
                                     onDelete={() => handleDeleteClick(typedRoutine)}
                                     additionalActions={[
                                         // Publicar - Primary action for unpublished routines with tasks
-                                        ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as Form) === 'unpublished' ? [{
+                                        ...(hasFormTasks(typedRoutine.form) && getFormState({ ...typedRoutine.form, current_version_id: typedRoutine.form?.current_version_id ?? null } as FormStatusData) === 'unpublished' ? [{
                                             label: 'Publicar',
                                             icon: (
                                                 <div className="relative">
@@ -834,13 +866,13 @@ export default function AssetRoutinesTab({
                                             className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                         }] : []),
                                         // Separator after Publicar (if shown)
-                                        ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as Form) === 'unpublished' ? [{
+                                        ...(hasFormTasks(typedRoutine.form) && getFormState({ ...typedRoutine.form, current_version_id: typedRoutine.form?.current_version_id ?? null } as FormStatusData) === 'unpublished' ? [{
                                             label: 'separator',
                                             icon: null,
                                             onClick: () => { },
                                         }] : []),
                                         // Create Work Order - Primary action at the top with emphasis
-                                        ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as Form) !== 'unpublished' ? [{
+                                        ...(hasFormTasks(typedRoutine.form) && getFormState({ ...typedRoutine.form, current_version_id: typedRoutine.form?.current_version_id ?? null } as FormStatusData) !== 'unpublished' ? [{
                                             label: 'Criar Ordem de Serviço',
                                             icon: (
                                                 <div className="relative">
@@ -852,7 +884,7 @@ export default function AssetRoutinesTab({
                                             className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                         }] : []),
                                         // Separator after Create Work Order
-                                        ...(hasFormTasks(typedRoutine.form) && getFormState(typedRoutine.form as Form) !== 'unpublished' ? [{
+                                        ...(hasFormTasks(typedRoutine.form) && getFormState({ ...typedRoutine.form, current_version_id: typedRoutine.form?.current_version_id ?? null } as FormStatusData) !== 'unpublished' ? [{
                                             label: 'separator',
                                             icon: null,
                                             onClick: () => { },

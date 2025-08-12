@@ -95,7 +95,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
     // Create a wrapper that matches the TextInput interface
     const form = {
         data: inertiaForm.data as Record<string, string | number | boolean | null | undefined>,
-        setData: (name: string, value: unknown) => inertiaForm.setData(name as keyof typeof inertiaForm.data, value),
+        setData: (name: string, value: unknown) => inertiaForm.setData(name as keyof typeof inertiaForm.data, value as any),
         errors: inertiaForm.errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...fields as Array<keyof typeof inertiaForm.data>),
     };
@@ -244,7 +244,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                                 { id: 2, name: 'Sales Order', value: 'sales_order' },
                                 { id: 3, name: 'Forecast', value: 'forecast' },
                             ]}
-                            value={form.data.source_type}
+                            value={String(form.data.source_type || '')}
                             onValueChange={() => { }}
                             view={true}
                         />
@@ -536,6 +536,7 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             <ShowLayout
                 title={order.order_number}
                 subtitle={subtitle}
+                editRoute=""
                 tabs={tabs}
                 defaultActiveTab={(flash?.openRouteBuilder || openRouteBuilderParam === '1') ? "routes" : "overview"}
                 actions={headerActions}

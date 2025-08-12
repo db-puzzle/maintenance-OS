@@ -117,7 +117,6 @@ export function ItemImageUploader({ itemId, maxImages, currentImageCount, enable
                     type="file"
                     multiple
                     accept="image/*"
-                    // @ts-expect-error optional directory selection for single-item flow
                     {...(enableDirectorySelection ? { webkitdirectory: 'true', directory: 'true' } : {})}
                     onChange={(e) => e.target.files && handleFiles(e.target.files)}
                     className="hidden"

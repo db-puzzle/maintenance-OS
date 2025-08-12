@@ -28,13 +28,13 @@ export interface DependencyResult {
     };
 }
 
-export interface ColumnConfig {
+export interface ColumnConfig<T = any> {
     key: string;
     label: string;
     sortable?: boolean;
     visible?: boolean;
     width?: string;
-    render?: (value: unknown, row: Record<string, unknown>) => React.ReactNode;
+    render?: (value: unknown, row: T) => React.ReactNode;
     headerAlign?: 'left' | 'center' | 'right';
     contentAlign?: 'left' | 'center' | 'right';
 }

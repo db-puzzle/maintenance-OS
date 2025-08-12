@@ -90,7 +90,7 @@ export default function RouteBuilderCore({
         form_id: '',
     });
     // Store the previous selected step ID to avoid unnecessary updates
-    const prevSelectedStepIdRef = useRef<number | undefined>();
+    const prevSelectedStepIdRef = useRef<number | undefined>(undefined);
 
     useEffect(() => {
         // Only update form if we've actually selected a different step

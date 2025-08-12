@@ -219,10 +219,15 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                         <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                                 mode="range"
-
-                                selected={dateRange}
-
-                                onSelect={setDateRange}
+                                required={false}
+                                selected={dateRange.from && dateRange.to ? dateRange as any : undefined}
+                                onSelect={(range) => {
+                                    if (range && 'from' in range) {
+                                        setDateRange({ from: range.from, to: range.to });
+                                    } else {
+                                        setDateRange({ from: undefined, to: undefined });
+                                    }
+                                }}
                                 numberOfMonths={2}
                             />
                         </PopoverContent>

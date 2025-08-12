@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\AssetHierarchy;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Sector;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-class SectorController extends Controller
+class SectorController extends BaseSearchController
 {
     public function index(Request $request)
     {
@@ -85,16 +85,14 @@ class SectorController extends Controller
         }
 
         if ($search) {
-            $search = strtolower($search);
-            $query->where(function ($query) use ($search) {
-                $query->whereRaw('LOWER(sectors.name) LIKE ?', ["%{$search}%"])
-                    ->orWhereExists(function ($query) use ($search) {
-                        $query->from('plants')
-                            ->join('areas', 'areas.plant_id', '=', 'plants.id')
-                            ->whereColumn('areas.id', 'sectors.area_id')
-                            ->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"]);
-                    });
-            });
+            $searchConfig = [
+                'name',
+                [
+                    'relation' => 'area.plant',
+                    'columns' => ['name']
+                ]
+            ];
+            $query = $this->applySearchFilter($query, $search, $searchConfig);
         }
 
         switch ($sort) {

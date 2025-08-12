@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Production;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Models\Production\WorkCell;
 use App\Models\AssetHierarchy\Plant;
 use App\Models\AssetHierarchy\Area;
@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 
-class WorkCellController extends Controller
+class WorkCellController extends BaseSearchController
 {
     /**
      * Display a listing of the resource.
@@ -28,19 +28,23 @@ class WorkCellController extends Controller
 
         // Apply search filter
         if ($search = $request->input('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhereHas('plant', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('area', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('sector', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%");
-                    });
-            });
+            $searchConfig = [
+                'name',
+                'description',
+                [
+                    'relation' => 'plant',
+                    'columns' => ['name']
+                ],
+                [
+                    'relation' => 'area',
+                    'columns' => ['name']
+                ],
+                [
+                    'relation' => 'sector',
+                    'columns' => ['name']
+                ]
+            ];
+            $query = $this->applySearchFilter($query, $search, $searchConfig);
         }
 
         // Apply cell type filter

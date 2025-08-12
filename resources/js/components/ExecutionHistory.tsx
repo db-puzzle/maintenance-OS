@@ -131,8 +131,8 @@ export default function ExecutionHistory({ assetId }: ExecutionHistoryProps) {
                 routine_name: workOrder.title,
                 executor_name: workOrder.execution?.executedBy?.name || 'N/A',
                 status: workOrder.execution?.status || 'pending',
-                started_at: workOrder.execution?.started_at || workOrder.actual_start_date,
-                completed_at: workOrder.execution?.completed_at || workOrder.actual_end_date,
+                started_at: workOrder.execution?.started_at || workOrder.actual_start_date || null,
+                completed_at: workOrder.execution?.completed_at || workOrder.actual_end_date || null,
                 duration_minutes: workOrder.execution?.started_at && workOrder.execution?.completed_at
                     ? Math.floor((new Date(workOrder.execution.completed_at).getTime() - new Date(workOrder.execution.started_at).getTime()) / 60000)
                     : null,

@@ -4,11 +4,11 @@ import { Label } from '@/components/ui/label';
 import { forwardRef } from 'react';
 
 interface InertiaForm {
-    data: Record<string, string | number | boolean | null | undefined>;
-    errors: Record<string, string>;
+    data: Record<string, any>;
+    errors: Partial<Record<string, string>>;
     validateInput?: (value: string) => boolean;
-    setData?: (key: string, value: string | number | boolean | null | undefined) => void;
-    clearErrors?: (...fields: string[]) => void;
+    setData?: (key: string, value: any) => void;
+    clearErrors?: (...fields: any[]) => void;
     processBlur?: (name: string, value: string) => void;
 }
 

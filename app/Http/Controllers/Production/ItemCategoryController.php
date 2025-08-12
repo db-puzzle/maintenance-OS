@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Production;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Http\Requests\Production\ItemCategoryRequest;
 use App\Models\Production\ItemCategory;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class ItemCategoryController extends Controller
+class ItemCategoryController extends BaseSearchController
 {
     public function index(Request $request): Response
     {
@@ -25,11 +25,7 @@ class ItemCategoryController extends Controller
             ->with('createdBy');
 
         if ($search) {
-            $search = strtolower($search);
-            $query->where(function ($q) use ($search) {
-                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(description) LIKE ?', ["%{$search}%"]);
-            });
+            $query = $this->applySearchFilter($query, $search, ['name', 'description']);
         }
 
         // Handle sorting

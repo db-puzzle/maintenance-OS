@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Parts;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Models\Part;
 use App\Models\WorkOrders\WorkOrderPart;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 
-class PartsController extends Controller
+class PartsController extends BaseSearchController
 {
     public function index(Request $request)
     {
@@ -19,15 +19,16 @@ class PartsController extends Controller
 
         // Search functionality
         if ($request->filled('search')) {
-            $search = strtolower($request->input('search'));
-            $query->where(function ($q) use ($search) {
-                $q->whereRaw('LOWER(part_number) like ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(name) like ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(location) like ?', ["%{$search}%"])
-                    ->orWhereHas('manufacturer', function ($q) use ($search) {
-                        $q->whereRaw('LOWER(name) like ?', ["%{$search}%"]);
-                    });
-            });
+            $searchConfig = [
+                'part_number',
+                'name',
+                'location',
+                [
+                    'relation' => 'manufacturer',
+                    'columns' => ['name']
+                ]
+            ];
+            $query = $this->applySearchFilter($query, $request->input('search'), $searchConfig);
         }
 
         // Sorting

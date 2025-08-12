@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Production;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Models\Production\BillOfMaterial;
 use App\Models\Production\Item;
 use App\Models\Production\ItemCategory;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class ItemController extends Controller
+class ItemController extends BaseSearchController
 {
     protected ItemImportService $importService;
     protected ItemImageBulkImportService $imageBulkImportService;
@@ -32,11 +32,7 @@ class ItemController extends Controller
 
         $items = Item::query()
             ->when($request->input('search'), function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('item_number', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                });
+                return $this->applySearchFilter($query, $search, ['name', 'item_number', 'description']);
             })
             ->when($request->input('category'), function ($query, $category) {
                 $query->where('item_category_id', $category);
@@ -149,14 +145,15 @@ class ItemController extends Controller
         // Apply search filter
         if ($request->filled('bom_search')) {
             $search = $request->get('bom_search');
-            $whereUsedBomsQuery->where(function ($query) use ($search) {
-                $query->where('bom_number', 'like', "%{$search}%")
-                      ->orWhere('name', 'like', "%{$search}%")
-                      ->orWhereHas('outputItem', function ($itemQuery) use ($search) {
-                          $itemQuery->where('item_number', 'like', "%{$search}%")
-                                   ->orWhere('name', 'like', "%{$search}%");
-                      });
-            });
+            $searchConfig = [
+                'bom_number',
+                'name',
+                [
+                    'relation' => 'outputItem',
+                    'columns' => ['item_number', 'name']
+                ]
+            ];
+            $whereUsedBomsQuery = $this->applySearchFilter($whereUsedBomsQuery, $search, $searchConfig);
         }
 
         // Apply pagination
@@ -173,11 +170,11 @@ class ItemController extends Controller
         // Apply search filter for manufacturing orders
         if ($request->filled('mo_search')) {
             $moSearch = $request->get('mo_search');
-            $manufacturingOrdersQuery->where(function ($query) use ($moSearch) {
-                $query->where('order_number', 'like', "%{$moSearch}%")
-                      ->orWhere('status', 'like', "%{$moSearch}%")
-                      ->orWhere('source_reference', 'like', "%{$moSearch}%");
-            });
+            $manufacturingOrdersQuery = $this->applySearchFilter(
+                $manufacturingOrdersQuery, 
+                $moSearch, 
+                ['order_number', 'status', 'source_reference']
+            );
         }
 
         // Apply pagination for manufacturing orders
@@ -277,11 +274,7 @@ class ItemController extends Controller
         // Get filtered items based on request parameters
         $query = Item::query()
             ->when($request->input('search'), function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('item_number', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                });
+                return $this->applySearchFilter($query, $search, ['name', 'item_number', 'description']);
             })
             ->when($request->input('category'), function ($query, $category) {
                 $query->where('item_category_id', $category);

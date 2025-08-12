@@ -165,13 +165,13 @@ export default function ShowWorkOrder({
                 ),
             });
 
-            // Approval tab (shows for pending status)
-            if (definedWorkOrder.status === 'pending' && (canApprove || definedWorkOrder.approval_notes)) {
+            // Approval tab (shows for requested status)
+            if (definedWorkOrder.status === 'requested' && canApprove) {
                 tabs.push({
                     id: 'approval',
                     label: 'Aprovação',
                     icon: <CheckCircle className="h-4 w-4" />,
-                    content: <WorkOrderApprovalTab workOrder={definedWorkOrder} />,
+                    content: <WorkOrderApprovalTab workOrder={definedWorkOrder} canApprove={canApprove} discipline={discipline} />,
                 });
             }
 
@@ -184,12 +184,13 @@ export default function ShowWorkOrder({
                     content: (
                         <WorkOrderPlanningTab
                             workOrder={definedWorkOrder}
-                            canEdit={canEdit && definedWorkOrder.status === 'approved'}
                             technicians={technicians}
                             teams={teams}
                             parts={parts}
                             skills={skills}
                             certifications={certifications}
+                            canPlan={canEdit}
+                            discipline={discipline}
                         />
                     ),
                 });
@@ -201,7 +202,7 @@ export default function ShowWorkOrder({
                     id: 'schedule',
                     label: 'Agendamento',
                     icon: <Calendar className="h-4 w-4" />,
-                    content: <WorkOrderScheduleTab workOrder={definedWorkOrder} />,
+                    content: <WorkOrderScheduleTab workOrder={definedWorkOrder} canSchedule={canEdit} discipline={discipline} />,
                 });
             }
 
@@ -216,7 +217,7 @@ export default function ShowWorkOrder({
             }
 
             // Parts tab (shows if there are parts associated)
-            if (definedWorkOrder.planned_parts && definedWorkOrder.planned_parts.length > 0) {
+            if (definedWorkOrder.parts && definedWorkOrder.parts.length > 0) {
                 tabs.push({
                     id: 'parts',
                     label: 'Peças',

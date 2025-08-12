@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\AssetHierarchy;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Models\AssetHierarchy\Plant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-class PlantsController extends Controller
+class PlantsController extends BaseSearchController
 {
     public function index(Request $request)
     {
@@ -70,10 +70,7 @@ class PlantsController extends Controller
         }
 
         if ($search) {
-            $search = strtolower($search);
-            $query->where(function ($query) use ($search) {
-                $query->whereRaw('LOWER(plants.name) LIKE ?', ["%{$search}%"]);
-            });
+            $query = $this->applySearchFilter($query, $search, ['name']);
         }
 
         $plants = $query->get()->map(function ($plant) {

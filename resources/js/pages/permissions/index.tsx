@@ -4,6 +4,9 @@ import AppLayout from '@/layouts/app-layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RoleManagement from '@/components/permissions/RoleManagement';
 import PermissionMatrix from '@/components/permissions/PermissionMatrix';
+
+type Role = any; // Type assertion for RoleManagement compatibility
+
 interface Permission {
     id: number;
     name: string;
@@ -74,7 +77,7 @@ export default function PermissionsIndex({ permissions, roles }: Props) {
                         <TabsTrigger value="matrix">Permission Matrix</TabsTrigger>
                     </TabsList>
                     <TabsContent value="roles">
-                        <RoleManagement roles={roles} />
+                        <RoleManagement roles={roles as unknown as Role[]} />
                     </TabsContent>
                     <TabsContent value="matrix">
                         <PermissionMatrix permissions={permissions.data} roles={roles} />

@@ -57,7 +57,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
     const [carouselItem, setCarouselItem] = useState<Item | null>(null);
     const [carouselOpen, setCarouselOpen] = useState(false);
     const [loadingImages, setLoadingImages] = useState(false);
-    const [_deletingItem, _setDeletingItem] = useState<number | null>(null);
+    const [_deletingItem, setDeletingItem] = useState<number | null>(null);
 
 
     const handleSearchChange = (value: string) => {

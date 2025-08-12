@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Production;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\Shipment;
 use App\Models\Production\ShipmentItem;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class ShipmentController extends Controller
+class ShipmentController extends BaseSearchController
 {
     protected ShipmentManifestService $manifestService;
 
@@ -33,12 +33,12 @@ class ShipmentController extends Controller
 
         $shipments = Shipment::query()
             ->when($request->input('search'), function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('shipment_number', 'like', "%{$search}%")
-                      ->orWhere('destination', 'like', "%{$search}%")
-                      ->orWhere('customer_name', 'like', "%{$search}%")
-                      ->orWhere('tracking_number', 'like', "%{$search}%");
-                });
+                return $this->applySearchFilter($query, $search, [
+                    'shipment_number',
+                    'destination',
+                    'customer_name',
+                    'tracking_number'
+                ]);
             })
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->where('status', $request->input('status'));

@@ -108,7 +108,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     // Get the newly created part ID from flash data or redirect
                     const newPartId = (page.props as { flash?: { partId?: number } }).flash?.partId;
                     if (newPartId) {
-                        router.get(route('parts.show', newPartId));
+                        router.get(route('parts.show', { part: newPartId }));
                     } else if (onSuccess) {
                         onSuccess();
                     }
@@ -172,7 +172,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     <TextInput
                         form={{
                             data,
-                            setData: (key: string, value: string | number | boolean | File | null | undefined) => setData(key as keyof typeof data, value),
+                            setData: (key: string, value: string | number | boolean | File | null) => setData(key as keyof typeof data, value as any),
                             errors,
                             clearErrors: handleClearErrors,
                         }}
@@ -186,7 +186,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     <TextInput
                         form={{
                             data,
-                            setData: (key: string, value: string | number | boolean | File | null | undefined) => setData(key as keyof typeof data, value),
+                            setData: (key: string, value: string | number | boolean | File | null) => setData(key as keyof typeof data, value as any),
                             errors,
                             clearErrors: handleClearErrors,
                         }}
@@ -332,7 +332,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     <TextInput
                         form={{
                             data,
-                            setData: (key: string, value: string | number | boolean | File | null | undefined) => setData(key as keyof typeof data, value),
+                            setData: (key: string, value: string | number | boolean | File | null) => setData(key as keyof typeof data, value as any),
                             errors,
                             clearErrors: handleClearErrors,
                         }}

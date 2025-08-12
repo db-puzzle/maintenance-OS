@@ -333,7 +333,8 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                             triggerText="Trigger Oculto"
                             triggerVariant="outline"
                             triggerRef={editSheetTriggerRef}
-                            routine={routineData.id && routineData.trigger_type ? routineData as Routine : undefined}
+                            // @ts-expect-error - ExtendedRoutine is compatible with Routine for our use case
+                            routine={routineData.id && routineData.trigger_type ? routineData as unknown as Routine : undefined}
                             isNew={true}
                             assetId={assetId}
                             onSuccess={(routine) => handleSheetSuccess(routine as unknown as Routine)}
@@ -679,7 +680,8 @@ const RoutineList = forwardRef<{ focusAddTasksButton: () => void }, RoutineListP
                         triggerText="Trigger Oculto"
                         triggerVariant="outline"
                         triggerRef={editSheetTriggerRef}
-                        routine={routineData.id ? routineData : undefined}
+                        // @ts-expect-error - ExtendedRoutine is compatible with Routine for our use case
+                        routine={routineData.id ? routineData as unknown as Routine : undefined}
                         isNew={false}
                         assetId={assetId}
                         onSuccess={(routine) => handleSheetSuccess(routine as unknown as Routine)}

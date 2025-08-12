@@ -227,3 +227,22 @@
         border-color: oklch(0.369 0 0) !important;
     }
 }
+
+/* Flash animation for clickable cards */
+@keyframes flash {
+    0% {
+        background-color: var(--background);
+    }
+
+    50% {
+        background-color: var(--input-focus);
+    }
+
+    100% {
+        background-color: var(--background);
+    }
+}
+
+.animate-flash {
+    animation: flash 0.4s ease-in-out;
+}

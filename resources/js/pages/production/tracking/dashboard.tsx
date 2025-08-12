@@ -315,7 +315,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                         <EntityDataTable
                             data={activeOrders}
                             columns={activeOrderColumns}
-                            onRowClick={(order: Record<string, unknown>) => handleOrderClick(order as unknown as ManufacturingOrder)}
+                            onRowClick={(order) => handleOrderClick(order)}
                         />
                     </CardContent>
                 </Card>

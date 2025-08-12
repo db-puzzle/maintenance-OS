@@ -2,10 +2,10 @@ import { forwardRef } from 'react';
 import { Input } from './ui/input';
 
 interface FormObject {
-    data: Record<string, string | number | boolean | null | undefined>;
-    setData: (name: string, value: string | number | boolean | null | undefined) => void;
-    errors?: Record<string, string>;
-    clearErrors: (name: string) => void;
+    data: Record<string, any>;
+    setData?: (name: string, value: any) => void;
+    errors?: Partial<Record<string, string>>;
+    clearErrors?: (...fields: any[]) => void;
     processBlur?: (name: string, value: string) => void;
 }
 
@@ -45,12 +45,12 @@ const SmartInput = forwardRef<HTMLInputElement, SmartInputProps>(
                     if (type === 'number' && newValue !== '') {
                         const numValue = parseFloat(newValue);
                         if (!isNaN(numValue)) {
-                            setData(name, numValue);
+                            setData?.(name, numValue);
                             return;
                         }
                     }
 
-                    setData(name, newValue);
+                    setData?.(name, newValue);
                 }}
                 onBlur={(e) => {
                     if (form.processBlur) {
@@ -61,7 +61,7 @@ const SmartInput = forwardRef<HTMLInputElement, SmartInputProps>(
                     }
                 }}
                 onFocus={() => {
-                    if (errors?.[name]) {
+                    if (errors?.[name] && clearErrors) {
                         clearErrors(name);
                     }
                 }}

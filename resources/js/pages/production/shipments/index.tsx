@@ -83,7 +83,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
         } else {
             delete newFilters[key];
         }
-        router.get(route('production.shipments.index'), newFilters, {
+        router.get(route('production.shipments.index'), newFilters as any, {
             preserveState: true,
             preserveScroll: true,
         });

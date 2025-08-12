@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\AssetHierarchy;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Shift;
 use App\Traits\ShiftTimeCalculator;
@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
-class ShiftController extends Controller
+class ShiftController extends BaseSearchController
 {
     use ShiftTimeCalculator;
 
@@ -27,7 +27,7 @@ class ShiftController extends Controller
 
         // Search
         if ($search) {
-            $query->where('name', 'like', "%{$search}%");
+            $query = $this->applySearchFilter($query, $search, ['name']);
         }
 
         // Sorting

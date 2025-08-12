@@ -4,7 +4,7 @@ import { ArrowUpDown } from 'lucide-react';
 import React from 'react';
 interface EntityDataTableProps<T> {
     data: T[];
-    columns: ColumnConfig[];
+    columns: ColumnConfig<T>[];
     loading?: boolean;
     onRowClick?: (row: T) => void;
     actions?: (row: T) => React.ReactNode;
@@ -12,7 +12,7 @@ interface EntityDataTableProps<T> {
     columnVisibility?: Record<string, boolean>;
     onSort?: (columnKey: string) => void;
 }
-export function EntityDataTable<T extends Record<string, unknown>>({
+export function EntityDataTable<T>({
     data,
     columns,
     loading = false,
@@ -53,7 +53,7 @@ export function EntityDataTable<T extends Record<string, unknown>>({
                     )
                 ),
             cell: (row: { original: T }): React.ReactNode => {
-                const value = col.render ? col.render(row.original[col.key], row.original) : row.original[col.key];
+                const value = col.render ? col.render((row.original as any)[col.key], row.original) : (row.original as any)[col.key];
                 return value as React.ReactNode;
             },
             width: col.width,

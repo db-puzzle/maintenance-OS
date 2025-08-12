@@ -30,7 +30,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { BomItem, Item, ItemCategory, ManufacturingOrder, RouteTemplate } from '@/types/production';
 import { CreateItemSheet } from '@/components/CreateItemSheet';
-import { BomTreeView } from './BomTreeView';
+import { BomTreeView, type BomTreeNode } from './BomTreeView';
 import { ManufacturingOrderTreeView } from './ManufacturingOrderTreeView';
 import type { ManufacturingOrderTreeNode } from './ManufacturingOrderTreeView';
 
@@ -89,7 +89,7 @@ interface EditingItem {
     assembly_instructions?: string;
 }
 
-type TreeBomItem = BomItem & {
+type TreeBomItem = Omit<BomItem, 'id'> & {
     item: Item;
     id: string;
     children?: TreeBomItem[];
@@ -199,7 +199,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
 
             if (item.children && item.children.length > 0) {
                 const newChildren = removeItemFromTree(item.children, id);
-                return [...acc, { ...item, children: newChildren }];
+                return [...acc, { ...item, children: newChildren } as TreeBomItem];
             }
 
             return [...acc, item];
@@ -244,13 +244,13 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
                 return {
                     ...item,
                     children: [...(item.children || []), newChild]
-                };
+                } as TreeBomItem;
             }
             if (item.children && item.children.length > 0) {
                 return {
                     ...item,
                     children: addChildToItem(item.children, parentId, newChild)
-                };
+                } as TreeBomItem;
             }
             return item;
         });
@@ -289,12 +289,12 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             const checkChildren = (item: TreeBomItem): boolean => {
                 if (item.id === targetId) return true;
                 if (item.children && item.children.length > 0) {
-                    return item.children.some((child) => checkChildren(child as TreeBomItem));
+                    return item.children.some((child) => checkChildren(child as unknown as TreeBomItem));
                 }
                 return false;
             };
 
-            return draggedItem && draggedItem.children ? draggedItem.children.some((child) => checkChildren(child as TreeBomItem)) : false;
+            return draggedItem && draggedItem.children ? draggedItem.children.some((child) => checkChildren(child as unknown as TreeBomItem)) : false;
         };
 
         if (dragging && isChildOfDragged(dragging, targetId)) {
@@ -372,7 +372,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
             unit_of_measure: item.unit_of_measure,
             reference_designators: item.reference_designators,
             bom_notes: item.bom_notes,
-            assembly_instructions: (item as ExtendedBomItem).assembly_instructions || ''
+            assembly_instructions: (item as unknown as ExtendedBomItem).assembly_instructions || ''
         });
         setIsEditDialogOpen(true);
     };
@@ -593,7 +593,7 @@ export default function HierarchicalConfiguration(props: HierarchicalConfigurati
         if (type === 'bom') {
             return (
                 <BomTreeView
-                    items={bomItems}
+                    items={bomItems as unknown as BomTreeNode[]}
                     canEdit={canEdit}
                     onEditItem={(item) => handleEditItem(item as unknown as TreeBomItem)}
                     onAddItem={handleAddItem}

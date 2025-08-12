@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Production;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Models\Production\ManufacturingOrder;
 use App\Models\Production\ManufacturingStep;
 use App\Models\Production\RouteTemplate;
@@ -11,8 +11,9 @@ use App\Models\Forms\Form;
 use App\Services\Production\ManufacturingOrderService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
-class ManufacturingOrderController extends Controller
+class ManufacturingOrderController extends BaseSearchController
 {
     protected ManufacturingOrderService $orderService;
 
@@ -28,35 +29,52 @@ class ManufacturingOrderController extends Controller
     {
         $this->authorize('viewAny', ManufacturingOrder::class);
 
-        $orders = ManufacturingOrder::with([
-            'item', 
-            'billOfMaterial', 
-            'parent', 
-            'children.manufacturingRoute.steps',
-            'manufacturingRoute.steps',
-            'createdBy'
-        ])
-        ->when($request->status, function ($query, $status) {
-            $query->where('status', $status);
-        })
-        ->when($request->search, function ($query, $search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('order_number', 'like', "%{$search}%")
-                  ->orWhereHas('item', function ($q2) use ($search) {
-                      $q2->where('name', 'like', "%{$search}%")
-                         ->orWhere('item_number', 'like', "%{$search}%");
-                  });
+        // Build the base query for filtering (search and parent_id only, no status filter)
+        $baseQuery = ManufacturingOrder::query()
+            ->when($request->search, function ($query, $search) {
+                $searchConfig = [
+                    'order_number',
+                    [
+                        'relation' => 'item',
+                        'columns' => ['name', 'item_number']
+                    ]
+                ];
+                return $this->applySearchFilter($query, $search, $searchConfig);
+            })
+            ->when($request->parent_id !== null, function ($query) use ($request) {
+                if ($request->parent_id === 'root') {
+                    $query->rootOrders();
+                } else {
+                    $query->where('parent_id', $request->parent_id);
+                }
             });
-        })
-        ->when($request->parent_id !== null, function ($query) use ($request) {
-            if ($request->parent_id === 'root') {
-                $query->rootOrders();
-            } else {
-                $query->where('parent_id', $request->parent_id);
-            }
-        })
-        ->orderBy('created_at', 'desc')
-        ->paginate(20);
+
+        // Get status counts based only on search filter (ignoring status filter)
+        // This query will give us the counts for the summary cards
+        $statusCounts = (clone $baseQuery)
+            ->select('status', \DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        // Calculate total count based only on search filter
+        $summaryTotal = array_sum($statusCounts);
+
+        // Now apply status filter for the actual data display
+        $orders = (clone $baseQuery)
+            ->with([
+                'item', 
+                'billOfMaterial', 
+                'parent', 
+                'children.manufacturingRoute.steps',
+                'manufacturingRoute.steps',
+                'createdBy'
+            ])
+            ->when($request->status, function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
         
         $ordersArray = $orders->toArray();
 
@@ -93,6 +111,9 @@ class ManufacturingOrderController extends Controller
             'sourceTypes' => ManufacturingOrder::SOURCE_TYPES,
             'items' => $items,
             'billsOfMaterial' => $billsOfMaterial,
+            // Add status counts and total count for summary cards
+            'statusCounts' => $statusCounts,
+            'summaryTotal' => $summaryTotal,
         ]);
     }
 

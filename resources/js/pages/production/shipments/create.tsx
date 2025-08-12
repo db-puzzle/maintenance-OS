@@ -134,6 +134,14 @@ export default function ShipmentCreate({ items }: Props) {
 
     const { data: _data, setData: _setData, errors: _errors, processing: _processing, clearErrors: _clearErrors } = form;
 
+    // Create form adapter for TextInput components
+    const formAdapter = {
+        data: _data as Record<string, string | number | boolean | null | undefined>,
+        setData: (name: string, value: string | number | boolean | null | undefined) => _setData(name as keyof ShipmentFormDataForInertia, value),
+        errors: _errors,
+        clearErrors: _clearErrors,
+    };
+
     const steps = [
         { number: 1, title: 'Itens', icon: <Package className="h-4 w-4" /> },
         { number: 2, title: 'Destino', icon: <MapPin className="h-4 w-4" /> },
@@ -146,7 +154,7 @@ export default function ShipmentCreate({ items }: Props) {
         const formData = new FormData();
 
         // Add regular data
-        Object.entries(data).forEach(([key, value]) => {
+        Object.entries(_data).forEach(([key, value]) => {
             if (key !== 'photos' && key !== 'items') {
                 formData.append(key, value as string);
             }
@@ -205,7 +213,7 @@ export default function ShipmentCreate({ items }: Props) {
                         )}
                         {step === 5 && (
                             <ConfirmationStep
-                                data={data as unknown as ShipmentFormData}
+                                data={_data as unknown as ShipmentFormData}
                                 shipmentItems={shipmentItems}
                                 items={items}
                                 photos={photos}
@@ -227,10 +235,10 @@ export default function ShipmentCreate({ items }: Props) {
                                     handleCreateShipment() :
                                     setStep(step + 1)
                             }
-                            disabled={processing}
+                            disabled={_processing}
                         >
                             {step === steps.length ? (
-                                processing ? 'Criando...' : 'Criar Remessa'
+                                _processing ? 'Criando...' : 'Criar Remessa'
                             ) : (
                                 <>
                                     Próximo
@@ -375,6 +383,14 @@ interface StepProps {
 
 // Step 2: Destination
 function DestinationStep({ form }: StepProps) {
+    // Create form adapter for TextInput components
+    const formAdapter = {
+        data: form.data as Record<string, string | number | boolean | null | undefined>,
+        setData: (name: string, value: string | number | boolean | null | undefined) => form.setData(name as keyof ShipmentFormDataForInertia, value),
+        errors: form.errors,
+        clearErrors: form.clearErrors,
+    };
+
     return (
         <div className="space-y-6">
             <div>
@@ -386,7 +402,7 @@ function DestinationStep({ form }: StepProps) {
 
             <div className="space-y-4">
                 <TextInput
-                    form={form}
+                    form={formAdapter}
                     name="destination_name"
                     label="Nome do Destinatário"
                     placeholder="Nome da empresa ou pessoa"
@@ -394,7 +410,7 @@ function DestinationStep({ form }: StepProps) {
                 />
 
                 <TextInput
-                    form={form}
+                    form={formAdapter}
                     name="destination_address"
                     label="Endereço"
                     placeholder="Rua, número, complemento"
@@ -404,7 +420,7 @@ function DestinationStep({ form }: StepProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-2">
                         <TextInput
-                            form={form}
+                            form={formAdapter}
                             name="destination_city"
                             label="Cidade"
                             placeholder="Cidade"
@@ -412,7 +428,7 @@ function DestinationStep({ form }: StepProps) {
                         />
                     </div>
                     <TextInput
-                        form={form}
+                        form={formAdapter}
                         name="destination_state"
                         label="Estado"
                         placeholder="UF"
@@ -421,14 +437,14 @@ function DestinationStep({ form }: StepProps) {
                 </div>
 
                 <TextInput
-                    form={form}
+                    form={formAdapter}
                     name="destination_postal_code"
                     label="CEP"
                     placeholder="00000-000"
                 />
 
                 <TextInput
-                    form={form}
+                    form={formAdapter}
                     name="destination_country"
                     label="País"
                     placeholder="Brasil"
@@ -441,6 +457,14 @@ function DestinationStep({ form }: StepProps) {
 
 // Step 3: Carrier
 function CarrierStep({ form }: StepProps) {
+    // Create form adapter for TextInput components
+    const formAdapter = {
+        data: form.data as Record<string, string | number | boolean | null | undefined>,
+        setData: (name: string, value: string | number | boolean | null | undefined) => form.setData(name as keyof ShipmentFormDataForInertia, value),
+        errors: form.errors,
+        clearErrors: form.clearErrors,
+    };
+
     return (
         <div className="space-y-6">
             <div>
@@ -452,7 +476,7 @@ function CarrierStep({ form }: StepProps) {
 
             <div className="space-y-4">
                 <TextInput
-                    form={form}
+                    form={formAdapter}
                     name="carrier"
                     label="Transportadora"
                     placeholder="Nome da transportadora"
@@ -460,21 +484,21 @@ function CarrierStep({ form }: StepProps) {
                 />
 
                 <TextInput
-                    form={form}
+                    form={formAdapter}
                     name="tracking_number"
                     label="Código de Rastreamento"
                     placeholder="Código de rastreamento"
                 />
 
                 <TextInput
-                    form={form}
+                    form={formAdapter}
                     name="carrier_contact"
                     label="Contato da Transportadora"
                     placeholder="Telefone ou email"
                 />
 
                 <TextInput
-                    form={form}
+                    form={formAdapter}
                     name="estimated_delivery_date"
                     label="Data Estimada de Entrega"
                     placeholder="DD/MM/AAAA"

@@ -187,7 +187,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 view={!isEditMode || !isCreating}
                                 required
                                 searchable
-                                helperText={!isCreating ? "O produto final não pode ser alterado após a criação da BOM" : undefined}
                             />
                             <TextInput
                                 form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}

@@ -140,9 +140,9 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
         };
         // Only include the relevant trigger field based on trigger type
         if (data.trigger_type === 'runtime_hours') {
-            delete payload.trigger_calendar_days;
+            delete (payload as any).trigger_calendar_days;
         } else {
-            delete payload.trigger_runtime_hours;
+            delete (payload as any).trigger_runtime_hours;
         }
         router[method](url, payload, {
             preserveScroll: true,
@@ -167,7 +167,9 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
                 // Call onSuccess callback if provided
                 if (onSuccess) {
                     const routineData = (page.props as { routine?: Routine }).routine || routine;
-                    onSuccess(routineData);
+                    if (routineData) {
+                        onSuccess(routineData);
+                    }
                 }
             },
             onError: (errors) => {

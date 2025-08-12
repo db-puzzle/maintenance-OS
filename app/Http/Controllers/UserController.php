@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 
-class UserController extends Controller
+class UserController extends BaseSearchController
 {
     protected UserManagementService $userManagementService;
     protected PermissionHierarchyService $permissionHierarchyService;
@@ -60,11 +60,7 @@ class UserController extends Controller
         
         // Apply filters
         if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
+            $query = $this->applySearchFilter($query, $request->input('search'), ['name', 'email']);
         }
         
         if ($request->filled('role')) {
@@ -325,11 +321,7 @@ class UserController extends Controller
         
         // Apply filters
         if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
+            $query = $this->applySearchFilter($query, $request->input('search'), ['name', 'email']);
         }
         
         $deletedUsers = $query->with(['roles', 'permissions'])

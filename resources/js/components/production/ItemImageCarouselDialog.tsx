@@ -35,7 +35,7 @@ export function ItemImageCarouselDialog({
 }: ItemImageCarouselDialogProps) {
     const [currentIndex, setCurrentIndex] = React.useState(startIndex);
     const [carouselApi, setCarouselApi] = React.useState<CarouselApi | null>(null);
-    const [_isFullscreen, _setIsFullscreen] = React.useState(false);
+    const [_isFullscreen, setIsFullscreen] = React.useState(false);
     const dialogContentRef = React.useRef<HTMLDivElement>(null);
     React.useEffect(() => {
         setCurrentIndex(startIndex);

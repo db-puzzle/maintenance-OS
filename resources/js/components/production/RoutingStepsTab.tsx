@@ -102,7 +102,7 @@ export default function RoutingStepsTab({
     const _form = {
         data,
         setData: (name: string, value: string | number | boolean | File | null | undefined) => {
-            setData(name as keyof typeof data, value);
+            setData(name as keyof typeof data, value as any);
         },
         errors: errors as Partial<Record<string, string>>,
         clearErrors: (...fields: string[]) => clearErrors(...(fields as Array<keyof typeof data>)),

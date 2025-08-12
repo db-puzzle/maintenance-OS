@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\WorkOrders;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseSearchController;
 use App\Models\AssetHierarchy\Area;
 use App\Models\AssetHierarchy\Asset;
 use App\Models\AssetHierarchy\Plant;
@@ -28,7 +28,7 @@ use App\Http\Requests\WorkOrders\RejectWorkOrderRequest;
 use App\Http\Requests\WorkOrders\PlanWorkOrderRequest;
 use Carbon\Carbon;
 
-class WorkOrderController extends Controller
+class WorkOrderController extends BaseSearchController
 {
     protected MaintenanceWorkOrderService $maintenanceService;
     
@@ -67,14 +67,18 @@ class WorkOrderController extends Controller
 
         // Apply filters
         if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('work_order_number', 'like', "%{$search}%")
-                    ->orWhere('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhereHas('asset', function ($q) use ($search) {
-                        $q->where('tag', 'like', "%{$search}%");
-                    });
-            });
+            // Define search configuration with relationships
+            $searchConfig = [
+                'work_order_number',
+                'title', 
+                'description',
+                [
+                    'relation' => 'asset',
+                    'columns' => ['tag']
+                ]
+            ];
+            
+            $query = $this->applySearchFilter($query, $search, $searchConfig);
         }
 
         if ($status === 'open') {

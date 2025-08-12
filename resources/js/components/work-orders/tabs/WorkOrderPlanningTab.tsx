@@ -64,6 +64,7 @@ interface PlanningFormData {
     parts: PlanningPart[];
     estimated_parts_cost: number;
     estimated_total_cost: number;
+    [key: string]: any;
 }
 
 interface WorkOrderPlanningTabProps {
@@ -424,7 +425,7 @@ export function WorkOrderPlanningTab({
     };
 
     const formWrapper = {
-        data: data as Record<string, string | number | boolean | File | null | undefined>,
+        data: data,
         setData: handleSetData,
         errors,
         clearErrors: (...fields: string[]) => clearErrors(...(fields as Array<keyof typeof data>))

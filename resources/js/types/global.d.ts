@@ -1,5 +1,3 @@
-import type { route as routeFn } from 'ziggy-js';
+/// <reference types="./ziggy" />
 
-declare global {
-    const route: typeof routeFn;
-}
+export { };

@@ -82,22 +82,22 @@ export default function BomIndex({ boms, filters }: Props) {
     };
 
     const handleDelete = async (bom: BillOfMaterial) => {
-        setDeletingBom(bom.id);
+        _setDeletingBom(bom.id);
         try {
             await router.delete(route('production.bom.destroy', bom.id), {
                 preserveScroll: true,
                 onSuccess: () => {
                     setDeleteBom(null);
-                    setDeletingBom(null);
+                    _setDeletingBom(null);
                 },
                 onError: () => {
                     console.error('Failed to delete BOM');
-                    setDeletingBom(null);
+                    _setDeletingBom(null);
                 }
             });
         } catch (error) {
             console.error('Delete error:', error);
-            setDeletingBom(null);
+            _setDeletingBom(null);
         }
     };
 
@@ -169,7 +169,7 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'item_masters_count',
             label: 'Componentes',
             width: 'w-[120px]',
-            render: (value: unknown, row: Record<string, unknown>) => <>{(row as BillOfMaterial & { item_masters_count?: number }).item_masters_count || 0}</>
+            render: (value: unknown, row: Record<string, unknown>) => <>{(row as unknown as BillOfMaterial & { item_masters_count?: number }).item_masters_count || 0}</>
         }
     ];
 
@@ -235,8 +235,7 @@ export default function BomIndex({ boms, filters }: Props) {
                     open={!!deleteBom}
                     onOpenChange={(open) => !open && setDeleteBom(null)}
                     onConfirm={() => handleDelete(deleteBom)}
-                    title="Excluir Lista de Materiais"
-                    description={`Tem certeza que deseja excluir a Lista de Materiais "${deleteBom.bom_number}"?`}
+                    entityLabel={`Lista de Materiais "${deleteBom.bom_number}"`}
                 />
             )}
         </AppLayout>
