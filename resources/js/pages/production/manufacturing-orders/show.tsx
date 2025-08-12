@@ -32,16 +32,20 @@ import { ManufacturingOrder, RouteTemplate, WorkCell } from '@/types/production'
 import { Form } from '@/types/work-order';
 import { cn } from '@/lib/utils';
 import { useForm } from '@inertiajs/react';
-import HierarchicalConfiguration from '@/components/production/HierarchicalConfiguration';
+import ManufacturingOrderHierarchicalView, { ManufacturingOrderTreeNode } from '@/components/production/ManufacturingOrderHierarchicalView';
 import ManufacturingOrderRouteTab from '@/components/production/ManufacturingOrderRouteTab';
+import { ReportProductionDialog } from '@/components/production/ReportProductionDialog';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { createFormAdapter } from '@/utils/form-adapters';
+import { ClipboardCheck } from 'lucide-react';
 interface Props {
     order: ManufacturingOrder;
     canRelease: boolean;
     canCancel: boolean;
     canCreateRoute: boolean;
     canManageRoutes?: boolean;
+    canReportProduction?: boolean;
     templates?: RouteTemplate[]; // Route templates for creating new routes
     workCells?: WorkCell[];
     stepTypes?: Record<string, string>;
@@ -70,10 +74,11 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
         </div>
     );
 }
-export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, canManageRoutes = false, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
+export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, canManageRoutes = false, canReportProduction = false, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
     const { props } = usePage();
-    const flash = props.flash as { openRouteBuilder?: string | boolean } | undefined;
+    const flash = props.flash as { openRouteBuilder?: string | boolean; fromQrScan?: boolean } | undefined;
     const [generatingQr, setGeneratingQr] = useState(false);
+    const [reportProductionOpen, setReportProductionOpen] = useState(false);
     // Check URL params - passed from backend
     const openRouteBuilderParam = props.openRouteBuilder || null;
     // Create a form instance for view-only display
@@ -93,12 +98,12 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
         bom_id: order.bill_of_material_id?.toString() || '',
     });
     // Create a wrapper that matches the TextInput interface
-    const form = {
-        data: inertiaForm.data as Record<string, string | number | boolean | null | undefined>,
-        setData: (name: string, value: unknown) => inertiaForm.setData(name as keyof typeof inertiaForm.data, value as any),
-        errors: inertiaForm.errors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...fields as Array<keyof typeof inertiaForm.data>),
-    };
+    const form = createFormAdapter({
+        data: inertiaForm.data,
+        setData: inertiaForm.setData,
+        errors: inertiaForm.errors,
+        clearErrors: inertiaForm.clearErrors
+    });
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
         switch (status) {
             case 'draft':
@@ -180,6 +185,24 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             label: 'Overview',
             content: (
                 <div className="space-y-6 py-6">
+                    {/* QR Scan Indicator */}
+                    {flash?.fromQrScan && (
+                        <Alert className="mb-4">
+                            <QrCode className="h-4 w-4" />
+                            <AlertDescription>
+                                Scanned via QR code.
+                                {order.has_route && order.manufacturing_route?.current_active_step && (
+                                    <Link
+                                        href={route('production.steps.execute', order.manufacturing_route.current_active_step.id)}
+                                        className="ml-2 underline"
+                                    >
+                                        Go to current step
+                                    </Link>
+                                )}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
                     {/* Progress Section */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold">Order Progress</h3>
@@ -214,6 +237,37 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                         </div>
                     </div>
                     <Separator />
+
+                    {/* Production Reporting Section */}
+                    {canReportProduction &&
+                        ['released', 'in_progress'].includes(order.status) &&
+                        (!order.has_route || (order.manufacturing_route && (!order.manufacturing_route.steps || order.manufacturing_route.steps.length === 0))) && (
+                            <>
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-semibold">Direct Production Reporting</h3>
+                                    <div className="border rounded-lg p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-medium">Report Production</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Report production quantities directly without route steps
+                                                </p>
+                                            </div>
+                                            <Button
+                                                onClick={() => setReportProductionOpen(true)}
+                                                variant="default"
+                                                className="gap-2"
+                                            >
+                                                <ClipboardCheck className="h-4 w-4" />
+                                                Report Production
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <Separator />
+                            </>
+                        )}
+
                     {/* Order Information */}
                     <FieldGroup>
                         <TextInput
@@ -400,20 +454,16 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
             id: 'children',
             label: `Child Orders (${order.child_orders_count || (order.children?.length || 0)})`,
             content: (
-                <div className="h-[calc(100vh-300px)]">
-                    {/* Show current order as root of the tree */}
-                    <HierarchicalConfiguration
-                        type="manufacturing-order"
-                        orders={[{
-                            ...order,
-                            children: order.children || []
-                        }]}
-                        showActions={false}
-                        canEdit={false}
-                        routeTemplates={templates}
-                        canManageRoutes={canManageRoutes}
-                    />
-                </div>
+                /* Show current order as root of the tree */
+                <ManufacturingOrderHierarchicalView
+                    orders={[{
+                        ...order,
+                        children: order.children || []
+                    } as ManufacturingOrderTreeNode]}
+                    showActions={false}
+                    routeTemplates={templates}
+                    canManageRoutes={canManageRoutes}
+                />
             )
         }] : []),
         {
@@ -532,16 +582,25 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
         </TooltipProvider>
     );
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <ShowLayout
-                title={order.order_number}
-                subtitle={subtitle}
-                editRoute=""
-                tabs={tabs}
-                defaultActiveTab={(flash?.openRouteBuilder || openRouteBuilderParam === '1') ? "routes" : "overview"}
-                actions={headerActions}
-                showEditButton={false}
+        <>
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <ShowLayout
+                    title={order.order_number}
+                    subtitle={subtitle}
+                    editRoute=""
+                    tabs={tabs}
+                    defaultActiveTab={(flash?.openRouteBuilder || openRouteBuilderParam === '1') ? "routes" : "overview"}
+                    actions={headerActions}
+                    showEditButton={false}
+                />
+            </AppLayout>
+
+            {/* Production Reporting Dialog */}
+            <ReportProductionDialog
+                order={order}
+                open={reportProductionOpen}
+                onOpenChange={setReportProductionOpen}
             />
-        </AppLayout>
+        </>
     );
 } 

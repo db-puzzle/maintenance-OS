@@ -140,9 +140,9 @@ const EditRoutineSheet: React.FC<EditRoutineSheetProps> = ({
         };
         // Only include the relevant trigger field based on trigger type
         if (data.trigger_type === 'runtime_hours') {
-            delete (payload as any).trigger_calendar_days;
+            delete (payload as { trigger_calendar_days?: number }).trigger_calendar_days;
         } else {
-            delete (payload as any).trigger_runtime_hours;
+            delete (payload as { trigger_runtime_hours?: number }).trigger_runtime_hours;
         }
         router[method](url, payload, {
             preserveScroll: true,

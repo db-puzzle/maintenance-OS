@@ -427,4 +427,62 @@ class ManufacturingOrder extends Model
     {
         return $this->manufacturingRoute;
     }
+
+    /**
+     * Check if production can be reported on this order.
+     */
+    public function canReportProduction(): bool
+    {
+        return in_array($this->status, ['released', 'in_progress']) 
+            && !$this->is_completed
+            && !$this->is_cancelled;
+    }
+
+    /**
+     * Check if this order has an active route with steps.
+     */
+    public function hasActiveRoute(): bool
+    {
+        return $this->manufacturingRoute 
+            && $this->manufacturingRoute->steps()->count() > 0;
+    }
+
+    /**
+     * Check if order should be auto-completed based on child orders.
+     */
+    public function checkAutoCompletion(): void
+    {
+        if (!$this->auto_complete_on_children) {
+            return;
+        }
+
+        // Check if all child orders are completed
+        $allChildrenCompleted = $this->children()
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->count() === 0;
+
+        if ($allChildrenCompleted && $this->children()->exists()) {
+            $this->update([
+                'status' => 'completed',
+                'actual_end_date' => now(),
+                'quantity_completed' => $this->quantity
+            ]);
+        }
+    }
+
+    /**
+     * Get the is_completed attribute.
+     */
+    public function getIsCompletedAttribute(): bool
+    {
+        return $this->status === 'completed';
+    }
+
+    /**
+     * Get the is_cancelled attribute.
+     */
+    public function getIsCancelledAttribute(): bool
+    {
+        return $this->status === 'cancelled';
+    }
 }

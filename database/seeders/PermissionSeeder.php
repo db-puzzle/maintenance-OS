@@ -414,6 +414,18 @@ class PermissionSeeder extends Seeder
                     'display_name' => 'Delete Work Cells',
                     'description' => 'Delete work cells',
                     'sort_order' => 94
+                ],
+                [
+                    'name' => 'production.work-cells.viewDashboard',
+                    'display_name' => 'View Work Cell Dashboard',
+                    'description' => 'Access comprehensive work cell dashboard with analytics',
+                    'sort_order' => 95
+                ],
+                [
+                    'name' => 'production.work-cells.exportData',
+                    'display_name' => 'Export Work Cell Data',
+                    'description' => 'Export work cell performance and production data',
+                    'sort_order' => 96
                 ]
             ];
 
@@ -423,31 +435,31 @@ class PermissionSeeder extends Seeder
                     'name' => 'production.categories.viewAny',
                     'display_name' => 'View Item Categories List',
                     'description' => 'View list of all item categories',
-                    'sort_order' => 95
+                    'sort_order' => 97
                 ],
                 [
                     'name' => 'production.categories.view',
                     'display_name' => 'View Item Category Details',
                     'description' => 'View item category details',
-                    'sort_order' => 96
+                    'sort_order' => 98
                 ],
                 [
                     'name' => 'production.categories.create',
                     'display_name' => 'Create Item Categories',
                     'description' => 'Create new item categories',
-                    'sort_order' => 97
+                    'sort_order' => 99
                 ],
                 [
                     'name' => 'production.categories.update',
                     'display_name' => 'Update Item Categories',
                     'description' => 'Update item category information',
-                    'sort_order' => 98
+                    'sort_order' => 100
                 ],
                 [
                     'name' => 'production.categories.delete',
                     'display_name' => 'Delete Item Categories',
                     'description' => 'Delete item categories',
-                    'sort_order' => 99
+                    'sort_order' => 101
                 ]
             ];
 
@@ -457,49 +469,49 @@ class PermissionSeeder extends Seeder
                     'name' => 'production.items.viewAny',
                     'display_name' => 'View Items List',
                     'description' => 'View list of all items',
-                    'sort_order' => 100
+                    'sort_order' => 102
                 ],
                 [
                     'name' => 'production.items.view',
                     'display_name' => 'View Item Details',
                     'description' => 'View item details',
-                    'sort_order' => 101
+                    'sort_order' => 103
                 ],
                 [
                     'name' => 'production.items.create',
                     'display_name' => 'Create Items',
                     'description' => 'Create new items',
-                    'sort_order' => 102
+                    'sort_order' => 104
                 ],
                 [
                     'name' => 'production.items.update',
                     'display_name' => 'Update Items',
                     'description' => 'Update item information',
-                    'sort_order' => 103
+                    'sort_order' => 105
                 ],
                 [
                     'name' => 'production.items.delete',
                     'display_name' => 'Delete Items',
                     'description' => 'Delete items',
-                    'sort_order' => 104
+                    'sort_order' => 106
                 ],
                 [
                     'name' => 'production.items.import',
                     'display_name' => 'Import Items',
                     'description' => 'Import items from CSV or JSON files',
-                    'sort_order' => 105
+                    'sort_order' => 107
                 ],
                 [
                     'name' => 'production.items.export',
                     'display_name' => 'Export Items',
                     'description' => 'Export items to CSV or JSON files',
-                    'sort_order' => 106
+                    'sort_order' => 108
                 ],
                 [
                     'name' => 'production.items.images.manage',
                     'display_name' => 'Manage Item Images',
                     'description' => 'Upload, edit, and delete item images',
-                    'sort_order' => 107
+                    'sort_order' => 109
                 ]
             ];
 
@@ -509,73 +521,323 @@ class PermissionSeeder extends Seeder
                     'name' => 'production.qr-tags.view',
                     'display_name' => 'View QR Tag Generator',
                     'description' => 'Access the QR tag generator interface',
-                    'sort_order' => 110
+                    'sort_order' => 112
                 ],
                 [
                     'name' => 'production.qr-tags.generate',
                     'display_name' => 'Generate QR Tags',
                     'description' => 'Generate QR code tags for items and manufacturing orders',
-                    'sort_order' => 111
+                    'sort_order' => 113
                 ],
                 [
                     'name' => 'production.qr-scan-logs.view',
                     'display_name' => 'View QR Scan Logs',
                     'description' => 'View QR code scan history and analytics',
-                    'sort_order' => 112
+                    'sort_order' => 114
                 ],
                 [
                     'name' => 'production.orders.create',
                     'display_name' => 'Create Manufacturing Orders',
                     'description' => 'Create new manufacturing orders',
-                    'sort_order' => 113
+                    'sort_order' => 115
                 ],
                 [
                     'name' => 'production.orders.release',
                     'display_name' => 'Release Manufacturing Orders',
                     'description' => 'Release manufacturing orders for production',
-                    'sort_order' => 114
+                    'sort_order' => 116
                 ],
                 [
                     'name' => 'production.orders.cancel',
                     'display_name' => 'Cancel Manufacturing Orders',
                     'description' => 'Cancel manufacturing orders',
-                    'sort_order' => 115
+                    'sort_order' => 117
                 ],
                 [
                     'name' => 'production.routes.create',
                     'display_name' => 'Create Production Routes',
                     'description' => 'Create production routes for manufacturing orders',
-                    'sort_order' => 116
+                    'sort_order' => 118
                 ],
                 [
                     'name' => 'production.steps.execute',
                     'display_name' => 'Execute Manufacturing Steps',
                     'description' => 'Execute steps in the manufacturing process',
-                    'sort_order' => 117
+                    'sort_order' => 119
                 ],
                 [
                     'name' => 'production.quality.executeCheck',
                     'display_name' => 'Execute Quality Checks',
                     'description' => 'Execute quality checks on manufacturing orders',
-                    'sort_order' => 118
+                    'sort_order' => 120
                 ],
                 [
                     'name' => 'production.quality.recordResult',
                     'display_name' => 'Record Quality Results',
                     'description' => 'Record quality check results',
-                    'sort_order' => 119
+                    'sort_order' => 121
                 ],
                 [
                     'name' => 'production.quality.initiateRework',
                     'display_name' => 'Initiate Rework',
                     'description' => 'Initiate rework for failed quality checks',
-                    'sort_order' => 120
+                    'sort_order' => 122
                 ],
                 [
                     'name' => 'production.reports.viewQualityMetrics',
                     'display_name' => 'View Quality Metrics',
                     'description' => 'View quality metrics and reports',
-                    'sort_order' => 121
+                    'sort_order' => 123
+                ]
+            ];
+
+            // Production Order Management permissions (new)
+            $productionOrderPermissions = [
+                [
+                    'name' => 'production.orders.viewAny',
+                    'display_name' => 'View Manufacturing Orders List',
+                    'description' => 'View list of all manufacturing orders',
+                    'sort_order' => 124
+                ],
+                [
+                    'name' => 'production.orders.view',
+                    'display_name' => 'View Manufacturing Order Details',
+                    'description' => 'View manufacturing order details',
+                    'sort_order' => 125
+                ],
+                [
+                    'name' => 'production.orders.update',
+                    'display_name' => 'Update Manufacturing Orders',
+                    'description' => 'Update manufacturing order information',
+                    'sort_order' => 126
+                ],
+                [
+                    'name' => 'production.orders.delete',
+                    'display_name' => 'Delete Manufacturing Orders',
+                    'description' => 'Delete manufacturing orders',
+                    'sort_order' => 127
+                ],
+                [
+                    'name' => 'production.orders.reportProduction',
+                    'display_name' => 'Report Production',
+                    'description' => 'Report production quantities without routing steps',
+                    'sort_order' => 128
+                ],
+                [
+                    'name' => 'production.orders.plan',
+                    'display_name' => 'Plan Manufacturing Orders',
+                    'description' => 'Transition manufacturing orders to planned status',
+                    'sort_order' => 129
+                ],
+                [
+                    'name' => 'production.orders.start',
+                    'display_name' => 'Start Manufacturing Orders',
+                    'description' => 'Start production on released manufacturing orders',
+                    'sort_order' => 130
+                ]
+            ];
+
+            // Production Tracking permissions
+            $productionTrackingPermissions = [
+                [
+                    'name' => 'production.tracking.view',
+                    'display_name' => 'View Production Tracking',
+                    'description' => 'Access production tracking dashboard',
+                    'sort_order' => 132
+                ],
+                [
+                    'name' => 'production.tracking.viewAll',
+                    'display_name' => 'View All Production Tracking',
+                    'description' => 'View production tracking for all work cells',
+                    'sort_order' => 133
+                ],
+                [
+                    'name' => 'production.work-cells.viewQueue',
+                    'display_name' => 'View Work Cell Queue',
+                    'description' => 'View production queue for specific work cells',
+                    'sort_order' => 134
+                ]
+            ];
+
+            // Production Route permissions
+            $productionRoutePermissions = [
+                [
+                    'name' => 'production.routes.viewAny',
+                    'display_name' => 'View Production Routes List',
+                    'description' => 'View list of all production routes',
+                    'sort_order' => 135
+                ],
+                [
+                    'name' => 'production.routes.view',
+                    'display_name' => 'View Production Route Details',
+                    'description' => 'View production route details',
+                    'sort_order' => 136
+                ],
+                [
+                    'name' => 'production.routes.update',
+                    'display_name' => 'Update Production Routes',
+                    'description' => 'Update production route information',
+                    'sort_order' => 137
+                ],
+                [
+                    'name' => 'production.routes.delete',
+                    'display_name' => 'Delete Production Routes',
+                    'description' => 'Delete production routes',
+                    'sort_order' => 138
+                ],
+                [
+                    'name' => 'production.routes.createFromTemplate',
+                    'display_name' => 'Create Routes from Templates',
+                    'description' => 'Use route templates to create production routes',
+                    'sort_order' => 139
+                ]
+            ];
+
+            // Production Step permissions
+            $productionStepPermissions = [
+                [
+                    'name' => 'production.steps.viewAny',
+                    'display_name' => 'View Manufacturing Steps List',
+                    'description' => 'View list of all manufacturing steps',
+                    'sort_order' => 140
+                ],
+                [
+                    'name' => 'production.steps.view',
+                    'display_name' => 'View Manufacturing Step Details',
+                    'description' => 'View manufacturing step details',
+                    'sort_order' => 141
+                ],
+                [
+                    'name' => 'production.steps.update',
+                    'display_name' => 'Update Manufacturing Steps',
+                    'description' => 'Update manufacturing step information',
+                    'sort_order' => 142
+                ],
+                [
+                    'name' => 'production.steps.hold',
+                    'display_name' => 'Hold Manufacturing Steps',
+                    'description' => 'Place manufacturing steps on hold',
+                    'sort_order' => 143
+                ],
+                [
+                    'name' => 'production.steps.resume',
+                    'display_name' => 'Resume Manufacturing Steps',
+                    'description' => 'Resume manufacturing steps from hold',
+                    'sort_order' => 144
+                ],
+                [
+                    'name' => 'production.steps.complete',
+                    'display_name' => 'Complete Manufacturing Steps',
+                    'description' => 'Mark manufacturing steps as completed',
+                    'sort_order' => 145
+                ],
+                [
+                    'name' => 'production.steps.skip',
+                    'display_name' => 'Skip Manufacturing Steps',
+                    'description' => 'Skip manufacturing steps',
+                    'sort_order' => 146
+                ]
+            ];
+
+            // Production BOM permissions
+            $productionBomPermissions = [
+                [
+                    'name' => 'production.bom.viewAny',
+                    'display_name' => 'View BOMs List',
+                    'description' => 'View list of all bills of materials',
+                    'sort_order' => 150
+                ],
+                [
+                    'name' => 'production.bom.view',
+                    'display_name' => 'View BOM Details',
+                    'description' => 'View bill of materials details',
+                    'sort_order' => 151
+                ],
+                [
+                    'name' => 'production.bom.create',
+                    'display_name' => 'Create BOMs',
+                    'description' => 'Create new bills of materials',
+                    'sort_order' => 152
+                ],
+                [
+                    'name' => 'production.bom.update',
+                    'display_name' => 'Update BOMs',
+                    'description' => 'Update bill of materials information',
+                    'sort_order' => 153
+                ],
+                [
+                    'name' => 'production.bom.delete',
+                    'display_name' => 'Delete BOMs',
+                    'description' => 'Delete bills of materials',
+                    'sort_order' => 154
+                ],
+                [
+                    'name' => 'production.bom.import',
+                    'display_name' => 'Import BOMs',
+                    'description' => 'Import bills of materials from CAD or files',
+                    'sort_order' => 155
+                ]
+            ];
+
+            // Production Shipment permissions
+            $productionShipmentPermissions = [
+                [
+                    'name' => 'production.shipments.viewAny',
+                    'display_name' => 'View Shipments List',
+                    'description' => 'View list of all shipments',
+                    'sort_order' => 160
+                ],
+                [
+                    'name' => 'production.shipments.view',
+                    'display_name' => 'View Shipment Details',
+                    'description' => 'View shipment details',
+                    'sort_order' => 161
+                ],
+                [
+                    'name' => 'production.shipments.create',
+                    'display_name' => 'Create Shipments',
+                    'description' => 'Create new shipments',
+                    'sort_order' => 162
+                ],
+                [
+                    'name' => 'production.shipments.update',
+                    'display_name' => 'Update Shipments',
+                    'description' => 'Update shipment information',
+                    'sort_order' => 163
+                ],
+                [
+                    'name' => 'production.shipments.delete',
+                    'display_name' => 'Delete Shipments',
+                    'description' => 'Delete shipments',
+                    'sort_order' => 164
+                ],
+                [
+                    'name' => 'production.shipments.uploadPhotos',
+                    'display_name' => 'Upload Shipment Photos',
+                    'description' => 'Upload photos and documentation for shipments',
+                    'sort_order' => 165
+                ],
+                [
+                    'name' => 'production.shipments.markDelivered',
+                    'display_name' => 'Mark Shipments Delivered',
+                    'description' => 'Mark shipments as delivered',
+                    'sort_order' => 166
+                ]
+            ];
+
+            // Production Analytics permissions
+            $productionAnalyticsPermissions = [
+                [
+                    'name' => 'production.analytics.view',
+                    'display_name' => 'View Production Analytics',
+                    'description' => 'Access production analytics and dashboards',
+                    'sort_order' => 170
+                ],
+                [
+                    'name' => 'production.analytics.export',
+                    'display_name' => 'Export Production Analytics',
+                    'description' => 'Export production analytics data',
+                    'sort_order' => 171
                 ]
             ];
 
@@ -592,7 +854,14 @@ class PermissionSeeder extends Seeder
                 $workCellPermissions,
                 $itemCategoryPermissions,
                 $itemPermissions,
-                $qrCodePermissions
+                $qrCodePermissions,
+                $productionOrderPermissions,
+                $productionTrackingPermissions,
+                $productionRoutePermissions,
+                $productionStepPermissions,
+                $productionBomPermissions,
+                $productionShipmentPermissions,
+                $productionAnalyticsPermissions
             );
 
             foreach ($allPermissions as $permissionData) {

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useForm, router } from '@inertiajs/react';
+import { type FormDataConvertible } from '@inertiajs/core';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import EmptyCard from '@/components/ui/empty-card';
 import { TextInput } from '@/components/TextInput';
+type FormValue = string | number | boolean | File | null | undefined;
 import { PartSearchDialog } from '@/components/work-orders/PartSearchDialog';
 import { SkillsTable } from '@/components/work-orders/SkillsTable';
 import { CertificationsTable } from '@/components/work-orders/CertificationsTable';
@@ -64,7 +66,7 @@ interface PlanningFormData {
     parts: PlanningPart[];
     estimated_parts_cost: number;
     estimated_total_cost: number;
-    [key: string]: any;
+    [key: string]: string | number | boolean | string[] | PlanningPart[];
 }
 
 interface WorkOrderPlanningTabProps {
@@ -88,6 +90,7 @@ interface PlanningPart {
     unit_cost: number;
     total_cost: number;
     available?: number;
+    [key: string]: FormDataConvertible;
 }
 
 interface EditableCellProps {
@@ -425,8 +428,13 @@ export function WorkOrderPlanningTab({
     };
 
     const formWrapper = {
-        data: data,
-        setData: handleSetData,
+        data: data as Record<string, FormValue>,
+        setData: handleSetData as {
+            (key: string, value: FormValue): void;
+            <K extends string>(key: K, value: FormValue): void;
+            (values: Record<string, FormValue>): void;
+            <T extends Record<string, FormValue>>(values: T | ((prev: T) => T)): void;
+        },
         errors,
         clearErrors: (...fields: string[]) => clearErrors(...(fields as Array<keyof typeof data>))
     };

@@ -288,4 +288,38 @@ class ManufacturingStep extends Model
     {
         return $query->where('step_type', 'quality_check');
     }
+
+    /**
+     * Get estimated duration in minutes.
+     */
+    public function getEstimatedDuration(): int
+    {
+        return ($this->setup_time_minutes ?? 0) + ($this->cycle_time_minutes ?? 30);
+    }
+
+    /**
+     * Get estimated remaining time in minutes.
+     */
+    public function getEstimatedRemainingTime(): int
+    {
+        if ($this->status !== 'in_progress' || !$this->actual_start_time) {
+            return $this->getEstimatedDuration();
+        }
+
+        $elapsedMinutes = $this->actual_start_time->diffInMinutes(now());
+        $estimatedDuration = $this->getEstimatedDuration();
+        
+        return max(0, $estimatedDuration - $elapsedMinutes);
+    }
+
+    /**
+     * Get the current execution relationship.
+     */
+    public function currentExecution()
+    {
+        return $this->hasOne(ManufacturingStepExecution::class)
+            ->where('status', 'in_progress')
+            ->latest();
+    }
+
 }

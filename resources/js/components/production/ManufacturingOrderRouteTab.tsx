@@ -22,10 +22,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TextInput } from '@/components/TextInput';
 import { ManufacturingOrder, WorkCell, RouteTemplate } from '@/types/production';
+import { User } from '@/types';
 import { Form } from '@/types/work-order';
+import { createFormAdapter } from '@/utils/form-adapters';
 import { toast } from 'sonner';
 
 import RouteBuilderCore from '@/components/production/RouteBuilderCore';
+import { ManufacturingStepsTable } from '@/components/production/ManufacturingStepsTable';
 interface Props {
     order: ManufacturingOrder;
     canCreateRoute: boolean;
@@ -46,8 +49,12 @@ export default function ManufacturingOrderRouteTab({
     forms = [],
     openRouteBuilder
 }: Props) {
-    const { props } = usePage();
-    const flash = props.flash as { openRouteBuilder?: string | boolean } | undefined;
+    const { props } = usePage<{
+        auth?: { user?: User };
+        flash?: { openRouteBuilder?: string | boolean }
+    }>();
+    const flash = props.flash;
+    const user = props.auth?.user;
     // Check URL params from props
     const openRouteBuilderParam = openRouteBuilder || null;
     // Check if we should start in builder mode (e.g., after creating a new route)
@@ -107,15 +114,8 @@ export default function ManufacturingOrderRouteTab({
         description: '',
         template_id: '',
     });
-    // Create a wrapper for form compatibility
-    const formData = {
-        data,
-        setData: (name: string, value: string | number | boolean | File | null | undefined) => {
-            setData(name as keyof typeof data, value as never);
-        },
-        errors: errors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => clearErrors(...(fields as Array<keyof typeof data>)),
-    };
+    // Create form adapter for TextInput compatibility
+    const formData = createFormAdapter({ data, setData, errors, clearErrors });
     const handleCreateRoute = () => {
         post(route('production.orders.routes.store', order.id), {
             preserveState: false, // Force full page refresh to get updated data
@@ -244,35 +244,49 @@ export default function ManufacturingOrderRouteTab({
                         </div>
                     );
                 }
-                // Route viewer mode - show route builder in view-only mode
+                // Route viewer mode - show interactive steps table
                 if (viewMode === 'routeViewer' && order.manufacturing_route) {
+                    const canExecuteSteps = user?.permissions?.includes('production.steps.execute') || false;
+                    const hasSteps = order.manufacturing_route.steps && order.manufacturing_route.steps.length > 0;
+
                     return (
-                        <div className="h-[calc(100vh-12rem)]">
-                            <RouteBuilderCore
-                                routing={{
-                                    id: order.manufacturing_route.id || 0,
-                                    manufacturing_order_id: order.manufacturing_route.manufacturing_order_id,
-                                    item_id: order.manufacturing_route.item_id,
-                                    route_template_id: order.manufacturing_route.route_template_id,
-                                    name: order.manufacturing_route.name || '',
-                                    description: order.manufacturing_route.description,
-                                    is_active: order.manufacturing_route.is_active || false,
-                                    created_by: order.manufacturing_route.created_by,
-                                    created_at: order.manufacturing_route.created_at,
-                                    updated_at: order.manufacturing_route.updated_at,
-                                    steps: order.manufacturing_route.steps || []
-                                }}
-                                workCells={workCells}
-                                stepTypes={stepTypes}
-                                forms={forms}
-                                can={{
-                                    manage_steps: canCreateRoute
-                                }}
-                                embedded={true}
-                                onCancel={() => setViewMode('routeViewer')}
-                                viewMode={true}
-                                onEdit={() => setViewMode('builder')}
-                            />
+                        <div className="space-y-6 px-6 lg:px-8">
+                            {/* Route Header */}
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold">{order.manufacturing_route.name}</h3>
+                                    {order.manufacturing_route.description && (
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            {order.manufacturing_route.description}
+                                        </p>
+                                    )}
+                                </div>
+                                {canCreateRoute && order.status === 'draft' && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setViewMode('builder')}
+                                    >
+                                        Edit Route
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* Steps Table or Empty State */}
+                            {hasSteps ? (
+                                <ManufacturingStepsTable
+                                    steps={order.manufacturing_route.steps || []}
+                                    canExecute={canExecuteSteps}
+                                />
+                            ) : (
+                                <EmptyCard
+                                    icon={Workflow}
+                                    title="No steps defined"
+                                    description="This route doesn't have any steps yet"
+                                    primaryButtonText={canCreateRoute ? "Add Steps" : undefined}
+                                    primaryButtonAction={canCreateRoute ? () => setViewMode('builder') : undefined}
+                                />
+                            )}
                         </div>
                     );
                 }

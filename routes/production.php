@@ -10,8 +10,10 @@ use App\Http\Controllers\Production\ProductionRoutingController;
 use App\Http\Controllers\Production\ProductionScheduleController;
 use App\Http\Controllers\Production\ManufacturingOrderController;
 use App\Http\Controllers\Production\QrTrackingController;
+use App\Http\Controllers\Production\ProductionTrackingController;
 use App\Http\Controllers\Production\ShipmentController;
 use App\Http\Controllers\Production\WorkCellController;
+use App\Http\Controllers\Production\WorkCellDashboardController;
 use App\Http\Controllers\Production\ProductionExecutionController;
 use App\Http\Controllers\Production\ManufacturingStepController;
 use App\Http\Controllers\Production\QrTagController;
@@ -128,6 +130,7 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     Route::post('orders/{order}/release', [ManufacturingOrderController::class, 'release'])->name('orders.release');
     Route::post('orders/{order}/cancel', [ManufacturingOrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('orders/{order}/apply-template', [ManufacturingOrderController::class, 'applyTemplate'])->name('orders.apply-template');
+    Route::post('orders/{order}/report-production', [ManufacturingOrderController::class, 'reportProduction'])->name('orders.report-production');
     
     // Order Routes
     Route::get('orders/{order}/routes/create', [ManufacturingOrderController::class, 'createRoute'])->name('orders.routes.create');
@@ -159,9 +162,10 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
 
     // Production Tracking
     Route::prefix('tracking')->name('tracking.')->group(function () {
-        Route::get('/', [QrTrackingController::class, 'dashboard'])->name('dashboard');
+        Route::get('/', [ProductionTrackingController::class, 'index'])->name('dashboard');
         Route::get('/scan', [QrTrackingController::class, 'scan'])->name('scan');
         Route::post('/scan', [QrTrackingController::class, 'processScan'])->name('scan.process');
+        Route::post('/scan/handle', [QrTrackingController::class, 'handleScan'])->name('scan.handle');
     });
 
     // Shipments
@@ -171,6 +175,9 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
     // Work Cells
     Route::resource('work-cells', WorkCellController::class);
     Route::get('work-cells/{workCell}/check-dependencies', [WorkCellController::class, 'checkDependencies'])->name('work-cells.check-dependencies');
+    Route::get('work-cells/{workCell}/dashboard', [WorkCellDashboardController::class, 'show'])->name('work-cells.dashboard');
+    Route::get('work-cells/{workCell}/analytics', [WorkCellDashboardController::class, 'analytics'])->name('work-cells.analytics');
+    Route::post('work-cells/{workCell}/export', [WorkCellDashboardController::class, 'export'])->name('work-cells.export');
     Route::get('plants/{plant}/areas', [WorkCellController::class, 'getAreas'])->name('work-cells.get-areas');
     Route::get('areas/{area}/sectors', [WorkCellController::class, 'getSectors'])->name('work-cells.get-sectors');
 

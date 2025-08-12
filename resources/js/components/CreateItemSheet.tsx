@@ -9,6 +9,7 @@ import { Item, ItemCategory } from '@/types/production';
 import CreateItemCategorySheet from '@/components/production/CreateItemCategorySheet';
 import { Factory, Package, ShoppingCart, Ghost } from 'lucide-react';
 import { router } from '@inertiajs/react';
+
 interface ItemForm {
     [key: string]: string | number | boolean | null | undefined;
     item_number: string;
@@ -140,31 +141,21 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                     entityName: 'Item',
                 }}
             >
-                {({ data, setData, errors }) => (
+                {({ data, setData, errors, formAdapter }) => (
                     <div className="space-y-6">
                         {/* Basic Information */}
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <TextInput
                                     ref={itemNumberRef}
-                                    form={{
-                                        data,
-                                        setData,
-                                        errors,
-                                        clearErrors: () => { },
-                                    }}
+                                    form={formAdapter}
                                     name="item_number"
                                     label="Número do Item"
                                     placeholder="ITEM-001"
                                     required
                                 />
                                 <TextInput
-                                    form={{
-                                        data,
-                                        setData,
-                                        errors,
-                                        clearErrors: () => { },
-                                    }}
+                                    form={formAdapter}
                                     name="name"
                                     label="Nome"
                                     placeholder="Nome do item"
@@ -219,23 +210,13 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <TextInput
-                                    form={{
-                                        data,
-                                        setData,
-                                        errors,
-                                        clearErrors: () => { },
-                                    }}
+                                    form={formAdapter}
                                     name="unit_of_measure"
                                     label="Unidade de Medida"
                                     placeholder="EA"
                                 />
                                 <TextInput
-                                    form={{
-                                        data,
-                                        setData,
-                                        errors,
-                                        clearErrors: () => { },
-                                    }}
+                                    form={formAdapter}
                                     name="weight"
                                     label="Peso (kg)"
                                     placeholder="0.00"
@@ -265,23 +246,13 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                                     <div className="border-l border-gray-200">
                                         <div className="ml-6 space-y-3">
                                             <TextInput
-                                                form={{
-                                                    data,
-                                                    setData,
-                                                    errors,
-                                                    clearErrors: () => { },
-                                                }}
+                                                form={formAdapter}
                                                 name="manufacturing_cost"
                                                 label="Custo de Manufatura"
                                                 placeholder="0.00"
                                             />
                                             <TextInput
-                                                form={{
-                                                    data,
-                                                    setData,
-                                                    errors,
-                                                    clearErrors: () => { },
-                                                }}
+                                                form={formAdapter}
                                                 name="manufacturing_lead_time_days"
                                                 label="Lead Time de Manufatura (dias)"
                                                 placeholder="0"
@@ -308,45 +279,25 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                                     <div className="border-l border-gray-200">
                                         <div className="ml-6 space-y-3">
                                             <TextInput
-                                                form={{
-                                                    data,
-                                                    setData,
-                                                    errors,
-                                                    clearErrors: () => { },
-                                                }}
+                                                form={formAdapter}
                                                 name="preferred_vendor"
                                                 label="Fornecedores Preferenciais"
                                                 placeholder="Nome dos fornecedores"
                                             />
                                             <TextInput
-                                                form={{
-                                                    data,
-                                                    setData,
-                                                    errors,
-                                                    clearErrors: () => { },
-                                                }}
+                                                form={formAdapter}
                                                 name="vendor_item_number"
                                                 label="Código do Fornecedor"
                                                 placeholder="Código do item no fornecedor"
                                             />
                                             <TextInput
-                                                form={{
-                                                    data,
-                                                    setData,
-                                                    errors,
-                                                    clearErrors: () => { },
-                                                }}
+                                                form={formAdapter}
                                                 name="purchase_price"
                                                 label="Preço de Compra"
                                                 placeholder="0.00"
                                             />
                                             <TextInput
-                                                form={{
-                                                    data,
-                                                    setData,
-                                                    errors,
-                                                    clearErrors: () => { },
-                                                }}
+                                                form={formAdapter}
                                                 name="purchase_lead_time_days"
                                                 label="Lead Time de Compra (dias)"
                                                 placeholder="0"
@@ -373,12 +324,7 @@ const CreateItemSheet: React.FC<CreateItemSheetProps> = ({
                                     <div className="border-l border-gray-200">
                                         <div className="ml-6 space-y-3">
                                             <TextInput
-                                                form={{
-                                                    data,
-                                                    setData,
-                                                    errors,
-                                                    clearErrors: () => { },
-                                                }}
+                                                form={formAdapter}
                                                 name="list_price"
                                                 label="Preço de Lista"
                                                 placeholder="0.00"

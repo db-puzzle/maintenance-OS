@@ -1,6 +1,7 @@
 import React from 'react';
-import HierarchicalConfiguration from './HierarchicalConfiguration';
+import BomHierarchicalView from './BomHierarchicalView';
 import { BomItem, Item, ItemCategory, BomVersion } from '@/types/production';
+
 interface BomConfigurationProps {
   bomId: number;
   versionId: number;
@@ -19,10 +20,11 @@ interface BomConfigurationProps {
     versions?: BomVersion[];
   };
 }
+
 /**
- * BomConfiguration component - wrapper for HierarchicalConfiguration
+ * BomConfiguration component - wrapper for BomHierarchicalView
  * This component maintains backward compatibility while delegating
- * all functionality to the generic HierarchicalConfiguration component
+ * all functionality to the new BomHierarchicalView component
  */
 export default function BomConfiguration({
   bomId,
@@ -35,8 +37,7 @@ export default function BomConfiguration({
   bom
 }: BomConfigurationProps) {
   return (
-    <HierarchicalConfiguration
-      type="bom"
+    <BomHierarchicalView
       bomId={bomId}
       versionId={versionId}
       bomItems={bomItems}

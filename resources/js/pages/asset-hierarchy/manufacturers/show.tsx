@@ -68,7 +68,7 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
     const handleSort = (column: string) => {
         const direction = filters.assets.sort === column && filters.assets.direction === 'asc' ? 'desc' : 'asc';
         router.get(
-            route('asset-hierarchy.manufacturers.show', {
+            window.route('asset-hierarchy.manufacturers.show', {
                 manufacturer: manufacturer.id,
                 tab: activeTab,
                 assets_sort: column,
@@ -126,7 +126,7 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 label: 'TAG',
                                 sortable: true,
                                 width: 'w-[300px]',
-                                 
+
                                 render: (value, row) => <div className="font-medium">{(row as unknown as AssetData).tag}</div>,
                             },
                             {
@@ -134,7 +134,7 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 label: 'Tipo',
                                 sortable: true,
                                 width: 'w-[200px]',
-                                 
+
                                 render: (value, row) => <span className="text-muted-foreground text-sm">{(row as unknown as AssetData).description || '-'}</span>,
                             },
                             {
@@ -143,7 +143,7 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 sortable: true,
                                 width: 'w-[250px]',
                                 render: (value, row) => {
-                                     
+
                                     const item = row as unknown as AssetData;
                                     return (
                                         <span className="text-muted-foreground text-sm">
@@ -168,8 +168,8 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 render: (value) => <span className="text-muted-foreground text-sm">{value as number ?? '-'}</span>,
                             },
                         ]}
-                         
-                        onRowClick={(row) => router.visit(route('asset-hierarchy.assets.show', (row as Record<string, unknown>).id))}
+
+                        onRowClick={(row) => router.visit(window.route('asset-hierarchy.assets.show', (row as Record<string, unknown>).id))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {
                                 asset_type_name: 'type',
@@ -189,7 +189,7 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                                 from: assetsData.current_page > 0 ? (assetsData.current_page - 1) * assetsData.per_page + 1 : null,
                                 to: assetsData.current_page > 0 ? Math.min(assetsData.current_page * assetsData.per_page, assetsData.total) : null,
                             }}
-                            onPageChange={(page) => router.get(route('asset-hierarchy.manufacturers.show', {
+                            onPageChange={(page) => router.get(window.route('asset-hierarchy.manufacturers.show', {
                                 manufacturer: manufacturer.id,
                                 assets_page: page,
                                 tab: 'ativos',

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\Production\BomItem;
 use App\Models\Production\ManufacturingOrder;
+use App\Models\Production\ManufacturingStep;
+use App\Models\Production\Item;
 use App\Models\Production\QrTracking;
 use App\Services\Production\QrCodeGenerationService;
 use Illuminate\Http\Request;
@@ -362,6 +364,65 @@ class QrTrackingController extends Controller
             'item' => $item,
             'message' => 'Scan recorded successfully.',
         ]);
+    }
+
+    /**
+     * Handle QR code scan and redirect to appropriate page.
+     */
+    public function handleScan(Request $request)
+    {
+        $validated = $request->validate([
+            'code' => 'required|string',
+            'scan_mode' => 'required|in:item,order,step',
+        ]);
+        
+        // Decode QR data
+        $qrData = $this->decodeQrCode($validated['code']);
+        
+        switch ($qrData['type']) {
+            case 'manufacturing_order':
+                return redirect()->route('production.orders.show', $qrData['id'])
+                    ->with('flash', ['fromQrScan' => true]);
+                    
+            case 'manufacturing_step':
+                $step = ManufacturingStep::find($qrData['id']);
+                if ($step && in_array($step->status, ['queued', 'in_progress', 'on_hold'])) {
+                    return redirect()->route('production.steps.execute', $qrData['id']);
+                }
+                return redirect()->route('production.steps.show', $qrData['id']);
+                
+            case 'item':
+                return redirect()->route('production.items.show', $qrData['id']);
+                
+            default:
+                return back()->with('error', 'Unknown QR code type');
+        }
+    }
+    
+    /**
+     * Decode QR code data.
+     */
+    protected function decodeQrCode(string $code): array
+    {
+        // Simple implementation - in production you might want more complex encoding
+        // Expected format: type:id (e.g., "order:123", "item:456", "step:789")
+        $parts = explode(':', $code);
+        
+        if (count($parts) !== 2) {
+            throw new \InvalidArgumentException('Invalid QR code format');
+        }
+        
+        $typeMap = [
+            'order' => 'manufacturing_order',
+            'mo' => 'manufacturing_order',
+            'step' => 'manufacturing_step',
+            'item' => 'item',
+        ];
+        
+        return [
+            'type' => $typeMap[$parts[0]] ?? $parts[0],
+            'id' => (int) $parts[1],
+        ];
     }
 
     /**

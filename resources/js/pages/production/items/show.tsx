@@ -157,6 +157,14 @@ export default function ItemShow({
 
     const { data, setData, errors, processing, post, patch, clearErrors } = form;
 
+    // Create form wrapper for TextInput components
+    const formWrapper = {
+        data: data as Record<string, string | number | boolean | File | null | undefined>,
+        setData: setData as (field: string, value: string | number | boolean | File | null | undefined) => void,
+        errors,
+        clearErrors: clearErrors as (...fields: string[]) => void,
+    };
+
     const [isEditMode, setIsEditMode] = useState(isCreating);
     const [isCompressed, setIsCompressed] = useState(false);
     const [categorySheetOpen, setCategorySheetOpen] = useState(false);
@@ -480,7 +488,7 @@ export default function ItemShow({
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <TextInput
-                                    form={form}
+                                    form={formWrapper}
                                     name="item_number"
                                     label="Número do Item"
                                     placeholder="ITEM-001"
@@ -489,7 +497,7 @@ export default function ItemShow({
                                     ref={itemNumberInputRef}
                                 />
                                 <TextInput
-                                    form={form}
+                                    form={formWrapper}
                                     name="name"
                                     label="Nome"
                                     placeholder="Nome do item"
@@ -581,14 +589,14 @@ export default function ItemShow({
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <TextInput
-                                    form={form}
+                                    form={formWrapper}
                                     name="unit_of_measure"
                                     label="Unidade de Medida"
                                     placeholder="EA"
                                     disabled={!isEditMode || processing}
                                 />
                                 <TextInput
-                                    form={form}
+                                    form={formWrapper}
                                     name="weight"
                                     label="Peso (kg)"
                                     placeholder="0.00"
@@ -636,14 +644,14 @@ export default function ItemShow({
                                 {data.can_be_manufactured && (
                                     <div className="space-y-3">
                                         <TextInput
-                                            form={form}
+                                            form={formWrapper}
                                             name="manufacturing_cost"
                                             label="Custo de Manufatura"
                                             placeholder="0.00"
                                             disabled={!isEditMode || processing}
                                         />
                                         <TextInput
-                                            form={form}
+                                            form={formWrapper}
                                             name="manufacturing_lead_time_days"
                                             label="Lead Time de Manufatura (dias)"
                                             placeholder="0"
@@ -690,28 +698,28 @@ export default function ItemShow({
                                 {data.can_be_purchased && (
                                     <div className="space-y-3">
                                         <TextInput
-                                            form={form}
+                                            form={formWrapper}
                                             name="preferred_vendor"
                                             label="Fornecedores Preferenciais"
                                             placeholder="Nome dos fornecedores"
                                             disabled={!isEditMode || processing}
                                         />
                                         <TextInput
-                                            form={form}
+                                            form={formWrapper}
                                             name="vendor_item_number"
                                             label="Código do Fornecedor"
                                             placeholder="Código do item no fornecedor"
                                             disabled={!isEditMode || processing}
                                         />
                                         <TextInput
-                                            form={form}
+                                            form={formWrapper}
                                             name="purchase_price"
                                             label="Preço de Compra"
                                             placeholder="0.00"
                                             disabled={!isEditMode || processing}
                                         />
                                         <TextInput
-                                            form={form}
+                                            form={formWrapper}
                                             name="purchase_lead_time_days"
                                             label="Lead Time de Compra (dias)"
                                             placeholder="0"
@@ -758,7 +766,7 @@ export default function ItemShow({
                                 {data.can_be_sold && (
                                     <div className="space-y-3">
                                         <TextInput
-                                            form={form}
+                                            form={formWrapper}
                                             name="list_price"
                                             label="Preço de Lista"
                                             placeholder="0.00"

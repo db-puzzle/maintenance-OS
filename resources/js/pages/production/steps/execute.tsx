@@ -77,21 +77,54 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
         quantity_scrapped: 0,
     });
     const totalParts = step.quality_check_mode === 'every_part'
-        ? step.manufacturing_route.manufacturing_order?.quantity || 1
+        ? parseInt(step.manufacturing_route.manufacturing_order?.quantity?.toString() || '1')
         : step.quality_check_mode === 'sampling'
-            ? step.sampling_size || 1
+            ? parseInt(step.sampling_size?.toString() || '1')
             : 1;
     const handleBegin = () => {
+        // Check for required fields
+        if (!form.data.operator_id) {
+            toast.error('Operador não selecionado');
+            return;
+        }
+
+        // Additional check for step dependencies
+        if (step.depends_on_step_id) {
+            // Check if we have dependency info loaded
+            const stepWithDependency = step as RouteStep & { dependency?: { status: string; name: string } };
+            if (stepWithDependency.dependency && stepWithDependency.dependency.status !== 'completed') {
+                toast.error(`Esta etapa depende da conclusão da etapa anterior: ${stepWithDependency.dependency.name}`);
+                return;
+            }
+        }
+
         router.post(route('production.steps.start', step.id), {
             operator_id: form.data.operator_id,
             work_cell_id: form.data.work_cell_id,
-            part_number: form.data.part_number,
+            part_number: parseInt(form.data.part_number.toString()),
             total_parts: totalParts,
         }, {
             onSuccess: () => {
                 setState('in_progress');
                 toast.success('Etapa iniciada');
             },
+            onError: (errors) => {
+                // Handle specific error messages from the backend
+                if (typeof errors === 'string') {
+                    toast.error(errors);
+                } else if (errors.message) {
+                    toast.error(errors.message);
+                } else if (errors.work_cell_id) {
+                    toast.error('Célula de trabalho é obrigatória');
+                } else if (errors.error) {
+                    toast.error(errors.error);
+                } else {
+                    // Show all errors if multiple
+                    const errorMessages = Object.values(errors).flat().join('. ');
+                    toast.error(errorMessages || 'Erro ao iniciar etapa. Verifique os dados e tente novamente.');
+                }
+            },
+            preserveScroll: true
         });
     };
     const handlePause = () => {

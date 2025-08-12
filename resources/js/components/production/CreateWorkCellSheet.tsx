@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { WorkCell } from '@/types/production';
 
+
 interface WorkCellForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -151,17 +152,12 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                 entityName: 'Célula de Trabalho',
             }}
         >
-            {({ data, setData, errors }) => (
+            {({ data, setData, errors, formAdapter }) => (
                 <>
                     {/* Nome - Campo Obrigatório */}
                     <TextInput
                         ref={nameInputRef}
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="name"
                         label="Nome da Célula"
                         placeholder="Nome da célula de trabalho"
@@ -169,12 +165,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                     />
                     {/* Descrição */}
                     <TextInput
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="description"
                         label="Descrição"
                         placeholder="Descrição da célula de trabalho"
@@ -215,24 +206,14 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
                     {/* Capacidade */}
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: () => { },
-                            }}
+                            form={formAdapter}
                             name="available_hours_per_day"
                             label="Horas Disponíveis/Dia"
                             placeholder="8"
                             required
                         />
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: () => { },
-                            }}
+                            form={formAdapter}
                             name="efficiency_percentage"
                             label="Eficiência (%)"
                             placeholder="85"

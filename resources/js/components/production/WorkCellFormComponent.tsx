@@ -10,6 +10,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { useState, useEffect } from 'react';
 import { Factory, Clock, MapPin } from 'lucide-react';
+import { createFormAdapter } from '@/utils/form-adapters';
+
 interface WorkCellFormComponentProps {
     workCell: WorkCell & {
         plant?: { id: number; name: string };
@@ -52,6 +54,10 @@ export default function WorkCellFormComponent({
         manufacturer_id: workCell.manufacturer_id?.toString() || '',
         is_active: workCell.is_active ?? true,
     });
+
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors: () => { } });
+
     // Fetch areas when plant changes
     useEffect(() => {
         if (data.plant_id && mode === 'edit') {
@@ -213,7 +219,7 @@ export default function WorkCellFormComponent({
                     {/* Basic Info */}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <TextInput
-                            form={{ data, setData, errors, clearErrors: () => { } }}
+                            form={formAdapter}
                             name="name"
                             label="Nome"
                             placeholder="Nome da célula"
@@ -250,7 +256,7 @@ export default function WorkCellFormComponent({
                         </div>
                     </div>
                     <TextInput
-                        form={{ data, setData, errors, clearErrors: () => { } }}
+                        form={formAdapter}
                         name="description"
                         label="Descrição"
                         placeholder="Descrição da célula"
@@ -258,14 +264,14 @@ export default function WorkCellFormComponent({
                     {/* Capacity */}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <TextInput
-                            form={{ data, setData, errors, clearErrors: () => { } }}
+                            form={formAdapter}
                             name="available_hours_per_day"
                             label="Horas Disponíveis/Dia"
                             placeholder="8"
                             required
                         />
                         <TextInput
-                            form={{ data, setData, errors, clearErrors: () => { } }}
+                            form={formAdapter}
                             name="efficiency_percentage"
                             label="Eficiência (%)"
                             placeholder="85"

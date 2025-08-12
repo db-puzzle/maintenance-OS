@@ -85,6 +85,15 @@ class WorkCell extends Model
     }
 
     /**
+     * Get the manufacturing steps assigned to this work cell.
+     * Alias for routingSteps.
+     */
+    public function manufacturingSteps(): HasMany
+    {
+        return $this->hasMany(ManufacturingStep::class);
+    }
+
+    /**
      * Get the production schedules for this work cell.
      */
     // TODO: Uncomment when ProductionSchedule model is created

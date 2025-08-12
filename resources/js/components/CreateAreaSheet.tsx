@@ -3,6 +3,7 @@ import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import { ItemSelect } from '@/components/ItemSelect';
 import { TextInput } from '@/components/TextInput';
 import { Area } from '@/types/entities/area';
+
 interface AreaForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -95,17 +96,12 @@ const CreateAreaSheet: React.FC<CreateAreaSheetProps> = ({
                 entityName: 'Área',
             }}
         >
-            {({ data, setData, errors }) => (
+            {({ data, setData, errors, formAdapter }) => (
                 <>
                     {/* Nome da Área - Campo Obrigatório */}
                     <TextInput
                         ref={nameInputRef}
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="name"
                         label="Nome da Área"
                         placeholder="Nome da área"

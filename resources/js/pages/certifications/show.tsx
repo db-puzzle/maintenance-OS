@@ -8,7 +8,7 @@ import CertificationFormComponent from '@/components/certifications/Certificatio
 import { ColumnConfig } from '@/types/shared';
 import { User, Building2, Users, AlertCircle } from 'lucide-react';
 import { type BreadcrumbItem } from '@/types';
-// import { Certification } from '@/types/entities/skill'; // Using component's internal type
+import { Certification } from '@/types/entities/skill'; // Using component's internal type
 interface CertificationUser {
     id: number;
     name: string;
@@ -159,7 +159,7 @@ export default function CertificationShow({ certification, can, activeTab = 'inf
             content: (
                 <div className="py-8">
                     <CertificationFormComponent
-                        certification={certification as any}
+                        certification={certification as Certification}
                         initialMode="view"
                         onSuccess={handleEditSuccess}
                         canUpdate={can.update}

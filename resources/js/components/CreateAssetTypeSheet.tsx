@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import { TextInput } from '@/components/TextInput';
 import { AssetType } from '@/types/entities/asset-type';
+
 interface AssetTypeForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -74,17 +75,12 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
                 },
             }}
         >
-            {({ data, setData, errors }) => (
+            {({ formAdapter }) => (
                 <>
                     {/* Nome do Tipo - Campo Obrigatório */}
                     <TextInput
                         ref={nameInputRef}
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="name"
                         label="Nome"
                         placeholder="Nome do tipo de ativo"
@@ -92,12 +88,7 @@ const CreateAssetTypeSheet: React.FC<CreateAssetTypeSheetProps> = ({ assetType, 
                     />
                     {/* Descrição */}
                     <TextInput
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="description"
                         label="Descrição"
                         placeholder="Descrição do tipo de ativo"

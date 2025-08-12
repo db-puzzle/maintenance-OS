@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { createFormAdapter } from '@/utils/form-adapters';
 
 import { useForm } from '@inertiajs/react';
 import { AlertCircle, Clock, Copy, Plus, Table, Trash2, ChevronsUpDown, Check } from 'lucide-react';
@@ -62,7 +63,6 @@ interface CreateShiftSheetProps {
 }
 // Create a proper type for the form data
 interface ShiftFormWithTimezone {
-    [key: string]: string | number | boolean | File | null | undefined | any;
     name: string;
     timezone: string;
     schedules: {
@@ -77,6 +77,7 @@ interface ShiftFormWithTimezone {
             }[];
         }[];
     }[];
+    [key: string]: string | number | boolean | File | null | undefined | ShiftFormWithTimezone['schedules'];
 }
 const weekdays = [
     { key: 'Monday', label: 'Segunda' },
@@ -268,12 +269,8 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
 
         const { data, setData, processing, errors, clearErrors, setError } = useForm<ShiftFormWithTimezone>(getInitialFormData());
 
-        // Create a wrapper for setData to match the TextInput expected signature
-        const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
-            if (name === 'name' || name === 'timezone') {
-                setData(name as keyof ShiftFormWithTimezone, value as string);
-            }
-        };
+        // Create form adapter for TextInput compatibility
+        const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
 
         // Helper function to safely get schedules from form data
         const getSchedulesFromData = (): Schedule[] => {
@@ -720,12 +717,7 @@ const CreateShiftSheet = forwardRef<HTMLButtonElement, CreateShiftSheetProps>(
                                     {/* Campo de nome do turno */}
                                     <div className="w-full space-y-2">
                                         <TextInput
-                                            form={{
-                                                data: { name: data.name },
-                                                setData: handleSetData,
-                                                errors,
-                                                clearErrors,
-                                            }}
+                                            form={formAdapter}
                                             name="name"
                                             label="Nome do Turno"
                                             placeholder="Digite o nome do turno"

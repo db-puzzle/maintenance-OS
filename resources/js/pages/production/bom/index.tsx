@@ -111,7 +111,7 @@ export default function BomIndex({ boms, filters }: Props) {
         window.open(route('production.bom.export', bom.id), '_blank');
     };
 
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<BillOfMaterial>[] = [
         {
             key: 'bom_number',
             label: 'Número',
@@ -124,12 +124,12 @@ export default function BomIndex({ boms, filters }: Props) {
             label: 'Nome',
             sortable: true,
             width: 'w-[300px]',
-            render: (value: unknown, row: Record<string, unknown>) => (
+            render: (value: unknown, row: BillOfMaterial) => (
                 <div>
                     <div className="font-medium">{value as React.ReactNode}</div>
                     {row.description ? (
                         <div className="text-muted-foreground text-sm">
-                            {(row.description as string).length > 40 ? `${(row.description as string).substring(0, 40)}...` : row.description as React.ReactNode}
+                            {row.description.length > 40 ? `${row.description.substring(0, 40)}...` : row.description}
                         </div>
                     ) : null}
                 </div>
@@ -139,9 +139,8 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'version',
             label: 'Versão',
             width: 'w-[100px]',
-            render: (value: unknown, row: Record<string, unknown>) => {
-                const bomRow = row as unknown as BillOfMaterial;
-                const currentVersion = bomRow.current_version?.version_number;
+            render: (value: unknown, row: BillOfMaterial) => {
+                const currentVersion = row.current_version?.version_number;
                 return currentVersion ? `v${currentVersion}` : '-';
             }
         },
@@ -163,13 +162,13 @@ export default function BomIndex({ boms, filters }: Props) {
             key: 'versions_count',
             label: 'Versões',
             width: 'w-[100px]',
-            render: (value: unknown, row: Record<string, unknown>) => <>{(row as unknown as BillOfMaterial).versions_count || 0}</>
+            render: (value: unknown, row: BillOfMaterial) => <>{row.versions_count || 0}</>
         },
         {
             key: 'item_masters_count',
             label: 'Componentes',
             width: 'w-[120px]',
-            render: (value: unknown, row: Record<string, unknown>) => <>{(row as unknown as BillOfMaterial & { item_masters_count?: number }).item_masters_count || 0}</>
+            render: (value: unknown, row: BillOfMaterial) => <>{(row as BillOfMaterial & { item_masters_count?: number }).item_masters_count || 0}</>
         }
     ];
 
@@ -197,7 +196,7 @@ export default function BomIndex({ boms, filters }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as unknown as Array<Record<string, unknown>>}
+                        data={data}
                         columns={columns}
                         loading={false}
                         emptyMessage="Nenhuma Lista de Materiais encontrada."

@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import InputError from '@/components/input-error';
 import { ItemCategory } from '@/types/production';
+import { createFormAdapter } from '@/utils/form-adapters';
+
 interface ItemCategoryFormComponentProps {
     category: ItemCategory;
     initialMode?: 'view' | 'edit';
@@ -23,6 +25,9 @@ const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
         description: category.description || '',
         is_active: category.is_active ?? true,
     });
+
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         put(route('production.categories.update', { category: category.id }), {
@@ -44,7 +49,7 @@ const ItemCategoryFormComponent: React.FC<ItemCategoryFormComponentProps> = ({
             <div className="grid gap-6">
                 {/* Nome */}
                 <TextInput
-                    form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
+                    form={formAdapter}
                     name="name"
                     label="Nome"
                     placeholder="Nome da categoria"

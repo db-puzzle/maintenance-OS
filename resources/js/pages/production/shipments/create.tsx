@@ -12,6 +12,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Item } from '@/types/production';
 import { cn } from '@/lib/utils';
 
+import { createFormAdapter } from '@/utils/form-adapters';
 interface Props {
     items: Item[];
 }
@@ -133,14 +134,6 @@ export default function ShipmentCreate({ items }: Props) {
     });
 
     const { data: _data, setData: _setData, errors: _errors, processing: _processing, clearErrors: _clearErrors } = form;
-
-    // Create form adapter for TextInput components
-    const formAdapter = {
-        data: _data as Record<string, string | number | boolean | null | undefined>,
-        setData: (name: string, value: string | number | boolean | null | undefined) => _setData(name as keyof ShipmentFormDataForInertia, value),
-        errors: _errors,
-        clearErrors: _clearErrors,
-    };
 
     const steps = [
         { number: 1, title: 'Itens', icon: <Package className="h-4 w-4" /> },
@@ -384,12 +377,7 @@ interface StepProps {
 // Step 2: Destination
 function DestinationStep({ form }: StepProps) {
     // Create form adapter for TextInput components
-    const formAdapter = {
-        data: form.data as Record<string, string | number | boolean | null | undefined>,
-        setData: (name: string, value: string | number | boolean | null | undefined) => form.setData(name as keyof ShipmentFormDataForInertia, value),
-        errors: form.errors,
-        clearErrors: form.clearErrors,
-    };
+    const formAdapter = createFormAdapter({ data: form.data, setData: form.setData, errors: form.errors, clearErrors: form.clearErrors });
 
     return (
         <div className="space-y-6">
@@ -458,12 +446,7 @@ function DestinationStep({ form }: StepProps) {
 // Step 3: Carrier
 function CarrierStep({ form }: StepProps) {
     // Create form adapter for TextInput components
-    const formAdapter = {
-        data: form.data as Record<string, string | number | boolean | null | undefined>,
-        setData: (name: string, value: string | number | boolean | null | undefined) => form.setData(name as keyof ShipmentFormDataForInertia, value),
-        errors: form.errors,
-        clearErrors: form.clearErrors,
-    };
+    const formAdapter = createFormAdapter({ data: form.data, setData: form.setData, errors: form.errors, clearErrors: form.clearErrors });
 
     return (
         <div className="space-y-6">

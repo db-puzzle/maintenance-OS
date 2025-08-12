@@ -21,6 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ManufacturingRoute, ManufacturingStep, WorkCell } from '@/types/production';
 import { Form } from '@/types/work-order';
 import { toast } from 'sonner';
+import { createFormAdapter } from '@/utils/form-adapters';
 
 import RouteBuilderCore from '@/components/production/RouteBuilderCore';
 interface Props {
@@ -98,15 +99,8 @@ export default function RoutingStepsTab({
         description: '',
         template_id: '',
     });
-    // Create a wrapper for form compatibility
-    const _form = {
-        data,
-        setData: (name: string, value: string | number | boolean | File | null | undefined) => {
-            setData(name as keyof typeof data, value as any);
-        },
-        errors: errors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => clearErrors(...(fields as Array<keyof typeof data>)),
-    };
+    // Create form adapter for TextInput compatibility
+    const _form = createFormAdapter({ data, setData, errors, clearErrors });
     const handleCreateRoute = () => {
         post(route('production.routing.steps.from-template', routingId), {
             onSuccess: () => {

@@ -4,6 +4,7 @@ import { TextInput } from '@/components/TextInput';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Manufacturer } from '@/types/entities/manufacturer';
+
 interface ManufacturerForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -76,17 +77,12 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                 entityName: 'Fabricante',
             }}
         >
-            {({ data, setData, errors }) => (
+            {({ data, setData, errors, formAdapter }) => (
                 <>
                     {/* Nome do Fabricante - Campo Obrigatório */}
                     <TextInput
                         ref={nameInputRef}
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="name"
                         label="Nome do Fabricante"
                         placeholder="Nome do fabricante"
@@ -94,12 +90,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                     />
                     {/* Website */}
                     <TextInput
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="website"
                         label="Website"
                         placeholder="https://www.exemplo.com"
@@ -107,23 +98,13 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                     {/* Email e Telefone - Grid com 2 colunas */}
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: () => { },
-                            }}
+                            form={formAdapter}
                             name="email"
                             label="E-mail"
                             placeholder="contato@exemplo.com"
                         />
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: () => { },
-                            }}
+                            form={formAdapter}
                             name="phone"
                             label="Telefone"
                             placeholder="+55 11 99999-9999"
@@ -131,12 +112,7 @@ const CreateManufacturerSheet: React.FC<CreateManufacturerSheetProps> = ({ manuf
                     </div>
                     {/* País */}
                     <TextInput
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="country"
                         label="País"
                         placeholder="Brasil"

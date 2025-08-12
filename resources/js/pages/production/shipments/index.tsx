@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ColumnConfig } from '@/types/shared';
+import { Shipment } from '@/types/production';
 interface Shipment {
     id: string;
     shipment_number: string;
@@ -83,7 +84,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
         } else {
             delete newFilters[key];
         }
-        router.get(route('production.shipments.index'), newFilters as any, {
+        router.get(route('production.shipments.index'), newFilters, {
             preserveState: true,
             preserveScroll: true,
         });
@@ -108,14 +109,14 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             },
         });
     };
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<Shipment>[] = [
         {
             key: 'shipment_number',
             label: 'Shipment #',
             sortable: true,
             render: (value: unknown, shipment: Record<string, unknown>) => (
                 <Link
-                    href={route('production.shipments.show', shipment.id)}
+                    href={route('production.shipments.show', shipment.id as number)}
                     className="font-medium text-blue-600 hover:underline"
                 >
                     {value as React.ReactNode}

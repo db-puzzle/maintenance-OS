@@ -93,7 +93,7 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
         from: initialPlants.from,
         to: initialPlants.to,
     };
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<Plant>[] = [
         {
             key: 'name',
             label: 'Nome',
@@ -101,8 +101,8 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             width: 'w-[300px]',
             render: (value, row) => (
                 <div>
-                    <div className="font-medium">{row.name as React.ReactNode}</div>
-                    {row.description ? <div className="text-muted-foreground text-sm">{String(row.description)}</div> : null}
+                    <div className="font-medium">{row.name}</div>
+                    {row.description ? <div className="text-muted-foreground text-sm">{row.description}</div> : null}
                 </div>
             ),
         },
@@ -181,7 +181,7 @@ export default function Plantas({ plants: initialPlants, filters }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data.map(plant => ({ ...plant } as Record<string, unknown>))}
+                        data={data}
                         columns={columns}
                         loading={false}
                         onRowClick={(plant) => router.visit(route('asset-hierarchy.plants.show', { id: plant.id as string | number }))}

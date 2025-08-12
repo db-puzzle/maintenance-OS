@@ -10,6 +10,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { createFormAdapter } from '@/utils/form-adapters';
 
 import { Switch } from '@/components/ui/switch';
 import { ItemSelect } from '@/components/ItemSelect';
@@ -315,18 +316,8 @@ export function WorkOrderFormComponent({
         setMode('edit');
     };
 
-    // Create a wrapper for setData to match TextInput signature
-    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
-        setData(name as keyof WorkOrderFormData, value as WorkOrderFormData[keyof WorkOrderFormData]);
-    };
-    
-    // Form wrapper for TextInput components
-    const formWrapper = {
-        data: data as Record<string, string | number | boolean | File | null | undefined>,
-        setData: handleSetData,
-        errors,
-        clearErrors
-    };
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
 
     return (
         <form
@@ -386,7 +377,7 @@ export function WorkOrderFormComponent({
                     {/* Title - spans 3 columns */}
                     <div className="md:col-span-3">
                         <TextInput
-                            form={formWrapper}
+                            form={formAdapter}
                             name="title"
                             label="Título"
                             placeholder="Digite um título descritivo"

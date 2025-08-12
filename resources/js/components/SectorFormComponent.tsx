@@ -10,6 +10,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { createFormAdapter } from '@/utils/form-adapters';
 // Define a local form type with index signature
 interface SectorFormData {
     name: string;
@@ -49,11 +50,9 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
         plant_id: sector?.area?.plant?.id?.toString() || '',
         area_id: sector?.area_id?.toString() || '',
     });
-    
-    // Create a wrapper for setData to match the TextInput expected signature
-    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
-        setData(name as keyof SectorFormData, value as SectorFormData[keyof SectorFormData]);
-    };
+
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
     // Get available areas based on selected plant
     const availableAreas = useMemo(() => {
         if (!data.plant_id) return [];
@@ -167,12 +166,7 @@ export default function SectorFormComponent({ sector, plants = [], initialMode =
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {/* Nome */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="name"
                     label="Nome"
                     placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome do setor'}

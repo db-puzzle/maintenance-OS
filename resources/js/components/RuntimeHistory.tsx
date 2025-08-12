@@ -67,8 +67,8 @@ export default function RuntimeHistory({ assetId, activeTab, parentVisible = fal
                 },
             });
             setMeasurements(response.data);
-        } catch (error: any) {
-            if (error.response?.status === 500) {
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 500) {
                 toast.error('Erro no servidor ao carregar histórico de horímetro');
             } else {
                 toast.error('Erro ao carregar histórico de horímetro');

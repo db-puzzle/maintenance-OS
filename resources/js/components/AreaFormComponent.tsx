@@ -7,6 +7,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { createFormAdapter } from '@/utils/form-adapters';
 // Define a local form type with index signature
 interface AreaFormData {
     name: string;
@@ -36,10 +37,8 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
         name: area?.name || '',
         plant_id: area?.plant?.id?.toString() || '',
     });
-    // Create a wrapper for setData to match the expected signature
-    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
-        setData(name as keyof AreaFormData, value as AreaFormData[keyof AreaFormData]);
-    };
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.areas.update', { area: area.id }), {
@@ -111,12 +110,7 @@ export default function AreaFormComponent({ area, plants = [], initialMode = 'vi
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {/* Nome */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="name"
                     label="Nome"
                     placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome da área'}

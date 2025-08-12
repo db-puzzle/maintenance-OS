@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { estados } from '@/data/estados';
 import { Plant as ImportedPlant } from '@/types/entities/plant';
+import { createFormAdapter, createSetDataAdapter } from '@/utils/form-adapters';
+
 interface PlantForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -112,145 +114,125 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                 routeParameterName: 'plant',
             }}
         >
-            {({ data, setData, errors }) => (
-                <>
-                    {/* Nome da Planta - Campo Obrigatório */}
-                    <TextInput
-                        ref={nameInputRef}
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
-                        name="name"
-                        label="Nome da Planta"
-                        placeholder="Nome da planta"
-                        required
-                    />
-                    {/* Endereço - Grid com 2 colunas */}
-                    <div className="grid gap-2">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="col-span-2">
-                                <TextInput
-                                    form={{
-                                        data,
-                                        setData,
-                                        errors,
-                                        clearErrors: () => { },
-                                    }}
-                                    name="street"
-                                    label="Rua"
-                                    placeholder="Nome da rua"
-                                />
-                            </div>
-                            <div>
-                                <TextInput
-                                    form={{
-                                        data,
-                                        setData,
-                                        errors,
-                                        clearErrors: () => { },
-                                    }}
-                                    name="number"
-                                    label="Número"
-                                    placeholder="Número"
-                                />
-                            </div>
-                            <div>
-                                <TextInput
-                                    form={{
-                                        data,
-                                        setData: (name, value) => {
-                                            if (name === 'zip_code') {
-                                                setData(name, formatCEP(value as string));
-                                            } else {
-                                                setData(name, value);
-                                            }
-                                        },
-                                        errors,
-                                        clearErrors: () => { },
-                                    }}
-                                    name="zip_code"
-                                    label="CEP"
-                                    placeholder="00000-000"
-                                />
+            {({ data, setData, errors, clearErrors, formAdapter }) => {
+                // Create a custom form adapter for zip_code field with CEP formatting
+                const zipCodeFormAdapter = createFormAdapter({
+                    data,
+                    setData: createSetDataAdapter((...args: any[]) => {
+                        if (args.length === 2 && args[0] === 'zip_code' && typeof args[1] === 'string') {
+                            return setData('zip_code', formatCEP(args[1]));
+                        }
+                        // @ts-expect-error - We know setData has proper overloads
+                        return setData(...args);
+                    }),
+                    errors,
+                    clearErrors: clearErrors as (...fields: string[]) => void
+                });
+
+                return (
+                    <>
+                        {/* Nome da Planta - Campo Obrigatório */}
+                        <TextInput
+                            ref={nameInputRef}
+                            form={formAdapter}
+                            name="name"
+                            label="Nome da Planta"
+                            placeholder="Nome da planta"
+                            required
+                        />
+                        {/* Endereço - Grid com 2 colunas */}
+                        <div className="grid gap-2">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <TextInput
+                                        form={formAdapter}
+                                        name="street"
+                                        label="Rua"
+                                        placeholder="Nome da rua"
+                                    />
+                                </div>
+                                <div>
+                                    <TextInput
+                                        form={formAdapter}
+                                        name="number"
+                                        label="Número"
+                                        placeholder="Número"
+                                    />
+                                </div>
+                                <div>
+                                    <TextInput
+                                        form={zipCodeFormAdapter}
+                                        name="zip_code"
+                                        label="CEP"
+                                        placeholder="00000-000"
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    {/* Cidade e Estado - Grid com 2 colunas */}
-                    <div className="grid gap-2">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <TextInput
-                                    form={{
-                                        data,
-                                        setData,
-                                        errors,
-                                        clearErrors: () => { },
-                                    }}
-                                    name="city"
-                                    label="Cidade"
-                                    placeholder="Cidade"
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="state" className="text-muted-foreground text-sm">
-                                    Estado
-                                </Label>
-                                <Popover open={open} onOpenChange={setOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button id="state" variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
-                                            {data.state ? estados.find((estado) => estado.value === data.state)?.label : 'Selecione um estado...'}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-full p-0">
-                                        <Command>
-                                            <CommandInput placeholder="Buscar estado..." />
-                                            <CommandList>
-                                                <CommandEmpty>Nenhum estado encontrado.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {estados.map((estado) => (
-                                                        <CommandItem
-                                                            key={estado.value}
-                                                            value={estado.value}
-                                                            onSelect={(currentValue) => {
-                                                                setData('state', currentValue === data.state ? '' : currentValue);
-                                                                setOpen(false);
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    'mr-2 h-4 w-4',
-                                                                    data.state === estado.value ? 'opacity-100' : 'opacity-0',
-                                                                )}
-                                                            />
-                                                            {estado.label}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
+                        {/* Cidade e Estado - Grid com 2 colunas */}
+                        <div className="grid gap-2">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <TextInput
+                                        form={formAdapter}
+                                        name="city"
+                                        label="Cidade"
+                                        placeholder="Cidade"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="state" className="text-muted-foreground text-sm">
+                                        Estado
+                                    </Label>
+                                    <Popover open={open} onOpenChange={setOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button id="state" variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
+                                                {data.state ? estados.find((estado) => estado.value === data.state)?.label : 'Selecione um estado...'}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Buscar estado..." />
+                                                <CommandList>
+                                                    <CommandEmpty>Nenhum estado encontrado.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {estados.map((estado) => (
+                                                            <CommandItem
+                                                                key={estado.value}
+                                                                value={estado.value}
+                                                                onSelect={(currentValue) => {
+                                                                    setData('state', currentValue === data.state ? '' : currentValue);
+                                                                    setOpen(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        'mr-2 h-4 w-4',
+                                                                        data.state === estado.value ? 'opacity-100' : 'opacity-0',
+                                                                    )}
+                                                                />
+                                                                {estado.label}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    {/* Coordenadas GPS */}
-                    <TextInput
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
-                        name="gps_coordinates"
-                        label="Coordenadas GPS"
-                        placeholder="Ex: -23.550520, -46.633308"
-                    />
-                </>
-            )}
+                        {/* Coordenadas GPS */}
+                        <TextInput
+                            form={formAdapter}
+                            name="gps_coordinates"
+                            label="Coordenadas GPS"
+                            placeholder="Ex: -23.550520, -46.633308"
+                        />
+                    </>
+                );
+            }}
         </BaseEntitySheet>
     );
 };

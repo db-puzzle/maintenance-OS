@@ -92,7 +92,7 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
         from: initialAssetTypes.from,
         to: initialAssetTypes.to,
     };
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<AssetType>[] = [
         {
             key: 'name',
             label: 'Nome',
@@ -100,8 +100,8 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             width: 'w-[300px]',
             render: (value, row) => (
                 <div>
-                    <div className="font-medium">{row.name as React.ReactNode}</div>
-                    {row.description ? <div className="text-muted-foreground text-sm">{String(row.description)}</div> : null}
+                    <div className="font-medium">{row.name}</div>
+                    {row.description ? <div className="text-muted-foreground text-sm">{row.description}</div> : null}
                 </div>
             ),
         },
@@ -110,14 +110,14 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             label: 'Descrição',
             sortable: true,
             width: 'w-[300px]',
-            render: (value, row) => (row.description || '-') as React.ReactNode,
+            render: (value, row) => row.description || '-',
         },
         {
             key: 'asset_count',
             label: 'Ativos',
             sortable: true,
             width: 'w-[100px]',
-            render: (value) => (value || 0) as React.ReactNode,
+            render: (value) => <>{value || 0}</>,
         },
     ];
     const handleColumnVisibilityChange = (columnId: string, value: boolean) => {
@@ -177,7 +177,7 @@ export default function TiposAtivo({ assetTypes: initialAssetTypes, filters }: P
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data.map(assetType => ({ ...assetType } as Record<string, unknown>))}
+                        data={data}
                         columns={columns}
                         loading={false}
                         onRowClick={(assetType) => router.visit(route('asset-hierarchy.asset-types.show', { id: assetType.id as string | number }))}

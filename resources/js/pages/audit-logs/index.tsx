@@ -220,7 +220,7 @@ export default function AuditLogsIndex({ logs, filters, eventTypes, users }: Pro
                             <Calendar
                                 mode="range"
                                 required={false}
-                                selected={dateRange.from && dateRange.to ? dateRange as any : undefined}
+                                selected={dateRange.from && dateRange.to ? { from: dateRange.from, to: dateRange.to } : undefined}
                                 onSelect={(range) => {
                                     if (range && 'from' in range) {
                                         setDateRange({ from: range.from, to: range.to });

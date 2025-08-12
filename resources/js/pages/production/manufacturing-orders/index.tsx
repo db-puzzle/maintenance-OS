@@ -161,13 +161,13 @@ export default function ManufacturingOrders({
         if (priority >= 40) return 'text-yellow-600';
         return 'text-gray-600';
     };
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<ManufacturingOrder>[] = [
         ...(showImages ? [{
             key: 'image',
             label: 'Image',
             width: 'w-[70px]',
-            render: (value: unknown, order: Record<string, unknown>) => {
-                const mo = order as unknown as ManufacturingOrder;
+            render: (value: unknown, order: ManufacturingOrder) => {
+                const mo = order;
                 return (
                     <ItemImagePreview
                         primaryImageUrl={mo.item?.primary_image_thumbnail_url || mo.item?.primary_image_url}
@@ -188,10 +188,10 @@ export default function ManufacturingOrders({
             label: 'Order Number',
             sortable: true,
             width: 'w-[150px]',
-            render: (value: unknown, order: Record<string, unknown>) => (
+            render: (value: unknown, order: ManufacturingOrder) => (
                 <div className="flex items-center gap-2">
                     <Link
-                        href={route('production.orders.show', order.id)}
+                        href={route('production.orders.show', order.id) as string}
                         className="font-medium text-primary hover:underline"
                     >
                         {value as React.ReactNode}
@@ -220,8 +220,8 @@ export default function ManufacturingOrders({
             key: 'item',
             label: 'Item',
             width: 'w-[250px]',
-            render: (value: unknown, order: Record<string, unknown>) => {
-                const mo = order as unknown as ManufacturingOrder;
+            render: (value: unknown, order: ManufacturingOrder) => {
+                const mo = order;
                 return (
                     <div>
                         <p className="font-medium">{mo.item?.item_number || '-'}</p>
@@ -234,7 +234,7 @@ export default function ManufacturingOrders({
             key: 'quantity',
             label: 'Quantity',
             width: 'w-[120px]',
-            render: (value: unknown, order: Record<string, unknown>) => (
+            render: (value: unknown, order: ManufacturingOrder) => (
                 <div>
                     <p className="font-medium">
                         {order.quantity as React.ReactNode} {order.unit_of_measure as React.ReactNode}
@@ -281,7 +281,7 @@ export default function ManufacturingOrders({
             key: 'progress',
             label: 'Progress',
             width: 'w-[120px]',
-            render: (value: unknown, order: Record<string, unknown>) => {
+            render: (value: unknown, order: ManufacturingOrder) => {
                 const progress = (order.quantity as number) > 0
                     ? Math.round(((order.quantity_completed as number) / (order.quantity as number)) * 100)
                     : 0;

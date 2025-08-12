@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import { TextInput } from '@/components/TextInput';
 
+
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -92,17 +93,12 @@ const CreateItemCategorySheet: React.FC<CreateItemCategorySheetProps> = ({
                 routeParameterName: 'category',
             }}
         >
-            {({ data, setData, errors }) => (
+            {({ data, setData, errors, formAdapter }) => (
                 <>
                     {/* Nome da Categoria - Campo Obrigatório */}
                     <TextInput
                         ref={nameInputRef}
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="name"
                         label="Nome da Categoria"
                         placeholder="Nome da categoria"

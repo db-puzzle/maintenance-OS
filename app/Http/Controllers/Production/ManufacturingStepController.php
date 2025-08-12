@@ -99,8 +99,10 @@ class ManufacturingStepController extends Controller
 
         $step->load([
             'manufacturingRoute.manufacturingOrder.item',
+            'manufacturingRoute.steps',
             'workCell',
             'form.currentVersion.tasks',
+            'dependency',
             'executions' => function ($query) {
                 $query->where('status', '!=', 'completed')
                     ->orderBy('created_at', 'desc')
@@ -134,11 +136,21 @@ class ManufacturingStepController extends Controller
         ]);
 
         try {
+            // Check if step can be started (dependencies met)
+            if (!$step->canStart()) {
+                $step->load('dependency');
+                $message = 'Esta etapa não pode ser iniciada.';
+                if ($step->dependency) {
+                    $message .= ' A etapa anterior "' . $step->dependency->name . '" deve ser concluída primeiro.';
+                }
+                return back()->withErrors(['error' => $message]);
+            }
+            
             $execution = $this->orderService->executeStep($step, $validated);
             
             return back()->with('success', 'Step execution started successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 

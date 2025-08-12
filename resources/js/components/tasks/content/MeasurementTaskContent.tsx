@@ -104,9 +104,9 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
             minValue: stringifyValue(minValue),
             maxValue: stringifyValue(maxValue),
         } as Record<string, string | number | boolean | File | null | undefined>,
-        setData: (name: string, value: string | number | boolean | File | null | undefined) => {
+        setData: ((name: string, value: string | number | boolean | File | null | undefined) => {
             setResponse({ ...response, [name]: value });
-        },
+        }) as (field: string, value: string | number | boolean | File | null | undefined) => void,
         errors: formErrors as Partial<Record<string, string>>,
         clearErrors: ((...fields: string[]) => {
             const newErrors = { ...formErrors };

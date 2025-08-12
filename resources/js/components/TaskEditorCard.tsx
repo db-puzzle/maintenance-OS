@@ -25,6 +25,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { useForm } from '@inertiajs/react';
 import { ClipboardList, Clock, GripVertical, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { createFormAdapter } from '@/utils/form-adapters';
+
 interface TaskEditorCardProps {
     /** A tarefa inicial sendo editada */
     initialTask?: Task;
@@ -55,6 +57,10 @@ export default function TaskEditorCard({
         fileUploadInstructions: initialTask?.fileUploadInstructions || '',
         options: options,
     });
+
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
+
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: `task-${initialTask?.id}`,
         animateLayoutChanges: () => false,
@@ -130,15 +136,7 @@ export default function TaskEditorCard({
                         <TaskDescriptionInput
                             mode="edit"
                             icon={taskLabels.icon}
-                            form={{
-                                data: {
-                                    ...data,
-                                    options: undefined, // Remove options from the data passed to TaskDescriptionInput
-                                } as Record<string, string | number | boolean | File | null | undefined>,
-                                setData,
-                                errors,
-                                clearErrors: clearErrors as (...fields: string[]) => void,
-                            }}
+                            form={formAdapter}
                             name="description"
                             value={data.description}
                             placeholder={taskLabels?.placeholder || 'Digite a descrição da tarefa...'}
@@ -194,12 +192,7 @@ export default function TaskEditorCard({
                     {taskType ? (
                         <div className="grid gap-2">
                             <TextInput
-                                form={{
-                                    data: { ...data, options: undefined } as Record<string, string | number | boolean | File | null | undefined>,
-                                    setData: setData as (name: string, value: string | number | boolean | File | null | undefined) => void,
-                                    errors,
-                                    clearErrors: clearErrors as (...fields: string[]) => void,
-                                }}
+                                form={formAdapter}
                                 name="description"
                                 label={taskLabels?.label || ''}
                                 placeholder={taskLabels?.placeholder || 'Digite a descrição da tarefa...'}
@@ -253,7 +246,7 @@ export default function TaskEditorCard({
                                                                     [`option-${index}`]: value,
                                                                     options: undefined,
                                                                 } as Record<string, string | number | boolean | null | undefined>,
-                                                                setData: (field, value) => {
+                                                                setData: (field: string, value: string | number | boolean | File | null | undefined) => {
                                                                     if (field === `option-${index}`) {
                                                                         const newOptions = [...options];
                                                                         newOptions[index] = value as string;
@@ -393,12 +386,7 @@ export default function TaskEditorCard({
                     {taskType === 'code_reader' && (
                         <div>
                             <TextInput
-                                form={{
-                                    data: { ...data, options: undefined } as Record<string, string | number | boolean | File | null | undefined>,
-                                    setData: setData as (name: string, value: string | number | boolean | File | null | undefined) => void,
-                                    errors,
-                                    clearErrors: clearErrors as (...fields: string[]) => void,
-                                }}
+                                form={formAdapter}
                                 name="codeReaderInstructions"
                                 label="Instruções para Leitura de Código"
                                 placeholder="Como o código deve ser lido..."
@@ -408,12 +396,7 @@ export default function TaskEditorCard({
                     {taskType === 'file_upload' && (
                         <div>
                             <TextInput
-                                form={{
-                                    data: { ...data, options: undefined } as Record<string, string | number | boolean | File | null | undefined>,
-                                    setData: setData as (name: string, value: string | number | boolean | File | null | undefined) => void,
-                                    errors,
-                                    clearErrors: clearErrors as (...fields: string[]) => void,
-                                }}
+                                form={formAdapter}
                                 name="fileUploadInstructions"
                                 label="Instruções para Upload de Arquivo"
                                 placeholder="Faça o download do registro de vibração e armazene o arquivo aqui..."

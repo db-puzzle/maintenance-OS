@@ -53,7 +53,7 @@ export function EntityDataTable<T>({
                     )
                 ),
             cell: (row: { original: T }): React.ReactNode => {
-                const value = col.render ? col.render((row.original as any)[col.key], row.original) : (row.original as any)[col.key];
+                const value = col.render ? col.render((row.original as Record<string, unknown>)[col.key], row.original) : (row.original as Record<string, unknown>)[col.key];
                 return value as React.ReactNode;
             },
             width: col.width,

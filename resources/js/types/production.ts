@@ -240,6 +240,7 @@ export interface ManufacturingRoute {
     is_active: boolean;
     steps?: ManufacturingStep[];
     steps_count?: number;
+    current_active_step?: ManufacturingStep;
     created_by?: number;
     created_by_user?: User;
     created_at: string;
@@ -255,20 +256,25 @@ export interface ManufacturingStep {
     description?: string;
     work_cell_id?: number;
     work_cell?: WorkCell;
-    status: 'pending' | 'queued' | 'in_progress' | 'on_hold' | 'completed' | 'skipped';
+    status: 'pending' | 'queued' | 'in_progress' | 'on_hold' | 'completed' | 'skipped' | 'failed';
     form_id?: number;
+    form?: Form;
     form_version_id?: number;
     setup_time_minutes: number;
     cycle_time_minutes: number;
     actual_start_time?: string;
     actual_end_time?: string;
+    actual_duration_minutes?: number;
     quality_result?: 'pending' | 'passed' | 'failed';
     failure_action?: 'scrap' | 'rework';
     quality_check_mode?: 'every_part' | 'entire_lot' | 'sampling';
     sampling_size?: number;
     depends_on_step_id?: number;
     can_start_when_dependency?: 'completed';
+    dependencies?: ManufacturingStep[];
     executions?: ManufacturingStepExecution[];
+    current_execution?: ManufacturingStepExecution;
+    manufacturing_route: ManufacturingRoute;
 }
 
 export interface ProductionSchedule {
@@ -308,6 +314,8 @@ export interface ManufacturingStepExecution {
     quality_notes?: string;
     failure_action?: 'scrap' | 'rework';
     form_execution_id?: number;
+    progress_percentage?: number;
+    actual_duration_minutes?: number;
 }
 
 export interface ProductionExecution {

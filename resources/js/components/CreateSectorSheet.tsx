@@ -100,17 +100,12 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
                 entityName: 'Setor',
             }}
         >
-            {({ data, setData, errors }) => (
+            {({ data, setData, errors, formAdapter }) => (
                 <>
                     {/* Nome do Setor - Campo Obrigatório */}
                     <TextInput
                         ref={nameInputRef}
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="name"
                         label="Nome do Setor"
                         placeholder="Nome do setor"

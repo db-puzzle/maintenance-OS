@@ -28,7 +28,7 @@ export interface DependencyResult {
     };
 }
 
-export interface ColumnConfig<T = any> {
+export interface ColumnConfig<T = unknown> {
     key: string;
     label: string;
     sortable?: boolean;

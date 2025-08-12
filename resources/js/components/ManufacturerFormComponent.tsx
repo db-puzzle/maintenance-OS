@@ -8,6 +8,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { createFormAdapter } from '@/utils/form-adapters';
 // Define a local form type with index signature
 interface ManufacturerFormData {
     name: string;
@@ -49,10 +50,8 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
         country: manufacturer?.country || '',
         notes: manufacturer?.notes || '',
     });
-    // Create a wrapper for setData to match the expected signature
-    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
-        setData(name as keyof ManufacturerFormData, value as ManufacturerFormData[keyof ManufacturerFormData]);
-    };
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.manufacturers.update', manufacturer.id), {
@@ -91,12 +90,7 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {/* Nome */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="name"
                     label="Nome do Fabricante"
                     placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome do fabricante'}
@@ -105,12 +99,7 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                 />
                 {/* País */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="country"
                     label="País"
                     placeholder={isViewMode ? 'País não informado' : 'Digite o país'}
@@ -170,12 +159,7 @@ export default function ManufacturerFormComponent({ manufacturer, initialMode = 
                 </div>
                 {/* Telefone */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="phone"
                     label="Telefone"
                     placeholder={isViewMode ? 'Telefone não informado' : '+55 11 99999-9999'}

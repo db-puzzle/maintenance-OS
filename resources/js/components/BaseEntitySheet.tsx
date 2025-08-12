@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { createFormAdapter } from '@/utils/form-adapters';
 type FormDataType = Record<string, string | number | boolean | File | null | undefined>;
 export interface BaseEntitySheetProps<TFormData extends FormDataType> {
     // Entity data for edit mode
@@ -43,6 +44,8 @@ export interface BaseEntitySheetProps<TFormData extends FormDataType> {
         setData: (key: string, value: string | number | boolean | File | null | undefined) => void;
         errors: Partial<Record<string, string>>;
         processing: boolean;
+        clearErrors: (...fields: string[]) => void;
+        formAdapter: ReturnType<typeof createFormAdapter>;
     }) => React.ReactNode;
 }
 export function BaseEntitySheet<TFormData extends FormDataType>({
@@ -60,8 +63,11 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
     children,
 }: BaseEntitySheetProps<TFormData>) {
     const isEditMode = mode === 'edit' && entity;
-    const { data, setData, post, put, processing, errors, reset } = useForm<TFormData>(formConfig.initialData);
+    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm<TFormData>(formConfig.initialData);
     const [internalSheetOpen, setInternalSheetOpen] = React.useState(false);
+
+    // Create form adapter for components
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
     // Determine whether to use internal or external control
     const sheetOpen = showTrigger ? internalSheetOpen : (controlledOpen ?? false);
     const setSheetOpen = showTrigger ? setInternalSheetOpen : (onOpenChange ?? (() => { }));
@@ -179,12 +185,14 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
                     <SheetDescription>{sheetDescription}</SheetDescription>
                 </SheetHeader>
                 <form onSubmit={handleSubmit} className="m-4 space-y-6">
-                    <div className="grid gap-6">{children({ 
-                        data, 
-                        setData: (key: string, value: string | number | boolean | File | null | undefined) => 
-                            setData(key as keyof TFormData, value as TFormData[keyof TFormData]), 
-                        errors: errors as Partial<Record<string, string>>, 
-                        processing 
+                    <div className="grid gap-6">{children({
+                        data,
+                        setData: (key: string, value: string | number | boolean | File | null | undefined) =>
+                            setData(key as keyof TFormData, value as TFormData[keyof TFormData]),
+                        errors: errors as Partial<Record<string, string>>,
+                        processing,
+                        clearErrors: (...fields: string[]) => clearErrors(...(fields as (keyof TFormData)[])),
+                        formAdapter
                     })}</div>
                     <SheetFooter className="flex justify-end gap-2">
                         <Button type="submit" disabled={processing}>

@@ -9,6 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { TextInput } from '@/components/TextInput';
 import InputError from '@/components/input-error';
 import { toast } from 'sonner';
+import { createFormAdapter } from '@/utils/form-adapters';
+
 interface Manufacturer {
     id: number;
     name: string;
@@ -47,10 +49,10 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
         manufacturer_id: null as number | null,
         active: true as boolean,
     });
-    // Create a wrapper to handle the typing issue
-    const handleClearErrors = (...fields: string[]) => {
-        clearErrors(...(fields as Array<keyof typeof data>));
-    };
+
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
+
     useEffect(() => {
         if (part) {
             setData('part_number', part.part_number);
@@ -123,24 +125,14 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                 <form onSubmit={handleSubmit} className="space-y-6 mt-6">
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: handleClearErrors,
-                            }}
+                            form={formAdapter}
                             name="part_number"
                             label="Part Number"
                             placeholder="EX-001"
                             required
                         />
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: handleClearErrors,
-                            }}
+                            form={formAdapter}
                             name="name"
                             label="Nome"
                             placeholder="Nome da peça"
@@ -160,24 +152,14 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: handleClearErrors,
-                            }}
+                            form={formAdapter}
                             name="unit_cost"
                             label="Custo Unitário (R$)"
                             placeholder="0.00"
                             required
                         />
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: handleClearErrors,
-                            }}
+                            form={formAdapter}
                             name="available_quantity"
                             label="Qtd. Disponível"
                             placeholder="0"
@@ -186,48 +168,28 @@ export function CreatePartSheet({ open, onOpenChange, part, onSuccess }: CreateP
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: handleClearErrors,
-                            }}
+                            form={formAdapter}
                             name="minimum_quantity"
                             label="Qtd. Mínima"
                             placeholder="0"
                             required
                         />
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: handleClearErrors,
-                            }}
+                            form={formAdapter}
                             name="maximum_quantity"
                             label="Qtd. Máxima"
                             placeholder="Opcional"
                         />
                     </div>
                     <TextInput
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: handleClearErrors,
-                        }}
+                        form={formAdapter}
                         name="location"
                         label="Localização"
                         placeholder="Ex: Almoxarifado A, Prateleira 3"
                     />
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: handleClearErrors,
-                            }}
+                            form={formAdapter}
                             name="manufacturer"
                             label="Fabricante"
                             placeholder="Nome do fabricante"

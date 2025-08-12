@@ -5,7 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RoleManagement from '@/components/permissions/RoleManagement';
 import PermissionMatrix from '@/components/permissions/PermissionMatrix';
 
-type Role = any; // Type assertion for RoleManagement compatibility
+interface Role {
+    id: number;
+    name: string;
+    is_system: boolean;
+    permissions_count: number;
+    users_count: number;
+    permissions?: Permission[];
+}
 
 interface Permission {
     id: number;

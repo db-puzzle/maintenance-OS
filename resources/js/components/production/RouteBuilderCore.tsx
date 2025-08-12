@@ -200,7 +200,7 @@ export default function RouteBuilderCore({
             depends_on_step_id: previousStep ? previousStep.id : undefined,
             can_start_when_dependency: 'completed',
             isNew: true, // Mark as new step
-        };
+        } as ExtendedManufacturingStep;
         setSteps([...steps, newStep]);
         setSelectedStep(newStep);
         setHasUnsavedChanges(true);

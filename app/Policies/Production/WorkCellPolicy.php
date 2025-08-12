@@ -67,4 +67,12 @@ class WorkCellPolicy
     {
         return $user->hasPermissionTo('production.work-cells.forceDelete');
     }
+
+    /**
+     * Determine whether the user can view the work cell dashboard.
+     */
+    public function viewDashboard(User $user, WorkCell $workCell): bool
+    {
+        return $user->hasPermissionTo('production.work-cells.viewDashboard');
+    }
 } 

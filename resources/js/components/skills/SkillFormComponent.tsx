@@ -10,6 +10,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { DependencyResult } from '@/types/shared';
+import { createFormAdapter } from '@/utils/form-adapters';
 interface Skill {
     id: number;
     name: string;
@@ -58,10 +59,8 @@ export default function SkillFormComponent({
         category: skill?.category || 'technical',
     });
     const { delete: destroy, processing: deleting } = useForm();
-    // Create a wrapper for setData to match the expected signature
-    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
-        setData(name as keyof SkillFormData, value as SkillFormData[keyof SkillFormData]);
-    };
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
     const handleSave = () => {
         if (isEditing) {
             put(route('skills.update', { skill: skill.id }), {
@@ -132,12 +131,7 @@ export default function SkillFormComponent({
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     {/* Nome */}
                     <TextInput
-                        form={{
-                            data,
-                            setData: handleSetData,
-                            errors,
-                            clearErrors,
-                        }}
+                        form={formAdapter}
                         name="name"
                         label="Nome"
                         placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome da habilidade'}
@@ -156,7 +150,7 @@ export default function SkillFormComponent({
                                     {categoryOptions.find(opt => opt.value === data.category)?.label || data.category}
                                 </div>
                             ) : (
-                                <Select value={data.category} onValueChange={(value) => handleSetData('category', value)}>
+                                <Select value={data.category} onValueChange={(value) => setData('category', value)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione uma categoria" />
                                     </SelectTrigger>
@@ -194,7 +188,7 @@ export default function SkillFormComponent({
                                     <Textarea
                                         id="description"
                                         value={data.description}
-                                        onChange={(e) => handleSetData('description', e.target.value)}
+                                        onChange={(e) => setData('description', e.target.value)}
                                         placeholder="Digite a descrição da habilidade"
                                         rows={3}
                                     />

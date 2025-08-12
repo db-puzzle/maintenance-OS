@@ -131,5 +131,5 @@ export interface ShiftForm {
             }[];
         }[];
     }[];
-    [key: string]: any;
+    [key: string]: unknown;
 }

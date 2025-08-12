@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+
 import { ItemSelect } from '@/components/ItemSelect';
 import { ManufacturingOrder, Item } from '@/types/production';
 interface Props {
@@ -24,7 +25,7 @@ export default function CreateRouting({ items, orders }: Props) {
     });
     // Create a wrapper for setData to match the expected signature
     const handleSetData = (name: string, value: unknown) => {
-        setData(name as keyof typeof data, value as any);
+        setData(name as keyof typeof data, value as (typeof data)[keyof typeof data]);
     };
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

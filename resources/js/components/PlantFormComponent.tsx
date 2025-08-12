@@ -7,6 +7,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { createFormAdapter } from '@/utils/form-adapters';
 // Define a local form type with index signature
 interface PlantFormData {
     name: string;
@@ -41,10 +42,8 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
         zip_code: plant?.zip_code || '',
         gps_coordinates: plant?.gps_coordinates || '',
     });
-    // Create a wrapper for setData to match the expected signature
-    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
-        setData(name as keyof PlantFormData, value as PlantFormData[keyof PlantFormData]);
-    };
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
     const handleSave = () => {
         if (isEditing) {
             put(route('asset-hierarchy.plants.update', { plant: plant.id }), {
@@ -83,12 +82,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {/* Nome */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="name"
                     label="Nome"
                     placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome da planta'}
@@ -97,12 +91,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 />
                 {/* CEP */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="zip_code"
                     label="CEP"
                     placeholder={isViewMode ? 'CEP não informado' : 'Digite o CEP'}
@@ -110,12 +99,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 />
                 {/* Rua */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="street"
                     label="Rua"
                     placeholder={isViewMode ? 'Rua não informada' : 'Digite o nome da rua'}
@@ -123,12 +107,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 />
                 {/* Número */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="number"
                     label="Número"
                     placeholder={isViewMode ? 'Número não informado' : 'Digite o número'}
@@ -136,12 +115,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 />
                 {/* Cidade */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="city"
                     label="Cidade"
                     placeholder={isViewMode ? 'Cidade não informada' : 'Digite a cidade'}
@@ -149,12 +123,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 />
                 {/* Estado */}
                 <TextInput
-                    form={{
-                        data,
-                        setData: handleSetData,
-                        errors,
-                        clearErrors,
-                    }}
+                    form={formAdapter}
                     name="state"
                     label="Estado"
                     placeholder={isViewMode ? 'Estado não informado' : 'Digite o estado'}
@@ -163,12 +132,7 @@ export default function PlantFormComponent({ plant, initialMode = 'view', onCanc
                 {/* Coordenadas GPS */}
                 <div className="md:col-span-2">
                     <TextInput
-                        form={{
-                            data,
-                            setData: handleSetData,
-                            errors,
-                            clearErrors,
-                        }}
+                        form={formAdapter}
                         name="gps_coordinates"
                         label="Coordenadas GPS"
                         placeholder={isViewMode ? 'Coordenadas não informadas' : 'Digite as coordenadas GPS'}

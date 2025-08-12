@@ -16,6 +16,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Camera, Pencil } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { createFormAdapter } from '@/utils/form-adapters';
 interface Manufacturer {
     id: number;
     name: string;
@@ -40,6 +41,7 @@ interface AssetFormFieldsProps {
     setData: (key: string, value: string | number | boolean | File | null | undefined) => void;
     errors: Partial<Record<string, string>>;
     clearErrors: (...fields: string[]) => void;
+    formAdapter: ReturnType<typeof createFormAdapter>;
     plants: Plant[];
     assetTypes: AssetType[];
     manufacturers: Manufacturer[];
@@ -66,6 +68,7 @@ function AssetFormFields({
     setData,
     errors,
     clearErrors,
+    formAdapter,
     plants,
     assetTypes,
     manufacturers,
@@ -131,12 +134,7 @@ function AssetFormFields({
                 <div className="space-y-6">
                     {/* TAG */}
                     <TextInput
-                        form={{
-                            data: data,
-                            setData: setData,
-                            errors,
-                            clearErrors,
-                        }}
+                        form={formAdapter}
                         name="tag"
                         label="TAG"
                         placeholder="Digite a TAG do ativo"
@@ -146,12 +144,7 @@ function AssetFormFields({
                     />
                     {/* Part Number */}
                     <TextInput
-                        form={{
-                            data: data,
-                            setData: setData,
-                            errors,
-                            clearErrors,
-                        }}
+                        form={formAdapter}
                         name="part_number"
                         label="Part Number"
                         placeholder={isViewMode ? 'Part number não informado' : 'Informe o part number do ativo'}
@@ -200,12 +193,7 @@ function AssetFormFields({
                     </div>
                     {/* Número Serial */}
                     <TextInput
-                        form={{
-                            data: data,
-                            setData: setData,
-                            errors,
-                            clearErrors,
-                        }}
+                        form={formAdapter}
                         name="serial_number"
                         label="Número Serial"
                         placeholder={isViewMode ? 'Número serial não informado' : 'Informe o número serial do ativo'}
@@ -213,12 +201,7 @@ function AssetFormFields({
                     />
                     {/* Ano de Fabricação */}
                     <TextInput
-                        form={{
-                            data: data,
-                            setData: setData,
-                            errors,
-                            clearErrors,
-                        }}
+                        form={formAdapter}
                         name="manufacturing_year"
                         label="Ano de Fabricação"
                         placeholder={isViewMode ? 'Ano de fabricação não informado' : 'Informe o ano de fabricação do ativo'}
@@ -368,6 +351,10 @@ export default function AssetFormComponent({
         photo: null as File | null,
         photo_path: asset?.photo_path || undefined,
     });
+
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
+
     const availableAreas = useMemo(() => {
         if (!data.plant_id) return [];
         const selectedPlant = plants.find((p) => p.id.toString() === data.plant_id);
@@ -520,6 +507,9 @@ export default function AssetFormComponent({
     const sectorSelectRef = useRef<HTMLButtonElement>(null);
     const manufacturerSelectRef = useRef<HTMLButtonElement>(null);
     const tagInputRef = useRef<HTMLInputElement>(null);
+
+    // Create form adapter for TextInput compatibility
+    const _formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
     // State for sheet visibility
     const [plantSheetOpen, setPlantSheetOpen] = useState(false);
     const [areaSheetOpen, setAreaSheetOpen] = useState(false);
@@ -594,6 +584,7 @@ export default function AssetFormComponent({
                     setData={setData as (key: string, value: string | number | boolean | File | null | undefined) => void}
                     errors={errors as Partial<Record<string, string>>}
                     clearErrors={clearErrors as (...fields: string[]) => void}
+                    formAdapter={formAdapter}
                     plants={plants}
                     assetTypes={assetTypes}
                     manufacturers={manufacturers}

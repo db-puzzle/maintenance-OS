@@ -3,12 +3,19 @@ import SmartInput from '@/components/smart-input';
 import { Label } from '@/components/ui/label';
 import { forwardRef } from 'react';
 
+type FormValue = string | number | boolean | File | null | undefined;
+
 interface InertiaForm {
-    data: Record<string, any>;
+    data: Record<string, FormValue>;
     errors: Partial<Record<string, string>>;
     validateInput?: (value: string) => boolean;
-    setData?: (key: string, value: any) => void;
-    clearErrors?: (...fields: any[]) => void;
+    setData?: {
+        (key: string, value: FormValue): void;
+        <K extends string>(key: K, value: FormValue): void;
+        (values: Record<string, FormValue>): void;
+        <T extends Record<string, FormValue>>(values: T | ((prev: T) => T)): void;
+    };
+    clearErrors?: (...fields: string[]) => void;
     processBlur?: (name: string, value: string) => void;
 }
 

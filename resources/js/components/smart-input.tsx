@@ -1,11 +1,18 @@
 import { forwardRef } from 'react';
 import { Input } from './ui/input';
 
+type FormValue = string | number | boolean | File | null | undefined;
+
 interface FormObject {
-    data: Record<string, any>;
-    setData?: (name: string, value: any) => void;
+    data: Record<string, FormValue>;
+    setData?: {
+        (key: string, value: FormValue): void;
+        <K extends string>(key: K, value: FormValue): void;
+        (values: Record<string, FormValue>): void;
+        <T extends Record<string, FormValue>>(values: T | ((prev: T) => T)): void;
+    };
     errors?: Partial<Record<string, string>>;
-    clearErrors?: (...fields: any[]) => void;
+    clearErrors?: (...fields: string[]) => void;
     processBlur?: (name: string, value: string) => void;
 }
 

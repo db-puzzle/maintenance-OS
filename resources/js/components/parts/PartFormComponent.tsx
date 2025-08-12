@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { route } from '@/utils/route';
 import { ItemSelect } from '@/components/ItemSelect';
 import CreateManufacturerSheet from '@/components/CreateManufacturerSheet';
+import { createFormAdapter } from '@/utils/form-adapters';
+
 interface Manufacturer {
     id: number;
     name: string;
@@ -82,10 +84,10 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
         manufacturer_id: part.manufacturer_id,
         active: part.active,
     });
-    // Create a wrapper to handle the typing issue
-    const handleClearErrors = (...fields: string[]) => {
-        clearErrors(...(fields as Array<keyof typeof data>));
-    };
+
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (processing) {
@@ -170,12 +172,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     {/* Número da Peça */}
                     <TextInput
-                        form={{
-                            data,
-                            setData: (key: string, value: string | number | boolean | File | null) => setData(key as keyof typeof data, value as any),
-                            errors,
-                            clearErrors: handleClearErrors,
-                        }}
+                        form={formAdapter}
                         name="part_number"
                         label="Número da Peça"
                         placeholder={isViewMode ? 'Número não informado' : 'Digite o número da peça'}
@@ -184,12 +181,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     />
                     {/* Nome */}
                     <TextInput
-                        form={{
-                            data,
-                            setData: (key: string, value: string | number | boolean | File | null) => setData(key as keyof typeof data, value as any),
-                            errors,
-                            clearErrors: handleClearErrors,
-                        }}
+                        form={formAdapter}
                         name="name"
                         label="Nome"
                         placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome da peça'}
@@ -330,12 +322,7 @@ export function PartFormComponent({ part, initialMode = 'view', onSuccess, manuf
                     </div>
                     {/* Localização */}
                     <TextInput
-                        form={{
-                            data,
-                            setData: (key: string, value: string | number | boolean | File | null) => setData(key as keyof typeof data, value as any),
-                            errors,
-                            clearErrors: handleClearErrors,
-                        }}
+                        form={formAdapter}
                         name="location"
                         label="Localização"
                         placeholder={isViewMode ? 'Localização não informada' : 'Digite a localização'}

@@ -52,22 +52,34 @@ function TreeItem<T extends TreeNode>({
         }
     };
     return (
-        <div className="w-full">
+        <div className="w-full relative">
             <div className="flex">
-                {/* Connector lines */}
-                {parentConnectorLines.map((showLine, i) => (
-                    <div key={`connector-${i}`} className="w-6 relative">
-                        {showLine && <div className="absolute h-full w-0 border-l-2 border-gray-300 left-3 top-0"></div>}
-                    </div>
-                ))}
-                {depth > 0 && (
-                    <div className="w-6 relative">
-                        <div className="absolute h-1/2 w-0 border-l-2 border-gray-300 left-3 top-0"></div>
-                        <div className="absolute w-3 border-t-2 border-gray-300 left-3 top-1/2"></div>
-                        {!isLast && <div className="absolute h-1/2 w-0 border-l-2 border-gray-300 left-3 top-1/2"></div>}
-                    </div>
-                )}
-                {/* Node content */}
+                {/* Tree structure indentation and lines */}
+                <div className="flex flex-shrink-0">
+                    {/* Parent connector lines */}
+                    {parentConnectorLines.map((showLine, i) => (
+                        <div key={`connector-${i}`} className="w-6 relative">
+                            {showLine && (
+                                <div className="absolute top-0 bottom-0 left-3 w-px bg-gray-300"></div>
+                            )}
+                        </div>
+                    ))}
+                    {/* Current level connector */}
+                    {depth > 0 && (
+                        <div className="w-6 relative">
+                            {/* Vertical line to horizontal connector */}
+                            <div className="absolute top-0 left-3 w-px bg-gray-300" style={{ height: 'calc(50% - 1px)' }}></div>
+                            {/* Horizontal connector */}
+                            <div className="absolute left-3 h-px bg-gray-300" style={{ top: '50%', width: '12px' }}></div>
+                            {/* Continue vertical line if not last child */}
+                            {!isLast && (
+                                <div className="absolute left-3 w-px bg-gray-300" style={{ top: 'calc(50% + 1px)', bottom: 0 }}></div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Node content wrapper */}
                 <div
                     className={cn(
                         "flex-grow my-0.5 transition-all",
@@ -75,29 +87,34 @@ function TreeItem<T extends TreeNode>({
                     )}
                     onClick={() => onNodeClick?.(node)}
                 >
-                    <div className="flex items-center gap-2">
-                        {/* Expand/collapse button */}
-                        {hasChildren && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 w-5 p-0"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggle();
-                                }}
-                            >
-                                <div className={cn(
-                                    "transition-transform duration-200 ease-in-out",
-                                    isExpanded ? "rotate-90" : "rotate-0"
-                                )}>
-                                    <ChevronRight size={14} />
-                                </div>
-                            </Button>
-                        )}
-                        {!hasChildren && <div className="w-5"></div>}
+                    <div className="flex items-start gap-2">
+                        {/* Expand/collapse button aligned with first line of content */}
+                        <div className="pt-3 flex-shrink-0">
+                            {hasChildren ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggle();
+                                    }}
+                                >
+                                    <div className={cn(
+                                        "transition-transform duration-200 ease-in-out",
+                                        isExpanded ? "rotate-90" : "rotate-0"
+                                    )}>
+                                        <ChevronRight size={14} />
+                                    </div>
+                                </Button>
+                            ) : (
+                                <div className="w-5"></div>
+                            )}
+                        </div>
                         {/* Render custom node content */}
-                        {renderNode(node, isExpanded, handleToggle)}
+                        <div className="flex-grow">
+                            {renderNode(node, isExpanded, handleToggle)}
+                        </div>
                     </div>
                 </div>
             </div>

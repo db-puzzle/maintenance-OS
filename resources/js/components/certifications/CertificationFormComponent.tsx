@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { User } from '@/types';
 import { DependencyResult } from '@/types/shared';
 
+import { createFormAdapter } from '@/utils/form-adapters';
 interface UserWithCertification extends User {
     is_expired?: boolean;
 }
@@ -19,7 +20,7 @@ interface UserWithCertification extends User {
 interface Certification {
     id: number;
     name: string;
-    description: string | null;
+    description?: string | null;
     issuing_organization: string;
     validity_period_days: number | null;
     active: boolean;
@@ -70,10 +71,8 @@ export default function CertificationFormComponent({
         active: certification?.active ?? true,
     });
     const { delete: destroy, processing: deleting } = useForm();
-    // Create a wrapper for setData to match the expected signature
-    const handleSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
-        setData(name as keyof CertificationFormData, value as CertificationFormData[keyof CertificationFormData]);
-    };
+    // Create form adapter for TextInput compatibility
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
     const handleSave = () => {
         if (isEditing) {
             put(route('certifications.update', { certification: certification.id }), {
@@ -140,12 +139,7 @@ export default function CertificationFormComponent({
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     {/* Nome */}
                     <TextInput
-                        form={{
-                            data,
-                            setData: handleSetData,
-                            errors,
-                            clearErrors,
-                        }}
+                        form={formAdapter}
                         name="name"
                         label="Nome"
                         placeholder={isViewMode ? 'Nome não informado' : 'Digite o nome da certificação'}
@@ -154,12 +148,7 @@ export default function CertificationFormComponent({
                     />
                     {/* Organização Emissora */}
                     <TextInput
-                        form={{
-                            data,
-                            setData: handleSetData,
-                            errors,
-                            clearErrors,
-                        }}
+                        form={formAdapter}
                         name="issuing_organization"
                         label="Organização Emissora"
                         placeholder={isViewMode ? 'Organização não informada' : 'Digite o nome da organização'}
@@ -168,12 +157,7 @@ export default function CertificationFormComponent({
                     />
                     {/* Período de Validade */}
                     <TextInput
-                        form={{
-                            data,
-                            setData: handleSetData,
-                            errors,
-                            clearErrors,
-                        }}
+                        form={formAdapter}
                         name="validity_period_days"
                         label="Período de Validade (dias)"
                         placeholder={isViewMode ? 'Sem validade definida' : 'Digite o período em dias'}
@@ -192,7 +176,7 @@ export default function CertificationFormComponent({
                                     <Switch
                                         id="active"
                                         checked={data.active}
-                                        onCheckedChange={(checked) => handleSetData('active', checked)}
+                                        onCheckedChange={(checked) => setData('active', checked)}
                                     />
                                     <Label htmlFor="active" className="cursor-pointer">
                                         {data.active ? 'Ativa' : 'Inativa'}
@@ -214,7 +198,7 @@ export default function CertificationFormComponent({
                                     <Textarea
                                         id="description"
                                         value={data.description}
-                                        onChange={(e) => handleSetData('description', e.target.value)}
+                                        onChange={(e) => setData('description', e.target.value)}
                                         placeholder="Digite a descrição da certificação"
                                         rows={3}
                                     />

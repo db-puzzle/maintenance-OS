@@ -93,20 +93,20 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
         from: initialManufacturers.from,
         to: initialManufacturers.to,
     };
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<Manufacturer>[] = [
         {
             key: 'name',
             label: 'Nome',
             sortable: true,
             width: 'w-[200px]',
-            render: (value, row) => row.name as React.ReactNode,
+            render: (value, row) => row.name,
         },
         {
             key: 'country',
             label: 'País',
             sortable: true,
             width: 'w-[150px]',
-            render: (value, row) => (row.country || '-') as React.ReactNode,
+            render: (value, row) => row.country || '-',
         },
         {
             key: 'contact',
@@ -127,7 +127,7 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             width: 'w-[150px]',
             render: (value) => {
                 const count = (value || 0) as number;
-                return (count > 0 ? `${count} ativo(s)` : 'Nenhum ativo') as React.ReactNode;
+                return count > 0 ? `${count} ativo(s)` : 'Nenhum ativo';
             },
         },
     ];
@@ -188,7 +188,7 @@ export default function Manufacturers({ manufacturers: initialManufacturers, fil
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data.map(manufacturer => ({ ...manufacturer } as Record<string, unknown>))}
+                        data={data}
                         columns={columns}
                         loading={false}
                         onRowClick={(manufacturer) => router.visit(route('asset-hierarchy.manufacturers.show', { id: manufacturer.id as string | number }))}

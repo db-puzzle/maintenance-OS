@@ -5,9 +5,6 @@ import { Head } from '@inertiajs/react';
 import {
     Box,
     ArrowUpDown,
-    Download,
-    Upload,
-    Calculator,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,7 +14,6 @@ import { ItemSelect } from '@/components/ItemSelect';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
-import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import EmptyCard from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/asset-hierarchy/show-layout';
@@ -108,36 +104,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
         }
     };
 
-    const handleDelete = () => {
-        if (!bom || !confirm('Tem certeza que deseja excluir esta BOM?')) return;
-
-        router.delete(route('production.bom.destroy', bom.id), {
-            onSuccess: () => {
-                toast.success('BOM excluída com sucesso');
-            }
-        });
-    };
-
-    const handleDuplicate = () => {
-        if (!bom) return;
-
-        router.post(route('production.bom.duplicate', bom.id), {}, {
-            onSuccess: () => {
-                toast.success('BOM duplicada com sucesso');
-            }
-        });
-    };
-
-    const handleGenerateQr = () => {
-        if (!bom) return;
-
-        router.post(route('production.bom.generate-qr', bom.id), {}, {
-            onSuccess: () => {
-                toast.success('QR Codes gerados com sucesso');
-            }
-        });
-    };
-
     const tabs = [
         {
             id: 'informacoes',
@@ -162,7 +128,12 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 </div>
                             )}
                             <TextInput
-                                form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
+                                form={{
+                                    data: data as Record<string, string | number | boolean | File | null | undefined>,
+                                    setData: setData as (field: string, value: string | number | boolean | File | null | undefined) => void,
+                                    errors,
+                                    clearErrors: clearErrors as (...fields: string[]) => void
+                                }}
                                 name="name"
                                 label="Nome"
                                 placeholder="Nome da BOM"
@@ -189,7 +160,12 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 searchable
                             />
                             <TextInput
-                                form={{ data, setData, errors, clearErrors: clearErrors as (...fields: string[]) => void }}
+                                form={{
+                                    data: data as Record<string, string | number | boolean | File | null | undefined>,
+                                    setData: setData as (field: string, value: string | number | boolean | File | null | undefined) => void,
+                                    errors,
+                                    clearErrors: clearErrors as (...fields: string[]) => void
+                                }}
                                 name="external_reference"
                                 label="Referência Externa"
                                 placeholder="Número do desenho no Inventor"
@@ -270,38 +246,36 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                     label: 'Configuração',
                     icon: <Box className="h-4 w-4" />,
                     content: (
-                        <div className="h-[calc(100vh-300px)]">
-                            <BomConfiguration
-                                bomId={bom?.id || 0}
-                                versionId={bom?.current_version?.id || 0}
-                                bomItems={(bom?.current_version?.items || [])
-                                    .filter(item => item.item)
-                                    .map(item => {
-                                        const mappedItem: BomItem & { item: Item; children?: (BomItem & { item: Item })[] } = {
-                                            ...item,
-                                            item: item.item!,
-                                            children: item.children?.filter(child => child.item).map(child => ({
-                                                ...child,
-                                                item: child.item!
-                                            }))
-                                        };
-                                        return mappedItem;
-                                    })}
-                                availableItems={items}
-                                categories={categories}
-                                canEdit={can.manageItems}
-                                onUpdate={() => router.reload({ only: ['bom'] })}
-                                bom={bom ? {
-                                    name: bom.name,
-                                    bom_number: bom.bom_number,
-                                    current_version: bom.current_version ? {
-                                        version_number: bom.current_version.version_number,
-                                        items: bom.current_version.items
-                                    } : undefined,
-                                    versions: bom.versions
-                                } : undefined}
-                            />
-                        </div>
+                        <BomConfiguration
+                            bomId={bom?.id || 0}
+                            versionId={bom?.current_version?.id || 0}
+                            bomItems={(bom?.current_version?.items || [])
+                                .filter(item => item.item)
+                                .map(item => {
+                                    const mappedItem: BomItem & { item: Item; children?: (BomItem & { item: Item })[] } = {
+                                        ...item,
+                                        item: item.item!,
+                                        children: item.children?.filter(child => child.item).map(child => ({
+                                            ...child,
+                                            item: child.item!
+                                        }))
+                                    };
+                                    return mappedItem;
+                                })}
+                            availableItems={items}
+                            categories={categories}
+                            canEdit={can.manageItems}
+                            onUpdate={() => router.reload({ only: ['bom'] })}
+                            bom={bom ? {
+                                name: bom.name,
+                                bom_number: bom.bom_number,
+                                current_version: bom.current_version ? {
+                                    version_number: bom.current_version.version_number,
+                                    items: bom.current_version.items
+                                } : undefined,
+                                versions: bom.versions
+                            } : undefined}
+                        />
                     ),
                 },
                 {
@@ -377,33 +351,6 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                 defaultCompressed={isCompressed}
                 onCompressedChange={setIsCompressed}
             />
-
-            {/* Action buttons for existing BOMs */}
-            {!isCreating && bom && (
-                <div className="fixed bottom-6 right-6 flex gap-2">
-                    <Button variant="outline" onClick={() => router.get(route('production.bom.export', bom.id))}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Exportar
-                    </Button>
-                    {can.manageItems && (
-                        <Button variant="outline" onClick={handleGenerateQr}>
-                            <Calculator className="h-4 w-4 mr-2" />
-                            Gerar QR Codes
-                        </Button>
-                    )}
-                    <EntityActionDropdown
-                        onEdit={can.update ? () => setIsEditMode(true) : undefined}
-                        onDelete={can.delete ? handleDelete : undefined}
-                        additionalActions={[
-                            {
-                                label: 'Duplicar',
-                                icon: <Upload className="h-4 w-4" />,
-                                onClick: handleDuplicate
-                            }
-                        ]}
-                    />
-                </div>
-            )}
         </AppLayout>
     );
 }

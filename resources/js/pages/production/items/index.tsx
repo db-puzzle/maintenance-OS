@@ -14,7 +14,7 @@ import { ItemImageCarouselDialog } from '@/components/production/ItemImageCarous
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import AppLayout from '@/layouts/app-layout';
 import { ColumnConfig } from '@/types/shared';
-import { Item, ItemCategory, ItemImage, BillOfMaterial } from '@/types/production';
+import { Item, ItemCategory } from '@/types/production';
 import { Link } from '@inertiajs/react';
 import { toast } from 'sonner';
 
@@ -151,7 +151,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
     const handleImport = () => {
         router.visit(route('production.items.import.wizard'));
     };
-    const baseColumns: ColumnConfig[] = [
+    const baseColumns: ColumnConfig<Item>[] = [
         {
             key: 'item_number',
             label: 'Número',
@@ -160,26 +160,26 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             render: (value: unknown) => <>{value || '-'}</>
         }
     ];
-    const imageColumn: ColumnConfig = {
+    const imageColumn: ColumnConfig<Item> = {
         key: 'images',
         label: 'Imagem',
         width: 'w-[160px]',
-        render: (value: unknown, item: Record<string, unknown>) => (
+        render: (value: unknown, item: Item) => (
             <ItemImagePreview
-                primaryImageUrl={item.primary_image_url as string | undefined}
-                imageCount={(item.images_count as number) || 0}
+                primaryImageUrl={item.primary_image_url}
+                imageCount={item.images_count || 0}
                 className="w-36 h-36"
                 onClick={async (e) => {
                     e?.stopPropagation(); // Prevent row click event
                     // If item has images, use them, otherwise fetch
-                    if (item.images && (item.images as ItemImage[]).length > 0) {
-                        setCarouselItem(item as unknown as Item);
+                    if (item.images && item.images.length > 0) {
+                        setCarouselItem(item);
                         setCarouselOpen(true);
-                    } else if (item.images_count && (item.images_count as number) > 0) {
+                    } else if (item.images_count && item.images_count > 0) {
                         setLoadingImages(true);
                         try {
                             // Fetch the item with images using our API endpoint
-                            const response = await axios.get(route('production.items.with-images', item.id));
+                            const response = await axios.get(route('production.items.with-images', item.id) as string);
                             const itemWithImages = response.data.item;
                             if (itemWithImages && itemWithImages.images && itemWithImages.images.length > 0) {
                                 setCarouselItem(itemWithImages);
@@ -203,25 +203,25 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             />
         )
     };
-    const nameColumn: ColumnConfig = {
+    const nameColumn: ColumnConfig<Item> = {
         key: 'name',
         label: 'Nome',
         sortable: true,
         width: showImages ? 'w-[350px]' : 'w-[400px]',
-        render: (value: unknown, item: Record<string, unknown>) => (
+        render: (value: unknown, item: Item) => (
             <div>
                 <div className="font-medium">{value as React.ReactNode}</div>
                 {item.category ? (
                     <div className="text-muted-foreground text-sm">
-                        {(item.category as ItemCategory).name && (item.category as ItemCategory).name.length > 40
-                            ? `${(item.category as ItemCategory).name.substring(0, 40)}...`
-                            : (item.category as ItemCategory).name || '-'}
+                        {item.category.name && item.category.name.length > 40
+                            ? `${item.category.name.substring(0, 40)}...`
+                            : item.category.name || '-'}
                     </div>
                 ) : null}
             </div>
         )
     };
-    const otherColumns: ColumnConfig[] = [
+    const otherColumns: ColumnConfig<Item>[] = [
         // DEPRECATED: item_type column removed
         // {
         //     key: 'item_type',
@@ -234,7 +234,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             key: 'capabilities',
             label: 'Capacidades',
             width: 'w-[200px]',
-            render: (value: unknown, item: Record<string, unknown>) => {
+            render: (value: unknown, item: Item) => {
                 const capabilities = [];
                 if (item.can_be_sold) capabilities.push('Vendável');
                 if (item.can_be_manufactured) capabilities.push('Manufaturável');
@@ -246,13 +246,13 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             key: 'primary_bom',
             label: 'BOM Atual',
             width: 'w-[150px]',
-            render: (value: unknown, item: Record<string, unknown>) => (
+            render: (value: unknown, item: Item) => (
                 item.primary_bom && item.can_be_manufactured ? (
                     <Link
-                        href={route('production.bom.show', (item.primary_bom as BillOfMaterial)?.id)}
+                        href={route('production.bom.show', item.primary_bom.id)}
                         className="text-primary hover:underline"
                     >
-                        {(item.primary_bom as BillOfMaterial).bom_number}
+                        {item.primary_bom.bom_number}
                     </Link>
                 ) : (
                     '-'
@@ -276,7 +276,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
         }
     ];
     // Build final columns array conditionally
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<Item>[] = [
         ...baseColumns,
         ...(showImages ? [imageColumn] : []),
         nameColumn,
@@ -359,7 +359,7 @@ export default function ItemsIndex({ items, filters, categories, can }: Props) {
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as unknown as Array<Record<string, unknown>>}
+                        data={data}
                         columns={columns}
                         loading={loading}
                         emptyMessage="Nenhum item encontrado."

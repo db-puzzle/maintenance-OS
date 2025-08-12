@@ -23,7 +23,7 @@ import AppLayout from '@/layouts/app-layout';
 import { ListLayout } from '@/layouts/asset-hierarchy/list-layout';
 import { type BreadcrumbItem } from '@/types';
 import { ColumnConfig } from '@/types/shared';
-import { WorkOrder, WorkOrderStatus, Asset, Instrument, WorkOrderCategory } from '@/types/work-order';
+import { WorkOrder, WorkOrderStatus, WorkOrderCategory } from '@/types/work-order';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import React, { useState } from 'react';
@@ -129,7 +129,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
         from: initialWorkOrders.from,
         to: initialWorkOrders.to,
     };
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<WorkOrder>[] = [
         {
             key: 'work_order_number',
             label: 'Número',
@@ -155,17 +155,17 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
         ...(discipline === 'maintenance' ? [{
             key: 'asset',
             label: 'Ativo',
-            render: (_: unknown, row: Record<string, unknown>) => ((row.asset as Asset)?.tag || '-') as React.ReactNode,
+            render: (_: unknown, row: WorkOrder) => (row.asset?.tag || '-'),
         }] : [{
             key: 'instrument',
             label: 'Instrumento',
-            render: (_: unknown, row: Record<string, unknown>) => ((row.instrument as Instrument)?.tag || '-') as React.ReactNode,
+            render: (_: unknown, row: WorkOrder) => (row.instrument?.tag || '-'),
         }]),
         {
             key: 'work_order_category',
             label: 'Categoria',
             headerAlign: 'center',
-            render: (_: unknown, row: Record<string, unknown>) => {
+            render: (_: unknown, row: WorkOrder) => {
                 // Use the category relationship if available
                 if (row.work_order_category_obj) {
                     return (
@@ -180,7 +180,8 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
                     );
                 }
                 // Handle category as object or string
-                let categoryCode = row.work_order_category;
+                const workOrder = row as WorkOrder & { work_order_category?: string | { code?: string; name?: string } };
+                let categoryCode = workOrder.work_order_category;
                 if (typeof categoryCode === 'object' && categoryCode !== null) {
                     const categoryObj = categoryCode as { code?: string; name?: string };
                     categoryCode = categoryObj.code || categoryObj.name || '';
@@ -203,7 +204,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             key: 'type',
             label: 'Tipo',
             headerAlign: 'center',
-            render: (_: unknown, row: Record<string, unknown>) => {
+            render: (_: unknown, row: WorkOrder) => {
                 const type = row.type as { name?: string } | undefined;
                 return <div className="text-center">{type?.name || '-'}</div>;
             },
@@ -343,7 +344,7 @@ export default function WorkOrderIndex({ workOrders: initialWorkOrders, filters,
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as unknown as Array<Record<string, unknown>>}
+                        data={data}
                         columns={columns}
                         loading={false}
                         emptyMessage="Nenhuma ordem de serviço encontrada."

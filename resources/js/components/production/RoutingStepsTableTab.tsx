@@ -83,7 +83,7 @@ export default function RoutingStepsTableTab({
                 return null;
         }
     };
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<ManufacturingStep>[] = [
         {
             key: 'step_number',
             label: '#',
@@ -96,14 +96,13 @@ export default function RoutingStepsTableTab({
         {
             key: 'name',
             label: 'Nome da Etapa',
-            render: (value: unknown, row: Record<string, unknown>) => {
-                const step = row as unknown as ManufacturingStep;
+            render: (value: unknown, row) => {
                 return (
                     <div className="space-y-1">
-                        <div className="font-medium">{step.name}</div>
-                        {step.depends_on_step_id && (step as ExtendedManufacturingStep).dependency && (
+                        <div className="font-medium">{row.name}</div>
+                        {row.depends_on_step_id && (row as ExtendedManufacturingStep).dependency && (
                             <div className="text-xs text-muted-foreground">
-                                Depende de: {(step as ExtendedManufacturingStep).dependency!.name}
+                                Depende de: {(row as ExtendedManufacturingStep).dependency!.name}
                             </div>
                         )}
                     </div>
@@ -118,13 +117,12 @@ export default function RoutingStepsTableTab({
         {
             key: 'work_cell',
             label: 'Célula de Trabalho',
-            render: (value: unknown, row: Record<string, unknown>) => {
-                const step = row as unknown as ManufacturingStep;
-                return step.work_cell ? (
+            render: (value: unknown, row) => {
+                return row.work_cell ? (
                     <div>
-                        <div className="font-medium">{step.work_cell.code}</div>
+                        <div className="font-medium">{row.work_cell.code}</div>
                         <div className="text-sm text-muted-foreground">
-                            {step.work_cell.name}
+                            {row.work_cell.name}
                         </div>
                     </div>
                 ) : (
@@ -153,9 +151,9 @@ export default function RoutingStepsTableTab({
             label: 'Ações',
             width: 'w-[150px]',
             headerAlign: 'center',
-            render: (value: unknown, row: Record<string, unknown>) => (
+            render: (value: unknown, row) => (
                 <div className="flex justify-center">
-                    {getStepActions(row as unknown as ManufacturingStep)}
+                    {getStepActions(row)}
                 </div>
             )
         }
@@ -163,7 +161,7 @@ export default function RoutingStepsTableTab({
     return (
         <div className="space-y-4 py-6">
             <EntityDataTable
-                data={(steps || []) as unknown as Record<string, unknown>[]}
+                data={steps || []}
                 columns={columns}
                 loading={false}
             />

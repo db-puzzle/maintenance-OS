@@ -243,6 +243,7 @@ class ManufacturingOrderController extends BaseSearchController
             'canCancel' => $order->canBeCancelled() && auth()->user()->can('production.orders.cancel'),
             'canCreateRoute' => $canCreateRoute,
             'canManageRoutes' => auth()->user()->can('production.routes.create'), // For child orders
+            'canReportProduction' => auth()->user()->can('reportProduction', $order),
             'templates' => $templates,
             'workCells' => WorkCell::where('is_active', true)->get(),
             'stepTypes' => ManufacturingStep::STEP_TYPES,
@@ -508,6 +509,82 @@ class ManufacturingOrderController extends BaseSearchController
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    /**
+     * Report production on a manufacturing order.
+     */
+    public function reportProduction(Request $request, ManufacturingOrder $order)
+    {
+        $this->authorize('reportProduction', $order);
+        
+        // Validate order can receive manual reports
+        if ($order->status === 'completed' || $order->status === 'cancelled') {
+            return back()->with('error', 'Cannot report production on completed or cancelled orders.');
+        }
+        
+        // Validate no active route or allow manual reporting alongside route
+        $hasActiveRoute = $order->manufacturingRoute && $order->manufacturingRoute->steps()->count() > 0;
+        if ($hasActiveRoute && !config('production.allow_manual_with_route')) {
+            return back()->with('error', 'This order has a route. Use step execution to report production.');
+        }
+        
+        $validated = $request->validate([
+            'quantity_completed' => 'required|integer|min:0',
+            'quantity_scrapped' => 'nullable|integer|min:0',
+            'notes' => 'nullable|string|max:500',
+            'mark_complete' => 'boolean'
+        ]);
+        
+        // Additional validation
+        $maxCompletable = $order->quantity - $order->quantity_completed;
+        if ($validated['quantity_completed'] > $maxCompletable) {
+            return back()->withErrors(['quantity_completed' => 'Cannot complete more than remaining quantity.']);
+        }
+        
+        DB::transaction(function () use ($order, $validated) {
+            // Update quantities
+            if ($validated['quantity_completed'] > 0) {
+                $order->increment('quantity_completed', $validated['quantity_completed']);
+            }
+            
+            if (($validated['quantity_scrapped'] ?? 0) > 0) {
+                $order->increment('quantity_scrapped', $validated['quantity_scrapped']);
+            }
+            
+            // Update status
+            if ($order->status === 'released') {
+                $order->update([
+                    'status' => 'in_progress',
+                    'actual_start_date' => $order->actual_start_date ?? now()
+                ]);
+            }
+            
+            if ($validated['mark_complete'] ?? false) {
+                $order->update([
+                    'status' => 'completed',
+                    'actual_end_date' => now()
+                ]);
+                
+                // Check parent auto-completion
+                if ($order->parent) {
+                    $order->parent->checkAutoCompletion();
+                }
+            }
+            
+            // Create audit log
+            activity()
+                ->performedOn($order)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'quantity_completed' => $validated['quantity_completed'],
+                    'quantity_scrapped' => $validated['quantity_scrapped'] ?? 0,
+                    'notes' => $validated['notes'] ?? null
+                ])
+                ->log('Manual production reported');
+        });
+        
+        return back()->with('success', 'Production reported successfully.');
     }
 
 } 

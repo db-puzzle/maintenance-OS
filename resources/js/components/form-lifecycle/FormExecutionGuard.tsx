@@ -53,7 +53,7 @@ export default function FormExecutionGuard({ form, onExecute, onPublishAndExecut
         setShowDialog(false);
     };
     // Clone the child element and add onClick handler
-    const childElement = children as React.ReactElement<any>;
+    const childElement = children as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void; disabled?: boolean }>;
     const childWithHandler = React.cloneElement(childElement, {
         onClick: handleClick,
         disabled: state === 'unpublished' || childElement.props?.disabled,

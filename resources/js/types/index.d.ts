@@ -46,5 +46,7 @@ export interface User {
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
+    permissions?: string[]; // Array of permission names
+    roles?: Array<{ id: number; name: string }>; // User roles
     [key: string]: unknown; // This allows for additional properties...
 }

@@ -18,6 +18,7 @@ import RoutingStepsTab from '@/components/production/RoutingStepsTab';
 import RoutingStepsTableTab from '@/components/production/RoutingStepsTableTab';
 import { WorkCell, ManufacturingRoute, ManufacturingStep, RouteTemplate } from '@/types/production';
 import { Form as WorkOrderForm } from '@/types/work-order';
+
 interface Props {
     routing: ManufacturingRoute;
     effectiveSteps: ManufacturingStep[];
@@ -161,29 +162,29 @@ interface RoutingOverviewTabProps {
     onTabChange: (tab: string) => void;
 }
 
-function RoutingOverviewTab({ 
-    routing, 
-    effectiveSteps, 
-    form, 
-        progressPercentage: _progressPercentage = 0, 
-    completedSteps: _completedSteps = 0, 
-    totalSteps: _totalSteps = 0, 
+function RoutingOverviewTab({
+    routing,
+    effectiveSteps,
+    form,
+    progressPercentage: _progressPercentage = 0,
+    completedSteps: _completedSteps = 0,
+    totalSteps: _totalSteps = 0,
     totalEstimatedTime: _totalEstimatedTime = 0,
     totalActualTime: _totalActualTime = 0,
-    onTabChange 
+    onTabChange
 }: RoutingOverviewTabProps) {
     const formatDuration = (minutes: number) => {
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
     };
-    
+
     // Calculate setup and cycle times from steps
     const totalSetupTime = effectiveSteps?.reduce((sum: number, step: ManufacturingStep) =>
         sum + (step.setup_time_minutes || 0), 0) || 0;
     const totalCycleTime = effectiveSteps?.reduce((sum: number, step: ManufacturingStep) =>
         sum + (step.cycle_time_minutes || 0), 0) || 0;
-    
+
     // Create form adapter for TextInput compatibility
     const formAdapter = {
         data: form.data as Record<string, string | number | boolean | File | null | undefined>,
@@ -197,7 +198,7 @@ function RoutingOverviewTab({
             form.clearErrors(...(fields as (keyof FormDataType)[]));
         }
     };
-    
+
     return (
         <div className="space-y-6 py-6">
             {/* Process Summary Section */}
@@ -336,11 +337,11 @@ function RoutingOverviewTab({
 }
 // Steps Tab Component
 // Helper Components
-function SummaryCard({ icon, label, value, onClick, clickable = false }: { 
-    icon: React.ReactNode; 
-    label: string; 
-    value: string | number; 
-    onClick?: () => void; 
+function SummaryCard({ icon, label, value, onClick, clickable = false }: {
+    icon: React.ReactNode;
+    label: string;
+    value: string | number;
+    onClick?: () => void;
     clickable?: boolean;
 }) {
     return (

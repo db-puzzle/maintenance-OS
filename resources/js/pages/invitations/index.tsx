@@ -159,7 +159,7 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
         navigator.clipboard.writeText(invitationUrl);
         toast.success('O link do convite foi copiado para a área de transferência.');
     };
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<Invitation>[] = [
         {
             key: 'email',
             label: 'Email',
@@ -181,8 +181,8 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
         {
             key: 'expires_at',
             label: 'Expira em',
-            render: (value: unknown, row: Record<string, unknown>) => {
-                const invitation = row as Invitation;
+            render: (value: unknown, row: Invitation) => {
+                const invitation = row;
                 if (invitation.status === 'accepted' || invitation.status === 'revoked') {
                     return '-';
                 }
@@ -195,8 +195,8 @@ export default function InvitationsIndex({ invitations, filters, stats }: Props)
             },
         },
     ];
-    const renderActions = (row: Record<string, unknown>) => {
-        const invitation = row as Invitation;
+    const renderActions = (row: Invitation) => {
+        const invitation = row;
         return (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>

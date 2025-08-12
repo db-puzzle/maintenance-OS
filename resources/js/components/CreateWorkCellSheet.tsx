@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WorkCell } from '@/types/production';
+
 interface WorkCellForm {
     [key: string]: string | number | boolean | null | undefined;
     name: string;
@@ -87,17 +88,12 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, ope
                 entityName: 'Célula de Trabalho',
             }}
         >
-            {({ data, setData, errors }) => (
+            {({ data, setData, errors, formAdapter }) => (
                 <>
                     {/* Nome da Célula - Campo Obrigatório */}
                     <TextInput
                         ref={nameInputRef}
-                        form={{
-                            data,
-                            setData,
-                            errors,
-                            clearErrors: () => { },
-                        }}
+                        form={formAdapter}
                         name="name"
                         label="Nome da Célula"
                         placeholder="Nome da célula de trabalho"
@@ -125,24 +121,14 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({ workCell, ope
                     {/* Horas Disponíveis e Eficiência - Grid com 2 colunas */}
                     <div className="grid grid-cols-2 gap-4">
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: () => { },
-                            }}
+                            form={formAdapter}
                             name="available_hours_per_day"
                             label="Horas/Dia"
                             placeholder="8"
                             required
                         />
                         <TextInput
-                            form={{
-                                data,
-                                setData,
-                                errors,
-                                clearErrors: () => { },
-                            }}
+                            form={formAdapter}
                             name="efficiency_percentage"
                             label="Eficiência (%)"
                             placeholder="85"

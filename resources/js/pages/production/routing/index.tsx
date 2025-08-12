@@ -63,7 +63,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             });
         }
     };
-    const columns: ColumnConfig[] = [
+    const columns: ColumnConfig<Routing>[] = [
         {
             key: 'name',
             label: 'Nome do Roteiro',

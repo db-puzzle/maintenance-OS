@@ -21,6 +21,7 @@ import { CalendarRange } from 'lucide-react';
 
 import { Routine } from '@/types/routine';
 import { Form } from '@/types/work-order';
+import { TaskType } from '@/types/task';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { FormData as FormStatusData } from '@/components/form-lifecycle/FormStatusBadge';
@@ -195,7 +196,7 @@ export default function AssetRoutinesTab({
 
 
 
-    const getRoutineColumns = (): ColumnConfig[] => [
+    const getRoutineColumns = (): ColumnConfig<Routine>[] => [
         {
             key: 'name',
             label: 'Nome',
@@ -211,8 +212,7 @@ export default function AssetRoutinesTab({
             sortable: true,
             width: 'w-[100px]',
             render: (value, row) => {
-                const routine = row as unknown as Routine;
-                const priority = routine.priority_score;
+                const priority = row.priority_score;
 
                 return (
                     <div className="text-center">
@@ -251,16 +251,15 @@ export default function AssetRoutinesTab({
             sortable: true,
             width: 'w-[180px]',
             render: (value, row) => {
-                const routine = row as unknown as Routine;
-                const triggerValue = routine.trigger_type === 'runtime_hours'
-                    ? routine.trigger_runtime_hours
-                    : routine.trigger_calendar_days;
-                const triggerUnit = routine.trigger_type === 'runtime_hours' ? 'horas operação' : 'dias calendário';
+                const triggerValue = row.trigger_type === 'runtime_hours'
+                    ? row.trigger_runtime_hours
+                    : row.trigger_calendar_days;
+                const triggerUnit = row.trigger_type === 'runtime_hours' ? 'horas operação' : 'dias calendário';
 
                 return (
                     <div className="space-y-1 text-center">
                         <div className="flex items-center justify-center gap-1 text-sm">
-                            {routine.trigger_type === 'runtime_hours' ? (
+                            {row.trigger_type === 'runtime_hours' ? (
                                 <Clock className="h-3 w-3" />
                             ) : (
                                 <CalendarRange className="h-3 w-3" />
@@ -279,14 +278,13 @@ export default function AssetRoutinesTab({
             headerAlign: 'center',
             contentAlign: 'center',
             render: (value, row) => {
-                const routine = row as unknown as Routine;
-                if (!routine.last_execution_completed_at) {
+                if (!row.last_execution_completed_at) {
                     return <div className="text-center"><span className="text-muted-foreground text-sm">Nunca executada</span></div>;
                 }
 
                 // Parse the date string to show the correct date without timezone shifting
                 // The date comes as ISO string, we need to extract just the date part
-                const dateStr = routine.last_execution_completed_at.split('T')[0];
+                const dateStr = row.last_execution_completed_at.split('T')[0];
                 const [year, month, day] = dateStr.split('-');
                 const displayDate = `${day}/${month}/${year}`;
 
@@ -295,9 +293,9 @@ export default function AssetRoutinesTab({
                         <div className="text-sm">
                             {displayDate}
                         </div>
-                        {routine.last_execution_form_version_id && routine.last_execution_form_version && (
+                        {row.last_execution_form_version_id && row.last_execution_form_version && (
                             <div className="text-xs text-muted-foreground">
-                                Versão: v{routine.last_execution_form_version.version}
+                                Versão: v{row.last_execution_form_version.version}
                             </div>
                         )}
                     </div>
@@ -312,10 +310,9 @@ export default function AssetRoutinesTab({
             headerAlign: 'center',
             contentAlign: 'center',
             render: (value, row) => {
-                const routine = row as unknown as Routine;
-                if (!routine.next_execution_date) {
+                if (!row.next_execution_date) {
                     // If no last execution, show a message prompting to set it
-                    if (!routine.last_execution_completed_at) {
+                    if (!row.last_execution_completed_at) {
                         return (
                             <div className="flex justify-center">
                                 <TooltipProvider>
@@ -347,12 +344,12 @@ export default function AssetRoutinesTab({
                 }
 
                 // Parse the date correctly to avoid timezone issues
-                const nextDateStr = routine.next_execution_date.split('T')[0];
+                const nextDateStr = row.next_execution_date.split('T')[0];
                 const [year, month, day] = nextDateStr.split('-');
                 const displayDate = `${day}/${month}/${year}`;
 
                 // For comparison, we need to work with UTC dates
-                const nextDateUTC = new Date(routine.next_execution_date);
+                const nextDateUTC = new Date(row.next_execution_date);
                 const nowUTC = new Date();
                 const isOverdue = nextDateUTC < nowUTC;
                 const daysUntilDue = Math.ceil((nextDateUTC.getTime() - nowUTC.getTime()) / (1000 * 60 * 60 * 24));
@@ -399,7 +396,7 @@ export default function AssetRoutinesTab({
                                 </TooltipTrigger>
                                 <TooltipContent>
                                     <div className="text-sm">
-                                        {routine.trigger_type === 'runtime_hours'
+                                        {row.trigger_type === 'runtime_hours'
                                             ? 'Estimativa baseada nas horas de operação e turno do ativo'
                                             : 'Baseado em dias calendário desde a última execução'
                                         }
@@ -449,7 +446,7 @@ export default function AssetRoutinesTab({
                     return (
                         <div className="text-center">
                             <span className="text-sm font-medium">
-                                v{form.current_version.version_number}
+                                v{form.current_version.version}
                             </span>
                         </div>
                     );
@@ -464,7 +461,7 @@ export default function AssetRoutinesTab({
             sortable: false,
             width: 'w-[150px]',
             render: (value, row) => {
-                const form = (row as Record<string, unknown>).form as ExtendedForm | undefined;
+                const form = row.form as ExtendedForm | undefined;
                 if (!form) {
                     return (
                         <div className="text-center">
@@ -485,7 +482,7 @@ export default function AssetRoutinesTab({
                                 current_version: form.current_version ? {
                                     version_number: form.current_version.version_number || '',
                                     id: form.current_version.id,
-                                    published_at: (form.current_version as any).published_at
+                                    published_at: (form.current_version as { published_at?: string }).published_at
                                 } : undefined
                             }}
                             size="sm"
@@ -783,11 +780,13 @@ export default function AssetRoutinesTab({
                     form: routine.form ? {
                         id: routine.form.id,
                         tasks: (routine.form.tasks || []).map(task => ({
-                            ...task,
+                            id: String(task.id),
+                            type: task.type as TaskType,
+                            description: task.description || '',
                             isRequired: task.required || false,
                             instructionImages: [],
-                            instructions: task.description || ''
-                        })) as any,
+                            instructions: []
+                        })),
                         isDraft: false,
                         currentVersionId: routine.form.current_version_id ?? null,
                         has_draft_changes: false,
@@ -840,21 +839,20 @@ export default function AssetRoutinesTab({
 
                 {/* Routines table */}
                 <EntityDataTable
-                    data={sortedRoutines as unknown as Record<string, unknown>[]}
+                    data={sortedRoutines}
                     columns={getRoutineColumns()}
                     loading={false}
                     emptyMessage={searchTerm ? `Nenhuma rotina encontrada para "${searchTerm}"` : "Nenhuma rotina cadastrada. Clique em 'Nova Rotina' para começar."}
                     actions={(routine) => {
-                        const typedRoutine = routine as unknown as Routine;
                         return (
                             <div className="flex items-center justify-center gap-2">
                                 {/* Actions dropdown */}
                                 <EntityActionDropdown
                                     onEdit={undefined}
-                                    onDelete={() => handleDeleteClick(typedRoutine)}
+                                    onDelete={() => handleDeleteClick(routine)}
                                     additionalActions={[
                                         // Publicar - Primary action for unpublished routines with tasks
-                                        ...(hasFormTasks(typedRoutine.form) && getFormState({ ...typedRoutine.form, current_version_id: typedRoutine.form?.current_version_id ?? null } as FormStatusData) === 'unpublished' ? [{
+                                        ...(hasFormTasks(routine.form) && getFormState({ ...routine.form, current_version_id: routine.form?.current_version_id ?? null } as FormStatusData) === 'unpublished' ? [{
                                             label: 'Publicar',
                                             icon: (
                                                 <div className="relative">
@@ -862,17 +860,17 @@ export default function AssetRoutinesTab({
                                                     <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
                                                 </div>
                                             ),
-                                            onClick: () => handlePublishForm(typedRoutine.id),
+                                            onClick: () => handlePublishForm(routine.id),
                                             className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                         }] : []),
                                         // Separator after Publicar (if shown)
-                                        ...(hasFormTasks(typedRoutine.form) && getFormState({ ...typedRoutine.form, current_version_id: typedRoutine.form?.current_version_id ?? null } as FormStatusData) === 'unpublished' ? [{
+                                        ...(hasFormTasks(routine.form) && getFormState({ ...routine.form, current_version_id: routine.form?.current_version_id ?? null } as FormStatusData) === 'unpublished' ? [{
                                             label: 'separator',
                                             icon: null,
                                             onClick: () => { },
                                         }] : []),
                                         // Create Work Order - Primary action at the top with emphasis
-                                        ...(hasFormTasks(typedRoutine.form) && getFormState({ ...typedRoutine.form, current_version_id: typedRoutine.form?.current_version_id ?? null } as FormStatusData) !== 'unpublished' ? [{
+                                        ...(hasFormTasks(routine.form) && getFormState({ ...routine.form, current_version_id: routine.form?.current_version_id ?? null } as FormStatusData) !== 'unpublished' ? [{
                                             label: 'Criar Ordem de Serviço',
                                             icon: (
                                                 <div className="relative">
@@ -880,35 +878,35 @@ export default function AssetRoutinesTab({
                                                     <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
                                                 </div>
                                             ),
-                                            onClick: () => handleCreateWorkOrder(typedRoutine.id),
+                                            onClick: () => handleCreateWorkOrder(routine.id),
                                             className: 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                         }] : []),
                                         // Separator after Create Work Order
-                                        ...(hasFormTasks(typedRoutine.form) && getFormState({ ...typedRoutine.form, current_version_id: typedRoutine.form?.current_version_id ?? null } as FormStatusData) !== 'unpublished' ? [{
+                                        ...(hasFormTasks(routine.form) && getFormState({ ...routine.form, current_version_id: routine.form?.current_version_id ?? null } as FormStatusData) !== 'unpublished' ? [{
                                             label: 'separator',
                                             icon: null,
                                             onClick: () => { },
                                         }] : []),
                                         // Add/Edit Tasks - Second primary action with prominence
                                         {
-                                            label: (typedRoutine.form as ExtendedForm)?.has_draft_changes ? 'Editar Tarefas' :
-                                                hasFormTasks(typedRoutine.form) ? 'Editar Tarefas' :
+                                            label: (routine.form as ExtendedForm)?.has_draft_changes ? 'Editar Tarefas' :
+                                                hasFormTasks(routine.form) ? 'Editar Tarefas' :
                                                     'Adicionar Tarefas',
                                             icon: (
                                                 <div className="relative">
                                                     <FileText className="h-4 w-4 text-primary" />
-                                                    {!hasFormTasks(typedRoutine.form) && (
+                                                    {!hasFormTasks(routine.form) && (
                                                         <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
                                                     )}
                                                 </div>
                                             ),
-                                            onClick: () => handleEditFormClick(typedRoutine),
-                                            className: !hasFormTasks(typedRoutine.form)
+                                            onClick: () => handleEditFormClick(routine),
+                                            className: !hasFormTasks(routine.form)
                                                 ? 'font-semibold text-primary hover:text-primary/90 hover:bg-primary/10'
                                                 : undefined
                                         },
                                         // Separator after Add Tasks (only when showing "Adicionar Tarefas")
-                                        ...(!hasFormTasks(typedRoutine.form) ? [{
+                                        ...(!hasFormTasks(routine.form) ? [{
                                             label: 'separator',
                                             icon: null,
                                             onClick: () => { },
@@ -917,8 +915,8 @@ export default function AssetRoutinesTab({
                                         {
                                             label: 'Definir Última Execução',
                                             icon: <CalendarRange className="h-4 w-4" />,
-                                            onClick: () => handleSetLastExecution(typedRoutine),
-                                            className: !typedRoutine.last_execution_completed_at
+                                            onClick: () => handleSetLastExecution(routine),
+                                            className: !routine.last_execution_completed_at
                                                 ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
                                                 : undefined
                                         },
@@ -926,17 +924,17 @@ export default function AssetRoutinesTab({
                                         {
                                             label: 'Editar Rotina',
                                             icon: <Edit2 className="h-4 w-4" />,
-                                            onClick: () => handleEditRoutine(typedRoutine),
+                                            onClick: () => handleEditRoutine(routine),
                                         },
-                                        ...((typedRoutine.form as ExtendedForm)?.has_draft_changes && (typedRoutine.form as ExtendedForm)?.current_version_id ? [{
-                                            label: `Ver Versão Publicada (v${(typedRoutine.form as ExtendedForm)?.current_version?.version_number || '1.0'})`,
+                                        ...((routine.form as ExtendedForm)?.has_draft_changes && (routine.form as ExtendedForm)?.current_version_id ? [{
+                                            label: `Ver Versão Publicada (v${(routine.form as ExtendedForm)?.current_version?.version_number || '1.0'})`,
                                             icon: <Eye className="h-4 w-4" />,
-                                            onClick: () => router.visit(route('maintenance.routines.view-published-version', { routine: typedRoutine.id })),
+                                            onClick: () => router.visit(route('maintenance.routines.view-published-version', { routine: routine.id })),
                                         }] : []),
-                                        ...((typedRoutine.form as ExtendedForm)?.current_version_id ? [{
+                                        ...((routine.form as ExtendedForm)?.current_version_id ? [{
                                             label: 'Ver Histórico de Versões',
                                             icon: <History className="h-4 w-4" />,
-                                            onClick: () => handleShowVersionHistory(typedRoutine.id),
+                                            onClick: () => handleShowVersionHistory(routine.id),
                                         }] : []),
                                     ]}
                                 />

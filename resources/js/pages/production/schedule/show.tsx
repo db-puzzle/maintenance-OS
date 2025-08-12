@@ -11,6 +11,7 @@ import { ItemSelect } from '@/components/ItemSelect';
 import { Separator } from '@/components/ui/separator';
 import { useForm } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
+
 // Field group component for consistent layout
 function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
     return (

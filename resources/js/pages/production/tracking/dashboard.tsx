@@ -148,7 +148,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
     const handleOrderClick = (order: ManufacturingOrder) => {
         router.visit(route('production.planning.orders.show', order.id));
     };
-    const activeOrderColumns: ColumnConfig[] = [
+    const activeOrderColumns: ColumnConfig<ManufacturingOrder>[] = [
         {
             key: 'order_number',
             label: 'Número',

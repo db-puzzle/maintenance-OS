@@ -136,4 +136,34 @@ class ProductionOrderPolicy
 
         return $order->canBeCancelled();
     }
+
+    /**
+     * Determine whether the user can report production on the order.
+     */
+    public function reportProduction(User $user, ManufacturingOrder $order): bool
+    {
+        if (!$user->hasPermissionTo('production.orders.reportProduction')) {
+            return false;
+        }
+
+        // Check if order can receive production reports
+        if (!$order->canReportProduction()) {
+            return false;
+        }
+
+        // Check entity-scoped permissions
+        if ($order->item && $order->item->sector) {
+            $sector = $order->item->sector;
+            $area = $sector->area;
+            $plant = $area->plant;
+
+            return $user->hasAnyPermission([
+                "production.orders.reportProduction.plant.{$plant->id}",
+                "production.orders.reportProduction.area.{$area->id}",
+                "production.orders.reportProduction.sector.{$sector->id}",
+            ]);
+        }
+
+        return true;
+    }
 } 

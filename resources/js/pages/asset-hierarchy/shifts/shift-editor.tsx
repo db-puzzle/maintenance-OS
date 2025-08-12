@@ -534,8 +534,8 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                             <div className="w-full space-y-2">
                                 <TextInput
                                     form={{
-                                        data,
-                                        setData,
+                                        data: data as Record<string, string | number | boolean | File | null | undefined>,
+                                        setData: setData as (field: string, value: string | number | boolean | File | null | undefined) => void,
                                         errors,
                                         clearErrors: clearErrors as (...fields: string[]) => void,
                                     }}
