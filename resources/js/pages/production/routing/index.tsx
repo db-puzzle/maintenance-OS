@@ -32,28 +32,28 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
         router.get(
-            route('production.routing.index'),
+            window.route('production.routing.index'),
             { ...filters, search: value, page: 1 },
             { preserveState: true, replace: true }
         );
     };
     const handlePageChange = (page: number) => {
         router.get(
-            route('production.routing.index'),
+            window.route('production.routing.index'),
             { ...filters, page },
             { preserveState: true, replace: true }
         );
     };
     const handlePerPageChange = (perPage: number) => {
         router.get(
-            route('production.routing.index'),
+            window.route('production.routing.index'),
             { ...filters, per_page: perPage, page: 1 },
             { preserveState: true, replace: true }
         );
     };
     const handleDelete = (routing: Routing) => {
         if (confirm(`Tem certeza que deseja excluir o roteiro ${routing.name}?`)) {
-            router.delete(route('production.routing.destroy', routing.id), {
+            router.delete(window.route('production.routing.destroy', routing.id), {
                 onSuccess: () => {
                     toast.success('Roteiro excluído com sucesso');
                 },
@@ -69,14 +69,13 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             label: 'Nome do Roteiro',
             sortable: true,
             width: 'w-[300px]',
-            render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as unknown as Routing;
+            render: (value: unknown, row) => {
                 return (
                     <div>
-                        <div className="font-medium">{routing.name}</div>
-                        {routing.description && (
+                        <div className="font-medium">{row.name}</div>
+                        {row.description && (
                             <div className="text-muted-foreground text-sm">
-                                {routing.description.length > 40 ? `${routing.description.substring(0, 40)}...` : routing.description}
+                                {row.description.length > 40 ? `${row.description.substring(0, 40)}...` : row.description}
                             </div>
                         )}
                     </div>
@@ -88,14 +87,13 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             label: 'Ordem de Produção',
             sortable: true,
             width: 'w-[200px]',
-            render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as unknown as Routing;
-                return routing.manufacturing_order ? (
+            render: (value: unknown, row) => {
+                return row.manufacturing_order ? (
                     <Link
-                        href={route('production.orders.show', routing.manufacturing_order.id)}
+                        href={window.window.route('production.orders.show', row.manufacturing_order.id)}
                         className="text-primary hover:underline"
                     >
-                        {routing.manufacturing_order.order_number}
+                        {row.manufacturing_order.order_number}
                     </Link>
                 ) : '-';
             }
@@ -105,15 +103,14 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             label: 'Item',
             sortable: true,
             width: 'w-[250px]',
-            render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as unknown as Routing;
-                return routing.item ? (
+            render: (value: unknown, row) => {
+                return row.item ? (
                     <div>
-                        <div className="font-medium">{routing.item.item_number}</div>
+                        <div className="font-medium">{row.item.item_number}</div>
                         <div className="text-muted-foreground text-sm">
-                            {routing.item.name?.length > 40
-                                ? `${routing.item.name.substring(0, 40)}...`
-                                : routing.item.name || '-'}
+                            {row.item.name?.length > 40
+                                ? `${row.item.name.substring(0, 40)}...`
+                                : row.item.name || '-'}
                         </div>
                     </div>
                 ) : '-';
@@ -133,12 +130,11 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
             label: 'Descrição',
             sortable: true,
             width: 'w-[300px]',
-            render: (value: unknown, row: Record<string, unknown>) => {
-                const routing = row as unknown as Routing;
-                return routing.description ? (
-                    routing.description.length > 50
-                        ? `${routing.description.substring(0, 50)}...`
-                        : routing.description
+            render: (value: unknown, row) => {
+                return row.description ? (
+                    row.description.length > 50
+                        ? `${row.description.substring(0, 50)}...`
+                        : row.description
                 ) : '-';
             }
         },
@@ -165,7 +161,7 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
                 searchPlaceholder="Buscar por número, nome ou item..."
                 searchValue={searchValue}
                 onSearchChange={handleSearchChange}
-                createRoute={can.create ? route('production.routing.create') : undefined}
+                createRoute={can.create ? window.route('production.routing.create') : undefined}
                 createButtonText="Novo Roteiro"
             >
                 <div className="space-y-4">
@@ -173,10 +169,10 @@ export default function RoutingIndex({ routings, filters, can }: Props) {
                         data={routings.data || []}
                         columns={columns}
                         loading={false}
-                        onRowClick={(routing) => router.visit(route('production.routing.show', (routing as Routing).id))}
+                        onRowClick={(routing) => router.visit(window.route('production.routing.show', (routing as Routing).id))}
                         actions={(routing) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(route('production.routing.edit', (routing as Routing).id))}
+                                onEdit={() => router.visit(window.route('production.routing.edit', (routing as Routing).id))}
                                 onDelete={() => handleDelete(routing as Routing)}
                             />
                         )}

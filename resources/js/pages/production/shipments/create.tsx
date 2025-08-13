@@ -377,7 +377,12 @@ interface StepProps {
 // Step 2: Destination
 function DestinationStep({ form }: StepProps) {
     // Create form adapter for TextInput components
-    const formAdapter = createFormAdapter({ data: form.data, setData: form.setData, errors: form.errors, clearErrors: form.clearErrors });
+    const formAdapter = createFormAdapter({
+        data: form.data,
+        setData: form.setData as any,
+        errors: form.errors,
+        clearErrors: form.clearErrors as any
+    });
 
     return (
         <div className="space-y-6">
@@ -446,7 +451,12 @@ function DestinationStep({ form }: StepProps) {
 // Step 3: Carrier
 function CarrierStep({ form }: StepProps) {
     // Create form adapter for TextInput components
-    const formAdapter = createFormAdapter({ data: form.data, setData: form.setData, errors: form.errors, clearErrors: form.clearErrors });
+    const formAdapter = createFormAdapter({
+        data: form.data,
+        setData: form.setData as any,
+        errors: form.errors,
+        clearErrors: form.clearErrors as any
+    });
 
     return (
         <div className="space-y-6">

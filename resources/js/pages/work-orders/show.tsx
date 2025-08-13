@@ -92,6 +92,12 @@ export default function ShowWorkOrder({
 }: Props) {
     const [activeTab, setActiveTab] = useState('details');
 
+    // Define handleWorkOrderCreated before using it in useMemo
+    const handleWorkOrderCreated = () => {
+        // This will be called after successful work order creation
+        // The page should redirect automatically via the controller
+    };
+
     // Define breadcrumbs - moved before conditional return to avoid hooks violation
     const breadcrumbs: BreadcrumbItem[] = useMemo(() => [
         {
@@ -259,11 +265,6 @@ export default function ShowWorkOrder({
             window.removeEventListener('error', handleError);
         };
     }, [workOrder?.id, workOrder?.status, isCreating]);
-
-    const handleWorkOrderCreated = () => {
-        // This will be called after successful work order creation
-        // The page should redirect automatically via the controller
-    };
 
     // If not creating and no workOrder provided, show error
     if (!isCreating && !workOrder) {

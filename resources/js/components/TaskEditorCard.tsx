@@ -240,22 +240,22 @@ export default function TaskEditorCard({
                                                 <CardContent className="flex items-center space-x-2">
                                                     <div className="flex-1">
                                                         <TextInput
-                                                            form={{
+                                                            form={createFormAdapter({
                                                                 data: {
                                                                     ...data,
                                                                     [`option-${index}`]: value,
                                                                     options: undefined,
                                                                 } as Record<string, string | number | boolean | null | undefined>,
-                                                                setData: (field: string, value: string | number | boolean | File | null | undefined) => {
+                                                                setData: ((field: string, value: string | number | boolean | File | null | undefined) => {
                                                                     if (field === `option-${index}`) {
                                                                         const newOptions = [...options];
                                                                         newOptions[index] = value as string;
                                                                         handleOptionsChange(newOptions);
                                                                     }
-                                                                },
+                                                                }) as any,
                                                                 errors,
-                                                                clearErrors: clearErrors as (...fields: string[]) => void,
-                                                            }}
+                                                                clearErrors: clearErrors as any,
+                                                            })}
                                                             name={`option-${index}`}
                                                             label={`Opção ${index + 1}`}
                                                             placeholder={`Descreva a opção ${index + 1}`}

@@ -30,9 +30,7 @@ export default function ProductionTracking({ myWork, readyToStart, inProgress, w
 
         const interval = setInterval(() => {
             router.reload({
-                only: ['myWork', 'readyToStart', 'inProgress'],
-                preserveScroll: true,
-                preserveState: true
+                only: ['myWork', 'readyToStart', 'inProgress']
             });
         }, 30000);
 
@@ -90,7 +88,7 @@ export default function ProductionTracking({ myWork, readyToStart, inProgress, w
                                 <span>•</span>
                                 <span className="flex items-center gap-1">
                                     <User className="h-3 w-3" />
-                                    {step.current_execution.executed_by.name}
+                                    {step.current_execution.executed_by_user?.name || 'Unknown'}
                                 </span>
                             </>
                         )}

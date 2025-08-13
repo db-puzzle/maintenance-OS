@@ -8,6 +8,7 @@ import { DefaultMeasurement } from '@/types/task';
 import { MeasurementUnitCategories, UnitCategory } from '@/types/units';
 import { useEffect, useState } from 'react';
 import { withSaveFunctionality, WithSaveFunctionalityProps } from './withSaveFunctionality';
+import { createFormAdapter } from '@/utils/form-adapters';
 // This type alias extends WithSaveFunctionalityProps and is reserved for future measurement-specific props
 type MeasurementTaskContentProps = WithSaveFunctionalityProps & {
     // Future measurement-specific props will be added here
@@ -97,24 +98,38 @@ function MeasurementTaskContent({ task, mode, onUpdate, response, setResponse, d
         }
     };
     const safeCategory = Object.keys(MeasurementUnitCategories).includes(category) ? category : defaultCategory;
+
+    // Create form data and methods compatible with createFormAdapter
+    const formData = {
+        ...response,
+        targetValue: stringifyValue(targetValue),
+        minValue: stringifyValue(minValue),
+        maxValue: stringifyValue(maxValue),
+    };
+
+    const formSetData = (name: string, value: string | number | boolean | File | null | undefined) => {
+        setResponse({ ...response, [name]: value });
+    };
+
+    const formClearErrors = (...fields: string[]) => {
+        const newErrors = { ...formErrors };
+        fields.forEach(field => {
+            delete newErrors[field as keyof MeasurementFormData];
+        });
+        setFormErrors(newErrors);
+    };
+
+    // Create the form adapter with additional properties
+    const baseForm = createFormAdapter({
+        data: formData,
+        setData: formSetData as any,
+        errors: formErrors,
+        clearErrors: formClearErrors as any,
+    });
+
+    // Add additional properties that TextInput expects
     const form = {
-        data: {
-            ...response,
-            targetValue: stringifyValue(targetValue),
-            minValue: stringifyValue(minValue),
-            maxValue: stringifyValue(maxValue),
-        } as Record<string, string | number | boolean | File | null | undefined>,
-        setData: ((name: string, value: string | number | boolean | File | null | undefined) => {
-            setResponse({ ...response, [name]: value });
-        }) as (field: string, value: string | number | boolean | File | null | undefined) => void,
-        errors: formErrors as Partial<Record<string, string>>,
-        clearErrors: ((...fields: string[]) => {
-            const newErrors = { ...formErrors };
-            fields.forEach(field => {
-                delete newErrors[field as keyof MeasurementFormData];
-            });
-            setFormErrors(newErrors);
-        }) as (...fields: string[]) => void,
+        ...baseForm,
         validateInput: validateInput as ((value: string) => boolean) | undefined,
         processBlur: processBlur as ((name: string, value: string) => void) | undefined,
     };

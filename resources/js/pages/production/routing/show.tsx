@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { createFormAdapter, createSetDataAdapter } from '@/utils/form-adapters';
 import AppLayout from '@/layouts/app-layout';
 import ShowLayout from '@/layouts/show-layout';
 import { Badge } from '@/components/ui/badge';
@@ -186,18 +187,12 @@ function RoutingOverviewTab({
         sum + (step.cycle_time_minutes || 0), 0) || 0;
 
     // Create form adapter for TextInput compatibility
-    const formAdapter = {
-        data: form.data as Record<string, string | number | boolean | File | null | undefined>,
-        setData: (name: string, value: string | number | boolean | File | null | undefined) => {
-            if (typeof value === 'string' || typeof value === 'boolean') {
-                form.setData(name as keyof FormDataType, value);
-            }
-        },
-        errors: form.errors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => {
-            form.clearErrors(...(fields as (keyof FormDataType)[]));
-        }
-    };
+    const formAdapter = createFormAdapter({
+        data: form.data,
+        setData: createSetDataAdapter(form.setData as any),
+        errors: form.errors,
+        clearErrors: form.clearErrors as (...fields: string[]) => void
+    });
 
     return (
         <div className="space-y-6 py-6">

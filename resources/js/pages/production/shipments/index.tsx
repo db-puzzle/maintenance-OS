@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ColumnConfig } from '@/types/shared';
-import { Shipment } from '@/types/production';
+
 interface Shipment {
     id: string;
     shipment_number: string;
@@ -72,7 +72,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
     const [loading, _setLoading] = useState(false);
     const handleSearchChange = (value: string) => {
         setSearchValue(value);
-        router.get(route('production.shipments.index'), { ...filters, search: value }, {
+        router.get(window.route('production.shipments.index'), { ...filters, search: value }, {
             preserveState: true,
             preserveScroll: true,
         });
@@ -84,26 +84,26 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
         } else {
             delete newFilters[key];
         }
-        router.get(route('production.shipments.index'), newFilters, {
+        router.get(window.route('production.shipments.index'), newFilters as any, {
             preserveState: true,
             preserveScroll: true,
         });
     };
     const handlePageChange = (page: number) => {
-        router.get(route('production.shipments.index'), { ...filters, page }, {
+        router.get(window.route('production.shipments.index'), { ...filters, page }, {
             preserveState: true,
             preserveScroll: true,
         });
     };
     const handlePerPageChange = (perPage: number) => {
-        router.get(route('production.shipments.index'), { ...filters, per_page: perPage }, {
+        router.get(window.route('production.shipments.index'), { ...filters, per_page: perPage }, {
             preserveState: true,
             preserveScroll: true,
         });
     };
     const handleDelete = async () => {
         if (!deleteShipment) return;
-        router.delete(route('production.shipments.destroy', deleteShipment.id), {
+        router.delete(window.route('production.shipments.destroy', deleteShipment.id), {
             onSuccess: () => {
                 setDeleteShipment(null);
             },
@@ -114,9 +114,9 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             key: 'shipment_number',
             label: 'Shipment #',
             sortable: true,
-            render: (value: unknown, shipment: Record<string, unknown>) => (
+            render: (value: unknown, shipment) => (
                 <Link
-                    href={route('production.shipments.show', shipment.id as number)}
+                    href={window.route('production.shipments.show', parseInt(shipment.id))}
                     className="font-medium text-blue-600 hover:underline"
                 >
                     {value as React.ReactNode}
@@ -195,7 +195,7 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
                 searchPlaceholder="Search shipments..."
                 searchValue={searchValue}
                 onSearchChange={handleSearchChange}
-                createRoute={can.create ? route('production.shipments.create') : undefined}
+                createRoute={can.create ? window.route('production.shipments.create') : undefined}
                 createButtonText="New Shipment"
                 actions={
                     <div className="flex gap-2">
@@ -243,20 +243,20 @@ export default function ShipmentsIndex({ shipments, filters, statuses, shipmentT
             >
                 <div className="space-y-4">
                     <EntityDataTable
-                        data={data as unknown as Array<Record<string, unknown>>}
+                        data={data}
                         columns={columns}
                         loading={loading}
                         emptyMessage="Nenhuma remessa encontrada."
-                        onRowClick={(shipment) => router.visit(route('production.shipments.show', (shipment as unknown as Shipment).id))}
+                        onRowClick={(shipment) => router.visit(window.route('production.shipments.show', shipment.id))}
                         actions={(shipment) => (
                             <EntityActionDropdown
-                                onEdit={() => router.visit(route('production.shipments.edit', (shipment as unknown as Shipment).id))}
-                                onDelete={() => setDeleteShipment(shipment as unknown as Shipment)}
+                                onEdit={() => router.visit(window.route('production.shipments.edit', shipment.id))}
+                                onDelete={() => setDeleteShipment(shipment)}
                                 additionalActions={[
                                     {
                                         label: 'Visualizar',
                                         icon: <Eye className="h-4 w-4" />,
-                                        onClick: () => router.visit(route('production.shipments.show', (shipment as unknown as Shipment).id))
+                                        onClick: () => router.visit(window.route('production.shipments.show', shipment.id))
                                     }
                                 ]}
                             />

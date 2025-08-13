@@ -294,7 +294,7 @@ class WorkCellDashboardController extends Controller
         $hoursPerDay = 8; // Standard shift
         $minutesPerDay = $hoursPerDay * 60;
         
-        return $days * $minutesPerDay * ($workCell->capacity_percentage / 100);
+        return $days * $minutesPerDay;
     }
 
     private function calculateUtilization(WorkCell $workCell)
@@ -304,9 +304,9 @@ class WorkCellDashboardController extends Controller
             ->where('status', 'in_progress')
             ->count();
         
-        $maxCapacity = $workCell->max_concurrent_operations ?? 1;
-        
-        return round(($activeSteps / $maxCapacity) * 100, 2);
+        // For now, assume single operation capacity
+        // This can be enhanced in the future with proper capacity planning
+        return $activeSteps > 0 ? 100 : 0;
     }
 
     private function getQueuePosition(ManufacturingStep $step)
@@ -328,5 +328,174 @@ class WorkCellDashboardController extends Controller
             ->get();
         
         return $recentExecutions->avg('actual_duration_minutes') ?? 30;
+    }
+
+    /**
+     * Show analytics page for the work cell.
+     */
+    public function analytics(Request $request, WorkCell $workCell)
+    {
+        $this->authorize('viewDashboard', $workCell);
+        
+        // Date range for analytics (default: last 30 days)
+        $startDate = $request->input('start_date', Carbon::now()->subDays(30)->startOfDay());
+        $endDate = $request->input('end_date', Carbon::now()->endOfDay());
+        
+        // Get detailed analytics data
+        $analytics = [
+            'oee_trend' => $this->getOEETrend($workCell, $startDate, $endDate),
+            'production_volume' => $this->getProductionVolume($workCell, $startDate, $endDate),
+            'quality_metrics' => $this->getQualityMetrics($workCell, $startDate, $endDate),
+            'downtime_analysis' => $this->getDowntimeAnalysis($workCell, $startDate, $endDate),
+            'operator_performance' => $this->getOperatorPerformance($workCell, $startDate, $endDate),
+        ];
+        
+        return Inertia::render('production/work-cells/analytics', [
+            'workCell' => $workCell,
+            'analytics' => $analytics,
+            'dateRange' => [
+                'start' => $startDate->format('Y-m-d'),
+                'end' => $endDate->format('Y-m-d'),
+            ],
+        ]);
+    }
+
+    /**
+     * Export work cell data.
+     */
+    public function export(Request $request, WorkCell $workCell)
+    {
+        $this->authorize('export', $workCell);
+        
+        $format = $request->input('format', 'xlsx');
+        $startDate = $request->input('start_date', Carbon::now()->subDays(7)->startOfDay());
+        $endDate = $request->input('end_date', Carbon::now()->endOfDay());
+        
+        $data = [
+            'workCell' => $workCell,
+            'statistics' => $this->getWorkCellStatistics($workCell, $startDate, $endDate),
+            'completedWork' => $this->getCompletedWork($workCell, $startDate, $endDate),
+        ];
+        
+        // For now, return JSON. In production, implement Excel/PDF export
+        return response()->json($data);
+    }
+
+    /**
+     * Get OEE trend data for analytics.
+     */
+    private function getOEETrend(WorkCell $workCell, $startDate, $endDate)
+    {
+        // Group by day and calculate daily OEE
+        $days = Carbon::parse($startDate)->diffInDays($endDate);
+        $trend = [];
+        
+        for ($i = 0; $i <= $days; $i++) {
+            $dayStart = Carbon::parse($startDate)->addDays($i)->startOfDay();
+            $dayEnd = Carbon::parse($startDate)->addDays($i)->endOfDay();
+            
+            $stats = $this->getWorkCellStatistics($workCell, $dayStart, $dayEnd);
+            $trend[] = [
+                'date' => $dayStart->format('Y-m-d'),
+                'oee' => $stats['oee'],
+                'availability' => $stats['availability'],
+                'performance' => $stats['performance'],
+                'quality' => $stats['quality'],
+            ];
+        }
+        
+        return $trend;
+    }
+
+    /**
+     * Get production volume data for analytics.
+     */
+    private function getProductionVolume(WorkCell $workCell, $startDate, $endDate)
+    {
+        return ManufacturingStep::where('work_cell_id', $workCell->id)
+            ->where('status', 'completed')
+            ->whereBetween('actual_end_time', [$startDate, $endDate])
+            ->with('manufacturingRoute.manufacturingOrder.item')
+            ->get()
+            ->groupBy(function ($step) {
+                return $step->manufacturingRoute->manufacturingOrder->item->name ?? 'Unknown';
+            })
+            ->map(function ($steps, $itemName) {
+                return [
+                    'item' => $itemName,
+                    'count' => $steps->count(),
+                    'total_time' => $steps->sum('actual_duration_minutes'),
+                ];
+            });
+    }
+
+    /**
+     * Get quality metrics for analytics.
+     */
+    private function getQualityMetrics(WorkCell $workCell, $startDate, $endDate)
+    {
+        $qualitySteps = ManufacturingStep::where('work_cell_id', $workCell->id)
+            ->where('step_type', 'quality_check')
+            ->where('status', 'completed')
+            ->whereBetween('actual_end_time', [$startDate, $endDate])
+            ->with('executions')
+            ->get();
+        
+        $totalChecks = $qualitySteps->count();
+        $passed = $qualitySteps->filter(function ($step) {
+            return $step->quality_result === 'passed';
+        })->count();
+        
+        return [
+            'total_checks' => $totalChecks,
+            'passed' => $passed,
+            'failed' => $totalChecks - $passed,
+            'pass_rate' => $totalChecks > 0 ? round(($passed / $totalChecks) * 100, 2) : 0,
+        ];
+    }
+
+    /**
+     * Get downtime analysis for analytics.
+     */
+    private function getDowntimeAnalysis(WorkCell $workCell, $startDate, $endDate)
+    {
+        $holdDurations = ManufacturingStepExecution::whereHas('manufacturingStep', function ($query) use ($workCell) {
+                $query->where('work_cell_id', $workCell->id);
+            })
+            ->where('status', 'completed')
+            ->whereBetween('completed_at', [$startDate, $endDate])
+            ->where('total_hold_duration', '>', 0)
+            ->get();
+        
+        return [
+            'total_hold_time' => $holdDurations->sum('total_hold_duration'),
+            'average_hold_time' => round($holdDurations->avg('total_hold_duration'), 2),
+            'hold_incidents' => $holdDurations->count(),
+        ];
+    }
+
+    /**
+     * Get operator performance data for analytics.
+     */
+    private function getOperatorPerformance(WorkCell $workCell, $startDate, $endDate)
+    {
+        return ManufacturingStepExecution::whereHas('manufacturingStep', function ($query) use ($workCell) {
+                $query->where('work_cell_id', $workCell->id);
+            })
+            ->where('status', 'completed')
+            ->whereBetween('completed_at', [$startDate, $endDate])
+            ->with('executedBy')
+            ->get()
+            ->groupBy('executed_by')
+            ->map(function ($executions, $userId) {
+                $user = $executions->first()->executedBy;
+                return [
+                    'operator' => $user ? $user->name : 'Unknown',
+                    'executions' => $executions->count(),
+                    'average_time' => round($executions->avg('actual_duration_minutes'), 2),
+                    'total_time' => $executions->sum('actual_duration_minutes'),
+                ];
+            })
+            ->values();
     }
 }

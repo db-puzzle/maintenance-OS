@@ -82,6 +82,10 @@ const gerenciamentoNavItems: NavGroup = {
                     title: 'Rastreamento',
                     href: '/production/tracking',
                 },
+                {
+                    title: 'Relatório de Produção',
+                    href: '/production/reporting',
+                },
             ],
         },
     ],

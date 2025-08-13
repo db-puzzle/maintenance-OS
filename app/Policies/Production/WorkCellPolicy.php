@@ -75,4 +75,12 @@ class WorkCellPolicy
     {
         return $user->hasPermissionTo('production.work-cells.viewDashboard');
     }
+
+    /**
+     * Determine whether the user can export work cell data.
+     */
+    public function export(User $user, WorkCell $workCell): bool
+    {
+        return $user->hasPermissionTo('production.work-cells.exportData');
+    }
 } 

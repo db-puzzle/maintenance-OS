@@ -12,11 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import CreateLayout from '@/layouts/asset-hierarchy/create-layout';
 import { type BreadcrumbItem } from '@/types';
-import { type ShiftForm } from '@/types/asset-hierarchy';
+import { type ShiftForm as ShiftFormData } from '@/types/asset-hierarchy';
 import { Head, useForm } from '@inertiajs/react';
 import { AlertCircle, Clock, Copy, Plus, Table, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
+import { createFormAdapter } from '@/utils/form-adapters';
 
 // Interface para representar um intervalo de descanso
 interface Break {
@@ -287,10 +288,12 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                     ],
         }));
 
-    const { data, setData, post, put, processing, errors, clearErrors } = useForm<ShiftForm>({
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm<any>({
         name: shift?.name || '',
         schedules: initialSchedules,
     });
+
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
 
     const [selectedDay, setSelectedDay] = useState(weekdays[0].key);
     const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -533,12 +536,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ mode = 'create', shift }) => {
                             {/* Campo de nome do turno */}
                             <div className="w-full space-y-2">
                                 <TextInput
-                                    form={{
-                                        data: data as Record<string, string | number | boolean | File | null | undefined>,
-                                        setData: setData as (field: string, value: string | number | boolean | File | null | undefined) => void,
-                                        errors,
-                                        clearErrors: clearErrors as (...fields: string[]) => void,
-                                    }}
+                                    form={formAdapter}
                                     name="name"
                                     label="Nome do Turno"
                                     placeholder="Digite o nome do turno"

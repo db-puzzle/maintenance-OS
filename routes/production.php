@@ -168,6 +168,17 @@ Route::middleware(['auth', 'verified'])->prefix('production')->name('production.
         Route::post('/scan/handle', [QrTrackingController::class, 'handleScan'])->name('scan.handle');
     });
 
+    // Production Reporting (New unified interface)
+    Route::prefix('reporting')->name('reporting.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Production\ProductionReportingController::class, 'index'])->name('index');
+        Route::post('/{order}/start', [\App\Http\Controllers\Production\ProductionReportingController::class, 'startProduction'])->name('start');
+        Route::post('/{order}/report', [\App\Http\Controllers\Production\ProductionReportingController::class, 'reportProduction'])->name('report');
+        Route::post('/{order}/complete', [\App\Http\Controllers\Production\ProductionReportingController::class, 'completeProduction'])->name('complete');
+        Route::post('/{order}/hold', [\App\Http\Controllers\Production\ProductionReportingController::class, 'holdProduction'])->name('hold');
+        Route::post('/{order}/resume', [\App\Http\Controllers\Production\ProductionReportingController::class, 'resumeProduction'])->name('resume');
+        Route::post('/{order}/scrap', [\App\Http\Controllers\Production\ProductionReportingController::class, 'reportScrap'])->name('scrap');
+    });
+
     // Shipments
     Route::resource('shipments', ShipmentController::class);
     Route::post('shipments/{shipment}/photos', [ShipmentController::class, 'uploadPhotos'])->name('shipments.photos');

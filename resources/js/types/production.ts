@@ -1,10 +1,11 @@
 // Production Module Types
 
-import { User } from '@/types';
+import { User } from '@/types/index';
 import { Shift, Manufacturer } from './asset-hierarchy';
 import { Plant } from './entities/plant';
 import { Area } from './entities/area';
 import { Sector } from './entities/sector';
+import { Form } from './work-order';
 
 export interface ItemCategory {
     id: number;
@@ -74,6 +75,8 @@ export interface Item {
     primary_bom?: BillOfMaterial;
     images?: ItemImage[];
     images_count?: number;
+    primary_image_id?: string;
+    primaryImage?: ItemImage;
     primary_image_url?: string;
     primary_image_thumbnail_url?: string;
     created_by?: User;
@@ -188,8 +191,12 @@ export interface ManufacturingOrder {
     manufacturing_route?: ManufacturingRoute;
     route?: ManufacturingRoute;
     has_route?: boolean;
+    current_step?: ManufacturingStep;
+    progress_percentage?: number;
+    quantity_remaining?: number;
     created_by?: number;
     created_by_user?: User;
+    createdBy?: User;
     created_at: string;
     updated_at: string;
 }

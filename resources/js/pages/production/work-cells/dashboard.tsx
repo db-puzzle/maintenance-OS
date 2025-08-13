@@ -98,7 +98,7 @@ export default function WorkCellDashboard({
     ];
 
     const handleExecuteStep = (step: ManufacturingStep) => {
-        router.visit(route('production.steps.execute', step.id));
+        router.visit(window.route('production.steps.execute', step.id));
     };
 
     interface MetricCardProps {
@@ -123,13 +123,13 @@ export default function WorkCellDashboard({
                         {trend && (
                             <p className={cn(
                                 "text-xs flex items-center mt-1",
-                                trend > 0 ? "text-green-600" : "text-red-600"
+                                trend.value > 0 ? "text-green-600" : "text-red-600"
                             )}>
                                 <TrendingUp className={cn(
                                     "h-3 w-3 mr-1",
-                                    trend < 0 && "rotate-180"
+                                    trend.value < 0 && "rotate-180"
                                 )} />
-                                {Math.abs(trend)}%
+                                {Math.abs(trend.value)}%
                             </p>
                         )}
                     </div>
@@ -156,11 +156,7 @@ export default function WorkCellDashboard({
                         <Badge variant="outline" className="text-xs">
                             Step {step.step_number}
                         </Badge>
-                        {step.priority_score > 100 && (
-                            <Badge variant="destructive" className="text-xs">
-                                High Priority
-                            </Badge>
-                        )}
+
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">
                         {step.name}
@@ -168,7 +164,7 @@ export default function WorkCellDashboard({
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span>{step.manufacturing_route?.manufacturing_order?.item?.name}</span>
                         <span>•</span>
-                        <span>{step.estimated_duration} min</span>
+                        <span>{step.cycle_time_minutes || 0} min</span>
                         {step.form && (
                             <>
                                 <span>•</span>
@@ -179,11 +175,11 @@ export default function WorkCellDashboard({
                     {step.current_execution && (
                         <div className="mt-2 text-xs">
                             <span className="text-muted-foreground">Operator: </span>
-                            <span>{step.current_execution.executed_by?.name}</span>
+                            <span>{step.current_execution.executed_by_user?.name || 'Unknown'}</span>
                         </div>
                     )}
                 </div>
-                {showActions && canExecute && step.can_start && (
+                {showActions && canExecute && (
                     <Button
                         size="sm"
                         onClick={() => handleExecuteStep(step)}
@@ -255,7 +251,7 @@ export default function WorkCellDashboard({
                         title="Performance"
                         value={`${statistics.performance}%`}
                         icon={TrendingUp}
-                        color="purple"
+                        color="blue"
                     />
                     <MetricCard
                         title="Quality"
@@ -340,7 +336,7 @@ export default function WorkCellDashboard({
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    {Object.values(completedWork.byOrder).map((orderData: { order: ManufacturingOrder; steps: ManufacturingStep[] }) => (
+                                    {Object.values(completedWork.byOrder).map((orderData) => (
                                         <div key={orderData.order.id} className="border rounded-lg p-4">
                                             <div className="flex items-start justify-between mb-2">
                                                 <div>
@@ -354,7 +350,7 @@ export default function WorkCellDashboard({
                                                 <div className="text-right text-sm">
                                                     <p>{orderData.steps.length} steps</p>
                                                     <p className="text-muted-foreground">
-                                                        {orderData.total_duration} min total
+                                                        {orderData.steps.reduce((sum, step) => sum + (step.cycle_time_minutes || 0), 0)} min total
                                                     </p>
                                                 </div>
                                             </div>

@@ -54,8 +54,7 @@ return [
     |
     */
     'work_cell' => [
-        'max_concurrent_operations' => env('WORK_CELL_MAX_CONCURRENT', 1),
-        'default_capacity_percentage' => env('WORK_CELL_DEFAULT_CAPACITY', 100),
+        // Future configuration options can be added here
     ],
 
     /*

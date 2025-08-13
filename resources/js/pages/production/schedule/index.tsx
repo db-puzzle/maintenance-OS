@@ -11,7 +11,7 @@ import { ColumnVisibility } from '@/components/data-table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Factory, Play, Pause, CheckCircle, XCircle } from 'lucide-react';
+import { Clock, Factory, Play, Pause, CheckCircle, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ColumnConfig, PaginationMeta } from '@/types/shared';
@@ -423,12 +423,6 @@ function ProductionScheduleIndex({
             label: 'View Details',
             onClick: () => router.visit(route('production.schedules.show', { schedule: step.id })),
         });
-        if (['pending', 'queued'].includes(step.status)) {
-            items.push({
-                label: 'Edit',
-                onClick: () => router.visit(route('production.schedules.edit', { schedule: step.id })),
-            });
-        }
         return <EntityActionDropdown additionalActions={items} />;
     };
     // Use data from server
@@ -449,17 +443,9 @@ function ProductionScheduleIndex({
                 description="Manage production schedules"
                 searchValue={search}
                 onSearchChange={handleSearch}
-                createRoute={route('production.schedules.create')}
-                createButtonText="Schedule Production"
+                createButtonText=""
                 actions={
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={() => router.visit(route('production.planning.calendar'))}
-                        >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            Calendar View
-                        </Button>
                         <ColumnVisibility
                             columns={columns.map((col) => ({
                                 id: col.key,

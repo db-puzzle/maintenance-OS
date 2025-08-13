@@ -91,7 +91,7 @@ export default function StepExecute({ step, execution, currentUser, canExecute }
         // Additional check for step dependencies
         if (step.depends_on_step_id) {
             // Check if we have dependency info loaded
-            const stepWithDependency = step as RouteStep & { dependency?: { status: string; name: string } };
+            const stepWithDependency = step as ManufacturingStep & { dependency?: { status: string; name: string } };
             if (stepWithDependency.dependency && stepWithDependency.dependency.status !== 'completed') {
                 toast.error(`Esta etapa depende da conclusão da etapa anterior: ${stepWithDependency.dependency.name}`);
                 return;

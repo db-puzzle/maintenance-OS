@@ -146,7 +146,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
         // Navigate to cell details or open modal
     };
     const handleOrderClick = (order: ManufacturingOrder) => {
-        router.visit(route('production.planning.orders.show', order.id));
+        router.visit(window.route('production.planning.orders.show', order.id));
     };
     const activeOrderColumns: ColumnConfig<ManufacturingOrder>[] = [
         {
@@ -161,10 +161,10 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
         {
             key: 'item',
             label: 'Produto',
-            render: (value: unknown, order: Record<string, unknown>) => (
+            render: (value: unknown, order) => (
                 <div>
-                    <div className="font-medium">{(order.item as { name?: string })?.name}</div>
-                    <div className="text-sm text-muted-foreground">{(order.item as { item_number?: string })?.item_number}</div>
+                    <div className="font-medium">{order.item?.name}</div>
+                    <div className="text-sm text-muted-foreground">{order.item?.item_number}</div>
                 </div>
             )
         },
@@ -173,9 +173,9 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             label: 'Quantidade',
             width: 'w-[120px]',
             headerAlign: 'center',
-            render: (value: unknown, order: Record<string, unknown>) => (
+            render: (value: unknown, order) => (
                 <div className="text-center">
-                    {value as React.ReactNode} {order.unit_of_measure as React.ReactNode}
+                    {value as React.ReactNode} {order.unit_of_measure}
                 </div>
             )
         },
@@ -183,14 +183,14 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
             key: 'progress',
             label: 'Progresso',
             width: 'w-[200px]',
-            render: (value: unknown, order: Record<string, unknown>) => {
+            render: (value: unknown, order) => {
                 const progress = order.quantity_completed
-                    ? Math.round(((order.quantity_completed as number) / (order.quantity as number)) * 100)
+                    ? Math.round((order.quantity_completed / order.quantity) * 100)
                     : 0;
                 return (
                     <div className="space-y-1">
                         <div className="flex justify-between text-sm">
-                            <span>{(order.quantity_completed || 0) as React.ReactNode}/{order.quantity as React.ReactNode}</span>
+                            <span>{order.quantity_completed || 0}/{order.quantity}</span>
                             <span>{progress}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -203,20 +203,20 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                 );
             }
         },
-        {
-            key: 'work_cell',
-            label: 'Célula',
-            width: 'w-[120px]',
-            render: (value: unknown, order: Record<string, unknown>) => (
-                order.current_work_cell ? (
-                    <Badge variant="secondary">
-                        {(order.current_work_cell as { code?: string }).code}
-                    </Badge>
-                ) : (
-                    <span className="text-muted-foreground">—</span>
-                )
-            )
-        },
+        // {
+        //     key: 'work_cell',
+        //     label: 'Célula',
+        //     width: 'w-[120px]',
+        //     render: (value: unknown, order) => (
+        //         order.current_work_cell ? (
+        //             <Badge variant="secondary">
+        //                 {(order.current_work_cell as { code?: string }).code}
+        //             </Badge>
+        //         ) : (
+        //             <span className="text-muted-foreground">—</span>
+        //         )
+        //     )
+        // },
         {
             key: 'priority',
             label: 'Prioridade',
@@ -305,7 +305,7 @@ export default function ProductionDashboard({ stats, workCells, activeOrders }: 
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle>Ordens em Produção</CardTitle>
                         <Button variant="outline" size="sm" asChild>
-                            <Link href={route('production.tracking.scan')}>
+                            <Link href={window.route('production.tracking.scan')}>
                                 <QrCode className="h-4 w-4 mr-2" />
                                 Scanner QR
                             </Link>

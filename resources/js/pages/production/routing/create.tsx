@@ -1,6 +1,7 @@
 import React from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import { createFormAdapter } from '@/utils/form-adapters';
 import { Button } from '@/components/ui/button';
 import { TextInput } from '@/components/TextInput';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,13 +24,12 @@ export default function CreateRouting({ items, orders }: Props) {
         manufacturing_order_id: '',
         is_active: true,
     });
-    // Create a wrapper for setData to match the expected signature
-    const handleSetData = (name: string, value: unknown) => {
-        setData(name as keyof typeof data, value as (typeof data)[keyof typeof data]);
-    };
+
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('production.routing.store'), {
+        post(window.route('production.routing.store'), {
             onSuccess: () => {
                 toast.success('Roteiro criado com sucesso');
             },
@@ -55,12 +55,7 @@ export default function CreateRouting({ items, orders }: Props) {
                         <CardContent className="space-y-6">
                             {/* Nome do Roteiro */}
                             <TextInput
-                                form={{
-                                    data,
-                                    setData: handleSetData,
-                                    errors,
-                                    clearErrors: (...fields: string[]) => clearErrors(...fields as Array<keyof typeof data>),
-                                }}
+                                form={formAdapter}
                                 name="name"
                                 label="Nome do Roteiro"
                                 placeholder="Ex: Roteiro de Montagem Principal"
@@ -111,7 +106,7 @@ export default function CreateRouting({ items, orders }: Props) {
                                 <Switch
                                     id="is_active"
                                     checked={data.is_active}
-                                    onCheckedChange={(checked) => handleSetData('is_active', checked)}
+                                    onCheckedChange={(checked) => setData('is_active', !!checked as any)}
                                 />
                                 <Label htmlFor="is_active">Roteiro Ativo</Label>
                             </div>
@@ -120,7 +115,7 @@ export default function CreateRouting({ items, orders }: Props) {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() => router.visit(route('production.routing.index'))}
+                                    onClick={() => router.visit(window.route('production.routing.index'))}
                                     disabled={processing}
                                 >
                                     Cancelar

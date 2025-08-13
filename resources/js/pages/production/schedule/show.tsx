@@ -10,6 +10,7 @@ import { TextInput } from '@/components/TextInput';
 import { ItemSelect } from '@/components/ItemSelect';
 import { Separator } from '@/components/ui/separator';
 import { useForm } from '@inertiajs/react';
+import { createFormAdapter } from '@/utils/form-adapters';
 import { cn } from '@/lib/utils';
 
 // Field group component for consistent layout
@@ -106,23 +107,12 @@ export default function ProductionScheduleShow({ schedule }: Props) {
         actual_end_time: schedule.actual_end_time || '',
     });
     // Create a wrapper that matches the TextInput interface
-    const form = {
-        data: inertiaForm.data as Record<string, string | number | boolean | File | null | undefined>,
-        setData: (name: string, value: string | number | boolean | File | null | undefined) => {
-            // Handle the type conversion for Inertia's setData
-            const fieldName = name as keyof typeof inertiaForm.data;
-            if (typeof value === 'string' || typeof value === 'number') {
-                inertiaForm.setData(fieldName, value as string | number);
-            } else if (value === null || value === undefined) {
-                inertiaForm.setData(fieldName, '');
-            } else {
-                // For other types, convert to string
-                inertiaForm.setData(fieldName, String(value));
-            }
-        },
-        errors: inertiaForm.errors as Partial<Record<string, string>>,
-        clearErrors: (...fields: string[]) => inertiaForm.clearErrors(...(fields as Array<keyof typeof inertiaForm.data>)),
-    };
+    const form = createFormAdapter({
+        data: inertiaForm.data,
+        setData: inertiaForm.setData,
+        errors: inertiaForm.errors,
+        clearErrors: inertiaForm.clearErrors
+    });
     const getStatusBadge = (status: string) => {
         const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
             pending: 'outline',

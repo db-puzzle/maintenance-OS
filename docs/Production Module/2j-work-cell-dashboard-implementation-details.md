@@ -248,7 +248,7 @@ private function calculateAvailableTime(WorkCell $workCell, $startDate, $endDate
     $hoursPerDay = 8; // Standard shift
     $minutesPerDay = $hoursPerDay * 60;
     
-    return $days * $minutesPerDay * ($workCell->capacity_percentage / 100);
+            return $days * $minutesPerDay;
 }
 
 private function calculateUtilization(WorkCell $workCell)
@@ -258,9 +258,9 @@ private function calculateUtilization(WorkCell $workCell)
         ->where('status', 'in_progress')
         ->count();
     
-    $maxCapacity = $workCell->max_concurrent_operations ?? 1;
-    
-    return round(($activeSteps / $maxCapacity) * 100, 2);
+    // For now, assume single operation capacity
+    // This can be enhanced in the future with proper capacity planning
+    return $activeSteps > 0 ? 100 : 0;
 }
 
 private function getQueuePosition(ManufacturingStep $step)

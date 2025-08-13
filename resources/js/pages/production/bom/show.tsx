@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
+import { createFormAdapter } from '@/utils/form-adapters';
 import { router } from '@inertiajs/react';
 import { Head } from '@inertiajs/react';
 import {
@@ -53,6 +54,8 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
         output_item_id: bom?.output_item_id?.toString() || '',
         is_active: bom?.is_active ?? true,
     });
+
+    const formAdapter = createFormAdapter({ data, setData, errors, clearErrors });
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -128,12 +131,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 </div>
                             )}
                             <TextInput
-                                form={{
-                                    data: data as Record<string, string | number | boolean | File | null | undefined>,
-                                    setData: setData as (field: string, value: string | number | boolean | File | null | undefined) => void,
-                                    errors,
-                                    clearErrors: clearErrors as (...fields: string[]) => void
-                                }}
+                                form={formAdapter}
                                 name="name"
                                 label="Nome"
                                 placeholder="Nome da BOM"
@@ -160,12 +158,7 @@ export default function BomShow({ bom, items = [], categories, can = { update: f
                                 searchable
                             />
                             <TextInput
-                                form={{
-                                    data: data as Record<string, string | number | boolean | File | null | undefined>,
-                                    setData: setData as (field: string, value: string | number | boolean | File | null | undefined) => void,
-                                    errors,
-                                    clearErrors: clearErrors as (...fields: string[]) => void
-                                }}
+                                form={formAdapter}
                                 name="external_reference"
                                 label="Referência Externa"
                                 placeholder="Número do desenho no Inventor"

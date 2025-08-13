@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { estados } from '@/data/estados';
 import { Plant as ImportedPlant } from '@/types/entities/plant';
-import { createFormAdapter, createSetDataAdapter } from '@/utils/form-adapters';
+import { createFormAdapter } from '@/utils/form-adapters';
+
 
 interface PlantForm {
     [key: string]: string | number | boolean | null | undefined;
@@ -115,18 +116,23 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
             }}
         >
             {({ data, setData, errors, clearErrors, formAdapter }) => {
-                // Create a custom form adapter for zip_code field with CEP formatting
-                const zipCodeFormAdapter = createFormAdapter({
+                // Custom handler for zip_code field with CEP formatting
+                const handleZipCodeChange = (value: string) => {
+                    setData('zip_code', formatCEP(value));
+                };
+
+                // Create custom form adapter for zip code field with special formatting
+                const customZipCodeFormAdapter = createFormAdapter({
                     data,
-                    setData: createSetDataAdapter((...args: any[]) => {
-                        if (args.length === 2 && args[0] === 'zip_code' && typeof args[1] === 'string') {
-                            return setData('zip_code', formatCEP(args[1]));
+                    setData: ((key: string, value: string | number | boolean | File | null | undefined) => {
+                        if (key === 'zip_code' && typeof value === 'string') {
+                            setData('zip_code', formatCEP(value));
+                        } else {
+                            setData(key as any, value);
                         }
-                        // @ts-expect-error - We know setData has proper overloads
-                        return setData(...args);
-                    }),
+                    }) as any,
                     errors,
-                    clearErrors: clearErrors as (...fields: string[]) => void
+                    clearErrors: clearErrors as any
                 });
 
                 return (
@@ -161,7 +167,7 @@ const CreatePlantSheet: React.FC<CreatePlantSheetProps> = ({
                                 </div>
                                 <div>
                                     <TextInput
-                                        form={zipCodeFormAdapter}
+                                        form={customZipCodeFormAdapter}
                                         name="zip_code"
                                         label="CEP"
                                         placeholder="00000-000"

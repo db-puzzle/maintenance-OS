@@ -169,7 +169,7 @@ export default function Show({ manufacturer, assets, activeTab = 'informacoes', 
                             },
                         ]}
 
-                        onRowClick={(row) => router.visit(window.route('asset-hierarchy.assets.show', (row as Record<string, unknown>).id))}
+                        onRowClick={(row) => router.visit(window.route('asset-hierarchy.assets.show', (row as unknown as AssetData).id))}
                         onSort={(columnKey) => {
                             const columnMap: Record<string, string> = {
                                 asset_type_name: 'type',
