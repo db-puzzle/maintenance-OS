@@ -174,7 +174,7 @@ export function BaseEntitySheet<TFormData extends FormDataType>({
                 </SheetTrigger>
             )}
             <SheetContent
-                className={width}
+                className={`${width} overflow-y-auto`}
                 onOpenAutoFocus={(e) => {
                     // Prevent default focus behavior to allow custom focus management
                     e.preventDefault();

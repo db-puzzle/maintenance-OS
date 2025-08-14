@@ -20,11 +20,10 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { ItemSelect } from '@/components/ItemSelect';
 import InputError from '@/components/input-error';
 import StateButton from '@/components/StateButton';
-import { Item, BillOfMaterial, RouteTemplate, BomItem } from '@/types/production';
+import { Item, BillOfMaterial, RouteTemplate } from '@/types/production';
 
 interface ExtendedBillOfMaterial extends BillOfMaterial {
     item_masters_count?: number;
@@ -464,50 +463,6 @@ export default function CreateManufacturingOrderDialog({
                                         </div>
                                     </div>
 
-                                    {/* Child Orders Preview for BOM */}
-                                    {data.order_type === 'bom' && bomItems.length > 0 && (
-                                        <div className="space-y-4 pb-4">
-                                            <Separator />
-                                            <div>
-                                                <h3 className="font-medium mb-3">Child Orders Preview</h3>
-                                                <div className="border rounded-lg overflow-hidden">
-                                                    <div className="max-h-40 overflow-auto">
-                                                        <table className="w-full">
-                                                            <thead className="bg-muted/50 sticky top-0">
-                                                                <tr className="text-sm">
-                                                                    <th className="text-left p-3">Item</th>
-                                                                    <th className="text-right p-3">Quantity</th>
-                                                                    <th className="text-left p-3">UOM</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody className="divide-y">
-                                                                {bomItems.map((bomItem: BomItem, index: number) => (
-                                                                    <tr key={index} className="text-sm">
-                                                                        <td className="p-3">
-                                                                            <div>
-                                                                                <p className="font-medium">
-                                                                                    {bomItem.item?.item_number}
-                                                                                </p>
-                                                                                <p className="text-muted-foreground">
-                                                                                    {bomItem.item?.name}
-                                                                                </p>
-                                                                            </div>
-                                                                        </td>
-                                                                        <td className="text-right p-3">
-                                                                            {(bomItem.quantity * data.quantity).toFixed(2)}
-                                                                        </td>
-                                                                        <td className="p-3">
-                                                                            {bomItem.unit_of_measure}
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             )}
 

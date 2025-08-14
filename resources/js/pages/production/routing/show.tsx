@@ -27,6 +27,18 @@ interface Props {
     workCells?: WorkCell[];
     stepTypes?: Record<string, string>;
     forms?: WorkOrderForm[];
+    plants?: {
+        id: number;
+        name: string;
+    }[];
+    shifts?: {
+        id: number;
+        name: string;
+    }[];
+    manufacturers?: {
+        id: number;
+        name: string;
+    }[];
     openRouteBuilder?: string | null;
     can: {
         update: boolean;
@@ -35,7 +47,7 @@ interface Props {
         execute_steps: boolean;
     };
 }
-export default function RoutingShow({ routing, effectiveSteps, templates, workCells, stepTypes, forms, openRouteBuilder, can }: Props) {
+export default function RoutingShow({ routing, effectiveSteps, templates, workCells, stepTypes, forms, plants, shifts, manufacturers, openRouteBuilder, can }: Props) {
     const [activeTab, setActiveTab] = useState('overview');
     const form = useForm<FormDataType>({
         name: routing.name || '',
@@ -100,6 +112,9 @@ export default function RoutingShow({ routing, effectiveSteps, templates, workCe
                 workCells={workCells}
                 stepTypes={stepTypes}
                 forms={forms}
+                plants={plants}
+                shifts={shifts}
+                manufacturers={manufacturers}
                 openRouteBuilder={openRouteBuilder}
             />
         },

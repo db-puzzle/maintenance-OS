@@ -30,8 +30,9 @@ class ProductionReportingController extends BaseSearchController
 
         $user = auth()->user();
 
-        // Build base query for MOs
+        // Build base query for MOs - Only show Released, In Progress, and On Hold orders
         $baseQuery = ManufacturingOrder::query()
+            ->whereIn('status', ['released', 'in_progress', 'on_hold'])
             ->with([
                 'item:id,item_number,name,description,unit_of_measure,primary_image_id',
                 'item.primaryImage',
@@ -62,8 +63,23 @@ class ProductionReportingController extends BaseSearchController
             });
         }
 
-        // Apply status filter
-        if ($request->status && $request->status !== 'all') {
+        // Apply status filter (within allowed statuses only)
+        $allowedStatuses = ['released', 'in_progress', 'on_hold'];
+        
+        if ($request->statuses) {
+            // Handle multi-select status filter
+            $statuses = is_array($request->statuses) 
+                ? $request->statuses 
+                : explode(',', $request->statuses);
+            
+            // Filter to only allowed statuses
+            $statuses = array_intersect($statuses, $allowedStatuses);
+            
+            if (!empty($statuses)) {
+                $baseQuery->whereIn('status', $statuses);
+            }
+        } elseif ($request->status && $request->status !== 'all' && in_array($request->status, $allowedStatuses)) {
+            // Fallback to single status filter for backward compatibility
             $baseQuery->where('status', $request->status);
         }
 
@@ -96,11 +112,12 @@ class ProductionReportingController extends BaseSearchController
                 ->whereNotIn('status', ['completed', 'cancelled']);
         }
 
-        // Get status counts (without status filter)
+        // Get status counts (without status filter but with base allowed statuses)
         $statusCountsQuery = clone $baseQuery;
-        if ($request->status && $request->status !== 'all') {
-            // Remove status filter for counts
-            $statusCountsQuery = ManufacturingOrder::query();
+        if ($request->statuses || ($request->status && $request->status !== 'all')) {
+            // Remove status filter for counts but keep the base allowed statuses
+            $statusCountsQuery = ManufacturingOrder::query()
+                ->whereIn('status', ['released', 'in_progress', 'on_hold']);
             if ($request->search) {
                 $searchConfig = [
                     'order_number',
@@ -127,7 +144,7 @@ class ProductionReportingController extends BaseSearchController
         }
 
         // Apply sorting
-        $sortField = $request->sort_by ?? 'created_at';
+        $sortField = $request->sort_by ?? 'priority';
         $sortDirection = $request->sort_direction ?? 'desc';
 
         switch ($sortField) {
@@ -140,6 +157,38 @@ class ProductionReportingController extends BaseSearchController
                 // Complex sorting for current step would require a subquery
                 // For now, we'll sort by order number
                 $baseQuery->orderBy('order_number', $sortDirection);
+                break;
+            case 'priority':
+                // Priority sort - higher numbers first when desc
+                $baseQuery->orderBy('priority', $sortDirection)
+                    ->orderBy('requested_date', 'asc'); // Secondary sort by due date
+                break;
+            case 'due_date':
+                $baseQuery->orderBy('requested_date', $sortDirection)
+                    ->orderBy('priority', 'desc'); // Secondary sort by priority
+                break;
+            case 'release_date':
+                $baseQuery->orderBy('released_at', $sortDirection)
+                    ->orderBy('priority', 'desc'); // Secondary sort by priority
+                break;
+            case 'available_date':
+                // Available date is complex:
+                // - For MOs without routing: released_at
+                // - For MOs with routing: current step's available_date or completed_at of previous step
+                $baseQuery->leftJoin('manufacturing_steps as current_steps', function ($join) {
+                    $join->on('current_steps.manufacturing_order_id', '=', 'manufacturing_orders.id')
+                        ->whereIn('current_steps.status', ['released', 'in_progress'])
+                        ->whereRaw('current_steps.id = (
+                            SELECT id FROM manufacturing_steps 
+                            WHERE manufacturing_order_id = manufacturing_orders.id 
+                            AND status IN ("released", "in_progress") 
+                            ORDER BY sequence_number ASC 
+                            LIMIT 1
+                        )');
+                })
+                ->orderByRaw("COALESCE(current_steps.available_at, manufacturing_orders.released_at) $sortDirection")
+                ->orderBy('priority', 'desc') // Secondary sort by priority
+                ->select('manufacturing_orders.*');
                 break;
             default:
                 $baseQuery->orderBy($sortField, $sortDirection);
@@ -214,6 +263,7 @@ class ProductionReportingController extends BaseSearchController
             'filters' => [
                 'search' => $request->search,
                 'status' => $request->status ?? 'all',
+                'statuses' => $request->statuses,
                 'work_cell_id' => $request->work_cell_id,
                 'priority' => $request->priority,
                 'date_from' => $request->date_from,
@@ -399,6 +449,11 @@ class ProductionReportingController extends BaseSearchController
             return back()->with('error', 'Only released or in-progress orders can be put on hold.');
         }
 
+        // Update the order status to on_hold
+        $order->update([
+            'status' => 'on_hold',
+        ]);
+
         // Put all active steps on hold if routed
         if ($order->has_route) {
             $order->manufacturingRoute->steps()
@@ -410,7 +465,7 @@ class ProductionReportingController extends BaseSearchController
             ->performedOn($order)
             ->causedBy(auth()->user())
             ->withProperties($validated)
-            ->log('Production put on hold');
+            ->log('Production put on hold: ' . $validated['hold_reason']);
 
         return back()->with('success', 'Production put on hold.');
     }
@@ -421,6 +476,15 @@ class ProductionReportingController extends BaseSearchController
     public function resumeProduction(ManufacturingOrder $order)
     {
         $this->authorize('update', $order);
+
+        if ($order->status !== 'on_hold') {
+            return back()->with('error', 'Only orders on hold can be resumed.');
+        }
+
+        // Update the order status back to in_progress
+        $order->update([
+            'status' => 'in_progress',
+        ]);
 
         // Resume any on-hold steps if routed
         if ($order->has_route) {

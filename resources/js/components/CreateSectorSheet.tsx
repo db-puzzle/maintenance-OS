@@ -83,6 +83,18 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
         const selectedPlant = plants.find((p) => p.id.toString() === localSelectedPlant);
         return selectedPlant?.areas || [];
     }, [localSelectedPlant, plants]);
+
+    // Memoize the formConfig to prevent unnecessary re-renders
+    const formConfig = useMemo(() => ({
+        initialData: {
+            name: sector?.name || '',
+            area_id: sector?.area_id?.toString() || selectedAreaId || '',
+        },
+        createRoute: 'asset-hierarchy.sectors.store',
+        updateRoute: 'asset-hierarchy.sectors.update',
+        entityName: 'Setor',
+    }), [sector, selectedAreaId]);
+
     return (
         <BaseEntitySheet<SectorForm>
             entity={sector}
@@ -90,15 +102,7 @@ const CreateSectorSheet: React.FC<CreateSectorSheetProps> = ({
             onOpenChange={handleOpenChange}
             mode={mode}
             onSuccess={onSuccess}
-            formConfig={{
-                initialData: {
-                    name: '',
-                    area_id: selectedAreaId || '',
-                },
-                createRoute: 'asset-hierarchy.sectors.store',
-                updateRoute: 'asset-hierarchy.sectors.update',
-                entityName: 'Setor',
-            }}
+            formConfig={formConfig}
         >
             {({ data, setData, errors, formAdapter }) => (
                 <>

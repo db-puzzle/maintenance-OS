@@ -154,6 +154,9 @@ class ProductionRoutingController extends Controller
             'workCells' => WorkCell::where('is_active', true)->get(),
             'stepTypes' => ManufacturingStep::STEP_TYPES,
             'forms' => \App\Models\Forms\Form::where('is_active', true)->get(),
+            'plants' => \App\Models\AssetHierarchy\Plant::all(['id', 'name']),
+            'shifts' => \App\Models\AssetHierarchy\Shift::all(['id', 'name']),
+            'manufacturers' => \App\Models\AssetHierarchy\Manufacturer::all(['id', 'name']),
             'can' => [
                 'update' => auth()->user()->can('update', $routing),
                 'delete' => auth()->user()->can('delete', $routing),

@@ -30,6 +30,8 @@ export function MOCardView({ orders, onOrderClick, onAction }: MOCardViewProps) 
                 return (
                     <Button
                         size="sm"
+                        variant="default"
+                        className="bg-green-600 hover:bg-green-700 text-white"
                         onClick={(e) => {
                             e.stopPropagation();
                             onAction('start', order);
@@ -43,6 +45,8 @@ export function MOCardView({ orders, onOrderClick, onAction }: MOCardViewProps) 
                 return (
                     <Button
                         size="sm"
+                        variant="default"
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={(e) => {
                             e.stopPropagation();
                             onAction('report', order);
@@ -68,8 +72,15 @@ export function MOCardView({ orders, onOrderClick, onAction }: MOCardViewProps) 
                     <Card
                         key={order.id}
                         className={cn(
-                            "cursor-pointer hover:shadow-lg transition-shadow",
-                            isOverdue && "border-red-500"
+                            "cursor-pointer hover:shadow-lg transition-shadow border-2",
+                            isOverdue && "border-orange-500",
+                            order.status === 'draft' && "border-gray-200 bg-gray-50/30",
+                            order.status === 'planned' && "border-blue-200 bg-blue-50/30",
+                            order.status === 'released' && "border-blue-300 bg-blue-50/50",
+                            order.status === 'in_progress' && "border-green-300 bg-green-50/30",
+                            order.status === 'on_hold' && "border-orange-300 bg-orange-50/30",
+                            order.status === 'completed' && "border-green-400 bg-green-50/30",
+                            order.status === 'cancelled' && "border-red-300 bg-red-50/30"
                         )}
                         onClick={() => onOrderClick(order)}
                     >
@@ -155,12 +166,12 @@ export function MOCardView({ orders, onOrderClick, onAction }: MOCardViewProps) 
                                     {order.requested_date && (
                                         <div className={cn(
                                             "flex items-center gap-1",
-                                            isOverdue && "text-red-600 font-medium"
+                                            isOverdue && "text-orange-600 font-medium"
                                         )}>
                                             {isOverdue ? (
-                                                <AlertCircle className="w-4 h-4" />
+                                                <AlertCircle className="w-4 h-4 text-orange-600" />
                                             ) : (
-                                                <Clock className="w-4 h-4" />
+                                                <Clock className="w-4 h-4 text-muted-foreground" />
                                             )}
                                             {format(parseISO(order.requested_date), 'MMM d')}
                                         </div>

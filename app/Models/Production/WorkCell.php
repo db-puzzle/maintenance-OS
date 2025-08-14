@@ -189,12 +189,16 @@ class WorkCell extends Model
         parent::boot();
 
         static::deleting(function ($workCell) {
+            // Dependency checking is now handled by the controller's checkDependencies method
+            // This allows for better error handling and user feedback
+            
             if ($workCell->routingSteps()->exists()) {
-                throw new \Exception('Não é possível excluir uma célula de trabalho que possui etapas de roteiro.');
+                throw new \Exception('Esta célula de trabalho possui etapas de roteiro vinculadas.');
             }
+            
             // TODO: Uncomment when ProductionSchedule model is created
             // if ($workCell->productionSchedules()->exists()) {
-            //     throw new \Exception('Não é possível excluir uma célula de trabalho que possui agendamentos de produção.');
+            //     throw new \Exception('Esta célula de trabalho possui agendamentos de produção vinculados.');
             // }
         });
     }

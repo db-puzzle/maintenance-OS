@@ -174,7 +174,7 @@ export interface ManufacturingOrder {
     quantity_completed: number;
     quantity_scrapped: number;
     unit_of_measure: string;
-    status: 'draft' | 'planned' | 'released' | 'in_progress' | 'completed' | 'cancelled';
+    status: 'draft' | 'planned' | 'released' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
     priority: number;
     child_orders_count: number;
     completed_child_orders_count: number;

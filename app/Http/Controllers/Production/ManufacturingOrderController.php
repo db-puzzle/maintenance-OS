@@ -248,6 +248,9 @@ class ManufacturingOrderController extends BaseSearchController
             'workCells' => WorkCell::where('is_active', true)->get(),
             'stepTypes' => ManufacturingStep::STEP_TYPES,
             'forms' => Form::where('is_active', true)->get(['id', 'name']),
+            'plants' => \App\Models\AssetHierarchy\Plant::all(['id', 'name']),
+            'shifts' => \App\Models\AssetHierarchy\Shift::all(['id', 'name']),
+            'manufacturers' => \App\Models\AssetHierarchy\Manufacturer::all(['id', 'name']),
             'openRouteBuilder' => $request->get('openRouteBuilder'),
         ]);
     }

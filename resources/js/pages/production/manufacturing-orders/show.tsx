@@ -50,6 +50,18 @@ interface Props {
     workCells?: WorkCell[];
     stepTypes?: Record<string, string>;
     forms?: Form[];
+    plants?: {
+        id: number;
+        name: string;
+    }[];
+    shifts?: {
+        id: number;
+        name: string;
+    }[];
+    manufacturers?: {
+        id: number;
+        name: string;
+    }[];
 }
 function FieldGroup({ title, children }: { title?: string; children: React.ReactNode }) {
     return (
@@ -74,7 +86,7 @@ function StatCard({ label, value, icon: Icon, className }: { label: string; valu
         </div>
     );
 }
-export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, canManageRoutes = false, canReportProduction = false, templates = [], workCells = [], stepTypes = {}, forms = [] }: Props) {
+export default function ShowManufacturingOrder({ order, canRelease, canCancel, canCreateRoute, canManageRoutes = false, canReportProduction = false, templates = [], workCells = [], stepTypes = {}, forms = [], plants, shifts, manufacturers }: Props) {
     const { props } = usePage();
     const flash = props.flash as { openRouteBuilder?: string | boolean; fromQrScan?: boolean } | undefined;
     const [generatingQr, setGeneratingQr] = useState(false);
@@ -478,6 +490,9 @@ export default function ShowManufacturingOrder({ order, canRelease, canCancel, c
                     workCells={workCells}
                     stepTypes={stepTypes}
                     forms={forms}
+                    plants={plants}
+                    shifts={shifts}
+                    manufacturers={manufacturers}
                     openRouteBuilder={openRouteBuilderParam as string | null | undefined}
                 />
             )

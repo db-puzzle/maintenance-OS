@@ -12,27 +12,31 @@ export function MOStatusBadge({ status, className }: MOStatusBadgeProps) {
         const configs = {
             draft: {
                 label: 'Draft',
-                className: 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                className: 'bg-gray-50/30 text-gray-800 hover:bg-gray-50/50 border-gray-200'
             },
             planned: {
                 label: 'Planned',
-                className: 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                className: 'bg-blue-50/30 text-blue-600 hover:bg-blue-50/50 border-blue-200'
             },
             released: {
                 label: 'Released',
-                className: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
+                className: 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200'
             },
             in_progress: {
                 label: 'In Progress',
-                className: 'bg-green-100 text-green-800 hover:bg-green-200'
+                className: 'bg-green-50 text-green-600 hover:bg-green-100 border-green-200'
+            },
+            on_hold: {
+                label: 'On Hold',
+                className: 'bg-orange-50 text-orange-600 hover:bg-orange-100 border-orange-200'
             },
             completed: {
                 label: 'Completed',
-                className: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                className: 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200'
             },
             cancelled: {
                 label: 'Cancelled',
-                className: 'bg-red-100 text-red-800 hover:bg-red-200'
+                className: 'bg-red-50 text-red-600 hover:bg-red-100 border-red-200'
             }
         };
 

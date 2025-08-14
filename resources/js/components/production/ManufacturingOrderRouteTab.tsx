@@ -36,6 +36,18 @@ interface Props {
     workCells?: WorkCell[];
     stepTypes?: Record<string, string>;
     forms?: Form[];
+    plants?: {
+        id: number;
+        name: string;
+    }[];
+    shifts?: {
+        id: number;
+        name: string;
+    }[];
+    manufacturers?: {
+        id: number;
+        name: string;
+    }[];
     openRouteBuilder?: string | null;
 }
 
@@ -47,6 +59,9 @@ export default function ManufacturingOrderRouteTab({
     workCells = [],
     stepTypes = {},
     forms = [],
+    plants,
+    shifts,
+    manufacturers,
     openRouteBuilder
 }: Props) {
     const { props } = usePage<{
@@ -230,6 +245,9 @@ export default function ManufacturingOrderRouteTab({
                                 workCells={workCells}
                                 stepTypes={stepTypes}
                                 forms={forms}
+                                plants={plants}
+                                shifts={shifts}
+                                manufacturers={manufacturers}
                                 can={{
                                     manage_steps: canCreateRoute
                                 }}

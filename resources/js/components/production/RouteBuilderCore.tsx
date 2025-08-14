@@ -20,6 +20,18 @@ interface Props {
     workCells: WorkCell[];
     stepTypes: Record<string, string>;
     forms: Form[];
+    plants?: {
+        id: number;
+        name: string;
+    }[];
+    shifts?: {
+        id: number;
+        name: string;
+    }[];
+    manufacturers?: {
+        id: number;
+        name: string;
+    }[];
     can: {
         manage_steps: boolean;
     };
@@ -37,6 +49,9 @@ export default function RouteBuilderCore({
     workCells,
     stepTypes,
     forms = [],
+    plants,
+    shifts,
+    manufacturers,
     can,
     embedded = false,
     onSave,
@@ -403,6 +418,9 @@ export default function RouteBuilderCore({
                         workCells={workCells}
                         forms={forms}
                         routing={routing}
+                        plants={plants}
+                        shifts={shifts}
+                        manufacturers={manufacturers}
                         isSaving={isSaving}
                         onLocalStepUpdate={updateStepInLocalState}
                         isOpen={!!selectedStep}

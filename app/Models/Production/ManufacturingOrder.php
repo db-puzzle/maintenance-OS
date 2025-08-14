@@ -19,6 +19,7 @@ class ManufacturingOrder extends Model
         'planned' => 'Planned',
         'released' => 'Released',
         'in_progress' => 'In Progress',
+        'on_hold' => 'On Hold',
         'completed' => 'Completed',
         'cancelled' => 'Cancelled',
     ];

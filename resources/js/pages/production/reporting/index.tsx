@@ -7,38 +7,34 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Toggle } from '@/components/ui/toggle';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+// Removed unused imports: Calendar, Popover, PopoverContent, PopoverTrigger
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { ManufacturingOrder, WorkCell } from '@/types/production';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+
 import {
     Search,
     RefreshCw,
-    Filter,
     Play,
-    CheckCircle2,
     AlertCircle,
     Clock,
     Package,
-    CalendarIcon,
     Table,
     LayoutGrid,
-    ChevronDown,
     MoreHorizontal,
     FileText,
     Factory
 } from 'lucide-react';
-import { MOStatusBadge } from './components/MOStatusBadge';
-import { MOPriorityBadge } from './components/MOPriorityBadge';
-import { MOProgressBar } from './components/MOProgressBar';
-import { MOCardView } from './components/MOCardView';
-import { MODetailPanel } from './components/MODetailPanel';
-import { ReportProductionDialog } from './components/ReportProductionDialog';
-import { ReportScrapDialog } from './components/ReportScrapDialog';
-import { HoldProductionDialog } from './components/HoldProductionDialog';
-import { WorkCellSearchDialog } from './components/WorkCellSearchDialog';
+import { MOStatusBadge } from '@/pages/production/reporting/components/MOStatusBadge';
+import { MOPriorityBadge } from '@/pages/production/reporting/components/MOPriorityBadge';
+import { MOProgressBar } from '@/pages/production/reporting/components/MOProgressBar';
+import { MOCardView } from '@/pages/production/reporting/components/MOCardView';
+import { MODetailPanel } from '@/pages/production/reporting/components/MODetailPanel';
+import { ReportProductionDialog } from '@/pages/production/reporting/components/ReportProductionDialog';
+import { ReportScrapDialog } from '@/pages/production/reporting/components/ReportScrapDialog';
+import { HoldProductionDialog } from '@/pages/production/reporting/components/HoldProductionDialog';
+import { WorkCellSearchDialog } from '@/pages/production/reporting/components/WorkCellSearchDialog';
 
 // Declare the global route function from Ziggy
 declare const route: (name: string, params?: Record<string, string | number>) => string;
@@ -56,20 +52,23 @@ interface PageProps {
     filters: {
         search?: string;
         status?: string;
+        statuses?: string[] | string;
         work_cell_id?: string;
         priority?: string;
         date_from?: string;
         date_to?: string;
         has_routing?: string;
         overdue?: string;
-        sort_by?: string;
-        sort_direction?: string;
+        sort_by?: 'priority' | 'due_date' | 'release_date' | 'available_date' | 'item_name' | 'order_number' | 'created_at';
+        sort_direction?: 'asc' | 'desc';
         per_page?: number;
     };
     canExecute: boolean;
     canCreate: boolean;
     canUpdate: boolean;
 }
+
+
 
 export default function ProductionReporting({
     orders = { data: [], current_page: 1, last_page: 1, per_page: 20, total: 0 },
@@ -83,7 +82,7 @@ export default function ProductionReporting({
         localStorage.getItem('production-reporting-view') as 'table' | 'card' || 'table'
     );
     const [autoRefresh, setAutoRefresh] = useState(true);
-    const [showFilters, setShowFilters] = useState(false);
+    // Removed unused state: showFilters, setShowFilters
     const [selectedOrder, setSelectedOrder] = useState<ManufacturingOrder | null>(null);
     const [reportProductionOrder, setReportProductionOrder] = useState<ManufacturingOrder | null>(null);
     const [reportScrapOrder, setReportScrapOrder] = useState<ManufacturingOrder | null>(null);
@@ -92,6 +91,18 @@ export default function ProductionReporting({
 
     // Search state - no debounce in state, handle it in the search handler
     const [searchValue, setSearchValue] = useState(filters.search || '');
+
+    // Multi-select status filter state
+    const [selectedStatuses, setSelectedStatuses] = useState<string[]>(() => {
+        if (filters.status && filters.status !== 'all') {
+            // If we have a single status filter, convert it to array
+            return [filters.status];
+        } else if (filters.statuses) {
+            // If we already have multiple statuses (from backend), use them
+            return Array.isArray(filters.statuses) ? filters.statuses : filters.statuses.split(',');
+        }
+        return [];
+    });
 
     // Debounce timer ref to handle search
     const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -152,9 +163,21 @@ export default function ProductionReporting({
     };
 
     const updateFilters = (newFilters: Partial<typeof filters>) => {
+        // Handle the multi-select status filter
+        const filtersToSend = { ...filters, ...newFilters };
+
+        // If we're updating statuses, remove the old single status filter
+        if ('statuses' in newFilters) {
+            delete filtersToSend.status;
+        }
+
+        // Convert statuses array to comma-separated string for URL
+        if (filtersToSend.statuses && Array.isArray(filtersToSend.statuses)) {
+            filtersToSend.statuses = filtersToSend.statuses.join(',');
+        }
+
         router.get(route('production.reporting.index'), {
-            ...filters,
-            ...newFilters,
+            ...filtersToSend,
             page: newFilters.search !== filters.search ? 1 : undefined
         }, {
             preserveState: true,
@@ -163,13 +186,19 @@ export default function ProductionReporting({
         });
     };
 
-    const handleSort = (field: string) => {
-        // Find the column to check if it has a custom sortField
-        const column = tableColumns.find(col => col.key === field);
-        const sortField = column?.sortField || field;
+    const handleSort = (_field: string) => {
+        // Sorting is now handled by the sort selector
+        // Table sorting is disabled
+        return;
+    };
 
-        const direction = filters.sort_by === sortField && filters.sort_direction === 'asc' ? 'desc' : 'asc';
-        updateFilters({ sort_by: sortField, sort_direction: direction });
+    const handleStatusToggle = (status: string, checked: boolean) => {
+        const newStatuses = checked
+            ? [...selectedStatuses, status]
+            : selectedStatuses.filter(s => s !== status);
+
+        setSelectedStatuses(newStatuses);
+        updateFilters({ statuses: newStatuses });
     };
 
     const handleAction = (action: string, order: ManufacturingOrder) => {
@@ -204,35 +233,28 @@ export default function ProductionReporting({
 
 
 
-    // Status summary cards
+    // Status summary cards - Only show relevant statuses for production reporting
     const statusCards = [
         {
             key: 'released',
             label: 'Released',
             count: statusCounts.released || 0,
             icon: Package,
-            color: 'text-indigo-600'
+            color: 'text-muted-foreground'
         },
         {
             key: 'in_progress',
             label: 'In Progress',
             count: statusCounts.in_progress || 0,
             icon: Clock,
-            color: 'text-green-600'
+            color: 'text-muted-foreground'
         },
         {
-            key: 'planned',
-            label: 'Planned',
-            count: statusCounts.planned || 0,
-            icon: CalendarIcon,
-            color: 'text-blue-600'
-        },
-        {
-            key: 'completed',
-            label: 'Completed',
-            count: statusCounts.completed || 0,
-            icon: CheckCircle2,
-            color: 'text-emerald-600'
+            key: 'on_hold',
+            label: 'On Hold',
+            count: statusCounts.on_hold || 0,
+            icon: AlertCircle,
+            color: 'text-muted-foreground'
         }
     ];
 
@@ -240,7 +262,6 @@ export default function ProductionReporting({
         {
             key: 'order_number',
             label: 'MO Number',
-            sortable: true,
             render: (value: unknown, order: ManufacturingOrder) => {
                 if (!order) return null;
                 return (
@@ -254,8 +275,6 @@ export default function ProductionReporting({
         {
             key: 'item',
             label: 'Item',
-            sortable: true,
-            sortField: 'item_name',
             render: (value: unknown, order: ManufacturingOrder) => {
                 if (!order) return null;
                 return (
@@ -322,7 +341,6 @@ export default function ProductionReporting({
         {
             key: 'priority',
             label: 'Priority',
-            sortable: true,
             render: (value: unknown, order: ManufacturingOrder) => {
                 if (!order) return null;
                 return <MOPriorityBadge priority={order.priority} />;
@@ -331,7 +349,6 @@ export default function ProductionReporting({
         {
             key: 'requested_date',
             label: 'Due Date',
-            sortable: true,
             render: (value: unknown, order: ManufacturingOrder) => {
                 if (!order || !order.requested_date) return <span className="text-muted-foreground">—</span>;
                 const date = parseISO(order.requested_date);
@@ -393,7 +410,17 @@ export default function ProductionReporting({
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <h1 className="text-2xl font-bold">Production Reporting</h1>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-4">
+                            <Toggle
+                                pressed={autoRefresh}
+                                onPressedChange={setAutoRefresh}
+                                size="sm"
+                                variant="outline"
+                                className="w-44 justify-start"
+                            >
+                                <Clock className="h-4 w-4 ml-1" />
+                                Auto-refresh is {autoRefresh ? 'ON' : 'OFF'}
+                            </Toggle>
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -402,14 +429,6 @@ export default function ProductionReporting({
                                 <RefreshCw className="h-4 w-4 mr-1" />
                                 Refresh
                             </Button>
-                            <Toggle
-                                pressed={autoRefresh}
-                                onPressedChange={setAutoRefresh}
-                                size="sm"
-                            >
-                                <Clock className="h-4 w-4 mr-1" />
-                                Auto-refresh
-                            </Toggle>
                             <div className="flex rounded-md shadow-sm">
                                 <Button
                                     size="sm"
@@ -418,6 +437,7 @@ export default function ProductionReporting({
                                     onClick={() => setViewMode('table')}
                                 >
                                     <Table className="h-4 w-4" />
+                                    Table
                                 </Button>
                                 <Button
                                     size="sm"
@@ -426,45 +446,22 @@ export default function ProductionReporting({
                                     onClick={() => setViewMode('card')}
                                 >
                                     <LayoutGrid className="h-4 w-4" />
+                                    Card
                                 </Button>
                             </div>
                         </div>
                     </div>
 
                     {/* Status Summary Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        {statusCards.map(card => (
-                            <Card
-                                key={card.key}
-                                variant="compact"
-                                className={cn(
-                                    "cursor-pointer transition-colors",
-                                    filters.status === card.key && "ring-2 ring-primary"
-                                )}
-                                onClick={() => updateFilters({
-                                    status: filters.status === card.key ? 'all' : card.key
-                                })}
-                            >
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">
-                                                {card.label}
-                                            </p>
-                                            <p className="text-2xl font-bold">{card.count}</p>
-                                        </div>
-                                        <card.icon className={cn("h-8 w-8", card.color)} />
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
                         {/* Work Cell Selector Card */}
                         <Card
                             variant="compact"
                             className={cn(
-                                "cursor-pointer transition-colors",
-                                filters.work_cell_id && "ring-2 ring-primary"
+                                "cursor-pointer transition-all",
+                                "hover:shadow-md",
+                                filters.work_cell_id && "border-blue-600 hover:bg-accent/50 dark:border-blue-900 dark:bg-blue-950 ring-0.75 ring-blue-600 dark:ring-blue-900"
                             )}
                             onClick={() => setShowWorkCellDialog(true)}
                         >
@@ -474,17 +471,46 @@ export default function ProductionReporting({
                                         <p className="text-sm font-medium text-muted-foreground">
                                             Work Cell
                                         </p>
-                                        <p className="text-sm font-bold truncate max-w-[120px]">
+                                        <p className="text-lg font-bold truncate max-w-[120px]">
                                             {filters.work_cell_id
                                                 ? workCells.find(wc => wc.id.toString() === filters.work_cell_id)?.name || 'Selected'
                                                 : 'All Cells'
                                             }
                                         </p>
                                     </div>
-                                    <Factory className="h-8 w-8 text-purple-600" />
+                                    <Factory className="h-8 w-8 text-muted-foreground" strokeWidth={1} />
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {statusCards.map(card => {
+                            const isSelected = selectedStatuses.includes(card.key);
+                            return (
+                                <Card
+                                    key={card.key}
+                                    variant="compact"
+                                    className={cn(
+                                        "cursor-pointer transition-all",
+                                        "hover:shadow-md",
+                                        isSelected && "border-blue-600 hover:bg-accent/50 dark:border-blue-900 dark:bg-blue-950 ring-0.75 ring-blue-600 dark:ring-blue-900"
+                                    )}
+                                    onClick={() => handleStatusToggle(card.key, !isSelected)}
+                                >
+                                    <CardContent className="p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-sm font-medium text-muted-foreground">
+                                                    {card.label}
+                                                </p>
+                                                <p className="text-2xl font-bold">{card.count}</p>
+                                            </div>
+                                            <card.icon className={cn("h-8 w-8", card.color)} strokeWidth={1} />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+
                     </div>
 
                     {/* Search and Filters */}
@@ -500,159 +526,39 @@ export default function ProductionReporting({
                                     className="pl-10"
                                 />
                             </div>
-                            <Button
-                                variant="outline"
-                                onClick={() => setShowFilters(!showFilters)}
+                            <Select
+                                value={filters.has_routing || 'all'}
+                                onValueChange={(value) => updateFilters({
+                                    has_routing: value === 'all' ? undefined : value
+                                })}
                             >
-                                <Filter className="h-4 w-4 mr-2" />
-                                Filters
-                                <ChevronDown className={cn(
-                                    "h-4 w-4 ml-2 transition-transform",
-                                    showFilters && "rotate-180"
-                                )} />
-                            </Button>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="All Orders" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Orders</SelectItem>
+                                    <SelectItem value="yes">With Routing</SelectItem>
+                                    <SelectItem value="no">Without Routing</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select
+                                value={filters.sort_by || 'priority'}
+                                onValueChange={(value) => updateFilters({
+                                    sort_by: value as 'priority' | 'due_date' | 'release_date' | 'available_date',
+                                    sort_direction: value === 'priority' ? 'desc' : 'asc'
+                                })}
+                            >
+                                <SelectTrigger className="w-[200px]">
+                                    <SelectValue placeholder="Sort by Priority" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="priority">Sort by Priority</SelectItem>
+                                    <SelectItem value="due_date">Sort by Due Date</SelectItem>
+                                    <SelectItem value="release_date">Sort by Release Date</SelectItem>
+                                    <SelectItem value="available_date">Sort by Available Date</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
-
-                        {/* Advanced Filters */}
-                        {showFilters && (
-                            <Card>
-                                <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block">Work Cell</label>
-                                        <Select
-                                            value={filters.work_cell_id || 'all'}
-                                            onValueChange={(value) => updateFilters({
-                                                work_cell_id: value === 'all' ? undefined : value
-                                            })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="All Work Cells" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Work Cells</SelectItem>
-                                                {workCells.map(cell => (
-                                                    <SelectItem key={cell.id} value={cell.id.toString()}>
-                                                        {cell.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block">Priority</label>
-                                        <Select
-                                            value={filters.priority || 'all'}
-                                            onValueChange={(value) => updateFilters({
-                                                priority: value === 'all' ? undefined : value
-                                            })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="All Priorities" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Priorities</SelectItem>
-                                                <SelectItem value="100">High (100)</SelectItem>
-                                                <SelectItem value="50">Medium (50)</SelectItem>
-                                                <SelectItem value="0">Low (0)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block">Has Routing</label>
-                                        <Select
-                                            value={filters.has_routing || 'all'}
-                                            onValueChange={(value) => updateFilters({
-                                                has_routing: value === 'all' ? undefined : value
-                                            })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="All Orders" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Orders</SelectItem>
-                                                <SelectItem value="yes">With Routing</SelectItem>
-                                                <SelectItem value="no">Without Routing</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block">Date From</label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal",
-                                                        !filters.date_from && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {filters.date_from ? format(parseISO(filters.date_from), 'PPP') : "Select date"}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={filters.date_from ? parseISO(filters.date_from) : undefined}
-                                                    onSelect={(date) => updateFilters({
-                                                        date_from: date ? format(date, 'yyyy-MM-dd') : undefined
-                                                    })}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-sm font-medium mb-1 block">Date To</label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal",
-                                                        !filters.date_to && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {filters.date_to ? format(parseISO(filters.date_to), 'PPP') : "Select date"}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={filters.date_to ? parseISO(filters.date_to) : undefined}
-                                                    onSelect={(date) => updateFilters({
-                                                        date_to: date ? format(date, 'yyyy-MM-dd') : undefined
-                                                    })}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-
-                                    <div className="flex items-end">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full"
-                                            onClick={() => updateFilters({
-                                                work_cell_id: undefined,
-                                                priority: undefined,
-                                                has_routing: undefined,
-                                                date_from: undefined,
-                                                date_to: undefined,
-                                                overdue: undefined
-                                            })}
-                                        >
-                                            Clear Filters
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
                     </div>
 
                     {/* Main Content */}

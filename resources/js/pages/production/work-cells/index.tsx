@@ -1,9 +1,9 @@
 import CreateWorkCellSheet from '@/components/production/CreateWorkCellSheet';
+import { WorkCellDependenciesDialog } from '@/components/production/WorkCellDependenciesDialog';
 import { ColumnVisibility } from '@/components/data-table';
 import { EntityActionDropdown } from '@/components/shared/EntityActionDropdown';
 import { EntityDataTable } from '@/components/shared/EntityDataTable';
 import { EntityDeleteDialog } from '@/components/shared/EntityDeleteDialog';
-import { EntityDependenciesDialog } from '@/components/shared/EntityDependenciesDialog';
 import { EntityPagination } from '@/components/shared/EntityPagination';
 import { Badge } from '@/components/ui/badge';
 import { useEntityOperations } from '@/hooks/useEntityOperations';
@@ -74,6 +74,8 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
         },
     });
     const [search, setSearch] = useState(filters.search || '');
+    const [editingWorkCell, setEditingWorkCell] = useState<WorkCell | null>(null);
+    const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
     // Use centralized sorting hook
     const { sort, direction, handleSort } = useSorting({
         routeName: 'production.work-cells',
@@ -250,7 +252,10 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                 description="Gerencie as células de trabalho do sistema"
                 searchValue={search}
                 onSearchChange={handleSearch}
-                onCreateClick={() => entityOps.setEditSheetOpen(true)}
+                onCreateClick={() => {
+                    setEditingWorkCell(null);
+                    setIsEditSheetOpen(true);
+                }}
                 createButtonText="Adicionar"
                 actions={
                     <div className="flex items-center gap-2">
@@ -282,7 +287,10 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                             const workCell = row as unknown as WorkCell;
                             return (
                                 <EntityActionDropdown
-                                    onEdit={() => entityOps.handleEdit(workCell)}
+                                    onEdit={() => {
+                                        setEditingWorkCell(workCell);
+                                        setIsEditSheetOpen(true);
+                                    }}
                                     onDelete={() => entityOps.handleDelete(workCell)}
                                 />
                             );
@@ -296,10 +304,15 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                 </div>
             </ListLayout>
             <CreateWorkCellSheet
-                workCell={entityOps.editingItem || undefined}
-                open={entityOps.isEditSheetOpen}
-                onOpenChange={entityOps.setEditSheetOpen}
-                mode={entityOps.editingItem ? 'edit' : 'create'}
+                workCell={editingWorkCell || undefined}
+                open={isEditSheetOpen}
+                onOpenChange={(open) => {
+                    setIsEditSheetOpen(open);
+                    if (!open) {
+                        setEditingWorkCell(null);
+                    }
+                }}
+                mode={editingWorkCell ? 'edit' : 'create'}
                 plants={plants}
                 shifts={shifts}
                 manufacturers={manufacturers}
@@ -310,10 +323,10 @@ export default function WorkCells({ workCells: initialWorkCells, filters, plants
                 entityLabel={entityOps.deletingItem?.name || ''}
                 onConfirm={entityOps.confirmDelete}
             />
-            <EntityDependenciesDialog
+            <WorkCellDependenciesDialog
                 open={entityOps.isDependenciesDialogOpen}
                 onOpenChange={entityOps.setDependenciesDialogOpen}
-                entityName="célula de trabalho"
+                workCellName={entityOps.deletingItem?.name || ''}
                 dependencies={entityOps.dependencies}
             />
         </AppLayout>

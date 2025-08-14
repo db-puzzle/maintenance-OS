@@ -7,7 +7,6 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Search, Factory, Users, BarChart3, Clock } from 'lucide-react';
@@ -39,73 +38,44 @@ export function WorkCellSearchDialog({
         }
     }, [open, selectedWorkCellId]);
 
-    // Add "All Work Cells" option to the list
-    const enrichedWorkCells = useMemo(() => {
-        const allOption = {
-            id: 'all',
-            name: 'All Work Cells',
-            code: 'ALL',
-            description: 'Show orders from all work cells',
-            is_active: true,
-            status: 'active' as const,
-            available_hours_per_day: 0,
-            efficiency_percentage: 0,
-            routing_steps_count: workCells.reduce((sum, wc) => sum + (wc.routing_steps_count || 0), 0),
-            production_schedules_count: workCells.reduce((sum, wc) => sum + (wc.production_schedules_count || 0), 0),
-        };
-
-        return [allOption, ...workCells.map(wc => ({
+    // Convert work cell IDs to strings for consistency
+    const normalizedWorkCells = useMemo(() => {
+        return workCells.map(wc => ({
             ...wc,
             id: wc.id.toString(),
-        }))];
+        }));
     }, [workCells]);
 
     // Filter work cells based on search query
     const filteredWorkCells = useMemo(() => {
         if (!searchQuery.trim()) {
-            return enrichedWorkCells;
+            return normalizedWorkCells;
         }
 
         const query = searchQuery.toLowerCase();
-        return enrichedWorkCells.filter(workCell => {
+        return normalizedWorkCells.filter(workCell => {
             return (
                 (workCell.name?.toLowerCase() || '').includes(query) ||
                 (workCell.code?.toLowerCase() || '').includes(query) ||
                 (workCell.description?.toLowerCase() || '').includes(query)
             );
         });
-    }, [enrichedWorkCells, searchQuery]);
+    }, [normalizedWorkCells, searchQuery]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Escape') {
             e.preventDefault();
-            handleCancel();
+            onOpenChange(false);
+            setSearchQuery('');
+            setSelectedId(selectedWorkCellId);
         }
     };
 
-    const handleSelect = () => {
-        if (selectedId === 'all') {
-            onSelectWorkCell(undefined);
-        } else {
-            onSelectWorkCell(selectedId);
-        }
-        onOpenChange(false);
-        setSearchQuery('');
-    };
 
-    const handleCancel = () => {
-        onOpenChange(false);
-        setSearchQuery('');
-        setSelectedId(selectedWorkCellId);
-    };
 
-    const getUtilizationPercentage = (workCell: WorkCell | { id: string; name: string; code: string; description: string; is_active: boolean; status: 'active' | 'maintenance' | 'inactive'; available_hours_per_day: number; efficiency_percentage: number; routing_steps_count: number; production_schedules_count: number }) => {
-        if (!workCell.available_hours_per_day || workCell.available_hours_per_day === 0) return 0;
-        if (!workCell.production_schedules_count) return 0;
-        // Simple utilization based on schedules vs available hours
-        const utilizationEstimate = (workCell.production_schedules_count * 2) / workCell.available_hours_per_day * 100;
-        return Math.min(100, Math.round(utilizationEstimate));
-    };
+
+
+
 
     const getUtilizationColor = (percentage: number) => {
         if (percentage >= 90) return 'text-red-600';
@@ -124,6 +94,29 @@ export function WorkCellSearchDialog({
                 </DialogHeader>
 
                 <div className="space-y-4">
+                    {/* All Work Cells Button */}
+                    <button
+                        onClick={() => {
+                            onSelectWorkCell(undefined);
+                            onOpenChange(false);
+                            setSearchQuery('');
+                        }}
+                        className={cn(
+                            "w-full rounded-lg border border-dashed p-3 text-left transition-colors hover:bg-accent",
+                            selectedWorkCellId === undefined && "border-primary bg-accent"
+                        )}
+                    >
+                        <div className="flex items-center gap-2">
+                            <Factory className="h-4 w-4 text-primary" />
+                            <div>
+                                <span className="font-medium">All Work Cells</span>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    Show orders from all work cells
+                                </p>
+                            </div>
+                        </div>
+                    </button>
+
                     {/* Search Input */}
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -138,7 +131,7 @@ export function WorkCellSearchDialog({
                     </div>
 
                     {/* Results */}
-                    <ScrollArea className="h-[400px] rounded-md border">
+                    <ScrollArea className="h-[320px] rounded-md border">
                         <div className="p-2">
                             {filteredWorkCells.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -149,34 +142,31 @@ export function WorkCellSearchDialog({
                             ) : (
                                 <div className="space-y-2">
                                     {filteredWorkCells.map((workCell) => {
-                                        const isAllOption = workCell.id === 'all';
-
                                         return (
                                             <button
                                                 key={workCell.id}
-                                                onClick={() => setSelectedId(workCell.id)}
-                                                onDoubleClick={handleSelect}
+                                                onClick={() => {
+                                                    onSelectWorkCell(workCell.id);
+                                                    onOpenChange(false);
+                                                    setSearchQuery('');
+                                                }}
                                                 className={cn(
                                                     "w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent",
-                                                    selectedId === workCell.id && "border-primary bg-accent",
-                                                    isAllOption && "border-dashed"
+                                                    selectedId === workCell.id && "border-primary bg-accent"
                                                 )}
                                             >
                                                 <div className="space-y-2">
                                                     <div className="flex items-start justify-between">
                                                         <div className="flex items-center gap-2">
-                                                            <Factory className={cn(
-                                                                "h-4 w-4",
-                                                                isAllOption ? "text-primary" : "text-muted-foreground"
-                                                            )} />
+                                                            <Factory className="h-4 w-4 text-muted-foreground" />
                                                             <div>
                                                                 <span className="font-medium">{workCell.name}</span>
-                                                                {workCell.code && workCell.code !== 'ALL' && (
+                                                                {workCell.code && (
                                                                     <span className="text-muted-foreground ml-2">({workCell.code})</span>
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        {!isAllOption && workCell.status && (
+                                                        {workCell.status && (
                                                             <Badge variant={
                                                                 workCell.status === 'active' ? "default" :
                                                                     workCell.status === 'maintenance' ? "outline" : "secondary"
@@ -233,21 +223,10 @@ export function WorkCellSearchDialog({
                     </ScrollArea>
 
                     {/* Footer */}
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-end">
                         <p className="text-sm text-muted-foreground">
-                            {filteredWorkCells.length} of {enrichedWorkCells.length} work cells
+                            {filteredWorkCells.length} of {normalizedWorkCells.length} work cells
                         </p>
-                        <div className="flex gap-2">
-                            <Button variant="outline" onClick={handleCancel}>
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleSelect}
-                                disabled={!selectedId}
-                            >
-                                Select Work Cell
-                            </Button>
-                        </div>
                     </div>
                 </div>
             </DialogContent>

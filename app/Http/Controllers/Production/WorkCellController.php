@@ -243,7 +243,8 @@ class WorkCellController extends BaseSearchController
 
         // If request has 'stay' parameter (indicates Sheet/Modal)
         if ($request->has('stay') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
-            return back()->with('success', "Célula de trabalho {$workCell->name} criada com sucesso.");
+            return back()->with('success', "Célula de trabalho {$workCell->name} criada com sucesso.")
+                ->with('newWorkCellId', $workCell->id);
         }
 
         return redirect()->route('production.work-cells.show', $workCell)
@@ -326,24 +327,40 @@ class WorkCellController extends BaseSearchController
     {
         $this->authorize('delete', $workCell);
 
-        $dependencies = [
-            'dependencies' => []
-        ];
+        $dependencies = [];
+        $hasDependencies = false;
 
         // Check routing steps
         $routingStepsCount = $workCell->routingSteps()->count();
         if ($routingStepsCount > 0) {
-            $dependencies['dependencies']['routing_steps'] = [
+            $hasDependencies = true;
+            $dependencies['routing_steps'] = [
                 'count' => $routingStepsCount,
                 'label' => 'Etapas de Roteiro',
                 'items' => $workCell->routingSteps()
-                    ->with('manufacturingRoute.item')
-                    ->limit(10)
+                    ->with(['manufacturingRoute.item', 'manufacturingRoute.manufacturingOrder'])
+                    ->orderBy('created_at', 'desc')
+                    ->limit(3)
                     ->get()
                     ->map(function ($step) {
+                        $route = $step->manufacturingRoute;
+                        $order = $route->manufacturingOrder;
+                        
                         return [
                             'id' => $step->id,
-                            'name' => "Etapa {$step->step_number} - {$step->manufacturingRoute->item->name}",
+                            'name' => "Etapa {$step->step_number} - {$step->name}",
+                            'item_name' => $route->item->name,
+                            'manufacturing_order' => [
+                                'id' => $order->id,
+                                'order_number' => $order->order_number,
+                                'route' => route('production.orders.show', ['order' => $order->id])
+                            ],
+                            'manufacturing_route' => [
+                                'id' => $route->id,
+                                'name' => $route->name,
+                                'route' => route('production.routing.show', ['routing' => $route->id])
+                            ],
+                            'step_route' => route('production.steps.execute', ['step' => $step->id]),
                         ];
                     }),
             ];
@@ -353,7 +370,8 @@ class WorkCellController extends BaseSearchController
         // TODO: Uncomment when ProductionSchedule model is created
         // $schedulesCount = $workCell->productionSchedules()->count();
         // if ($schedulesCount > 0) {
-        //     $dependencies['dependencies']['production_schedules'] = [
+        //     $hasDependencies = true;
+        //     $dependencies['production_schedules'] = [
         //         'count' => $schedulesCount,
         //         'label' => 'Agendamentos de Produção',
         //         'items' => $workCell->productionSchedules()
@@ -369,7 +387,10 @@ class WorkCellController extends BaseSearchController
         //     ];
         // }
 
-        return response()->json($dependencies);
+        return response()->json([
+            'can_delete' => !$hasDependencies,
+            'dependencies' => $dependencies,
+        ]);
     }
 
     /**

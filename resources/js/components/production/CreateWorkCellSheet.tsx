@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BaseEntitySheet } from '@/components/BaseEntitySheet';
 import { ItemSelect } from '@/components/ItemSelect';
 import { TextInput } from '@/components/TextInput';
@@ -66,6 +66,27 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
     const [cellType, setCellType] = useState<'internal' | 'external'>(workCell?.cell_type || 'internal');
     const [selectedPlantId, setSelectedPlantId] = useState<string>(workCell?.plant_id?.toString() || '');
     const [selectedAreaId, setSelectedAreaId] = useState<string>(workCell?.area_id?.toString() || '');
+
+    // Memoize the formConfig to prevent unnecessary re-renders
+    const formConfig = useMemo(() => ({
+        initialData: {
+            name: workCell?.name || '',
+            description: workCell?.description || '',
+            cell_type: workCell?.cell_type || 'internal',
+            available_hours_per_day: workCell?.available_hours_per_day?.toString() || '8',
+            efficiency_percentage: workCell?.efficiency_percentage?.toString() || '85',
+            shift_id: workCell?.shift_id?.toString() || '',
+            plant_id: workCell?.plant_id?.toString() || '',
+            area_id: workCell?.area_id?.toString() || '',
+            sector_id: workCell?.sector_id?.toString() || '',
+            manufacturer_id: workCell?.manufacturer_id?.toString() || '',
+            is_active: workCell?.is_active ?? true,
+        },
+        createRoute: 'production.work-cells.store',
+        updateRoute: 'production.work-cells.update',
+        entityName: 'Célula de Trabalho',
+    }), [workCell]);
+
     // Auto-focus the name input when sheet opens for creation
     useEffect(() => {
         if (open && mode === 'create') {
@@ -87,6 +108,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             };
         }
     }, [open, mode]);
+
     // Fetch areas when plant changes
     useEffect(() => {
         if (selectedPlantId) {
@@ -99,6 +121,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             setSectors([]);
         }
     }, [selectedPlantId]);
+
     // Fetch sectors when area changes
     useEffect(() => {
         if (selectedAreaId) {
@@ -110,6 +133,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             setSectors([]);
         }
     }, [selectedAreaId]);
+
     // Handle onOpenChange to focus when sheet opens
     const handleOpenChange = (open: boolean) => {
         if (onOpenChange) {
@@ -122,6 +146,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             }, 100);
         }
     };
+
     return (
         <BaseEntitySheet<WorkCellForm>
             entity={workCell}
@@ -133,24 +158,7 @@ const CreateWorkCellSheet: React.FC<CreateWorkCellSheetProps> = ({
             triggerVariant={triggerVariant}
             showTrigger={showTrigger}
             triggerRef={triggerRef}
-            formConfig={{
-                initialData: {
-                    name: '',
-                    description: '',
-                    cell_type: 'internal',
-                    available_hours_per_day: '8',
-                    efficiency_percentage: '85',
-                    shift_id: '',
-                    plant_id: '',
-                    area_id: '',
-                    sector_id: '',
-                    manufacturer_id: '',
-                    is_active: true,
-                },
-                createRoute: 'production.work-cells.store',
-                updateRoute: 'production.work-cells.update',
-                entityName: 'Célula de Trabalho',
-            }}
+            formConfig={formConfig}
         >
             {({ data, setData, errors, formAdapter }) => (
                 <>

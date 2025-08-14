@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('unit_of_measure', 20)->default('EA');
             
             // Status tracking
-            $table->enum('status', ['draft', 'planned', 'released', 'in_progress', 'completed', 'cancelled'])->default('draft');
+            $table->enum('status', ['draft', 'planned', 'released', 'in_progress', 'on_hold', 'completed', 'cancelled'])->default('draft');
             $table->integer('priority')->default(50); // 0-100
             
             // Child order tracking
